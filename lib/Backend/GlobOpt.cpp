@@ -2693,7 +2693,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             if (!landingPadValue)
             {
                 // Value should be added as initial value or already be there.
-                return false;
+                return nullptr;
             }
 
             IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
@@ -5729,6 +5729,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     }
                 }
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 // For uses before defs, we set likelySimd128*SymsUsedBeforeDefined bits for syms that have landing pad value info that allow type-spec to happen in the loop body.
                 // The BV will be added to loop header if the backedge has a live matching type-spec value. We then compensate in the loop header to unbox the value.
@@ -5781,6 +5782,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                         rootLoopPrePass->likelySimd128I4SymsUsedBeforeDefined->Set(sym->m_id);
                     }
                 }
+#endif
             }
         }
     }
@@ -7772,6 +7774,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         break;
     }
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (Js::IsSimd128Opcode(instr->m_opcode) && !func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
     {
@@ -7779,6 +7782,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(instr->m_opcode, simdFuncSignature);
         return this->NewGenericValue(simdFuncSignature.returnType, dst);
     }
+#endif
 
     if (dstVal == nullptr)
     {
@@ -8599,11 +8603,13 @@ GlobOpt::TypeSpecialization(
     Value *const src1OriginalVal = src1Val;
     Value *const src2OriginalVal = src2Val;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (TypeSpecializeSimd128(instr, pSrc1Val, pSrc2Val, pDstVal))
     {
         return instr;
     }
+#endif
 
     if(!instr->ShouldCheckForIntOverflow())
     {
@@ -16585,8 +16591,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     failedToUpdateCompatibleLowerBoundCheck,
                     failedToUpdateCompatibleUpperBoundCheck);
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 UpdateBoundCheckHoistInfoForSimd(upperBoundCheckHoistInfo, newBaseValueType, instr);
+#endif
             }
 
             if(!eliminatedLowerBoundCheck)
@@ -20207,7 +20215,7 @@ ValueInfo::SpecializeToSimd128(IRType type, JitArenaAllocator *const allocator)
         return SpecializeToSimd128I4(allocator);
     default:
         Assert(UNREACHED);
-        return false;
+        return nullptr;
     }
 
 }
@@ -21593,3 +21601,9 @@ GlobOpt::ProcessMemOp()
     } NEXT_LOOP_EDITING;
 }
 
+template<>
+ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
+{
+    Assert(value);
+    return value->GetValueNumber();
+}

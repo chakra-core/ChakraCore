@@ -18,6 +18,8 @@
 #ifndef __PAL_MSTYPES_H__
 #define __PAL_MSTYPES_H__
 
+#define __MSTYPES_DEFINED
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -90,12 +92,6 @@ extern "C" {
 
 #if defined(_VAC_) && defined(__cplusplus)
 #define __inline        inline
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-#define __forceinline   __attribute__((always_inline))
-#elif !defined(_MSC_VER)
-#define __forceinline   inline
 #endif
 
 #endif // !_MSC_VER
@@ -601,6 +597,21 @@ typedef LONG_PTR LPARAM;
 #define _PTRDIFF_T
 #endif
 
+// CC uses both char16_t and wchar_t internally
+#if !defined(_WCHAR_T_DEFINED)
+#if defined(__cplusplus)
+#undef wchar_t
+#define wchar_t __wchar_16_cpp__
+typedef char16_t wchar_t;
+#else
+typedef unsigned short char16_t;
+#endif // __cplusplus
+#define _WCHAR_T_DEFINED
+#endif // _WCHAR_T_DEFINED
+
+typedef char16_t WCHAR;
+#define WCHAR_IS_CHAR16_T 1
+
 #ifdef PAL_STDCPP_COMPAT
 
 #ifdef __APPLE__
@@ -612,12 +623,9 @@ typedef unsigned long int uintptr_t;
 typedef unsigned int uintptr_t;
 #endif // !BIT64
 #endif
-
-typedef char16_t WCHAR;
-
+ 
 #else // !PAL_STDCPP_COMPAT
 
-typedef wchar_t WCHAR;
 #if defined(__LINUX__)
 #ifdef BIT64
 typedef long int intptr_t;

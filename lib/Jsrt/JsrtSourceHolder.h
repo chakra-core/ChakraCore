@@ -37,12 +37,8 @@ namespace Js
         };
 
         void EnsureSource(MapRequestFor requestedFor, const wchar_t* reasonString);
+
     public:
-
-        static void ScriptToUtf8(_When_(heapAlloc, _In_opt_) _When_(!heapAlloc, _In_) Js::ScriptContext *scriptContext,
-            _In_z_ const wchar_t *script, _Outptr_result_buffer_(*utf8Length) LPUTF8 *utf8Script, _Out_ size_t *utf8Length,
-            _Out_ size_t *scriptLength, _Out_opt_ size_t *utf8AllocLength = NULL, _In_ bool heapAlloc = false);
-
         JsrtSourceHolder(_In_ TLoadCallback scriptLoadCallback,
             _In_ TUnloadCallback scriptUnloadCallback,
             _In_ JsSourceContext sourceContext) :

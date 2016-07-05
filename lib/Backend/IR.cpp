@@ -1381,7 +1381,7 @@ LabelInstr::Init(Js::OpCode opcode, IRKind kind, Func *func, bool isOpHelper)
 
     this->m_pc.pc = nullptr;
     this->m_id = ++(func->GetTopFunc()->m_labelCount);
-    AssertMsg(this->m_id != 0, "Label numbers wrapped around??!?");
+    AssertMsg(this->m_id != 0, "Label numbers wrapped around?");
 }
 
 ///----------------------------------------------------------------------------

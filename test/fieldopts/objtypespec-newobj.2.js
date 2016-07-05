@@ -3,8 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+function writeLine(v) {
+    v = v.replace(/\(PDT\)/g, "(Pacific Daylight Time)")
+         .replace(/\(PST\)/g, "(Pacific Standard Time)");
+    WScript.Echo(v);
+}
+
 // Test the happy path of the new object optimization involving built-ins.
-WScript.Echo("Test 01:");
+writeLine("Test 01:");
 
 function test01() {
     var o = new Array();
@@ -15,17 +21,17 @@ function test01() {
 }
 
 var o = test01();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test01();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test01();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
 
-WScript.Echo("Test 02:");
+writeLine("Test 02:");
 
 var proto02 = { p: 1001, q: 1002 };
 
@@ -38,16 +44,16 @@ function test02() {
 }
 
 var o = test02();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test02();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test02();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 03:");
+writeLine("Test 03:");
 
 var proto03 = { p: 1001, q: 1002 };
 
@@ -62,16 +68,16 @@ function test03() {
 }
 
 var o = test03();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test03();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test03();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 04:");
+writeLine("Test 04:");
 
 function SimpleObject04() {
     this.a = 1;
@@ -94,16 +100,16 @@ function test04() {
 }
 
 var o = test04();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test04();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test04();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 11:");
+writeLine("Test 11:");
 
 function test11() {
     var o = new Boolean();
@@ -114,16 +120,16 @@ function test11() {
 }
 
 var o = test11();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test11();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test11();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 12:");
+writeLine("Test 12:");
 
 var proto12 = { p: 1001, q: 1002 };
 
@@ -136,17 +142,17 @@ function test12() {
 }
 
 var o = test12();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test12();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test12();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
 
-WScript.Echo("Test 13:");
+writeLine("Test 13:");
 
 var proto13 = { p: 1001, q: 1002 };
 
@@ -161,16 +167,16 @@ function test13() {
 }
 
 var o = test13();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test13();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test13();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 14:");
+writeLine("Test 14:");
 
 function SimpleObject14() {
     this.a = 1;
@@ -193,16 +199,16 @@ function test14() {
 }
 
 var o = test14();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test14();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test14();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 21:");
+writeLine("Test 21:");
 
 function test21() {
     var o = new Number();
@@ -213,16 +219,16 @@ function test21() {
 }
 
 var o = test21();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test21();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test21();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 22:");
+writeLine("Test 22:");
 
 var proto22 = { p: 1001, q: 1002 };
 
@@ -235,16 +241,16 @@ function test22() {
 }
 
 var o = test22();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test22();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test22();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 23:");
+writeLine("Test 23:");
 
 var proto23 = { p: 1001, q: 1002 };
 
@@ -259,16 +265,16 @@ function test23() {
 }
 
 var o = test23();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test23();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test23();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 24:");
+writeLine("Test 24:");
 
 function SimpleObject24() {
     this.a = 1;
@@ -291,16 +297,16 @@ function test24() {
 }
 
 var o = test24();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test24();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test24();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 31:");
+writeLine("Test 31:");
 
 function test31() {
     var o = new String();
@@ -311,16 +317,16 @@ function test31() {
 }
 
 var o = test31();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test31();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test31();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 32:");
+writeLine("Test 32:");
 
 var proto32 = { p: 1001, q: 1002 };
 
@@ -333,16 +339,16 @@ function test32() {
 }
 
 var o = test32();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test32();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test32();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 33:");
+writeLine("Test 33:");
 
 var proto33 = { p: 1001, q: 1002 };
 
@@ -357,16 +363,16 @@ function test33() {
 }
 
 var o = test33();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test33();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test33();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 34:");
+writeLine("Test 34:");
 
 function SimpleObject34() {
     this.a = 1;
@@ -389,16 +395,16 @@ function test34() {
 }
 
 var o = test34();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test34();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test34();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 41:");
+writeLine("Test 41:");
 
 function test41() {
     var o = new Date("2013/12/03");
@@ -409,16 +415,16 @@ function test41() {
 }
 
 var o = test41();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test41();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test41();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 42:");
+writeLine("Test 42:");
 
 var proto42 = { p: 1041, q: 1042 };
 
@@ -433,16 +439,16 @@ function test42() {
 }
 
 var o = test42();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test42();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test42();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 43:");
+writeLine("Test 43:");
 
 function SimpleObject43() {
     this.a = 1;
@@ -464,16 +470,16 @@ function test43() {
 }
 
 var o = test43();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test43();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test43();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 51:");
+writeLine("Test 51:");
 
 function test51() {
     var o = new Object();
@@ -484,16 +490,16 @@ function test51() {
 }
 
 var o = test51();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test51();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test51();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 52:");
+writeLine("Test 52:");
 
 var proto52 = { p: 1041, q: 1042 };
 
@@ -506,16 +512,16 @@ function test52() {
 }
 
 var o = test52();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test52();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test52();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 53:");
+writeLine("Test 53:");
 
 var proto53 = { p: 1041, q: 1042 };
 
@@ -530,16 +536,16 @@ function test53() {
 }
 
 var o = test53();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test53();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test53();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 54:");
+writeLine("Test 54:");
 
 function SimpleObject54() {
     this.a = 1;
@@ -562,16 +568,16 @@ function test54() {
 }
 
 var o = test54();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test54();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test54();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");
 
-WScript.Echo("Test 55:");
+writeLine("Test 55:");
 
 function SimpleObject55() {
     this.a = 1;
@@ -595,11 +601,11 @@ function test55() {
 }
 
 var o = test55();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test55();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test55();
-WScript.Echo("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
-WScript.Echo("");
+writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("");

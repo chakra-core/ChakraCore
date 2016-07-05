@@ -282,7 +282,7 @@ private:
     {
         // xplat-todo: fix up vpm.64b.h generation to generate correctly
         // templatized code
-#ifdef _WIN32
+#if defined(_MSC_VER) && !defined(__clang__)
 #define USE_STATIC_VPM 1 // Disable to force generation at runtime
 #else
 #define USE_STATIC_VPM 0

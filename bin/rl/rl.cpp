@@ -352,8 +352,8 @@ char* DiffCompiler = NULL;
 RLMODE Mode = DEFAULT_RLMODE;
 
 char *DCFGfile = NULL;
-char *CFGfile = NULL;
-char *CMDfile = NULL;
+char const *CFGfile = NULL;
+char const *CMDfile = NULL;
 int CFGline;
 
 #define MAX_ALLOWED_THREADS 10 // must be <= MAXIMUM_WAIT_OBJECTS (64)

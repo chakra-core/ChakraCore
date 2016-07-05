@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="Common.Build.props"/>
+  <Import Project="Common.Build.props"/>  
   <PropertyGroup>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'">0x0601</Win32_WinNTVersion>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win8)'">0x0602</Win32_WinNTVersion>
@@ -62,4 +62,6 @@
         user32.lib
     </ChakraCommonLinkDependencies>
   </PropertyGroup>
+
+  <Import Condition="'$(Clang)'!=''" Project="Chakra.Build.Clang.props"/>
 </Project>

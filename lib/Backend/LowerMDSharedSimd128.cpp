@@ -5,6 +5,8 @@
 
 #include "Backend.h"
 
+#ifdef ENABLE_SIMDJS
+
 #define GET_SIMDOPCODE(irOpcode) m_simd128OpCodesMap[(uint32)(irOpcode - Js::OpCode::Simd128_Start)]
 
 #define SET_SIMDOPCODE(irOpcode, mdOpcode) \
@@ -3341,3 +3343,5 @@ BYTE LowererMD::Simd128GetTypedArrBytesPerElem(ValueType arrType)
 {
     return  (1 << Lowerer::GetArrayIndirScale(arrType));
 }
+
+#endif

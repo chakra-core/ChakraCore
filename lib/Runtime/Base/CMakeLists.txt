@@ -11,7 +11,6 @@ add_library (Chakra.Runtime.Base STATIC
     ExpirableObject.cpp
     FunctionBody.cpp
     FunctionInfo.cpp
-    # HiResTimer.cpp
     LeaveScriptObject.cpp
     PerfHint.cpp
     PropertyRecord.cpp

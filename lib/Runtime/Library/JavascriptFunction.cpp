@@ -1259,11 +1259,11 @@ dbl_align:
         unsigned count = args.Info.Count;
         if (count == 0)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info);
         }
         else if (count == 1)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info, args.Values[0]);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
         }
         else
         {
@@ -1638,12 +1638,8 @@ LABEL1:
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
-    // xplat-todo: Implement defer deserialization for linux
-    Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        Js::Throw::NotImplemented();
-        return nullptr;
-    }
+    // xplat implement in
+    // Library/amd64/JavascriptFunctionA.S
 #endif
 
     Js::JavascriptMethod JavascriptFunction::DeferredDeserialize(ScriptFunction* function)
@@ -2140,8 +2136,8 @@ LABEL1:
         if (instrData.isLoad)
         {
             Var exceptionInfoReg = exceptionInfo->ContextRecord;
-            Var* exceptionInfoIntReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, CONTEXT::Rax)); // offset in the contextRecord for RAX , the assert below checks for any change in the exceptionInfo struct
-            Var* exceptionInfoFloatReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, CONTEXT::Xmm0));// offset in the contextRecord for XMM0 , the assert below checks for any change in the exceptionInfo struct
+            Var* exceptionInfoIntReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, Rax)); // offset in the contextRecord for RAX , the assert below checks for any change in the exceptionInfo struct
+            Var* exceptionInfoFloatReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, Xmm0));// offset in the contextRecord for XMM0 , the assert below checks for any change in the exceptionInfo struct
             Assert((DWORD64)*exceptionInfoIntReg == exceptionInfo->ContextRecord->Rax);
             Assert((uint64)*exceptionInfoFloatReg == exceptionInfo->ContextRecord->Xmm0.Low);
 
@@ -2805,7 +2801,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
-        if (result && propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
+        if (result && (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance))
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);

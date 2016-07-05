@@ -4,6 +4,28 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#define __MAKE_WARNING__(X) "This compiler does not support '" ## X ## "'"
+// Define _ALWAYSINLINE for template that want to always inline, but doesn't allow inline linkage in clang
+#if defined(__GNUC__) || defined(__clang__)
+    #if __has_attribute(always_inline)
+        #define _ALWAYSINLINE __attribute__((always_inline))
+        #define __forceinline inline _ALWAYSINLINE
+    #else // No always_inline support
+        #pragma message __MAKE_WARNING__("always_inline")
+        #define _ALWAYSINLINE inline
+        #define __forceinline _ALWAYSINLINE
+    #endif
+    #if __has_attribute(noinline)
+        #define _NOINLINE __attribute__((noinline))
+    #else // No noinline support
+        #pragma message __MAKE_WARNING__("noinline")
+        #define _NOINLINE
+    #endif
+#else // Windows
+    #define _ALWAYSINLINE __forceinline
+    #define _NOINLINE __declspec(noinline)
+    #define __forceinline inline
+#endif
 
 #ifdef _WIN32
 #pragma warning(push)
@@ -28,6 +50,13 @@ typedef wchar_t char16;
 
 #define get_cpuid __cpuid
 
+#if defined(__clang__)
+__forceinline void  __int2c()
+{
+    __asm int 0x2c
+}
+#endif
+
 #else // !_WIN32
 
 #define USING_PAL_STDLIB 1
@@ -44,12 +73,6 @@ typedef wchar_t char16;
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
-
-#if defined(__GNUC__) || defined(__clang__)
-#define __forceinline inline __attribute__((always_inline))
-#else
-#define __forceinline inline
-#endif
 
 typedef char16_t char16;
 #define _u(s) u##s
@@ -91,7 +114,6 @@ inline void DebugBreak()
 
 // These are not available in pal
 #define fwprintf_s      fwprintf
-#define wmemcmp         wcsncmp
 // sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
 #undef sprintf_s
 // #define sprintf_s PAL_sprintf_s
@@ -365,6 +387,7 @@ BOOL WINAPI GetModuleHandleEx(
 );
 
 int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
+bool IsAddressOnStack(ULONG_PTR address);
 
 errno_t rand_s(unsigned int* randomValue);
 
@@ -401,7 +424,7 @@ DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 #endif
 
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 // ms-specific keywords
 #define _ABSTRACT abstract
 // MSVC2015 does not support C++11 semantics for `typename QualifiedName` declarations
@@ -554,3 +577,64 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
     finallyFunc(hasException);
 }
+
+namespace PlatformAgnostic
+{
+    __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _bittestandset intrinic to bts, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval = 0;
+        asm(
+            "bts %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _bittestandset(_BitBase, _BitPos);
+#endif
+    }
+
+    __forceinline unsigned char _BitTest(const LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _bittest intrinic to bt, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "bt %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos), [_BitBase] "m" (*_BitBase)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _bittest(_BitBase, _BitPos);
+#endif
+    }
+
+    __forceinline unsigned char _InterlockedBitTestAndSet(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock bts, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock bts %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _interlockedbittestandset(_BitBase, _BitPos);
+#endif
+    }
+};
+
+#include "PlatformAgnostic/DateTime.h"
+#include "PlatformAgnostic/Numbers.h"
+#include "PlatformAgnostic/SystemInfo.h"

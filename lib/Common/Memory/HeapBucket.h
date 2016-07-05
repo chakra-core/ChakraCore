@@ -67,10 +67,11 @@ public:
 
     uint GetBucketIndex() const;
     uint GetMediumBucketIndex() const;
-protected:
-    template <typename TBlockType>
-    static void EnumerateObjects(TBlockType * heapBlockList, ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
 
+    template <typename TBlockType>
+    static void EnumerateObjects(TBlockType * heapBlockList, ObjectInfoBits infoBits, void(*CallBackFunction)(void * address, size_t size));
+
+protected:
     HeapInfo * heapInfo;
     uint sizeCat;
 

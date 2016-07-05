@@ -4,9 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-template class EmitBufferManager<FakeCriticalSection>;
-template class EmitBufferManager<CriticalSection>;
-
 //----------------------------------------------------------------------------
 // EmitBufferManager::EmitBufferManager
 //      Constructor
@@ -562,3 +559,6 @@ EmitBufferManager<SyncObject>::DumpAndResetStats(char16 const * filename)
     this->totalBytesReserved = 0;
 }
 #endif
+
+template class EmitBufferManager<FakeCriticalSection>;
+template class EmitBufferManager<CriticalSection>;

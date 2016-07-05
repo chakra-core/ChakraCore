@@ -48,8 +48,8 @@
   </test>
   <test>
     <default>
-      <files>DateUTC.js</files>
-      <baseline>DateUTC.baseline</baseline>
+      <files>dateutc.js</files>
+      <baseline>dateutc.baseline</baseline>
     </default>
   </test>
   <test>
@@ -65,7 +65,7 @@
       <baseline>Conversions.win8.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_win7,exclude_winBlue,exclude_snap,exclude_jenkins</tags>
+      <tags>exclude_win7,exclude_winBlue,exclude_snap,exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -74,7 +74,7 @@
       <baseline>Conversions.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_win7,exclude_win8,exclude_snap,exclude_jenkins</tags>
+      <tags>exclude_win7,exclude_win8,exclude_snap,exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>

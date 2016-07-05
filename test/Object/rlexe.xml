@@ -68,6 +68,13 @@
         <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+        <files>toLocaleStringBasics.js</files>
+        <baseline>toLocaleStringBasics.baseline</baseline>
+        <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
   <!-- Disabled until we can resolve failures on Windows Server 2012 R2
 <test>
     <default>

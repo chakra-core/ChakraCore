@@ -10,7 +10,7 @@
 *
 *Purpose:
 *   wcslen returns the length of a null-terminated wide-character string,
-*   not including the null wchar_t itself.
+*   not including the null char16_t itself.
 *
 *******************************************************************************/
 
@@ -32,7 +32,7 @@
 *   returned.
 *
 *Entry:
-*   const wchar_t * wcs - string whose length is to be computed
+*   const char16_t * wcs - string whose length is to be computed
 *   size_t maxsize
 *
 *Exit:
@@ -43,7 +43,7 @@
 *
 *******************************************************************************/
 
-size_t __cdecl wcsnlen(const wchar_t *wcs, size_t maxsize)
+size_t __cdecl wcsnlen(const char16_t *wcs, size_t maxsize)
 {
     size_t n;
 

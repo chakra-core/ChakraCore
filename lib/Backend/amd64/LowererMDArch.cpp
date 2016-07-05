@@ -589,7 +589,7 @@ IR::Instr *
 LowererMDArch::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {
     callInstr->InsertBefore(saveThisArgOutInstr); //Move this Argout next to call;
-    this->LoadDynamicArgument(saveThisArgOutInstr, 3); /*this pointer is the 3rd argument
+    this->LoadDynamicArgument(saveThisArgOutInstr, 3); //this pointer is the 3rd argument
 
     /*callInfo*/
     if (callInstr->m_func->IsInlinee())

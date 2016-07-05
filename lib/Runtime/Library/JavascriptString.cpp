@@ -1339,6 +1339,9 @@ case_2:
         const char16* pThatStr = pThat->GetString();
         int thatStrCount = pThat->GetLength();
 
+        // xplat-todo: doing a locale-insensitive compare here
+        // but need to move locale-specific string comparison to
+        // platform agnostic interface
 #ifdef ENABLE_GLOBALIZATION
         LCID lcid = GetUserDefaultLCID();
         int result = CompareStringW(lcid, NULL, pThisStr, thisStrCount, pThatStr, thatStrCount );
@@ -1350,12 +1353,10 @@ case_2:
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
         return JavascriptNumber::ToVar(result-2, scriptContext);
-#else
-        // xplat-todo: doing a locale-insensitive compare here
-        // but need to move locale-specific string comparison to
-        // platform agnostic interface
-        AssertMsg(false, "toLocaleString is not yet implemented on linux");
-        return JavascriptNumber::ToVar(wcscmp(pThisStr, pThatStr), scriptContext);
+#else // !ENABLE_GLOBALIZATION
+        // no ICU / or external support for localization. Use c-lib
+        const int result = wcscmp(pThisStr, pThatStr);
+        return JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
 #endif
     }
 
@@ -2218,7 +2219,7 @@ case_2:
                 if (*i >= 'a')
                 {
                     if (*i <= 'z') { break; }
-                    if (*i >= 'ß') { break; }
+                    if (*i >= 223) { break; }
                 }
                 i++;
             }
@@ -2234,10 +2235,10 @@ case_2:
                 if (*i >= 'A')
                 {
                     if (*i <= 'Z') { break; }
-                    if (*i >= 'À')
+                    if (*i >= 192)
                     { 
-                        if (*i < 'ß') { break; }
-                        if (*i >= 'ÿ') { break; }
+                        if (*i < 223) { break; }
+                        if (*i >= 255) { break; }
                     }
                 }
                 i++;

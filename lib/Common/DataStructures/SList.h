@@ -670,7 +670,7 @@ public:
 };
 
 #define _FOREACH_LIST_ENTRY_EX(List, T, Iterator, iter, data, list) \
-    List<T>::Iterator iter(list); \
+    _TYPENAME List<T>::Iterator iter(list); \
     while (iter.Next()) \
     { \
         T& data = iter.Data();

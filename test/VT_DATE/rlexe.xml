@@ -2,7 +2,7 @@
 <regress-exe>
   <test>
     <default>
-      <files>getVarDate.js</files>
+      <files>getvardate.js</files>
       <baseline>getVarDate.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
       <tags>exclude_jenkins</tags>

@@ -59,6 +59,6 @@
     <None Include="JavascriptMath.inl" />
     <None Include="JavascriptSSE2MathOperators.inl" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

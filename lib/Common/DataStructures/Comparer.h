@@ -155,7 +155,7 @@ struct StringComparer
         return hash;
     }
 
-    static int Compare(T str1, T str2)
+    inline static int Compare(T str1, T str2)
     {
         return ::wcscmp(str1, str2);
     }

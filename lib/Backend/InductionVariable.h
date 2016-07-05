@@ -46,7 +46,7 @@ public:
 };
 
 template<>
-SymID JsUtil::ValueToKey<SymID, InductionVariable>::ToKey(const InductionVariable &inductionVariable)
+inline SymID JsUtil::ValueToKey<SymID, InductionVariable>::ToKey(const InductionVariable &inductionVariable)
 {
     return inductionVariable.Sym()->m_id;
 }

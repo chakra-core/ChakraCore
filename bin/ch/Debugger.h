@@ -5,13 +5,12 @@
 #pragma once
 
 #ifdef _WIN32
-static const WCHAR controllerScript[] = {
+static const char controllerScript[] = {
 #include "DbgController.js.encoded"
-    _u('\0')
+    '\0'
 };
 #else
-// xplat-todo: Need to generate DbgController.js.encoded
-static const WCHAR controllerScript[] = { _u('\0') };
+static const char controllerScript[] = { '\0' };
 #endif
     
 class Debugger
@@ -37,8 +36,8 @@ private:
     bool InstallDebugCallbacks(JsValueRef hostDebugObject);
     bool SetBaseline();
     bool SetInspectMaxStringLength();
-    bool CallFunction(char16 const * functionName, JsValueRef *result, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
-    bool CallFunctionNoResult(char16 const * functionName, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
+    bool CallFunction(char const * functionName, JsValueRef *result, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
+    bool CallFunctionNoResult(char const * functionName, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
 public:
     static void CALLBACK DebugEventHandler(_In_ JsDiagDebugEvent debugEvent, _In_ JsValueRef eventData, _In_opt_ void* callbackState);
     static JsValueRef CALLBACK GetSource(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);

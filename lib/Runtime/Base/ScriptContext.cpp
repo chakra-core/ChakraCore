@@ -77,9 +77,6 @@ namespace Js
         guestArena(nullptr),
         raiseMessageToDebuggerFunctionType(nullptr),
         transitionToDebugModeIfFirstSourceFn(nullptr),
-#ifdef ENABLE_GLOBALIZATION
-        lastTimeZoneUpdateTickCount(0),
-#endif
         sourceSize(0),
         deferredBody(false),
         isScriptContextActuallyClosed(false),
@@ -2321,14 +2318,6 @@ if (!sourceList)
             }
             return si;
     }
-
-#ifdef ENABLE_GLOBALIZATION
-    void ScriptContext::UpdateTimeZoneInfo()
-    {
-        GetTimeZoneInformation(&timeZoneInfo);
-        _tzset();
-    }
-#endif
 
 #if ENABLE_TTD
     void ScriptContext::InitializeCoreImage_TTD()
