@@ -8681,22 +8681,25 @@ namespace Js
         }
         else // OOP JIT
         {
-            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
-            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
-
-            // TODO: binary search
-
-            for (unsigned int i = 0; i < this->inlineeFrameOffsetArrayCount - 1; i++)
+            if (this->inlineeFrameOffsetArrayCount > 0)
             {
-                if (offsets[i].offset < offset && offsets[i + 1].offset >= offset)
+                NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
+                size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+
+                // TODO: binary search
+
+                for (unsigned int i = 0; i < this->inlineeFrameOffsetArrayCount - 1; i++)
                 {
-                    if (offsets[i+1].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                    if (offsets[i].offset < offset && offsets[i + 1].offset >= offset)
                     {
-                        return nullptr;
-                    }
-                    else
-                    {
-                        return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i+1].recordOffset);
+                        if (offsets[i + 1].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        {
+                            return nullptr;
+                        }
+                        else
+                        {
+                            return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i + 1].recordOffset);
+                        }
                     }
                 }
             }
