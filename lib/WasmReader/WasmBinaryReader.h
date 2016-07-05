@@ -82,47 +82,30 @@ namespace Wasm
 
         static const unsigned int experimentalVersion = 0xb;
 
-        typedef bool(*FunctionBodyCallback)(uint32 index, void* data);
-
         class WasmBinaryReader
         {
         public:
-            WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length);
+            WasmBinaryReader(ArenaAllocator* alloc, byte* source, size_t length);
             static void Init(Js::ScriptContext *scriptContext);
 
             void InitializeReader();
             bool ReadNextSection(SectionCode nextSection);
             // Fully read the section in the reader. Return true if the section fully read
             bool ProcessCurrentSection();
-            bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata);
-            WasmOp ReadFromBlock();
-            WasmOp ReadFromCall();
+            bool ReadFunctionHeaders();
+            void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo);
+            bool IsCurrentFunctionCompleted() const;
             WasmOp ReadExpr();
             WasmOp GetLastOp();
             WasmBinOp GetLastBinOp() const { return m_lastOp; }
 #if DBG_DUMP
             void PrintOps();
 #endif
-            // TODO: Move this to somewhere more appropriate and possible make m_alloc part of
-            // BaseWasmReader state.
-            char16* CvtUtf8Str(ArenaAllocator* m_alloc, LPUTF8 name, uint32 nameLen)
-            {
-                utf8::DecodeOptions decodeOptions = utf8::doDefault;
-                charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
-                char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
-                if (contents == nullptr)
-                {
-                    Js::Throw::OutOfMemory();
-                }
-                utf8::DecodeIntoAndNullTerminate((char16*)contents, name, utf16Len, decodeOptions);
-                return contents;
-            }
 
             WasmNode    m_currentNode;
             ModuleInfo * m_moduleInfo;
             WasmModule * m_module;
         private:
-            WasmFunctionInfo *  m_funcInfo;
             struct ReaderState
             {
                 UINT32 count; // current entry
@@ -133,7 +116,6 @@ namespace Wasm
             WasmOp GetWasmToken(WasmBinOp op);
             WasmBinOp ASTNode();
 
-            void ModuleHeader();
             void CallNode();
             void CallIndirectNode();
             void CallImportNode();
@@ -141,8 +123,10 @@ namespace Wasm
             void BrTableNode();
             WasmOp MemNode(WasmBinOp op);
             void VarNode();
-            template <WasmTypes::LocalType type> void ConstNode();
-            // readers
+
+            // Module readers
+            void ValidateModuleHeader();
+            SectionHeader ReadSectionHeader();
             void ReadMemorySection();
             void ReadSignatures();
             void ReadFunctionsSignatures();
@@ -151,17 +135,15 @@ namespace Wasm
             void ReadDataSegments();
             void ReadImportEntries();
             void ReadStartFunction();
-
             void ReadNamesSection();
 
+            // Primitive reader
+            template <WasmTypes::LocalType type> void ConstNode();
+            template <typename T> T ReadConst();
             char16* ReadInlineName(uint32& length, uint32& nameLength);
-
-            const char* Name(UINT32 offset, UINT &length);
-            UINT32 Offset();
+            char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
             UINT LEB128(UINT &length, bool sgn = false);
             INT SLEB128(UINT &length);
-            template <typename T> T ReadConst();
-            SectionHeader ReadSectionHeader();
 
             void CheckBytesLeft(UINT bytesNeeded);
             bool EndOfFunc();
@@ -169,9 +151,9 @@ namespace Wasm
             DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
             Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
-            ArenaAllocator m_alloc;
+            ArenaAllocator* m_alloc;
             uint m_funcNumber;
-            byte *m_start, *m_end, *m_pc;
+            byte *m_start, *m_end, *m_pc, *m_curFuncEnd;
             SectionHeader m_currentSection;
             WasmBinOp m_lastOp;
             ReaderState m_funcState;   // func AST level

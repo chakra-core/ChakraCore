@@ -1835,6 +1835,44 @@ if (!sourceList)
         }
     }
 
+    void WasmFunctionGenerateBytecode(AsmJsScriptFunction* func, bool propagateError)
+    {
+        FunctionBody* body = func->GetFunctionBody();
+        AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
+        ScriptContext* scriptContext = func->GetScriptContext();
+
+        Js::FunctionEntryPointInfo * entypointInfo = (Js::FunctionEntryPointInfo*)func->GetEntryPointInfo();
+        Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
+        info->SetWasmReaderInfo(nullptr);
+        try
+        {
+            Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, body, readerInfo);
+            func->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
+            entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
+            // Do MTJRC/MAIC:0 check
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            {
+                GenerateFunction(scriptContext->GetNativeCodeGenerator(), func->GetFunctionBody(), func);
+            }
+#endif
+        }
+        catch (Wasm::WasmCompilationException ex)
+        {
+            if (propagateError)
+            {
+                throw;
+            }
+            Js::JavascriptLibrary *library = scriptContext->GetLibrary();
+            Js::JavascriptError *pError = library->CreateError();
+            Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, ex.ReleaseErrorMessage(), scriptContext);
+
+            func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
+            entypointInfo->jsMethod = WasmLazyTrapCallback;
+            func->SetLazyError(pError);
+        }
+    }
+
     void WasmLoadFunctions(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* exportObj, Var* localModuleFunctions, bool* hasAnyLazyTraps)
     {
         FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
@@ -1845,35 +1883,22 @@ if (!sourceList)
         for (uint i = 0; i < wasmModule->funcCount; ++i)
         {
             AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(functionArray[i]->body);
-            funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
             funcObj->SetModuleMemory(moduleMemoryPtr);
             FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
             entypointInfo->SetIsAsmJSFunction(true);
-            entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
             entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
             funcObj->SetEnvironment(frameDisplay);
             localModuleFunctions[i] = funcObj;
-
-            if (wasmModule->lazyTraps && wasmModule->lazyTraps[i])
+            
+            if (PHASE_ON(WasmDeferredPhase, funcObj->GetFunctionBody()))
             {
-                Assert(PHASE_ON1(WasmLazyTrapPhase));
-                *hasAnyLazyTraps = true;
-                JavascriptLibrary *library = ctx->GetLibrary();
-                JavascriptError *pError = library->CreateError();
-                JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, wasmModule->lazyTraps[i]->ReleaseErrorMessage(), ctx);
-
-                funcObj->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
-                entypointInfo->jsMethod = WasmLazyTrapCallback;
-                funcObj->SetLazyError(pError);
-                continue;
+                funcObj->GetDynamicType()->SetEntryPoint(ScriptContext::WasmDeferredParseExternalThunk);
+                entypointInfo->jsMethod = ScriptContext::WasmDeferredParseInternalThunk;
             }
-            // Do MTJRC/MAIC:0 check
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            else
             {
-                GenerateFunction(ctx->GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
+                WasmFunctionGenerateBytecode(funcObj, !PHASE_ON(WasmLazyTrapPhase, funcObj->GetFunctionBody()));
             }
-#endif
         }
     }
 
@@ -1996,8 +2021,7 @@ if (!sourceList)
             uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
             if (funcIndex >= wasmModule->info->GetFunctionCount())
             {
-                // TODO: michhol give error messages
-                Js::Throw::InternalError();
+                throw Wasm::WasmCompilationException(_u("Invalid function index %U for indirect function table"), funcIndex);
             }
             Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
             uint sigId = indirFunc->GetSignature()->GetSignatureId();
@@ -2009,6 +2033,72 @@ if (!sourceList)
             }
             indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
         }
+    }
+
+#if _M_IX86
+    __declspec(naked)
+        Var ScriptContext::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        // Register functions
+        __asm
+        {
+            push ebp
+            mov ebp, esp
+            lea eax, [esp + 8]
+            push 0
+            push eax
+            call ScriptContext::WasmDeferredParseEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+            // verify that the call target is valid
+            mov  ecx, eax
+            call[__guard_check_icall_fptr]
+            mov eax, ecx
+#endif
+            pop ebp
+            // Although we don't restore ESP here on WinCE, this is fine because script profiler is not shipped for WinCE.
+            jmp eax
+        }
+    }
+
+    __declspec(naked)
+        Var ScriptContext::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        // Register functions
+        __asm
+        {
+            push ebp
+            mov ebp, esp
+            lea eax, [esp + 8]
+            push 1
+            push eax
+            call ScriptContext::WasmDeferredParseEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+            // verify that the call target is valid
+            mov  ecx, eax
+            call[__guard_check_icall_fptr]
+            mov eax, ecx
+#endif
+            pop ebp
+            // Although we don't restore ESP here on WinCE, this is fine because script profiler is not shipped for WinCE.
+            jmp eax
+        }
+    }
+#elif defined(_M_X64)
+    // Do nothing: the implementation of ScriptContext::WasmDeferredParseExternalThunk is declared (appropriately decorated) in
+    // Language\amd64\amd64_Thunks.asm.
+#endif
+
+    JavascriptMethod ScriptContext::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall)
+    {
+        AsmJsScriptFunction* func = *funcPtr;
+
+        WasmFunctionGenerateBytecode(func, false);
+        Js::FunctionEntryPointInfo * entypointInfo = (Js::FunctionEntryPointInfo*)func->GetEntryPointInfo();
+        if (internalCall)
+        {
+            return entypointInfo->jsMethod;
+        }
+        return func->GetDynamicType()->GetEntryPoint();
     }
 
     char16* lastWasmExceptionMessage = nullptr;
@@ -2025,7 +2115,7 @@ if (!sourceList)
 
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
-        Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
+        Wasm::WasmModuleGenerator *bytecodeGen = nullptr;
         Js::Var exportObj = nullptr;
         try
         {
@@ -2040,7 +2130,7 @@ if (!sourceList)
             }
 
             *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-            bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, (byte*)script, lengthBytes);
+            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, this, *ppSourceInfo, (byte*)script, lengthBytes);
             wasmModule = bytecodeGen->GenerateModule();
 
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);

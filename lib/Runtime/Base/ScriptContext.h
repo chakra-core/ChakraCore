@@ -1605,6 +1605,12 @@ private:
         static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
         static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
+#ifdef ENABLE_WASM
+        static JavascriptMethod WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+        static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
+
         // Thunks for deferred deserialization of function bodies from the byte code cache
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
         static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);

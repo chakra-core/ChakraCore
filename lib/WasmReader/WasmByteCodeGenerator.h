@@ -39,6 +39,13 @@ namespace Wasm
         WasmTypes::WasmType type;
     };
 
+    class WasmToAsmJs
+    {
+    public:
+        static Js::AsmJsRetType GetAsmJsReturnType(WasmTypes::WasmType wasmType);
+        static Js::AsmJsVarType GetAsmJsVarType(WasmTypes::WasmType wasmType);
+    };
+
     class WasmCompilationException
     {
         void FormatError(const char16* _msg, va_list arglist);
@@ -81,6 +88,27 @@ namespace Wasm
 
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
 
+    struct WasmReaderInfo
+    {
+        Binary::WasmBinaryReader* m_reader;
+        WasmFunctionInfo* m_funcInfo;
+        WasmModule* m_module;
+    };
+
+    class WasmModuleGenerator
+    {
+    public:
+        WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
+        WasmModule * GenerateModule();
+        WasmFunction * GenerateFunctionHeader(uint32 index);
+    private:
+        ArenaAllocator* m_alloc;
+        Js::Utf8SourceInfo * m_sourceInfo;
+        Js::ScriptContext * m_scriptContext;
+        Binary::WasmBinaryReader* m_reader;
+        WasmModule * m_module;
+    };
+
     class WasmBytecodeGenerator
     {
     public:
@@ -95,11 +123,11 @@ namespace Wasm
         static const Js::RegSlot ScriptContextBufferRegister = 4;
         static const Js::RegSlot ReservedRegisterCount = 5;
 
-        WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
-        WasmModule * GenerateModule();
-        WasmFunction * GenerateFunction();
+        WasmBytecodeGenerator(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo);
+        static void GenerateFunctionBytecode(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo);
 
     private:
+        void GenerateFunction();
 
         EmitInfo EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
@@ -144,14 +172,9 @@ namespace Wasm
         BlockInfo GetBlockInfo(uint relativeDepth);
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
-        template <typename T>
-        Js::RegSlot GetConstReg(T constVal);
-
-        static Js::AsmJsRetType GetAsmJsReturnType(WasmTypes::WasmType wasmType);
-        static Js::AsmJsVarType GetAsmJsVarType(WasmTypes::WasmType wasmType);
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
-        WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
+        WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
@@ -163,21 +186,19 @@ namespace Wasm
         WasmLocal * m_locals;
 
         WasmFunctionInfo * m_funcInfo;
-        WasmFunction * m_currentFunc;
+        Js::FunctionBody * m_body;
         WasmModule * m_module;
 
-        uint m_nestedIfLevel;
         uint m_maxArgOutDepth;
 
-        Binary::WasmBinaryReader m_reader;
+        Binary::WasmBinaryReader* m_reader;
 
         Js::AsmJsByteCodeWriter m_writer;
         Js::ScriptContext * m_scriptContext;
-        Js::Utf8SourceInfo * m_sourceInfo;
 
-        WasmRegisterSpace * m_i32RegSlots;
-        WasmRegisterSpace * m_f32RegSlots;
-        WasmRegisterSpace * m_f64RegSlots;
+        WasmRegisterSpace m_i32RegSlots;
+        WasmRegisterSpace m_f32RegSlots;
+        WasmRegisterSpace m_f64RegSlots;
 
         JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
