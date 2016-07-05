@@ -12,13 +12,8 @@ namespace Wasm
 
 WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
     : m_alloc(alloc),
-    m_name(nullptr),
-    m_mod(nullptr)
+    m_name(nullptr)
 {
-    m_i32Consts = Anew(m_alloc, ConstMap<int32>, m_alloc);
-    m_i64Consts = Anew(m_alloc, ConstMap<int64>, m_alloc);
-    m_f32Consts = Anew(m_alloc, ConstMap<float>, m_alloc);
-    m_f64Consts = Anew(m_alloc, ConstMap<double>, m_alloc);
     m_locals = Anew(m_alloc, WasmTypeArray, m_alloc, 0);
 }
 
@@ -29,38 +24,6 @@ WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint count)
     {
         m_locals->Add(Wasm::Local(type));
     }
-}
-
-template<>
-void
-WasmFunctionInfo::AddConst<int32>(int32 constVal, Js::RegSlot reg)
-{
-    int result = m_i32Consts->Add(constVal, reg);
-    Assert(result != -1); // REVIEW: should always succeed (or at least throw OOM)?
-}
-
-template<>
-void
-WasmFunctionInfo::AddConst<int64>(int64 constVal, Js::RegSlot reg)
-{
-    int result = m_i64Consts->Add(constVal, reg);
-    Assert(result != -1);
-}
-
-template<>
-void
-WasmFunctionInfo::AddConst<float>(float constVal, Js::RegSlot reg)
-{
-    int result = m_f32Consts->Add(constVal, reg);
-    Assert(result != -1);
-}
-
-template<>
-void
-WasmFunctionInfo::AddConst<double>(double constVal, Js::RegSlot reg)
-{
-    int result = m_f64Consts->Add(constVal, reg);
-    Assert(result != -1);
 }
 
 WasmTypes::WasmType
@@ -77,34 +40,6 @@ WasmTypes::WasmType
 WasmFunctionInfo::GetParam(uint index) const
 {
     return m_signature->GetParam(index);
-}
-
-template<>
-Js::RegSlot
-WasmFunctionInfo::GetConst<int32>(int32 constVal) const
-{
-    return m_i32Consts->Lookup(constVal, Js::Constants::NoRegister);
-}
-
-template<>
-Js::RegSlot
-WasmFunctionInfo::GetConst<int64>(int64 constVal) const
-{
-    return m_i64Consts->Lookup(constVal, Js::Constants::NoRegister);
-}
-
-template<>
-Js::RegSlot
-WasmFunctionInfo::GetConst<float>(float constVal) const
-{
-    return m_f32Consts->Lookup(constVal, Js::Constants::NoRegister);
-}
-
-template<>
-Js::RegSlot
-WasmFunctionInfo::GetConst<double>(double constVal) const
-{
-    return m_f64Consts->Lookup(constVal, Js::Constants::NoRegister);
 }
 
 WasmTypes::WasmType
@@ -135,18 +70,6 @@ char16*
 WasmFunctionInfo::GetName() const
 {
     return m_name;
-}
-
-void
-WasmFunctionInfo::SetModuleName(char16* name)
-{
-    m_mod = name;
-}
-
-char16*
-WasmFunctionInfo::GetModuleName() const
-{
-    return m_mod;
 }
 
 void

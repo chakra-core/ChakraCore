@@ -24,6 +24,11 @@
 #pragma once
 
 #ifndef TEMP_DISABLE_ASMJS
+namespace Wasm
+{
+    struct WasmReaderInfo;
+};
+
 namespace Js
 {
     typedef uint32 uint32_t;
@@ -1016,6 +1021,7 @@ namespace Js
         int mSimdConstCount, mSimdVarCount, mSimdTmpCount, mSimdByteOffset;
 
         FunctionBody* asmJsModuleFunctionBody;
+        Wasm::WasmReaderInfo* mWasmReaderInfo;
     public:
         AsmJsFunctionInfo() : mArgCount(0),
                               mIntConstCount(0),
@@ -1042,7 +1048,8 @@ namespace Js
                               mUsesHeapBuffer(false),
                               mIsHeapBufferConst(false),
                               mArgType(nullptr),
-                              mArgSizes(nullptr) {}
+                              mArgSizes(nullptr),
+                              mWasmReaderInfo(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
         ByteCodeToTJMap* mbyteCodeTJMap;
@@ -1137,7 +1144,9 @@ namespace Js
             // Normally, heap has min size of 0x10000, but if you use ChangeHeap, min heap size is increased to 0x1000000
             return offset >= 0x1000000 || (IsHeapBufferConst() && offset >= 0x10000);
         }
-
+        Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
+        void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}
+        bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }
     };
 
     // The asm.js spec recognizes this set of builtin SIMD functions.
