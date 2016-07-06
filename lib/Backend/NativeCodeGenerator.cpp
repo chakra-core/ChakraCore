@@ -849,233 +849,176 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-    bool rejit;
 #ifdef ENABLE_BASIC_TELEMETRY
     ThreadContext *threadContext = scriptContext->GetThreadContext();
     double startTime = threadContext->JITTelemetry.Now();
 #endif
 
-    do
+    LARGE_INTEGER start_time = { 0 };
+    NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
+
+    // TODO: (michhol OOP JIT) I think this should be requisite to calling?
+    if (body->GetScriptContext()->IsClosed())
     {
-        try
+        // Should not be jitting something in the foreground when the script context is actually closed
+        Assert(IsBackgroundJIT() || !body->GetScriptContext()->IsActuallyClosed());
+
+        throw Js::OperationAbortedException();
+    }
+
+    // the number allocator needs to be on the stack so that if we are doing foreground JIT
+    // the chunk allocated from the recycler will be stacked pinned
+    CodeGenNumberAllocator numberAllocator(
+        foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
+        scriptContext->GetRecycler());
+
+    workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
+
+    // TODO: oop jit can we be more efficient here?
+    ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
+
+    workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, false);
+    Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
+    if (workItem->Type() == JsFunctionType)
+    {
+        auto funcEPInfo = (Js::FunctionEntryPointInfo*)epInfo;
+        workItem->GetJITData()->jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+    }
+    else
+    {
+        workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
+    }
+    JITOutputIDL jitWriteData = {0};
+
+    threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
+
+    HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
+        workItem->GetJITData(),
+        scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
+        scriptContext->GetRemoteScriptAddr(),
+        &jitWriteData);
+    if (hr != S_OK)
+    {
+        return;
+    }
+
+    workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
+
+    if (jitWriteData.numberPageSegments)
+    {
+        if (jitWriteData.numberPageSegments->pageAddress == 0)
         {
+            midl_user_free(jitWriteData.numberPageSegments);
+            jitWriteData.numberPageSegments = nullptr;
+        }
+        else
+        {
+            // TODO: when codegen fail, need to return the segment as well
+            auto numberChunks = threadContext->GetXProcNumberPageSegmentManager()->RegisterSegments(jitWriteData.numberPageSegments);
+            epInfo->SetNumberChunks(numberChunks);
+        }
+    }
 
-            LARGE_INTEGER start_time = { 0 };
-            NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
+    if (jitWriteData.nativeDataFixupTable)
+    {
+        for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
+        {
+            auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
+            auto updateList = record.updateList;
 
-            // TODO: (michhol OOP JIT) I think this should be requisite to calling?
-            if (body->GetScriptContext()->IsClosed())
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
-                // Should not be jitting something in the foreground when the script context is actually closed
-                Assert(IsBackgroundJIT() || !body->GetScriptContext()->IsActuallyClosed());
-
-                throw Js::OperationAbortedException();
+                Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
+                    record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
             }
 
-            // the number allocator needs to be on the stack so that if we are doing foreground JIT
-            // the chunk allocated from the recycler will be stacked pinned
-            CodeGenNumberAllocator numberAllocator(
-                foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
-                scriptContext->GetRecycler());
-
-            workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
-
-            // TODO: oop jit can we be more efficient here?
-            ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
-
-            workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, false);
-            Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
-            if (workItem->Type() == JsFunctionType)
+            while (updateList)
             {
-                auto funcEPInfo = (Js::FunctionEntryPointInfo*)epInfo;
-                workItem->GetJITData()->jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
-            }
-            else
-            {
-                workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
-            }
-            JITOutputIDL jitWriteData = {0};
+                void* addrToFixup = jitWriteData.buffer->data + record.startOffset + updateList->addrOffset;
+                void* targetAddr = jitWriteData.buffer->data + updateList->targetTotalOffset;
 
-            threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
-
-            HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
-                workItem->GetJITData(),
-                scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
-                scriptContext->GetRemoteScriptAddr(),
-                &jitWriteData);
-            if (hr != S_OK)
-            {
-                return;
-            }
-
-            workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
-
-            if (jitWriteData.numberPageSegments)
-            {
-                if (jitWriteData.numberPageSegments->pageAddress == 0)
-                {
-                    midl_user_free(jitWriteData.numberPageSegments);
-                    jitWriteData.numberPageSegments = nullptr;
-                }
-                else
-                {
-                    // TODO: when codegen fail, need to return the segment as well
-                    auto numberChunks = threadContext->GetXProcNumberPageSegmentManager()->RegisterSegments(jitWriteData.numberPageSegments);
-                    epInfo->SetNumberChunks(numberChunks);
-                }
-            }
-
-            if (jitWriteData.nativeDataFixupTable)
-            {
-                for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
-                {
-                    auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
-                    auto updateList = record.updateList;
-
-                    if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-                    {
-                        Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
-                            record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
-                    }
-
-                    while (updateList)
-                    {
-                        void* addrToFixup = jitWriteData.buffer->data + record.startOffset + updateList->addrOffset;
-                        void* targetAddr = jitWriteData.buffer->data + updateList->targetTotalOffset;
-
-                        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-                        {
-                            Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
-                        }
-
-                        *(void**)(addrToFixup) = targetAddr;
-                        auto current = updateList;
-                        updateList = updateList->next;
-                        midl_user_free(current);
-                    }
-                }
-                midl_user_free(jitWriteData.nativeDataFixupTable);
-                jitWriteData.nativeDataFixupTable = nullptr;
-
-                // change the address with the fixup information
-                *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
-
-#if DBG
                 if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                 {
-                    Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
+                    Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
                 }
-#endif
-            }
 
-            epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
+                *(void**)(addrToFixup) = targetAddr;
+                auto current = updateList;
+                updateList = updateList->next;
+                midl_user_free(current);
+            }
+        }
+        midl_user_free(jitWriteData.nativeDataFixupTable);
+        jitWriteData.nativeDataFixupTable = nullptr;
+
+        // change the address with the fixup information
+        *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+
+#if DBG
+        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+        {
+            Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
+        }
+#endif
+    }
+
+    epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
                         
-            epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
+    epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
 
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
-            XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
-            epInfo->SetXDataInfo(xdataInfo);
+    XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
+    epInfo->SetXDataInfo(xdataInfo);
 #endif
-            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
-            workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
+    scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+    workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
-            workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
+    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
 
-            if (jitWriteData.writeableBodyData.hasBailoutInstr != FALSE)
-            {
-                body->SetHasBailoutInstrInJittedCode(true);
-            }
+    if (jitWriteData.writeableBodyData.hasBailoutInstr != FALSE)
+    {
+        body->SetHasBailoutInstrInJittedCode(true);
+    }
 
-            body->m_argUsedForBranch |= jitWriteData.writeableBodyData.argUsedForBranch;
+    body->m_argUsedForBranch |= jitWriteData.writeableBodyData.argUsedForBranch;
+
+    if (body->HasDynamicProfileInfo())
+    {
+        if (jitWriteData.disableAggressiveIntTypeSpec)
+        {
+            body->GetDynamicProfileInfo()->DisableAggressiveIntTypeSpec(workItem->Type() == JsLoopBodyWorkItemType);
+        }
+        if (jitWriteData.disableStackArgOpt)
+        {
+            body->GetDynamicProfileInfo()->DisableStackArgOpt();
+        }
+        if (jitWriteData.disableSwitchOpt)
+        {
+            body->GetDynamicProfileInfo()->DisableSwitchOpt();
+        }
+        if (jitWriteData.disableTrackCompoundedIntOverflow)
+        {
+            body->GetDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
+        }
+    }
+
+    if (jitWriteData.disableInlineApply)
+    {
+        body->SetDisableInlineApply(true);
+    }
+    if (jitWriteData.disableInlineSpread)
+    {
+        body->SetDisableInlineSpread(true);
+    }
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
-            if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
-            {
-                scriptContext->codeSize += workItem->GetEntryPoint()->GetCodeSize();
-            }
+    if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
+    {
+        scriptContext->codeSize += workItem->GetEntryPoint()->GetCodeSize();
+    }
 #endif
-            NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
-
-            rejit = false;
-        }
-        catch(Js::RejitException ex)
-        {
-            // TODO: OOP JIT, implement RejitException support
-            // The work item needs to be rejitted, likely due to some optimization that was too aggressive
-            if(ex.Reason() == RejitReason::AggressiveIntTypeSpecDisabled)
-            {
-                const bool isJitLoopBody = workItem->Type() == JsLoopBodyWorkItemType;
-                //profileInfo.DisableAggressiveIntTypeSpec(isJitLoopBody);
-                if (body->HasDynamicProfileInfo())
-                {
-                    body->GetAnyDynamicProfileInfo()->DisableAggressiveIntTypeSpec(isJitLoopBody);
-                }
-            }
-            else if(ex.Reason() == RejitReason::InlineApplyDisabled)
-            {
-                body->SetDisableInlineApply(true);
-            }
-            else if(ex.Reason() == RejitReason::InlineSpreadDisabled)
-            {
-                body->SetDisableInlineSpread(true);
-            }
-            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
-            {
-                //profileInfo.DisableStackArgOpt();
-                if (body->HasDynamicProfileInfo())
-                {
-                    body->GetAnyDynamicProfileInfo()->DisableStackArgOpt();
-                }
-            }
-            else if(ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
-                ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
-            {
-                //profileInfo.DisableSwitchOpt();
-                if(body->HasDynamicProfileInfo())
-                {
-                    body->GetAnyDynamicProfileInfo()->DisableSwitchOpt();
-                }
-            }
-            else
-            {
-                Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);
-                //profileInfo.DisableTrackCompoundedIntOverflow();
-                if(body->HasDynamicProfileInfo())
-                {
-                    body->GetAnyDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
-                }
-            }
-
-            if(PHASE_TRACE(Js::ReJITPhase, body))
-            {
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(
-                    _u("Rejit (compile-time): function: %s (%s) reason: %S\n"),
-                    body->GetDisplayName(),
-                    body->GetDebugNumberSet(debugStringBuffer),
-                    ex.ReasonName());
-            }
-
-            rejit = true;
-            if(!foreground)
-            {
-                //profileInfo.OnBackgroundAllocatorReset();
-            }
-        }
-
-        // Either the entry point has a reference to the number now, or we failed to code gen and we
-        // don't need to numbers, we can flush the completed page now.
-        //
-        // If the number allocator is NULL then we are shutting down the thread context and so too the
-        // code generator. The number allocator must be freed before the recycler (and thus before the
-        // code generator) so we can't and don't need to flush it.
-        CodeGenNumberThreadAllocator * threadNumberAllocator = this->scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator();
-        if (threadNumberAllocator != nullptr)
-        {
-            threadNumberAllocator->FlushAllocations();
-        }
-    } while(rejit);
+    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef ENABLE_BASIC_TELEMETRY
     threadContext->JITTelemetry.LogTime(threadContext->JITTelemetry.Now() - startTime);

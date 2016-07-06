@@ -182,6 +182,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         inlineDepth = 0;
         m_symTable = JitAnew(alloc, SymTable);
         m_symTable->Init(this);
+        m_symTable->SetStartingID(static_cast<SymID>(workItem->GetJITFunctionBody()->GetLocalsCount() + 1));
+
         Assert(Js::Constants::NoByteCodeOffset == postCallByteCodeOffset);
         Assert(Js::Constants::NoRegister == returnValueRegSlot);
 
@@ -232,15 +234,101 @@ Func::IsLoopBodyInTry() const
     return IsLoopBody() && m_workItem->GetLoopHeader()->isInTry;
 }
 
+/* static */
+void
+Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+    ThreadContextInfo * threadContextInfo,
+    ScriptContextInfo * scriptContextInfo,
+    JITOutputIDL * outputData,
+    const FunctionJITRuntimeInfo *const runtimeInfo,
+    Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+    CodeGenNumberAllocator * numberAllocator,
+    Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
+    uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
+    Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter)
+{
+    bool rejit;
+    do
+    {
+        Func func(alloc, workItem, threadContextInfo,
+            scriptContextInfo, outputData, runtimeInfo,
+            polymorphicInlineCacheInfo, codeGenAllocators, numberAllocator,
+            codeGenProfiler, isBackgroundJIT, parentFunc,
+            postCallByteCodeOffset, returnValueRegSlot, isInlinedConstructor,
+            callSiteIdInParentFunc, isGetterSetter);
+        try
+        {
+            func.TryCodegen();
+            rejit = false;
+        }
+        catch (Js::RejitException ex)
+        {
+            // The work item needs to be rejitted, likely due to some optimization that was too aggressive
+            if (ex.Reason() == RejitReason::AggressiveIntTypeSpecDisabled)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableAggressiveIntTypeSpec(func.IsLoopBody());
+                outputData->disableAggressiveIntTypeSpec = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::InlineApplyDisabled)
+            {
+                workItem->GetJITFunctionBody()->DisableInlineApply();
+                outputData->disableInlineApply = FALSE;
+            }
+            else if (ex.Reason() == RejitReason::InlineSpreadDisabled)
+            {
+                workItem->GetJITFunctionBody()->DisableInlineSpread();
+                outputData->disableInlineSpread = FALSE;
+            }
+            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableStackArgOpt();
+                outputData->disableStackArgOpt = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
+                ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableSwitchOpt();
+                outputData->disableSwitchOpt = TRUE;
+            }
+            else
+            {
+                Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableTrackCompoundedIntOverflow();
+                outputData->disableTrackCompoundedIntOverflow = TRUE;
+            }
+
+            if (PHASE_TRACE(Js::ReJITPhase, &func))
+            {
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(
+                    _u("Rejit (compile-time): function: %s (%s) reason: %S\n"),
+                    workItem->GetJITFunctionBody()->GetDisplayName(),
+                    workItem->GetJITTimeInfo()->GetDebugNumberSet(debugStringBuffer),
+                    ex.ReasonName());
+            }
+
+            rejit = true;
+        }
+        // Either the entry point has a reference to the number now, or we failed to code gen and we
+        // don't need to numbers, we can flush the completed page now.
+        //
+        // If the number allocator is NULL then we are shutting down the thread context and so too the
+        // code generator. The number allocator must be freed before the recycler (and thus before the
+        // code generator) so we can't and don't need to flush it.
+
+        // TODO: OOP JIT, allocator cleanup
+    } while (rejit);
+}
+
 ///----------------------------------------------------------------------------
 ///
-/// Func::Codegen
+/// Func::TryCodegen
 ///
-///     Codegen this function.
+///     Attempt to Codegen this function.
 ///
 ///----------------------------------------------------------------------------
 void
-Func::Codegen()
+Func::TryCodegen()
 {
     Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
 

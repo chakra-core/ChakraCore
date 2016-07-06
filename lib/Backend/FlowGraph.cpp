@@ -642,7 +642,7 @@ FlowGraph::CanonicalizeLoops()
 {
     if (this->func->HasProfileInfo())
     {
-        this->implicitCallFlags = this->func->GetProfileInfo()->GetImplicitCallFlags();
+        this->implicitCallFlags = this->func->GetReadOnlyProfileInfo()->GetImplicitCallFlags();
         for (Loop *loop = this->loopList; loop; loop = loop->next)
         {
             this->implicitCallFlags = (Js::ImplicitCallFlags)(this->implicitCallFlags | loop->GetImplicitCallFlags());
@@ -762,9 +762,9 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     if (firstInstr->IsProfiledLabelInstr())
     {
         loop->SetImplicitCallFlags(firstInstr->AsProfiledLabelInstr()->loopImplicitCallFlags);
-        if (this->func->GetProfileInfo()->IsLoopImplicitCallInfoDisabled())
+        if (this->func->GetReadOnlyProfileInfo()->IsLoopImplicitCallInfoDisabled())
         {
-            loop->SetImplicitCallFlags(this->func->GetProfileInfo()->GetImplicitCallFlags());
+            loop->SetImplicitCallFlags(this->func->GetReadOnlyProfileInfo()->GetImplicitCallFlags());
         }
         loop->SetLoopFlags(firstInstr->AsProfiledLabelInstr()->loopFlags);
     }

@@ -207,10 +207,10 @@ GlobOpt::GlobOpt(Func * func)
     doAggressiveMulIntTypeSpec(
         doTypeSpec &&
         !PHASE_OFF(Js::AggressiveMulIntTypeSpecPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsAggressiveMulIntTypeSpecDisabled(func->IsLoopBody()))),
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsAggressiveMulIntTypeSpecDisabled(func->IsLoopBody()))),
     doDivIntTypeSpec(
         doAggressiveIntTypeSpec &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsDivIntTypeSpecDisabled(func->IsLoopBody()))),
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsDivIntTypeSpecDisabled(func->IsLoopBody()))),
     doLossyIntTypeSpec(
         doTypeSpec &&
         DoLossyIntTypeSpec(func)),
@@ -246,14 +246,14 @@ GlobOpt::GlobOpt(Func * func)
         doBoundCheckElimination &&
         DoConstFold() &&
         !PHASE_OFF(Js::Phase::BoundCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsBoundCheckHoistDisabled(func->IsLoopBody()))),
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsBoundCheckHoistDisabled(func->IsLoopBody()))),
     doLoopCountBasedBoundCheckHoist(
         doBoundCheckHoist &&
         !PHASE_OFF(Js::Phase::LoopCountBasedBoundCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody()))),
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody()))),
     doPowIntIntTypeSpec(
         doAggressiveIntTypeSpec &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsPowIntIntTypeSpecDisabled())),
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsPowIntIntTypeSpecDisabled())),
     isAsmJSFunc(func->GetJITFunctionBody()->IsAsmJsMode())
 {
 }
@@ -382,7 +382,7 @@ ValueType GlobOpt::GetDivValueType(IR::Instr* instr, Value* src1Val, Value* src2
 
     if (instr->IsProfiledInstr() && instr->m_func->HasProfileInfo())
     {
-        ValueType resultType = instr->m_func->GetProfileInfo()->GetDivProfileInfo(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
+        ValueType resultType = instr->m_func->GetReadOnlyProfileInfo()->GetDivProfileInfo(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
         if (resultType.IsLikelyInt())
         {
             if (specialize && src1ValueInfo && src2ValueInfo
@@ -5002,7 +5002,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         !(instr->IsJitProfilingInstr()) &&
         this->currentBlock->loop && !IsLoopPrePass() &&
         !func->IsJitInDebugMode() &&
-        (func->HasProfileInfo() && !func->GetProfileInfo()->IsMemOpDisabled()) &&
+        (func->HasProfileInfo() && !func->GetReadOnlyProfileInfo()->IsMemOpDisabled()) &&
         this->currentBlock->loop->doMemOp)
     {
         CollectMemOpInfo(instr, src1Val, src2Val);
@@ -5558,7 +5558,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 int paramSlotNum = sym->AsStackSym()->GetParamSlotNum() - 2;
                 if (paramSlotNum >= 0)
                 {
-                    const auto parameterType = instr->m_func->GetProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
+                    const auto parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
                     val = NewGenericValue(parameterType);
                     opnd->SetValueType(val->GetValueInfo()->Type());
                     return val;
@@ -11646,7 +11646,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 }
 
                 bool isModByPowerOf2 = (instr->IsProfiledInstr() && instr->m_func->HasProfileInfo() &&
-                    instr->m_func->GetProfileInfo()->IsModulusOpByPowerOf2(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)));
+                    instr->m_func->GetReadOnlyProfileInfo()->IsModulusOpByPowerOf2(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)));
 
                 if(isModByPowerOf2)
                 {
@@ -18023,7 +18023,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     // This can happen for Neg_A if it needs to bail out on negative zero, and perhaps other cases as well. It's too late to fix
     // the problem (overflows may already be ignored), so handle it by bailing out at compile-time and disabling tracking int
     // overflow.
-    Assert(!func->HasProfileInfo() || !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+    Assert(!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 
     if(PHASE_TRACE(Js::BailOutPhase, this->func))
     {
@@ -18041,7 +18041,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Flush();
     }
 
-    if(func->HasProfileInfo() && func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
+    if(func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
     {
         // Tracking int overflows is already off for some reason. Prevent trying to rejit again because it won't help and the
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
@@ -19365,7 +19365,7 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func* func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
         && func->DoGlobOpt() && !func->HasTry();
 }
 
@@ -19373,7 +19373,7 @@ bool
 GlobOpt::DoEquivObjTypeSpec(Func* func)
 {
     return !PHASE_OFF(Js::ObjTypeSpecPhase, func) && !PHASE_OFF(Js::EquivObjTypeSpecPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsEquivalentObjTypeSpecDisabled()); // REVIEW: OOP JIT, this was inverted before?
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsEquivalentObjTypeSpecDisabled()); // REVIEW: OOP JIT, this was inverted before?
 }
 
 bool
@@ -19400,7 +19400,7 @@ GlobOpt::DoAggressiveIntTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::AggressiveIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody()));
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19428,7 +19428,7 @@ GlobOpt::DoLossyIntTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::LossyIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsLossyIntTypeSpecDisabled());
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsLossyIntTypeSpecDisabled());
 }
 
 bool
@@ -19444,7 +19444,7 @@ GlobOpt::DoFloatTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::FloatTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsFloatTypeSpecDisabled()) &&
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsFloatTypeSpecDisabled()) &&
         AutoSystemInfo::Data.SSE2Available();
 }
 
@@ -19466,7 +19466,7 @@ GlobOpt::DoTypedArrayTypeSpec(Func* func)
 {
     return !PHASE_OFF(Js::TypedArrayTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsTypedArrayTypeSpecDisabled(func->IsLoopBody()))
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTypedArrayTypeSpecDisabled(func->IsLoopBody()))
 #if defined(_M_IX86)
         && AutoSystemInfo::Data.SSE2Available()
 #endif
@@ -19491,7 +19491,7 @@ GlobOpt::DoArrayCheckHoist(Func *const func)
     Assert(func->IsTopFunc());
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) &&
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) &&
         !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
         func->DoGlobOptsForGeneratorFunc();
 }
@@ -19536,7 +19536,7 @@ GlobOpt::DoArrayMissingValueCheckHoist(Func *const func)
     return
         DoArrayCheckHoist(func) &&
         !PHASE_OFF(Js::ArrayMissingValueCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayMissingValueCheckHoistDisabled(func->IsLoopBody()));
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsArrayMissingValueCheckHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19562,7 +19562,7 @@ GlobOpt::DoArraySegmentHoist(const ValueType baseValueType, Func *const func)
 
     return
         !PHASE_OFF(Js::JsArraySegmentHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsJsArraySegmentHoistDisabled(func->IsLoopBody()));
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsJsArraySegmentHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19606,7 +19606,7 @@ GlobOpt::DoArrayLengthHoist(Func *const func)
     return
         DoArrayCheckHoist(func) &&
         !PHASE_OFF(Js::Phase::ArrayLengthHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayLengthHoistDisabled(func->IsLoopBody()));
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsArrayLengthHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19630,7 +19630,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr *const instr, const ValueType baseValueType) c
 
     if(PHASE_OFF(Js::LdLenIntSpecPhase, func) ||
         IsTypeSpecPhaseOff(func) ||
-        (func->HasProfileInfo() && func->GetProfileInfo()->IsLdLenIntSpecDisabled()) ||
+        (func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsLdLenIntSpecDisabled()) ||
         instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func))
     {
         return false;
@@ -20539,7 +20539,7 @@ GlobOpt::TraceSettings()
     Output::Print(_u("    FloatTypeSpec: %s\r\n"), this->DoFloatTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    AggressiveIntTypeSpec: %s\r\n"), this->DoAggressiveIntTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    LossyIntTypeSpec: %s\r\n"), this->DoLossyIntTypeSpec() ? _u("enabled") : _u("disabled"));
-    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  (this->func->HasProfileInfo() && this->func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) ? L"disabled" : L"enabled");
+    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  (this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) ? L"disabled" : L"enabled");
     Output::Print(_u("    ImplicitCallFlags: %s\r\n"), Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
     for (Loop * loop = this->func->m_fg->loopList; loop != NULL; loop = loop->next)
     {

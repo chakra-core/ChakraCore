@@ -3556,8 +3556,8 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
         Assert(weakFuncRef);
 
         Js::ProfileId profileId = static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
-        Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
-        intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
+        Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
+        intptr_t arrayInfoAddr = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
 
         Assert(arrInstr->GetSrc1()->IsConstOpnd());
@@ -3776,7 +3776,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteI
 #if DBG
     if (instr->AsProfiledInstr()->u.profileId < Js::Constants::NoProfileId)
     {
-        Assert((uint32)(arrayInfo - instr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(0)) == arrayCallSiteIndex);
+        Assert((uint32)(arrayInfo - instr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(0)) == arrayCallSiteIndex);
     }
     else
     {
@@ -4018,8 +4018,8 @@ Lowerer::LowerNewScIntArray(IR::Instr *arrInstr)
                 arrInstr->IsJitProfilingInstr()
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
-            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
-            intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
+            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
+            intptr_t arrayInfoAddr = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr and not copy-on-access array
             if (arrInstr->IsProfiledInstr()
@@ -4059,8 +4059,8 @@ Lowerer::LowerNewScFltArray(IR::Instr *arrInstr)
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
 
-            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
-            intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
+            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
+            intptr_t arrayInfoAddr = arrInstr->m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr
             if (arrInstr->IsProfiledInstr()) {
@@ -4914,8 +4914,8 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     // We may not have profileId if we converted a NewScObject to NewScObjArray
     if (profileId != Js::Constants::NoProfileId)
     {
-        arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
-        arrayInfoAddr = func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
+        arrayInfo = func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
+        arrayInfoAddr = func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
@@ -4931,7 +4931,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
         }
     }
 
-    IR::Opnd *profileOpnd = IR::AddrOpnd::New(func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId), IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
+    IR::Opnd *profileOpnd = IR::AddrOpnd::New(func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId), IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
     this->m_lowererMD.LoadNewScObjFirstArg(newObjInstr, profileOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperScrArr_ProfiledNewInstance;
@@ -5018,8 +5018,8 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
     Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
     if (profileId != Js::Constants::NoProfileId)
     {
-        arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
-        arrayInfoAddr = func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
+        arrayInfo = func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
+        arrayInfoAddr = func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
@@ -10898,7 +10898,7 @@ Lowerer::LowerBailOnEqualOrNotEqual(IR::Instr * instr,
         IR::Instr * andInstr = InsertAnd(IR::RegOpnd::New(GetImplicitCallFlagsType(), instr->m_func), implicitCallFlags, maskNoImplicitCall, instr);
         InsertTestBranch(andInstr->GetDst(), accessorImplicitCall, Js::OpCode::BrEq_A, label, instr);
 
-        Js::FldInfo * info = instr->m_func->GetProfileInfo()->GetFldInfo(propSymOpnd->m_inlineCacheIndex);
+        Js::FldInfo * info = instr->m_func->GetReadOnlyProfileInfo()->GetFldInfo(propSymOpnd->m_inlineCacheIndex);
 
         IR::Opnd * profiledFlags = IR::MemRefOpnd::New((char*)info + info->GetOffsetOfFlags(), TyInt8, instr->m_func);
 

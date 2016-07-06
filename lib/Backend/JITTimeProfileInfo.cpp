@@ -109,6 +109,30 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
 }
 
+void
+JITTimeProfileInfo::DisableAggressiveIntTypeSpec(bool isLoopBody)
+{
+    m_profileData.flags |= isLoopBody ? Flags_disableAggressiveIntTypeSpec_jitLoopBody : Flags_disableAggressiveIntTypeSpec;
+}
+
+void
+JITTimeProfileInfo::DisableStackArgOpt()
+{
+    m_profileData.flags |= Flags_disableStackArgOpt;
+}
+
+void
+JITTimeProfileInfo::DisableSwitchOpt()
+{
+    m_profileData.flags |= Flags_disableSwitchOpt;
+}
+
+void
+JITTimeProfileInfo::DisableTrackCompoundedIntOverflow()
+{
+    m_profileData.flags |= Flags_disableTrackCompoundedIntOverflow;
+}
+
 const Js::LdElemInfo *
 JITTimeProfileInfo::GetLdElemInfo(Js::ProfileId ldElemId) const
 {

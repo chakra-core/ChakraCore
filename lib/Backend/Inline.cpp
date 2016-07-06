@@ -1742,7 +1742,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
             return callInstr->m_next;
         }
 #endif
-        if(callInstr->m_func->GetTopFunc()->HasProfileInfo() && callInstr->m_func->GetTopFunc()->GetProfileInfo()->IsFloorInliningDisabled())
+        if(callInstr->m_func->GetTopFunc()->HasProfileInfo() && callInstr->m_func->GetTopFunc()->GetReadOnlyProfileInfo()->IsFloorInliningDisabled())
         {
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: Floor Inlining Disabled\tInlinee: %s (#%d)\tCaller: %s\n"), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId), (int)builtInId, inlinerData->GetBody()->GetDisplayName());
             return callInstr->m_next;
@@ -4893,12 +4893,12 @@ Inline::DoCheckThisOpt(IR::Instr * instr)
             return instrNext;
         }
 
-        if (instr->m_func->GetProfileInfo()->GetThisInfo().thisType != Js::ThisType_Simple)
+        if (instr->m_func->GetReadOnlyProfileInfo()->GetThisInfo().thisType != Js::ThisType_Simple)
         {
             return instrNext;
         }
 
-        if (instr->m_func->GetProfileInfo()->IsCheckThisDisabled())
+        if (instr->m_func->GetReadOnlyProfileInfo()->IsCheckThisDisabled())
         {
             return instrNext;
         }

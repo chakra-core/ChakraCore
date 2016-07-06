@@ -50,7 +50,7 @@ private:
     {
         return inlinee->GetBody()->HasProfileInfo()
             && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->GetBody()->HasNonBuiltInCallee() : inlinee->GetBody()->GetProfiledCallSiteCount() == 0)
-            && !inlinee->GetBody()->GetProfileInfo()->HasLdFldCallSiteInfo();
+            && !inlinee->GetBody()->GetReadOnlyProfileInfo()->HasLdFldCallSiteInfo();
     }
 
 };

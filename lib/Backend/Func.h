@@ -229,7 +229,18 @@ public:
     }
 
     void BuildIR();
-    void Codegen();
+    void TryCodegen();
+    static void Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+        ThreadContextInfo * threadContextInfo,
+        ScriptContextInfo * scriptContextInfo,
+        JITOutputIDL * outputData,
+        const FunctionJITRuntimeInfo *const runtimeInfo,
+        Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        CodeGenNumberAllocator * numberAllocator,
+        Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
+        uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
+        Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
+        Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
 
     int32 StackAllocate(int size);
     int32 StackAllocate(StackSym *stackSym, int size);
@@ -677,7 +688,7 @@ public:
                         bool isStackArgOptDisabled = false;
                         if (HasProfileInfo())
                         {
-                            isStackArgOptDisabled = GetProfileInfo()->IsStackArgOptDisabled();
+                            isStackArgOptDisabled = GetReadOnlyProfileInfo()->IsStackArgOptDisabled();
                         }
                         return this->hasStackArgs && !isStackArgOptDisabled && !PHASE_OFF1(Js::StackArgOptPhase);
     }
@@ -754,7 +765,7 @@ public:
     bool                GetHasTempObjectProducingInstr() const { return this->hasTempObjectProducingInstr; }
     void                SetHasTempObjectProducingInstr(bool has) { this->hasTempObjectProducingInstr = has; }
 
-    const JITTimeProfileInfo * GetProfileInfo() const { return GetJITFunctionBody()->GetProfileInfo(); }
+    const JITTimeProfileInfo * GetReadOnlyProfileInfo() const { return GetJITFunctionBody()->GetReadOnlyProfileInfo(); }
     bool                HasProfileInfo() const { return GetJITFunctionBody()->HasProfileInfo(); }
     bool                HasArrayInfo()
     {

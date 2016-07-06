@@ -1021,11 +1021,8 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // Add to the map
     propertyMap->Add(propertyRecord);
 
-    //CompileAssert(sizeof(PropertyRecordIDL) == sizeof(Js::PropertyRecord));
-
     if (m_remoteThreadContextInfo)
     {
-        CompileAssert(sizeof(PropertyRecordIDL) == sizeof(Js::PropertyRecord));
         m_codeGenManager.AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
     }
     PropertyRecordTrace(_u("Added property '%s' at 0x%08x, pid = %d\n"), propertyName, propertyRecord, propertyId);

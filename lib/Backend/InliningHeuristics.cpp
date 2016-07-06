@@ -130,7 +130,7 @@ bool InliningHeuristics::BackendInlineIntoInliner(const FunctionJITTimeInfo * in
         return true;
     }
 
-    const JITTimeProfileInfo *dynamicProfile = inliner->GetProfileInfo();
+    const JITTimeProfileInfo *dynamicProfile = inliner->GetReadOnlyProfileInfo();
 
     bool doConstantArgumentInlining = (dynamicProfile && dynamicProfile->GetConstantArgInfo(callSiteId) & inlinee->GetBody()->GetArgUsedForBranch()) != 0;
     if (doConstantArgumentInlining && inlinee->GetBody()->GetNonLoadByteCodeCount() <  (uint)threshold.constantArgumentInlineThreshold)

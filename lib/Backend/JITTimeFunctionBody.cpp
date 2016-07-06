@@ -597,6 +597,12 @@ JITTimeFunctionBody::IsGlobalFunc() const
     return m_bodyData.isGlobalFunc != FALSE;
 }
 
+void
+JITTimeFunctionBody::DisableInlineApply() 
+{
+    m_bodyData.isInlineApplyDisabled = TRUE;
+}
+
 bool
 JITTimeFunctionBody::IsInlineApplyDisabled() const
 {
@@ -613,6 +619,12 @@ bool
 JITTimeFunctionBody::DoJITLoopBody() const
 {
     return m_bodyData.doJITLoopBody != FALSE;
+}
+
+void
+JITTimeFunctionBody::DisableInlineSpread()
+{
+    m_bodyData.disableInlineSpread = TRUE;
 }
 
 bool
@@ -827,8 +839,14 @@ JITTimeFunctionBody::GetAsmJsInfo() const
     return reinterpret_cast<const AsmJsJITInfo *>(m_bodyData.asmJsData);
 }
 
-const JITTimeProfileInfo *
+JITTimeProfileInfo *
 JITTimeFunctionBody::GetProfileInfo() const
+{
+    return reinterpret_cast<JITTimeProfileInfo *>(m_bodyData.profileData);
+}
+
+const JITTimeProfileInfo *
+JITTimeFunctionBody::GetReadOnlyProfileInfo() const
 {
     return reinterpret_cast<const JITTimeProfileInfo *>(m_bodyData.profileData);
 }

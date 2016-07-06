@@ -215,7 +215,7 @@ GlobOpt::DoObjTypeSpec(Loop *loop) const
     {
         return false;
     }
-    if (this->func->IsLoopBody() && this->func->HasProfileInfo() && this->func->GetProfileInfo()->IsObjTypeSpecDisabledInJitLoopBody())
+    if (this->func->IsLoopBody() && this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsObjTypeSpecDisabledInJitLoopBody())
     {
         return false;
     }

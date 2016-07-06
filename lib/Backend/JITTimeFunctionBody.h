@@ -79,10 +79,12 @@ public:
     bool HasInlineCachesOnFunctionObject() const;
     bool DoInterruptProbe() const;
     bool IsGlobalFunc() const;
+    void DisableInlineApply();
     bool IsInlineApplyDisabled() const;
     bool IsNonTempLocalVar(uint32 varIndex) const;
     bool DoJITLoopBody() const;
     bool IsInlineSpreadDisabled() const;
+    void DisableInlineSpread();
     bool HasLoops() const;
     bool HasNonBuiltInCallee() const;
     bool HasNestedLoop() const;
@@ -114,7 +116,8 @@ public:
     intptr_t GetObjectLiteralTypeRef(uint index) const;
     intptr_t GetLiteralRegexAddr(uint index) const;
     const AsmJsJITInfo * GetAsmJsInfo() const;
-    const JITTimeProfileInfo * GetProfileInfo() const;
+    const JITTimeProfileInfo * GetReadOnlyProfileInfo() const;
+    JITTimeProfileInfo * GetProfileInfo() const;
     bool HasProfileInfo() const;
 
     static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);

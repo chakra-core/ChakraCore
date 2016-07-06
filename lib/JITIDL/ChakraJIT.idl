@@ -285,7 +285,7 @@ typedef struct AsmJsDataIDL
 
 typedef struct PropertyRecordIDL
 {
-    int vTable;
+    __int3264 vTable;
     int pid;
     unsigned int hash;
     boolean isNumeric;
@@ -549,6 +549,12 @@ typedef struct NativeDataBuffer
 // Fields that JIT modifies
 typedef struct JITOutputIDL
 {
+    boolean disableAggressiveIntTypeSpec;
+    boolean disableInlineApply;
+    boolean disableInlineSpread;
+    boolean disableStackArgOpt;
+    boolean disableSwitchOpt;
+    boolean disableTrackCompoundedIntOverflow;
     boolean isInPrereservedRegion;
 
     unsigned short pdataCount;
