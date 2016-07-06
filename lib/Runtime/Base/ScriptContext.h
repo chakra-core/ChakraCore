@@ -799,6 +799,7 @@ private:
         // We could delay the actual close after callRootLevel is 0.
         // this is to indicate the actual close is called once only.
         bool isScriptContextActuallyClosed;
+        bool isFinalized;
 #if DBG
         bool isInitialized;
         bool isCloningGlobal;
@@ -902,6 +903,8 @@ private:
         DateTime::Utility *GetDateUtility() { return &dateTimeUtility; }
 
         bool IsClosed() const { return isClosed; }
+        bool IsFinalized() const { return isFinalized; }
+        void SetIsFinalized() { isFinalized = true; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
 #if ENABLE_NATIVE_CODEGEN
         bool IsClosedNativeCodeGenerator() const

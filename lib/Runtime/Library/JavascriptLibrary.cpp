@@ -1063,6 +1063,8 @@ namespace Js
             // Clear the weak reference dictionary so we don't need to clean them
             // during PostCollectCallBack before Dispose deleting the script context.
             scriptContext->ResetWeakReferenceDictionaryList();
+            scriptContext->SetIsFinalized();
+            scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
         }
     }
 

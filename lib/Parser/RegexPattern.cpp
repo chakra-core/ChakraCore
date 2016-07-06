@@ -34,7 +34,8 @@ namespace UnifiedRegex
             return;
 
 #if DBG
-        if(!isLiteral && !scriptContext->IsClosed())
+        // In JSRT, we might not have a chance to close at finalize time.
+        if(!isLiteral && !scriptContext->IsClosed() && !scriptContext->GetThreadContext()->IsJSRT())
         {
             const auto source = GetSource();
             RegexPattern *p;
