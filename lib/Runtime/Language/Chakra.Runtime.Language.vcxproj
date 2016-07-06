@@ -70,7 +70,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsByteCodeGenerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsLink.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsLink.cpp">
+      <ExcludedFromBuild Condition="'$(BuildJIT)'=='false'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsTypes.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsUtils.cpp" />
@@ -184,7 +186,9 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AsmJsJitTemplate.h" />
-    <ClInclude Include="AsmJsLink.h" />
+    <ClInclude Include="AsmJsLink.h">
+      <ExcludedFromBuild Condition="'$(BuildJIT)'=='false'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="AsmJsModule.h" />
     <ClInclude Include="AsmJsBuiltInNames.h" />
     <ClInclude Include="AsmJsTypes.h" />
