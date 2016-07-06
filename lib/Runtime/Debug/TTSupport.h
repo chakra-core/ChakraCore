@@ -10,16 +10,13 @@
 #if ENABLE_TTD
 
 class HostScriptContextCallbackFunctor;
-
 namespace TTD
 {
     class ScriptContextTTD;
     class RuntimeContextInfo;
-
     //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
     //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
     typedef Js::Var TTDVar;
-
     namespace NSSnapType
     {
         struct SnapPropertyRecord;
@@ -27,49 +24,40 @@ namespace TTD
         struct SnapHandler;
         struct SnapType;
     }
-
     namespace NSSnapValues
     {
         struct SnapPrimitiveValue;
         struct SlotArrayInfo;
         struct ScriptFunctionScopeInfo;
-
         struct TopLevelScriptLoadFunctionBodyResolveInfo;
         struct TopLevelNewFunctionBodyResolveInfo;
         struct TopLevelEvalFunctionBodyResolveInfo;
-
         struct FunctionBodyResolveInfo;
         struct SnapContext;
     }
-
     namespace NSSnapObjects
     {
         struct SnapObject;
     }
-
     class SnapShot;
     class SnapshotExtractor;
-
     class TTDExceptionFramePopper;
     struct SingleCallCounter;
-
     namespace NSLogEvents
     {
         struct EventLogEntry;
     }
-
     class EventLog;
-
     class TTDebuggerAbortException;
     class TTDebuggerSourceLocation;
 }
-
 ////////
 //Memory allocators used by the TT code
-#define TT_HEAP_ALLOC(T) HeapNew(T)
-#define TT_HEAP_ALLOC_ARRAY(T, SIZE_IN_ELEMENTS) HeapNewArray(T, SIZE_IN_ELEMENTS)
+#define TT_HEAP_NEW(T, ...) HeapNewNoThrow(T, __VA_ARGS__)
+#define TT_HEAP_ALLOC_ARRAY(T, SIZE_IN_ELEMENTS) HeapNewNoThrowArray(T, SIZE_IN_ELEMENTS)
+#define TT_HEAP_ALLOC_ARRAY_ZERO(T, SIZE_IN_ELEMENTS) HeapNewNoThrowArrayZ(T, SIZE_IN_ELEMENTS)
 
-#define TT_HEAP_FREE(T, ELEM) HeapDelete(ELEM)
+#define TT_HEAP_DELETE(T, ELEM) HeapDelete(ELEM)
 #define TT_HEAP_FREE_ARRAY(T, ELEM, SIZE_IN_ELEMENTS) HeapDeleteArray(SIZE_IN_ELEMENTS, ELEM)
 
 ////////
@@ -163,9 +151,14 @@ namespace TTD
         TTDActive = (RecordEnabled | DebuggingEnabled),
 
         ExcludedExecution = 0x20,  //Set when the system is executing code on behalf of the TTD/debugger (so we don't want to record/replay things for it)
+        DebuggerSuppressGetter = 0x40, //Set when the system is doing a property access for the debugger (so we don't want to accidentally trigger a getter execution)
+
+        DebuggerSuppressBreakpoints = 0x200, //Set to prevent breakpoints (or break on exception) when moving in TT mode
+        DebuggerLogBreakpoints = 0x400, //Set to indicate we want to log breakpoints encountered when executing (but not actually halt)
 
         TTDShouldRecordActionMask = (RecordEnabled | ExcludedExecution),
-        TTDShouldDebugActionMask = (DebuggingEnabled | ExcludedExecution)
+        TTDShouldDebugActionMask = (DebuggingEnabled | ExcludedExecution),
+        TTDShouldSupressGetterActionMask = (DebuggingEnabled | DebuggerSuppressGetter)
     };
     DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
 
@@ -362,18 +355,19 @@ namespace TTD
         //The large allocation list
         LargeSlabBlock* m_largeBlockList;
 
+        //Allow us to speculatively reserve blocks for data and make sure we don't double allocate anything
+        uint32 m_reserveActiveBytes;
+        LargeSlabBlock* m_reserveActiveLargeBlock;
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         //The amount of allocated memory with useful data
         uint64 m_totalAllocatedSize;
-
-        //Make sure we don't double allocate anything
-        uint32 m_reserveActive;
 #endif
 
         //Get a new block in the slab
         void AddNewBlock()
         {
-            byte* allocBlock = HeapNewArray(byte, this->m_slabBlockSize);
+            byte* allocBlock = TT_HEAP_ALLOC_ARRAY(byte, this->m_slabBlockSize);
             AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             SlabBlock* newBlock = (SlabBlock*)allocBlock;
@@ -395,9 +389,7 @@ namespace TTD
         template <size_t n>
         byte* SlabAllocateTypeRawSize()
         {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            AssertMsg(this->m_reserveActive == 0, "Don't double allocate memory.");
-#endif
+            AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
             AssertMsg(n <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
 
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(n + canUnlink); //make alloc size word aligned
@@ -444,9 +436,7 @@ namespace TTD
 
             if(reserve)
             {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                AssertMsg(this->m_reserveActive == 0, "Don't double allocate memory.");
-#endif
+                AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
 
                 if(this->m_currPos + desiredsize > this->m_endPos)
                 {
@@ -471,7 +461,7 @@ namespace TTD
                 this->m_currPos += desiredsize;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                this->m_totalAllocatedSize += TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes);
+                this->m_totalAllocatedSize += desiredsize;
 #endif
 
                 if(canUnlink)
@@ -480,24 +470,38 @@ namespace TTD
                 }
             }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             if(reserve & !commit)
             {
-                this->m_reserveActive = desiredsize;
+                this->m_reserveActiveBytes = desiredsize;
             }
 
             if(!reserve & commit)
             {
-                AssertMsg(desiredsize <= this->m_reserveActive, "We are commiting more that we reserved.");
+                AssertMsg(desiredsize <= this->m_reserveActiveBytes, "We are commiting more that we reserved.");
 
-                this->m_reserveActive = 0;
+                this->m_reserveActiveBytes = 0;
             }
-#endif
 
             return res;
         }
 
+        //Commit the allocation of a large block
+        void CommitLargeBlockAllocation(LargeSlabBlock* newBlock, size_t blockSize)
+        {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            this->m_totalAllocatedSize += blockSize;
+#endif
+
+            if(this->m_largeBlockList != nullptr)
+            {
+                this->m_largeBlockList->Next = newBlock;
+            }
+
+            this->m_largeBlockList = newBlock;
+        }
+
         //Allocate a byte* of the the given size (word aligned) in the large block pool
+        template<bool commit>
         byte* SlabAllocateLargeBlockSize(size_t requestedBytes)
         {
             AssertMsg(requestedBytes > TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate small requests in the large pool.");
@@ -505,11 +509,9 @@ namespace TTD
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes + TTD_LARGE_SLAB_BLOCK_SIZE); //make alloc size word aligned
             AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + TTD_LARGE_SLAB_BLOCK_SIZE)), "We can never allocate a block this big with the slab allocator!!");
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            AssertMsg(this->m_reserveActive == 0, "Don't double allocate memory.");
-#endif
+            AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
 
-            byte* tmp = HeapNewArray(byte, desiredsize);
+            byte* tmp = TT_HEAP_ALLOC_ARRAY(byte, desiredsize);
 
             LargeSlabBlock* newBlock = (LargeSlabBlock*)tmp;
             newBlock->BlockData = (tmp + TTD_LARGE_SLAB_BLOCK_SIZE);
@@ -520,25 +522,24 @@ namespace TTD
 
             newBlock->MetaDataSential = 0;
 
-            if(this->m_largeBlockList != nullptr)
+            if(commit)
             {
-                this->m_largeBlockList->Next = newBlock;
+                this->CommitLargeBlockAllocation(newBlock, desiredsize);
+            }
+            else
+            {
+                this->m_reserveActiveBytes = desiredsize;
+                this->m_reserveActiveLargeBlock = newBlock;
             }
 
-            this->m_largeBlockList = newBlock;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            this->m_totalAllocatedSize += TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes);
-#endif
-
-            return this->m_largeBlockList->BlockData;
+            return newBlock->BlockData;
         }
 
     public:
         SlabAllocatorBase(uint32 slabBlockSize)
             : m_largeBlockList(nullptr), m_slabBlockSize(slabBlockSize)
         {
-            byte* allocBlock = HeapNewArray(byte, this->m_slabBlockSize);
+            byte* allocBlock = TT_HEAP_ALLOC_ARRAY(byte, this->m_slabBlockSize);
             AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             this->m_headBlock = (SlabBlock*)allocBlock;
@@ -556,8 +557,10 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             this->m_totalAllocatedSize = 0;
-            this->m_reserveActive = 0;
 #endif
+
+            this->m_reserveActiveBytes = 0;
+            this->m_reserveActiveLargeBlock = nullptr;
         }
 
         ~SlabAllocatorBase()
@@ -568,7 +571,7 @@ namespace TTD
                 SlabBlock* tmp = currBlock;
                 currBlock = currBlock->Previous;
 
-                HeapDeleteArray(this->m_slabBlockSize, (byte*)tmp);
+                TT_HEAP_FREE_ARRAY(byte, (byte*)tmp, this->m_slabBlockSize);
             }
 
             LargeSlabBlock* currLargeBlock = this->m_largeBlockList;
@@ -577,7 +580,13 @@ namespace TTD
                 LargeSlabBlock* tmp = currLargeBlock;
                 currLargeBlock = currLargeBlock->Previous;
 
-                HeapDeleteArray(tmp->TotalBlockSize, (byte*)tmp);
+                TT_HEAP_FREE_ARRAY(byte, (byte*)tmp, tmp->TotalBlockSize);
+            }
+
+            if(this->m_reserveActiveLargeBlock != nullptr)
+            {
+                TT_HEAP_FREE_ARRAY(byte, (byte*)this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
+                this->m_reserveActiveLargeBlock = nullptr;
             }
         }
 
@@ -686,7 +695,7 @@ namespace TTD
             }
             else
             {
-                return (T*)this->SlabAllocateLargeBlockSize(size);
+                return (T*)this->SlabAllocateLargeBlockSize<true>(size);
             }
         }
 
@@ -703,7 +712,7 @@ namespace TTD
             }
             else
             {
-                res = (T*)this->SlabAllocateLargeBlockSize(size);
+                res = (T*)this->SlabAllocateLargeBlockSize<true>(size);
             }
 
             memset(res, 0, size);
@@ -720,7 +729,7 @@ namespace TTD
             }
             else
             {
-                return (T*)this->SlabAllocateLargeBlockSize(count * sizeof(T));
+                return (T*)this->SlabAllocateLargeBlockSize<true>(count * sizeof(T));
             }
         }
 
@@ -735,7 +744,7 @@ namespace TTD
             }
             else
             {
-                return (T*)this->SlabAllocateLargeBlockSize(size);
+                return (T*)this->SlabAllocateLargeBlockSize<false>(size);
             }
         }
 
@@ -743,37 +752,56 @@ namespace TTD
         template <typename T>
         void SlabCommitArraySpace(size_t actualCount, size_t reservedCount)
         {
+            AssertMsg(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
+
             size_t reservedSize = reservedCount * sizeof(T);
             if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
+                AssertMsg(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
+
                 size_t actualSize = actualCount * sizeof(T);
                 this->SlabAllocateRawSize<false, true>(actualSize);
             }
-            //we always commit large allocs so no need to clear reserved count info
+            else
+            {
+                AssertMsg(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
+
+                this->CommitLargeBlockAllocation(this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
+
+                this->m_reserveActiveLargeBlock = nullptr;
+                this->m_reserveActiveBytes = 0;
+            }
         }
 
         //Abort the allocation of the elements of the given type that were reserved previously
         template <typename T>
         void SlabAbortArraySpace(size_t reservedCount)
         {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
+
             size_t reservedSize = reservedCount * sizeof(T);
             if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
-                AssertMsg(this->m_reserveActive != 0, "We don't have anything reserved.");
-                this->m_reserveActive = 0;
+                AssertMsg(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
+
+                this->m_reserveActiveBytes = 0;
             }
-            //we always commit large allocs so no need to clear reserved count info
-#endif
+            else
+            {
+                AssertMsg(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
+
+                TT_HEAP_FREE_ARRAY(byte, (byte*)this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
+
+                this->m_reserveActiveLargeBlock = nullptr;
+                this->m_reserveActiveBytes = 0;
+            }
         }
 
         //If allowed unlink the memory allocation specified and free the block if it is no longer used by anyone
         void UnlinkAllocation(const void* allocation)
         {
             AssertMsg(canUnlink, "Unlink not allowed with this slab allocator.");
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            AssertMsg(this->m_reserveActive == 0, "We don't have anything reserved.");
-#endif
+            AssertMsg(this->m_reserveActiveBytes == 0, "We don't have anything reserved.");
 
             //get the meta-data for this allocation and see if it is a 
             byte* realBase = ((byte*)allocation) - canUnlink;
@@ -784,25 +812,30 @@ namespace TTD
                 //it is a large allocation just free it
                 LargeSlabBlock* largeBlock = (LargeSlabBlock*)(((byte*)allocation) - TTD_LARGE_SLAB_BLOCK_SIZE);
 
-                if(largeBlock->Next != nullptr)
-                {
-                    largeBlock->Next->Previous = largeBlock->Previous;
-                }
-
-                if(largeBlock->Previous != nullptr)
-                {
-                    largeBlock->Previous->Next = largeBlock->Next;
-                }
-
                 if(largeBlock == this->m_largeBlockList)
                 {
-                    AssertMsg(this->m_largeBlockList->Next == nullptr && this->m_largeBlockList->Previous == nullptr, "We should be de-allocating in order so this should all be don if we reach the head.");
+                    AssertMsg(largeBlock->Next == nullptr, "Should always have a null next at head");
 
-                    this->m_largeBlockList = nullptr;
+                    this->m_largeBlockList = this->m_largeBlockList->Previous;
+                    if(this->m_largeBlockList != nullptr)
+                    {
+                        this->m_largeBlockList->Next = nullptr;
+                    }
+                }
+                else
+                {
+                    if(largeBlock->Next != nullptr)
+                    {
+                        largeBlock->Next->Previous = largeBlock->Previous;
+                    }
+
+                    if(largeBlock->Previous != nullptr)
+                    {
+                        largeBlock->Previous->Next = largeBlock->Next;
+                    }
                 }
 
-
-                HeapDeleteArray(largeBlock->TotalBlockSize, (byte*)largeBlock);
+                TT_HEAP_FREE_ARRAY(byte, (byte*)largeBlock, largeBlock->TotalBlockSize);
             }
             else
             {
@@ -834,7 +867,7 @@ namespace TTD
                             block->Previous->Next = block->Next;
                         }
 
-                        HeapDeleteArray(this->m_slabBlockSize, (byte*)block);
+                        TT_HEAP_FREE_ARRAY(byte, (byte*)block, this->m_slabBlockSize);
                     }
                 }
             }
@@ -1090,7 +1123,7 @@ namespace TTD
         {
             if(this->m_hashArray != nullptr)
             {
-                HeapDeleteArray(this->m_capacity, this->m_hashArray);
+                TT_HEAP_FREE_ARRAY(Entry, this->m_hashArray, this->m_capacity);
                 this->m_hashArray = nullptr;
                 this->m_capacity = 0;
 
@@ -1109,7 +1142,7 @@ namespace TTD
 
             LoadValuesForHashTables(desiredSize, &(this->m_capacity), &(this->m_h1Prime), &(this->m_h2Prime));
 
-            this->m_hashArray = HeapNewArrayZ(Entry, this->m_capacity);
+            this->m_hashArray = TT_HEAP_ALLOC_ARRAY_ZERO(Entry, this->m_capacity);
         }
 
         TTDIdentifierDictionary()
@@ -1130,7 +1163,7 @@ namespace TTD
             this->m_hashArray = src.m_hashArray;
             this->m_count = src.m_count;
 
-            src.m_hashArray = HeapNewArrayZ(Entry, src.m_capacity);
+            src.m_hashArray = TT_HEAP_ALLOC_ARRAY_ZERO(Entry, src.m_capacity);
             src.m_count = 0;
         }
 
@@ -1287,8 +1320,8 @@ namespace TTD
             uint32 dummyNearPrime = 0;
             LoadValuesForHashTables(this->m_capcity, &dummyPowerOf2, &dummyNearPrime, &(this->m_h2Prime));
 
-            this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
-            this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+            this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
+            this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
 
             for(uint32 i = 0; i < oldCapacity; ++i)
             {
@@ -1297,8 +1330,8 @@ namespace TTD
                 this->m_markArray[idx] = oldMarkArray[i];
             }
 
-            HeapDeleteArray(oldCapacity, oldAddrArray);
-            HeapDeleteArray(oldCapacity, oldMarkArray);
+            TT_HEAP_FREE_ARRAY(uint64, oldAddrArray, oldCapacity);
+            TT_HEAP_FREE_ARRAY(MarkTableTag, oldMarkArray, oldCapacity);
         }
 
         int32 FindIndexForKeyWGrow(const void* addr)

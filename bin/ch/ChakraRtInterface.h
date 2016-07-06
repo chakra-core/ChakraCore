@@ -86,9 +86,11 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId);
     typedef JsErrorCode(WINAPI *JsrtTTDNotifyYieldPtr)();
 
-    typedef JsErrorCode(WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
-    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
-    typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDGetSnapTimeTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, INT64* targetEventTime, bool* createFreshContexts, INT64* targetStartSnapTime, INT64* targetEndSnapTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, bool createFreshCtxs);
+    typedef JsErrorCode(WINAPI *JsrtTTDPreExecuteSnapShotIntervalPtr)(INT64 startSnapTime, INT64 endSnapTime, JsTTDMoveMode moveMode);
+    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsTTDMoveMode moveMode, INT64 snapshotStartTime, INT64 eventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, INT64* rootEventTime);
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
@@ -171,7 +173,9 @@ struct JsAPIHooks
     JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr pfJsrtTTDNotifyHostCallbackCreatedOrCanceled;
     JsrtTTDNotifyYieldPtr pfJsrtTTDNotifyYield;
 
+    JsrtTTDGetSnapTimeTopLevelEventMovePtr pfJsrtTTDGetSnapTimeTopLevelEventMove;
     JsrtTTDPrepContextsForTopLevelEventMovePtr pfJsrtTTDPrepContextsForTopLevelEventMove;
+    JsrtTTDPreExecuteSnapShotIntervalPtr pfJsrtTTDPreExecuteSnapShotInterval;
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 };
@@ -337,9 +341,11 @@ public:
     static JsErrorCode WINAPI JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId) { return m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled(isCreate, isCancel, isRepeating, function, callbackId); }
     static JsErrorCode WINAPI JsTTDNotifyYield() { return m_jsApiHooks.pfJsrtTTDNotifyYield(); }
 
-    static JsErrorCode WINAPI JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime) { return m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove(runtimeHandle, targetEventTime, targetStartSnapTime); }
-    static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(INT64 snapshotStartTime, INT64 eventTime) { return m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent(snapshotStartTime, eventTime); }
-    static JsErrorCode WINAPI JsTTDReplayExecution(INT64* rootEventTime) { return m_jsApiHooks.pfJsrtTTDReplayExecution(rootEventTime); }
+    static JsErrorCode WINAPI JsTTDGetSnapTimeTopLevelEventMove(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, INT64* targetEventTime, bool* createFreshContexts, INT64* targetStartSnapTime, INT64* targetEndSnapTime) { return m_jsApiHooks.pfJsrtTTDGetSnapTimeTopLevelEventMove(runtimeHandle, moveMode, targetEventTime, createFreshContexts, targetStartSnapTime, targetEndSnapTime); }
+    static JsErrorCode WINAPI JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, bool createFreshCtxs) { return m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove(runtimeHandle, createFreshCtxs); }
+    static JsErrorCode WINAPI JsTTDPreExecuteSnapShotInterval(INT64 startSnapTime, INT64 endSnapTime, JsTTDMoveMode moveMode) { return m_jsApiHooks.pfJsrtTTDPreExecuteSnapShotInterval(startSnapTime, endSnapTime, moveMode); }
+    static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(JsTTDMoveMode moveMode, INT64 snapshotStartTime, INT64 eventTime) { return m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent(moveMode, snapshotStartTime, eventTime); }
+    static JsErrorCode WINAPI JsTTDReplayExecution(JsTTDMoveMode* moveMode, INT64* rootEventTime) { return m_jsApiHooks.pfJsrtTTDReplayExecution(moveMode, rootEventTime); }
 };
 
 class AutoRestoreContext

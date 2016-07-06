@@ -48,6 +48,10 @@ namespace Js
 
         Utf8SourceInfo* GetUtf8SourceInfo() { return this->utf8SourceInfo; }
 
+#if ENABLE_TTD_DEBUGGING
+        bool IsJustMyCode() const;
+#endif
+
     private:
         Utf8SourceInfo* utf8SourceInfo;
         RecyclerRootPtr<Js::FunctionBody> functionBody;

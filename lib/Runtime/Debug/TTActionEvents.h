@@ -18,6 +18,7 @@ namespace TTD
 
         //We have a number of loops where we look for a snapshot or root with a given time value -- this encapsulates the access logic
         int64 AccessTimeInRootCallOrSnapshot(const EventLogEntry* evt, bool& isSnap, bool& isRoot, bool& hasRtrSnap);
+        bool TryGetTimeFromRootCallOrSnapshot(const EventLogEntry* evt, int64& res);
         int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt);
 
         //Handle the replay of the result of an action for the the given action type and tag
@@ -316,6 +317,86 @@ namespace TTD
 
         //////////////////
 
+        //A generic struct for the naked buffer copy action
+        struct JsRTRawBufferCopyAction
+        {
+            TTDVar Dst;
+            TTDVar Src;
+            uint32 DstIndx;
+            uint32 SrcIndx;
+            uint32 Count;
+        };
+
+        void JsRTRawBufferCopyAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void JsRTRawBufferCopyAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //A generic struct for the naked buffer modify action (with buffer data)
+        struct JsRTRawBufferModifyAction
+        {
+            TTDVar Trgt;
+            byte* Data;
+            uint32 Index;
+            uint32 Length;
+        };
+
+        template <EventKind tag>
+        void JsRTRawBufferModifyAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTRawBufferModifyAction* bufferAction = GetInlineEventDataAs<JsRTRawBufferModifyAction, tag>(evt);
+
+            if(bufferAction->Data != nullptr)
+            {
+                alloc.UnlinkAllocation(bufferAction->Data);
+            }
+        }
+
+        template <EventKind tag>
+        void JsRTRawBufferModifyAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const JsRTRawBufferModifyAction* bufferAction = GetInlineEventDataAs<JsRTRawBufferModifyAction, tag>(evt);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(bufferAction->Trgt, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::index, bufferAction->Index, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteLengthValue(bufferAction->Length, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < bufferAction->Length; ++i)
+            {
+                writer->WriteNakedByte(bufferAction->Data[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
+            writer->WriteSequenceEnd();
+        }
+
+        template <EventKind tag>
+        void JsRTRawBufferModifyAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTRawBufferModifyAction* bufferAction = GetInlineEventDataAs<JsRTRawBufferModifyAction, tag>(evt);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            bufferAction->Trgt = NSSnapValues::ParseTTDVar(false, reader);
+
+            bufferAction->Index = reader->ReadUInt32(NSTokens::Key::index, true);
+            bufferAction->Length = reader->ReadUInt32(NSTokens::Key::count, true);
+
+            bufferAction->Data = (bufferAction->Length != 0) ? alloc.SlabAllocateArray<byte>(bufferAction->Length) : nullptr;
+
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < bufferAction->Length; ++i)
+            {
+                bufferAction->Data[i] = reader->ReadNakedByte(i != 0);
+            }
+            reader->ReadSequenceEnd();
+        }
+
+        void RawBufferCopySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void RawBufferModifySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void RawBufferAsyncModificationRegister_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void RawBufferAsyncModifyComplete_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+
+        //////////////////
+
         //A class for constructor calls
         struct JsRTConstructCallAction
         {
@@ -425,6 +506,7 @@ namespace TTD
             Js::Var* ExecArgs;
 
             //Info on the last executed statement in this call
+            bool MarkedAsJustMyCode;
             TTDebuggerSourceLocation LastExecutedLocation;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -471,8 +553,8 @@ namespace TTD
         void JsRTCallFunctionAction_UnloadSnapshot(EventLogEntry* evt);
 
         //Set the last executed statement and frame (in debugging mode -- nops for replay mode)
-        void JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(EventLogEntry* evt, const SingleCallCounter& lastSourceLocation);
-        bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& lastSourceInfo);
+        void JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(EventLogEntry* evt, bool markedAsJustMyCode, const TTDebuggerSourceLocation& lastSourceLocation);
+        bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, bool* markedAsJustMyCode, TTDebuggerSourceLocation& lastSourceInfo);
     }
 }
 

@@ -397,6 +397,15 @@ namespace TTD
             TTD_PTR_ID LogObject;
         };
 
+        struct SnapPendingAsyncBufferModification
+        {
+            //The log id value 
+            TTD_LOG_PTR_ID LogId;
+
+            //The index value associated with this modification
+            uint32 Index;
+        };
+
         //A structure for serializing/tracking script contexts
         struct SnapContext
         {
@@ -428,6 +437,10 @@ namespace TTD
             //A list of all the local root objects in this context
             uint32 m_localRootCount;
             SnapRootPinEntry* m_localRootArray;
+
+            //A list of all the pending async buffer modifications
+            uint32 m_pendingAsyncModCount;
+            SnapPendingAsyncBufferModification* m_pendingAsyncModArray;
         };
 
         void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, SlabAllocator& alloc);
@@ -438,6 +451,7 @@ namespace TTD
             const TTDIdentifierDictionary<uint64, TopLevelEvalFunctionBodyResolveInfo*>& topLevelEvalScriptMap);
 
         void ReLinkRoots(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator);
+        void ResetPendingAsyncBufferModInfo(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator);
 
         void EmitSnapContext(const SnapContext* snapCtx, FileWriter* writer, NSTokens::Separator separator);
         void ParseSnapContext(SnapContext* intoCtx, bool readSeperator, FileReader* reader, SlabAllocator& alloc);

@@ -22,16 +22,19 @@ namespace TTD
         //An optional target event time -- intent is interpreted based on the abort code
         const int64 m_optEventTime;
 
+        //An optional move mode value -- should be built by host we just propagate it
+        const int64 m_optMoveMode;
+
         //An optional -- and static string message to include
         const LPCWSTR m_staticAbortMessage;
 
-        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, LPCWSTR staticAbortMessage);
+        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, LPCWSTR staticAbortMessage);
 
     public:
         ~TTDebuggerAbortException();
 
         static TTDebuggerAbortException CreateAbortEndOfLog(LPCWSTR staticMessage);
-        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
+        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, LPCWSTR staticMessage);
         static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
 
         bool IsEndOfLog() const;
@@ -39,6 +42,7 @@ namespace TTD
         bool IsTopLevelException() const;
 
         int64 GetTargetEventTime() const;
+        int64 GetMoveMode() const;
 
         LPCWSTR GetStaticAbortMessage() const;
     };
@@ -63,7 +67,7 @@ namespace TTD
         int32 CurrentStatementIndex; //The currently executing statement
         uint64 CurrentStatementLoopTime; //The currently executing statement
 
-                                         //bytecode range of the current stmt
+        //bytecode range of the current stmt
         uint32 CurrentStatementBytecodeMin;
         uint32 CurrentStatementBytecodeMax;
 #endif
@@ -92,8 +96,15 @@ namespace TTD
 
     public:
         TTDebuggerSourceLocation();
+        TTDebuggerSourceLocation(const SingleCallCounter& callFrame);
         TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
         ~TTDebuggerSourceLocation();
+
+        TTDebuggerSourceLocation& operator= (const TTDebuggerSourceLocation& other);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void PrintToConsole(bool newline) const;
+#endif
 
         void Initialize();
 
@@ -107,9 +118,12 @@ namespace TTD
         int64 GetFunctionTime() const;
         int64 GetLoopTime() const;
 
-        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
+        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const;
         uint32 GetLine() const;
         uint32 GetColumn() const;
+
+        //return true if this comes strictly before other in execution order
+        bool IsBefore(const TTDebuggerSourceLocation& other) const;
     };
 
     //////////////////
@@ -173,6 +187,11 @@ namespace TTD
             SetIndexActionTag,
 
             GetTypedArrayInfoActionTag,
+
+            RawBufferCopySync,
+            RawBufferModifySync,
+            RawBufferAsyncModificationRegister,
+            RawBufferAsyncModifyComplete,
 
             ConstructCallActionTag,
             CallbackOpActionTag,

@@ -21,7 +21,7 @@ namespace TTD
         {
             size_t wclen = wcslen(str) + 1;
 
-            this->m_contents = HeapNewArrayZ(wchar, wclen);
+            this->m_contents = TT_HEAP_ALLOC_ARRAY_ZERO(wchar, wclen);
             this->m_allocSize = (int32)wclen;
 
             wcscat_s(this->m_contents, wclen, str);
@@ -54,14 +54,14 @@ namespace TTD
         {
             if(this->m_contents != nullptr)
             {
-                HeapDeleteArray((size_t)this->m_allocSize, this->m_contents);
+                TT_HEAP_FREE_ARRAY(wchar, this->m_contents, (size_t)this->m_allocSize);
                 this->m_allocSize = -1;
                 this->m_contents = nullptr;
             }
 
             if(this->m_optFormatBuff != nullptr)
             {
-                HeapDeleteArray(64, this->m_optFormatBuff);
+                TT_HEAP_FREE_ARRAY(wchar, this->m_optFormatBuff, 64);
                 this->m_optFormatBuff = nullptr;
             }
         }
@@ -90,13 +90,13 @@ namespace TTD
             }
 
             size_t nsize = origsize + strsize + 1;
-            wchar* nbuff = HeapNewArrayZ(wchar, nsize);
+            wchar* nbuff = TT_HEAP_ALLOC_ARRAY_ZERO(wchar, nsize);
 
             if(this->m_contents != nullptr)
             {
                 wcscat_s(nbuff, nsize, this->m_contents);
 
-                HeapDeleteArray(origsize + 1, this->m_contents);
+                TT_HEAP_FREE_ARRAY(wchar, this->m_contents, origsize + 1);
                 this->m_allocSize = -1;
                 this->m_contents = nullptr;
             }
@@ -125,7 +125,7 @@ namespace TTD
         {
             if(this->m_optFormatBuff == nullptr)
             {
-                this->m_optFormatBuff = HeapNewArrayZ(wchar, 64);
+                this->m_optFormatBuff = TT_HEAP_ALLOC_ARRAY_ZERO(wchar, 64);
             }
 
             swprintf_s(this->m_optFormatBuff, 32, _u("%I64u"), val); //64 wchars is 32 words
@@ -136,7 +136,7 @@ namespace TTD
         void TTAutoString::Append(LPCUTF8 strBegin, LPCUTF8 strEnd)
         {
             int32 strCount = (int32)((strEnd - strBegin) + 1);
-            wchar* buff = HeapNewArrayZ(wchar, (size_t)strCount);
+            wchar* buff = TT_HEAP_ALLOC_ARRAY_ZERO(wchar, (size_t)strCount);
 
             LPCUTF8 curr = strBegin;
             int32 i = 0;
@@ -151,7 +151,7 @@ namespace TTD
             buff[i] = _u('\0');
             this->Append(buff);
 
-            HeapDeleteArray((size_t)strCount, buff);
+            TT_HEAP_FREE_ARRAY(wchar, buff, (size_t)strCount);
         }
 
         int32 TTAutoString::GetLength() const
@@ -244,16 +244,16 @@ namespace TTD
     MarkTable::MarkTable()
         : m_capcity(TTD_MARK_TABLE_INIT_SIZE), m_h2Prime(TTD_MARK_TABLE_INIT_H2PRIME), m_count(0), m_iterPos(0)
     {
-        this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
-        this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+        this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
+        this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
 
         memset(this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
     }
 
     MarkTable::~MarkTable()
     {
-        HeapDeleteArray(this->m_capcity, this->m_addrArray);
-        HeapDeleteArray(this->m_capcity, this->m_markArray);
+        TT_HEAP_FREE_ARRAY(uint64, this->m_addrArray, this->m_capcity);
+        TT_HEAP_FREE_ARRAY(MarkTableTag, this->m_markArray, this->m_capcity);
     }
 
     void MarkTable::Clear()
@@ -265,13 +265,13 @@ namespace TTD
         }
         else
         {
-            HeapDeleteArray(this->m_capcity, this->m_addrArray);
-            HeapDeleteArray(this->m_capcity, this->m_markArray);
+            TT_HEAP_FREE_ARRAY(uint64, this->m_addrArray, this->m_capcity);
+            TT_HEAP_FREE_ARRAY(MarkTableTag, this->m_markArray, this->m_capcity);
 
             this->m_capcity = TTD_MARK_TABLE_INIT_SIZE;
             this->m_h2Prime = TTD_MARK_TABLE_INIT_H2PRIME;
-            this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
-            this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+            this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
+            this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
         }
 
         this->m_count = 0;

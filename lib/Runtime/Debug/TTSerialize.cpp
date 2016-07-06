@@ -1822,7 +1822,7 @@ namespace TTD
         fflush(this->m_outfile);
     }
 
-    void TraceLogger::WriteVar(Js::Var var)
+    void TraceLogger::WriteVar(Js::Var var, bool skipStringContents)
     {
         if(var == nullptr)
         {
@@ -1856,7 +1856,25 @@ namespace TTD
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");
-                this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                if(!skipStringContents)
+                {
+                    if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
+                    {
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                    }
+                    else
+                    {
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), 40);
+                        this->AppendLiteral("...");
+                        this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    }
+                }
+                else
+                {
+                    this->AppendLiteral("string@length=");
+                    this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    this->AppendLiteral("...");
+                }
                 this->AppendLiteral("'");
                 break;
             default:
@@ -1979,6 +1997,12 @@ namespace TTD
         this->ForceFlush();
         //
         ////
+    }
+
+    void TraceLogger::WriteTraceValue(Js::Var var)
+    {
+        this->WriteVar(var, true);
+        this->WriteLiteralMsg("\n");
     }
 #endif
 }

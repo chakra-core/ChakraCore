@@ -802,13 +802,15 @@ namespace TTD
             this->ForceFlush();
         }
 
-        void WriteVar(Js::Var var);
+        void WriteVar(Js::Var var, bool skipStringContents=false);
 
         void WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv, int64 etime);
         void WriteReturn(Js::JavascriptFunction* function, Js::Var res, int64 etime);
         void WriteReturnException(Js::JavascriptFunction* function, int64 etime);
 
         void WriteStmtIndex(uint32 line, uint32 column);
+
+        void WriteTraceValue(Js::Var var);
     };
 #endif
 }

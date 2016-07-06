@@ -149,7 +149,9 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = (JsAPIHooks::JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)GetChakraCoreSymbol(library, "JsTTDNotifyHostCallbackCreatedOrCanceled");
     m_jsApiHooks.pfJsrtTTDNotifyYield = (JsAPIHooks::JsrtTTDNotifyYieldPtr)GetChakraCoreSymbol(library, "JsTTDNotifyYield");
 
+    m_jsApiHooks.pfJsrtTTDGetSnapTimeTopLevelEventMove = (JsAPIHooks::JsrtTTDGetSnapTimeTopLevelEventMovePtr)GetChakraCoreSymbol(library, "JsTTDGetSnapTimeTopLevelEventMove");
     m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = (JsAPIHooks::JsrtTTDPrepContextsForTopLevelEventMovePtr)GetChakraCoreSymbol(library, "JsTTDPrepContextsForTopLevelEventMove");
+    m_jsApiHooks.pfJsrtTTDPreExecuteSnapShotInterval = (JsAPIHooks::JsrtTTDPreExecuteSnapShotIntervalPtr)GetChakraCoreSymbol(library, "JsTTDPreExecuteSnapShotInterval");
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetChakraCoreSymbol(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
 

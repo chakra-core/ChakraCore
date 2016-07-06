@@ -95,7 +95,7 @@ namespace TTD
             }
             else
             {
-                into.Contents = HeapNewArray(wchar, into.Length + 1);
+                into.Contents = TT_HEAP_ALLOC_ARRAY(wchar, into.Length + 1);
                 js_memcpy_s(into.Contents, into.Length * sizeof(wchar), string, length * sizeof(wchar));
                 into.Contents[into.Length] = '\0';
             }
@@ -105,7 +105,7 @@ namespace TTD
         {
             if(string.Contents != nullptr)
             {
-                HeapDeleteArray(string.Length + 1, string.Contents);
+                TT_HEAP_FREE_ARRAY(wchar, string.Contents, string.Length + 1);
             }
         }
 
@@ -1511,18 +1511,46 @@ namespace TTD
             }
 
             //Extract local roots
-            snapCtx->m_localRootCount = ctx->TTDContextInfo->GetLocalRootSet()->Count();
-            snapCtx->m_localRootArray = (snapCtx->m_localRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_localRootCount) : nullptr;
-
-            int32 j = 0;
-            for(auto iter = ctx->TTDContextInfo->GetLocalRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+            if(ctx->TTDContextInfo->GetLocalRootSet()->Count() == 0)
             {
-                AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
+                snapCtx->m_localRootCount = 0;
+                snapCtx->m_localRootArray = nullptr;
+            }
+            else
+            {
+                snapCtx->m_localRootCount = 0;
+                snapCtx->m_localRootArray = alloc.SlabReserveArraySpace<SnapRootPinEntry>(ctx->TTDContextInfo->GetLocalRootSet()->Count());
 
-                snapCtx->m_localRootArray[j].LogObject = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue()); 
-                snapCtx->m_localRootArray[j].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
+                for(auto iter = ctx->TTDContextInfo->GetLocalRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+                {
+                    if(objToLogIdMap.ContainsKey(iter.CurrentValue()))
+                    {
+                        snapCtx->m_localRootArray[snapCtx->m_localRootCount].LogObject = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
+                        snapCtx->m_localRootArray[snapCtx->m_localRootCount].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
 
-                j++;
+                        snapCtx->m_localRootCount++;
+                    }
+                }
+
+                if(snapCtx->m_localRootCount != 0)
+                {
+                    alloc.SlabCommitArraySpace<SnapRootPinEntry>(snapCtx->m_localRootCount, ctx->TTDContextInfo->GetLocalRootSet()->Count());
+                }
+                else
+                {
+                    alloc.SlabAbortArraySpace<SnapRootPinEntry>(ctx->TTDContextInfo->GetLocalRootSet()->Count());
+                }
+            }
+            //Extract pending async modification info
+            const JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator>& pendingAsyncList = ctx->TTDContextInfo->GetPendingAsyncModListForSnapshot();
+            snapCtx->m_pendingAsyncModCount = pendingAsyncList.Count();
+            snapCtx->m_pendingAsyncModArray = (snapCtx->m_pendingAsyncModCount != 0) ? alloc.SlabAllocateArray<SnapPendingAsyncBufferModification>(snapCtx->m_pendingAsyncModCount) : nullptr;
+
+            for(int32 k = 0; k < pendingAsyncList.Count(); ++k)
+            {
+                const TTDPendingAsyncBufferModification& pk = pendingAsyncList.Item(k);
+                snapCtx->m_pendingAsyncModArray[k].LogId = objToLogIdMap.LookupWithKey(Js::RecyclableObject::FromVar(pk.ArrayBufferVar), TTD_INVALID_LOG_PTR_ID);
+                snapCtx->m_pendingAsyncModArray[k].Index = pk.Index;
             }
         }
 
@@ -1538,12 +1566,19 @@ namespace TTD
             intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
             inflator->AddScriptContext(snpCtx->m_scriptContextLogId, intoCtx);
 
+            intoCtx->TTDContextInfo->ClearLoadedSourcesForSnapshotRestore();
+
             for(uint32 i = 0; i < snpCtx->m_loadedTopLevelScriptCount; ++i)
             {
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_loadedTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb == nullptr)
+                if(fb != nullptr)
+                {
+                    intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+                    intoCtx->TTDContextInfo->RegisterLoadedScript(fb, cri.TopLevelBodyCtr);
+                }
+                else
                 {
                     const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = topLevelLoadScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
@@ -1556,7 +1591,12 @@ namespace TTD
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_newFunctionTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb == nullptr)
+                if(fb != nullptr)
+                {
+                    intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+                    intoCtx->TTDContextInfo->RegisterNewScript(fb, cri.TopLevelBodyCtr);
+                }
+                else
                 {
                     const TopLevelNewFunctionBodyResolveInfo* fbInfo = topLevelNewScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelNewFunctionBodyInfo(fbInfo, intoCtx);
@@ -1569,7 +1609,12 @@ namespace TTD
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_evalTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb == nullptr)
+                if(fb != nullptr)
+                {
+                    intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+                    intoCtx->TTDContextInfo->RegisterEvalScript(fb, cri.TopLevelBodyCtr);
+                }
+                else
                 {
                     const TopLevelEvalFunctionBodyResolveInfo* fbInfo = topLevelEvalScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelEvalFunctionBodyInfo(fbInfo, intoCtx);
@@ -1596,6 +1641,20 @@ namespace TTD
                 Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry.LogObject);
 
                 intoCtx->TTDContextInfo->AddLocalRoot(rootEntry.LogId, rootObj);
+            }
+        }
+
+        void ResetPendingAsyncBufferModInfo(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator)
+        {
+            intoCtx->TTDContextInfo->ClearPendingAsyncModListForSnapRestore();
+
+            for(uint32 i = 0; i < snpCtx->m_pendingAsyncModCount; ++i)
+            {
+                Js::RecyclableObject* buff = inflator->LookupObject(snpCtx->m_pendingAsyncModArray[i].LogId);
+                uint32 index = snpCtx->m_pendingAsyncModArray[i].Index;
+
+                AssertMsg(Js::ArrayBuffer::Is(buff), "Not an ArrayBuffer!!!");
+                intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(buff), index);
             }
         }
 
@@ -1671,6 +1730,18 @@ namespace TTD
                 writer->WriteRecordStart(sep);
                 writer->WriteLogTag(NSTokens::Key::logTag, snapCtx->m_localRootArray[i].LogId);
                 writer->WriteAddr(NSTokens::Key::objectId, snapCtx->m_localRootArray[i].LogObject, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
+            }
+            writer->WriteSequenceEnd();
+
+            writer->WriteLengthValue(snapCtx->m_pendingAsyncModCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < snapCtx->m_pendingAsyncModCount; ++i)
+            {
+                NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+                writer->WriteRecordStart(sep);
+                writer->WriteLogTag(NSTokens::Key::logTag, snapCtx->m_pendingAsyncModArray[i].LogId);
+                writer->WriteUInt32(NSTokens::Key::u32Val, snapCtx->m_pendingAsyncModArray[i].Index, NSTokens::Separator::CommaSeparator);
                 writer->WriteRecordEnd();
             }
             writer->WriteSequenceEnd();
@@ -1756,6 +1827,19 @@ namespace TTD
             }
             reader->ReadSequenceEnd();
 
+            intoCtx->m_pendingAsyncModCount = reader->ReadLengthValue(true);
+            intoCtx->m_pendingAsyncModArray = (intoCtx->m_pendingAsyncModCount != 0) ? alloc.SlabAllocateArray<SnapPendingAsyncBufferModification>(intoCtx->m_pendingAsyncModCount) : nullptr;
+
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < intoCtx->m_pendingAsyncModCount; ++i)
+            {
+                reader->ReadRecordStart(i != 0);
+                intoCtx->m_pendingAsyncModArray[i].LogId = reader->ReadLogTag(NSTokens::Key::logTag);
+                intoCtx->m_pendingAsyncModArray[i].Index = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+                reader->ReadRecordEnd();
+            }
+            reader->ReadSequenceEnd();
+
             reader->ReadRecordEnd();
         }
 
@@ -1786,16 +1870,22 @@ namespace TTD
 
             compareMap.DiagnosticAssert(snapCtx1->m_globalRootCount == snapCtx2->m_globalRootCount);
 
+            JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> allRootMap1(&HeapAllocator::Instance);
+            JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> allRootMap2(&HeapAllocator::Instance);
+
             JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> globalRootMap1(&HeapAllocator::Instance);
             for(uint32 i = 0; i < snapCtx1->m_globalRootCount; ++i)
             {
                 const SnapRootPinEntry& rootEntry1 = snapCtx1->m_globalRootArray[i];
+                allRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
+
                 globalRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
             }
 
             for(uint32 i = 0; i < snapCtx2->m_globalRootCount; ++i)
             {
                 const SnapRootPinEntry& rootEntry2 = snapCtx2->m_globalRootArray[i];
+                allRootMap2.AddNew(rootEntry2.LogId, rootEntry2.LogObject);
 
                 TTD_PTR_ID id1 = globalRootMap1.LookupWithKey(rootEntry2.LogId, TTD_INVALID_PTR_ID);
                 compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2.LogObject, rootEntry2.LogId);
@@ -1807,15 +1897,37 @@ namespace TTD
             for(uint32 i = 0; i < snapCtx1->m_localRootCount; ++i)
             {
                 const SnapRootPinEntry& rootEntry1 = snapCtx1->m_localRootArray[i];
+                if(!allRootMap1.ContainsKey(rootEntry1.LogId))
+                {
+                    allRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
+                }
+
                 localRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
             }
 
             for(uint32 i = 0; i < snapCtx2->m_localRootCount; ++i)
             {
                 const SnapRootPinEntry& rootEntry2 = snapCtx2->m_localRootArray[i];
+                if(!allRootMap2.ContainsKey(rootEntry2.LogId))
+                {
+                    allRootMap2.AddNew(rootEntry2.LogId, rootEntry2.LogObject);
+                }
 
                 TTD_PTR_ID id1 = localRootMap1.LookupWithKey(rootEntry2.LogId, TTD_INVALID_PTR_ID);
                 compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2.LogObject, rootEntry2.LogId);
+            }
+
+            compareMap.DiagnosticAssert(snapCtx1->m_pendingAsyncModCount == snapCtx2->m_pendingAsyncModCount);
+
+            for(uint32 i = 0; i < snapCtx1->m_pendingAsyncModCount; ++i)
+            {
+                const SnapPendingAsyncBufferModification& pendEntry1 = snapCtx1->m_pendingAsyncModArray[i];
+                const SnapPendingAsyncBufferModification& pendEntry2 = snapCtx2->m_pendingAsyncModArray[i];
+
+                compareMap.DiagnosticAssert(pendEntry1.LogId == pendEntry2.LogId && pendEntry1.Index == pendEntry2.Index);
+
+                compareMap.H1PendingAsyncModBufferSet.AddNew(allRootMap1.LookupWithKey(pendEntry1.LogId, TTD_INVALID_PTR_ID));
+                compareMap.H2PendingAsyncModBufferSet.AddNew(allRootMap2.LookupWithKey(pendEntry2.LogId, TTD_INVALID_PTR_ID));
             }
         }
 #endif
