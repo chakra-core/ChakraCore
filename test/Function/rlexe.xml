@@ -65,7 +65,7 @@
       <files>argumentsLimits.js</files>
       <baseline>argumentsLimits.baseline</baseline>
       <!-- this test takes a long time with dynapogo on chk build -->
-      <tags>exclude_chk</tags>
+      <tags>exclude_debug</tags>
     </default>
   </test>
   <test>
@@ -156,7 +156,7 @@
       <files>deferredParsing.js</files>
       <compile-flags>-force:deferparse</compile-flags>
       <baseline>deferredParsing_3.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -164,7 +164,7 @@
       <files>deferredParsing.js</files>
       <compile-flags>-forceUndoDefer</compile-flags>
       <baseline>deferredParsing_3.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -172,7 +172,7 @@
       <files>deferredGetterSetter.js</files>
       <compile-flags>-force:deferparse</compile-flags>
       <baseline>deferredGetterSetter.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -195,7 +195,7 @@
       <files>deferredWith.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith.v4.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -203,7 +203,7 @@
       <files>deferredWith2.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith2.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -296,7 +296,7 @@
       <files>FuncBody.bug133933.js</files>
       <baseline>FuncBody.bug133933.baseline</baseline>
       <compile-flags>-trace:FunctionSourceInfoParse -off:deferparse</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -325,7 +325,7 @@
       <files>FuncBody.bug231397.js</files>
       <baseline>FuncBody.bug231397.baseline</baseline>
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_fre,require_backend</tags>
+      <tags>exclude_test,require_backend</tags>
     </default>
   </test>
   <test>
@@ -397,7 +397,7 @@
       <files>childCallsEvalJitLoopBody.js</files>
       <baseline />
       <compile-flags>-prejit</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
     </default>
   </test>
   <test>

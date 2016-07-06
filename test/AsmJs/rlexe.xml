@@ -190,7 +190,7 @@
     <default>
       <files>ArrayView.js</files>
       <baseline>ArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -198,7 +198,7 @@
     <default>
       <files>BasicBranching.js</files>
       <baseline>BasicBranching.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -206,7 +206,7 @@
     <default>
       <files>basicComparisonDouble.js</files>
       <baseline>basicComparisonDouble.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -214,7 +214,7 @@
     <default>
       <files>basicComparisonInt.js</files>
       <baseline>basicComparisonInt.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -222,7 +222,7 @@
     <default>
       <files>basicComparisonUInt.js</files>
       <baseline>basicComparisonUInt.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -230,7 +230,7 @@
     <default>
       <files>BasicLooping.js</files>
       <baseline>BasicLooping.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -238,7 +238,7 @@
     <default>
       <files>basicMath.js</files>
       <baseline>basicMath.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -246,7 +246,7 @@
     <default>
       <files>basicMathIntSpecific.js</files>
       <baseline>basicMathIntSpecific.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -254,7 +254,7 @@
     <default>
       <files>basicMathUnary.js</files>
       <baseline>basicMathUnary.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -262,7 +262,7 @@
     <default>
       <files>BasicSwitch.js</files>
       <baseline>BasicSwitch.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -270,7 +270,7 @@
     <default>
       <files>CompositionMathUnary.js</files>
       <baseline>CompositionMathUnary.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -278,7 +278,7 @@
     <default>
       <files>FunctionCalls.js</files>
       <baseline>FunctionCalls.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -286,7 +286,7 @@
     <default>
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -294,7 +294,7 @@
     <default>
       <files>MathBuiltinsCall.js</files>
       <baseline>MathBuiltinsCall.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -302,7 +302,7 @@
     <default>
       <files>ModuleVarRead.js</files>
       <baseline>ModuleVarRead.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -310,7 +310,7 @@
     <default>
       <files>ModuleVarWrite.js</files>
       <baseline>ModuleVarWrite.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -318,7 +318,7 @@
     <default>
       <files>ReadArrayView.js</files>
       <baseline>ReadArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -326,7 +326,7 @@
     <default>
       <files>ReadFixOffset.js</files>
       <baseline>ReadFixOffset.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -334,7 +334,7 @@
     <default>
       <files>WriteArrayView.js</files>
       <baseline>WriteArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -342,7 +342,7 @@
     <default>
       <files>WriteFixOffset.js</files>
       <baseline>WriteFixOffset.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -554,7 +554,7 @@
     <default>
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -688,7 +688,7 @@
     <default>
       <files>unityBug.js</files>
       <baseline>unityBug.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
@@ -725,7 +725,7 @@
     <default>
       <files>clz32.js</files>
       <baseline>clz32.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>

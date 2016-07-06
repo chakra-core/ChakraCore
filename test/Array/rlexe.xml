@@ -24,7 +24,7 @@
     <default>
       <compile-flags>-args summary -endargs -ForceArrayBTree -recyclerStress</compile-flags>
       <files>SpliceBtreeMemoryCorruption.js</files>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>
@@ -117,7 +117,7 @@
       <compile-flags>-arrayValidate</compile-flags>
       <files>array_ctr.js</files>
       <baseline>array_ctr.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -259,7 +259,7 @@
     <default>
       <files>toString.js</files>
       <compile-flags>-ForceES5Array</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>toString.baseline</baseline>
     </default>
   </test>
@@ -273,7 +273,7 @@
     <default>
       <files>toLocaleString.js</files>
       <compile-flags>-ForceES5Array</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>toLocaleString.baseline</baseline>
     </default>
   </test>
@@ -318,7 +318,7 @@
       <files>array_sort3.js</files>
       <baseline>array_sort3.baseline</baseline>
       <compile-flags>-arrayValidate</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -338,7 +338,7 @@
       <compile-flags>-arrayValidate</compile-flags>
       <files>array_splice.js</files>
       <baseline>array_splice.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -420,7 +420,7 @@
       <compile-flags>-recyclerStress</compile-flags>
       <files>array_literal.js</files>
       <baseline>array_literal.baseline</baseline>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>

@@ -2,7 +2,7 @@
 <regress-exe>
   <test>
     <default>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
       <files>eval-nativecodedata.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline />
@@ -10,14 +10,14 @@
   </test>
   <test>
     <default>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
       <files>eval-nativenumber.js</files>
       <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
       <files>eval-nativenumber.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
     </default>

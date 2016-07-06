@@ -229,6 +229,7 @@ TARGETINFO TargetInfo[] = {
    "sh5m",       FALSE, FALSE, FALSE, "sh5sim",       "libcsim.lib", "x86asm",
    "ia64",       FALSE, TRUE,  TRUE,  NULL,           NULL, "x86asm",
    "amd64",      FALSE, TRUE,  TRUE,  NULL,           NULL, "x86asm",
+   "x64",        FALSE, TRUE,  TRUE,  NULL,           NULL, "x86asm",
    "amd64sys",   FALSE, FALSE, TRUE,  "issuerun",     NULL, "x86asm",
    "wvm64",      FALSE, FALSE, FALSE, NULL,           NULL, "x86asm",
    "am33",       FALSE, FALSE, FALSE, NULL,           NULL, "x86asm",

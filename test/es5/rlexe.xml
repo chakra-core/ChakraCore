@@ -102,7 +102,7 @@
       <compile-flags>-Force:Deferparse</compile-flags>
       <files>ObjLitGetSetParseOnly.js</files>
       <baseline>ObjLitGetSetParseOnlyFdp.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -138,7 +138,7 @@
   <test>
     <default>
       <compile-flags>-ForceES5Array</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <files>array_length.js</files>
       <baseline>array_length.baseline</baseline>
     </default>
@@ -146,7 +146,7 @@
   <test>
     <default>
       <files>ES5ArrayIndexList.js</files>
-      <tags>exclude_chk,Slow</tags>
+      <tags>exclude_debug,Slow</tags>
       <timeout>900</timeout>
     </default>
   </test>
@@ -269,7 +269,7 @@
       <compile-flags>-Force:Deferparse</compile-flags>
       <files>settersArguments.js</files>
       <baseline>settersArguments.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>

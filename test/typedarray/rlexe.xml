@@ -113,7 +113,7 @@
       <tags>typedarray,exclude_nonrazzle</tags>
     </default>
     <condition order="1" type="include">
-      <target>amd64</target>
+      <target>x64</target>
       <override>
         <baseline>nan.x64.baseline</baseline>
       </override>
@@ -146,7 +146,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
         <files>crossthread.js</files>
         <baseline>crossthread_es6.baseline</baseline>
-        <tags>typedarray,exclude_arm,exclude_chk,exclude_apollo</tags>
+        <tags>typedarray,exclude_arm,exclude_debug,exclude_apollo</tags>
     </default>
 </test>
 -->
@@ -226,7 +226,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
-      <tags>exclude_fre,exclude_dynapogo,typedarray</tags>
+      <tags>exclude_test,exclude_dynapogo,typedarray</tags>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
       <files>typedArrayProfile.js</files>
     </default>

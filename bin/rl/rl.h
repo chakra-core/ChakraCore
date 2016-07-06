@@ -73,6 +73,7 @@ typedef enum {
     TM_SH5M,
     TM_IA64,
     TM_AMD64,
+    TM_X64,
     TM_AMD64SYS,
     TM_WVM64,
     TM_AM33,
