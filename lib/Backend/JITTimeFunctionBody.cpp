@@ -858,24 +858,6 @@ JITTimeFunctionBody::GetAttributes() const
     return static_cast<Js::FunctionInfo::Attributes>(m_bodyData.attributes);
 }
 
-const FunctionJITRuntimeInfo *
-JITTimeFunctionBody::GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const
-{
-    Assert(profiledCallSiteId < GetProfiledCallSiteCount());
-
-    const FunctionJITRuntimeInfo* data = reinterpret_cast<const FunctionJITRuntimeInfo*>(m_bodyData.profiledRuntimeData);
-    return data != nullptr ? &data[profiledCallSiteId] : nullptr;
-}
-
-const FunctionJITRuntimeInfo *
-JITTimeFunctionBody::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const
-{
-    Assert(inlineCacheIndex < GetInlineCacheCount());
-
-    const FunctionJITRuntimeInfo * data = reinterpret_cast<const FunctionJITRuntimeInfo*>(m_bodyData.profiledRuntimeData);
-    return data != nullptr ? &data[inlineCacheIndex] : nullptr;
-}
-
 intptr_t
 JITTimeFunctionBody::ReadAuxArray(uint offset) const
 {

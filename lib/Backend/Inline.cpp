@@ -1183,7 +1183,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
                             this->topFunc->GetThreadContextInfo(),
                             this->topFunc->GetScriptContextInfo(),
                             this->topFunc->GetJITOutput()->GetOutputData(),
-                            inlineeData->GetBody()->GetInlineeRuntimeData(callSiteId),
+                            callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetInlineeRuntimeData(callSiteId),
                             // TODO: OOP JIT, polymorphic inline cache info
                             //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                             nullptr,
@@ -2623,7 +2623,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
-        inlineeData->GetBody()->GetLdFldInlineeRuntimeData(callSiteId), // TODO: OOP JIT, find correct function to inline
+        callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         // TODO: OOP JIT, polymorphic inline cache info
         //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
         nullptr,
@@ -3364,7 +3364,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
-        funcCaller->GetLdFldInlineeRuntimeData(inlineCacheIndex),
+        accessorInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         // TODO: OOP JIT, polymorphic inline cache info
         //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
         nullptr,
@@ -3671,7 +3671,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
-        funcCaller->GetJITFunctionBody()->GetInlineeRuntimeData(profileId),
+        funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
         // TODO: OOP JIT, polymorphic inline cache info
         //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
         nullptr,

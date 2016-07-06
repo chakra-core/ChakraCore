@@ -13,7 +13,7 @@ FunctionJITTimeInfo::FunctionJITTimeInfo(FunctionJITTimeDataIDL * data) : m_data
 
 /* static */
 FunctionJITTimeDataIDL *
-FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::FunctionCodeGenJitTimeData * codeGenData, bool isInlinee)
+FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::FunctionCodeGenJitTimeData * codeGenData, const Js::FunctionCodeGenRuntimeData * runtimeData, bool isInlinee)
 {
     // using arena because we can't recycler allocate (may be on background), and heap freeing this is slightly complicated
     FunctionJITTimeDataIDL * jitData = AnewStructZ(alloc, FunctionJITTimeDataIDL);
@@ -29,6 +29,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
 
     if (codeGenData->GetFunctionInfo()->HasBody())
     {
+        Assert(isInlinee == !!runtimeData);
         Js::FunctionBody * functionBody = codeGenData->GetFunctionBody();
         if (functionBody->HasDynamicProfileInfo())
         {
@@ -67,13 +68,28 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
         {
             jitData->inlineeCount = jitData->bodyData->profiledCallSiteCount;
             jitData->inlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->profiledCallSiteCount);
+
             for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
             {
-                const Js::FunctionCodeGenJitTimeData * inlinee = codeGenData->GetInlinee(i);
-                if (inlinee != nullptr)
+                const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
+                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
+                if (inlineeJITData != nullptr)
                 {
-                    jitData->inlinees[i] = BuildJITTimeData(alloc, inlinee);
+                    jitData->inlinees[i] = BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData);
                 }
+            }
+        }
+        // TODO: OOP JIT, cleanup these checks
+        jitData->profiledRuntimeData = AnewStructZ(alloc, FunctionJITRuntimeIDL);
+        if (isInlinee ? runtimeData->ClonedInlineCaches()->HasInlineCaches() : (functionBody->GetCodeGenRuntimeDataWithLock() != nullptr && functionBody->GetCodeGenRuntimeDataWithLock()[0] != nullptr && functionBody->GetCodeGenRuntimeDataWithLock()[0]->ClonedInlineCaches()->HasInlineCaches()))
+        {
+            // REVIEW: OOP JIT is this safe to be doing in background?
+            jitData->profiledRuntimeData->clonedCacheCount = jitData->bodyData->inlineCacheCount;
+            jitData->profiledRuntimeData->clonedInlineCaches = AnewArray(alloc, intptr_t, jitData->profiledRuntimeData->clonedCacheCount);
+            for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
+            {
+                // REVIEW: OOP JIT, what to do with WriteBarrierPtr?
+                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)(isInlinee ? runtimeData->ClonedInlineCaches()->GetInlineCache(j) : functionBody->GetCodeGenRuntimeDataWithLock()[0]->ClonedInlineCaches()->GetInlineCache(j));
             }
         }
         if (jitData->bodyData->inlineCacheCount > 0)
@@ -90,10 +106,12 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             }
             for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
             {
-                const Js::FunctionCodeGenJitTimeData * inlinee = codeGenData->GetLdFldInlinee(i);
-                if (inlinee != nullptr)
+                const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetLdFldInlinee(i);
+                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
+
+                if (inlineeJITData != nullptr)
                 {
-                    jitData->ldFldInlinees[i] = BuildJITTimeData(alloc, inlinee);
+                    jitData->ldFldInlinees[i] = BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData);
                 }
             }
         }
@@ -106,31 +124,11 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             jitData->globalObjTypeSpecFldInfoArray = AnewArrayZ(alloc, ObjTypeSpecFldIDL*, jitData->globalObjTypeSpecFldInfoCount);
             JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(alloc, globObjTypeSpecInfo, jitData->globalObjTypeSpecFldInfoCount, jitData->globalObjTypeSpecFldInfoArray);
         }
-
-        auto codegenRuntimeData = functionBody->GetCodeGenRuntimeDataWithLock();
-        if (codegenRuntimeData)
+        if (codeGenData->GetNext() != nullptr)
         {
-            jitData->bodyData->runtimeDataCount = jitData->bodyData->profiledCallSiteCount;
-            Assert(jitData->bodyData->profiledCallSiteCount > 0);
-            jitData->bodyData->profiledRuntimeData = AnewArrayZ(alloc, FunctionJITRuntimeIDL, jitData->bodyData->runtimeDataCount);
-            // REVIEW: OOP JIT is this safe to be doing in background? I'm guessing probably not...
-            for (uint i = 0; i < jitData->bodyData->runtimeDataCount; ++i)
-            {
-                if (codegenRuntimeData[i] && codegenRuntimeData[i]->ClonedInlineCaches()->HasInlineCaches())
-                {
-                    jitData->bodyData->profiledRuntimeData[i].clonedCacheCount = jitData->bodyData->inlineCacheCount;
-                    for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
-                    {
-                        // REVIEW: OOP JIT, what to do with WriteBarrierPtr?
-                        jitData->bodyData->profiledRuntimeData[i].clonedInlineCaches = (intptr_t*)codegenRuntimeData[i]->ClonedInlineCaches()->GetInlineCache(j);
-                    }
-                }
-            }
+            // TODO: OOP JIT, validate functionBody->GetCodeGenRuntimeDataWithLock()[1]
+            jitData->next = BuildJITTimeData(alloc, codeGenData->GetNext(), isInlinee ? runtimeData->GetNext() : functionBody->GetCodeGenRuntimeDataWithLock()[1]);
         }
-    }
-    if (codeGenData->GetNext() != nullptr)
-    {
-        jitData->next = BuildJITTimeData(alloc, codeGenData->GetNext());
     }
     return jitData;
 }
@@ -213,6 +211,35 @@ FunctionJITTimeInfo::GetJitTimeDataFromFunctionInfoAddr(intptr_t polyFuncInfo) c
     return next;
 }
 
+const FunctionJITRuntimeInfo *
+FunctionJITTimeInfo::GetInlineeForTargetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId, intptr_t inlineeFuncBodyAddr) const
+{
+    const FunctionJITTimeInfo *inlineeData = GetInlinee(profiledCallSiteId);
+    while (inlineeData && inlineeData->GetBody()->GetAddr() != inlineeFuncBodyAddr)
+    {
+        inlineeData = inlineeData->GetNext();
+    }
+    return inlineeData->GetRuntimeInfo();
+}
+
+const FunctionJITRuntimeInfo *
+FunctionJITTimeInfo::GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const
+{
+    return GetInlinee(profiledCallSiteId) ? GetInlinee(profiledCallSiteId)->GetRuntimeInfo() : nullptr;
+}
+
+const FunctionJITRuntimeInfo *
+FunctionJITTimeInfo::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const
+{
+    return GetLdFldInlinee(inlineCacheIndex) ? GetLdFldInlinee(inlineCacheIndex)->GetRuntimeInfo() : nullptr;
+}
+
+const FunctionJITRuntimeInfo *
+FunctionJITTimeInfo::GetRuntimeInfo() const
+{
+    return reinterpret_cast<const FunctionJITRuntimeInfo*>(m_data.profiledRuntimeData);
+}
+
 JITObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
@@ -235,7 +262,6 @@ FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfo(uint index) const
     Assert(index < m_data.globalObjTypeSpecFldInfoCount);
     return reinterpret_cast<JITObjTypeSpecFldInfo **>(m_data.globalObjTypeSpecFldInfoArray)[index];
 }
-
 
 uint
 FunctionJITTimeInfo::GetSourceContextId() const

@@ -3842,7 +3842,7 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
         {
             if (instr->GetSrc1()->IsScopeObjOpnd(instr->m_func))
             {
-                AssertMsg(!instr->m_func->GetJnFunction()->GetHasImplicitArgIns(), "No mapping is required in this case. So it should already be generating ArgIns.");
+                AssertMsg(!instr->m_func->GetJITFunctionBody()->HasImplicitArgIns(), "No mapping is required in this case. So it should already be generating ArgIns.");
                 instr->m_func->TrackFormalsArraySym(dst->GetStackSym()->m_id);
             }
         }
@@ -3850,7 +3850,7 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
         {
             Assert(instr->m_func->IsInlined());
             Js::ArgSlot actualsCount = instr->m_func->actualCount - 1;
-            Js::ArgSlot formalsCount = instr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+            Js::ArgSlot formalsCount = instr->m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
 
             Func * func = instr->m_func;
             Func * inlinerFunc = func->GetParentFunc(); //Inliner's func
@@ -9035,7 +9035,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+            return false;
+#if 0 // TODO: OOP JIT, strict equal check in const folding
             result = Js::JavascriptOperators::StrictEqual(src1Var, src2Var, this->func->GetScriptContext());
+#endif
         }
         break;
 
@@ -9068,7 +9071,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+            return false;
+#if 0 // TODO: OOP JIT, strict equal check in const folding
             result = Js::JavascriptOperators::NotStrictEqual(src1Var, src2Var, this->func->GetScriptContext());
+#endif
         }
         break;
 

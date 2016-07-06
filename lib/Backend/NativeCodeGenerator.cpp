@@ -883,7 +883,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // TODO: oop jit can we be more efficient here?
             ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
 
-            workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData());
+            workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, false);
             Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
             if (workItem->Type() == JsFunctionType)
             {

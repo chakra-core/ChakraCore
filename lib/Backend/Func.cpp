@@ -151,15 +151,15 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         m_output.SetHasJITStackClosure();
     }
 
+    if (GetJITFunctionBody()->DoBackendArgumentsOptimization() && !GetJITFunctionBody()->HasTry())
+    {
+        // doBackendArgumentsOptimization bit is set when there is no eval inside a function
+        // as determined by the bytecode generator.
+        SetHasStackArgs(true);
+    }
+
     if (m_workItem->Type() == JsFunctionType)
     {
-    if (GetJITFunctionBody()->DoBackendArgumentsOptimization() && !GetJITFunctionBody()->HasTry())
-        {
-            // doBackendArgumentsOptimization bit is set when there is no eval inside a function
-            // as determined by the bytecode generator.
-            SetHasStackArgs(true);
-        }
-
         if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0)
         {
             Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));

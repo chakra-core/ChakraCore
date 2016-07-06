@@ -227,13 +227,13 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::RegOpnd * src2Opnd, uint32 o
 {
     IR::BranchInstr * branchInstr;
 
-    if (src2Opnd->m_sym->m_isIntConst && m_intConstSwitchCases->TestAndSet(src2Opnd->m_sym->GetIntConstValue()))
+    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && src2Opnd->m_sym->m_isIntConst && m_intConstSwitchCases->TestAndSet(src2Opnd->m_sym->GetIntConstValue()))
     {
         // We've already seen a case statement with the same int const value. No need to emit anything for this.
         return;
     }
 
-    if (src2Opnd->m_sym->m_isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(src2Opnd->GetStackSym()->GetConstAddress())))
+    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && src2Opnd->m_sym->m_isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(src2Opnd->GetStackSym()->GetConstAddress())))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
         return;

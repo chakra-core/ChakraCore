@@ -124,8 +124,6 @@ public:
     intptr_t ReadAuxArray(uint offset) const;
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
-    const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
-    const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;
 
     void InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const;
 private:

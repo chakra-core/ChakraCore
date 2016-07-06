@@ -307,7 +307,6 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     uint GetFunctionNumber() const
     {
-        Assert(this->IsTopFunc());
         return m_workItem->GetJITFunctionBody()->GetFunctionNumber();
     }
 
@@ -336,6 +335,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     intptr_t GetWeakFuncRef() const;
     // TODO: OOP JIT, remove this
     Js::FunctionBody * GetJnFunction() const { Assert(UNREACHED);  return m_jnFunction; }
+
+    const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }
 
     StackSym *EnsureLoopParamSym();
 

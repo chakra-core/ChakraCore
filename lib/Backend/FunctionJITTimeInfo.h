@@ -9,7 +9,7 @@ class FunctionJITTimeInfo
 {
 public:
     FunctionJITTimeInfo(FunctionJITTimeDataIDL * data);
-    static FunctionJITTimeDataIDL * BuildJITTimeData(ArenaAllocator * alloc, const Js::FunctionCodeGenJitTimeData * codeGenData, bool isInlinee = true);
+    static FunctionJITTimeDataIDL * BuildJITTimeData(ArenaAllocator * alloc, const Js::FunctionCodeGenJitTimeData * codeGenData, const Js::FunctionCodeGenRuntimeData * runtimeData, bool isInlinee = true);
 
     uint GetInlineeCount() const;
     bool IsLdFldInlineePresent() const;
@@ -26,10 +26,14 @@ public:
     bool HasBody() const;
     bool IsAggressiveInliningEnabled() const;
     bool IsInlined() const;
+    const FunctionJITRuntimeInfo * GetRuntimeInfo() const;
     const BVFixed * GetInlineesBV() const;
     const FunctionJITTimeInfo * GetJitTimeDataFromFunctionInfoAddr(intptr_t polyFuncInfo) const;
     JITObjTypeSpecFldInfo * GetObjTypeSpecFldInfo(uint index) const;
     JITObjTypeSpecFldInfo * GetGlobalObjTypeSpecFldInfo(uint index) const;
+    const FunctionJITRuntimeInfo * GetInlineeForTargetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId, intptr_t inlineeFuncBodyAddr) const;
+    const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
+    const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;
     bool ForceJITLoopBody() const;
     bool HasSharedPropertyGuards() const;
     bool HasSharedPropertyGuard(Js::PropertyId id) const;

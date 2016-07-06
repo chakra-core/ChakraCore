@@ -377,7 +377,7 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int inlineCacheCount;
     [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
-    [size_is(inlineCacheCount)] __int3264 * inlineCaches;
+    [size_is(inlineCacheCount + isInstInlineCacheCount)] __int3264 * inlineCaches;
 
     unsigned int loopHeaderArrayLength;
     [size_is(loopHeaderArrayLength)] JITLoopHeaderIDL * loopHeaders;
@@ -387,9 +387,6 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int nameLength;
     [size_is(nameLength)] wchar_t * displayName;
-
-    unsigned int runtimeDataCount; // only needed for topfunc?
-    [size_is(runtimeDataCount)] FunctionJITRuntimeIDL * profiledRuntimeData;
 
     unsigned int literalRegexCount;
     [size_is(literalRegexCount)] __int3264 * literalRegexes;
@@ -448,7 +445,6 @@ typedef struct FunctionJITTimeDataIDL
     unsigned int sharedPropGuardCount;
     [size_is(sharedPropGuardCount)] int * sharedPropertyGuards;
 
-
     unsigned int globalObjTypeSpecFldInfoCount;
     [size_is(globalObjTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** globalObjTypeSpecFldInfoArray;
 
@@ -459,6 +455,8 @@ typedef struct FunctionJITTimeDataIDL
 
     unsigned int objTypeSpecFldInfoCount;
     [size_is(objTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
+
+    FunctionJITRuntimeIDL * profiledRuntimeData;
 
     struct FunctionJITTimeDataIDL * next;
 } FunctionJITTimeDataIDL;
