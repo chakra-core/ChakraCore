@@ -380,13 +380,15 @@
 <dir>
   <default>
     <files>TTExecuteBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    <!-- TODO Investigate whether these tests really belong under `require_backend` -->
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    <!-- TODO Investigate whether these tests really belong under `require_backend` -->
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend</tags>
   </default>
 </dir>
 </regress-exe>
