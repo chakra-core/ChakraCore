@@ -1,12 +1,8 @@
 add_library (ChakraCore SHARED
-    ChakraCoreDllFunc.cpp
-    ConfigParserExternals.cpp
-    TestHooks.cpp
+  ChakraCoreDllFunc.cpp
+  ConfigParserExternals.cpp
+  TestHooks.cpp
 )
-
-# By default, don't export any symbols from this library
-# We'll manually export the relevant individual functions
-set_target_properties(ChakraCore PROPERTIES CXX_VISIBILITY_PRESET hidden)
   
 target_include_directories (
   ChakraCore PUBLIC
@@ -32,13 +28,34 @@ target_include_directories (
 #  dl: For shared library loading related functions
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
-target_link_libraries(ChakraCore
-  -Wl,--no-undefined
-  -Wl,--start-group
-  -Wl,--whole-archive
-  Chakra.Jsrt
-  Chakra.Jsrt.Core
-  -Wl,--no-whole-archive
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(lib_target
+    -Wl,--no-undefined
+    -Wl,--start-group
+    -Wl,--whole-archive
+    Chakra.Jsrt
+    Chakra.Jsrt.Core
+    -Wl,--no-whole-archive
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target
+    -Wl,-undefined,error
+    Chakra.Jsrt
+    Chakra.Jsrt.Core
+    )
+else()
+  message("This platform is not yet supported")
+endif() # Linux ?
+
+# make sure to include Common.Core before others
+# this will help linker on some platforms for correct
+# initialization order
+set(lib_target "${lib_target}"
+  Chakra.Common.Core
+  )
+
+# common link deps
+set(lib_target "${lib_target}"
   Chakra.Runtime.Types
   Chakra.Runtime.Math
   Chakra.Runtime.Library
@@ -51,23 +68,49 @@ target_link_libraries(ChakraCore
   Chakra.Common.Util
   Chakra.Common.Memory
   Chakra.Common.Common
-  Chakra.Common.Core
   Chakra.Common.DataStructures
   Chakra.Common.Exceptions
   Chakra.Common.Codex
-  -Wl,--end-group
-  Chakra.Pal
-  pthread
-  stdc++
-  dl
-  icuuc
-  -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
-)
+  )
 
-#
-# Post build step to copy the built shared library
-# to BuildLinux (or whatever the CMakeBuildDir is)
-add_custom_command(TARGET ChakraCore POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-  "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.so"
-   ${CHAKRACORE_BINARY_DIR}/)
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(lib_target "${lib_target}"
+    -Wl,--end-group
+    Chakra.Pal
+    pthread
+    stdc++
+    dl
+    icuuc
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target "${lib_target}"
+    Chakra.Pal
+    pthread
+    stdc++
+    dl
+    icucore
+    )
+endif() # Linux ?
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(lib_target "${lib_target}"
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+    )
+endif()
+
+target_link_libraries (ChakraCore ${lib_target})
+
+if(NOT CC_XCODE_PROJECT)
+  set(CC_LIB_EXT "so")
+  # Post build step to copy the built shared library
+  # to BuildLinux (or whatever the CMakeBuildDir is)
+  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(CC_LIB_EXT "dylib")
+  endif()
+  
+  add_custom_command(TARGET ChakraCore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
+    ${CHAKRACORE_BINARY_DIR}/
+    )
+endif()

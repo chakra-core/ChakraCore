@@ -14,6 +14,8 @@
 
 #define BuiltInFunctionsScriptId 0
 
+using namespace PlatformAgnostic;
+
 class NativeCodeGenerator;
 class BackgroundParser;
 struct IActiveScriptDirect;
@@ -762,12 +764,21 @@ private:
         NativeCodeGenerator* nativeCodeGen;
 #endif
 
-#ifdef ENABLE_GLOBALIZATION
-        TIME_ZONE_INFORMATION timeZoneInfo;
-        uint lastTimeZoneUpdateTickCount;
-#endif // ENABLE_GLOBALIZATION
-        DaylightTimeHelper daylightTimeHelper;
+        DateTime::DaylightTimeHelper daylightTimeHelper;
+        DateTime::Utility dateTimeUtility;
 
+public:
+        inline const WCHAR *const GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        {
+            return dateTimeUtility.GetStandardName(nameLength, ymd);
+        }
+
+        inline const WCHAR *const GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        {
+            return dateTimeUtility.GetDaylightName(nameLength, ymd);
+        }
+
+private:
         HostScriptContext * hostScriptContext;
         HaltCallback* scriptEngineHaltCallback;
         EventHandler scriptStartEventHandler;
@@ -887,7 +898,8 @@ private:
         bool isRootTrackerScriptContext;
 #endif
 
-        DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
+        DateTime::DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
+        DateTime::Utility *GetDateUtility() { return &dateTimeUtility; }
 
         bool IsClosed() const { return isClosed; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
@@ -990,20 +1002,6 @@ private:
         CharClassifier const * GetCharClassifier(void) const;
 
         ThreadContext * GetThreadContext() const { return threadContext; }
-
-#ifdef ENABLE_GLOBALIZATION
-        TIME_ZONE_INFORMATION * GetTimeZoneInfo()
-        {
-            uint tickCount = GetTickCount();
-            if (tickCount - lastTimeZoneUpdateTickCount > 1000)
-            {
-                UpdateTimeZoneInfo();
-                lastTimeZoneUpdateTickCount = tickCount;
-            }
-            return &timeZoneInfo;
-        }
-        void UpdateTimeZoneInfo();
-#endif // ENABLE_GLOBALIZATION
 
         static const int MaxEvalSourceSize = 400;
 

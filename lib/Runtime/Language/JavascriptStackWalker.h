@@ -231,10 +231,10 @@ namespace Js
         bool IsCurrentPhysicalFrameForLoopBody() const;
 
         // noinline, we want to use own stack frame.
-        static __declspec(noinline) BOOL GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext);
-        static __declspec(noinline) BOOL GetCaller(JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
-        static __declspec(noinline) bool GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
-        static __declspec(noinline) bool GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
+        static _NOINLINE BOOL GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext);
+        static _NOINLINE BOOL GetCaller(JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
+        static _NOINLINE bool GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
+        static _NOINLINE bool GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
 
         static bool IsDisplayCaller(JavascriptFunction* func);
         bool GetDisplayCaller(JavascriptFunction ** ppFunc);

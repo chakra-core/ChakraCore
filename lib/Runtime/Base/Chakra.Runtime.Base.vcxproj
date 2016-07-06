@@ -22,10 +22,10 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..;
+        $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
-        $(MSBuildThisFileDirectory)..\..\Backend;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -45,7 +45,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExpirableObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)HiResTimer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
@@ -91,7 +90,6 @@
     <ClInclude Include="ExpirableObject.h" />
     <ClInclude Include="FunctionBody.h" />
     <ClInclude Include="FunctionInfo.h" />
-    <ClInclude Include="HiResTimer.h" />
     <ClInclude Include="JnDirectFields.h" />
     <ClInclude Include="LeaveScriptObject.h" />
     <ClInclude Include="PerfHint.h" />

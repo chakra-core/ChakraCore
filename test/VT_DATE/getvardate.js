@@ -67,7 +67,15 @@ vdate = new Date(1234567890123).getVarDate();
 safeCall(function() { writeLine(vdate ? true : false); });
 safeCall(function() { writeLine([1, 2].indexOf(2, vdate)); }); // valid only in version 3
 safeCall(function() { writeLine(parseInt("1", vdate)); });
-safeCall(function() { writeLine([1, vdate, 2].toLocaleString()); });
+
+// normalize Old GetNumberFormatEx exception
+safeCall(function() {
+    var result = [1, vdate, 2].toLocaleString();
+    if (result == "1, [object Object], 2") {
+        result = "1.00, [object Object], 2.00";
+    }
+    writeLine(result);
+});
 
 // Try some random dates to make sure we match the old engine
 writeLine("");
@@ -84,6 +92,11 @@ for (var i = 0; i < 1000; i++)
 
 function writeLine(str)
 {
+    if (typeof str === "string") {
+        str = str.replace(/\(PDT\)/g, "(Pacific Daylight Time)")
+                 .replace(/\(PST\)/g, "(Pacific Standard Time)");
+    }
+
     WScript.Echo("" + str);
 }
 

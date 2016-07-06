@@ -3295,7 +3295,7 @@ StoreCommon:
     }
 
     /// Requires buffer extension.
-    __declspec(noinline) void ByteCodeWriter::Data::SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    _NOINLINE void ByteCodeWriter::Data::SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize)
     {
         AssertMsg(byteSize > current->RemainingBytes(), "We should not need an extension if there is enough space in the current chunk");
         uint bytesLeftToWrite = byteSize;

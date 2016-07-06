@@ -17,26 +17,32 @@ PRINT_USAGE() {
     echo ""
     echo "[ChakraCore Build Script Help]"
     echo ""
-    echo "  build.sh [options]"
+    echo "build.sh [options]"
     echo ""
-    echo "  options:"
-    echo "    --cxx             : Path to Clang++ (see example below)"
-    echo "    --cc              : Path to Clang   (see example below)"
-    echo "    --debug, -d       : Debug build (by default Release build)"
-    echo "    --help, -h        : Show help"
-    echo "    --icu             : Path to ICU include folder (see example below)"
-    echo "    --jobs, -j        : Multicore build (i.e. -j=3 for 3 cores)"
-    echo "    --ninja, -n       : Build with ninja instead of make"
-    echo "    --test-build, -t  : Test build (by default Release build)"
-    echo "    --verbose, -v     : Display verbose output including all options"
+    echo "options:"
+    echo "      --cxx=PATH      Path to Clang++ (see example below)"
+    echo "      --cc=PATH       Path to Clang   (see example below)"
+    echo "  -d, --debug         Debug build (by default Release build)"
+    echo "  -h, --help          Show help"
+    echo "      --icu=PATH      Path to ICU include folder (see example below)"
+    echo "  -j [N], --jobs[=N]  Multicore build, allow N jobs at once"
+    echo "  -n, --ninja         Build with ninja instead of make"
+    echo "      --xcode         Generate XCode project"
+    echo "  -t, --test-build    Test build (by default Release build)"
+    echo "      --static        Build as static library (by default shared library)"
+    echo "  -v, --verbose       Display verbose output including all options"
+    echo "      --without=FEATURE,FEATURE,..."
+    echo "                      Disable FEATUREs from JSRT experimental"
+    echo "                      features."
     echo ""
-    echo "  example:"
-    echo "    ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j=2"
-    echo "  with icu:"
-    echo "    ./build.sh --icu=/usr/local/Cellar/icu4c/version/include/"
+    echo "example:"
+    echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
+    echo "with icu:"
+    echo "  ./build.sh --icu=/usr/local/Cellar/icu4c/version/include/"
     echo ""
 }
 
+CHAKRACORE_DIR=`dirname $0`
 _CXX=""
 _CC=""
 VERBOSE=""
@@ -45,54 +51,95 @@ CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
 ICU_PATH=""
+STATIC_LIBRARY=""
+WITHOUT_FEATURES=""
 
 while [[ $# -gt 0 ]]; do
-    if [[ "$1" =~ "--cxx" ]]; then
+    case "$1" in
+    --cxx=*)
         _CXX=$1
         _CXX=${_CXX:6}
-    fi
+        ;;
 
-    if [[ "$1" =~ "--cc" ]]; then
+    --cc=*)
         _CC=$1
         _CC=${_CC:5}
-    fi
+        ;;
 
-    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    -h | --help)
         PRINT_USAGE
         exit
-    fi
+        ;;
 
-    if [[ "$1" == "--verbose" || "$1" == "-v" ]]; then
+    -v | --verbose)
         _VERBOSE="verbose"
-    fi
+        ;;
 
-    if [[ "$1" == "--debug" || "$1" == "-d" ]]; then
+    -d | --debug)
         BUILD_TYPE="Debug"
-    fi
+        ;;
 
-    if [[ "$1" == "--test-build" || "$1" == "-t" ]]; then
+    -t | --test-build)
         BUILD_TYPE="Test"
-    fi
+        ;;
 
-    if [[ "$1" =~ "-j" ]]; then
+    -j | --jobs)
+        if [[ "$1" == "-j" && "$2" =~ ^[^-] ]]; then
+            MULTICORE_BUILD="-j $2"
+            shift
+        else
+            MULTICORE_BUILD="-j $(nproc)"
+        fi
+        ;;
+
+    -j=* | --jobs=*)            # -j=N syntax used in CI
         MULTICORE_BUILD=$1
-        MULTICORE_BUILD="-j ${MULTICORE_BUILD:3}"
-    fi
+        if [[ "$1" =~ ^-j= ]]; then
+            MULTICORE_BUILD="-j ${MULTICORE_BUILD:3}"
+        else
+            MULTICORE_BUILD="-j ${MULTICORE_BUILD:7}"
+        fi
+        ;;
 
-    if [[ "$1" =~ "--jobs" ]]; then
-        MULTICORE_BUILD=$1
-        MULTICORE_BUILD="-j ${MULTICORE_BUILD:7}"
-    fi
-
-    if [[ "$1" =~ "--icu" ]]; then
+    --icu=*)
         ICU_PATH=$1
         ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:6}"
-    fi
+        ;;
 
-    if [[ "$1" == "--ninja" || "$1" == "-n" ]]; then
+    -n | --ninja)
         CMAKE_GEN="-G Ninja"
         MAKE=ninja
-    fi
+        ;;
+
+	--xcode)
+        CMAKE_GEN="-G Xcode -DCC_XCODE_PROJECT=1"
+        MAKE=0
+        ;;
+
+    --static)
+        STATIC_LIBRARY="-DSTATIC_LIBRARY=1"
+        ;;
+
+    --without=*)
+        FEATURES=$1
+        FEATURES=${FEATURES:10}    # value after --without=
+        for x in ${FEATURES//,/ }  # replace comma with space then split
+        do
+            if [[ "$WITHOUT_FEATURES" == "" ]]; then
+                WITHOUT_FEATURES="-DWITHOUT_FEATURES="
+            else
+                WITHOUT_FEATURES="$WITHOUT_FEATURES;"
+            fi
+            WITHOUT_FEATURES="${WITHOUT_FEATURES}-DCOMPILE_DISABLE_${x}=1"
+        done
+        ;;
+
+    *)
+        echo "Unknown option $1"
+        PRINT_USAGE
+        exit -1
+        ;;
+    esac
 
     shift
 done
@@ -110,7 +157,12 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo ""
 fi
 
+CLANG_PATH=
 if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
+    if [[ ${#_CXX} == 0 || ${#_CC} == 0 ]]; then
+        echo "ERROR: '-cxx' and '-cc' options must be used together."
+        exit 1
+    fi
     echo "Custom CXX ${_CXX}"
     echo "Custom CC  ${_CC}"
 
@@ -118,6 +170,7 @@ if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
         echo "ERROR: Custom compiler not found on given path"
         exit 1
     fi
+    CLANG_PATH=$_CXX
 else
     RET_VAL=$(SAFE_RUN 'c++ --version')
     if [[ ! $RET_VAL =~ "clang" ]]; then
@@ -126,6 +179,7 @@ else
             echo "Clang++ found at /usr/bin/clang++"
             _CXX=/usr/bin/clang++
             _CC=/usr/bin/clang
+            CLANG_PATH=$_CXX
         else
             echo "ERROR: clang++ not found at /usr/bin/clang++"
             echo ""
@@ -133,7 +187,18 @@ else
             PRINT_USAGE
             exit 1
         fi
+    else
+        CLANG_PATH=c++
     fi
+fi
+
+# check clang version (min required 3.7)
+VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]\.[0-9]*" --o)
+VERSION=${VERSION/./}
+
+if [[ $VERSION -lt 37 ]]; then
+    echo "ERROR: Minimum required Clang version is 3.7"
+    exit 1
 fi
 
 CC_PREFIX=""
@@ -141,19 +206,28 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-if [ ! -d "BuildLinux" ]; then
-    SAFE_RUN 'mkdir BuildLinux'
+build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+if [ ! -d "$build_directory" ]; then
+    SAFE_RUN `mkdir -p $build_directory`
 fi
 
-pushd BuildLinux > /dev/null
+pushd $build_directory > /dev/null
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
 
-$MAKE $MULTICORE_BUILD 2>&1 | tee build.log
-_RET=${PIPESTATUS[0]}
+_RET=$?
+if [[ $? == 0 ]]; then
+    if [[ $MAKE != 0 ]]; then
+        $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+        _RET=${PIPESTATUS[0]}
+    else
+        echo "Visit given folder above for xcode project file ----^"
+    fi
+fi
+
 if [[ $_RET != 0 ]]; then
-    echo Error: $MAKE return $_RET
+    echo "See error details above. Exit code was $_RET"
 fi
 
 popd > /dev/null

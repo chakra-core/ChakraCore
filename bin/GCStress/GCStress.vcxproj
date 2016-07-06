@@ -16,7 +16,10 @@
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ChakraCoreRootDirectory)\lib\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(ChakraCoreRootDirectory)\lib\Common;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <DisableSpecificWarnings>
         %(DisableSpecificWarnings);
         4458; <!-- Declaration hides class member -->
@@ -25,9 +28,9 @@
     <Link>
       <AdditionalDependencies>
         $(ChakraCommonMemoryLib);
+        $(ChakraRuntimePlatformAgnostic);
         $(ChakraCommonLinkDependencies);
-        %(AdditionalDependencies);
-      </AdditionalDependencies>
+        %(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -53,6 +56,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Common\Memory\Chakra.Common.Memory.vcxproj">
       <Project>{bb4153ff-ac3e-4734-b562-ff23812df31b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj">
+      <Project>{129ac184-877c-441f-ac49-a692ce700e62}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

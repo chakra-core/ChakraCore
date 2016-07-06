@@ -116,6 +116,7 @@ Return:
   -1 if it failed
 
 --*/
+
 int
 PALAPI
 PAL_Initialize(
@@ -595,10 +596,15 @@ Return:
   An error code, if it failed
 
 --*/
+static bool pal_was_initialized = false;
 PAL_ERROR
 PALAPI
 PAL_InitializeChakraCore(int argc, char** argv)
-{    
+{
+    // this is not thread safe but PAL_InitializeChakraCore is per process
+    // besides, calling Jsrt initializer function is thread safe
+    if (pal_was_initialized) return ERROR_SUCCESS;
+
     // Fake up a command line to call PAL initialization with.
     int result = Initialize(argc, argv, PAL_INITIALIZE_CHAKRACORE);
     if (result != 0)
@@ -610,15 +616,8 @@ PAL_InitializeChakraCore(int argc, char** argv)
     if (InterlockedIncrement(&g_chakraCoreInitialized) > 1)
     {
         PAL_Enter(PAL_BoundaryTop);
+        pal_was_initialized = true;
         return ERROR_SUCCESS;
-    }
-
-    // Now that the PAL is initialized it's safe to call the initialization methods for the code that used to
-    // be dynamically loaded libraries but is now statically linked into CoreCLR just like the PAL, i.e. the
-    // PAL RT and mscorwks.
-    if (!LOADInitializeChakraCoreModule())
-    {
-        return ERROR_DLL_INIT_FAILED;
     }
 
     if (!InitializeFlushProcessWriteBuffers())
@@ -626,6 +625,7 @@ PAL_InitializeChakraCore(int argc, char** argv)
         return ERROR_GEN_FAILURE;
     }
 
+    pal_was_initialized = true;
     return ERROR_SUCCESS;
 }
 

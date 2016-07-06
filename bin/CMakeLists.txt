@@ -1,3 +1,5 @@
 add_subdirectory (GCStress)
 add_subdirectory (ch)
-add_subdirectory (ChakraCore)
+if(NOT STATIC_LIBRARY)
+    add_subdirectory (ChakraCore)
+endif()

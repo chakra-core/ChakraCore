@@ -4,7 +4,16 @@
     <ClCompile Include="Platform\Windows\UnicodeText.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Windows\DaylightHelper.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Windows\DateTime.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Platform\Linux\UnicodeText.ICU.cpp">
+      <Filter>Platform\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Linux\DateTime.cpp">
       <Filter>Platform\Linux</Filter>
     </ClCompile>
     <ClCompile Include="RuntimePlatformAgnosticPch.cpp" />

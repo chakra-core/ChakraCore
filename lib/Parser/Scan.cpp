@@ -1831,8 +1831,10 @@ LLoop:
 
                     if (Js::NumberUtilities::IsSurrogateUpperPart(upper))
                     {
+                        // Consume the rest of the utf8 bytes for the codepoint
+                        OLECHAR decodedUpper = this->ReadSurrogatePairUpper(p, last);
+                        Assert(decodedUpper == (OLECHAR) upper);
                         ch = Js::NumberUtilities::SurrogatePairAsCodePoint(ch, upper);
-                        this->template ReadFull<true>(p, last);
                     }
                 }
 

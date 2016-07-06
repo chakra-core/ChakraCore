@@ -1934,7 +1934,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                                 if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
                                 {
-                                    if (IsInlinee || objTypeSpecFldInfo->isBuiltIn)
+                                    if (IsInlinee || objTypeSpecFldInfo->IsBuiltIn())
                                     {
                                         inlineApplyTarget = true;
                                     }

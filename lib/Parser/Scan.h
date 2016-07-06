@@ -163,6 +163,13 @@ protected:
     static OLECHAR ReadFull(EncodedCharPtr &p, EncodedCharPtr last) { return *p++; }
     static OLECHAR PeekFirst(EncodedCharPtr p, EncodedCharPtr last) { return *p; }
     static OLECHAR PeekFull(EncodedCharPtr p, EncodedCharPtr last) { return *p; }
+
+    static OLECHAR ReadSurrogatePairUpper(const EncodedCharPtr&, const EncodedCharPtr& last)
+    {
+        AssertMsg(false, "method should not be called while scanning UTF16 string");
+        return 0xfffe;
+    }
+
     static void RestoreMultiUnits(size_t multiUnits) { }
     static size_t CharacterOffsetToUnitOffset(EncodedCharPtr start, EncodedCharPtr current, EncodedCharPtr last, charcount_t offset) { return offset; }
 
@@ -203,6 +210,14 @@ protected:
     {
         EncodedChar ch = (nullTerminated || p < last) ? *p++ : (p++, 0);
         return !IsMultiUnitChar(ch) ? static_cast< OLECHAR >(ch) : ReadRest<bScan>(ch, p, last);
+    }
+
+    OLECHAR ReadSurrogatePairUpper(EncodedCharPtr &p, EncodedCharPtr last)
+    {
+        EncodedChar ch = (nullTerminated || p < last) ? *p++ : (p++, 0);
+        Assert(IsMultiUnitChar(ch));
+        this->m_decodeOptions |= utf8::DecodeOptions::doSecondSurrogatePair;
+        return ReadRest<true>(ch, p, last);
     }
 
     static OLECHAR PeekFirst(EncodedCharPtr p, EncodedCharPtr last) { return (nullTerminated || p < last) ? static_cast< OLECHAR >(*p) : 0; }

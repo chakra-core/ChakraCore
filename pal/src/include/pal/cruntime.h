@@ -27,7 +27,6 @@ Abstract:
 #include <pthread.h>
 
 #ifdef __cplusplus
-typedef char16_t wchar_16; // __wchar_16 (which is defined in palinternal.h) is defined as wchar_16_cpp.
 
 extern "C"
 {
@@ -158,7 +157,7 @@ Function:
 See MSDN
 
 --*/
-int __cdecl PAL_iswlower( wchar_16 c );
+int __cdecl PAL_iswlower( char16_t c );
 
 
 /*++
@@ -168,7 +167,7 @@ Function:
 See MSDN
 
 --*/
-int __cdecl PAL_iswalpha( wchar_16 c );
+int __cdecl PAL_iswalpha( char16_t c );
 
 #if HAVE_COREFOUNDATION
 /*--
@@ -177,7 +176,7 @@ Function:
 
 Returns TRUE if c is a Win32 "blank" character.
 --*/
-int __cdecl PAL_iswblank(wchar_16 c);
+int __cdecl PAL_iswblank(char16_t c);
 
 /*--
 Function:
@@ -185,7 +184,7 @@ Function:
 
 Returns TRUE if c is a control character.
 --*/
-int __cdecl PAL_iswcntrl(wchar_16 c);
+int __cdecl PAL_iswcntrl(char16_t c);
 
 /*--
 Function:
@@ -193,7 +192,7 @@ Function:
 
 Returns TRUE if c is a control character.
 --*/
-int __cdecl PAL_iswpunct(wchar_16 c);
+int __cdecl PAL_iswpunct(char16_t c);
 #endif  // HAVE_COREFOUNDATION
 
 /*++

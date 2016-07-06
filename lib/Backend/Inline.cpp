@@ -2034,7 +2034,8 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(callInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, callInstr->m_func->m_alloc);
         IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
-// SIMD_JS
+#ifdef ENABLE_SIMDJS
+        // SIMD_JS
         IR::Instr *eaInsertInstr = callInstr;
         IR::Opnd *eaLinkOpnd = nullptr;
         ThreadContext::SimdFuncSignature simdFuncSignature;
@@ -2046,7 +2047,8 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
             Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
         }
-//
+#endif
+
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
             StackSym *linkSym = linkOpnd->GetStackSym();
             linkSym->m_isInlinedArgSlot = true;
@@ -2068,6 +2070,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             // Convert the arg out to built in arg out, and get the src of the arg out
             IR::Opnd * argOpnd = ConvertToInlineBuiltInArgOut(argInstr);
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             if (inlineCallArgCount > 2 && argIndex != 0 /* don't include 'this' */)
             {
@@ -2108,6 +2111,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
                 eaInsertInstr = eaInstr;
             }
             else
+#endif
             {
                 // Use parameter to the inline call to tempDst.
                 if (argIndex == 2)
@@ -2135,8 +2139,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             return false;
         });
 
+#ifdef ENABLE_SIMDJS
         //SIMD_JS
         Simd128FixLoadStoreInstr(builtInId, callInstr);
+#endif
 
         if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz32)
         {
@@ -3212,7 +3218,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             else if (argNum == 1)
@@ -3239,7 +3245,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             if (argNum == 1)
@@ -5255,6 +5261,7 @@ Inline::GetMethodLdOpndForCallInstr(IR::Instr* callInstr)
     return nullptr;
 }
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 /*
 Fixes the format of a SIMD load/store to match format expected by globOpt. Namely:
@@ -5369,3 +5376,4 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
 
     }
 }
+#endif

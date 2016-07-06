@@ -2210,12 +2210,12 @@ namespace UnifiedRegex
             return toReturn;
         }
 
+        // If negation, we want to complement the simple chars.
+        // When a set is negated, optimizations skip checking if applicable, so we can go ahead and negate it here.
+        CharSet<codepoint_t> negatedSet;
+
         if (!this->caseInsensitiveFlagPresent)
         {
-            // If negation, we want to complement the simple chars.
-            // When a set is negated, optimizations skip checking if applicable, so we can go ahead and negate it here.
-            CharSet<codepoint_t> negatedSet;
-
             if (isNegation)
             {
                 // Complement all characters, and use it as the set toTranslate

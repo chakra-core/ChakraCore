@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+using namespace PlatformAgnostic;
+
 struct IAuthorFileContext;
 
 class HostScriptContext;
@@ -284,7 +286,7 @@ struct ParserStats
 class ParserTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     ParserStats stats;
 public:
     ParserTimer();
@@ -298,7 +300,7 @@ public:
 class JITTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     JITStats stats;
 public:
     JITTimer();
@@ -450,7 +452,7 @@ public:
     }
 #endif
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
     FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
@@ -475,7 +477,6 @@ public:
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
-
 #endif
 
 private:
@@ -699,7 +700,7 @@ private:
     size_t nativeCodeSize;
     size_t sourceCodeSize;
 
-    Js::HiResTimer hTimer;
+    DateTime::HiResTimer hTimer;
 
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
@@ -992,7 +993,7 @@ public:
     bool IsTTRequested;
     bool IsTTRecordRequested;
     bool IsTTDebugRequested;
-    LPCWSTR TTDUri;
+    char16* TTDUri;
     uint32 TTSnapInterval;
     uint32 TTSnapHistoryLength;
 
@@ -1064,7 +1065,7 @@ public:
 
 
 
-    Js::HiResTimer * GetHiResTimer() { return &hTimer; }
+    DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
     static CriticalSection * GetCriticalSection() { return &s_csThreadContext; }
 
@@ -1367,8 +1368,8 @@ public:
     }
 
     static BOOLEAN IsOnStack(void const *ptr);
-    __declspec(noinline) bool IsStackAvailable(size_t size);
-    __declspec(noinline) bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
+    _NOINLINE bool IsStackAvailable(size_t size);
+    _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
     void ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);
     void ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);

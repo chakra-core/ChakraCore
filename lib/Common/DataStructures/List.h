@@ -213,9 +213,8 @@ namespace JsUtil
         int increment;
         TRemovePolicyType removePolicy;
 
-        template <bool isLeaf> T * AllocArray(int size);
-        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, this->alloc, T, size); }
-        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, this->alloc, T, size); }
+        T * AllocArray(int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
+        void FreeArray(T * oldBuffer, int oldBufferSize) { AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);  }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -241,7 +240,7 @@ namespace JsUtil
             {
                 int32 newSize = max(requiredCapacity, increment);
 
-                this->buffer = AllocArray<isLeaf>(newSize);
+                this->buffer = AllocArray(newSize);
                 this->count = 0;
                 this->length = newSize;
             }
@@ -263,13 +262,12 @@ namespace JsUtil
                     JsUtil::ExternalApi::RaiseOnIntOverflow();
                 }
 
-                T* newbuffer = AllocArray<isLeaf>(newLength);
+                T* newbuffer = AllocArray(newLength);
+                T* oldbuffer = this->buffer;
+                js_memcpy_s(newbuffer, newBufferSize, oldbuffer, oldBufferSize);
 
-                js_memcpy_s(newbuffer, newBufferSize, this->buffer, oldBufferSize);
-
-                auto freeFunc = AllocatorInfo::GetFreeFunc();
-                AllocatorFree(this->alloc, freeFunc, this->buffer, oldBufferSize);
-
+                FreeArray(oldbuffer, oldBufferSize);
+                
                 this->length = newLength;
                 this->buffer = newbuffer;
             }

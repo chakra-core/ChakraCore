@@ -278,19 +278,19 @@
 <dir>
   <default>
     <files>SIMD.float32x4</files>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.int32x4</files>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.int8x16</files>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
@@ -368,27 +368,27 @@
 <dir>
   <default>
     <files>SIMD.TypeSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>Debugger</files>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTExecuteBasic</files>
     <!-- TODO Investigate whether these tests really belong under `require_backend` -->
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend,exclude_xplat</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
     <!-- TODO Investigate whether these tests really belong under `require_backend` -->
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_backend,exclude_xplat</tags>
   </default>
 </dir>
 </regress-exe>

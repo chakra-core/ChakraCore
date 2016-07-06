@@ -1654,35 +1654,6 @@ static HMODULE LOADLoadLibrary(LPCSTR shortAsciiName, BOOL fDynamic)
 }
 
 /*++
-    LOADInitializeCoreCLRModule
-
-    Run the initialization methods for ChakraCore module (the module containing this PAL).
-
-Parameters:
-    None
-
-Return value:
-    TRUE if successful
-    FALSE if failure
---*/
-BOOL LOADInitializeChakraCoreModule()
-{
-    MODSTRUCT *module = LOADGetPalLibrary();
-    if (!module)
-    {
-        ERROR("Can not load the PAL module\n");
-        return FALSE;
-    }
-    PDLLMAIN pRuntimeDllMain = (PDLLMAIN)dlsym(module->dl_handle, "CoreDllMain");
-    if (!pRuntimeDllMain)
-    {
-        ERROR("Can not find the CoreDllMain entry point\n");
-        return FALSE;
-    }
-    return pRuntimeDllMain(module->hinstance, DLL_PROCESS_ATTACH, nullptr);
-}
-
-/*++
 Function :
     LOADGetPalLibrary
 

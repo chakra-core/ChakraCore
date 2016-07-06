@@ -823,6 +823,7 @@ FLAGNR(Boolean, AssertIgnore          , "Ignores asserts if set", false)
 FLAGNR(Boolean, AsyncDebugging, "Enable async debugging feature (default: false)", DEFAULT_CONFIG_AsyncDebugging)
 FLAGNR(Number,  BailOnNoProfileLimit,   "The limit of bailout on no profile info before triggering a rejit", DEFAULT_CONFIG_BailOnNoProfileLimit)
 FLAGNR(Number,  BailOnNoProfileRejitLimit, "The limit of bailout on no profile info before we disable the bailouts", DEFAULT_CONFIG_BailOnNoProfileRejitLimit)
+FLAGNR(Boolean, BaselineMode          , "Dump only stable content that can be used for baseline comparison", false)
 FLAGNR(String,  DumpOnCrash           , "generate heap dump on asserts or unhandled exception if set", nullptr)
 FLAGNR(String,  FullMemoryDump        , "Will perform a full memory dump when -DumpOnCrash is supplied.", nullptr)
 #ifdef BAILOUT_INJECTION

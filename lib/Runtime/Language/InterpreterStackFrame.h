@@ -270,7 +270,7 @@ namespace Js
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
         static int GetDynamicRetType(AsmJsCallStackLayout * stack);
         static DWORD GetAsmIntDbValOffSet(AsmJsCallStackLayout * stack);
-        __declspec(noinline)   static int  AsmJsInterpreter(AsmJsCallStackLayout * stack);
+        _NOINLINE   static int  AsmJsInterpreter(AsmJsCallStackLayout * stack);
 #elif _M_X64
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
@@ -290,9 +290,9 @@ namespace Js
 
 #if DYNAMIC_INTERPRETER_THUNK
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        __declspec(noinline) static Var InterpreterThunk(JavascriptCallStackLayout* layout);
+        _NOINLINE static Var InterpreterThunk(JavascriptCallStackLayout* layout);
 #else
-        __declspec(noinline) static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
+        _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
         static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
     private:
@@ -310,8 +310,8 @@ namespace Js
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();
 
 
-        __declspec(noinline) Var ProcessThunk(void* returnAddress, void* addressOfReturnAddress);
-        __declspec(noinline) Var DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress);
+        _NOINLINE Var ProcessThunk(void* returnAddress, void* addressOfReturnAddress);
+        _NOINLINE Var DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress);
 
         void AlignMemoryForAsmJs();
 

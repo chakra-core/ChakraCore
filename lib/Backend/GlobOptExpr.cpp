@@ -5,8 +5,8 @@
 #include "Backend.h"
 
 
-uint8 OpCodeToHash[Js::OpCode::Count];
-static Js::OpCode HashToOpCode[Js::OpCode::Count];
+uint8 OpCodeToHash[(uint)Js::OpCode::Count];
+static Js::OpCode HashToOpCode[(uint)Js::OpCode::Count];
 
 class CSEInit
 {

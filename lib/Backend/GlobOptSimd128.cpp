@@ -7,6 +7,8 @@
 
 #include "Backend.h"
 
+#ifdef ENABLE_SIMDJS
+
 /*
 Handles all Simd128 type-spec of an instr, if possible.
 */
@@ -461,6 +463,8 @@ IR::Instr * GlobOpt::GetExtendedArg(IR::Instr *instr)
     }
 }
 
+#endif
+
 IRType GlobOpt::GetIRTypeFromValueType(const ValueType &valueType)
 {
     if (valueType.IsFloat())
@@ -524,6 +528,7 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     }
 }
 
+#ifdef ENABLE_SIMDJS
 void
 GlobOpt::UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr)
 {
@@ -535,10 +540,11 @@ GlobOpt::UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHo
     int newOffset = GetBoundCheckOffsetForSimd(arrValueType, instr, upperHoistInfo.Offset());
     upperHoistInfo.UpdateOffset(newOffset);
 }
-
+#endif
 int
 GlobOpt::GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset /* = -1 */)
 {
+#ifdef ENABLE_SIMDJS
     if (!(Js::IsSimd128LoadStore(instr->m_opcode)))
     {
         return oldOffset;
@@ -563,8 +569,12 @@ GlobOpt::GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *ins
     // we should always make an existing bound-check more conservative.
     Assert(offsetBias <= 0);
     return oldOffset + offsetBias;
+#else
+    return oldOffset;
+#endif
 }
 
+#ifdef ENABLE_SIMDJS
 void
 GlobOpt::Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode)
 {
@@ -585,4 +595,4 @@ GlobOpt::Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode)
     }
 
 }
-
+#endif
