@@ -3223,7 +3223,7 @@ ThreadContext::InvalidateAllProtoInlineCaches()
     {
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
-    protoInlineCacheByPropId.ResetNoDelete();
+    protoInlineCacheByPropId.Reset();
 }
 
 #if DBG
@@ -3294,7 +3294,7 @@ ThreadContext::InvalidateAllStoreFieldInlineCaches()
     {
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
-    storeFieldInlineCacheByPropId.ResetNoDelete();
+    storeFieldInlineCacheByPropId.Reset();
 }
 
 bool
