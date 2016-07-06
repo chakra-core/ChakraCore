@@ -104,7 +104,6 @@ public:
         totalOpHelperFullVisitedLength(0), curLoop(NULL), currentBlock(nullptr), currentRegion(nullptr), m_bailOutRecordCount(0),
         globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr)
     {
-        linearScanMD.Init(this);
     }
 
     void                RegAlloc();

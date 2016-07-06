@@ -7979,7 +7979,7 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     // Stack looks like (EBP chain)+0, (return addr)+4, (function object)+8, (arg count)+12, (this)+16, actual args
     // Pass in the EBP+8 to start at the function object, the start of the implicit param slots
 
-    StackSym * stackSym = StackSym::NewParamSlotSym(argSlot, func);
+    StackSym * stackSym = StackSym::NewImplicitParamSym(argSlot, func);
     func->SetArgOffset(stackSym, (2 + argSlot) * MachPtr);
     func->SetHasImplicitParamLoad();
     return stackSym;

@@ -7691,7 +7691,7 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     // For ARM, offset for implicit params always start at 0
     // TODO: Consider not to use the argSlot number for the param slot sym, which can
     // be confused with arg slot number from javascript
-    StackSym * stackSym = StackSym::NewParamSlotSym(argSlot, func);
+    StackSym * stackSym = StackSym::NewImplicitParamSym(argSlot, func);
     func->SetArgOffset(stackSym, argSlot * MachPtr);
     func->SetHasImplicitParamLoad();
     return stackSym;

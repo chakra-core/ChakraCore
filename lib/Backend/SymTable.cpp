@@ -243,6 +243,23 @@ SymTable::GetArgSlotSym(Js::ArgSlot argSlotNum)
     return argSym;
 }
 
+StackSym *          
+SymTable::GetImplicitParam(Js::ArgSlot paramSlotNum)
+{
+	Assert(paramSlotNum - 1 <= this->k_maxImplicitParamSlot);
+
+	if (this->m_implicitParams[paramSlotNum - 1])
+	{
+		return this->m_implicitParams[paramSlotNum - 1];
+	}
+	StackSym *implicitParamSym = StackSym::NewParamSlotSym(paramSlotNum, this->m_func, TyVar);
+	implicitParamSym->m_isImplicitParamSym = true;
+
+	this->m_implicitParams[paramSlotNum - 1] = implicitParamSym;
+
+	return implicitParamSym;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// SymTable::GetMaxSymID
