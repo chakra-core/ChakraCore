@@ -33,6 +33,8 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
+    grep -v -E 'bin/External/.*$' |
+    grep -v -E 'bin/NativeTests/Scripts/splay.js$' |
     grep -v -E 'pal/.*' |
     grep -v -E 'libChakraCoreLib.version|ch.version' |
     xargs -I % sh -c "echo 'Check Copyright > Checking %'; python jenkins/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"
