@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}</ProjectGuid>
+    <RootNamespace>NativeTests</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>NativeTests</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+          $(ChakraCoreRootDirectory)Lib\Jsrt;
+          $(MSBuildThisFileDirectory);
+          $(ChakraCoreRootDirectory)Lib\Common;
+          $(ChakraCoreRootDirectory)bin\External;
+          %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
+      <MinimalRebuild>false</MinimalRebuild>
+      <!-- <CallingConvention Condition="'$(Platform)'=='Win32'">CDecl</CallingConvention> -->
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\External\catch.hpp" />
+    <ClInclude Include="FileLoadHelpers.h" />
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FileLoadHelpers.cpp" />
+    <ClCompile Include="CodexAssert.cpp" />
+    <ClCompile Include="JsRTApiTest.cpp" />
+    <ClCompile Include="MemoryPolicyTest.cpp" />
+    <ClCompile Include="NativeTests.cpp" />
+    <ClCompile Include="ThreadServiceTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Common\Codex\Chakra.Common.Codex.vcxproj">
+      <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ChakraCore\ChakraCore.vcxproj">
+      <Project>{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

@@ -75,10 +75,15 @@ set _HadFailures=0
     call :runTests x86 test
     call :runTests x64 debug
     call :runTests x64 test
-
+    call :runNativeTests x86 debug
+    call :runNativeTests x86 test
+    call :runNativeTests x64 debug
+    call :runNativeTests x64 test
+    
     call :summarizeLogs summary.log
   ) else (
     call :runTests %_BuildArch% %_BuildType%
+    call :runNativeTests %_BuildArch% %_BuildType%
     call :summarizeLogs summary.%_BuildArch%%_BuildType%.log
   )
 
@@ -116,6 +121,17 @@ set _HadFailures=0
   goto :eof
 
 :: ============================================================================
+:: Run jsrt test suite against one build config and record if there were errors
+:: ============================================================================
+:runNativeTests
+
+  call :do %_TestDir%\runnativetests.cmd -%1%2 > %_TestDir%\logs\%1_%2\nativetests.log 2>&1
+
+  if ERRORLEVEL 1 set _HadFailures=1
+
+  goto :eof
+  
+:: ============================================================================
 :: Copy all result logs to the drop share
 :: ============================================================================
 :copyLogsToDrop
@@ -136,6 +152,7 @@ set _HadFailures=0
 
   pushd %_TestDir%\logs
   findstr /sp failed rl.results.log > %1
+  findstr /sip failed nativetests.log > %1
   rem Echo to stderr so that VSO includes the output in the build summary
   type %1 1>&2
   popd
