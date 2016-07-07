@@ -11,6 +11,7 @@ class AutoSystemInfo : public SYSTEM_INFO
     friend void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo *);  // The hosting DLL provides the implementation of this function.
 public:
     static AutoSystemInfo Data;
+
     uint GetAllocationGranularityPageCount() const;
     uint GetAllocationGranularityPageSize() const;
 
@@ -70,10 +71,11 @@ public:
     UINT_PTR dllLoadAddress;
     UINT_PTR dllHighAddress;
 #endif
-    
+
 private:
-    AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0) { Initialize(); }
-    void Initialize();
+    AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0) { }
+    static void InitializeOnDemand();
+    bool Initialize();
     bool isWindows8OrGreater;
     uint allocationGranularityPageCount;
     HANDLE processHandle;
@@ -123,4 +125,3 @@ public:
 CompileAssert(AutoSystemInfo::PageSize == 4096);
 #define __in_ecount_pagesize __in_ecount(4096)
 #define __in_ecount_twopagesize __in_ecount(8192)
-
