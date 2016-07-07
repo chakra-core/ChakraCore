@@ -41,6 +41,8 @@ param (
     [string]$objpath = "",
     [string]$logFile = "",
 
+    [string]$corePath = "core",
+
     [Parameter(Mandatory=$True)]
     [string]$oauth
 )
@@ -88,6 +90,14 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 {
     $commitHash = ($Env:TF_BUILD_SOURCEGETVERSION).split(':')[2]
     $gitExe = GetGitPath
+
+    $CoreHash = ""
+    if (Test-Path $corePath) {
+        $CoreHash = iex "$gitExe rev-parse ${commitHash}:core"
+        if (-not $?) {
+            $CoreHash = ""
+        }
+    }
 
     $outputDir = $Env:TF_BUILD_DROPLOCATION
     if (-not(Test-Path -Path $outputDir)) {
@@ -141,6 +151,7 @@ $CommitMessage
     $changeJson | Add-Member -type NoteProperty -name BuildDate -value $BuildDate
     $changeJson | Add-Member -type NoteProperty -name Branch -value $Env:BranchName
     $changeJson | Add-Member -type NoteProperty -name CommitHash -value $CommitHash
+    $changeJson | Add-Member -type NoteProperty -name CoreHash -value $CoreHash
     $changeJson | Add-Member -type NoteProperty -name PushId -value $BuildPushId
     $changeJson | Add-Member -type NoteProperty -name PushIdPart1 -value $BuildPushIdPart1
     $changeJson | Add-Member -type NoteProperty -name PushIdPart2 -value $BuildPushIdPart2
