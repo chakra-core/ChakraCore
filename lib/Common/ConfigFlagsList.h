@@ -566,12 +566,6 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ES7AsyncAwait           (false)
 #endif
-#ifdef COMPILE_DISABLE_ES7Builtins
-    // If ES7Builtins needs to be disabled by compile flag, DEFAULT_CONFIG_ES7Builtins should be false
-    #define DEFAULT_CONFIG_ES7Builtins             (false)
-#else
-    #define DEFAULT_CONFIG_ES7Builtins             (false)
-#endif
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
@@ -953,10 +947,6 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full functi
 FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
 FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
 
-#ifndef COMPILE_DISABLE_ES7Builtins
-    #define COMPILE_DISABLE_ES7Builtins 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES7Builtins            , "Enable ES7 built-ins"                                     , DEFAULT_CONFIG_ES7Builtins)
 FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
 #ifndef COMPILE_DISABLE_ES6IsConcatSpreadable

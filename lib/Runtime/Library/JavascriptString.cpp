@@ -2055,6 +2055,10 @@ case_2:
             {
                 fillerString = argStr;
             }
+            else
+            {
+                return mainString;
+            }
         }
 
         if (fillerString == nullptr)
