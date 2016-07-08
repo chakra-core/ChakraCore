@@ -6318,28 +6318,36 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
     m_currentNodeFunc = pnodeFnc;
 
+    ParseNodePtr argsId = nullptr;
+    ParseNodePtr *lastNodeRef = nullptr;
     ParseNodePtr pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
+
+    if (extends)
+    {
+        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
+        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+        IdentPtr pidargs = GenerateIdentPtr(_u("args"), 4);
+        ParseNodePtr pnodeT = CreateVarDeclNode(pidargs, STFormal);
+        pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
+        pnodeFnc->sxFnc.pnodeRest = pnodeT;
+        PidRefStack *ref = this->PushPidRef(pidargs);
+
+        argsId = CreateNameNode(pidargs, pnodeFnc->ichMin, pnodeFnc->ichLim);
+
+        argsId->sxPid.symRef = ref->GetSymRef();
+        m_ppnodeVar = ppnodeVarSave;
+    }
+
     ParseNodePtr pnodeInnerBlock = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FunctionBody);
     pnodeBlock->sxBlock.pnodeScopes = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeBodyScope = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
 
-    ParseNodePtr *lastNodeRef = nullptr;
     if (extends)
     {
-        // constructor() { super(...arguments); } (equivalent to constructor(...args) { super(...args); } )
-        PidRefStack *ref = this->PushPidRef(wellKnownPropertyPids.arguments);
-        ParseNodePtr argumentsId = CreateNameNode(wellKnownPropertyPids.arguments, pnodeFnc->ichMin, pnodeFnc->ichLim);
-        argumentsId->sxPid.symRef = ref->GetSymRef();
-        pnodeFnc->sxFnc.SetUsesArguments(true);
-        pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(true);
-
-        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
-        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
-        CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc)->grfpn |= PNodeFlags::fpnArguments;
-        m_ppnodeVar = ppnodeVarSave;
-
-        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argumentsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
+        Assert(argsId);
+        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
 
         ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
         pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
