@@ -9310,8 +9310,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 //MOVSD dst, src1;
                 Assert(!dst->IsEqual(src1));
-                this->m_lowerer->InsertMove(dst, src1, instr);
-
+                
                 IR::Opnd * opndNaN = nullptr;
 
                 bool isF32 = dst->IsFloat32();
@@ -9339,6 +9338,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     this->m_lowerer->InsertCompareBranch(hasNaNSrc->GetDst(), IR::IntConstOpnd::New(0x00000001, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, labelNaNHelper, instr);
                 }
 
+                this->m_lowerer->InsertMove(dst, src1, instr);
                 if(min)
                 {
                     this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
