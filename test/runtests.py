@@ -63,7 +63,7 @@ repo_root = os.path.dirname(test_root)
 # arch: x86, x64
 arch = 'x86' if args.x86 else ('x64' if args.x64 else None)
 if arch == None:
-    arch = os.environ.get('_BuildArch', 'x86')
+    arch = os.environ.get('_BuildArch', 'x64')
 if sys.platform != 'win32':
     arch = 'x64'    # xplat: hard code arch == x64
 arch_alias = 'amd64' if arch == 'x64' else None
@@ -83,7 +83,7 @@ if binary == None:
     if sys.platform == 'win32':
         binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
     else:
-        binary = 'BuildLinux/{0}/ch'.format(flavor)
+        binary = 'Build/clang_build/{}_{}/bin/ch'.format(arch, flavor.lower())
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))

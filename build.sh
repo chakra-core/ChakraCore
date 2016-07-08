@@ -46,7 +46,8 @@ CHAKRACORE_DIR=`dirname $0`
 _CXX=""
 _CC=""
 VERBOSE=""
-BUILD_TYPE="Release"
+BUILD_TYPE="release"
+BUILD_ARCH="x64"
 CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
@@ -76,11 +77,11 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -d | --debug)
-        BUILD_TYPE="Debug"
+        BUILD_TYPE="debug"
         ;;
 
     -t | --test-build)
-        BUILD_TYPE="Test"
+        BUILD_TYPE="test"
         ;;
 
     -j | --jobs)
@@ -150,6 +151,7 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo "_CXX=${_CXX}"
     echo "_CC=${_CC}"
     echo "BUILD_TYPE=${BUILD_TYPE}"
+    echo "BUILD_ARCH=${BUILD_ARCH}"
     echo "MULTICORE_BUILD=${MULTICORE_BUILD}"
     echo "ICU_PATH=${ICU_PATH}"
     echo "CMAKE_GEN=${CMAKE_GEN}"
@@ -206,7 +208,17 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+root_build_directory="$CHAKRACORE_DIR/Build/clang_build/${BUILD_ARCH}_${BUILD_TYPE:0}"
+if [ ! -d "$root_build_directory" ]; then
+    SAFE_RUN `mkdir -p $root_build_directory`
+fi
+
+bin_directory="$root_build_directory/bin"
+if [ ! -d "$bin_directory" ]; then
+    SAFE_RUN `mkdir -p $bin_directory`
+fi
+
+build_directory="$root_build_directory/obj"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
 fi
@@ -214,12 +226,12 @@ fi
 pushd $build_directory > /dev/null
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=${BUILD_TYPE^} $WITHOUT_FEATURES ../../../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+        $MAKE $MULTICORE_BUILD 2>&1 | tee ../build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"
