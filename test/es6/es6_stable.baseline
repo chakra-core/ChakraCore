@@ -25,8 +25,6 @@ FLAG ES6 = 1 - setting child flag ES6Generators = 1
 FLAG ES6Generators = 1
 FLAG ES6 = 1 - setting child flag ES7ExponentiationOperator = 1
 FLAG ES7ExponentiationOperator = 1
-FLAG ES6 = 1 - setting child flag ES7Builtins = 0
-FLAG ES7Builtins = 0
 FLAG ES6 = 1 - setting child flag ES7ValuesEntries = 1
 FLAG ES7ValuesEntries = 1
 FLAG ES6 = 1 - setting child flag ES7TrailingComma = 1
