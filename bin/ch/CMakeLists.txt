@@ -88,9 +88,10 @@ target_link_libraries (ch ${lib_target})
 if(NOT CC_XCODE_PROJECT)
   # Add a post build event to the ch target
   # which executes a command to copy ch to
-  # BuildLinux for convenience
+  # Build/clang_build's flavor specific build
+  # directory for convenience
   add_custom_command(TARGET ch POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CHAKRACORE_BINARY_DIR}/bin/ch/ch"
-    ${CHAKRACORE_BINARY_DIR}/)
+    "${CHAKRACORE_BINARY_DIR}/../bin")
 endif()
