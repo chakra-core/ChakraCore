@@ -13,10 +13,10 @@ build_type=$1
 if [[ $build_type != "-d" && $build_type != "-t" ]]; then
     echo "Warning: You haven't provide either '-d' (debug) or '-t' (test)."
     echo "Warning: Searching for ch.."
-    if [[ -f "$test_path/../BuildLinux/Debug/ch" ]]; then
+    if [[ -f "$test_path/../Build/clang_build/x64_debug/bin/ch" ]]; then
         echo "Warning: Debug build was found"
         build_type="-d"
-    elif [[ -f "$test_path/../BuildLinux/Test/ch" ]]; then
+    elif [[ -f "$test_path/../Build/clang_build/x64_test/bin/ch" ]]; then
         echo "Warning: Test build was found"
         build_type="-t"
     elif [[ -f "$test_path/../BuildLinux/Release/ch" ]]; then
