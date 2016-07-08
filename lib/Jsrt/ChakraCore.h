@@ -46,7 +46,7 @@ typedef enum JsModuleHostInfoKind
 /// </summary>
 /// <remarks>
 /// Notify the host of the dependent module, the "import" part before HostResolveImportedModule.
-/// This notify the host that the refererncing module has the specified module dependency, and the host need to retrieve the module back
+/// This notifies the host that the referencing module has the specified module dependency, and the host need to retrieve the module back.
 /// </remarks>
 /// <param name="referencingModule">The referencing module that is requesting the dependency modules</param>
 /// <param name="specifier">The speceifier coming from the module source code.</param>
@@ -63,8 +63,8 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 /// <remarks>
 /// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there were error in the process, exceptionVar
 /// holds the exception. otherwise the referencingModule is ready and the host should schedule execution afterwards.
-/// referencingModule       : the referencing module that have finished running ModuleDeclarationInstantiation step.
 /// </remarks>
+/// <param name="referencingModule</param>the referencing module that have finished running ModuleDeclarationInstantiation step.
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
@@ -80,7 +80,6 @@ typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModu
 /// </remarks>
 /// <param name="referencingModule">The referencingModule as in HostResolveImportedModule (15.2.1.17). nullptr if this is the top level module.</param>
 /// <param name="normalizedSpecifier">The host normalized specifier. This is the key to a unique ModuleRecord.</param>
-/// <param name="specifierLength">The length of normalizedSpecifier.</param>
 /// <param name="moduleRecord">The new ModuleRecord created. The host should not try to call this API twice with the same normalizedSpecifier.
 ///                           chakra will return an existing ModuleRecord if the specifier was passed in before.</param>
 /// <returns>

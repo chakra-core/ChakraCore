@@ -240,7 +240,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
 
         if (!freeFileName)
         {
-            sprintf_s(fileNameBuffer, "script%i.js", (int)sourceContext);
+            sprintf_s(fileNameBuffer, MAX_PATH, "script%i.js", (int)sourceContext);
             fileNameNarrow = fileNameBuffer;
         }
 
@@ -278,10 +278,10 @@ Error:
 JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleRecord moduleRecord)
 {
     JsErrorCode errorCode = JsNoError;
-    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_FetchImportedModuleCallback, WScriptJsrt::FetchImportedModule);
+    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_FetchImportedModuleCallback, (void*)WScriptJsrt::FetchImportedModule);
     if (errorCode == JsNoError)
     {
-        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, WScriptJsrt::NotifyModuleReadyCallback);
+        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
     }
     if (errorCode == JsNoError)
     {

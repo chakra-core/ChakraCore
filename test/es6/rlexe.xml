@@ -1243,32 +1243,35 @@
   <default>
     <files>await-futreserved-only-in-modules.js</files>
     <compile-flags>-ES6Module</compile-flags>
-    <tags>exclude_dynapogo</tags>
+    <tags>exclude_dynapogo, exclude_xplat</tags>
   </default>
 </test>
   <test>
     <default>
       <files>moduletest1.js</files>
       <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo, exclude_xplat</tags>
     </default>
   </test>
 <test>
     <default>
         <files>module-syntax.js</files>
         <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax1.js</files>
         <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-functionality.js</files>
         <compile-flags>-ES6Module  -ES7AsyncAwait -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
@@ -1276,19 +1279,21 @@
         <files>ModuleLateSyntaxErrors.js</files>
         <baseline>ModuleLateSyntaxErrors.baseline</baseline>
         <compile-flags>-ES6Module -ES7AsyncAwait</compile-flags>
-        <tags>exclude_dynapogo</tags>
+        <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax.js</files>
         <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax1.js</files>
         <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>

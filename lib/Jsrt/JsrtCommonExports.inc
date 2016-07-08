@@ -11,7 +11,11 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
-    JsExperimentalApiRunModule
+    JsInitializeModuleRecord
+    JsParseModuleSource
+    JsModuleEvaluation
+    JsSetModuleHostInfo
+    JsGetModuleHostInfo
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue

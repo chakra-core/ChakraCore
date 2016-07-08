@@ -110,6 +110,10 @@ JsModuleEvaluation(
     {
         return JsErrorModuleEvaluated;
     }
+    if (result != nullptr)
+    {
+        *result = JS_INVALID_REFERENCE;
+    }
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
     JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
@@ -171,10 +175,11 @@ JsGetModuleHostInfo(
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _Outptr_result_maybenull_ void** hostInfo)
 {
-    if (!Js::SourceTextModuleRecord::Is(requestModule))
+    if (!Js::SourceTextModuleRecord::Is(requestModule) || (hostInfo == nullptr))
     {
         return JsErrorInvalidArgument;
     }
+    *hostInfo = nullptr;
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
     JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
