@@ -30,6 +30,7 @@ namespace Js
             static FunctionInfo DefineProperties;
             static FunctionInfo Create;
             static FunctionInfo GetOwnPropertyDescriptor;
+            static FunctionInfo GetOwnPropertyDescriptors;
             static FunctionInfo GetPrototypeOf;
             static FunctionInfo SetPrototypeOf;
             static FunctionInfo Keys;
@@ -62,6 +63,7 @@ namespace Js
         static Var EntryDefineProperties(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCreate(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetOwnPropertyDescriptor(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetOwnPropertyDescriptors(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryKeys(RecyclableObject* function, CallInfo callInfo, ...);
