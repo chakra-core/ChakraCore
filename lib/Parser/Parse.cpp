@@ -968,11 +968,6 @@ void Parser::RestorePidRefForSym(Symbol *sym)
     ref->SetSym(sym);
 }
 
-IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, int32 len)
-{
-    return m_phtbl->PidHashNameLen(name,len);
-}
-
 IdentPtr Parser::PidFromNode(ParseNodePtr pnode)
 {
     for (;;)
@@ -6324,10 +6319,12 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
 
     if (extends)
     {
+        // constructor(...args) { super(...args); }
+        //             ^^^^^^^
         ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
         m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
 
-        IdentPtr pidargs = GenerateIdentPtr(_u("args"), 4);
+        IdentPtr pidargs = m_phtbl->PidHashNameLen(_u("args"), sizeof("args") - 1);
         ParseNodePtr pnodeT = CreateVarDeclNode(pidargs, STFormal);
         pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
         pnodeFnc->sxFnc.pnodeRest = pnodeT;
@@ -6346,6 +6343,8 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
 
     if (extends)
     {
+        // constructor(...args) { super(...args); }
+        //                        ^^^^^^^^^^^^^^^
         Assert(argsId);
         ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
 
