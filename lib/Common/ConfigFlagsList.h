@@ -569,7 +569,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
-
+#define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
 // ES6 DEFAULT BEHAVIOR
@@ -1002,6 +1002,9 @@ FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose tra
     #define COMPILE_DISABLE_ArrayBufferTransfer 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
+
+FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"              , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+
 // /ES6 (BLUE+1) features/flags
 
 #ifdef ENABLE_PROJECTION

@@ -3781,6 +3781,11 @@ namespace Js
             propertyCount += 2;
         }
 
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            propertyCount++;
+        }
+
         typeHandler->Convert(objectConstructor, mode, propertyCount);
 
         library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
@@ -3794,6 +3799,11 @@ namespace Js
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::defineProperty, &JavascriptObject::EntryInfo::DefineProperty, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertyDescriptor.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyDescriptor, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptor, 2));
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertyDescriptors.GetOriginalEntryPoint(),
+                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyDescriptors, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptors, 1));
+        }
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::DefineProperties.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::defineProperties, &JavascriptObject::EntryInfo::DefineProperties, 2));
         library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::create, &JavascriptObject::EntryInfo::Create, 2);
@@ -6807,6 +6817,10 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(defineProperty, JavascriptObject::EntryDefineProperty);
         REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptor, JavascriptObject::EntryGetOwnPropertyDescriptor);
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptors, JavascriptObject::EntryGetOwnPropertyDescriptors);
+        }
 
         REG_OBJECTS_LIB_FUNC(defineProperties, JavascriptObject::EntryDefineProperties);
         REG_OBJECTS_LIB_FUNC(create, JavascriptObject::EntryCreate);
