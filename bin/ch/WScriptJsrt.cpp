@@ -217,7 +217,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
     else
     {
         AutoString fileContent;
-        char* fileName = nullptr;
+        char* fileNameNarrow = nullptr;
         bool freeFileName = false;
         AutoString scriptInjectType;
         size_t fileContentLength;
@@ -233,7 +233,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
             if (argumentCount > 3)
             {
                 size_t unused;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[3], &fileName, &unused));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[3], &fileNameNarrow, &unused));
                 freeFileName = true;
             }
         }
@@ -241,17 +241,17 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
         if (!freeFileName)
         {
             sprintf_s(fileNameBuffer, "script%i.js", (int)sourceContext);
-            fileName = fileNameBuffer;
+            fileNameNarrow = fileNameBuffer;
         }
 
         if (*fileContent)
         {
             // TODO: This is CESU-8. How to tell the engine?
             // TODO: How to handle this source (script) life time?
-            returnValue = LoadScript(callee, fileName, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
+            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
             if (freeFileName)
             {
-                ChakraRTInterface::JsStringFree(fileName);
+                ChakraRTInterface::JsStringFree(fileNameNarrow);
             }
         }
     }
@@ -287,7 +287,8 @@ JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleReco
     {
         errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
     }
-    return errorCode;
+    IfJsrtErrorFailLogAndRetErrorCode(errorCode);
+    return JsNoError;
 }
 
 JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent)
@@ -318,10 +319,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     {
         requestModule = moduleRecordEntry->second;
     }
-    if (errorCode != JsNoError)
-    {
-        return errorCode;
-    }
+    IfJsrtErrorFailLogAndRetErrorCode(errorCode);
     JsValueRef errorObject = JS_INVALID_REFERENCE;
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.

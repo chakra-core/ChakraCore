@@ -63,7 +63,6 @@
 #if defined(DBG)
 
 #define _STRINGIZE_(x) #x
-//#define _STRINGIZE(x) _STRINGIZE_(x)
 
 #define AssertMsg(exp, comment)   \
 do { \
