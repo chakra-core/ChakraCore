@@ -300,7 +300,9 @@ BackwardPass::ProcessBailOnStackArgsOutOfActualsRange()
 {
     IR::Instr * instr = this->currentInstr;
 
-    if (tag == Js::DeadStorePhase && instr->m_opcode == Js::OpCode::LdElemI_A && instr->HasBailOutInfo() && !IsPrePass())
+    if (tag == Js::DeadStorePhase && 
+        (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem) && 
+        instr->HasBailOutInfo() && !IsPrePass())
     {
         if (instr->DoStackArgsOpt(this->func))
         {
@@ -308,7 +310,7 @@ BackwardPass::ProcessBailOnStackArgsOutOfActualsRange()
             if (instr->GetBailOutKind() & ~IR::BailOnStackArgsOutOfActualsRange)
             {
                 Assert(instr->GetBailOutKind() == (IR::BailOnStackArgsOutOfActualsRange | IR::BailOutOnImplicitCallsPreOp));
-                //We are sure at this point, that we will not have any implicit calls as we don't have any call to helper.
+                //We are sure at this point, that we will not have any implicit calls as we wouldn't have done this optimization in the first place.
                 instr->SetBailOutKind(IR::BailOnStackArgsOutOfActualsRange);
             }
         }
@@ -2515,6 +2517,13 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
         this->currentInstr = instr;
         this->currentRegion = this->currentBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+        
+        IR::Instr * insertedInstr = TryChangeInstrForStackArgOpt();
+        if (insertedInstr != nullptr)
+        {
+            instrPrev = insertedInstr;
+            continue;
+        }
 
         ProcessBailOnStackArgsOutOfActualsRange();
         
@@ -2963,6 +2972,43 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
         }
     }
     return false;
+}
+
+IR::Instr *
+BackwardPass::TryChangeInstrForStackArgOpt()
+{
+    IR::Instr * instr = this->currentInstr;
+    if (instr->DoStackArgsOpt(this->func))
+    {
+        switch (instr->m_opcode)
+        {
+            case Js::OpCode::TypeofElem:
+            {
+                /*
+                    Before:
+                        dst = TypeOfElem arguments[i] <(BailOnStackArgsOutOfActualsRange)>
+
+                    After:
+                        tmpdst = LdElemI_A arguments[i] <(BailOnStackArgsOutOfActualsRange)>
+                        dst = TypeOf tmpdst
+                */
+
+                AssertMsg(instr->HasBailOutInfo() && (instr->GetBailOutKind() & IR::BailOutKind::BailOnStackArgsOutOfActualsRange), "Why is the bailout kind not set, when it is StackArgOptimized?");
+
+                instr->m_opcode = Js::OpCode::LdElemI_A;
+                IR::Opnd * dstOpnd = instr->UnlinkDst();
+
+                IR::RegOpnd * elementOpnd = IR::RegOpnd::New(StackSym::New(instr->m_func), IRType::TyVar, instr->m_func);
+                instr->SetDst(elementOpnd);
+
+                IR::Instr * typeOfInstr = IR::Instr::New(Js::OpCode::Typeof, dstOpnd, elementOpnd, instr->m_func);
+                instr->InsertAfter(typeOfInstr);
+
+                return typeOfInstr;
+            }
+        }
+    }
+    return nullptr;
 }
 
 void

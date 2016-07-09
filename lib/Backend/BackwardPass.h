@@ -27,6 +27,7 @@ private:
     bool IsFormalParamSym(Func * func, Sym * sym) const;
     bool CanDeadStoreInstrForScopeObjRemoval(Sym *sym = nullptr) const;
     void TraceDeadStoreOfInstrsForScopeObjectRemoval();
+    IR::Instr * TryChangeInstrForStackArgOpt();
     void InsertArgInsForFormals();
     void ProcessBailOnStackArgsOutOfActualsRange();
     bool DeadStoreOrChangeInstrForScopeObjRemoval();
