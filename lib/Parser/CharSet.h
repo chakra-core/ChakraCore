@@ -477,12 +477,6 @@ namespace UnifiedRegex
         }
 
         //Replaces an existing character with a new value
-        inline void ReplaceCompactChar(uint index, Char value)
-        {
-            ReplaceCompactChar(index, (Char)(value));
-        }
-
-        //Replaces an existing character with a new value
         inline void ReplaceCompactCharU(uint index, uint value)
         {
             Assert(index < this->GetCompactLength());
