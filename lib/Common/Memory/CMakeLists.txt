@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Memory STATIC
+add_library (Chakra.Common.Memory OBJECT
     # xplat-todo: Include platform\XDataAllocator.cpp
     # Needed on windows, need a replacement for linux to do
     # amd64 stack walking

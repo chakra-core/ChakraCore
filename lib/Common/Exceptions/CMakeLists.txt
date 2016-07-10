@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Exceptions STATIC
+add_library (Chakra.Common.Exceptions OBJECT
     # CommonExceptionsPch.cpp
     ExceptionCheck.cpp
     ExceptionBase.cpp
