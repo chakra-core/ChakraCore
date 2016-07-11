@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
+#pragma warning(disable: 4127)  // constant expression for Trace/Assert
 
 #include <map>
 #define IfFailedReturn(EXPR) do { hr = (EXPR); if (FAILED(hr)) { return hr; }} while(FALSE)
