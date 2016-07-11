@@ -6792,7 +6792,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     inlineeStart->IterateMetaArgs([&](IR::Instr* metaArg)
     {
         if (i == Js::Constants::InlineeMetaArgIndex_ArgumentsObject &&
-            inlineeStart->m_func->GetHasArgumentObject())
+            inlineeStart->m_func->GetJnFunction()->GetUsesArgumentsObject())
         {
             Assert(!inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess());
             // Do not remove arguments object meta arg if there is a reference to arguments object
