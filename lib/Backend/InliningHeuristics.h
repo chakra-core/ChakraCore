@@ -7,6 +7,7 @@
 struct InliningThreshold
 {
     Js::FunctionBody * topFunc;
+    bool forLoopBody;
     int inlineThreshold;
     int constructorInlineThreshold;
     int outsideLoopInlineThreshold;
@@ -17,7 +18,7 @@ struct InliningThreshold
     int maxNumberOfInlineesWithLoop;
     int constantArgumentInlineThreshold;
 
-    InliningThreshold(Js::FunctionBody * topFunc, bool aggressive = false);
+    InliningThreshold(Js::FunctionBody * topFunc, bool forLoopBody, bool aggressive = false);
     void SetHeuristics();
     void SetAggressiveHeuristics();
     void Reset();
@@ -33,7 +34,7 @@ class InliningHeuristics
 public:
 
 public:
-    InliningHeuristics(Js::FunctionBody * topFunc) :topFunc(topFunc), threshold(topFunc) {};
+    InliningHeuristics(Js::FunctionBody * topFunc, bool forLoopBody) :topFunc(topFunc), threshold(topFunc, forLoopBody) {};
     bool DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js::FunctionBody *inliner, bool isConstructorCall, bool isPolymorphicCall, InliningDecider* inliningDecider, uint16 constantArgInfo, uint recursiveInlineDepth, bool allowRecursiveInlining);
     bool CanRecursivelyInline(Js::FunctionBody* inlinee, Js::FunctionBody *inliner, bool allowRecursiveInlining, uint recursiveInlineDepth);
     bool BackendInlineIntoInliner(Js::FunctionBody* inlinee,

@@ -1508,7 +1508,6 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             dstSym->m_isSafeThis = true;
             dstSym->m_isNotInt = true;
         }
-        this->m_func->SetHasArgumentObject();
         return;
     }
     case Js::OpCode::LdLetHeapArgsCached:
@@ -1517,7 +1516,6 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         //Fallthrough to next case block!
     }
     case Js::OpCode::LdHeapArgsCached:
-        this->m_func->SetHasArgumentObject();
         if (!m_func->GetJnFunction()->HasScopeObject())
         {
             Js::Throw::FatalInternalError();
@@ -6017,7 +6015,8 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
                 if(this->m_func->m_jitTimeData)
                 {
                     const Js::FunctionCodeGenJitTimeData *inlinerData = this->m_func->m_jitTimeData;
-                    if(!this->IsLoopBody() && inlinerData->inlineesBv && (!inlinerData->inlineesBv->Test(profileId)
+                    if(!(this->IsLoopBody() && PHASE_OFF(Js::InlineInJitLoopBodyPhase, this->m_func)) && 
+                        inlinerData && inlinerData->inlineesBv && (!inlinerData->inlineesBv->Test(profileId)
 #if DBG
                         || (PHASE_STRESS(Js::BailOnNoProfilePhase, this->m_func->GetTopFunc()) &&
                             (CONFIG_FLAG(SkipFuncCountForBailOnNoProfile) < 0 ||
