@@ -238,9 +238,9 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
             }
         }
 
-        if (!freeFileName)
+        if (!freeFileName && isSourceModule)
         {
-            sprintf_s(fileNameBuffer, MAX_PATH, "script%i.js", (int)sourceContext);
+            sprintf_s(fileNameBuffer, MAX_PATH, "moduleScript%i.js", (int)sourceContext);
             fileNameNarrow = fileNameBuffer;
         }
 

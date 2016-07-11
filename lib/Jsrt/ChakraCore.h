@@ -45,13 +45,13 @@ typedef enum JsModuleHostInfoKind
 ///     User implemented callback to fetch additional imported modules.
 /// </summary>
 /// <remarks>
-/// Notify the host of the dependent module, the "import" part before HostResolveImportedModule.
+/// Notify the host to fetch the dependent module. This is the "import" part before HostResolveImportedModule in ES6 spec.
 /// This notifies the host that the referencing module has the specified module dependency, and the host need to retrieve the module back.
 /// </remarks>
-/// <param name="referencingModule">The referencing module that is requesting the dependency modules</param>
-/// <param name="specifier">The speceifier coming from the module source code.</param>
+/// <param name="referencingModule">The referencing module that is requesting the dependency modules.</param>
+/// <param name="specifier">The specifier coming from the module source code.</param>
 /// <param name="dependentModuleRecord">The ModuleRecord of the dependent module. If the module was requested before from other source, return the
-///                           existing ModuleRecord, otherwise create a new ModuleRecord.</param>
+///                           existing ModuleRecord, otherwise return a newly created ModuleRecord.</param>
 /// <returns>
 ///     true if the operation succeeded, false otherwise.
 /// </returns>
@@ -61,10 +61,10 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 ///     User implemented callback to get notification when the module is ready.
 /// </summary>
 /// <remarks>
-/// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there were error in the process, exceptionVar
-/// holds the exception. otherwise the referencingModule is ready and the host should schedule execution afterwards.
+/// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
+/// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
 /// </remarks>
-/// <param name="referencingModule</param>the referencing module that have finished running ModuleDeclarationInstantiation step.
+/// <param name="referencingModule</param>The referencing module that have finished running ModuleDeclarationInstantiation step.
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
@@ -95,12 +95,12 @@ JsInitializeModuleRecord(
 ///     Parse the module source
 /// </summary>
 /// <remarks>
-/// This is basically ParseModule operation. It is slightly different in that the ModuleRecord was initialized earlier, and passed in as an argument. 
+/// This is basically ParseModule operation in ES6 spec. It is slightly different in that the ModuleRecord was initialized earlier, and passed in as an argument.
 /// </remarks>
 /// <param name="requestModule">The ModuleRecord that holds the parse tree of the source code.</param>
-/// <param name="sourceContext">A cookie identifying the script that can be used by debuggable script contexts</param>
+/// <param name="sourceContext">A cookie identifying the script that can be used by debuggable script contexts.</param>
 /// <param name="script">The source script to be parsed, but not executed in this code.</param>
-/// <param name="scriptLength">The source length of sourceText. The input might contain nested null.</param>
+/// <param name="scriptLength">The source length of sourceText. The input might contain embedded null.</param>
 /// <param name="sourceFlag">The type of the source code passed in. It could be UNICODE or utf8 at this time.</param>
 /// <param name="exceptionValueRef">The error object if there is parse error.</param>
 /// <returns>
@@ -120,10 +120,11 @@ JsParseModuleSource(
 /// </summary>
 /// <remarks>
 ///     This method implements 15.2.1.1.6.5, "ModuleEvaluation" concrete method.
-///     When this methid is called, the chakra engine should have notified the host that the module and all its dependent are ready to be executed. 
+///     When this methid is called, the chakra engine should have notified the host that the module and all its dependent are ready to be executed.
+///     One moduleRecord will be executed only once. Additional execution call on the same moduleRecord will fail.
 /// </remarks>
 /// <param name="requestModule">The module to be executed.</param>
-/// <param name="varResult">The return value of the module.</param>
+/// <param name="result">The return value of the module.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>

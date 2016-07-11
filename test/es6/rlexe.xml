@@ -1274,13 +1274,6 @@
         <tags>exclude_xplat</tags>
     </default>
 </test>
-<test>
-    <default>
-        <files>ModuleLateSyntaxErrors.js</files>
-        <baseline>ModuleLateSyntaxErrors.baseline</baseline>
-        <compile-flags>-ES6Module -ES7AsyncAwait</compile-flags>
-        <tags>exclude_dynapogo,exclude_xplat</tags>
-    </default>
 </test>
 <test>
     <default>
