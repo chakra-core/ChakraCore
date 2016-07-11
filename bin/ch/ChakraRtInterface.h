@@ -73,7 +73,6 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtRunScriptUtf8)(const char *script, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef *result);
     typedef JsErrorCode(WINAPI *JsrtSerializeScriptUtf8)(const char *script, ChakraBytePtr buffer, unsigned int *bufferSize);
     typedef JsErrorCode(WINAPI *JsrtRunSerializedScriptUtf8)(JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback, JsSerializedScriptUnloadCallback scriptUnloadCallback, ChakraBytePtr buffer, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef * result);
-    typedef JsErrorCode(WINAPI *JsrtRunModuleUtf8Ptr)(const char *script, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef *result);
     typedef JsErrorCode(WINAPI *JsrtStringFreePtr)(const char *stringValue);
 
     typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, char* infoUri, size_t infoUriCount, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
@@ -166,7 +165,6 @@ struct JsAPIHooks
     JsrtRunScriptUtf8 pfJsrtRunScriptUtf8;
     JsrtSerializeScriptUtf8 pfJsrtSerializeScriptUtf8;
     JsrtRunSerializedScriptUtf8 pfJsrtRunSerializedScriptUtf8;
-    JsrtRunModuleUtf8Ptr pfJsrtExperimentalApiRunModuleUtf8;
     JsrtStringFreePtr pfJsrtStringFree;
 
     JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
@@ -348,7 +346,6 @@ public:
     static JsErrorCode WINAPI JsRunScriptUtf8(const char *script, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef *result) { return HOOK_JS_API(RunScriptUtf8(script, sourceContext, sourceUrl, result)); }
     static JsErrorCode WINAPI JsSerializeScriptUtf8(const char *script, ChakraBytePtr buffer, unsigned int *bufferSize) { return HOOK_JS_API(SerializeScriptUtf8(script, buffer, bufferSize)); }
     static JsErrorCode WINAPI JsRunSerializedScriptUtf8(JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback, JsSerializedScriptUnloadCallback scriptUnloadCallback, ChakraBytePtr buffer, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef * result) { return HOOK_JS_API(RunSerializedScriptUtf8(scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, result)); }
-    static JsErrorCode WINAPI JsRunModuleUtf8(const char *script, JsSourceContext sourceContext, const char *sourceUrl, JsValueRef *result) { return HOOK_JS_API(ExperimentalApiRunModuleUtf8(script, sourceContext, sourceUrl, result)); }
     static JsErrorCode WINAPI JsPointerToStringUtf8(const char *stringValue, size_t length, JsValueRef *value) { return HOOK_JS_API(PointerToStringUtf8(stringValue, length, value)); }
     static JsErrorCode WINAPI JsStringFree(char *stringValue) { return HOOK_JS_API(StringFree(stringValue)); }
     static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, char* infoUri, size_t infoUriCount, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return HOOK_JS_API(TTDCreateRecordRuntime(attributes, infoUri, infoUriCount, snapInterval, snapHistoryLength, threadService, runtime)); }

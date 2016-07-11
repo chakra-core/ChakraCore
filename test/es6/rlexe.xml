@@ -1274,7 +1274,6 @@
         <tags>exclude_xplat</tags>
     </default>
 </test>
-</test>
 <test>
     <default>
         <files>module-syntax.js</files>
