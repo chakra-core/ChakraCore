@@ -1,7 +1,7 @@
-;;-------------------------------------------------------
-;; Copyright (C) Microsoft Corporation and contributors.
-;; Licensed under the MIT license. See LICENSE.txt file i
-;;-------------------------------------------------------
+;;-------------------------------------------------------------------------------------------------------
+;; Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+;;-------------------------------------------------------------------------------------------------------
 
 (module
   (func (param f32) (param f32) (result f32)
