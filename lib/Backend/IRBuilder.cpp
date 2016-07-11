@@ -1430,19 +1430,22 @@ IRBuilder::BuildConstantLoads()
         dstOpnd->m_sym->SetIsFromByteCodeConstantTable();
         // TODO: be more precise about this
         ValueType valueType;
+        IR::Instr *instr = nullptr;
         switch (type)
         {
         case Js::TypeIds_Number:
             valueType = ValueType::Number;
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
             break;
         case Js::TypeIds_String:
             valueType = ValueType::String;
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->GetJITFunctionBody()->GetStringConstantVar(reg));
             break;
         default:
             valueType = ValueType::FromTypeId(type, false);
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
             break;
-        }
-        IR::Instr *instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
+        }        
         this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
     }
 

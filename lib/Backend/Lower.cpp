@@ -8820,8 +8820,32 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
     m_lowererMD.LoadHelperArgument(instr, startFuncOpnd);
 
     //Load the address of the dictionary pair- Js::StringDictionaryWrapper
-    IR::AddrOpnd* nativestringDictionaryOpnd = IR::AddrOpnd::New(instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary(), IR::AddrOpndKindDynamicMisc, this->m_func);
-    m_lowererMD.LoadHelperArgument(instr, nativestringDictionaryOpnd);
+    auto dictionary = instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary();
+
+    if (this->m_func->IsOOPJIT())
+    {
+        auto dictionaryOffset = NativeCodeData::GetDataTotalOffset(dictionary);
+        auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+
+        Lowerer::InsertMove(
+            addressRegOpnd,
+            IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+            instr);
+
+        Lowerer::InsertLea(addressRegOpnd,
+            IR::IndirOpnd::New(addressRegOpnd, dictionaryOffset, TyMachPtr,
+#if DBG
+                NativeCodeData::GetDataDescription(dictionary, this->m_func->m_alloc),
+#endif
+                this->m_func), instr);
+
+        m_lowererMD.LoadHelperArgument(instr, addressRegOpnd);
+    }
+    else
+    {
+        IR::AddrOpnd* nativestringDictionaryOpnd = IR::AddrOpnd::New(dictionary, IR::AddrOpndKindDynamicMisc, this->m_func);
+        m_lowererMD.LoadHelperArgument(instr, nativestringDictionaryOpnd);
+    }
 
     //Load the String passed in the Switch expression for look up - JavascriptString
     opndSrc = instr->UnlinkSrc1();

@@ -529,11 +529,11 @@ BranchInstr::IsUnconditional() const
 ///
 ///----------------------------------------------------------------------------
 inline void
-MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key)
+MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar)
 {
     Assert(this->m_kind == StrDictionary);
     Assert(key);
-    this->GetBranchDictionary()->dictionary.AddNew(key, (void*)offset);
+    this->GetBranchDictionary()->AddEntry(offset, key, remoteVar);
 }
 
 inline void

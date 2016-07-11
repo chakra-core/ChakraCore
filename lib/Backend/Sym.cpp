@@ -575,7 +575,7 @@ Js::Var StackSym::GetFloatConstValueAsVar_PostGlobOpt() const
     return address;
 }
 
-void *StackSym::GetConstAddress() const
+void *StackSym::GetConstAddress(bool useLocal /*= false*/) const
 {
     Assert(this->IsConst());
     IR::Instr *defInstr = this->m_instrDef;
@@ -597,7 +597,7 @@ void *StackSym::GetConstAddress() const
 
     Assert(src1->IsAddrOpnd());
     Assert(defInstr->m_opcode == Js::OpCode::Ld_A || defInstr->m_opcode == Js::OpCode::LdStr || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn || LowererMD::IsAssign(defInstr));
-    return src1->AsAddrOpnd()->m_address;
+    return useLocal ? src1->AsAddrOpnd()->m_localAddress : src1->AsAddrOpnd()->m_address;
 }
 
 intptr_t StackSym::GetLiteralConstValue_PostGlobOpt() const

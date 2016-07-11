@@ -1678,7 +1678,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint argOutSlot = 0;
         uint * startCallOutParamCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
 #ifdef _M_IX86
-        uint * startCallArgRestoreAdjustCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
+        uint * startCallArgRestoreAdjustCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
 #endif
         NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)allocator;
         BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);

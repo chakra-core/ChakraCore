@@ -233,7 +233,8 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::RegOpnd * src2Opnd, uint32 o
         return;
     }
 
-    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && src2Opnd->m_sym->m_isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(src2Opnd->GetStackSym()->GetConstAddress())))
+    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && src2Opnd->m_sym->m_isStrConst
+        && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(src2Opnd->GetStackSym()->GetConstAddress(true))))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
         return;
@@ -265,7 +266,7 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::RegOpnd * src2Opnd, uint32 o
         {
             CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
             m_caseNodes->Add(caseNode);
-            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetSrc2StringConst()->GetLength() == 1;
+            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetSrc2StringConstLocal()->GetLength() == 1;
             deferred = true;
         }
     }
@@ -825,7 +826,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         generateDictionary = false;
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             Assert(str->GetLength() == 1);
             char16 currChar = str->GetString()[0];
             minChar = min(minChar, currChar);
@@ -846,9 +847,9 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
-            multiBranchInstr->AddtoDictionary(caseTargetOffset, str);
+            multiBranchInstr->AddtoDictionary(caseTargetOffset, str, m_caseNodes->Item(i)->GetSrc2StringConst());
         }
     }
     else
@@ -871,7 +872,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             Assert(str->GetLength() == 1);
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoJumpTable(caseTargetOffset, str->GetString()[0] - minChar);

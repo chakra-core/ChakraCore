@@ -8401,21 +8401,6 @@ namespace Js
 
     void EntryPointInfo::InstallGuards(ScriptContext* scriptContext)
     {
-
-
-        //if (jitWriteData.equivalentTypeGuardOffsets)
-        //{
-        //    auto equivalentTypeGuardCount = jitWriteData.equivalentTypeGuardOffsets->count;
-        //    Assert(epInfo->GetNativeDataBuffer() != nullptr);
-        //    Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, equivalentTypeGuardCount);
-        //    for (unsigned int i = 0; i < equivalentTypeGuardCount; i++)
-        //    {
-        //        guards[i] = (Js::JitEquivalentTypeGuard*)epInfo->GetNativeDataBuffer() + jitWriteData.equivalentTypeGuardOffsets->offsets[i];
-        //    }
-        //    epInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardCount);
-        //}
-
-
         Assert(this->jitTransferData != nullptr && this->jitTransferData->GetIsReady());
         Assert(this->equivalentTypeCacheCount == 0 && this->equivalentTypeCaches == nullptr);
         Assert(this->propertyGuardCount == 0 && this->propertyGuardWeakRefs == nullptr);

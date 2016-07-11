@@ -1847,7 +1847,7 @@ DiagHelperCallOpnd::IsEqualInternalSub(Opnd *opnd)
 ///
 ///----------------------------------------------------------------------------
 AddrOpnd *
-AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */)
+AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */, Js::Var varLocal /* = nullptr*/)
 {
     AddrOpnd * addrOpnd;
 
@@ -1855,6 +1855,7 @@ AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dont
 
     // TODO (michhol): OOP JIT, use intptr_t instead of Js::Var by default so people don't try to dereference
     addrOpnd->m_address = (Js::Var)address;
+    addrOpnd->m_localAddress = (Js::Var)varLocal;
     addrOpnd->addrOpndKind = addrOpndKind;
     addrOpnd->m_type = addrOpnd->IsVar() ? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;

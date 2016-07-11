@@ -3387,7 +3387,7 @@ bool Instr::CallsGetter(IR::PropertySymOpnd* methodOpnd)
         ((this->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0);
 }
 
-IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func* func)
+IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func* func, Js::Var varLocal/* = nullptr*/)
 {
     IR::Opnd *srcOpnd = nullptr;
     IR::Instr *instr;
@@ -3431,7 +3431,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
             ValueType valueType;
             if(type.IsString())
             {
-                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true);
+                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true, varLocal);
                 instr = IR::Instr::New(Js::OpCode::LdStr, dstOpnd, srcOpnd, func);
                 Assert(dstOpnd->m_sym->m_isSingleDef);
                 if (dstOpnd->m_sym->IsSingleDef())

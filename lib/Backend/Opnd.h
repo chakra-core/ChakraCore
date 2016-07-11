@@ -1358,7 +1358,7 @@ public:
 class AddrOpnd sealed : public Opnd
 {
 public:
-    static AddrOpnd *       New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false);
+    static AddrOpnd *       New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false, Js::Var varLocal = nullptr);
     static AddrOpnd *       New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int32 value, Func *func, bool dontEncode = false);
@@ -1378,6 +1378,7 @@ public:
 public:
     void *                  m_metadata;
     Js::Var                 m_address;
+    Js::Var                 m_localAddress;
     bool                    m_dontEncode: 1;
     bool                    m_isFunction: 1;
 private:

@@ -198,6 +198,7 @@ char DataDesc_InlineeFrameRecord_ArgOffsets[]               = "";
 char DataDesc_InlineeFrameRecord_Constants[]                = "";
 char DataDesc_BailoutInfo_CotalOutParamCount[]              = "";
 char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[]    = "";
+char DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts[] = "";
 char DataDesc_LowererMD_LoadFloatValue_Float[]              = "";
 char DataDesc_LowererMD_LoadFloatValue_Double[]             = "";
 char DataDesc_LowererMD_EmitLoadFloatCommon_Double[]        = "";

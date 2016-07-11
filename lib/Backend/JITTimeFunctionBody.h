@@ -98,6 +98,7 @@ public:
     void * ReadFromAuxContextData(uint offset) const;
     intptr_t GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
+    JavascriptStringIDL* GetStringConstantVar(Js::RegSlot location) const;
     intptr_t GetInlineCache(uint index) const;
     intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;

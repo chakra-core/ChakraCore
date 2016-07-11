@@ -39,6 +39,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         }
         else
         {
+            jitBody->stringTable = RecyclerNewArrayZ(recycler, JavascriptStringIDL*, functionBody->GetConstantCount());
             jitBody->constTypeCount = functionBody->GetConstantCount();
             jitBody->constTypeTable = RecyclerNewArrayZ(recycler, int32, functionBody->GetConstantCount());
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
@@ -55,6 +56,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                 else
                 {
                     jitBody->constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::JavascriptOperators::GetTypeId(varConst);
+
+                    if (Js::JavascriptString::Is(varConst))
+                    {
+                        jitBody->stringTable[reg - Js::FunctionBody::FirstRegSlot] = (JavascriptStringIDL*)Js::JavascriptString::FromVar(varConst);
+                    }
                 }
             }
         }
@@ -756,6 +762,16 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     Assert(location != 0);
 
     return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
+}
+
+JavascriptStringIDL*
+JITTimeFunctionBody::GetStringConstantVar(Js::RegSlot location) const
+{
+    Assert(m_bodyData.stringTable != nullptr);
+    Assert(location < GetConstCount());
+    Assert(location != 0);
+
+    return m_bodyData.stringTable[location - Js::FunctionBody::FirstRegSlot];
 }
 
 intptr_t

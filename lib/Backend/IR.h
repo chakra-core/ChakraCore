@@ -150,7 +150,7 @@ public:
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
-    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func *func);
+    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func *func, Js::Var varLocal = nullptr);
 
 public:
     bool            IsPlainInstr() const;
@@ -782,7 +782,7 @@ public:
 #endif
     }
 
-    void                            AddtoDictionary(uint32 offset, TBranchKey key);
+    void                            AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar);
     void                            AddtoJumpTable(uint32 offset, uint32 jmpIndex);
     void                            CreateBranchTargetsAndSetDefaultTarget(int dictionarySize, Kind kind, uint defaultTargetOffset);
     void                            ChangeLabelRef(LabelInstr * oldTarget, LabelInstr * newTarget);

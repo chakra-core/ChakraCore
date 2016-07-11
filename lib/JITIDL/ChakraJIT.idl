@@ -311,6 +311,24 @@ typedef struct PropertyIdArrayIDL
     [size_is(count + extraSlotCount)] int elements[*];
 } PropertyIdArrayIDL;
 
+typedef struct TypeRawIDL
+{
+    int typeId;
+    unsigned char flags;
+    __int3264 libAddr;
+    __int3264 protoAddr;
+    __int3264 entrypointAddr;
+    __int3264 propertyCacheAddr;
+} TypeRawIDL;
+
+typedef struct JavascriptStringIDL
+{
+    __int3264 vtbl;
+    TypeRawIDL* type;
+    [size_is(m_charLength + 1)]wchar_t* m_pszValue;
+    unsigned int m_charLength;
+} JavascriptStringIDL;
+
 // FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyDataIDL
 {
@@ -372,6 +390,7 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int constCount;
     [size_is(constCount)] __int3264 * constTable;
+    [size_is(constCount)] JavascriptStringIDL** stringTable;
     unsigned int constTypeCount;
     [size_is(constTypeCount)] int * constTypeTable;
 
