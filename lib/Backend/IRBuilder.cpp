@@ -1439,7 +1439,7 @@ IRBuilder::BuildConstantLoads()
             break;
         case Js::TypeIds_String:
             valueType = ValueType::String;
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->GetJITFunctionBody()->GetStringConstantVar(reg));
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg));
             break;
         default:
             valueType = ValueType::FromTypeId(type, false);

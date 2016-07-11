@@ -98,7 +98,19 @@ public:
     void * ReadFromAuxContextData(uint offset) const;
     intptr_t GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
-    JavascriptStringIDL* GetStringConstantVar(Js::RegSlot location) const;
+    template<class T>
+    T* GetConstAsT(Js::RegSlot location) const
+    {
+        Assert(m_bodyData.constTableContent != nullptr);
+        Assert(location < GetConstCount());
+        Assert(location != 0);
+
+        auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+
+        Assert(obj);
+        Assert(T::Is(obj));
+        return (T*)obj;
+    }
     intptr_t GetInlineCache(uint index) const;
     intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;

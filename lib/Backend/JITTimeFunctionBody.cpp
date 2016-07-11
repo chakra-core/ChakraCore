@@ -34,14 +34,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         if (functionBody->GetIsAsmJsFunction())
         {
             // asm.js has const table structured differently and doesn't need type info
-            jitBody->constTypeCount = 0;
-            jitBody->constTypeTable = nullptr;
+            jitBody->constTableContent = nullptr;
         }
         else
         {
-            jitBody->stringTable = RecyclerNewArrayZ(recycler, JavascriptStringIDL*, functionBody->GetConstantCount());
-            jitBody->constTypeCount = functionBody->GetConstantCount();
-            jitBody->constTypeTable = RecyclerNewArrayZ(recycler, int32, functionBody->GetConstantCount());
+            jitBody->constTableContent = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
@@ -51,16 +48,10 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                     varConst == (Js::Var)&Js::StrictNullFrameDisplay)
                 {
                     // don't need TypeId for these
-                    jitBody->constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::TypeId::TypeIds_Limit;
                 }
                 else
                 {
-                    jitBody->constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::JavascriptOperators::GetTypeId(varConst);
-
-                    if (Js::JavascriptString::Is(varConst))
-                    {
-                        jitBody->stringTable[reg - Js::FunctionBody::FirstRegSlot] = (JavascriptStringIDL*)Js::JavascriptString::FromVar(varConst);
-                    }
+                    jitBody->constTableContent[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
                 }
             }
         }
@@ -764,15 +755,19 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
-JavascriptStringIDL*
-JITTimeFunctionBody::GetStringConstantVar(Js::RegSlot location) const
-{
-    Assert(m_bodyData.stringTable != nullptr);
-    Assert(location < GetConstCount());
-    Assert(location != 0);
-
-    return m_bodyData.stringTable[location - Js::FunctionBody::FirstRegSlot];
-}
+//template<class T>
+//T*
+//JITTimeFunctionBody::GetConstAsT(Js::RegSlot location) const
+//{
+//    Assert(m_bodyData.constTableContent != nullptr);
+//    Assert(location < GetConstCount());
+//    Assert(location != 0);
+//
+//    auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+//
+//    Assert(T::Is(obj));
+//    return (T*)obj;
+//}
 
 intptr_t
 JITTimeFunctionBody::GetInlineCache(uint index) const
@@ -808,7 +803,8 @@ JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
     Assert(location < GetConstCount());
     Assert(location != 0);
 
-    return static_cast<Js::TypeId>(m_bodyData.constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
+    auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+    return obj == nullptr ? Js::TypeId::TypeIds_Limit : static_cast<Js::TypeId>(*(obj->typeId));
 }
 
 intptr_t
