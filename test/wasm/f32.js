@@ -1,4 +1,7 @@
-
+//------------------------------------------------------------------------------
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for
+//------------------------------------------------------------------------------
 const blob = WScript.LoadBinaryFile('f32.wasm');
 const moduleBytesView = new Uint8Array(blob);
 var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
