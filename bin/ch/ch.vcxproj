@@ -27,7 +27,6 @@
         $(IntDir);
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>ch.def</ModuleDefinitionFile>

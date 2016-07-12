@@ -61,10 +61,6 @@ namespace Js
         return (uint)(Js::OpCodeAsmJs::Simd128_End - Js::OpCodeAsmJs::Simd128_Start) + 1 + (uint)(Js::OpCodeAsmJs::Simd128_End_Extend - Js::OpCodeAsmJs::Simd128_Start_Extend) + 1;
     }
 
-    inline bool IsByteOpCode(Js::OpCodeAsmJs op) { return op < ((uint)Js::OpCodeAsmJs::MaxByteSizedOpcodes + 1); }
-    inline bool IsExtendedOpCode(Js::OpCodeAsmJs op) { return !IsByteOpCode(op) && (uint)op < 2 * ((uint)Js::OpCodeAsmJs::MaxByteSizedOpcodes + 1); }
-    inline bool IsDblExtendedOpCode(Js::OpCodeAsmJs op) { return !IsExtendedOpCode(op) && (uint)op < (3 * (uint)Js::OpCodeAsmJs::MaxByteSizedOpcodes + 1); }
-
     ///----------------------------------------------------------------------------
     ///
     /// enum OpLayoutTypeAsmJs

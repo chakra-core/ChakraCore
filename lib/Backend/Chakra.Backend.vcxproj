@@ -43,7 +43,6 @@
     <ClCompile>
       <!-- /Ob1 -->
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildJIT)'!='false'">
