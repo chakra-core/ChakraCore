@@ -1435,11 +1435,15 @@ IRBuilder::BuildConstantLoads()
         {
         case Js::TypeIds_Number:
             valueType = ValueType::Number;
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func
+#if !FLOATVAR
+                , m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptNumber>(reg) : nullptr
+#endif
+            );
             break;
         case Js::TypeIds_String:
             valueType = ValueType::String;
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg));
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg) : nullptr);
             break;
         default:
             valueType = ValueType::FromTypeId(type, false);

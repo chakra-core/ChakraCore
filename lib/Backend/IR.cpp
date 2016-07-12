@@ -3452,11 +3452,12 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                 }
                 else
                 {
-#if !FLOATVAR
-                    srcOpnd = IR::FloatConstOpndOOP::New((Js::Var)varConst, TyFloat64, func);
-#else
-                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
+                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func
+#if !FLOATVAR               
+                        ,varLocal
 #endif
+                    );
+
                 }
 
                 instr = IR::Instr::New(Js::OpCode::LdC_A_R8, dstOpnd, srcOpnd, func);

@@ -345,7 +345,7 @@ class FloatConstOpnd: public Opnd
 {
 public:
     static FloatConstOpnd * New(FloatConstType value, IRType type, Func *func);
-    static FloatConstOpnd * New(Js::Var floatVar, IRType type, Func *func);
+    static FloatConstOpnd * New(Js::Var floatVar, IRType type, Func *func, Js::Var varLocal = nullptr);
 
 public:
     //Note: type OpndKindFloatConst
@@ -358,19 +358,10 @@ public:
 protected:
 #if !FLOATVAR
     Js::Var                 m_number;
+    Js::JavascriptNumber    *m_numberCopy;
 #endif
 };
 
-#if !FLOATVAR
-class FloatConstOpndOOP : public FloatConstOpnd
-{
-public:
-    static FloatConstOpndOOP * New(Js::Var floatVar, IRType type, Func *func);
-    FloatConstOpndOOP() {}
-public:
-    Js::JavascriptNumber    *m_numberCopy;
-};
-#endif
 
 class Simd128ConstOpnd sealed : public Opnd
 {
@@ -1359,7 +1350,7 @@ class AddrOpnd sealed : public Opnd
 {
 public:
     static AddrOpnd *       New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false, Js::Var varLocal = nullptr);
-    static AddrOpnd *       New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false);
+    static AddrOpnd *       New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false, Js::Var varLocal = nullptr);
     static AddrOpnd *       NewFromNumber(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int32 value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int64 value, Func *func, bool dontEncode = false);

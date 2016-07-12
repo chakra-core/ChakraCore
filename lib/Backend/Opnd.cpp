@@ -1546,49 +1546,20 @@ FloatConstOpnd::New(FloatConstType value, IRType type, Func *func)
 }
 
 FloatConstOpnd *
-FloatConstOpnd::New(Js::Var floatVar, IRType type, Func *func)
+FloatConstOpnd::New(Js::Var floatVar, IRType type, Func *func, Js::Var varLocal /*= nullptr*/)
 {
-    Assert(Js::JavascriptNumber::Is(floatVar));
+    Assert((varLocal && Js::JavascriptNumber::Is(varLocal)) || Js::JavascriptNumber::Is(floatVar));
 
-    FloatConstOpnd * floatConstOpnd = FloatConstOpnd::New(Js::JavascriptNumber::GetValue(floatVar), type, func);
+    FloatConstType value = Js::JavascriptNumber::GetValue(varLocal ? varLocal : floatVar);
+    FloatConstOpnd * floatConstOpnd = FloatConstOpnd::New(value, type, func);
 
 #if !FLOATVAR
     floatConstOpnd->m_number = floatVar;
+    floatConstOpnd->m_numberCopy = (Js::JavascriptNumber*)varLocal;
 #endif
 
     return floatConstOpnd;
 }
-
-#if !FLOATVAR
-FloatConstOpndOOP *
-FloatConstOpndOOP::New(Js::Var floatVar, IRType type, Func *func)
-{  
-    FloatConstOpndOOP * floatConstOpnd = JitAnew(func->m_alloc, IR::FloatConstOpndOOP);
-
-    Js::StaticType* numType = (Js::StaticType*)JitAnewArray(func->m_alloc, char, sizeof(Js::StaticType));
-    floatConstOpnd->m_numberCopy = (Js::JavascriptNumber*)JitAnewArray(func->m_alloc, char, sizeof(Js::JavascriptNumber));
-    
-    SIZE_T bytesRead;
-    HANDLE hProcess = func->GetThreadContextInfo()->GetProcessHandle();    
-    ::ReadProcessMemory(hProcess, floatVar, floatConstOpnd->m_numberCopy, sizeof(Js::JavascriptNumber), &bytesRead);
-    
-
-    char* remoteType = (char*)floatConstOpnd->m_numberCopy + floatConstOpnd->m_numberCopy->GetOffsetOfType();
-    ::ReadProcessMemory(hProcess, *(void**)remoteType, numType, sizeof(Js::StaticType), &bytesRead);
-
-    *(void**)(remoteType) = numType;
-
-    Assert(Js::JavascriptNumber::Is(floatConstOpnd->m_numberCopy));
-
-    floatConstOpnd->m_value = Js::JavascriptNumber::GetValue(floatConstOpnd->m_numberCopy);
-    floatConstOpnd->m_type = type;
-    floatConstOpnd->m_kind = OpndKindFloatConst;
-    floatConstOpnd->m_number = floatVar;
-
-    return floatConstOpnd;
-}
-#endif
-
 
 AddrOpnd *
 FloatConstOpnd::GetAddrOpnd(Func *func, bool dontEncode)
@@ -1596,16 +1567,7 @@ FloatConstOpnd::GetAddrOpnd(Func *func, bool dontEncode)
 #if !FLOATVAR
     if (this->m_number)
     {
-        if (!func->IsOOPJIT()) // in-proc JIT
-        {
-            return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
-        }
-        else // OOP JIT
-        {
-            AddrOpnd* addrOpnd = AddrOpnd::New(((FloatConstOpndOOP*)this)->m_numberCopy, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
-            addrOpnd->m_address = this->m_number;
-            return addrOpnd;
-        }
+        return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode, this->m_numberCopy);
     }
 #endif
 
@@ -1892,13 +1854,14 @@ AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dont
 }
 
 AddrOpnd *
-AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */)
+AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */, Js::Var varLocal /* = nullptr*/)
 {
     AddrOpnd * addrOpnd;
 
     addrOpnd = JitAnew(func->m_alloc, IR::AddrOpnd);
 
     addrOpnd->m_address = address;
+    addrOpnd->m_localAddress = (Js::Var)varLocal;
     addrOpnd->addrOpndKind = addrOpndKind;
     addrOpnd->m_type = addrOpnd->IsVar()? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;
@@ -1912,13 +1875,17 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
             addrOpnd->m_valueType = ValueType::GetTaggedInt();
             addrOpnd->SetValueTypeFixed();
         }
-        else if(Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+        else
         {
-            addrOpnd->m_valueType =
-                Js::JavascriptNumber::IsInt32_NoChecks(address)
+            Js::Var var = varLocal ? varLocal : address;
+            if (Js::JavascriptNumber::Is_NoTaggedIntCheck(var))
+            {
+                addrOpnd->m_valueType =
+                    Js::JavascriptNumber::IsInt32_NoChecks(var)
                     ? ValueType::GetInt(false)
                     : ValueType::Float;
-            addrOpnd->SetValueTypeFixed();
+                addrOpnd->SetValueTypeFixed();
+            }
         }
     }
 

@@ -51,7 +51,14 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                 }
                 else
                 {
-                    jitBody->constTableContent[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
+                    if (Js::TaggedNumber::Is(varConst))
+                    {
+                        // the typeid should be TypeIds_Number, determine this directly from const table
+                    }
+                    else
+                    {
+                        jitBody->constTableContent[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
+                    }
                 }
             }
         }
@@ -755,20 +762,6 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
-//template<class T>
-//T*
-//JITTimeFunctionBody::GetConstAsT(Js::RegSlot location) const
-//{
-//    Assert(m_bodyData.constTableContent != nullptr);
-//    Assert(location < GetConstCount());
-//    Assert(location != 0);
-//
-//    auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
-//
-//    Assert(T::Is(obj));
-//    return (T*)obj;
-//}
-
 intptr_t
 JITTimeFunctionBody::GetInlineCache(uint index) const
 {
@@ -804,7 +797,21 @@ JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
     Assert(location != 0);
 
     auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
-    return obj == nullptr ? Js::TypeId::TypeIds_Limit : static_cast<Js::TypeId>(*(obj->typeId));
+
+    if (obj == nullptr)
+    {
+        if (Js::TaggedNumber::Is((Js::Var)GetConstantVar(location)))
+        {
+            // tagged float
+            return Js::TypeId::TypeIds_Number;
+        }
+        else
+        {
+            return Js::TypeId::TypeIds_Limit;
+        }
+    }
+
+    return static_cast<Js::TypeId>(*(obj->typeId));
 }
 
 intptr_t
