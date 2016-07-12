@@ -696,17 +696,9 @@ var tests = [
   {
     name: "Immutable binding within class body, declarations also have normal let binding in enclosing context",
     body: function() {
-
-      // Class expression with a name, eval should bind against enclosing context, not context containing
-      // class name.
-      class a{};
-
-      this.k = a;
-      var c = class k extends eval('k') {
-          k() { k(); }
+      var c = class k {
           reassign() { eval('k = 0; WScript.Echo(k);'); }
-      }
-      assert.areEqual(Object.getPrototypeOf(c.prototype), this.k.prototype, "Extends calling eval");
+      };
 
       // Class name is immutable within class body.
       var obj1 = new c();
@@ -714,8 +706,9 @@ var tests = [
 
       // Class name is also immutable within body of class declaration statement
       class Q extends c {
-          reassign() { eval('Q = 0;') }
+          reassign() { eval('Q = 0;'); }
       };
+
       var obj2 = new Q();
       assert.throws(function() { obj2.reassign() }, TypeError);
       // Class name binding in enclosing context is mutable
@@ -1138,6 +1131,58 @@ var tests = [
             assert.throws(function() { (new (class A { get x() { A = 0; } })).x; }, TypeError, "Assignment to class identifier in getter");
             assert.throws(function() { class A { set x(_) { A = 0; } }; new A().x = 15; }, TypeError, "Assignment to class identifier in setter");
             assert.throws(function() { (new (class A { set x(_) { A = 0; } })).x = 15; }, TypeError, "Assignment to class identifier in setter");
+        }
+    },
+    {
+        name: "`class x extends y` where `y` is an expression containing identifier `x` should be a ReferenceError",
+        body: function() {
+            var refErrorText = "Use before declaration";
+
+            function assert_referr(code) {
+                assert.throws(function () { eval(code) }, ReferenceError, `\n    ${code}`, refErrorText);
+            }
+
+            function assert_referrors(code) {
+                // Test a given class declaration (where class is named x) by itself and then with `var x =` and `let x =` prepended.
+                assert_referr(code);
+                assert_referr(`var x = ${code}`);
+                assert_referr(`let x = ${code}`);
+                // Run the same tests, where the class declaration is a wrapped in parens to form a class expression.
+                // In the Test262 test case, the RHS is a class expression.
+                // See: test262/test/language/statements/class/name-binding/in-extends-expression-assigned.js
+                assert_referr(`(${code})`);
+                assert_referr(`var x = (${code})`);
+                assert_referr(`let x = (${code})`);
+            }
+
+            function id(x) { return x; };
+            function fun(x) { return function() { return x }; }
+
+            // Using expressions containing the `x` identifier for the extends clause
+            assert_referrors("class x extends x {}");
+            assert_referrors("class x extends (x) {}");
+            assert_referrors("class x extends id(x) {}");
+            assert_referrors("class x extends fun(x) {}");
+
+            // Assigning the result to a different identifier
+            assert_referr("var y = class x extends x {}");
+            assert_referr("let y = class x extends x {}");
+
+            // Defining `y` after the class to use default initialization (var y) or temporary deadzone (let y)
+            assert.throws(function() {
+                class x extends y {}; // y == undefined
+                var y = function() {};
+            }, TypeError, "y is undefined", "Function is not a constructor");
+            assert_referr(`
+                class x extends y {}; // y is not defined (temporary deadzone)
+                let y = function() {};
+            `);
+
+            // Using eval where the result of eval is the 'x' identifier or a value that captures the 'x' identifier
+            assert_referrors("class x extends eval('x') {}");
+            assert_referrors("class x extends eval('(x)') {}");
+            assert_referrors("class x extends eval('id(x)') {}");
+            assert_referrors("class x extends eval('fun(x)') {}");
         }
     },
 ];

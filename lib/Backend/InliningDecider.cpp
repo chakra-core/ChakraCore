@@ -5,7 +5,7 @@
 #include "Backend.h"
 
 InliningDecider::InliningDecider(Js::FunctionBody *const topFunc, bool isLoopBody, bool isInDebugMode, const ExecutionMode jitMode)
-    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), inliningHeuristics(topFunc)
+    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), inliningHeuristics(topFunc, isLoopBody)
 {
     Assert(topFunc);
 }
@@ -190,7 +190,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
     Js::FunctionProxy * proxy = functionInfo->GetFunctionProxy();
     if (proxy && proxy->IsFunctionBody())
     {
-        if (isLoopBody && !PHASE_ON(Js::InlineInJitLoopBodyPhase, this->topFunc))
+        if (isLoopBody && PHASE_OFF(Js::InlineInJitLoopBodyPhase, this->topFunc))
         {
             INLINE_TESTTRACE_VERBOSE(_u("INLINING: Skip Inline: Jit loop body: %s (%s)\n"), this->topFunc->GetDisplayName(),
                 this->topFunc->GetDebugNumberSet(debugStringBuffer));
@@ -268,7 +268,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
         }
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-        TraceInlining(inliner, inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->topFunc, this->bytecodeInlinedCount, inlinee, callSiteId);
+        TraceInlining(inliner, inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->topFunc, this->bytecodeInlinedCount, inlinee, callSiteId, this->isLoopBody);
 #endif
 
         this->bytecodeInlinedCount += inlinee->GetByteCodeCount();
@@ -610,32 +610,32 @@ bool InliningDecider::GetBuiltInInfo(
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 // static
 void InliningDecider::TraceInlining(Js::FunctionBody *const inliner, const char16* inlineeName, const char16* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
-    Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, uint builtIn)
+    Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, bool inLoopBody, uint builtIn)
 {
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     if (inlineeName == nullptr)
     {
-
         int len = swprintf_s(debugStringBuffer3, MAX_FUNCTION_BODY_DEBUG_STRING_SIZE, _u("built In Id: %u"), builtIn);
         Assert(len > 14);
         inlineeName = debugStringBuffer3;
     }
-    INLINE_TESTTRACE(_u("INLINING: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
+    INLINE_TESTTRACE(_u("INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
         inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
-        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(), inlinedByteCodeCount,
-        topFunc->GetDisplayName(),
-        topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetByteCodeCount(),
+        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(),
+        inlinedByteCodeCount,
+        topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetByteCodeCount(),
         callSiteId
         );
 
-    INLINE_TRACE(_u("INLINING:\n\tInlinee: size: %4d  %s\n\tCaller: size: %4d  %-25s (%s)  InlineCount: %d\tRoot:  size: %4d  %s  (%s) CallSiteId %d\n"),
-        inlineeByteCodeCount, inlineeName,
-        inliner->GetByteCodeCount(), inliner->GetDisplayName(),
-        inliner->GetDebugNumberSet(debugStringBuffer), inlinedByteCodeCount,
-        topFunc->GetByteCodeCount(),
-        topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
+    INLINE_TRACE(_u("INLINING %s: Inlinee: %s(%s)\tSize : %d\tCaller : %s(%s)\tSize : %d\tInlineCount : %d\tRoot : %s(%s)\tSize : %d\tCallSiteId : %d\n"),
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
+        inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
+        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(),
+        inlinedByteCodeCount,
+        topFunc->GetByteCodeCount(), topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
         callSiteId
         );
 

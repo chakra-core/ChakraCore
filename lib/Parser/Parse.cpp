@@ -968,11 +968,6 @@ void Parser::RestorePidRefForSym(Symbol *sym)
     ref->SetSym(sym);
 }
 
-IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, int32 len)
-{
-    return m_phtbl->PidHashNameLen(name,len);
-}
-
 IdentPtr Parser::PidFromNode(ParseNodePtr pnode)
 {
     for (;;)
@@ -6318,28 +6313,40 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
     m_currentNodeFunc = pnodeFnc;
 
+    ParseNodePtr argsId = nullptr;
+    ParseNodePtr *lastNodeRef = nullptr;
     ParseNodePtr pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
+
+    if (extends)
+    {
+        // constructor(...args) { super(...args); }
+        //             ^^^^^^^
+        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
+        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+        IdentPtr pidargs = m_phtbl->PidHashNameLen(_u("args"), sizeof("args") - 1);
+        ParseNodePtr pnodeT = CreateVarDeclNode(pidargs, STFormal);
+        pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
+        pnodeFnc->sxFnc.pnodeRest = pnodeT;
+        PidRefStack *ref = this->PushPidRef(pidargs);
+
+        argsId = CreateNameNode(pidargs, pnodeFnc->ichMin, pnodeFnc->ichLim);
+
+        argsId->sxPid.symRef = ref->GetSymRef();
+        m_ppnodeVar = ppnodeVarSave;
+    }
+
     ParseNodePtr pnodeInnerBlock = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FunctionBody);
     pnodeBlock->sxBlock.pnodeScopes = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeBodyScope = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
 
-    ParseNodePtr *lastNodeRef = nullptr;
     if (extends)
     {
-        // constructor() { super(...arguments); } (equivalent to constructor(...args) { super(...args); } )
-        PidRefStack *ref = this->PushPidRef(wellKnownPropertyPids.arguments);
-        ParseNodePtr argumentsId = CreateNameNode(wellKnownPropertyPids.arguments, pnodeFnc->ichMin, pnodeFnc->ichLim);
-        argumentsId->sxPid.symRef = ref->GetSymRef();
-        pnodeFnc->sxFnc.SetUsesArguments(true);
-        pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(true);
-
-        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
-        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
-        CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc)->grfpn |= PNodeFlags::fpnArguments;
-        m_ppnodeVar = ppnodeVarSave;
-
-        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argumentsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
+        // constructor(...args) { super(...args); }
+        //                        ^^^^^^^^^^^^^^^
+        Assert(argsId);
+        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
 
         ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
         pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
@@ -6885,20 +6892,6 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     BOOL strictSave = m_fUseStrictMode;
     m_fUseStrictMode = TRUE;
 
-    if (m_token.tk == tkEXTENDS)
-    {
-        m_pscan->Scan();
-        pnodeExtends = ParseExpr<buildAST>();
-        hasExtends = true;
-    }
-
-    if (m_token.tk != tkLCurly)
-    {
-        Error(ERRnoLcurly);
-    }
-
-    OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Parsing class (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
-
     ParseNodePtr pnodeDeclName = nullptr;
     if (isDeclaration)
     {
@@ -6919,6 +6912,20 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     {
         pnodeName = CreateBlockScopedDeclNode(name, knopConstDecl);
     }
+
+    if (m_token.tk == tkEXTENDS)
+    {
+        m_pscan->Scan();
+        pnodeExtends = ParseExpr<buildAST>();
+        hasExtends = true;
+    }
+
+    if (m_token.tk != tkLCurly)
+    {
+        Error(ERRnoLcurly);
+    }
+
+    OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Parsing class (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
 
     RestorePoint beginClass;
     m_pscan->Capture(&beginClass);

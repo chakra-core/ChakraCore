@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.24706.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChakraCore", "..\bin\ChakraCore\ChakraCore.vcxproj", "{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -83,6 +83,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GCStress", "..\bin\GCStress\GCStress.vcxproj", "{73CE5C59-E0BA-413D-A73C-3EECE067891B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.PlatformAgnostic", "..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj", "{129AC184-877C-441F-AC49-A692CE700E62}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeTests", "..\bin\NativeTests\NativeTests.vcxproj", "{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -511,6 +513,24 @@ Global
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x64.Build.0 = Test|x64
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x86.ActiveCfg = Test|Win32
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x86.Build.0 = Test|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|ARM.ActiveCfg = Debug|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|ARM.Build.0 = Debug|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|x64.ActiveCfg = Debug|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|x64.Build.0 = Debug|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|x86.ActiveCfg = Debug|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|x86.Build.0 = Debug|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|ARM.ActiveCfg = Release|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|ARM.Build.0 = Release|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|x64.ActiveCfg = Release|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|x64.Build.0 = Release|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|x86.ActiveCfg = Release|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Release|x86.Build.0 = Release|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|ARM.ActiveCfg = Test|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|ARM.Build.0 = Test|ARM
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|x64.ActiveCfg = Test|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|x64.Build.0 = Test|x64
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|x86.ActiveCfg = Test|Win32
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Test|x86.Build.0 = Test|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -544,5 +564,6 @@ Global
 		{706083F7-6AA4-4558-A153-6352EF9110EE} = {DDF436E7-0A8E-41AA-82B3-902B5D2D0809}
 		{73CE5C59-E0BA-413D-A73C-3EECE067891B} = {D3BA0BFC-4757-4B73-994F-3556950884A1}
 		{129AC184-877C-441F-AC49-A692CE700E62} = {DDF436E7-0A8E-41AA-82B3-902B5D2D0809}
+		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B} = {D3BA0BFC-4757-4B73-994F-3556950884A1}
 	EndGlobalSection
 EndGlobal

@@ -546,7 +546,6 @@ public:
     bool                hasBailout: 1;
     bool                hasBailoutInEHRegion : 1;
     bool                hasStackArgs: 1;
-    bool                hasArgumentObject : 1;
     bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
     bool                hasApplyTargetInlining:1;
@@ -621,7 +620,7 @@ public:
     bool                IsStackArgsEnabled()
     {
                         Func* curFunc = this;
-                        bool isStackArgsEnabled = this->hasArgumentObject && curFunc->GetHasStackArgs();
+                        bool isStackArgsEnabled = this->m_jnFunction->GetUsesArgumentsObject() && curFunc->GetHasStackArgs();
                         Func * topFunc = curFunc->GetTopFunc();
                         if (topFunc != nullptr)
                         {
@@ -629,9 +628,6 @@ public:
                         }
                         return isStackArgsEnabled;
     }
-
-    bool                GetHasArgumentObject() const { return this->hasArgumentObject;}
-    void                SetHasArgumentObject() { this->hasArgumentObject = true;}
 
     bool                GetHasUnoptimizedArgumentsAcccess() const { return this->hasUnoptimizedArgumentsAcccess; }
     void                SetHasUnoptimizedArgumentsAccess(bool args)

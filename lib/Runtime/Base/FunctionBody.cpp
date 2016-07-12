@@ -578,7 +578,7 @@ namespace Js
     Var
     FunctionBody::GetFormalsPropIdArrayOrNullObj()
     {
-        Var formalsPropIdArray = this->GetAuxPtr(AuxPointerType::FormalsPropIdArray);
+        Var formalsPropIdArray = this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray);
         if (formalsPropIdArray == nullptr)
         {
             return GetScriptContext()->GetLibrary()->GetNull();
@@ -591,15 +591,15 @@ namespace Js
     {
         if (checkForNull)
         {
-            Assert(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+            Assert(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
         }
-        return static_cast<PropertyIdArray*>(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+        return static_cast<PropertyIdArray*>(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
     }
 
     void 
     FunctionBody::SetFormalsPropIdArray(PropertyIdArray * propIdArray)
     {
-        AssertMsg(propIdArray == nullptr || this->GetAuxPtr(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
+        AssertMsg(propIdArray == nullptr || this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
         this->SetAuxPtr(AuxPointerType::FormalsPropIdArray, propIdArray);
     }
 
@@ -1049,6 +1049,7 @@ namespace Js
         CopyDeferParseField(m_isStrictMode);
         CopyDeferParseField(m_isGlobalFunc);
         CopyDeferParseField(m_doBackendArgumentsOptimization);
+        CopyDeferParseField(m_usesArgumentsObject);
         CopyDeferParseField(m_isEval);
         CopyDeferParseField(m_isDynamicFunction);
         CopyDeferParseField(m_hasImplicitArgIns);
@@ -1143,6 +1144,7 @@ namespace Js
       m_isNameIdentifierRef (true),
       m_isStaticNameFunction(false),
       m_doBackendArgumentsOptimization(true),
+      m_usesArgumentsObject(false),
       m_isStrictMode(false),
       m_isAsmjsMode(false),
       m_dontInline(false),

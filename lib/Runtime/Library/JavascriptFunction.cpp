@@ -144,9 +144,9 @@ namespace Js
     static char16 const genFuncName[] = _u("function* anonymous");
     static char16 const asyncFuncName[] = _u("async function anonymous");
     static char16 const openFormals[] = _u("(");
-    static char16 const closeFormals[] = _u("\012)");
+    static char16 const closeFormals[] = _u("\n)");
     static char16 const openFuncBody[] = _u(" {");
-    static char16 const closeFuncBody[] = _u("\012}");
+    static char16 const closeFuncBody[] = _u("\n}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
