@@ -362,7 +362,7 @@ goto :main
   )
 
   if "%_Binary%" == "-binary:ch.exe" (
-    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -WERExceptionSupport -ExtendedErrorStackForTestHost
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -WERExceptionSupport -ExtendedErrorStackForTestHost -BaselineMode
   )
 
   if "%_TESTCONFIG%"=="interpreted" (
@@ -442,9 +442,10 @@ goto :main
   set REGRESS=%CD%
 
   call :do rl %_rlArgs%
-  if ERRORLEVEL 1 set _HadFailures=1
+  if %ERRORLEVEL% NEQ 0 set _HadFailures=1
 
   call :do move /Y %_logsRoot%\*.log %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
+  if %ERRORLEVEL% NEQ 0 set _HadFailures=1
 
   set EXTRA_CC_FLAGS=%_OLD_CC_FLAGS%
 
@@ -474,6 +475,7 @@ goto :main
 
   echo ^>^> %*
   cmd /s /c "%*"
+  if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
   goto :eof
 

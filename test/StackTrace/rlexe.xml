@@ -3,7 +3,7 @@
   <test>
     <default>
       <tags>StackTrace,exclude_ship</tags>
-      <files>simpleThrow.js</files>
+      <files>SimpleThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -errorStackTrace- -args runTest -endargs</compile-flags>
       <baseline>simpleThrow.js.stackTraceDisabled.baseline</baseline>
     </default>
@@ -27,9 +27,9 @@
   <test>
     <default>
       <tags>StackTrace,exclude_ship</tags>
-      <files>simpleThrow.js</files>
+      <files>SimpleThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest -endargs</compile-flags>
-      <baseline>simpleThrow.js.baseline</baseline>
+      <baseline>SimpleThrow.js.baseline</baseline>
     </default>
   </test>
   <test>

@@ -16,7 +16,9 @@ namespace Js{
         static bool CheckFFI(ScriptContext* scriptContext, AsmJsModuleInfo* info, const Var foreign);
         static bool CheckArrayLibraryMethod(ScriptContext* scriptContext, const Var stdlib, const AsmJSTypedArrayBuiltinFunction arrayBuiltin);
         static bool CheckMathLibraryMethod(ScriptContext* scriptContext, const Var asmMathObject, const AsmJSMathBuiltinFunction mathBuiltin);
+#ifdef ENABLE_SIMDJS
         static bool CheckSimdLibraryMethod(ScriptContext* scriptContext, const Var asmSimdObject, const AsmJsSIMDBuiltinFunction simdBuiltin);
+#endif
     };
 }
 #endif

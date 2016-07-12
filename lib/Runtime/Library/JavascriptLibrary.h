@@ -165,7 +165,7 @@ namespace Js
         static DWORD GetCharStringCacheOffset() { return offsetof(JavascriptLibrary, charStringCache); }
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
-        void SetGlobalObject(GlobalObject* globalObject) {globalObject = globalObject; }
+        void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
 
@@ -523,7 +523,7 @@ namespace Js
                               bindRefChunkEnd(nullptr),
                               dynamicFunctionReference(nullptr)
         {
-            globalObject = globalObject;
+            this->globalObject = globalObject;
         }
 
         void Initialize(ScriptContext* scriptContext, GlobalObject * globalObject);
@@ -1039,6 +1039,8 @@ namespace Js
         void AddStringTemplateCallsiteObject(RecyclableObject* callsite);
         RecyclableObject* TryGetStringTemplateCallsiteObject(ParseNodePtr pnode);
         RecyclableObject* TryGetStringTemplateCallsiteObject(RecyclableObject* callsite);
+
+        static void CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext);
 
 #if DBG_DUMP
         static const char16* GetStringTemplateCallsiteObjectKey(Var callsite);

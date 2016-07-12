@@ -22,20 +22,20 @@
   </test>
   <test>
     <default>
-      <files>OutOfMem.js</files>
-      <baseline>OutOfMem.baseline</baseline>
+      <files>outofmem.js</files>
+      <baseline>outofmem.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <files>Stack.js</files>
-      <baseline>Stack.baseline</baseline>
+      <files>stack.js</files>
+      <baseline>stack.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <files>Stack2.js</files>
-      <baseline>Stack2.baseline</baseline>
+      <files>stack2.js</files>
+      <baseline>stack2.baseline</baseline>
     </default>
   </test>
   <test>
@@ -118,7 +118,7 @@
     <default>
       <files>RuntimeCompileStackOverflow.js</files>
       <baseline>RuntimeCompileStackOverflow.baseline</baseline>
-      <tags>exclude_forceundodefer,exclude_arm</tags>
+      <tags>exclude_forceundodefer,exclude_arm,exclude_xplat</tags>
     </default>
   </test>
   <test>

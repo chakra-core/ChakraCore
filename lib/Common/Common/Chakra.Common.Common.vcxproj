@@ -28,7 +28,10 @@
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <!-- For windowsdatetimep.h -->
-      <AdditionalIncludeDirectories>$(ComIncPath)\winrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(ComIncPath)\winrt;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>CommonCommonPch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -36,7 +39,6 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Api.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CfgLogger.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DaylightTimeHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DateUtilities.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Event.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int32Math.cpp" />
@@ -58,7 +60,6 @@
     <ClInclude Include="ByteSwap.h" />
     <ClInclude Include="CommonCommonPch.h" />
     <ClInclude Include="CfgLogger.h" />
-    <ClInclude Include="DaylightTimeHelper.h" />
     <ClInclude Include="DateUtilities.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="GetCurrentFrameId.h" />

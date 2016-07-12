@@ -51,13 +51,13 @@
   </test>
   <test>
     <default>
-      <files>Getter_sideeffect.js</files>
+      <files>getter_sideeffect.js</files>
     </default>
   </test>
   <test>
     <default>
-      <files>PrototypeChainModifications.js</files>
-      <baseline>PrototypeChainModifications.baseline</baseline>
+      <files>prototypeChainModifications.js</files>
+      <baseline>prototypeChainModifications.baseline</baseline>
     </default>
   </test>
   <test>

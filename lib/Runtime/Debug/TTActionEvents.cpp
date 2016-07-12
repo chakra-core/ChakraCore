@@ -605,7 +605,7 @@ namespace TTD
             CompileScriptException se;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                function = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
+                function = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, (LoadScriptFlag)(cpInfo->LoadFlag & ~LoadScriptFlag::LoadScriptFlag_Utf8Source));
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(function != nullptr, "Something went wrong");

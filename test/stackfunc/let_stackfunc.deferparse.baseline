@@ -10,7 +10,6 @@ HasFuncAssignment: f2
 HasFuncAssignment: f3
 DoStackNestedFunc: test (function  (#1.1), #2)
 HasFuncDecl: nested
-RestoreHasFuncAssignment: nested
 test1glo yes
 test2glo yes
 0

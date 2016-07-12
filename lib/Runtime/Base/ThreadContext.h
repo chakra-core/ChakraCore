@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+using namespace PlatformAgnostic;
+
 struct IAuthorFileContext;
 
 class HostScriptContext;
@@ -284,7 +286,7 @@ struct ParserStats
 class ParserTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     ParserStats stats;
 public:
     ParserTimer();
@@ -298,7 +300,7 @@ public:
 class JITTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     JITStats stats;
 public:
     JITTimer();
@@ -322,6 +324,7 @@ public:
         if (enableExperimentalFeatures)
         {
             EnableExperimentalFeatures();
+            ResetExperimentalFeaturesFromConfig();
         }
     }
 
@@ -352,7 +355,16 @@ private:
 
     void EnableExperimentalFeatures()
     {
-#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = true;
+        // If a ES6 flag is disabled using compile flag don't enable it
+#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = COMPILE_DISABLE_##name## ? false : true;
+#include "ConfigFlagsList.h"
+#undef FLAG_REGOVR_EXP
+    }
+
+    void ResetExperimentalFeaturesFromConfig()
+    {
+        // If a flag was overridden using config/command line it should take precedence
+#define FLAG_REGOVR_EXP(type, name, ...) if(CONFIG_ISENABLED(Js::Flag::##name##Flag)) { m_##name## = CONFIG_FLAG_RELEASE(##name##); }
 #include "ConfigFlagsList.h"
 #undef FLAG_REGOVR_EXP
     }
@@ -440,7 +452,7 @@ public:
     }
 #endif
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
     FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
@@ -465,7 +477,6 @@ public:
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
-
 #endif
 
 private:
@@ -689,7 +700,7 @@ private:
     size_t nativeCodeSize;
     size_t sourceCodeSize;
 
-    Js::HiResTimer hTimer;
+    DateTime::HiResTimer hTimer;
 
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
@@ -710,6 +721,8 @@ private:
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
+
+    Js::IsConcatSpreadableCache isConcatSpreadableCache;
 
     ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
     DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
@@ -830,6 +843,8 @@ public:
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
+
+    Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 
 #ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString *GetWinRTStringLibrary();
@@ -978,7 +993,7 @@ public:
     bool IsTTRequested;
     bool IsTTRecordRequested;
     bool IsTTDebugRequested;
-    LPCWSTR TTDUri;
+    char16* TTDUri;
     uint32 TTSnapInterval;
     uint32 TTSnapHistoryLength;
 
@@ -1050,7 +1065,7 @@ public:
 
 
 
-    Js::HiResTimer * GetHiResTimer() { return &hTimer; }
+    DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
     static CriticalSection * GetCriticalSection() { return &s_csThreadContext; }
 
@@ -1284,6 +1299,10 @@ public:
     void InvalidateProtoInlineCaches(Js::PropertyId propertyId);
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
+#if DBG
+    bool IsObjectRegisteredInProtoInlineCaches(Js::DynamicObject * object);
+    bool IsObjectRegisteredInStoreFieldInlineCaches(Js::DynamicObject * object);
+#endif
     bool AreAllProtoInlineCachesInvalidated();
     void InvalidateAllStoreFieldInlineCaches();
     bool AreAllStoreFieldInlineCachesInvalidated();
@@ -1349,8 +1368,8 @@ public:
     }
 
     static BOOLEAN IsOnStack(void const *ptr);
-    __declspec(noinline) bool IsStackAvailable(size_t size);
-    __declspec(noinline) bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
+    _NOINLINE bool IsStackAvailable(size_t size);
+    _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
     void ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);
     void ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);

@@ -33,6 +33,15 @@ namespace Js
         return AddFunctionToLibraryObject(object, scriptContext->GetOrAddPropertyIdTracked(propertyName), functionInfo, length);
     }
 
+    inline void JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext)
+    {
+        if (!PHASE_OFF1(IsConcatSpreadableCachePhase) && propertyId == PropertyIds::_symbolIsConcatSpreadable)
+        {
+            OUTPUT_TRACE(Phase::IsConcatSpreadableCachePhase, _u("IsConcatSpreadableCache invalidated\n"));
+            scriptContext->GetThreadContext()->GetIsConcatSpreadableCache()->Invalidate();
+        }
+    }
+
 #if ENABLE_COPYONACCESS_ARRAY
     template <>
     inline void JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(const Var instance)

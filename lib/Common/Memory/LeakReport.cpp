@@ -153,17 +153,6 @@ LeakReport::EnsureLeakReportFile()
     Print(_u("================================================================================\n"));
     Print(_u("Chakra Leak Report - PID: %d\n"), ::GetCurrentProcessId());
 
-    // xplat-todo: Make this code cross-platform
-#if _MSC_VER
-    __time64_t time_value = _time64(NULL);
-    char16 time_string[26];
-    struct tm local_time;
-    _localtime64_s(&local_time, &time_value);
-    _wasctime_s(time_string, &local_time);
-    Print(time_string);
-#endif
-
-    Print(_u("\n"));
     return true;
 }
 

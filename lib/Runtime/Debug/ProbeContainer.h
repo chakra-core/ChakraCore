@@ -63,7 +63,7 @@ namespace Js
         JsUtil::List<DWORD_PTR, ArenaAllocator> *registeredFuncContextList;
         JsUtil::List<const Js::PropertyRecord*> *pinnedPropertyRecords;
 
-        void UpdateFramePointers(bool fMatchWithCurrentScriptContext);
+        void UpdateFramePointers(bool fMatchWithCurrentScriptContext, DWORD_PTR dispatchHaltFrameAddress = 0);
         bool InitializeLocation(InterpreterHaltState* pHaltState, bool fMatchWithCurrentScriptContext = true);
         void DestroyLocation();
 
@@ -91,7 +91,7 @@ namespace Js
         void Initialize(ScriptContext* pScriptContext);
         void Close();
 
-        WeakDiagStack* GetFramePointers();
+        WeakDiagStack* GetFramePointers(DWORD_PTR dispatchHaltFrameAddress = 0);
 
         // A break engine responsible for breaking at iniline statement and error statement.
         void InitializeInlineBreakEngine(HaltCallback* pProbe);

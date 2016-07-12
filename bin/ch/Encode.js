@@ -30,7 +30,7 @@ if (str.length == 0) {
 }
 
 try {
-    var out = fso.OpenTextFile(output, 2, true, -1);
+    var out = fso.OpenTextFile(output, 2, true, 0);
 }
 catch (e) {
     WScript.Echo("ERROR: unable to open output file " + output);
@@ -50,6 +50,7 @@ function writeChar(c) {
         c = "\\n";
         line = true;
     }
+
 
     out.Write("L'" + c + "'");
     out.Write(",");

@@ -2106,9 +2106,11 @@ namespace TTD
 #elif defined(_M_X64)
         this->m_miscSlabAllocator.CopyNullTermStringInto(_u("x64"), archString);
 #elif defined(_M_ARM)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("arm"), archString);
+#elif defined(_M_ARM64)
         this->m_miscSlabAllocator.CopyNullTermStringInto(_u("arm64"), archString);
 #else
-        this->m_miscSlabAllocator.CopyNullTermStringInto(_u(L"unknown"), archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("unknown"), archString);
 #endif
 
         writer.WriteString(NSTokens::Key::arch, archString);

@@ -779,6 +779,8 @@ namespace Js
         bool throwIfNotExtensible = (flags & (PropertyOperation_ThrowIfNotExtensible | PropertyOperation_StrictMode)) != 0;
         bool isForce = (flags & PropertyOperation_Force) != 0;
 
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, scriptContext);
+
         Assert(propertyId != Constants::NoProperty);
         PropertyRecord const* propertyRecord = scriptContext->GetPropertyName(propertyId);
         if (propertyMap->TryGetReference(propertyRecord, &descriptor))

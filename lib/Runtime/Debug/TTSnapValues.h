@@ -12,7 +12,7 @@ namespace TTD
     class TTDTimer
     {
     private:
-        Js::HiResTimer m_timer;
+        PlatformAgnostic::DateTime::HiResTimer m_timer;
 
     public:
         TTDTimer()

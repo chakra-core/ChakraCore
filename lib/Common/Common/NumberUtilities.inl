@@ -60,7 +60,7 @@ namespace Js
 #endif //!BIG_ENDIAN
     }
 
-#if defined(_M_X64) && defined(_MSC_VER)
+#if defined(_M_X64) && defined(_MSC_VER) && !defined(__clang__)
     NUMBER_UTIL_INLINE INT64 NumberUtilities::TryToInt64(double T1)
     {
         // _mm_cvttsd_si64x will result in 0x8000000000000000 if the value is NaN Inf or Zero, or overflows int64

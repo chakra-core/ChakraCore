@@ -5,3 +5,9 @@
 #pragma once
 
 #include "UnicodeText.h"
+
+#include "PlatformAgnostic/DateTime.h"
+
+#if !defined(_WIN32) && defined(DEBUG)
+#include <signal.h> // raise(SIGINT)
+#endif

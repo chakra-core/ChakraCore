@@ -153,21 +153,13 @@
       <files>BoiHardFail.js</files>
       <baseline>BoiHardFail.baseline</baseline>
       <compile-flags>-regexDebug</compile-flags>
-      <tags>exclude_fre,exclude_apollo,exclude_amd64,exclude_serialized</tags>
+      <tags>exclude_fre,exclude_apollo,exclude_serialized</tags>
     </default>
   </test>
   <test>
     <default>
-      <files>BoiHardFail.js</files>
-      <baseline>BoiHardFail.amd64.baseline</baseline>
-      <compile-flags>-regexDebug</compile-flags>
-      <tags>exclude_fre,exclude_apollo,exclude_x86,exclude_arm,exclude_serialized</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>LeadTrail.js</files>
-      <baseline>LeadTrail.baseline</baseline>
+      <files>leadtrail.js</files>
+      <baseline>leadtrail.baseline</baseline>
     </default>
   </test>
   <test>

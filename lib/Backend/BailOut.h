@@ -424,6 +424,8 @@ struct GlobalBailOutRecordDataTable
     bool isInlinedFunction;
     bool isInlinedConstructor;
     bool isLoopBody;
+    bool hasNonSimpleParams;
+    bool hasStackArgOpt;
     void Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc);
     void AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt, 
         bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16, 

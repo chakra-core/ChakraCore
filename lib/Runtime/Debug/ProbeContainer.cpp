@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 #include "Language/JavascriptStackWalker.h"
+#include "Language/InterpreterStackFrame.h"
 
 namespace Js
 {
@@ -92,7 +93,7 @@ namespace Js
         this->debugManager->stepController.ResetReturnedValueList();
     }
 
-    void ProbeContainer::UpdateFramePointers(bool fMatchWithCurrentScriptContext)
+    void ProbeContainer::UpdateFramePointers(bool fMatchWithCurrentScriptContext, DWORD_PTR dispatchHaltFrameAddress)
     {
         ArenaAllocator* pDiagArena = debugManager->GetDiagnosticArena()->Arena();
         framePointers = Anew(pDiagArena, DiagStack, pDiagArena);
@@ -124,22 +125,29 @@ namespace Js
                 {
                     if (interpreterFrame)
                     {
-                        frm = Anew(pDiagArena, DiagInterpreterStackFrame, interpreterFrame, frameIndex);
+                        if (dispatchHaltFrameAddress == 0 || interpreterFrame->GetStackAddress() > dispatchHaltFrameAddress)
+                        {
+                            frm = Anew(pDiagArena, DiagInterpreterStackFrame, interpreterFrame, frameIndex);
+                        }
                     }
                     else
                     {
+                        void* stackAddress = walker.GetCurrentArgv();
+                        if (dispatchHaltFrameAddress == 0 || reinterpret_cast<DWORD_PTR>(stackAddress) > dispatchHaltFrameAddress)
+                        {
 #if ENABLE_NATIVE_CODEGEN
-                        if (func->IsScriptFunction())
-                        {
-                            frm = Anew(pDiagArena, DiagNativeStackFrame,
-                                ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), walker.GetCurrentArgv(), walker.GetCurrentCodeAddr(), frameIndex);
-                        }
-                        else
+                            if (func->IsScriptFunction())
+                            {
+                                frm = Anew(pDiagArena, DiagNativeStackFrame,
+                                    ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), stackAddress, walker.GetCurrentCodeAddr(), frameIndex);
+                            }
+                            else
 #else
-                        Assert(!func->IsScriptFunction());
+                            Assert(!func->IsScriptFunction());
 #endif
-                        {
-                            frm = Anew(pDiagArena, DiagRuntimeStackFrame, func, walker.GetCurrentNativeLibraryEntryName(), walker.GetCurrentArgv(), frameIndex);
+                            {
+                                frm = Anew(pDiagArena, DiagRuntimeStackFrame, func, walker.GetCurrentNativeLibraryEntryName(), stackAddress, frameIndex);
+                            }
                         }
                     }
                 }
@@ -161,11 +169,11 @@ namespace Js
         }
     }
 
-    WeakDiagStack * ProbeContainer::GetFramePointers()
+    WeakDiagStack * ProbeContainer::GetFramePointers(DWORD_PTR dispatchHaltFrameAddress)
     {
         if (framePointers == nullptr || this->debugSessionNumber < debugManager->GetDebugSessionNumber())
         {
-            UpdateFramePointers(/*fMatchWithCurrentScriptContext*/true);
+            UpdateFramePointers(/*fMatchWithCurrentScriptContext*/true, dispatchHaltFrameAddress);
             this->debugSessionNumber = debugManager->GetDebugSessionNumber();
         }
 

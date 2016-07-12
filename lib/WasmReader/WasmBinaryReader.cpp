@@ -372,7 +372,7 @@ WasmBinaryReader::ASTNode()
         ConstNode<WasmTypes::bAstI32>();
         break;
     case wbI64Const:
-        ThrowDecodingError(_u("Int64 const NYI"));
+        ConstNode<WasmTypes::bAstI64>();
         break;
     case wbF32Const:
         ConstNode<WasmTypes::bAstF32>();
@@ -553,6 +553,10 @@ void WasmBinaryReader::ConstNode()
     switch (localType)
     {
     case WasmTypes::bAstI32:
+        m_currentNode.cnst.i32 = SLEB128(len);
+        m_funcState.count += len;
+        break;
+    case WasmTypes::bAstI64:
         m_currentNode.cnst.i32 = SLEB128(len);
         m_funcState.count += len;
         break;

@@ -633,6 +633,8 @@ namespace UnifiedRegex
         void FreeBody(ArenaAllocator* rtAllocator) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
+        static bool IsBaselineMode();
+        static Label GetPrintLabel(Label label);
         virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const = 0;
 #endif
     };

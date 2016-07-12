@@ -273,6 +273,7 @@ void
 GlobOpt::Optimize()
 {
     this->objectTypeSyms = nullptr;
+    this->func->argInsCount = this->func->GetInParamsCount() - 1;   //Don't include "this" pointer in the count.
 
     if (!func->DoGlobOpt())
     {
@@ -1060,6 +1061,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         this->KillAllObjectTypes();
     }
 
+    this->blockData.capturedArgs = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+    this->blockData.changedSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+
     this->CopyBlockData(&block->globOptData, &this->blockData);
 
     if (this->IsLoopPrePass())
@@ -1508,6 +1512,10 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 
     data->stackLiteralInitFldDataMap = nullptr;
 
+    data->capturedValues = nullptr;
+    data->capturedArgs = nullptr;
+    data->changedSyms = nullptr;
+
     data->OnDataUnreferenced();
 }
 
@@ -1602,6 +1610,11 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
+    toData->capturedArgs = fromData->capturedArgs;
+    toData->changedSyms = fromData->changedSyms;
+    toData->capturedArgs->ClearAll();
+    toData->changedSyms->ClearAll();
+
     toData->OnDataReused(fromData);
 }
 
@@ -1638,8 +1651,12 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->inlinedArgOutCount = fromData->inlinedArgOutCount;
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
-    toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
+    toData->capturedArgs = fromData->capturedArgs;
+    toData->changedSyms = fromData->changedSyms;
+    toData->capturedArgs->ClearAll();
+    toData->changedSyms->ClearAll();
 
+    toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     toData->OnDataReused(fromData);
 }
 
@@ -2676,7 +2693,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             if (!landingPadValue)
             {
                 // Value should be added as initial value or already be there.
-                return false;
+                return nullptr;
             }
 
             IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
@@ -3187,7 +3204,7 @@ GlobOpt::MergeValues(
     // Set symStore if same on both paths.
     if (toDataValue->GetValueInfo()->GetSymStore() == fromDataValue->GetValueInfo()->GetSymStore())
     {
-        newValueInfo->SetSymStore(toDataValue->GetValueInfo()->GetSymStore());
+        this->SetSymStoreDirect(newValueInfo, toDataValue->GetValueInfo()->GetSymStore());
     }
 
     return newValue;
@@ -3820,6 +3837,115 @@ GlobOpt::TestAnyArgumentsSym()
     return blockData.argObjSyms->TestEmpty();
 }
 
+/*
+*   This is for scope object removal along with Heap Arguments optimization.
+*   We track several instructions to facilitate the removal of scope object.
+*   - LdSlotArr - This instr is tracked to keep track of the formals array (the dest)
+*   - InlineeStart - To keep track of the stack syms for the formals of the inlinee.
+*/
+void
+GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+
+    if (instr->m_opcode == Js::OpCode::Ld_A && src1->IsRegOpnd())
+    {
+        AssertMsg(!src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
+    }
+
+    // The following is to track formals array for Stack Arguments optimization with Formals
+    if (instr->m_func->IsStackArgsEnabled() && !this->IsLoopPrePass())
+    {
+        if (instr->m_opcode == Js::OpCode::LdSlotArr)
+        {
+            if (instr->GetSrc1()->IsScopeObjOpnd(instr->m_func))
+            {
+                AssertMsg(!instr->m_func->GetJnFunction()->GetHasImplicitArgIns(), "No mapping is required in this case. So it should already be generating ArgIns.");
+                instr->m_func->TrackFormalsArraySym(dst->GetStackSym()->m_id);
+            }
+        }
+        else if (instr->m_opcode == Js::OpCode::InlineeStart)
+        {
+            Assert(instr->m_func->IsInlined());
+            Js::ArgSlot actualsCount = instr->m_func->actualCount - 1;
+            Js::ArgSlot formalsCount = instr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+
+            Func * func = instr->m_func;
+            Func * inlinerFunc = func->GetParentFunc(); //Inliner's func
+
+            IR::Instr * argOutInstr = instr->GetSrc2()->GetStackSym()->GetInstrDef();
+
+            //The argout immediately before the InlineeStart will be the ArgOut for NewScObject
+            //So we don't want to track the stack sym for this argout.- Skipping it here.
+            if (instr->m_func->IsInlinedConstructor())
+            {
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() != nullptr);
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
+                argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+            }
+            if (formalsCount < actualsCount)
+            {
+                Js::ArgSlot extraActuals = actualsCount - formalsCount;
+
+                //Skipping extra actuals passed
+                for (Js::ArgSlot i = 0; i < extraActuals; i++)
+                {
+                    argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+                }
+            }
+
+            StackSym * undefinedSym = nullptr;
+
+            for (Js::ArgSlot param = formalsCount; param > 0; param--)
+            {
+                StackSym * argOutSym = nullptr;
+
+                if (argOutInstr->GetSrc1())
+                {
+                    if (argOutInstr->GetSrc1()->IsRegOpnd())
+                    {
+                        argOutSym = argOutInstr->GetSrc1()->GetStackSym();
+                    }
+                    else
+                    {
+                        // We will always have ArgOut instr - so the source operand will not be removed.
+                        argOutSym = StackSym::New(inlinerFunc);
+                        IR::Opnd * srcOpnd = argOutInstr->GetSrc1();
+                        IR::Opnd * dstOpnd = IR::RegOpnd::New(argOutSym, TyVar, inlinerFunc);
+                        IR::Instr * assignInstr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, inlinerFunc);
+                        instr->InsertBefore(assignInstr);
+                    }
+                }
+
+                Assert(!func->HasStackSymForFormal(param - 1));
+
+                if (param <= actualsCount)
+                {
+                    Assert(argOutSym);
+                    func->TrackStackSymForFormalIndex(param - 1, argOutSym);
+                    argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+                }
+                else
+                {
+                    /*When param is out of range of actuals count, load undefined*/
+                    // TODO: saravind: This will insert undefined for each of the param not having an actual. - Clean up this by having a sym for undefined on func ?
+                    Assert(formalsCount > actualsCount);
+                    if (undefinedSym == nullptr)
+                    {
+                        undefinedSym = StackSym::New(inlinerFunc);
+                        IR::Opnd * srcOpnd = IR::AddrOpnd::New(inlinerFunc->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicMisc, inlinerFunc);
+                        IR::Opnd * dstOpnd = IR::RegOpnd::New(undefinedSym, TyVar, inlinerFunc);
+                        IR::Instr * assignUndefined = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, inlinerFunc);
+                        instr->InsertBefore(assignUndefined);
+                    }
+                    func->TrackStackSymForFormalIndex(param - 1, undefinedSym);
+                }
+            }
+        }
+    }
+}
+
 void
 GlobOpt::OptArguments(IR::Instr *instr)
 {
@@ -3827,25 +3953,40 @@ GlobOpt::OptArguments(IR::Instr *instr)
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* src2 = instr->GetSrc2();
 
+    TrackInstrsForScopeObjectRemoval(instr);
+
     if (!TrackArgumentsObject())
     {
         return;
-    }
-
-    if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments)
+    }   
+    
+    if (instr->HasAnyLoadHeapArgsOpCode())
     {
-        // Stackargs optimization is designed to work with only when function doesn't have formals.
-        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1)
+        if (instr->m_func->IsStackArgsEnabled())
         {
-#ifdef PERF_HINT
-            if (PHASE_TRACE1(Js::PerfHintPhase))
+            if (instr->GetSrc1()->IsRegOpnd() && instr->m_func->GetJnFunction()->GetInParamsCount() > 1)
             {
-                WritePerfHint(PerfHints::HeapArgumentsDueToFormals, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                StackSym * scopeObjSym = instr->GetSrc1()->GetStackSym();
+                Assert(scopeObjSym);
+                Assert(scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::InitCachedScope || scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::NewScopeObject);
+                instr->m_func->SetScopeObjSym(scopeObjSym);
+
+                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Setting scopeObjSym in forward pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                    Output::Flush();
+                }
             }
-#endif
+        }
+
+        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1 && !instr->m_func->IsStackArgsEnabled())
+        {
             CannotAllocateArgumentsObjectOnStack();
         }
-        TrackArgumentsSym(dst->AsRegOpnd());
+        else
+        {
+            TrackArgumentsSym(dst->AsRegOpnd());
+        }
         return;
     }
     // Keep track of arguments objects and its aliases
@@ -4658,6 +4799,12 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     this->OptArguments(instr);
 
+    //StackArguments Optimization - We bail out if the index is out of range of actuals.
+    if (instr->m_opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
+    {
+        GenerateBailAtOperation(&instr, IR::BailOnStackArgsOutOfActualsRange);
+    }
+
 #if DBG
     PropertySym *propertySymUseBefore = nullptr;
     Assert(this->byteCodeUses == nullptr);
@@ -4926,6 +5073,14 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
             // Capture value of the bailout after the operation is done.
             this->GenerateBailAfterOperation(&instr, kind);
         }
+    }
+
+    if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
+    {
+        this->currentBlock->globOptData.capturedArgs->ClearAll();
+        this->currentBlock->globOptData.changedSyms->ClearAll();
+        this->currentBlock->globOptData.capturedValues = 
+            this->currentBlock->globOptData.capturedValuesCandidate;
     }
 
     return instrNext;
@@ -5225,7 +5380,7 @@ GlobOpt::OptDst(
                         }
                     }
 
-                    dstVal->GetValueInfo()->SetSymStore(dstVarSym);
+                    this->SetSymStoreDirect(dstVal->GetValueInfo(), dstVarSym);
                 } while(false);
             }
         }
@@ -5490,8 +5645,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     return nullptr;
                 }
 
-
-
                 if (this->IsLoopPrePass() && this->DoFieldPRE(this->rootLoopPrePass))
                 {
                     if (!this->prePassLoop->allFieldsKilled && !this->prePassLoop->fieldKilled->Test(sym->m_id))
@@ -5508,8 +5661,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                         }
                     }
                 }
-
-
                 break;
             }
         }
@@ -5578,6 +5729,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     }
                 }
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 // For uses before defs, we set likelySimd128*SymsUsedBeforeDefined bits for syms that have landing pad value info that allow type-spec to happen in the loop body.
                 // The BV will be added to loop header if the backedge has a live matching type-spec value. We then compensate in the loop header to unbox the value.
@@ -5630,6 +5782,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                         rootLoopPrePass->likelySimd128I4SymsUsedBeforeDefined->Set(sym->m_id);
                     }
                 }
+#endif
             }
         }
     }
@@ -6238,7 +6391,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     if (PHASE_OFF(Js::CopyPropPhase, this->func))
     {
-        valueInfo->SetSymStore(opndSym);
+        this->SetSymStoreDirect(valueInfo, opndSym);
         return opnd;
     }
 
@@ -6262,7 +6415,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
             //   fieldHoistSym = Ld_A t1    <- we're looking at t1 now, but want to copy-prop fieldHoistSym forward
             return opnd;
         }
-        valueInfo->SetSymStore(opndSym);
+        this->SetSymStoreDirect(valueInfo, opndSym);
     }
     return opnd;
 }
@@ -6930,10 +7083,23 @@ GlobOpt::SetSymStore(ValueInfo *valueInfo, Sym *sym)
     }
     if (valueInfo->GetSymStore() == nullptr || valueInfo->GetSymStore()->IsPropertySym())
     {
-        valueInfo->SetSymStore(sym);
+        SetSymStoreDirect(valueInfo, sym);
     }
 
     return sym;
+}
+
+void
+GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
+{
+    Sym * prevSymStore = valueInfo->GetSymStore();
+    if (prevSymStore && prevSymStore->IsStackSym() &&
+        prevSymStore->AsStackSym()->HasByteCodeRegSlot() &&
+        this->blockData.changedSyms)
+    {
+        this->blockData.changedSyms->Set(prevSymStore->m_id);
+    }
+    valueInfo->SetSymStore(sym);
 }
 
 void
@@ -6942,8 +7108,9 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
     ValueInfo *valueInfo = val->GetValueInfo();
 
     sym = this->SetSymStore(valueInfo, sym);
+    bool isStackSym = sym->IsStackSym();
 
-    if (sym->IsStackSym() && sym->AsStackSym()->IsFromByteCodeConstantTable())
+    if (isStackSym && sym->AsStackSym()->IsFromByteCodeConstantTable())
     {
         // Put the constants in a global array. This will minimize the per-block info.
         this->byteCodeConstantValueArray->Set(sym->m_id, val);
@@ -6952,6 +7119,10 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
     else
     {
         SetValueToHashTable(blockData->symToValueMap, val, sym);
+        if (blockData->changedSyms && isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
+        {
+            blockData->changedSyms->Set(sym->m_id);
+        }
     }
 }
 
@@ -7217,13 +7388,13 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             // Update symStore for field hoisting
             if (loop != nullptr && (dstValueInfo != nullptr))
             {
-                dstValueInfo->SetSymStore(fieldHoistSym);
+                this->SetSymStoreDirect(dstValueInfo, fieldHoistSym);
             }
             // Update symStore if it isn't a stackSym
             if (dstVal && (!dstValueInfo->GetSymStore() || !dstValueInfo->GetSymStore()->IsStackSym()))
             {
                 Assert(dst->IsRegOpnd());
-                dstValueInfo->SetSymStore(dst->AsRegOpnd()->m_sym);
+                this->SetSymStoreDirect(dstValueInfo, dst->AsRegOpnd()->m_sym);
             }
             if (src1Val != dstVal)
             {
@@ -7603,6 +7774,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         break;
     }
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (Js::IsSimd128Opcode(instr->m_opcode) && !func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
     {
@@ -7610,6 +7782,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(instr->m_opcode, simdFuncSignature);
         return this->NewGenericValue(simdFuncSignature.returnType, dst);
     }
+#endif
 
     if (dstVal == nullptr)
     {
@@ -8430,11 +8603,13 @@ GlobOpt::TypeSpecialization(
     Value *const src1OriginalVal = src1Val;
     Value *const src2OriginalVal = src2Val;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (TypeSpecializeSimd128(instr, pSrc1Val, pSrc2Val, pDstVal))
     {
         return instr;
     }
+#endif
 
     if(!instr->ShouldCheckForIntOverflow())
     {
@@ -14205,7 +14380,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 if(!varSym || !IsFloat64TypeSpecialized(varSym, block))
                 {
                     // Clear the symstore to ensure it's set below to this new symbol
-                    val->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(val->GetValueInfo(), nullptr);
                     varSym = StackSym::New(TyVar, instr->m_func);
                     newFloatSym = true;
                 }
@@ -16140,7 +16315,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
             // SetValue above would have set the sym store to newLengthSym. This sym won't be used for copy-prop though, so
             // remove it as the sym store.
-            lengthValue->GetValueInfo()->SetSymStore(nullptr);
+            this->SetSymStoreDirect(lengthValue->GetValueInfo(), nullptr);
 
             // length = [array + offsetOf(length)]
             IR::Instr *const loadLength =
@@ -16195,7 +16370,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     Assert(!FindValue(block->globOptData.symToValueMap, newLengthSym));
                     Value *const lengthValueCopy = CopyValue(lengthValue, lengthValue->GetValueNumber());
                     SetValue(&block->globOptData, lengthValueCopy, newLengthSym);
-                    lengthValueCopy->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(lengthValueCopy->GetValueInfo(), nullptr);
                 }
             }
             else
@@ -16309,7 +16484,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
             // SetValue above would have set the sym store to newHeadSegmentLengthSym. This sym won't be used for copy-prop
             // though, so remove it as the sym store.
-            headSegmentLengthValue->GetValueInfo()->SetSymStore(nullptr);
+            this->SetSymStoreDirect(headSegmentLengthValue->GetValueInfo(), nullptr);
 
             StackSym *const headSegmentSym =
                 isLikelyJsArray
@@ -16367,7 +16542,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     Value *const headSegmentLengthValueCopy =
                         CopyValue(headSegmentLengthValue, headSegmentLengthValue->GetValueNumber());
                     SetValue(&block->globOptData, headSegmentLengthValueCopy, newHeadSegmentLengthSym);
-                    headSegmentLengthValueCopy->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(headSegmentLengthValueCopy->GetValueInfo(), nullptr);
                 }
             }
             else
@@ -16430,8 +16605,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     failedToUpdateCompatibleLowerBoundCheck,
                     failedToUpdateCompatibleUpperBoundCheck);
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 UpdateBoundCheckHoistInfoForSimd(upperBoundCheckHoistInfo, newBaseValueType, instr);
+#endif
             }
 
             if(!eliminatedLowerBoundCheck)
@@ -18756,7 +18933,7 @@ GlobOpt::OptHoistInvariant(
                 // instance, if we're inside a conditioned block, because we don't make the copy sym live and set its value in
                 // all preceding blocks, this sym would not be live after exiting this block, causing this value to not
                 // participate in copy-prop after this block.
-                dstValueInfo->SetSymStore(copyVarSym);
+                this->SetSymStoreDirect(dstValueInfo, copyVarSym);
             }
 
             this->InsertNewValue(&block->globOptData, dstVal, copyReg);
@@ -18784,7 +18961,12 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        instr->ReplaceBailOutInfo(loop->bailOutInfo);
+        if (instr->ReplaceBailOutInfo(loop->bailOutInfo))
+        {
+            // if the old bailout is deleted, reset capturedvalues cached in block
+            block->globOptData.capturedValues = nullptr;
+            block->globOptData.capturedValuesCandidate = nullptr;
+        }
     }
 
     if (instr->GetSrc1())
@@ -19222,7 +19404,7 @@ GlobOpt::HoistInvariantValueInfo(
     else
     {
         newValueInfo = invariantValueInfoToHoist->Copy(alloc);
-        newValueInfo->SetSymStore(symStore);
+        this->SetSymStoreDirect(newValueInfo, symStore);
     }
     ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo);
 }
@@ -20047,7 +20229,7 @@ ValueInfo::SpecializeToSimd128(IRType type, JitArenaAllocator *const allocator)
         return SpecializeToSimd128I4(allocator);
     default:
         Assert(UNREACHED);
-        return false;
+        return nullptr;
     }
 
 }
@@ -21433,3 +21615,9 @@ GlobOpt::ProcessMemOp()
     } NEXT_LOOP_EDITING;
 }
 
+template<>
+ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
+{
+    Assert(value);
+    return value->GetValueNumber();
+}

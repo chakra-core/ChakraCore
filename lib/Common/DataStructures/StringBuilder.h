@@ -103,7 +103,7 @@ namespace Js
             return newChunk;
         }
 
-        __declspec(noinline) void ExtendBuffer(charcount_t newLength)
+        _NOINLINE void ExtendBuffer(charcount_t newLength)
         {
             Data *newChunk;
 

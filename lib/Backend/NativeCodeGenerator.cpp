@@ -929,6 +929,14 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             {
                 body->SetDisableInlineSpread(true);
             }
+            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
+            {
+                profileInfo.DisableStackArgOpt();
+                if (body->HasDynamicProfileInfo())
+                {
+                    body->GetAnyDynamicProfileInfo()->DisableStackArgOpt();
+                }
+            }
             else if(ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
                 ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
             {
@@ -1722,7 +1730,7 @@ NativeCodeGenerator::GatherCodeGenData(
     Assert(functionBody);
     Assert(jitTimeData);
     Assert(IsInlinee == !!runtimeData);
-    Assert(!IsInlinee || !inliningDecider.GetIsLoopBody());
+    Assert(!IsInlinee || (!inliningDecider.GetIsLoopBody() || !PHASE_OFF(Js::InlineInJitLoopBodyPhase, topFunctionBody)));
     Assert(topFunctionBody != nullptr && (!entryPoint->GetWorkItem() || entryPoint->GetWorkItem()->GetFunctionBody() == topFunctionBody));
     Assert(objTypeSpecFldInfoList != nullptr);
 
@@ -1774,7 +1782,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 inliningDecider.SetAggressiveHeuristics();
                 if (!TryAggressiveInlining(topFunctionBody, functionBody, inliningDecider, inlineeCount, 0))
                 {
-                    uint countOfInlineesWithLoops = inliningDecider.getNumberOfInlineesWithLoop();
+                    uint countOfInlineesWithLoops = inliningDecider.GetNumberOfInlineesWithLoop();
                     //TryAggressiveInlining failed, set back to default heuristics.
                     inliningDecider.ResetInlineHeuristics();
                     inliningDecider.SetLimitOnInlineesWithLoop(countOfInlineesWithLoops);
@@ -1928,7 +1936,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                                 if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
                                 {
-                                    if (IsInlinee || objTypeSpecFldInfo->isBuiltIn)
+                                    if (IsInlinee || objTypeSpecFldInfo->IsBuiltIn())
                                     {
                                         inlineApplyTarget = true;
                                     }

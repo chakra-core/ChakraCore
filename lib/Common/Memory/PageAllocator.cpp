@@ -1555,6 +1555,15 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         PageSegmentBase<T> * segment = freePageEntry->segment;
         uint pageCount = freePageEntry->pageCount;
         memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
+
+        // Expriment code to perform non-temporal write to zero pages instead of memset, the idea is keeping cache untouched.
+        // Haven't observed perf win for low-end machines, just keep it here to be re-used later.
+        // size_t writeBytes = 0;
+        // for (__m128i * p = (__m128i *)freePageEntry; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
+        // {
+        //     _mm_stream_si128(p, simdZero);
+        // }
+
         QueuePages(freePageEntry, pageCount, segment);
     }
     this->hasZeroQueuedPages = false;

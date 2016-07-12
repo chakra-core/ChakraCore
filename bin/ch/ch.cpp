@@ -4,6 +4,37 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#ifdef CHAKRA_STATIC_LIBRARY
+#include "Runtime.h"
+#include "Core/ConfigParser.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
+#ifdef DYNAMIC_PROFILE_STORAGE
+#include "Language/DynamicProfileStorage.h"
+#endif
+#include "JsrtContext.h"
+#include "../ChakraCore/TestHooks.h"
+
+void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
+{
+    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
+    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
+}
+
+bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
+{
+    return false;
+}
+
+void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
+{
+}
+
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+{
+    return _u("");
+}
+#endif
 
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;
@@ -18,7 +49,7 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
-char16* ttUri = nullptr;
+char* ttUri = nullptr;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
 
@@ -74,7 +105,7 @@ void __stdcall PrintUsage()
 
 // On success the param byteCodeBuffer will be allocated in the function.
 // The caller of this function should de-allocate the memory.
-HRESULT GetSerializedBuffer(LPCOLESTR fileContents, __out BYTE **byteCodeBuffer, __out DWORD *byteCodeBufferSize)
+HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __out DWORD *byteCodeBufferSize)
 {
     HRESULT hr = S_OK;
     *byteCodeBuffer = nullptr;
@@ -83,7 +114,7 @@ HRESULT GetSerializedBuffer(LPCOLESTR fileContents, __out BYTE **byteCodeBuffer,
 
     unsigned int bcBufferSize = 0;
     unsigned int newBcBufferSize = 0;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScript(fileContents, bcBuffer, &bcBufferSize));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &bcBufferSize));
     // Above call will return the size of the buffer only, once succeed we need to allocate memory of that much and call it again.
     if (bcBufferSize == 0)
     {
@@ -92,7 +123,7 @@ HRESULT GetSerializedBuffer(LPCOLESTR fileContents, __out BYTE **byteCodeBuffer,
     }
     bcBuffer = new BYTE[bcBufferSize];
     newBcBufferSize = bcBufferSize;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScript(fileContents, bcBuffer, &newBcBufferSize));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &newBcBufferSize));
     Assert(bcBufferSize == newBcBufferSize);
 
 Error:
@@ -113,12 +144,12 @@ Error:
     return hr;
 }
 
-HRESULT CreateLibraryByteCodeHeader(LPCOLESTR fileContents, BYTE * contentsRaw, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
+HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
 {
     HANDLE bcFileHandle = nullptr;
     BYTE *bcBuffer = nullptr;
     DWORD bcBufferSize = 0;
-    HRESULT hr = GetSerializedBuffer(fileContents, &bcBuffer, &bcBufferSize);
+    HRESULT hr = GetSerializedBuffer(contentsRaw, &bcBuffer, &bcBufferSize);
 
     if (FAILED(hr)) return hr;
 
@@ -215,12 +246,26 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     messageQueue->InsertSorted(msg);
 }
 
-HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, char *fullPath)
+static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer)
+{
+    // sourceContext is source ptr, see RunScript below
+    *scriptBuffer = reinterpret_cast<const char*>(sourceContext);
+    return true;
+}
+
+static void CHAKRA_CALLBACK DummyJsSerializedScriptUnload(_In_ JsSourceContext sourceContext)
+{
+    // sourceContext is source ptr, see RunScript below
+    // source memory was originally allocated with malloc() in
+    // Helpers::LoadScriptFromFile. No longer needed, free() it.
+    free(reinterpret_cast<void*>(sourceContext));
+}
+
+HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, char *fullPath)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
     WScriptJsrt::AddMessageQueue(messageQueue);
-    LPWSTR fullPathWide = nullptr;
 
     IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
 
@@ -276,13 +321,16 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
     else
     {
         Assert(fileContents != nullptr || bcBuffer != nullptr);
-        // TODO: Remove this code in a future iteration once Utf8 versions of the Jsrt API is implemented
-        IfFailGo(Helpers::NarrowStringToWideDynamic(fullPath, &fullPathWide));
 
         JsErrorCode runScript;
         if(bcBuffer != nullptr)
         {
-            runScript = ChakraRTInterface::JsRunSerializedScript(fileContents, bcBuffer, WScriptJsrt::GetNextSourceContext(), fullPathWide, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRunSerializedScriptUtf8(
+                DummyJsSerializedScriptLoadUtf8Source, DummyJsSerializedScriptUnload,
+                bcBuffer,
+                reinterpret_cast<JsSourceContext>(fileContents),
+                // Use source ptr as sourceContext
+                fullPath, nullptr /*result*/);
         }
         else
         {
@@ -292,13 +340,11 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
                 ChakraRTInterface::JsTTDStartTimeTravelRecording();
             }
 
-            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPathWide, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
 #else
-            runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPathWide, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
 #endif
         }
-
-        free(fullPathWide);
 
         //Do a yield after the main script body executes
         ChakraRTInterface::JsTTDNotifyYield();
@@ -334,7 +380,29 @@ Error:
     return hr;
 }
 
-HRESULT CreateAndRunSerializedScript(const char* fileName, LPCWSTR fileContents, char* fullPath)
+static HRESULT CreateRuntime(JsRuntimeHandle *runtime)
+{
+    HRESULT hr = E_FAIL;
+    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, runtime));
+
+#ifndef _WIN32
+    // On Posix, malloc may not return NULL even if there is no
+    // memory left. However, kernel will send SIGKILL to process
+    // in case we use that `not actually available` memory address.
+    // (See posix man malloc and OOM)
+
+    size_t memoryLimit;
+    if (PlatformAgnostic::SystemInfo::GetTotalRam(&memoryLimit))
+    {
+        IfJsErrorFailLog(ChakraRTInterface::JsSetRuntimeMemoryLimit(*runtime, memoryLimit));
+    }
+#endif
+    hr = S_OK;
+Error:
+    return hr;
+}
+
+HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, char *fullPath)
 {
     HRESULT hr = S_OK;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
@@ -345,7 +413,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCWSTR fileContents,
 
     // Bytecode buffer is created in one runtime and will be executed on different runtime.
 
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+    IfFailGo(CreateRuntime(&runtime));
     chRuntime = runtime;
 
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
@@ -381,24 +449,25 @@ Error:
 HRESULT ExecuteTest(const char* fileName)
 {
     HRESULT hr = S_OK;
-    LPCWSTR fileContents = nullptr;
+    LPCSTR fileContents = nullptr;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
+    UINT lengthBytes = 0;
 
     if(strlen(fileName) >= 14 && strcmp(fileName + strlen(fileName) - 14, "ttdSentinal.js") == 0)
     {
 #if !ENABLE_TTD
-        wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
+        wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
         return E_FAIL;
 #else
         if(!doTTDebug)
         {
-            wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
+            wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
             return E_FAIL;
         }
 
         jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, (charcount_t) strlen(ttUri), nullptr, &runtime));
         chRuntime = runtime;
 
         ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
@@ -412,29 +481,27 @@ HRESULT ExecuteTest(const char* fileName)
     }
     else
     {
-        bool isUtf8 = false;
         LPCOLESTR contentsRaw = nullptr;
-        UINT lengthBytes = 0;
 
         char fullPath[_MAX_PATH];
         size_t len = 0;
 
-        hr = Helpers::LoadScriptFromFile(fileName, fileContents, &isUtf8, &contentsRaw, &lengthBytes);
+        hr = Helpers::LoadScriptFromFile(fileName, fileContents, &lengthBytes);
         contentsRaw; lengthBytes; // Unused for now.
 
         IfFailGo(hr);
-        if(HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
+        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
             jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
         }
 
 #if ENABLE_TTD
-        if(doTTRecord)
+        if (doTTRecord)
         {
             //Ensure we run with experimental features (as that is what Node does right now).
             jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, (charcount_t) strlen(ttUri), snapInterval, snapHistoryLength, nullptr, &runtime));
             chRuntime = runtime;
 
             ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
@@ -450,7 +517,7 @@ HRESULT ExecuteTest(const char* fileName)
             IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
             chRuntime = runtime;
 
-            if(HostConfigFlags::flags.DebugLaunch)
+            if (HostConfigFlags::flags.DebugLaunch)
             {
                 Debugger* debugger = Debugger::GetDebugger(runtime);
                 debugger->StartDebugging(runtime);
@@ -464,7 +531,7 @@ HRESULT ExecuteTest(const char* fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
         chRuntime = runtime;
 
-        if(HostConfigFlags::flags.DebugLaunch)
+        if (HostConfigFlags::flags.DebugLaunch)
         {
             Debugger* debugger = Debugger::GetDebugger(runtime);
             debugger->StartDebugging(runtime);
@@ -479,27 +546,25 @@ HRESULT ExecuteTest(const char* fileName)
         ChakraRTInterface::SetCheckOpHelpersFlag(true);
 #endif
 
-        if(!WScriptJsrt::Initialize())
+        if (!WScriptJsrt::Initialize())
         {
             IfFailGo(E_FAIL);
         }
 
-    if (_fullpath(fullPath, fileName, _MAX_PATH) == nullptr)
-    {
-        IfFailGo(E_FAIL);
-    }
+        if (_fullpath(fullPath, fileName, _MAX_PATH) == nullptr)
+        {
+            IfFailGo(E_FAIL);
+        }
 
-    // canonicalize that path name to lower case for the profile storage
-    // REVIEW: Assuming no utf8 characters here
-    len = strlen(fullPath);
-    for (size_t i = 0; i < len; i++)
-    {
-        fullPath[i] = (char) tolower(fullPath[i]);
-    }
+        // canonicalize that path name to lower case for the profile storage
+        // REVIEW: Assuming no utf8 characters here
+        len = strlen(fullPath);
+        for (size_t i = 0; i < len; i++)
+        {
+            fullPath[i] = (char)tolower(fullPath[i]);
+        }
 
-    if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
-    {
-        if (isUtf8)
+        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
             if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
             {
@@ -507,38 +572,23 @@ HRESULT ExecuteTest(const char* fileName)
                 CHAR ext[_MAX_EXT];
                 _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
 
-                    IfFailGo(CreateLibraryByteCodeHeader(fileContents, (BYTE*)contentsRaw, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
-                }
-                else
-                {
-                    fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
-                    IfFailGo(E_FAIL);
-                }
+                IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
             }
             else
             {
-                fwprintf(stderr, _u("FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n"));
+                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
                 IfFailGo(E_FAIL);
             }
         }
-        else if(HostConfigFlags::flags.SerializedIsEnabled)
+        else if (HostConfigFlags::flags.SerializedIsEnabled)
         {
-            if(isUtf8)
-            {
-                CreateAndRunSerializedScript(fileName, fileContents, fullPath);
-            }
-            else
-            {
-                fwprintf(stderr, _u("FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n"));
-                IfFailGo(E_FAIL);
-            }
+            CreateAndRunSerializedScript(fileName, fileContents, fullPath);
         }
         else
         {
             IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
         }
     }
-
 Error:
     if (Debugger::debugger != nullptr)
     {
@@ -602,11 +652,26 @@ unsigned int WINAPI StaticThreadProc(void *lpParam)
     return ExecuteTestWithMemoryCheck(argInfo->filename);
 }
 
+#ifndef _WIN32
+static char16** argv = nullptr;
+int main(int argc, char** c_argv)
+{
+    PAL_InitializeChakraCore(argc, c_argv);
+    argv = new char16*[argc];
+    for (int i = 0; i < argc; i++)
+    {
+        NarrowStringToWideDynamic(c_argv[i], &argv[i]);
+    }
+#else
+#define PAL_Shutdown()
 int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 {
-    if(argc < 2)
+#endif
+
+    if (argc < 2)
     {
         PrintUsage();
+        PAL_Shutdown();
         return EXIT_FAILURE;
     }
 
@@ -616,12 +681,12 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         if(wcsstr(argv[i], _u("-TTRecord:")) == argv[i])
         {
             doTTRecord = true;
-            ttUri = argv[i] + wcslen(_u("-TTRecord:"));
+            ttUri = utf8::WideToNarrow(argv[i] + wcslen(_u("-TTRecord:"))).Detach();
         }
         else if(wcsstr(argv[i], _u("-TTDebug:")) == argv[i])
         {
             doTTDebug = true;
-            ttUri = argv[i] + wcslen(_u("-TTDebug:"));
+            ttUri = utf8::WideToNarrow(argv[i] + wcslen(_u("-TTDebug:"))).Detach();
         }
         else if(wcsstr(argv[i], _u("-TTSnapInterval:")) == argv[i])
         {
@@ -667,13 +732,20 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     HostConfigFlags::HandleArgsFlag(argc, argv);
 
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
-    HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(&argInfo);
+    HINSTANCE chakraLibrary = nullptr;
+    bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
 
-    if (argInfo.filename == nullptr) {
-        Helpers::WideStringToNarrowDynamic(argv[1], &argInfo.filename);
+#if defined(CHAKRA_STATIC_LIBRARY) && !defined(NDEBUG)
+    // handle command line flags
+    OnChakraCoreLoaded();
+#endif
+
+    if (argInfo.filename == nullptr)
+    {
+        WideStringToNarrowDynamic(argv[1], &argInfo.filename);
     }
 
-    if (chakraLibrary != nullptr)
+    if (success)
     {
 #ifdef _WIN32
         HANDLE threadHandle;
@@ -697,38 +769,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
 
-    return 0;
-}
-
-#ifndef _WIN32
-int main(int argc, char** argv)
-{
-    PAL_InitializeChakraCore(argc, argv);
-
-    const char* strProgramFile = argv[0];
-
-    // Ignoring mem-alloc failures here as this is
-    // simply a test tool. We can add more error checking
-    // here later if desired.
-    char16** args = new char16*[argc];
-    for (int i = 0; i < argc; i++)
+    if (ttUri != nullptr)
     {
-        Helpers::NarrowStringToWideDynamic(argv[i], &args[i]);
+        free(ttUri);
     }
-
-    // Call wmain with a copy of args, as HostConfigFlags may change argv
-    char16** argsCopy = new char16*[argc];
-    memcpy(argsCopy, args, sizeof(args[0]) * argc);
-    int ret = wmain(argc, argsCopy);
-    delete[] argsCopy;
-
-    for (int i = 0; i < argc; i++)
-    {
-        free(args[i]);
-    }
-    delete[] args;
 
     PAL_Shutdown();
-    return ret;
+    return 0;
 }
-#endif // !_WIN32

@@ -38,7 +38,7 @@ static BOOL Silent_ExtractFormatA(LPCSTR *Fmt, LPSTR Out, LPINT Flags, LPINT Wid
 static INT Silent_AddPaddingVfprintf(PAL_FILE *stream, LPSTR In, INT Padding, 
                                      INT Flags);
 
-static size_t Silent_PAL_wcslen(const wchar_16 *string);
+static size_t Silent_PAL_wcslen(const char16_t *string);
 
 /*******************************************************************************
 Function:
@@ -973,7 +973,7 @@ Function:
 See MSDN or the man page for wcslen.
 
 --*/
-size_t Silent_PAL_wcslen(const wchar_16 *string)
+size_t Silent_PAL_wcslen(const char16_t *string)
 {
     size_t nChar = 0;
 

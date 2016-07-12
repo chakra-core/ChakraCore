@@ -12,6 +12,9 @@
 #endif
 #include "JsrtContext.h"
 #include "TestHooks.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 extern HANDLE g_hInstance;
 #ifdef _WIN32
@@ -56,6 +59,9 @@ static BOOL AttachProcess(HANDLE hmod)
 #ifdef ENABLE_JS_ETW
     EtwTrace::Register();
 #endif
+#ifdef VTUNE_PROFILING
+    VTuneChakraProfile::Register();
+#endif 
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
@@ -113,12 +119,16 @@ static void DetachProcess()
 EXPORT_FUNC
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 {
+    // Attention: static library is handled under (see JsrtHelper.cpp)
+    // todo: consolidate similar parts from shared and static library initialization
     switch (dwReason)
     {
     case DLL_PROCESS_ATTACH:
     {
         return AttachProcess(hmod);
     }
+// for non-Windows, we handle this part using the tooling from CHAKRA_STATIC_LIBRARY
+#ifdef _WIN32
     case DLL_THREAD_ATTACH:
         ThreadContextTLSEntry::InitializeThread();
 #ifdef HEAP_TRACK_ALLOC
@@ -133,6 +143,12 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         // which requires the loader lock. DllCanUnloadNow will clean up for us anyway, so we can just skip the whole thing.
         ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
         return TRUE;
+#else // !_WIN32
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+        // On XPlat, CC handles this part using the interface for static_library
+        return TRUE;
+#endif // _WIN32
 
     case DLL_PROCESS_DETACH:
 
@@ -148,6 +164,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         // Do this before DetachProcess() so that we won't have ETW rundown callbacks while destroying threadContexts.
         EtwTrace::UnRegister();
 #endif
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::UnRegister();
+#endif 
 
         // don't do anything if we are in forceful shutdown
         // try to clean up handles in graceful shutdown

@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+using namespace PlatformAgnostic;
+
 namespace Js
 {
     // Global date constants
@@ -38,7 +40,7 @@ namespace Js
         static int GetDayMinAndUpdateYear(int day, int &year);
         static bool FLeap(int year);
 
-        static void GetYmdFromTv(double tv, Js::YMD *pymd);
+        static void GetYmdFromTv(double tv, DateTime::YMD *pymd);
         static void GetYearFromTv(double tv, int &year, int &yearType);
 
         // Used for VT_DATE conversions
