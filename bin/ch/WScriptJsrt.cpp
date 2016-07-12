@@ -707,30 +707,26 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
     }
     else
     {
-        const char16 *fileContent;
-        const char16 *fileNameWide;
+        const char *fileContent;
+        AutoString fileName;
         size_t fileNameLength;
 
-        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileNameWide, &fileNameLength));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[1], &fileName, &fileNameLength));
 
         if (errorCode == JsNoError)
         {
             UINT lengthBytes = 0;
-            bool isUtf8 = false;
-            LPCOLESTR contentsRaw = nullptr;
-            char *fileName;
-            IfFailGo(Helpers::WideStringToNarrowDynamic(fileNameWide, &fileName));
-            hr = Helpers::LoadScriptFromFile(fileName, fileContent, &isUtf8, &contentsRaw, &lengthBytes);
-            free(fileName);
+            hr = Helpers::LoadScriptFromFile(*fileName, fileContent, &lengthBytes);
 
             if (FAILED(hr))
             {
                 fwprintf(stderr, L"Couldn't load file.\n");
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
             }
             else
             {
                 JsValueRef stringObject;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToString(fileContent, lengthBytes, &stringObject));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(fileContent, lengthBytes, &stringObject));
                 return stringObject;
             }
         }
@@ -752,20 +748,17 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool
     }
     else
     {
-        const char16 *fileContent;
-        const char16 *fileName;
+        const char *fileContent;
+        AutoString fileName;
         size_t fileNameLength;
 
-        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[1], &fileName, &fileNameLength));
 
         if (errorCode == JsNoError)
         {
             UINT lengthBytes = 0;
 
-            char *fileNameNarrow;
-            IfFailGo(Helpers::WideStringToNarrowDynamic(fileName, &fileNameNarrow));
-            hr = Helpers::LoadBinaryFile(fileNameNarrow, fileContent, lengthBytes);
-            free(fileNameNarrow);
+            hr = Helpers::LoadBinaryFile(*fileName, fileContent, lengthBytes);
             if (FAILED(hr))
             {
                 fwprintf(stderr, L"Couldn't load file.\n");

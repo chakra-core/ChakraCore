@@ -10,7 +10,7 @@ public :
     static HRESULT LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut = nullptr);
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
     static void LogError(__in __nullterminated const char16 *msg, ...);
-    static HRESULT LoadBinaryFile(LPCSTR filename, LPCWSTR& contents, UINT& lengthBytes, bool printFileOpenError = true);
+    static HRESULT LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthBytes, bool printFileOpenError = true);
 
     static void TTReportLastIOErrorAsNeeded(BOOL ok, char* msg);
     static void CreateDirectoryIfNeeded(const char16* path);

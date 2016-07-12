@@ -212,7 +212,7 @@ void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
     va_end(args);
 }
 
-HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCWSTR& contents, UINT& lengthBytes, bool printFileOpenError)
+HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthBytes, bool printFileOpenError)
 {
     HRESULT hr = S_OK;
     contents = nullptr;
@@ -260,7 +260,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCWSTR& contents, UINT& length
     fseek(file, 0, SEEK_END);
     lengthBytes = ftell(file);
     fseek(file, 0, SEEK_SET);
-    contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes);
+    contents = (LPCSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes);
     if (nullptr == contents)
     {
         fwprintf(stderr, _u("out of memory"));
