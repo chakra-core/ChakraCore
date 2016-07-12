@@ -70,7 +70,6 @@ FuncInfo::FuncInfo(
     staticFuncId(-1),
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),
-    localPropIdOffset(-1),
     argsPlaceHolderSlotCount(0),
     thisScopeSlot(Js::Constants::NoProperty),
     superScopeSlot(Js::Constants::NoProperty),

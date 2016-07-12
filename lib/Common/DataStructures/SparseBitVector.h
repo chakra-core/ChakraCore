@@ -91,10 +91,7 @@ struct BVSparseNode
 #endif
 };
 
-// xplat-todo: revisit for unix
-#ifdef _WIN32
 CompileAssert(sizeof(BVSparseNode) == 16); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
-#endif
 
 template <class TAllocator>
 class BVSparse

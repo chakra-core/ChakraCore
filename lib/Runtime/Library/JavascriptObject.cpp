@@ -158,6 +158,7 @@ namespace Js
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
             return proxy->SetPrototypeTrap(newPrototype, shouldThrow);
         }
+        
         // 2.   Let extensible be the value of the [[Extensible]] internal data property of O.
         // 3.   Let current be the value of the [[Prototype]] internal data property of O.
         // 4.   If SameValue(V, current), then return true.
@@ -205,45 +206,64 @@ namespace Js
         // 7.   Set the value of the [[Prototype]] internal data property of O to V.
         // 8.   Return true.
 
-        // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
-        if (!JavascriptProxy::Is(object))
+        bool isInvalidationOfInlineCacheNeeded = true;
+        DynamicObject * obj = DynamicObject::FromVar(object);
+
+        // If this object was not prototype object, then no need to invalidate inline caches.
+        // Simply assign it a new type so if this object used protoInlineCache in past, it will
+        // be invalidated because of type mismatch and subsequently we will update its protoInlineCache
+        if (!(obj->GetDynamicType()->GetTypeHandler()->GetFlags() & DynamicTypeHandler::IsPrototypeFlag))
         {
+            // If object has locked type, skip changing its type here as it will be changed anyway below
+            // when object gets newPrototype object.
+            if (!obj->HasLockedType())
+            {
+                obj->ChangeType();
+            }
+            Assert(!obj->GetScriptContext()->GetThreadContext()->IsObjectRegisteredInProtoInlineCaches(obj));
+            Assert(!obj->GetScriptContext()->GetThreadContext()->IsObjectRegisteredInStoreFieldInlineCaches(obj));
+            isInvalidationOfInlineCacheNeeded = false;
+        }
+
+        if (isInvalidationOfInlineCacheNeeded)
+        {
+            // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
             JavascriptOperators::MapObjectAndPrototypes<true>(object->GetPrototype(), [=](RecyclableObject* obj)
             {
                 obj->RemoveFromPrototype(scriptContext);
             });
-        }
 
-        // Examine new prototype chain. If it brings in any non-WritableData property, we need to invalidate related caches.
-        bool objectAndPrototypeChainHasOnlyWritableDataProperties =
-            JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype);
+            // Examine new prototype chain. If it brings in any non-WritableData property, we need to invalidate related caches.
+            bool objectAndPrototypeChainHasOnlyWritableDataProperties =
+                JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype);
 
-        if (!objectAndPrototypeChainHasOnlyWritableDataProperties
-            || object->GetScriptContext() != newPrototype->GetScriptContext())
-        {
-            // The HaveOnlyWritableDataProperties cache is cleared when a property is added or changed,
-            // but only for types in the same script context. Therefore, if the prototype is in another
-            // context, the object's cache won't be cleared when a property is added or changed on the prototype.
-            // Moreover, an object is added to the cache only when its whole prototype chain is in the same
-            // context.
-            //
-            // Since we don't have a way to find out which objects have a certain object as their prototype,
-            // we clear the cache here instead.
-
-            // Invalidate fast prototype chain writable data test flag
-            object->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-        }
-
-        if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
-        {
-            // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
-            JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
+            if (!objectAndPrototypeChainHasOnlyWritableDataProperties
+                || object->GetScriptContext() != newPrototype->GetScriptContext())
             {
-                if (!obj->HasOnlyWritableDataProperties())
+                // The HaveOnlyWritableDataProperties cache is cleared when a property is added or changed,
+                // but only for types in the same script context. Therefore, if the prototype is in another
+                // context, the object's cache won't be cleared when a property is added or changed on the prototype.
+                // Moreover, an object is added to the cache only when its whole prototype chain is in the same
+                // context.
+                //
+                // Since we don't have a way to find out which objects have a certain object as their prototype,
+                // we clear the cache here instead.
+
+                // Invalidate fast prototype chain writable data test flag
+                object->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            }
+
+            if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
+            {
+                // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
+                JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
                 {
-                    obj->AddToPrototype(scriptContext);
-                }
-            });
+                    if (!obj->HasOnlyWritableDataProperties())
+                    {
+                        obj->AddToPrototype(scriptContext);
+                    }
+                });
+            }
         }
 
         // Set to new prototype
@@ -815,6 +835,73 @@ namespace Js
                 obj->GetDefaultPropertyDescriptor(propertyDescriptor);
         }
         return isPropertyDescriptorDefined;
+    }
+
+    Var JavascriptObject::EntryGetOwnPropertyDescriptors(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        RecyclableObject* obj = nullptr;
+
+        if (args.Info.Count < 2)
+        {
+            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext));
+        }
+        else
+        {
+            // Convert the argument to object first
+            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(args[1], scriptContext));
+        }
+
+        // If the object is HostDispatch try to invoke the operation remotely
+        if (obj->GetTypeId() == TypeIds_HostDispatch)
+        {
+            Var result;
+            if (obj->InvokeBuiltInOperationRemotely(EntryGetOwnPropertyDescriptors, args, &result))
+            {
+                return result;
+            }
+        }
+
+        Var ownPropertyKeys = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
+        Assert(JavascriptArray::Is(ownPropertyKeys));
+
+        if (!JavascriptArray::Is(ownPropertyKeys))
+        {
+            ownPropertyKeys = scriptContext->GetLibrary()->CreateArray(0);
+        }
+
+
+        JavascriptArray *ownPropsArray = JavascriptArray::FromVar(ownPropertyKeys);
+
+        RecyclableObject* resultObj = scriptContext->GetLibrary()->CreateObject(true, (Js::PropertyIndex) ownPropsArray->GetLength());
+        
+        PropertyDescriptor propDesc;
+        Var propKey = nullptr;
+
+        for (uint i = 0; i < ownPropsArray->GetLength(); i++)
+        {
+            BOOL getPropResult = ownPropsArray->DirectGetItemAt(i, &propKey);
+            Assert(getPropResult);
+
+            if (!getPropResult)
+            {
+                continue;
+            }
+            
+            PropertyRecord const * propertyRecord;
+            JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
+
+            Var newDescriptor = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propKey, scriptContext);
+            resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+        }
+
+        return resultObj;
     }
 
     Var JavascriptObject::EntryGetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...)

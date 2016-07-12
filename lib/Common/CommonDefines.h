@@ -12,11 +12,11 @@
 //----------------------------------------------------------------------------------------------------
 #define CHAKRA_CORE_MAJOR_VERSION 1
 #define CHAKRA_CORE_MINOR_VERSION 2
-#define CHAKRA_CORE_VERSION_RELEASE 1
-#define CHAKRA_CORE_VERSION_PRERELEASE 1
+#define CHAKRA_CORE_VERSION_RELEASE 0
+#define CHAKRA_CORE_VERSION_PRERELEASE 0
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0
 
-#define CHAKRA_VERSION_RELEASE 1
+#define CHAKRA_VERSION_RELEASE 0
 
 // NOTE: need to update the GUID in ByteCodeCacheReleaseFileVersion.h as well
 
@@ -120,8 +120,10 @@
 #define ENABLE_SCRIPT_DEBUGGING
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
+#ifndef __clang__
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 #define ENABLE_SIMDJS
+#endif
 
 #define ENABLE_CUSTOM_ENTROPY
 #endif
@@ -301,12 +303,13 @@
 
 #ifdef ENABLE_JS_ETW
 #define TEST_ETW_EVENTS
+#endif
 
 // VTUNE profiling requires ETW trace
 #if defined(_M_IX86) || defined(_M_X64)
 #define VTUNE_PROFILING
 #endif
-#endif
+
 
 #ifdef NTBUILD
 #define PERF_COUNTERS

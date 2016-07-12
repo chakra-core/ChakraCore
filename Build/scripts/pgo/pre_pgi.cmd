@@ -46,7 +46,7 @@ set POGO_TYPE=PGI
 REM Temporary fix around pgo bug, todo:: check if still necessary once toolset is updated
 set _LINK_=/cgthreads:1
 
-goto:eof
+goto:checkpass
 
 :usage
   echo Invalid/missing arguments
@@ -57,3 +57,6 @@ goto:eof
   echo   - binary_path: output path of your binaries
 
 exit /b 1
+
+:checkpass
+exit /b 0

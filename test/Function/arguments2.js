@@ -417,7 +417,7 @@ function Test18_Helper() {
 function Test18() {
     verify("Test18.1", arguments.Test18_Value, undefined);
     Test18_Helper();
-    verify("Test18.2", arguments.Test18_Value, "Test 18 Value");
+    verify("Test18.2", arguments.Test18_Value, undefined);
 }
 
 Test18();

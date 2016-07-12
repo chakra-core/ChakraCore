@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -10,8 +10,8 @@
   <test>
     <default>
       <compile-flags>-ES6Unicode-</compile-flags>
-      <files>Lex_U3.js</files>
-      <baseline>Lex_U3.baseline</baseline>
+      <files>Lex_u3.js</files>
+      <baseline>Lex_u3.baseline</baseline>
       <tags>fail_mutators</tags>
     </default>
   </test>
@@ -53,22 +53,14 @@
   </test>
   <test>
     <default>
-      <files>array_reduceRight.js</files>
-      <baseline>array_reduceRight.baseline</baseline>
+      <files>array_reduceright.js</files>
+      <baseline>array_reduceright.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>DateGetSet9.js</files>
       <baseline>DateGetSet9.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>jx2.js</files>
-      <baseline>jx2.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>fail_mutators,exclude_jenkins</tags>
     </default>
   </test>
   <test>

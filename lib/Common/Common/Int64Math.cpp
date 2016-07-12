@@ -6,7 +6,7 @@
 #include "Common/Int64Math.h"
 
 #if defined(_M_X64)
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
     #pragma intrinsic(_mul128)
 #else
     static int64 _mul128(const int64 left, const int64 right, int64 *high) noexcept

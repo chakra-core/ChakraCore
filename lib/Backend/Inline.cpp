@@ -1836,7 +1836,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         return callInstr->m_next;
     }
 
-    if (inlineCallOpCode == Js::OpCode::InlineFunctionApply && (!callInstr->m_func->GetHasStackArgs() || this->topFunc->GetJnFunction()->IsInlineApplyDisabled()))
+    if (inlineCallOpCode == Js::OpCode::InlineFunctionApply && (!callInstr->m_func->IsStackArgsEnabled() || this->topFunc->GetJnFunction()->IsInlineApplyDisabled()))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: stack args of inlining is off\tInlinee: %s (#%d)\tCaller: %s (%s)\n"),
             Js::JavascriptLibrary::GetNameForBuiltIn(builtInId), (int)builtInId,
@@ -1907,7 +1907,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, profileId, builtInId);
+        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, profileId, callInstr->m_func->GetTopFunc()->IsLoopBody(), builtInId);
 #endif
 
     // From now on we are committed to inlining.
@@ -2034,7 +2034,8 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(callInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, callInstr->m_func->m_alloc);
         IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
-// SIMD_JS
+#ifdef ENABLE_SIMDJS
+        // SIMD_JS
         IR::Instr *eaInsertInstr = callInstr;
         IR::Opnd *eaLinkOpnd = nullptr;
         ThreadContext::SimdFuncSignature simdFuncSignature;
@@ -2046,7 +2047,8 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
             Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
         }
-//
+#endif
+
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
             StackSym *linkSym = linkOpnd->GetStackSym();
             linkSym->m_isInlinedArgSlot = true;
@@ -2068,6 +2070,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             // Convert the arg out to built in arg out, and get the src of the arg out
             IR::Opnd * argOpnd = ConvertToInlineBuiltInArgOut(argInstr);
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             if (inlineCallArgCount > 2 && argIndex != 0 /* don't include 'this' */)
             {
@@ -2108,6 +2111,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
                 eaInsertInstr = eaInstr;
             }
             else
+#endif
             {
                 // Use parameter to the inline call to tempDst.
                 if (argIndex == 2)
@@ -2135,8 +2139,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             return false;
         });
 
+#ifdef ENABLE_SIMDJS
         //SIMD_JS
         Simd128FixLoadStoreInstr(builtInId, callInstr);
+#endif
 
         if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz32)
         {
@@ -2255,7 +2261,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, builtInId);
+        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, callInstr->m_func->GetTopFunc()->IsLoopBody(), builtInId);
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
@@ -2718,7 +2724,7 @@ Inline::InlineCall(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, const Js::F
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, builtInId);
+        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, callInstr->m_func->GetTopFunc()->IsLoopBody(), builtInId);
 #endif
 
     uint actualCount = 0;
@@ -3212,7 +3218,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             else if (argNum == 1)
@@ -3239,7 +3245,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             if (argNum == 1)
@@ -3617,6 +3623,16 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
 
     Js::FunctionBody *funcCaller = callInstr->m_func->GetJnFunction();
     Js::FunctionBody *funcBody = inlineeData->GetFunctionBody();
+
+    // We don't do stack args optimization in jitted loop body (because of lack of information about the code before and after the loop) 
+    // and we turn off stack arg optimization for the whole inline chain if we can't do it for one of the functionss.
+    // Inlining a function that uses arguments object could potentially hurt perf because we'll have to create arguments object on the 
+    // heap for that function (versus otherwise the function will be jitted and have its arguments object creation optimized).
+    // TODO: Allow arguments object creation to be optimized on a function level instead of an all-or-nothing approach.
+    if (callInstr->m_func->IsLoopBody() && funcBody->GetUsesArgumentsObject())
+    {
+        return instrNext;
+    }
 
     if (callInstr->GetSrc2() &&
         callInstr->GetSrc2()->IsSymOpnd() &&
@@ -5054,7 +5070,7 @@ Inline::HasArgumentsAccess(IR::Instr * instr, SymID argumentsSymId)
 bool
 Inline::GetInlineeHasArgumentObject(Func * inlinee)
 {
-    if (!inlinee->GetHasArgumentObject())
+    if (!inlinee->GetJnFunction()->GetUsesArgumentsObject())
     {
         // If inlinee has no arguments access return false
         return false;
@@ -5255,6 +5271,7 @@ Inline::GetMethodLdOpndForCallInstr(IR::Instr* callInstr)
     return nullptr;
 }
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 /*
 Fixes the format of a SIMD load/store to match format expected by globOpt. Namely:
@@ -5369,3 +5386,4 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
 
     }
 }
+#endif

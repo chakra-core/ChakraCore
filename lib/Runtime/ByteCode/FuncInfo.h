@@ -116,7 +116,6 @@ public:
     Js::RegSlot firstTmpReg;
     Js::RegSlot curTmpReg;
     int argsPlaceHolderSlotCount;   // count of place holder slots for same name args and destructuring patterns
-    int localPropIdOffset;
     Js::RegSlot firstThunkArgReg;
     short thunkArgCount;
     short staticFuncId;

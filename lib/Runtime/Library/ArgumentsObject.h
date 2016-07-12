@@ -112,7 +112,18 @@ namespace Js
             return this->formalCount;
         }
 
+        void SetFormalCount(uint32 value)
+        {
+            this->formalCount = value;
+        }
+
         ES5HeapArgumentsObject* ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject = true);
+        const ActivationObject* const GetFrameObject() { return frameObject; }
+		void SetFrameObject(ActivationObject * value) 
+        { 
+            AssertMsg(frameObject == nullptr, "Setting the frame object again?");
+            frameObject = value; 
+        }
 
     private:
         ES5HeapArgumentsObject* ConvertToES5HeapArgumentsObject(bool overwriteArgsUsingFrameObject = true);
@@ -122,7 +133,6 @@ namespace Js
         BOOL IsFormalArgument(PropertyId propertyId);
         BOOL IsFormalArgument(PropertyId propertyId, uint32* pIndex);    // Checks whether property is numeric, and on success sets that index.
         BOOL IsArgumentDeleted(uint32 index) const;
-        const ActivationObject* const GetFrameObject() { return frameObject; }
 
 #if ENABLE_TTD
     public:

@@ -23,6 +23,6 @@
 
 #define _FUNC_PROLOGUE
 #define _FUNC_NAME wcstok_s
-#define _CHAR wchar_t
+#define _CHAR char16_t
 
 #include "tcstok_s.inl"

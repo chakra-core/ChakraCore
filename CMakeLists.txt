@@ -19,7 +19,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    add_definitions(-DPLATFORM_UNIX)
+    add_definitions(
+        -DPLATFORM_UNIX
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
+    )
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -42,6 +45,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
     OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     # Color diagnostics for g++ and clang++
     add_definitions("-fdiagnostics-color=always")
+endif()
+
+if(STATIC_LIBRARY)
+    add_definitions(-DCHAKRA_STATIC_LIBRARY=1)
 endif()
 
 if(CLR_CMAKE_PLATFORM_UNIX)
@@ -76,8 +83,24 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-implicit-function-declaration"
     )
 
+    # todo: fix general visibility of the interface
+    # do not set to `fvisibility=hidden` as it is going to
+    # prevent the required interface is being exported
+    # clang by default sets fvisibility=default
+
+if(NOT CC_XCODE_PROJECT)
+    # todo: enable for XCode too
+    # XCode is a bit more strict
+    # keep this until we fix all the warnings there.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror"
+        )
+endif()
+
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-missing-braces\
+        -Wno-reorder\
         -Wno-microsoft\
         -Wno-unused-value\
         -Wno-int-to-void-pointer-cast\
@@ -106,8 +129,15 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         # -Wno-switch # switch values not handled
 
     # CXX COMPILER FLAGS
+
+    # xplat-todo for release build
+    # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
+    # Release Builds: Not sure if this has to be as strict as the debug/test?
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fdelayed-template-parsing"
+        -fdelayed-template-parsing\
+        -fno-omit-frame-pointer\
+        -fno-optimize-sibling-calls\
+        -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
     )
 
     # CXX / CC COMPILER FLAGS
@@ -124,15 +154,17 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1
     )
-    # xplat-todo: reenable this warning
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Wno-writable-strings"
-    )
 elseif(CMAKE_BUILD_TYPE STREQUAL Test)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -O3"
+    )
+endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
     add_definitions(
@@ -145,6 +177,10 @@ if(CLR_CMAKE_PLATFORM_UNIX)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
+if(WITHOUT_FEATURES)
+   add_definitions(${WITHOUT_FEATURES})
+endif(WITHOUT_FEATURES)
+
 enable_language(ASM)
 
 include_directories(
@@ -156,7 +192,6 @@ include_directories(
     pal/inc/rt
     ${ICU_INCLUDE_PATH}
     )
-
 
 add_subdirectory (pal)
 

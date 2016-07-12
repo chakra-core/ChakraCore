@@ -118,7 +118,7 @@ BOOL FGetResourceString(int32 isz, __out_ecount(cchMax) OLECHAR *psz, int cchMax
 }
 
 // Get a bstr version of the error string
-__declspec(noinline) // Don't inline. This function needs 2KB stack.
+_NOINLINE // Don't inline. This function needs 2KB stack.
 BSTR BstrGetResourceString(int32 isz)
 {
     // NOTE - isz is expected to be HRESULT
@@ -136,7 +136,7 @@ BSTR BstrGetResourceString(int32 isz)
 
     UINT id = (WORD)isz;
     const char16* szT = LoadResourceStr(id);
-    if (!szT)
+    if (!szT || !szT[0])
     {
         return NULL;
     }

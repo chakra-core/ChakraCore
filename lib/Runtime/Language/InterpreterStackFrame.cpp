@@ -1403,23 +1403,23 @@ namespace Js
             environment = this->LdEnv();
         }
 
-        RegSlot closureReg = executeFunction->GetLocalClosureRegister();
         Var funcExprScope = nullptr;
+        Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
+        if (funcExprScopeReg != Constants::NoRegister && this->paramClosure == nullptr)
+        {
+            // t0 = NewPseudoScope
+            // t1 = LdFrameDisplay t0 env
+
+            funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
+            SetReg(funcExprScopeReg, funcExprScope);
+        }
+
+        RegSlot closureReg = executeFunction->GetLocalClosureRegister();
         if (closureReg != Js::Constants::NoRegister)
         {
             Assert(closureReg >= executeFunction->GetConstantCount());
             if (executeFunction->HasScopeObject())
             {
-                Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
-                if (funcExprScopeReg != Constants::NoRegister && this->paramClosure == nullptr)
-                {
-                    // t0 = NewPseudoScope
-                    // t1 = LdFrameDisplay t0 env
-
-                    funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
-                    SetReg(funcExprScopeReg, funcExprScope);
-                }
-
                 this->NewScopeObject();
             }
             else
@@ -1430,7 +1430,7 @@ namespace Js
         }
 
         Js::RegSlot frameDisplayReg = executeFunction->GetLocalFrameDisplayRegister();
-        if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
+        if (frameDisplayReg != Js::Constants::NoRegister)
         {
             Assert(frameDisplayReg >= executeFunction->GetConstantCount());
 
@@ -1439,9 +1439,13 @@ namespace Js
                 environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
             }
 
-            void *argHead = this->GetLocalClosure();
-            this->SetLocalFrameDisplay(this->NewFrameDisplay(argHead, environment));
+            if (closureReg != Js::Constants::NoRegister)
+            {
+                void *argHead = this->GetLocalClosure();
+                environment = this->NewFrameDisplay(argHead, environment);
+            }
 
+            this->SetLocalFrameDisplay((Js::FrameDisplay*)environment);
             this->SetNonVarReg(frameDisplayReg, nullptr);
         }
 
@@ -2226,7 +2230,7 @@ namespace Js
         m_outSp        = m_outParams;
     }
 
-    __declspec(noinline)
+    _NOINLINE
     Var InterpreterStackFrame::DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress)
     {
         PushPopFrameHelper pushPopFrameHelper(this, returnAddress, addressOfReturnAddress);
@@ -2358,7 +2362,7 @@ namespace Js
     }
 #endif
 
-    __declspec(noinline)
+    _NOINLINE
     Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)
     {
         PushPopFrameHelper pushPopFrameHelper(this, address, addressOfReturnAddress);
@@ -3393,7 +3397,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetMethodProperty_NoFastPath(Var instance, unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetMethodProperty_NoFastPath(Var instance, unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -3439,7 +3443,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetRootMethodProperty_NoFastPath(unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetRootMethodProperty_NoFastPath(unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -3503,7 +3507,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetMethodPropertyScoped_NoFastPath(unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetMethodPropertyScoped_NoFastPath(unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         Js::Var instance = GetReg(playout->Instance);
@@ -3602,6 +3606,7 @@ namespace Js
         case AsmJsRetType::Float:
             m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
+#ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
         case AsmJsRetType::Bool32x4:
@@ -3617,6 +3622,7 @@ namespace Js
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
             break;
+#endif
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
@@ -3935,7 +3941,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetRootProperty_NoFastPath(unaligned T* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetRootProperty_NoFastPath(unaligned T* playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         Var rootInstance = this->GetRootObject();
@@ -4145,7 +4151,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetProperty_NoFastPath(Var instance, unaligned T* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetProperty_NoFastPath(Var instance, unaligned T* playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -4311,7 +4317,7 @@ namespace Js
 
 
     template <typename T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetPropertyScoped_NoFastPath(const unaligned OpLayoutT_ElementP<T>* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetPropertyScoped_NoFastPath(const unaligned OpLayoutT_ElementP<T>* playout)
     {
         // Implicit root object as default instance
         Var defaultInstance = GetReg(Js::FunctionBody::RootObjectRegSlot);
@@ -4366,7 +4372,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags)
     {
         // Implicit root object as default instance
         Var defaultInstance = GetReg(Js::FunctionBody::RootObjectRegSlot);
@@ -4451,7 +4457,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoSetProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::DoSetProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
@@ -4482,7 +4488,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoSetSuperProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::DoSetSuperProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
@@ -4710,7 +4716,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoInitProperty_NoFastPath(unaligned T* playout, Var instance)
+    _NOINLINE void InterpreterStackFrame::DoInitProperty_NoFastPath(unaligned T* playout, Var instance)
     {
         JavascriptOperators::PatchInitValue<false>(
             GetFunctionBody(),
@@ -5460,15 +5466,15 @@ namespace Js
         return entry->func;
     }
 
-    void InterpreterStackFrame::OP_CommitScope(const unaligned OpLayoutAuxNoReg * playout)
+    void InterpreterStackFrame::OP_CommitScope()
     {
-        const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(playout->Offset, this->GetFunctionBody());
-        this->OP_CommitScopeHelper(playout, propIds);
+        const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
+        this->OP_CommitScopeHelper(propIds);
     }
 
-    void InterpreterStackFrame::OP_CommitScopeHelper(const unaligned OpLayoutAuxNoReg *playout, const PropertyIdArray *propIds)
+    void InterpreterStackFrame::OP_CommitScopeHelper(const PropertyIdArray *propIds)
     {
-        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(/*GetReg(playout->R0)*/this->localClosure);
+        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(this->localClosure);
         ScriptFunction *func = obj->GetParentFunc();
 
         Assert(obj->GetParentFunc() == func);
@@ -5527,7 +5533,6 @@ namespace Js
     void InterpreterStackFrame::OP_LdPropIds(const unaligned OpLayoutAuxiliary * playout)
     {
         const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(playout->Offset, this->GetFunctionBody());
-
         SetNonVarReg(playout->R0, (Var)propIds);
     }
 
@@ -7163,8 +7168,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (m_functionBody->HasCachedScopePropIds())
         {
-            const Js::PropertyIdArray *propIds =
-                Js::ByteCodeReader::ReadPropertyIdArray(0, this->GetFunctionBody(), ActivationObjectEx::ExtraSlotCount());
+            const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
+                
             Var funcExpr = this->GetFunctionExpression();
             PropertyId objectId = ActivationObjectEx::GetLiteralObjectRef(propIds);
             scopeObject = JavascriptOperators::OP_InitCachedScope(funcExpr, propIds,
@@ -8435,13 +8440,15 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return args;
     }
 
-    Var InterpreterStackFrame::OP_LdHeapArguments(Var argsArray, ScriptContext* scriptContext)
+    Var InterpreterStackFrame::OP_LdHeapArguments(ScriptContext* scriptContext)
     {
+        Var argsArray = m_functionBody->GetFormalsPropIdArrayOrNullObj();
         return LdHeapArgumentsImpl<false>(argsArray, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_LdLetHeapArguments(Var argsArray, ScriptContext* scriptContext)
+    Var InterpreterStackFrame::OP_LdLetHeapArguments(ScriptContext* scriptContext)
     {
+        Var argsArray = m_functionBody->GetFormalsPropIdArrayOrNullObj();
         return LdHeapArgumentsImpl<true>(argsArray, scriptContext);
     }
 
@@ -8459,6 +8466,84 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var args = JavascriptOperators::LoadHeapArgsCached(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, formalsCount, &this->m_inParams[1], this->localClosure, scriptContext, true);
         this->m_arguments = args;
         return args;
+    }
+
+    HeapArgumentsObject * InterpreterStackFrame::CreateEmptyHeapArgumentsObject(ScriptContext* scriptContext)
+    {
+        HeapArgumentsObject * args = JavascriptOperators::CreateHeapArguments(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, 0, nullptr, scriptContext);
+        this->m_arguments = args;
+        return args;
+    }
+
+    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParams)
+    {
+        ActivationObject * frameObject = (ActivationObject*)GetLocalClosure();
+        uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
+        Js::PropertyIdArray * propIds = nullptr;
+        Js::HeapArgumentsObject* heapArgObj = nullptr;
+
+        //We always set the Frame object to nullptr in BailOutRecord::EnsureArguments for stack args optimization.
+        if (m_arguments != nullptr && ((Js::HeapArgumentsObject*)(m_arguments))->GetFrameObject() == nullptr)
+        {
+            heapArgObj = (Js::HeapArgumentsObject*)m_arguments;
+        }
+
+        bool isCachedScope = false;
+
+        //For Non-simple params, we don't have a scope object created.
+        if (this->m_functionBody->NeedScopeObjectForArguments(hasNonSimpleParams))
+        {
+                isCachedScope = m_functionBody->HasCachedScopePropIds();
+                propIds = this->m_functionBody->GetFormalsPropIdArray();
+
+                if (isCachedScope)
+                {
+                    Js::DynamicType *literalType = nullptr;
+                    Assert(!propIds->hasNonSimpleParams && !hasNonSimpleParams);
+                    frameObject = (ActivationObject*)JavascriptOperators::OP_InitCachedScope(this->GetJavascriptFunction(), propIds, &literalType, hasNonSimpleParams, scriptContext);
+                }
+                else
+                {
+                    frameObject = (ActivationObject*)JavascriptOperators::OP_NewScopeObject(GetScriptContext());
+                }
+                Assert(propIds != nullptr);
+                SetLocalClosure(frameObject);
+                
+                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && m_functionBody->GetInParamsCount() > 1)
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Creating scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                    Output::Flush();
+                }
+        }
+        else
+        {
+            //We reached here because, either we don't have any formals or we don't have a scope object (it could be in strict mode or have non-simple param list)
+            Assert(formalsCount == 0 || (m_functionBody->GetIsStrictMode() || hasNonSimpleParams));
+            frameObject = (ActivationObject*)scriptContext->GetLibrary()->GetNull();
+            formalsCount = 0;
+
+            if (PHASE_VERBOSE_TRACE1(Js::StackArgOptPhase))
+            {
+                Output::Print(_u("StackArgOpt : %s (%d) :Creating NULL scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                Output::Flush();
+            }
+        }
+        
+        if (heapArgObj)
+        {
+            heapArgObj->SetFormalCount(formalsCount);
+            heapArgObj->SetFrameObject(frameObject);
+            
+            if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && formalsCount > 0)
+            {
+                Output::Print(_u("StackArgFormals : %s (%d) :Attaching the scope object with the heap arguments object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                Output::Flush();
+            }
+        }
+
+        //Fill the Heap arguments and scope object with values
+        // If there is no heap arguments object, then fill only the scope object with actuals.
+        JavascriptOperators::FillScopeObject(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, formalsCount, frameObject, &this->m_inParams[1], propIds, heapArgObj, scriptContext, hasNonSimpleParams, isCachedScope);
     }
 
     Var InterpreterStackFrame::OP_LdArgumentsFromFrame()

@@ -169,6 +169,7 @@ BUILTIN(JavascriptObject, DefineProperty, EntryDefineProperty, FunctionInfo::Err
 BUILTIN(JavascriptObject, DefineProperties, EntryDefineProperties, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, Create, EntryCreate, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, GetOwnPropertyDescriptor, EntryGetOwnPropertyDescriptor, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptObject, GetOwnPropertyDescriptors, EntryGetOwnPropertyDescriptors, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, GetPrototypeOf, EntryGetPrototypeOf, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, SetPrototypeOf, EntrySetPrototypeOf, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, Keys, EntryKeys, FunctionInfo::ErrorOnNew)

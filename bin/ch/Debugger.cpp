@@ -175,11 +175,10 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
 
-        LPCWSTR str = nullptr;
+        AutoString argstr;
         size_t length;
-        IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToWchar(arguments[2], &str, &length));
-
-        ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result);
+        IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToCharCopy(arguments[2], &argstr, &length));
+        ChakraRTInterface::JsDiagEvaluateUtf8(*argstr, stackFrameIndex, &result);
     }
 
     return result;
@@ -233,7 +232,7 @@ bool Debugger::Initialize()
 
     JsValueRef globalFunc = JS_INVALID_REFERENCE;
 
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParseScriptWithAttributes(controllerScript, JS_SOURCE_CONTEXT_NONE, _u("DbgController.js"), JsParseScriptAttributeLibraryCode, &globalFunc));
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParseScriptWithAttributesUtf8(controllerScript, JS_SOURCE_CONTEXT_NONE, "DbgController.js", JsParseScriptAttributeLibraryCode, &globalFunc));
 
     JsValueRef undefinedValue;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetUndefinedValue(&undefinedValue));
@@ -246,7 +245,7 @@ bool Debugger::Initialize()
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetGlobalObject(&globalObj));
 
     JsPropertyIdRef hostDebugObjectPropId;
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromName(_u("hostDebugObject"), &hostDebugObjectPropId));
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("hostDebugObject", &hostDebugObjectPropId));
 
     JsPropertyIdRef hostDebugObject;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetProperty(globalObj, hostDebugObjectPropId, &hostDebugObject));
@@ -274,19 +273,19 @@ bool Debugger::Initialize()
 bool Debugger::InstallDebugCallbacks(JsValueRef hostDebugObject)
 {
     HRESULT hr = S_OK;
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetSource"), Debugger::GetSource));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagSetBreakpoint"), Debugger::SetBreakpoint));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetStackTrace"), Debugger::GetStackTrace));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetBreakpoints"), Debugger::GetBreakpoints));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagRemoveBreakpoint"), Debugger::RemoveBreakpoint));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagSetBreakOnException"), Debugger::SetBreakOnException));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetBreakOnException"), Debugger::GetBreakOnException));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagSetStepType"), Debugger::SetStepType));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetScripts"), Debugger::GetScripts));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetStackProperties"), Debugger::GetStackProperties));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetProperties"), Debugger::GetProperties));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetObjectFromHandle"), Debugger::GetObjectFromHandle));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagEvaluate"), Debugger::Evaluate));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetSource", Debugger::GetSource));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagSetBreakpoint", Debugger::SetBreakpoint));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetStackTrace", Debugger::GetStackTrace));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetBreakpoints", Debugger::GetBreakpoints));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagRemoveBreakpoint", Debugger::RemoveBreakpoint));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagSetBreakOnException", Debugger::SetBreakOnException));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetBreakOnException", Debugger::GetBreakOnException));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagSetStepType", Debugger::SetStepType));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetScripts", Debugger::GetScripts));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetStackProperties", Debugger::GetStackProperties));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetProperties", Debugger::GetProperties));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagGetObjectFromHandle", Debugger::GetObjectFromHandle));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, "JsDiagEvaluate", Debugger::Evaluate));
 Error:
     return hr != S_OK;
 }
@@ -297,7 +296,6 @@ bool Debugger::SetBaseline()
     LPSTR script = nullptr;
     FILE *file = nullptr;
     int numChars = 0;
-    LPWSTR wideScript = nullptr;
     HRESULT hr = S_OK;
 
     if (_wfopen_s(&file, HostConfigFlags::flags.dbgbaseline, _u("rb")) != 0)
@@ -317,18 +315,10 @@ bool Debugger::SetBaseline()
             {
                 script[numChars] = '\0';
 
-                // Convert to wide for sending to script.
-                wideScript = new char16[numChars + 2];
-                if (MultiByteToWideChar(CP_UTF8, 0, script, static_cast<int>(strlen(script)) + 1, wideScript, numChars + 2) == 0)
-                {
-                    Helpers::LogError(_u("MultiByteToWideChar"));
-                    IfFailGo(E_FAIL);
-                }
-
                 JsValueRef wideScriptRef;
-                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsPointerToString(wideScript, wcslen(wideScript), &wideScriptRef));
+                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsPointerToStringUtf8(script, strlen(script), &wideScriptRef));
 
-                this->CallFunctionNoResult(_u("SetBaseline"), wideScriptRef);
+                this->CallFunctionNoResult("SetBaseline", wideScriptRef);
             }
             else
             {
@@ -346,11 +336,6 @@ Error:
     if (script)
     {
         delete[] script;
-    }
-
-    if (wideScript)
-    {
-        delete[] wideScript;
     }
 
     if (file)
@@ -372,10 +357,10 @@ bool Debugger::SetInspectMaxStringLength()
     JsValueRef maxStringRef;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsDoubleToNumber(HostConfigFlags::flags.InspectMaxStringLength, &maxStringRef));
 
-    return this->CallFunctionNoResult(_u("SetInspectMaxStringLength"), maxStringRef);
+    return this->CallFunctionNoResult("SetInspectMaxStringLength", maxStringRef);
 }
 
-bool Debugger::CallFunction(char16 const * functionName, JsValueRef *result, JsValueRef arg1, JsValueRef arg2)
+bool Debugger::CallFunction(char const * functionName, JsValueRef *result, JsValueRef arg1, JsValueRef arg2)
 {
     AutoRestoreContext autoRestoreContext(this->m_context);
 
@@ -385,7 +370,7 @@ bool Debugger::CallFunction(char16 const * functionName, JsValueRef *result, JsV
 
     // Get a script string for the function name
     JsPropertyIdRef targetFuncId = JS_INVALID_REFERENCE;
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromName(functionName, &targetFuncId));
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromNameUtf8(functionName, &targetFuncId));
 
     // Get the target function
     JsValueRef targetFunc = JS_INVALID_REFERENCE;
@@ -417,7 +402,7 @@ bool Debugger::CallFunction(char16 const * functionName, JsValueRef *result, JsV
     return true;
 }
 
-bool Debugger::CallFunctionNoResult(char16 const * functionName, JsValueRef arg1, JsValueRef arg2)
+bool Debugger::CallFunctionNoResult(char const * functionName, JsValueRef arg1, JsValueRef arg2)
 {
     JsValueRef result = JS_INVALID_REFERENCE;
     return this->CallFunction(functionName, &result, arg1, arg2);
@@ -425,7 +410,7 @@ bool Debugger::CallFunctionNoResult(char16 const * functionName, JsValueRef arg1
 
 bool Debugger::DumpFunctionPosition(JsValueRef functionPosition)
 {
-    return this->CallFunctionNoResult(_u("DumpFunctionPosition"), functionPosition);
+    return this->CallFunctionNoResult("DumpFunctionPosition", functionPosition);
 }
 
 bool Debugger::StartDebugging(JsRuntimeHandle runtime)
@@ -454,7 +439,7 @@ bool Debugger::HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventDat
     JsValueRef debugEventRef;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsDoubleToNumber(debugEvent, &debugEventRef));
 
-    return this->CallFunctionNoResult(_u("HandleDebugEvent"), debugEventRef, eventData);
+    return this->CallFunctionNoResult("HandleDebugEvent", debugEventRef, eventData);
 }
 
 bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
@@ -471,7 +456,7 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
 
     if (HostConfigFlags::flags.dbgbaselineIsEnabled)
     {
-        this->CallFunction(_u("Verify"), &result);
+        this->CallFunction("Verify", &result);
         JsValueRef numberVal;
         IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsConvertValueToNumber(result, &numberVal));
         int val;
@@ -481,20 +466,11 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
 
     if (!testPassed)
     {
-        this->CallFunction(_u("GetOutputJson"), &result);
+        this->CallFunction("GetOutputJson", &result);
 
-        LPCWSTR baselineData;
+        AutoString baselineData;
         size_t baselineDataLength;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsStringToPointer(result, &baselineData, &baselineDataLength));
-
-#pragma warning(disable: 38021) // From MSDN: For the code page UTF-8 dwFlags must be set to either 0 or WC_ERR_INVALID_CHARS. Otherwise, the function fails with ERROR_INVALID_FLAGS.
-        int multiByteDataLength = WideCharToMultiByte(CP_UTF8, 0, baselineData, -1, NULL, 0, NULL, NULL);
-        LPSTR baselineDataANSI = new char[multiByteDataLength];
-        if (WideCharToMultiByte(CP_UTF8, 0, baselineData, -1, baselineDataANSI, multiByteDataLength, NULL, NULL) == 0)
-        {
-#pragma warning(default: 38021) // From MSDN: For the code page UTF-8 dwFlags must be set to either 0 or WC_ERR_INVALID_CHARS. Otherwise, the function fails with ERROR_INVALID_FLAGS.
-            return false;
-        }
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsStringToPointerUtf8Copy(result, &baselineData, &baselineDataLength));
 
         char16 baselineFilename[256];
         swprintf_s(baselineFilename, _countof(baselineFilename), HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%S.dbg.baseline.rebase") : _u("%S.dbg.baseline"), fileName);
@@ -507,8 +483,9 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
 
         if (file != nullptr)
         {
-            int countWritten = static_cast<int>(fwrite(baselineDataANSI, sizeof(baselineDataANSI[0]), strlen(baselineDataANSI), file));
-            if (countWritten != (int)strlen(baselineDataANSI))
+            int countWritten = static_cast<int>(fwrite(*baselineData, sizeof(char), baselineDataLength, file));
+            Assert(baselineDataLength <= INT_MAX);
+            if (countWritten != (int)baselineDataLength)
             {
                 Assert(false);
                 return false;
@@ -537,5 +514,5 @@ bool Debugger::SourceRunDown()
     JsValueRef sourcesList = JS_INVALID_REFERENCE;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsDiagGetScripts(&sourcesList));
 
-    return this->CallFunctionNoResult(_u("HandleSourceRunDown"), sourcesList);
+    return this->CallFunctionNoResult("HandleSourceRunDown", sourcesList);
 }

@@ -3,7 +3,6 @@ HasFuncDecl: test
 HasMaybeEscapedNestedFunc (ArgumentsObjectEscapes): test (function  (#1.1), #2)
 HasFuncAssignment: param
 HasMaybeEscapedUse: arguments
-RestoreHasFuncAssignment: param
 HasMaybeEscapedUse: l
 test1
 test2

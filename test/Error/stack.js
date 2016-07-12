@@ -56,17 +56,17 @@ catch (e) {
 print("testing stack overflow handling with finally block");
 try
 {
-function stackOverFlowFinally() {
-    try {
-        stackOverFlowFinally();
-        while (true) {
+    function stackOverFlowFinally() {
+        try {
+            stackOverFlowFinally();
+            while (true) {
+            }
+        }
+        finally {
+            DoSomething();
         }
     }
-    finally {
-       DoSomething();
-    }
-}
-   stackOverFlowFinally();
+    stackOverFlowFinally();
 }
 catch(e) {
     printError(e);
@@ -78,19 +78,19 @@ function DoSomething()
 
 try
 {
-   var count = 10000;
+    var count = 20000; // Keep this unrealistic number as we do not
+                       // limit stack memory to a particular capacity
 
-   var a = {};
-   var b = a;
+    var a = {};
+    var b = a;
 
-   for (var i = 0; i < count; i++)
-   {
-    a.x = {};
-    a = a.x;
-   }
-   eval("JSON.stringify(b)");
+    for (var i = 0; i < count; i++)
+    {
+        a.x = {};
+        a = a.x;
+    }
+    eval("JSON.stringify(b)");
 }
 catch(e) {
     printError(e);
 }
-

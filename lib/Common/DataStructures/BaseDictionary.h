@@ -1470,7 +1470,7 @@ namespace JsUtil
 
         typename Base::template BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()
         {
-            return BucketEntryIterator<BaseHashSet>(*this);
+            return typename Base::template BucketEntryIterator<BaseHashSet>(*this);
         }
 
         template<class Fn>

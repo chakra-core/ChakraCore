@@ -362,7 +362,7 @@ DebugBreakCommand()
         if (snprintf (pid_buf, sizeof (pid_buf), PID_TEXT "%d", getpid()) <= 0) {
             goto FAILED;
         }
-        if (snprintf (exe_buf, sizeof (CHAR) * (dwexe_buf + 1), EXE_TEXT "%ls", (wchar_t *)exe_module.lib_name) <= 0) {
+        if (snprintf (exe_buf, sizeof (CHAR) * (dwexe_buf + 1), EXE_TEXT "%ls", (char16_t *)exe_module.lib_name) <= 0) {
             goto FAILED;
         }
 

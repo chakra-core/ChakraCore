@@ -861,6 +861,12 @@ namespace Js
                 }
             }
 
+            if (propertyId == Js::PropertyIds::arguments)
+            {
+                fldInfoFlags = DynamicProfileInfo::MergeFldInfoFlags(fldInfoFlags, FldInfo_FromAccessor);
+                scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
+            }
+
             if (!Root && operationInfo.isPolymorphic)
             {
                 fldInfoFlags = DynamicProfileInfo::MergeFldInfoFlags(fldInfoFlags, FldInfo_Polymorphic);

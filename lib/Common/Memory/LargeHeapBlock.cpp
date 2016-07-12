@@ -299,7 +299,7 @@ LargeHeapBlock::ReleasePagesSweep(Recycler * recycler)
 }
 
 #ifdef RECYCLER_PAGE_HEAP
-__declspec(noinline)
+_NOINLINE
 void LargeHeapBlock::VerifyPageHeapPattern()
 {
     Assert(InPageHeapMode());
@@ -556,7 +556,7 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
     return allocObject;
 }
 
-__declspec(noinline)
+_NOINLINE
 void
 LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
 {

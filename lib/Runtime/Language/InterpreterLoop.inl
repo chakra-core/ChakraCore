@@ -25,6 +25,126 @@
 #define INTERPRETERPROFILE 0
 #define PROFILEDOP(prof, unprof) unprof
 #endif
+
+//two layers of macros are necessary to get arguments to the invocation of the top level macro expanded.
+#define CONCAT_TOKENS_AGAIN(loopName, fnSuffix) loopName ## fnSuffix
+#define CONCAT_TOKENS(loopName, fnSuffix) CONCAT_TOKENS_AGAIN(loopName, fnSuffix)
+
+const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedOpCodePrefix)(const byte* ip)
+{
+        INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#if DBG_DUMP
+        , true
+#endif
+            ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    switch (op)
+    {
+#define EXDEF2(x, op, func) PROCESS_##x(op, func)
+#define EXDEF3(x, op, func, y) PROCESS_##x(op, func, y)
+#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Small)
+#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Small)
+#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Small, t)
+#include "InterpreterHandler.inl"
+    default:
+        // Help the C++ optimizer by declaring that the cases we
+        // have above are sufficient
+        AssertMsg(false, "dispatch to bad opcode");
+        __assume(false);
+    };
+    return ip;
+}
+
+const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, MediumLayoutPrefix)(const byte* ip, Var& yieldValue)
+{
+        INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+    switch (op)
+    {
+    case INTERPRETER_OPCODE::Yield:
+        m_reader.Reg2_Medium(ip);
+        yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
+        break;
+
+#define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
+#define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
+#define DEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Medium, t)
+#include "InterpreterHandler.inl"
+    default:
+        // Help the C++ optimizer by declaring that the cases we
+        // have above are sufficient
+        AssertMsg(false, "dispatch to bad opcode");
+        __assume(false);
+    }
+    return ip;
+}
+
+const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedMediumLayoutPrefix)(const byte* ip)
+{
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#if DBG_DUMP
+        , true
+#endif
+        ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    switch (op)
+    {
+#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
+#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
+#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Medium, t)
+#include "InterpreterHandler.inl"
+    default:
+        // Help the C++ optimizer by declaring that the cases we
+        // have above are sufficient
+        AssertMsg(false, "dispatch to bad opcode");
+        __assume(false);
+    };
+    return ip;
+}
+
+const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeLayoutPrefix)(const byte* ip, Var& yieldValue)
+{
+    INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+    switch (op)
+    {
+    case INTERPRETER_OPCODE::Yield:
+        m_reader.Reg2_Large(ip);
+        yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
+        break;
+
+#define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
+#define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
+#define DEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Large, t)
+#include "InterpreterHandler.inl"
+    default:
+        // Help the C++ optimizer by declaring that the cases we
+        // have above are sufficient
+        AssertMsg(false, "dispatch to bad opcode");
+        __assume(false);
+    }
+    return ip;
+}
+
+const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedLargeLayoutPrefix)(const byte* ip)
+{
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#if DBG_DUMP
+        , true
+#endif
+        ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    switch (op)
+    {
+#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
+#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
+#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Large, t)
+#include "InterpreterHandler.inl"
+    default:
+        // Help the C++ optimizer by declaring that the cases we
+        // have above are sufficient
+        AssertMsg(false, "dispatch to bad opcode");
+        __assume(false);
+    };
+    return ip;
+}
+
+
 #if defined (DBG)
 // Win8 516184: Huge switch with lots of labels each having a few locals on ARM.DBG causes each occurrence
 // of this function (call of a javascript function in interpreter mode) to take 7+KB stack space
@@ -193,41 +313,8 @@ SWAP_BP_FOR_OPCODE:
                 return nullptr;
 
             case INTERPRETER_OPCODE::ExtendedOpcodePrefix:
-            case INTERPRETER_OPCODE::DblExtendedOpcodePrefix:
             {
-                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
-                {
-                    uint bias;
-                    if (prefixOp == INTERPRETER_OPCODE::ExtendedOpcodePrefix)
-                    {
-                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
-                    }
-                    else
-                    {
-                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedOpcodePrefix);
-                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
-                    }
-                    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-                    , true
-#endif
-                    ) + bias);
-                    switch (op)
-                    {
-#define EXDEF2(x, op, func) PROCESS_##x(op, func)
-#define EXDEF3(x, op, func, y) PROCESS_##x(op, func, y)
-#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Small)
-#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Small)
-#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Small, t)
-#include "InterpreterHandler.inl"
-                        default:
-                            // Help the C++ optimizer by declaring that the cases we
-                            // have above are sufficient
-                            AssertMsg(false, "dispatch to bad opcode");
-                            __assume(false);
-                    };
-                    return ip;
-                }(ip, op);
+                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedOpCodePrefix)(ip);
 
 #if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
@@ -241,28 +328,7 @@ SWAP_BP_FOR_OPCODE:
             case INTERPRETER_OPCODE::MediumLayoutPrefix:
             {
                 Var yieldValue = nullptr;
-                ip = [this, &yieldValue](const byte * ip) -> const byte *
-                {
-                    INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
-                    switch (op)
-                    {
-                        case INTERPRETER_OPCODE::Yield:
-                            m_reader.Reg2_Medium(ip);
-                            yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
-                            break;
-
-#define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
-#define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
-#define DEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Medium, t)
-#include "InterpreterHandler.inl"
-                        default:
-                            // Help the C++ optimizer by declaring that the cases we
-                            // have above are sufficient
-                            AssertMsg(false, "dispatch to bad opcode");
-                            __assume(false);
-                    }
-                    return ip;
-                }(ip);
+                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, MediumLayoutPrefix)(ip, yieldValue);
 
                 if (yieldValue != nullptr)
                 {
@@ -279,40 +345,8 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
-            case INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix:
             {
-#ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
-                {
-                    uint bias;
-                    if (prefixOp == INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix)
-                    {
-                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
-                    }
-                    else
-                    {
-                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix);
-                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
-                    }
-                    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-                    , true
-#endif
-                    ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
-                    switch (op)
-                    {
-#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
-#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
-#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Medium, t)
-#include "InterpreterHandler.inl"
-                        default:
-                            // Help the C++ optimizer by declaring that the cases we
-                            // have above are sufficient
-                            AssertMsg(false, "dispatch to bad opcode");
-                            __assume(false);
-                    };
-                    return ip;
-                }(ip, op);
+                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedMediumLayoutPrefix)(ip);
 
 #if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
@@ -321,35 +355,12 @@ SWAP_BP_FOR_OPCODE:
                     return nullptr;
                 }
 #endif
-#endif
                 break;
             }
             case INTERPRETER_OPCODE::LargeLayoutPrefix:
             {
                 Var yieldValue = nullptr;
-
-                ip = [this, &yieldValue](const byte * ip) -> const byte *
-                {
-                    INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
-                    switch (op)
-                    {
-                        case INTERPRETER_OPCODE::Yield:
-                            m_reader.Reg2_Large(ip);
-                            yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
-                            break;
-
-#define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
-#define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
-#define DEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Large, t)
-#include "InterpreterHandler.inl"
-                        default:
-                            // Help the C++ optimizer by declaring that the cases we
-                            // have above are sufficient
-                            AssertMsg(false, "dispatch to bad opcode");
-                            __assume(false);
-                    }
-                    return ip;
-                }(ip);
+                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeLayoutPrefix)(ip, yieldValue);
 
                 if (yieldValue != nullptr)
                 {
@@ -366,41 +377,8 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
-            case INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix:
             {
-#ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
-                {
-                    uint bias;
-                if (prefixOp == INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix)
-                {
-                    bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
-                }
-                else
-                {
-                    Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix);
-                    bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
-                }
-
-                    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-                    , true
-#endif
-                    ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
-                    switch (op)
-                    {
-#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
-#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
-#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Large, t)
-#include "InterpreterHandler.inl"
-                        default:
-                            // Help the C++ optimizer by declaring that the cases we
-                            // have above are sufficient
-                            AssertMsg(false, "dispatch to bad opcode");
-                            __assume(false);
-                    };
-                    return ip;
-                }(ip, op);
+                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedLargeLayoutPrefix)(ip);
 
 #if ENABLE_PROFILE_INFO
                 if(switchProfileMode)
@@ -408,7 +386,6 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
-#endif
 #endif
                 break;
             }

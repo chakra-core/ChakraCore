@@ -63,7 +63,6 @@ private:
     BREAKRESUMEACTION resumeAction;
     ArenaAllocator* debugObjectArena;
     JsrtDebuggerObjectsManager* debuggerObjectsManager;
-    uint callBackDepth;
     JsrtDebugDocumentManager* debugDocumentManager;
     JsrtDebugStackFrames* stackFrames;
     JsDiagBreakOnExceptionAttributes breakOnExceptionAttributes;

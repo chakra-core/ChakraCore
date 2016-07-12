@@ -210,6 +210,25 @@ public:
         return NULL;
     }
 
+    HashBucket * GetBucket(uint key)
+    {
+        uint hash = this->Hash(key);
+        // Assumes sorted lists
+        FOREACH_SLISTBASE_ENTRY(HashBucket, bucket, &this->table[hash])
+        {
+            if (Key::Get(bucket.value) <= key)
+            {
+                if (Key::Get(bucket.value) == key)
+                {
+                    return &bucket;
+                }
+                break;
+            }
+        } NEXT_SLISTBASE_ENTRY;
+
+        return nullptr;
+    }
+
     TElement GetAndClear(TData * value)
     {
         uint key = Key::Get(value);
@@ -276,7 +295,7 @@ public:
     {
         for (uint i = 0; i < this->tableSize; i++)
         {
-            SListBase<HashBucket>::Iterator iter2(&this2->table[i]);
+            _TYPENAME SListBase<HashBucket>::Iterator iter2(&this2->table[i]);
             iter2.Next();
             FOREACH_SLISTBASE_ENTRY_EDITING(HashBucket, bucket, &this->table[i], iter)
             {
@@ -308,7 +327,7 @@ public:
     {
         for (uint i = 0; i < this->tableSize; i++)
         {
-            SListBase<HashBucket>::Iterator iter2(&this2->table[i]);
+            _TYPENAME SListBase<HashBucket>::Iterator iter2(&this2->table[i]);
             iter2.Next();
             FOREACH_SLISTBASE_ENTRY_EDITING((HashBucket), bucket, &this->table[i], iter)
             {
@@ -347,7 +366,7 @@ public:
 
         for (uint i = 0; i < this->tableSize; i++)
         {
-            this->table[i].CopyTo<HashBucket::Copy>(this->alloc, newTable->table[i]);
+            this->table[i].template CopyTo<HashBucket::Copy>(this->alloc, newTable->table[i]);
         }
 #if PROFILE_DICTIONARY
         if (stats)

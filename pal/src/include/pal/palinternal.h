@@ -311,8 +311,6 @@ function_name() to call the system's implementation
 #undef va_copy
 #endif
 
-#define wchar_t char16_t
-
 #define ptrdiff_t PAL_ptrdiff_t
 #define intptr_t PAL_intptr_t
 #define uintptr_t PAL_uintptr_t
@@ -395,7 +393,6 @@ function_name() to call the system's implementation
 #undef time
 #undef tm
 #undef localtime
-#undef mktime
 #undef FILE
 #undef fclose
 #undef setbuf
@@ -441,7 +438,6 @@ function_name() to call the system's implementation
 #undef exp
 #undef log
 #undef log10
-#undef pow
 #undef rand
 #undef srand
 #undef errno
@@ -466,7 +462,6 @@ function_name() to call the system's implementation
 #undef floor
 #undef modff
 
-#undef wchar_t
 #undef ptrdiff_t
 #undef intptr_t
 #undef uintptr_t
@@ -554,7 +549,6 @@ function_name() to call the system's implementation
 #undef siglongjmp
 
 #undef _SIZE_T_DEFINED
-#undef _WCHAR_T_DEFINED
 
 #define _DONT_USE_CTYPE_INLINE_
 #if HAVE_RUNETYPE_H

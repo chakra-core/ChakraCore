@@ -245,7 +245,6 @@ public:
     void SetCannotMergeWithBodyScope() { Assert(this->scopeType == ScopeType_Parameter); canMergeWithBodyScope = false; }
     bool GetCanMergeWithBodyScope() const { return canMergeWithBodyScope; }
 
-    void SetHasLocalInClosure(bool has);
     void SetHasOwnLocalInClosure(bool has) { hasLocalInClosure = has; }
     bool GetHasOwnLocalInClosure() const { return hasLocalInClosure; }
 
@@ -256,10 +255,12 @@ public:
     int AddScopeSlot();
 
     void SetHasCrossScopeFuncAssignment() { hasCrossScopeFuncAssignment = true; }
+    bool HasCrossScopeFuncAssignment() const { return hasCrossScopeFuncAssignment; }
 
     void ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator);
 
     bool IsGlobalEvalBlockScope() const;
 
-    static void MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator * byteCodeGenerator);
+    static void MergeParamAndBodyScopes(ParseNode *pnodeScope);
+    static void RemoveParamScope(ParseNode *pnodeScope);
 };

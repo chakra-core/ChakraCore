@@ -149,7 +149,7 @@ public:
 };
 
 template<>
-IntBoundCheckCompatibilityId JsUtil::ValueToKey<IntBoundCheckCompatibilityId, IntBoundCheck>::ToKey(
+inline IntBoundCheckCompatibilityId JsUtil::ValueToKey<IntBoundCheckCompatibilityId, IntBoundCheck>::ToKey(
     const IntBoundCheck &intBoundCheck)
 {
     return intBoundCheck.CompatibilityId();

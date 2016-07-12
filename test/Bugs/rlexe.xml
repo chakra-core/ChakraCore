@@ -254,7 +254,7 @@
   </test>
   <test>
     <default>
-      <files>bug_resetisdead.js</files>
+      <files>Bug_resetisdead.js</files>
       <compile-flags>-on:prelowererpeeps</compile-flags>
     </default>
   </test>

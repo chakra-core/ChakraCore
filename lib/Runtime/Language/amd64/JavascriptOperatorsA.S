@@ -3,25 +3,26 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 .intel_syntax noprefix
+#include "unixasmmacros.inc"
 
-.global amd64_CallWithFakeFrame
-.global amd64_ReturnFromCallWithFakeFrame
-
+// expected fvisibility=default
+.global C_FUNC(amd64_CallWithFakeFrame)
+.global C_FUNC(amd64_ReturnFromCallWithFakeFrame)
         // r8       = arg0.
         // rcx      = args size.
         // rdx      = spill size.
         // rsi      = original frame pointer.
         // rdi      = target.
-.align 16
+.balign 16
 .text
-amd64_CallWithFakeFrame:        
+C_FUNC(amd64_CallWithFakeFrame):
         // xplat-todo: need to have an equivalent function to __chkstk that we can
         // call here to verify that we have enough stack space
 
         // The stack walker uses this marker to skip this frame.
         // Note that we use rip-relative addressing here since this
         // library is shared and therefore the code has to be position independent
-        lea rax, [rip+amd64_ReturnFromCallWithFakeFrame]
+        lea rax, [rip + C_FUNC(amd64_ReturnFromCallWithFakeFrame)]
         mov [rsp+8h], rax
 
         mov rax, [rsp + 28h]
@@ -56,11 +57,11 @@ amd64_CallWithFakeFrame:
 
         jmp rdi
 
-
         // rcx = args size.
         // rdx = spill size.
-.align 16
-amd64_ReturnFromCallWithFakeFrame:      
+
+.balign 16
+C_FUNC(amd64_ReturnFromCallWithFakeFrame):
         add  rsp, rcx
 
         pop  rbx

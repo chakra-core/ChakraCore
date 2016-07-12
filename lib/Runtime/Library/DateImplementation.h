@@ -5,6 +5,8 @@
 #pragma once
 struct _SYSTEMTIME;
 
+using namespace PlatformAgnostic;
+
 namespace Js {
     struct SZS;
 
@@ -79,13 +81,6 @@ namespace Js {
             bool fDst;
         };
 
-#ifdef ENABLE_GLOBALIZATION
-        template <class ScriptContext>
-        static int32 GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
-        template <class ScriptContext>
-        static int32 GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
-#endif
-
         template <class ScriptContext>
         static double GetTvLcl(double tv, ScriptContext * scriptContext, TZD *ptzd = nullptr);
         template <class ScriptContext>
@@ -142,9 +137,11 @@ namespace Js {
         static bool TryParseIsoString(const char16 *const str, const size_t length, double &timeValue, ScriptContext *scriptContext);
 
         static JavascriptString* ConvertVariantDateToString(double variantDateDouble, ScriptContext* scriptContext);
-        static JavascriptString* GetDateDefaultString(Js::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext);
-        static JavascriptString* GetDateGmtString(Js::YMD *pymd,ScriptContext* scriptContext);
-        static JavascriptString* GetDateLocaleString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext);
+        static JavascriptString* GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext);
+        static JavascriptString* GetDateGmtString(DateTime::YMD *pymd,ScriptContext* scriptContext);
+#ifdef ENABLE_GLOBALIZATION // todo-xplat: Implement this ICU?
+        static JavascriptString* GetDateLocaleString(DateTime::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext);
+#endif
 
         static double DateFncUTC(ScriptContext* scriptContext, Arguments args);
         static bool FBig(char16 ch);
@@ -281,45 +278,20 @@ namespace Js {
         static StringBuilder* ConvertVariantDateToString(double dbl, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
 
         template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
-        static StringBuilder* GetDateDefaultString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
+        static StringBuilder* GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
 
     private:
         double                  m_tvUtc;
         double                  m_tvLcl;
-        Js::YMD                 m_ymdUtc;
-        Js::YMD                 m_ymdLcl;
+        DateTime::YMD           m_ymdUtc;
+        DateTime::YMD           m_ymdLcl;
         TZD                     m_tzd;
-        uint32           m_grfval; // Which fields are valid. m_tvUtc is always valid.
+        uint32                  m_grfval; // Which fields are valid. m_tvUtc is always valid.
         ScriptContext *         m_scriptContext;
         bool                    m_modified : 1; // Whether SetDateData was called on this class
 
         friend JavascriptDate;
-        friend HiResTimer;
     };
-
-#ifdef ENABLE_GLOBALIZATION
-    ///
-    /// Gets the daylight bias to use, in minutes. (Shared with hybrid debugging, which may use a fake scriptContext.)
-    ///
-    template <class ScriptContext>
-    int32 DateImplementation::GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
-    {
-        Assert(pTz);
-        Assert(scriptContext);
-        return pTz->DaylightBias;
-    }
-
-    ///
-    /// Gets the standard bias to use, in minutes. (Shared with hybrid debugging, which may use a fake scriptContext.)
-    ///
-    template <class ScriptContext>
-    int32 DateImplementation::GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
-    {
-        Assert(pTz);
-        Assert(scriptContext);
-        return pTz->StandardBias;
-    }
-#endif
 
     ///
     /// Use tv as the UTC time and return the corresponding local time. (Shared with hybrid debugging, which may use a fake scriptContext.)
@@ -343,8 +315,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
-        // xplat-todo: Implement DaylightTimeHelper functions on Linux
-#ifdef _WIN32
         int bias;
         int offset;
         bool isDaylightSavings;
@@ -356,9 +326,6 @@ namespace Js {
             ptzd->fDst = isDaylightSavings;
         }
         return tvLcl;
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     ///
@@ -376,8 +343,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
-        // xplat-todo: Implement DaylightTimeHelper functions on Linux
-#ifdef _WIN32
         tvUtc = scriptContext->GetDaylightTimeHelper()->LocalToUtc(tv);
         // See if we're out of range after conversion (UTC time value must be within this range)
         if (JavascriptNumber::IsNan(tvUtc) || !NumberUtilities::IsFinite(tv) || tvUtc < ktvMin || tvUtc > ktvMax)
@@ -385,9 +350,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
         return tvUtc;
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     //
@@ -414,7 +376,7 @@ namespace Js {
     StringBuilder* DateImplementation::ConvertVariantDateToString(double dbl, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder)
     {
         TZD tzd;
-        YMD ymd;
+        DateTime::YMD ymd;
         double tv = GetTvUtc(JsLocalTimeFromVarDate(dbl), scriptContext);
 
         tv = GetTvLcl(tv, scriptContext, &tzd);
@@ -429,7 +391,6 @@ namespace Js {
         return GetDateDefaultString<StringBuilder>(&ymd, &tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
     }
 
-#ifdef ENABLE_GLOBALIZATION
     //
     // Get default date string, shared with hybrid debugging.
     //  StringBuilder: A Js::StringBuilder/CompoundString like class, used to build strings.
@@ -437,7 +398,7 @@ namespace Js {
     //  NewStringBuilderFunc: A function that returns a StringBuilder*, used to create a StringBuilder.
     //
     template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
-    StringBuilder* DateImplementation::GetDateDefaultString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder)
+    StringBuilder* DateImplementation::GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder)
     {
         int hour, min;
 
@@ -514,13 +475,15 @@ namespace Js {
             // check the IsDaylightSavings?
             if (ptzd->fDst == false)
             {
-                const char16 *const standardName = scriptContext->GetTimeZoneInfo()->StandardName;
-                bs->AppendChars(standardName, static_cast<CharCount>(wcslen(standardName)));
+                size_t nameLength;
+                const WCHAR *const standardName = scriptContext->GetStandardName(&nameLength, pymd);
+                bs->AppendChars(standardName, static_cast<CharCount>(nameLength));
             }
             else
             {
-                const char16 *const daylightName = scriptContext->GetTimeZoneInfo()->DaylightName;
-                bs->AppendChars(daylightName, static_cast<CharCount>(wcslen(daylightName)));
+                size_t nameLength;
+                const WCHAR *const daylightName = scriptContext->GetDaylightName(&nameLength, pymd);
+                bs->AppendChars(daylightName, static_cast<CharCount>(nameLength));
             }
 
             bs->AppendChars(_u(')'));
@@ -528,6 +491,5 @@ namespace Js {
 
         return bs;
     }
-#endif // ENABLE_GLOBALIZATION
 
 } // namespace Js

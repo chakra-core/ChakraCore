@@ -217,6 +217,7 @@ public:
     ValueType           GetValueType() const { return m_valueType; }
     void                SetValueType(const ValueType valueType);
     ValueType           FindProfiledValueType();
+    bool                IsScopeObjOpnd(Func * func);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     virtual void        DummyFunction() {} // Note needed for the VS debugger to disambiguate the different classes.
     void                DumpValueType();

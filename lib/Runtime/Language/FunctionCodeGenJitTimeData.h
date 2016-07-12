@@ -290,6 +290,11 @@ namespace Js
             return this->doesntHaveEquivalence;
         }
 
+        bool IsBuiltIn() const
+        {
+            return this->isBuiltIn;
+        }
+
         void ClearFlags()
         {
             this->flags = 0;

@@ -321,6 +321,9 @@ namespace Js
                 return FALSE;
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnRevokedProxy, _u("get"));
         }
+
+        RecyclableObject *target = this->target;
+
         JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, scriptContext);
         Var getGetResult;
         if (nullptr == getGetMethod || scriptContext->IsHeapEnumInProgress())

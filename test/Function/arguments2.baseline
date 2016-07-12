@@ -140,6 +140,6 @@ Test17.2 : Feb20
 PASSED : Test17.2 exp: Feb20 act : Feb20
 Test18.1 : undefined
 PASSED : Test18.1 exp: undefined act : undefined
-Test18.2 : Test 18 Value
-PASSED : Test18.2 exp: Test 18 Value act : Test 18 Value
+Test18.2 : undefined
+PASSED : Test18.2 exp: undefined act : undefined
 test19 called

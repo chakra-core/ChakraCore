@@ -454,7 +454,7 @@ namespace Js
         pError->SetNotEnumerable(PropertyIds::description);
 
         hr = JavascriptError::GetErrorNumberFromResourceID(hr);
-        JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVar(hr, scriptContext));
+        JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVar((int32)hr, scriptContext));
         pError->SetNotEnumerable(PropertyIds::number);
     }
 

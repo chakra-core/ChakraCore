@@ -105,58 +105,10 @@ Js::PropertyId Symbol::EnsureScopeSlot(FuncInfo *funcInfo)
     return this->scopeSlot;
 }
 
-void Symbol::SetHasNonLocalReference(bool b, ByteCodeGenerator *byteCodeGenerator)
+void Symbol::SetHasNonLocalReference()
 {
-    this->hasNonLocalReference = b;
-
-    // The symbol's home function will tell us which child function we're currently processing.
-    // This is the one that captures the symbol, from the declaring function's perspective.
-    // So based on that information, note either that, (a.) the symbol is committed to the heap from its
-    // inception, (b.) the symbol must be committed when the capturing function is instantiated.
-
-    FuncInfo *funcHome = this->scope->GetFunc();
-    FuncInfo *funcChild = funcHome->GetCurrentChildFunction();
-
-    // If this is not a local property, or not all its references can be tracked, or
-    // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.
-    if (funcHome->IsGlobalFunction() ||
-        funcHome->GetCallsEval() ||
-        funcHome->GetChildCallsEval() ||
-        funcChild == nullptr ||
-        this->GetScope() != funcHome->GetBodyScope() ||
-        byteCodeGenerator->IsInDebugMode() ||
-        PHASE_OFF(Js::DelayCapturePhase, funcHome->byteCodeFunction))
-    {
-        this->SetIsCommittedToSlot();
-    }
-
-    if (this->isCommittedToSlot)
-    {
-        return;
-    }
-
-    AnalysisAssert(funcChild);
-    ParseNode *pnodeChild = funcChild->root;
-
-    Assert(pnodeChild && pnodeChild->nop == knopFncDecl);
-
-    if (pnodeChild->sxFnc.IsDeclaration())
-    {
-        // The capturing function is a declaration but may still be limited to an inner scope.
-        Scope *scopeChild = funcHome->GetCurrentChildScope();
-        if (scopeChild == this->scope || scopeChild->GetScopeType() == ScopeType_FunctionBody)
-        {
-            // The symbol is captured on entry to the scope in which it's declared.
-            // (Check the scope type separately so that we get the special parameter list and
-            // named function expression cases as well.)
-            this->SetIsCommittedToSlot();
-            return;
-        }
-    }
-
-    // There is a chance we can limit the region in which the symbol lives on the heap.
-    // Note which function captures the symbol.
-    funcChild->AddCapturedSym(this);
+    this->hasNonLocalReference = true;
+    this->scope->SetHasOwnLocalInClosure(true);
 }
 
 void Symbol::SetHasMaybeEscapedUse(ByteCodeGenerator * byteCodeGenerator)

@@ -2,14 +2,14 @@
 <regress-exe>
   <test>
     <default>
-      <files>arrayBuffer.js</files>
-      <baseline>arraybuffer.baseline</baseline>
+      <files>arraybuffer.js</files>
+      <baseline>arrayBuffer.baseline</baseline>
       <tags>typedarray</tags>
     </default>
   </test>
   <test>
     <default>
-      <files>arrayBufferType_v5.js</files>
+      <files>arraybufferType_v5.js</files>
       <baseline>arraybufferType_v5.baseline</baseline>
       <tags>typedarray</tags>
       <compile-flags>-ES6- </compile-flags>
@@ -17,7 +17,7 @@
   </test>
   <test>
     <default>
-      <files>arrayBufferType.js</files>
+      <files>arraybufferType.js</files>
       <baseline>arraybufferType.baseline</baseline>
       <tags>typedarray</tags>
       <compile-flags>-ES6TypedArrayExtensions</compile-flags>
@@ -94,8 +94,8 @@
   </test>
   <test>
     <default>
-      <files>DataView.js</files>
-      <baseline>DataView.baseline</baseline>
+      <files>dataview.js</files>
+      <baseline>dataview.baseline</baseline>
       <tags>typedarray</tags>
     </default>
   </test>
@@ -215,13 +215,13 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>allocation.js</files>
-      <tags>typedarray,exclude_arm</tags>
+      <tags>typedarray,exclude_arm,xplatslow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>allocation2.js</files>
-      <tags>typedarray,exclude_arm</tags>
+      <tags>typedarray,exclude_arm,xplatslow</tags>
     </default>
   </test>
   <test>
