@@ -85,7 +85,7 @@ set _HadFailures=0
 :: ============================================================================
 :runNativeTests
 
-  call :do %_TestDir%\runnativetests.cmd -%1 > %_LogDir%\nativetests.log 2>&1
+  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogDir%\nativetests.log 2>&1
 
   if ERRORLEVEL 1 set _HadFailures=1
 
