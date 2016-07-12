@@ -679,46 +679,6 @@ done:
 
 /*++
 Function:
-  PAL_RegisterModule
-
-  Register the module with the target module and return a module handle in
-  the target module's context. Doesn't call the DllMain because it is used
-  as part of calling DllMain in the calling module.
-
---*/
-HINSTANCE
-PALAPI
-PAL_RegisterModule(
-    IN LPCSTR lpLibFileName)
-{
-    HINSTANCE hinstance = nullptr;
-
-    int err = PAL_InitializeDLL();
-    if (err == 0)
-    {
-        PERF_ENTRY(PAL_RegisterModule);
-        ENTRY("PAL_RegisterModule(%s)\n", lpLibFileName ? lpLibFileName : "");
-
-        LockModuleList();
-
-        void *dl_handle = LOADLoadLibraryDirect(lpLibFileName);
-        if (dl_handle)
-        {
-            // This only creates/adds the module handle and doesn't call DllMain
-            hinstance = LOADAddModule(dl_handle, lpLibFileName);
-        }
-
-        UnlockModuleList();
-
-        LOGEXIT("PAL_RegisterModule returns HINSTANCE %p\n", hinstance);
-        PERF_EXIT(PAL_RegisterModule);
-    }
-
-    return hinstance;
-}
-
-/*++
-Function:
   PAL_UnregisterModule
 
   Used to cleanup the module HINSTANCE from PAL_RegisterModule.
