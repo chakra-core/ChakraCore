@@ -72,6 +72,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
 
     data->implicitCallFlags = static_cast<byte>(profileInfo->GetImplicitCallFlags());
 
+    data->flags = 0;
     data->flags |= profileInfo->IsAggressiveIntTypeSpecDisabled(false) ? Flags_disableAggressiveIntTypeSpec : 0;
     data->flags |= profileInfo->IsAggressiveIntTypeSpecDisabled(true) ? Flags_disableAggressiveIntTypeSpec_jitLoopBody : 0;
     data->flags |= profileInfo->IsAggressiveMulIntTypeSpecDisabled(false) ? Flags_disableAggressiveMulIntTypeSpec : 0;

@@ -112,6 +112,8 @@ enum IRDumpFlags
 
 #include "ChakraJIT.h"
 #include "JITTimeProfileInfo.h"
+#include "JITTimePolymorphicInlineCache.h"
+#include "JITTimePolymorphicInlineCacheInfo.h"
 #include "CodeGenWorkItemType.h"
 #include "CodeGenAllocators.h"
 #include "ThreadContextInfo.h"

@@ -26,6 +26,7 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
+    this->jitData = {0};
     // work item data
     this->jitData.type = type;
     this->jitData.isJitInDebugMode = isJitInDebugMode;

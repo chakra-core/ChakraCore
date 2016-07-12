@@ -4809,7 +4809,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
     case Js::OpCode::NewScObject_A:
         {
-            const Js::VarArrayVarCount *vars = Js::ByteCodeReader::ReadVarArrayVarCount(auxInsn->Offset, m_func->GetJnFunction());
+            const Js::VarArrayVarCount *vars = (Js::VarArrayVarCount *)m_func->GetJITFunctionBody()->ReadFromAuxContextData(auxInsn->Offset);
 
             int count = Js::TaggedInt::ToInt32(vars->count);
 
@@ -7269,7 +7269,11 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset)
     case AuxArrayValue::AuxVarsArray:
     case AuxArrayValue::AuxFuncInfoArray:
     case AuxArrayValue::AuxVarArrayVarCount:
-        return IR::AddrOpnd::New(m_func->GetJITFunctionBody()->ReadAuxArray(auxArrayOffset), IR::AddrOpndKindDynamicMisc, m_func);
+    {
+        IR::AddrOpnd * opnd = IR::AddrOpnd::New(m_func->GetJITFunctionBody()->GetAuxDataAddr(auxArrayOffset), IR::AddrOpndKindDynamicAuxBufferRef, m_func);
+        opnd->m_metadata = m_func->GetJITFunctionBody()->ReadFromAuxData(auxArrayOffset);
+        return opnd;
+    }
     default:
         Assert(UNREACHED);
         return nullptr;

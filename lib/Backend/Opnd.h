@@ -89,6 +89,7 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindDynamicFloatRef,
     AddrOpndKindDynamicDoubleRef,
     AddrOpndKindDynamicNativeCodeDataRef,
+    AddrOpndKindDynamicAuxBufferRef,
 };
 
 ///---------------------------------------------------------------------------
@@ -515,14 +516,14 @@ public:
 
 private:
     static PropertySymOpnd * New(PropertySym *propertySym, IRType type, Func *func);
-    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
+    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
 #if DBG
     virtual bool      DbgIsPropertySymOpnd() const override { return true; }
 #endif
 public:
     Js::InlineCacheIndex m_inlineCacheIndex;
     intptr_t m_runtimeInlineCache;
-    Js::PolymorphicInlineCache* m_runtimePolymorphicInlineCache;
+    JITTimePolymorphicInlineCache* m_runtimePolymorphicInlineCache;
 private:
     JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:

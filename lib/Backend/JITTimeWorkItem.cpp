@@ -100,6 +100,25 @@ JITTimeWorkItem::GetWorkItemData()
     return m_workItemData;
 }
 
+JITTimePolymorphicInlineCacheInfo *
+JITTimeWorkItem::GetPolymorphicInlineCacheInfo()
+{
+    return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->polymorphicInlineCacheInfo.selfInfo;
+}
+
+JITTimePolymorphicInlineCacheInfo *
+JITTimeWorkItem::GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr)
+{
+    for (uint i = 0; i < m_workItemData->polymorphicInlineCacheInfo.inlineeInfoCount; ++i)
+    {
+        if (m_workItemData->polymorphicInlineCacheInfo.inlineeInfo[i].functionBodyAddr == funcBodyAddr)
+        {
+            return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->polymorphicInlineCacheInfo.inlineeInfo[i];
+        }
+    }
+    return nullptr;
+}
+
 void
 JITTimeWorkItem::SetJITTimeData(FunctionJITTimeDataIDL * jitData)
 {

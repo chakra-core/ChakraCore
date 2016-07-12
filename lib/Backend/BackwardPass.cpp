@@ -2921,7 +2921,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                     Assert(sym);
                     if (IsFormalParamSym(currFunc, sym))
                     {
-                        AssertMsg(!currFunc->GetJnFunction()->GetHasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
+                        AssertMsg(!currFunc->GetJITFunctionBody()->HasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
 
                         instr->m_opcode = Js::OpCode::Ld_A;
                         PropertySym * propSym = sym->AsPropertySym();
@@ -2976,7 +2976,7 @@ BackwardPass::TraceDeadStoreOfInstrsForScopeObjectRemoval()
         {
             if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
             {
-                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                 Output::Flush();
             }
         }
@@ -2995,7 +2995,7 @@ BackwardPass::IsFormalParamSym(Func * func, Sym * sym) const
         PropertySym * propSym = sym->AsPropertySym();
         IntConstType    value = propSym->m_propertyId;
         return func->IsFormalsArraySym(propSym->m_stackSym->m_id) &&
-            (value >= 0 && value < func->GetJnFunction()->GetInParamsCount() - 1);
+            (value >= 0 && value < func->GetJITFunctionBody()->GetInParamsCount() - 1);
     }
     else
     {

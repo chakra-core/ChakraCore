@@ -251,7 +251,7 @@ namespace Js
 
         InlineCachePointerArray<PolymorphicInlineCache> * GetPolymorphicInlineCaches() { return &polymorphicInlineCaches; }
         PolymorphicCacheUtilizationArray * GetUtilArray() { return &polymorphicCacheUtilizationArray; }
-        FunctionBody * GetFunctionBody() { return functionBody; }
+        FunctionBody * GetFunctionBody() const { return functionBody; }
     };
 
     class EntryPointPolymorphicInlineCacheInfo sealed
@@ -272,6 +272,7 @@ namespace Js
         PolymorphicInlineCacheInfo * GetSelfInfo() { return &selfInfo; }
         PolymorphicInlineCacheInfo * EnsureInlineeInfo(Recycler * recycler, FunctionBody * inlineeFunctionBody);
         PolymorphicInlineCacheInfo * GetInlineeInfo(FunctionBody * inlineeFunctionBody);
+        SListBase<PolymorphicInlineCacheInfo*> * GetInlineeInfo() { return &this->inlineeInfo; }
 
         void SetPolymorphicInlineCache(FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, bool isInlinee, byte polyCacheUtil);
 

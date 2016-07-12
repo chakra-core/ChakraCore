@@ -102,7 +102,7 @@ public:
         ScriptContextInfo * scriptContextInfo,
         JITOutputIDL * outputData,
         const FunctionJITRuntimeInfo *const runtimeInfo,
-        Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
@@ -235,7 +235,7 @@ public:
         ScriptContextInfo * scriptContextInfo,
         JITOutputIDL * outputData,
         const FunctionJITRuntimeInfo *const runtimeInfo,
-        Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
@@ -492,7 +492,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.
     intptr_t GetRuntimeInlineCache(const uint index) const;
-    Js::PolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
+    JITTimePolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
 
@@ -524,7 +524,7 @@ public:
     ThreadContextInfo * m_threadContextInfo;
     ScriptContextInfo * m_scriptContextInfo;
     JITTimeWorkItem * m_workItem;
-    Js::PolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
+    JITTimePolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
 
     // This indicates how many constructor caches we inserted into the constructorCaches array, not the total size of the array.
     uint constructorCacheCount;

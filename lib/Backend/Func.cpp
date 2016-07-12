@@ -11,7 +11,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ScriptContextInfo * scriptContextInfo,
     JITOutputIDL * outputData,
     const FunctionJITRuntimeInfo *const runtimeInfo,
-    Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
     uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
@@ -241,7 +241,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ScriptContextInfo * scriptContextInfo,
     JITOutputIDL * outputData,
     const FunctionJITRuntimeInfo *const runtimeInfo,
-    Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
     uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
@@ -905,6 +905,17 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
+
+    regSlot = this->GetJITFunctionBody()->GetParamClosureReg();
+    if (regSlot != Js::Constants::NoRegister)
+    {
+        Assert(this->GetParamClosureSym() == nullptr && !this->GetJITFunctionBody()->IsParamAndBodyScopeMerged());
+        this->m_paramClosureSym =
+            StackSym::FindOrCreate(static_cast<SymID>(regSlot),
+                this->DoStackFrameDisplay() ? (Js::RegSlot) - 1 : regSlot,
+                this);
+    }
+
     regSlot = GetJITFunctionBody()->GetLocalFrameDisplayReg();
     if (regSlot != Js::Constants::NoRegister)
     {
@@ -1237,12 +1248,12 @@ Func::GetRuntimeInlineCache(const uint index) const
     return GetJITFunctionBody()->GetInlineCache(index);
 }
 
-Js::PolymorphicInlineCache *
+JITTimePolymorphicInlineCache *
 Func::GetRuntimePolymorphicInlineCache(const uint index) const
 {
-    if (this->m_polymorphicInlineCacheInfo)
+    if (this->m_polymorphicInlineCacheInfo && this->m_polymorphicInlineCacheInfo->HasInlineCaches())
     {
-        return this->m_polymorphicInlineCacheInfo->GetPolymorphicInlineCaches()->GetInlineCache(this->m_jnFunction, index);
+        return this->m_polymorphicInlineCacheInfo->GetInlineCache(index);
     }
     return nullptr;
 }
@@ -1256,7 +1267,7 @@ Func::GetPolyCacheUtilToInitialize(const uint index) const
 byte
 Func::GetPolyCacheUtil(const uint index) const
 {
-    return this->m_polymorphicInlineCacheInfo->GetUtilArray()->GetUtil(this->m_jnFunction, index);
+    return this->m_polymorphicInlineCacheInfo->GetUtil(index);
 }
 
 JITObjTypeSpecFldInfo*
@@ -1504,7 +1515,7 @@ void
 Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
 {
     EnsureStackArgWithFormalsTracker();
-    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    Js::ArgSlot formalsCount = GetJITFunctionBody()->GetInParamsCount() - 1;
     stackArgWithFormalsTracker->SetStackSymInFormalsIndexMap(sym, formalsIndex, formalsCount);
 }
 
@@ -1516,7 +1527,7 @@ Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
         return nullptr;
     }
 
-    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    Js::ArgSlot formalsCount = GetJITFunctionBody()->GetInParamsCount() - 1;
     StackSym ** formalsIndexToStackSymMap = stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap();
     AssertMsg(formalsIndex < formalsCount, "OutOfRange ? ");
     return formalsIndexToStackSymMap[formalsIndex];

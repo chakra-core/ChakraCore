@@ -571,6 +571,11 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     JsFunctionCodeGen * workitem = workItemAutoPtr.Detach();
     workitem->SetEntryPointInfo(entryPointInfo);
 
+    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
+        fn->GetRecycler(),
+        entryPointInfo->GetPolymorphicInlineCacheInfo(),
+        &workitem->GetJITData()->polymorphicInlineCacheInfo);
+
     entryPointInfo->SetCodeGenPending(workitem);
     InterlockedIncrement(&pendingCodeGenWorkItems);
 
@@ -651,6 +656,11 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
         // OOM, just skip this work item and return.
         return;
     }
+
+    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
+        fn->GetRecycler(),
+        entryPoint->GetPolymorphicInlineCacheInfo(),
+        &workitem->GetJITData()->polymorphicInlineCacheInfo);
 
     entryPoint->SetCodeGenPending(workitem);
 
@@ -878,6 +888,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
 
     workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, false);
+
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
@@ -899,10 +910,15 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         &jitWriteData);
     if (hr != S_OK)
     {
-        return;
+        Js::Throw::InternalError();
     }
 
     workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
+
+    if (jitWriteData.writeableEPData.hasJittedStackClosure != FALSE)
+    {
+        workItem->GetEntryPoint()->SetHasJittedStackClosure();
+    }
 
     if (jitWriteData.numberPageSegments)
     {

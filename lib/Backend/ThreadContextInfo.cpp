@@ -20,7 +20,7 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextDataIDL * data) :
     m_delayLoadWinCoreProcessThreads(),
     m_activeJITCount(0)
 {
-    m_propertyMap = HeapNew(ThreadContext::PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+    m_propertyMap = HeapNew(JITPropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
 }
 
 ThreadContextInfo::~ThreadContextInfo()
@@ -363,6 +363,8 @@ ThreadContextInfo::AddToPropertyMap(const Js::PropertyRecord * origRecord)
     record->pid = origRecord->pid;
 
     m_propertyMap->Add(record);
+
+    PropertyRecordTrace(_u("Added JIT property '%s' at 0x%08x, pid = %d\n"), record->GetBuffer(), record, record->pid);
 }
 
 Js::PropertyRecord const *
@@ -373,16 +375,9 @@ ThreadContextInfo::GetPropertyRecord(Js::PropertyId propertyId)
         return Js::InternalPropertyRecords::GetInternalPropertyName(propertyId);
     }
 
-    int propertyIndex = propertyId - Js::PropertyIds::_none;
-
-    if (propertyIndex < 0 || propertyIndex > m_propertyMap->GetLastIndex())
-    {
-        propertyIndex = 0;
-    }
-
     const Js::PropertyRecord * propertyRecord = nullptr;
     m_propertyMap->LockResize();
-    bool found = m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
+    bool found = m_propertyMap->TryGetValue(propertyId, &propertyRecord);
     m_propertyMap->UnlockResize();
 
     AssertMsg(found && propertyRecord != nullptr, "using invalid propertyid");

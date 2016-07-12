@@ -1175,7 +1175,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
     workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
-    //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
+    JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(funcBody->GetAddr());
     Func * inlinee = JitAnew(this->topFunc->m_alloc,
                             Func,
                             this->topFunc->m_alloc,
@@ -1184,9 +1184,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
                             this->topFunc->GetScriptContextInfo(),
                             this->topFunc->GetJITOutput()->GetOutputData(),
                             callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetInlineeRuntimeData(callSiteId),
-                            // TODO: OOP JIT, polymorphic inline cache info
-                            //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
-                            nullptr,
+                            entryPointPolymorphicInlineCacheInfo,
                             this->topFunc->GetCodeGenAllocators(),
                             this->topFunc->GetNumberAllocator(),
                             this->topFunc->GetCodeGenProfiler(),
@@ -2615,7 +2613,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
     workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
-    //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
+    JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = inlineeData->HasBody() ? this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(inlineeData->GetBody()->GetAddr()) : nullptr;
     Func * inlinee = JitAnew(this->topFunc->m_alloc,
         Func,
         this->topFunc->m_alloc,
@@ -2624,9 +2622,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
         callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
-        // TODO: OOP JIT, polymorphic inline cache info
-        //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
-        nullptr,
+        entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
         this->topFunc->GetNumberAllocator(),
         this->topFunc->GetCodeGenProfiler(),
@@ -3356,7 +3352,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
-    //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
+    JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(funcBody->GetAddr());
     Func * inlinee = JitAnew(this->topFunc->m_alloc,
         Func,
         this->topFunc->m_alloc,
@@ -3365,9 +3361,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
         accessorInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
-        // TODO: OOP JIT, polymorphic inline cache info
-        //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
-        nullptr,
+        entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
         this->topFunc->GetNumberAllocator(),
         this->topFunc->GetCodeGenProfiler(),
@@ -3663,7 +3657,8 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
-    //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
+
+    JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(funcBody->GetAddr());
     Func * inlinee = JitAnew(this->topFunc->m_alloc,
         Func,
         this->topFunc->m_alloc,
@@ -3672,9 +3667,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
         funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
-        // TODO: OOP JIT, polymorphic inline cache info
-        //entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
-        nullptr,
+        entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
         this->topFunc->GetNumberAllocator(),
         this->topFunc->GetCodeGenProfiler(),
@@ -4504,11 +4497,13 @@ Inline::MapFormals(Func *inlinee,
                         {
                             fUsesSafeThis = true;
                         }
+#if 0 // TODO: OOP JIT, const this
                         else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
                             thisConstVar = symSrc->GetConstAddress();
                             fUsesConstThis = true;
                         }
+#endif
                         else if(fixedFunctionSafeThis)
                         {
                             // Note this need to come after we determined that this pointer is not const (undefined/null)

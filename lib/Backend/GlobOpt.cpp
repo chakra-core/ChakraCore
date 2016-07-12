@@ -3945,7 +3945,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
     {
         if (instr->m_func->IsStackArgsEnabled())
         {
-        if (instr->m_func->GetJITFunctionBody()->GetInParamsCount() != 1)
+            if (instr->GetSrc1()->IsRegOpnd() && instr->m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
             {
                 StackSym * scopeObjSym = instr->GetSrc1()->GetStackSym();
                 Assert(scopeObjSym);
@@ -8995,17 +8995,22 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             return false;
         }
+        return false;
+#if 0 // TODO: OOP JIT, const folding
         result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
         break;
-
+#endif
     case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrNotEq_A:
         if (!src1Var || !src2Var)
         {
             return false;
         }
+        return false;
+#if 0 // TODO: OOP JIT, const folding
         result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
         break;
+#endif
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNotNeq_A:
         if (!src1Var || !src2Var)
@@ -19367,13 +19372,6 @@ GlobOpt::IsSwitchOptEnabled(Func* func)
     Assert(func->IsTopFunc());
     return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
         && func->DoGlobOpt() && !func->HasTry();
-}
-
-bool
-GlobOpt::DoEquivObjTypeSpec(Func* func)
-{
-    return !PHASE_OFF(Js::ObjTypeSpecPhase, func) && !PHASE_OFF(Js::EquivObjTypeSpecPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsEquivalentObjTypeSpecDisabled()); // REVIEW: OOP JIT, this was inverted before?
 }
 
 bool

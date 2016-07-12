@@ -81,7 +81,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
         }
         // TODO: OOP JIT, cleanup these checks
         jitData->profiledRuntimeData = AnewStructZ(alloc, FunctionJITRuntimeIDL);
-        if (isInlinee ? runtimeData->ClonedInlineCaches()->HasInlineCaches() : (functionBody->GetCodeGenRuntimeDataWithLock() != nullptr && functionBody->GetCodeGenRuntimeDataWithLock()[0] != nullptr && functionBody->GetCodeGenRuntimeDataWithLock()[0]->ClonedInlineCaches()->HasInlineCaches()))
+        if (isInlinee && runtimeData->ClonedInlineCaches()->HasInlineCaches())
         {
             // REVIEW: OOP JIT is this safe to be doing in background?
             jitData->profiledRuntimeData->clonedCacheCount = jitData->bodyData->inlineCacheCount;
@@ -89,7 +89,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
             {
                 // REVIEW: OOP JIT, what to do with WriteBarrierPtr?
-                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)(isInlinee ? runtimeData->ClonedInlineCaches()->GetInlineCache(j) : functionBody->GetCodeGenRuntimeDataWithLock()[0]->ClonedInlineCaches()->GetInlineCache(j));
+                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)runtimeData->ClonedInlineCaches()->GetInlineCache(j);
             }
         }
         if (jitData->bodyData->inlineCacheCount > 0)

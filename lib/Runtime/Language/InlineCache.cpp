@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+#include "JITType.h"
 
 namespace Js
 {
@@ -913,7 +914,7 @@ namespace Js
     {
         for (uint16 ti = 0; ti < this->count; ti++)
         {
-            if (this->types[ti] == type)
+            if (this->types[ti]->GetAddr() == type->GetAddr())
             {
                 if (pIndex)
                 {

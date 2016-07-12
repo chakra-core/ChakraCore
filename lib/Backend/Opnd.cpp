@@ -741,7 +741,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
 }
 
 void
-PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
+PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
 {
     this->m_inlineCacheIndex = inlineCacheIndex;
     this->m_runtimeInlineCache = runtimeInlineCache;
@@ -888,8 +888,7 @@ PropertySymOpnd::UpdateSlotForFinalType()
         return;
     }
 
-    // TODO: OOP JIT, add this assert back: need type handler address
-    // Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
+    Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
     if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
         cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() == finalType->GetTypeHandler()->GetOffsetOfInlineSlots())
@@ -2803,7 +2802,6 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             if (propertySymOpnd->GetGuardedPropOps() != nullptr)
             {
                 Output::Print(_u(",{"));
-#if 0 // TODO: OOP JIT, fix this
                 if (func != nullptr)
                 {
                     int i = 0;
@@ -2835,7 +2833,6 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                 {
                     Output::Print(_u("(no func)"));
                 }
-#endif
                 Output::Print(_u("}"));
             }
             if (propertySymOpnd->GetWriteGuards() != nullptr)
@@ -3323,6 +3320,11 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         case AddrOpndKindDynamicRecyclerAllocatorEndAddressRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorEndAddress)"));
+            break;
+
+        case AddrOpndKindDynamicAuxBufferRef:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (AuxBufferRef)"));
             break;
 
         case AddrOpndKindDynamicRecyclerAllocatorFreeListRef:

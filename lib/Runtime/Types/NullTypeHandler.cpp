@@ -58,6 +58,7 @@ namespace Js
             const EquivalentPropertyEntry* refInfo = &properties[pi];
             if (!this->NullTypeHandlerBase::IsObjTypeSpecEquivalent(type, refInfo))
             {
+                failedPropertyIndex = pi;
                 return false;
             }
         }

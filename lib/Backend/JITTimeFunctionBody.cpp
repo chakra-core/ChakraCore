@@ -178,6 +178,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->auxDataBufferAddr = (intptr_t)functionBody->GetAuxiliaryData()->GetBuffer();
     }
 
+    if (functionBody->GetAuxiliaryContextData() != nullptr)
+    {
+        jitBody->auxContextDataCount = functionBody->GetAuxiliaryContextData()->GetLength();
+        jitBody->auxContextData = functionBody->GetAuxiliaryContextData()->GetBuffer();
+    }
+
     jitBody->scriptIdAddr = (intptr_t)functionBody->GetAddressOfScriptId();
     jitBody->flagsAddr = (intptr_t)functionBody->GetAddressOfFlags();
     jitBody->probeCountAddr = (intptr_t)&functionBody->GetSourceInfo()->m_probeCount;
@@ -877,9 +883,21 @@ JITTimeFunctionBody::GetAttributes() const
 }
 
 intptr_t
-JITTimeFunctionBody::ReadAuxArray(uint offset) const
+JITTimeFunctionBody::GetAuxDataAddr(uint offset) const
 {
     return m_bodyData.auxDataBufferAddr + offset;
+}
+
+void *
+JITTimeFunctionBody::ReadFromAuxData(uint offset) const
+{
+    return (void *)(m_bodyData.auxData + offset);
+}
+
+void *
+JITTimeFunctionBody::ReadFromAuxContextData(uint offset) const
+{
+    return (void *)(m_bodyData.auxContextData + offset);
 }
 
 const Js::PropertyIdArray *

@@ -3439,7 +3439,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
 
     IR::IntConstOpnd * propertyArrayIdOpnd = newObjInstr->UnlinkSrc1()->AsIntConstOpnd();
     const Js::PropertyIdArray * propIds = newObjInstr->m_func->GetJITFunctionBody()->ReadPropertyIdArrayFromAuxData(propertyArrayIdOpnd->AsUint32());
-    intptr_t propArrayAddr = newObjInstr->m_func->GetJITFunctionBody()->ReadAuxArray(propertyArrayIdOpnd->AsUint32());
+    intptr_t propArrayAddr = newObjInstr->m_func->GetJITFunctionBody()->GetAuxDataAddr(propertyArrayIdOpnd->AsUint32());
     uint inlineSlotCapacity = Js::JavascriptOperators::GetLiteralInlineSlotCapacity(propIds);
     uint slotCapacity = Js::JavascriptOperators::GetLiteralSlotCapacity(propIds);
     IR::RegOpnd * dstOpnd;
@@ -3893,13 +3893,18 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
         return;
     }
 
+    if (instr->GetSrc1()->AsAddrOpnd()->GetAddrOpndKind() != IR::AddrOpndKindDynamicAuxBufferRef)
+    {
+        return;
+    }
+
     Func * func = this->m_func;
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
 
     GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
 
     IR::AddrOpnd * elementsOpnd = instr->GetSrc1()->AsAddrOpnd();
-    Js::AuxArray<int32> * ints = (Js::AuxArray<int32> *)elementsOpnd->m_address;
+    Js::AuxArray<int32> * ints = (Js::AuxArray<int32> *)elementsOpnd->m_metadata;
     uint32 size = ints->count;
 
     // Generate code as in JavascriptArray::NewLiteral
@@ -3918,7 +3923,7 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
         // Do memcpy if > 16
         IR::RegOpnd * dstElementsOpnd = IR::RegOpnd::New(TyMachPtr, func);
         const IR::AutoReuseOpnd autoReuseDstElementsOpnd(dstElementsOpnd, func);
-        IR::Opnd * srcOpnd = IR::AddrOpnd::New(ints->elements, IR::AddrOpndKindDynamicMisc, func);
+        IR::Opnd * srcOpnd = IR::AddrOpnd::New((intptr_t)elementsOpnd->m_address + Js::AuxArray<int32>::OffsetOfElements(), IR::AddrOpndKindDynamicMisc, func);
         InsertLea(dstElementsOpnd, IR::IndirOpnd::New(headOpnd, sizeof(Js::SparseArraySegmentBase), TyMachPtr, func), instr);
         GenerateMemCopy(dstElementsOpnd, srcOpnd, ints->count * sizeof(int32), instr);
         i = ints->count;
@@ -3958,6 +3963,11 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
         return;
     }
 
+    if (instr->GetSrc1()->AsAddrOpnd()->GetAddrOpndKind() != IR::AddrOpndKindDynamicAuxBufferRef)
+    {
+        return;
+    }
+
     Func * func = this->m_func;
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
 
@@ -3966,7 +3976,7 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
     GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
 
     IR::AddrOpnd * elementsOpnd = instr->GetSrc1()->AsAddrOpnd();
-    Js::AuxArray<double> * doubles = (Js::AuxArray<double> *)elementsOpnd->m_address;
+    Js::AuxArray<double> * doubles = (Js::AuxArray<double> *)elementsOpnd->m_metadata;
     uint32 size = doubles->count;
 
     // Generate code as in JavascriptArray::NewLiteral
@@ -3982,7 +3992,7 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
 
     IR::RegOpnd * dstElementsOpnd = IR::RegOpnd::New(TyMachPtr, func);
     const IR::AutoReuseOpnd autoReuseDstElementsOpnd(dstElementsOpnd, func);
-    IR::Opnd * srcOpnd = IR::AddrOpnd::New(doubles->elements, IR::AddrOpndKindDynamicMisc, func);
+    IR::Opnd * srcOpnd = IR::AddrOpnd::New((intptr_t)elementsOpnd->m_address + Js::AuxArray<double>::OffsetOfElements(), IR::AddrOpndKindDynamicMisc, func);
     InsertLea(dstElementsOpnd, IR::IndirOpnd::New(headOpnd, sizeof(Js::SparseArraySegmentBase), TyMachPtr, func), instr);
     GenerateMemCopy(dstElementsOpnd, srcOpnd, doubles->count * sizeof(double), instr);
 
@@ -5449,9 +5459,9 @@ Lowerer::LowerLdFld(
         AssertMsg(src->AsSymOpnd()->IsPropertySymOpnd(), "Need property sym operand to find the inline cache");
         if (src->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache && polymorphicHelperMethod != helperMethod)
         {
-            Js::PolymorphicInlineCache * polymorphicInlineCache = src->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache;
+            JITTimePolymorphicInlineCache * polymorphicInlineCache = src->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache;
             helperMethod = polymorphicHelperMethod;
-            inlineCacheOpnd = IR::AddrOpnd::New(polymorphicInlineCache, IR::AddrOpndKindDynamicInlineCache, this->m_func);
+            inlineCacheOpnd = IR::AddrOpnd::New(polymorphicInlineCache->GetAddr(), IR::AddrOpndKindDynamicInlineCache, this->m_func);
         }
         else
         {
@@ -6123,7 +6133,7 @@ Lowerer::EnsureZeroLastStackFunctionNext()
 IR::Instr *
 Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
 {
-    Assert(newScFuncInstr->m_func->GetJITFunctionBody()->DoStackNestedFunc());
+    Assert(newScFuncInstr->m_func->DoStackNestedFunc());
     Func * func = newScFuncInstr->m_func;
     uint index = newScFuncInstr->GetSrc1()->AsIntConstOpnd()->AsUint32();
     Assert(index < func->GetJITFunctionBody()->GetNestedCount());
@@ -6163,7 +6173,7 @@ Lowerer::LowerNewScFunc(IR::Instr * newScFuncInstr)
 {
     IR::Instr *stackNewScFuncInstr = nullptr;
 
-    if (newScFuncInstr->m_func->GetJITFunctionBody()->DoStackNestedFunc())
+    if (newScFuncInstr->m_func->DoStackNestedFunc())
     {
         stackNewScFuncInstr = GenerateNewStackScFunc(newScFuncInstr);
     }
@@ -6407,9 +6417,9 @@ Lowerer::LowerStFld(
         AssertMsg(dst->AsSymOpnd()->IsPropertySymOpnd(), "Need property sym operand to find the inline cache");
         if (dst->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache && polymorphicHelperMethod != helperMethod)
         {
-            Js::PolymorphicInlineCache * polymorphicInlineCache = dst->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache;
+            JITTimePolymorphicInlineCache * polymorphicInlineCache = dst->AsPropertySymOpnd()->m_runtimePolymorphicInlineCache;
             helperMethod = polymorphicHelperMethod;
-            inlineCacheOpnd = IR::AddrOpnd::New(polymorphicInlineCache, IR::AddrOpndKindDynamicInlineCache, this->m_func);
+            inlineCacheOpnd = IR::AddrOpnd::New(polymorphicInlineCache->GetAddr(), IR::AddrOpndKindDynamicInlineCache, this->m_func);
         }
         else
         {
@@ -18585,7 +18595,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
     IR::RegOpnd * opndInlineCache = IR::RegOpnd::New(TyMachPtr, this->m_func);
     if (usePolymorphicInlineCache)
     {
-        LowererMD::CreateAssign(opndInlineCache, IR::AddrOpnd::New(propertySymOpnd->m_runtimePolymorphicInlineCache->GetInlineCaches(), IR::AddrOpndKindDynamicInlineCache, this->m_func, true), instrLdFld);
+        LowererMD::CreateAssign(opndInlineCache, IR::AddrOpnd::New(propertySymOpnd->m_runtimePolymorphicInlineCache->GetInlineCachesAddr(), IR::AddrOpndKindDynamicInlineCache, this->m_func, true), instrLdFld);
     }
     else
     {
@@ -18871,7 +18881,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
     IR::RegOpnd * opndInlineCache = IR::RegOpnd::New(TyMachPtr, this->m_func);
     if (usePolymorphicInlineCache)
     {
-        LowererMD::CreateAssign(opndInlineCache, IR::AddrOpnd::New(propertySymOpnd->m_runtimePolymorphicInlineCache->GetInlineCaches(), IR::AddrOpndKindDynamicInlineCache, this->m_func, true), instrStFld);
+        LowererMD::CreateAssign(opndInlineCache, IR::AddrOpnd::New(propertySymOpnd->m_runtimePolymorphicInlineCache->GetInlineCachesAddr(), IR::AddrOpndKindDynamicInlineCache, this->m_func, true), instrStFld);
     }
     else
     {

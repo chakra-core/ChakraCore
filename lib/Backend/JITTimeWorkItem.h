@@ -32,6 +32,9 @@ public:
 
     CodeGenWorkItemIDL* GetWorkItemData();
 
+    JITTimePolymorphicInlineCacheInfo * GetPolymorphicInlineCacheInfo();
+    JITTimePolymorphicInlineCacheInfo * GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr);
+
     void SetJITTimeData(FunctionJITTimeDataIDL * jitData);
     const FunctionJITTimeInfo * GetJITTimeInfo() const;
 

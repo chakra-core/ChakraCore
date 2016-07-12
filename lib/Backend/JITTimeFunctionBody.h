@@ -94,7 +94,8 @@ public:
 
     const byte * GetByteCodeBuffer() const;
 
-
+    void * ReadFromAuxData(uint offset) const;
+    void * ReadFromAuxContextData(uint offset) const;
     intptr_t GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
     intptr_t GetInlineCache(uint index) const;
@@ -124,7 +125,7 @@ public:
 
     wchar_t* GetDisplayName() const;
 
-    intptr_t ReadAuxArray(uint offset) const;
+    intptr_t GetAuxDataAddr(uint offset) const;
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
 

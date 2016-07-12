@@ -394,6 +394,9 @@ typedef struct FunctionBodyDataIDL
     unsigned int auxDataCount;
     [size_is(auxDataCount)] byte * auxData;
 
+    unsigned int auxContextDataCount;
+    [size_is(auxContextDataCount)] byte * auxContextData;
+
     ProfileDataIDL * profileData;
 
     AsmJsDataIDL * asmJsData;
@@ -476,6 +479,29 @@ typedef struct XProcNumberPageSegment
     unsigned int blockIntegratedSize;
 } XProcNumberPageSegment;
 
+typedef struct PolymorphicInlineCacheIDL
+{
+    unsigned short size;
+    __int3264 addr;
+    __int3264 inlineCachesAddr;
+} PolymorphicInlineCacheIDL;
+
+typedef struct PolymorphicInlineCacheInfoIDL
+{
+    unsigned int polymorphicInlineCacheCount;
+    [size_is(polymorphicInlineCacheCount)] byte * polymorphicCacheUtilizationArray;
+    [size_is(polymorphicInlineCacheCount)] PolymorphicInlineCacheIDL ** polymorphicInlineCaches;
+
+    __int3264 functionBodyAddr;
+} PolymorphicInlineCacheInfoIDL;
+
+typedef struct EntryPointPolymorphicInlineCacheInfoIDL
+{
+    PolymorphicInlineCacheInfoIDL selfInfo;
+    unsigned int inlineeInfoCount;
+    [size_is(inlineeInfoCount)] PolymorphicInlineCacheInfoIDL * inlineeInfo;
+} EntryPointPolymorphicInlineCacheInfoIDL;
+
 // CodeGenWorkItem fields, read only in JIT
 typedef struct CodeGenWorkItemIDL
 {
@@ -486,6 +512,8 @@ typedef struct CodeGenWorkItemIDL
 
     unsigned int loopNumber;
     XProcNumberPageSegment xProcNumberPageSegment;
+
+    EntryPointPolymorphicInlineCacheInfoIDL polymorphicInlineCacheInfo;
 
     FunctionJITTimeDataIDL * jitData;
     __int3264 jittedLoopIterationsSinceLastBailoutAddr;

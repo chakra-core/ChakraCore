@@ -88,7 +88,9 @@ private:
 
     ThreadContextDataIDL m_threadContextData;
 
-    ThreadContext::PropertyMap * m_propertyMap;
+    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
+        DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> JITPropertyMap;
+    JITPropertyMap * m_propertyMap;
     intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
     bool m_isAllJITCodeInPreReservedRegion;

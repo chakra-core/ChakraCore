@@ -122,6 +122,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
+    <ClCompile Include="JITTimePolymorphicInlineCacheInfo.cpp" />
+    <ClCompile Include="JITTimePolymorphicInlineCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -327,6 +329,8 @@
     <ClInclude Include="JITTimeConstructorCache.h" />
     <ClInclude Include="JITType.h" />
     <ClInclude Include="JITTypeHandler.h" />
+    <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />
+    <ClInclude Include="JITTimePolymorphicInlineCache.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

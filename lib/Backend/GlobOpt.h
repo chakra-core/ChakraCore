@@ -1596,7 +1596,6 @@ public:
     static bool             DoTypedArrayTypeSpec(Func* func);
     static bool             DoNativeArrayTypeSpec(Func* func);
     static bool             IsSwitchOptEnabled(Func* func);
-    static bool             DoEquivObjTypeSpec(Func* func);
     static bool             DoInlineArgsOpt(Func* func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
@@ -1680,7 +1679,6 @@ private:
     bool                    DoFieldHoisting() const;
     bool                    DoObjTypeSpec() const;
     bool                    DoObjTypeSpec(Loop * loop) const;
-    bool                    DoEquivObjTypeSpec() const { return DoEquivObjTypeSpec(this->func); }
     bool                    DoFieldRefOpts() const { return DoObjTypeSpec(); }
     bool                    DoFieldRefOpts(Loop * loop) const { return DoObjTypeSpec(loop); }
     bool                    DoFieldOpts(Loop * loop) const;
