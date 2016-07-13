@@ -367,10 +367,13 @@ public:
     {
         return HeapNewNoThrow(Scanner, parser, phtbl, ptoken, perr, scriptContext);
     }
+
+CLANG_WNO_BEGIN("-Wall") // -Wno-non-virtual-dtor
     void Release(void)
     {
         delete this;
     }
+CLANG_WNO_END
 
     tokens Scan();
     tokens ScanNoKeywords();

@@ -144,6 +144,19 @@ function_name() to call the system's implementation
 
 #define PAL_IMPLEMENTATION
 
+#ifdef __clang__
+#define CLANG_WNO_BEGIN_(x) \
+    _Pragma("clang diagnostic push")\
+    _Pragma(#x)
+
+#define CLANG_WNO_BEGIN(x) CLANG_WNO_BEGIN_(clang diagnostic ignored x)
+#define CLANG_WNO_END
+    _Pragma("clang diagnostic pop")
+#else
+#define CLANG_WNO_BEGIN(x)
+#define CLANG_WNO_END
+#endif
+
 /* Include our configuration information so it's always present when
    compiling PAL implementation files. */
 #include "config.h"

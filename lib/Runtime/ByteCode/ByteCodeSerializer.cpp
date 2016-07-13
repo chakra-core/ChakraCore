@@ -2664,7 +2664,6 @@ public:
 
         for (uint i = 0; i < countOfAuxiliaryStructure; i++)
         {
-            typedef serialization_alignment const SerializedAuxiliary TBase;
             auto part = (serialization_alignment const SerializedAuxiliary * )current;
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
             Assert(part->auxMagic == magicStartOfAux);

@@ -25,6 +25,8 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptSIMDObject* FromVar(Var aValue);
 
+        using DynamicObject::ToString; // tell clang we have defined the method below intentionally
+                                       // clang warning (xxxx hides overloaded virtual function)
         Var ToString(ScriptContext* scriptContext) const;
         template <typename T, size_t N>
         Var ToLocaleString(const Var* args, uint numArgs, char16 const *typeString, const T (&laneValues)[N], CallInfo* callInfo, ScriptContext* scriptContext) const;

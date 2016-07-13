@@ -140,6 +140,9 @@ namespace Js
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
         BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow);
+
+        using DynamicObject::ToString; // tell clang we have defined the method below intentionally
+                                       // clang warning (xxxx hides overloaded virtual function)
         Var ToString(Js::ScriptContext* scriptContext);
 
         // proxy does not support IDispatch stuff.

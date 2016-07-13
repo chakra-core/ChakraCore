@@ -50,8 +50,10 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext* requestContext) override { AssertMsg(false, "Symbol ToPrimitive should never be called, JavascriptConversion::ToPrimitive() short-circuits and returns input value"); *value = this; return true; }
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
+CLANG_WNO_BEGIN("-Woverloaded-virtual")
         JavascriptString* ToString(ScriptContext * requestContext);
         static JavascriptString* ToString(const PropertyRecord* propertyRecord, ScriptContext * requestContext);
+CLANG_WNO_END
 
     private:
         static BOOL Equals(JavascriptSymbol* left, Var right, BOOL* value, ScriptContext * requestContext);

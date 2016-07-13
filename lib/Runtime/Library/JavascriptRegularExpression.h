@@ -132,6 +132,8 @@ namespace Js
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
+        using DynamicObject::ToString; // tell clang we have defined the method below intentionally
+                                       // clang warning (xxxx hides overloaded virtual function)
         JavascriptString *ToString(bool sourceOnly = false);
 
         class EntryInfo

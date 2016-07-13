@@ -160,7 +160,11 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWS
     {
         char scratch[6];
         auto scratchLen = sizeof(scratch);
+
+CLANG_WNO_BEGIN("-Wunused-variable")
         int num = _snprintf_s(scratch, scratchLen, _countof(scratch), " 0x%02X", bcBuffer[i]);
+CLANG_WNO_END
+
         Assert(num == 5);
         IfFalseGo(WriteFile(bcFileHandle, scratch, (DWORD)(scratchLen - 1), &written, nullptr));
 

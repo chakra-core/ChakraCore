@@ -292,8 +292,9 @@ struct DefaultComparer<const Js::PropertyRecord*>
 namespace JsUtil
 {
     template<>
-    struct NoCaseComparer<Js::CaseInvariantPropertyListWithHashCode*>
+    class NoCaseComparer<Js::CaseInvariantPropertyListWithHashCode*>
     {
+    public:
         static bool Equals(_In_ Js::CaseInvariantPropertyListWithHashCode* list1, _In_ Js::CaseInvariantPropertyListWithHashCode* list2);
         static bool Equals(_In_ Js::CaseInvariantPropertyListWithHashCode* list, JsUtil::CharacterBuffer<WCHAR> const& str);
         static hash_t GetHashCode(_In_ Js::CaseInvariantPropertyListWithHashCode* list);
