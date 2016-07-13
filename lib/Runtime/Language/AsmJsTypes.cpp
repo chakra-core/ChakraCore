@@ -30,53 +30,6 @@
 
 namespace Js
 {
-#if DBG_DUMP
-    template<> void PrintTmpRegisterAllocation<double>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("+D%d\n"), loc);
-    }
-    template<> void PrintTmpRegisterDeAllocation<double>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("-D%d\n"), loc);
-    }
-    template<> void PrintTmpRegisterAllocation<float>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("+F%d\n"), loc);
-    }
-    template<> void PrintTmpRegisterDeAllocation<float>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("-F%d\n"), loc);
-    }
-    template<> void PrintTmpRegisterAllocation<int>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("+I%d\n"), loc);
-    }
-    template<> void PrintTmpRegisterDeAllocation<int>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("-I%d\n"), loc);
-    }
-
-    template<> void PrintTmpRegisterAllocation<AsmJsSIMDValue>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("+SIMD%d\n"), loc);
-    }
-
-    template<> void PrintTmpRegisterDeAllocation<AsmJsSIMDValue>(RegSlot loc)
-    {
-        if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(_u("-SIMD%d\n"), loc);
-    }
-    template<typename T> void PrintTmpRegisterAllocation(RegSlot loc) {}
-    template<typename T> void PrintTmpRegisterDeAllocation(RegSlot loc) {}
-#endif
-
     const char16 * AsmJsType::toChars() const
     {
         switch (which_)
@@ -867,7 +820,12 @@ namespace Js
         , mMaxArgOutDepth(0)
         , mDefined( false )
     {
-
+#if DBG_DUMP
+        mIntRegisterSpace.mType = WAsmJs::RegisterSpace::INT32;
+        mFloatRegisterSpace.mType = WAsmJs::RegisterSpace::FLOAT32;
+        mDoubleRegisterSpace.mType = WAsmJs::RegisterSpace::FLOAT64;
+        mSimdRegisterSpace.mType = WAsmJs::RegisterSpace::SIMD;
+#endif
     }
 
     /// AsmJsFunc

@@ -6,24 +6,18 @@
 
 namespace Wasm
 {
-    struct EmitInfo
+    struct EmitInfo : WAsmJs::EmitInfoBase
     {
         EmitInfo(Js::RegSlot location_, const WasmTypes::WasmType& type_) :
-            location(location_), type(type_)
+            WAsmJs::EmitInfoBase(location_), type(type_)
         {
         }
-        EmitInfo(const WasmTypes::WasmType& type_) :
-            location(Js::Constants::NoRegister), type(type_)
-        {
-        }
-        EmitInfo() :
-            location(Js::Constants::NoRegister), type(WasmTypes::Void)
-        {
-        }
+        EmitInfo(const WasmTypes::WasmType& type_) : type(type_) {}
+        EmitInfo() : type(WasmTypes::Void) {}
 
-        Js::RegSlot location;
         WasmTypes::WasmType type;
     };
+    typedef WAsmJs::RegisterSpace WasmRegisterSpace;
 
     struct WasmLocal
     {
