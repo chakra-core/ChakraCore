@@ -171,7 +171,7 @@ namespace Js
             return !valueType.IsUninitialized();
         }
 
-        uint32 GetOffsetOfFlags() { return offsetof(FldInfo, flags); }
+        static uint32 GetOffsetOfFlags() { return offsetof(FldInfo, flags); }
     };
     CompileAssert(sizeof(FldInfo::TSize) == sizeof(FldInfo));
 

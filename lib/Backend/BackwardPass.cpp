@@ -708,7 +708,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
             {
                 AddPropertyCacheBucket *fromData = &bucket.element;
-                if (fromData->GetInitialType() == nullptr ||
+                if (fromData->GetInitialType().t == nullptr ||
                     fromData->GetFinalType() == fromData->GetInitialType())
                 {
                     return;
@@ -720,7 +720,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             auto fixupTo = [blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
             {
                 AddPropertyCacheBucket *toData = &bucket.element;
-                if (toData->GetInitialType() == nullptr ||
+                if (toData->GetInitialType().t == nullptr ||
                     toData->GetFinalType() == toData->GetInitialType())
                 {
                     return;
@@ -1181,8 +1181,8 @@ BackwardPass::MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBuc
 
     ObjTypeGuardBucket bucket;
     bucket.SetGuardedPropertyOps(mergedPropertyOps);
-    JITType *monoGuardType = bucket1.GetMonoGuardType();
-    if (monoGuardType != nullptr)
+    JITTypeHolder monoGuardType = bucket1.GetMonoGuardType();
+    if (monoGuardType.t != nullptr)
     {
         Assert(!bucket2.NeedsMonoCheck() || monoGuardType == bucket2.GetMonoGuardType());
     }
@@ -3608,7 +3608,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                 // transition here.
                 AddPropertyCacheBucket *pBucket = block->stackSymToFinalType->Get(objSym->m_id);
                 if (pBucket &&
-                    pBucket->GetInitialType() != nullptr &&
+                    pBucket->GetInitialType().t != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
                     Assert(pBucket->GetInitialType() == ctorCache->GetType());
@@ -3618,7 +3618,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                     }
 #if DBG
                     pBucket->deadStoreUnavailableInitialType = pBucket->GetInitialType();
-                    if (pBucket->deadStoreUnavailableFinalType == nullptr)
+                    if (pBucket->deadStoreUnavailableFinalType.t == nullptr)
                     {
                         pBucket->deadStoreUnavailableFinalType = pBucket->GetFinalType();
                     }
@@ -4202,7 +4202,7 @@ BackwardPass::ProcessPropertySymOpndUse(IR::PropertySymOpnd * opnd)
                 StackSym *baseSym = opnd->GetObjectSym();
                 AddPropertyCacheBucket *pBucket = block->stackSymToFinalType->Get(baseSym->m_id);
                 if (pBucket &&
-                    pBucket->GetFinalType() != nullptr &&
+                    pBucket->GetFinalType().t != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
                     this->InsertTypeTransition(this->currentInstr->m_next, baseSym, pBucket);
@@ -4293,7 +4293,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
-            JITType *monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
+            JITTypeHolder monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
             bucket->SetMonoGuardType(monoGuardType);
         }
 
@@ -4444,10 +4444,10 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     Assert(this->tag == Js::DeadStorePhase);
     Assert(opnd->IsMono() || opnd->HasEquivalentTypeSet());
 
-    JITType *typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
-    JITType *typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
+    JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
+    JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
 
-    if (typeWithoutProperty == nullptr ||
+    if (typeWithoutProperty.t == nullptr ||
         typeWithProperty == typeWithoutProperty ||
         (opnd->IsTypeChecked() && !opnd->IsInitialTypeChecked()))
     {
@@ -4456,7 +4456,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
             PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
-            if (pBucket && pBucket->GetFinalType() && pBucket->GetInitialType() != pBucket->GetFinalType())
+            if (pBucket && pBucket->GetFinalType().t && pBucket->GetInitialType() != pBucket->GetFinalType())
             {
                 opnd->SetFinalType(pBucket->GetFinalType());
             }
@@ -4487,11 +4487,11 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
-    JITType * finalType = nullptr;
+    JITTypeHolder finalType = nullptr;
 #if DBG
-    JITType * deadStoreUnavailableFinalType = nullptr;
+    JITTypeHolder deadStoreUnavailableFinalType = nullptr;
 #endif
-    if (pBucket->GetInitialType() == nullptr || opnd->GetType() != pBucket->GetInitialType())
+    if (pBucket->GetInitialType().t == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {
 #if DBG
         if (opnd->GetType() == pBucket->deadStoreUnavailableInitialType)
@@ -4538,7 +4538,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         if (!opnd->IsTypeDead())
         {
             // This is the type that would have been propagated if we didn't kill it because the type isn't available
-            JITType * checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
+            JITTypeHolder checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
             if (opnd->HasFinalType() && opnd->GetFinalType() != checkFinalType)
             {
                 // Final type discovery must be progressively better (unless we kill it in the deadstore pass
@@ -4590,7 +4590,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     {
 #if DBG
         pBucket->deadStoreUnavailableInitialType = pBucket->GetInitialType();
-        if (pBucket->deadStoreUnavailableFinalType == nullptr)
+        if (pBucket->deadStoreUnavailableFinalType.t == nullptr)
         {
             pBucket->deadStoreUnavailableFinalType = pBucket->GetFinalType();
         }
@@ -4617,12 +4617,12 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     baseOpnd->SetIsJITOptimizedReg(true);
 
     IR::AddrOpnd *initialTypeOpnd =
-        IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
-    initialTypeOpnd->m_metadata = data->GetInitialType();
+        IR::AddrOpnd::New(data->GetInitialType().t->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    initialTypeOpnd->m_metadata = data->GetInitialType().t;
 
     IR::AddrOpnd *finalTypeOpnd =
-        IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
-    finalTypeOpnd->m_metadata = data->GetFinalType();
+        IR::AddrOpnd::New(data->GetFinalType().t->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    finalTypeOpnd->m_metadata = data->GetFinalType().t;
 
     IR::Instr *adjustTypeInstr =
         IR::Instr::New(Js::OpCode::AdjustObjType, finalTypeOpnd, baseOpnd, initialTypeOpnd, this->func);
@@ -4668,8 +4668,8 @@ BackwardPass::InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPrope
                 {
                     // This symbol already has a type transition at this point.
                     // It *must* be doing the same transition we're already trying to do.
-                    Assert(instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType() &&
-                           instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType());
+                    Assert((intptr_t)instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType().t->GetAddr() &&
+                           (intptr_t)instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType().t->GetAddr());
                     // Nothing to do.
                     return;
                 }
@@ -4770,7 +4770,7 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
     FOREACH_HASHTABLE_ENTRY(AddPropertyCacheBucket, bucket, block->stackSymToFinalType)
     {
         AddPropertyCacheBucket *data = &bucket.element;
-        if (data->GetInitialType() != nullptr &&
+        if (data->GetInitialType().t != nullptr &&
             data->GetInitialType() != data->GetFinalType())
         {
             bool done = fn(bucket.value, data);
@@ -4786,23 +4786,23 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
 bool
 BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const
 {
-    JITType *type = data->GetInitialType();
-    if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
+    JITTypeHolder type = data->GetInitialType();
+    if (type.t == nullptr || !Js::DynamicType::Is(type.t->GetTypeId()))
     {
         return false;
     }
 
-    if (!type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+    if (!type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
     {
         return false;
     }
 
     type = data->GetFinalType();
-    if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
+    if (type.t == nullptr || !Js::DynamicType::Is(type.t->GetTypeId()))
     {
         return false;
     }
-    return !type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+    return !type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
 }
 
 void

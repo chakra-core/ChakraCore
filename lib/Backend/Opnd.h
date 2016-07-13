@@ -518,8 +518,8 @@ public:
 private:
     JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
-    JITType* finalType;
-    JITType* monoGuardType;
+    JITTypeHolder finalType;
+    JITTypeHolder monoGuardType;
     BVSparse<JitArenaAllocator>* guardedPropOps;
     BVSparse<JitArenaAllocator>* writeGuards;
     byte m_polyCacheUtil;
@@ -680,15 +680,15 @@ public:
 
     bool MustDoMonoCheck() const
     {
-        return this->monoGuardType != nullptr;
+        return this->monoGuardType.t != nullptr;
     }
 
-    JITType * GetMonoGuardType() const
+    JITTypeHolder GetMonoGuardType() const
     {
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(JITType *type)
+    void SetMonoGuardType(JITTypeHolder type)
     {
         this->monoGuardType = type;
     }
@@ -1036,25 +1036,22 @@ public:
         return NeedsPrimaryTypeCheck() || IsTypeCheckProtected();
     }
 
-    bool HasFinalType() const
-    {
-        return this->finalType != nullptr;
-    }
+    bool HasFinalType() const;
 
-    JITType * GetFinalType() const
+    JITTypeHolder GetFinalType() const
     {
         return this->finalType;
     }
 
-    void SetFinalType(JITType* type)
+    void SetFinalType(JITTypeHolder type)
     {
-        Assert(type != nullptr);
+        Assert(type.t != nullptr);
         this->finalType = type;
     }
 
     void ClearFinalType()
     {
-        this->finalType = nullptr;
+        this->finalType = JITTypeHolder(nullptr);
     }
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
@@ -1132,13 +1129,13 @@ public:
         return this->objTypeSpecFldInfo->GetTypeId(i);
     }
 
-    JITType * GetType() const
+    JITTypeHolder GetType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType();
     }
 
-    JITType * GetType(uint i) const
+    JITTypeHolder GetType(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType(i);
@@ -1150,7 +1147,7 @@ public:
         return this->objTypeSpecFldInfo->HasInitialType();
     }
 
-    JITType * GetInitialType() const
+    JITTypeHolder GetInitialType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetInitialType();
@@ -1162,7 +1159,7 @@ public:
         return this->objTypeSpecFldInfo->GetEquivalentTypeSet();
     }
 
-    JITType * GetFirstEquivalentType() const
+    JITTypeHolder GetFirstEquivalentType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFirstEquivalentType();

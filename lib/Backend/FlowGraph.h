@@ -13,8 +13,8 @@ class Func;
 class AddPropertyCacheBucket
 {
 private:
-    JITType* initialType;
-    JITType* finalType;
+    JITTypeHolder initialType;
+    JITTypeHolder finalType;
 public:
     AddPropertyCacheBucket() : initialType(nullptr), finalType(nullptr)
 #if DBG
@@ -52,18 +52,18 @@ public:
 #endif
     }
 
-    JITType *GetInitialType() const { return this->initialType; }
-    JITType *GetFinalType() const { return this->finalType; }
-    void SetInitialType(JITType *type) { this->initialType = type; }
-    void SetFinalType(JITType *type)  { this->finalType = type; }
+    JITTypeHolder GetInitialType() const { return this->initialType; }
+    JITTypeHolder GetFinalType() const { return this->finalType; }
+    void SetInitialType(JITTypeHolder type) { this->initialType = type; }
+    void SetFinalType(JITTypeHolder type)  { this->finalType = type; }
 
 #if DBG_DUMP
     void Dump() const;
 #endif
 
 #ifdef DBG
-    JITType * deadStoreUnavailableInitialType;
-    JITType * deadStoreUnavailableFinalType;
+    JITTypeHolder deadStoreUnavailableInitialType;
+    JITTypeHolder deadStoreUnavailableFinalType;
 #endif
 };
 
@@ -71,7 +71,7 @@ class ObjTypeGuardBucket
 {
 private:
     BVSparse<JitArenaAllocator>* guardedPropertyOps;
-    JITType *                   monoGuardType;
+    JITTypeHolder                    monoGuardType;
 
 public:
     ObjTypeGuardBucket() : guardedPropertyOps(nullptr), monoGuardType(nullptr) {}
@@ -91,9 +91,9 @@ public:
     void SetGuardedPropertyOps(BVSparse<JitArenaAllocator> *guardedPropertyOps) { this->guardedPropertyOps = guardedPropertyOps; }
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
-    bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
-    void SetMonoGuardType(JITType *type) { this->monoGuardType = type; }
-    JITType * GetMonoGuardType() const { return this->monoGuardType; }
+    bool NeedsMonoCheck() const { return this->monoGuardType.t != nullptr; }
+    void SetMonoGuardType(JITTypeHolder type) { this->monoGuardType = type; }
+    JITTypeHolder GetMonoGuardType() const { return this->monoGuardType; }
 
 #if DBG_DUMP
     void Dump() const;

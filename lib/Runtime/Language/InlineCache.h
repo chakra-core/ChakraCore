@@ -20,6 +20,7 @@
 // TODO: OOP JIT, move equiv set to backend?
 // forward decl
 class JITType;
+class JITTypeHolder;
 
 namespace Js
 {
@@ -530,37 +531,27 @@ namespace Js
     private:
         bool sortedAndDuplicatesRemoved;
         uint16 count;
-        JITType ** types;
+        JITTypeHolder * types;
 
     public:
-        EquivalentTypeSet(JITType ** types, uint16 count)
-            : types(types), count(count), sortedAndDuplicatesRemoved(false) {}
+        EquivalentTypeSet(JITTypeHolder * types, uint16 count);
 
         uint16 GetCount() const
         {
             return this->count;
         }
 
-        JITType * GetFirstType() const
-        {
-            return GetType(0);
-        }
+        JITTypeHolder GetFirstType() const;
 
-        JITType * GetType(uint16 index) const
-        {
-            Assert(this->types != nullptr && this->count > 0 && index < this->count);
-            return this->types[index];
-        }
-        JITType ** GetTypes() const
-        {
-            return this->types;
-        }
+        JITTypeHolder GetType(uint16 index) const;
+
+        JITTypeHolder * GetTypes() const;
 
         bool GetSortedAndDuplicatesRemoved() const
         {
             return this->sortedAndDuplicatesRemoved;
         }
-        bool Contains(const JITType * type, uint16 * pIndex = nullptr) const;
+        bool Contains(const JITTypeHolder type, uint16 * pIndex = nullptr) const;
 
         static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);
         static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);

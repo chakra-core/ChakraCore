@@ -63,7 +63,6 @@ JITType::GetData()
 intptr_t
 JITType::GetAddr() const
 {
-    Assert(m_data.addr > 99999);
     return m_data.addr;
 }
 
@@ -79,14 +78,66 @@ JITType::GetTypeHandler() const
     return (const JITTypeHandler*)&m_data.handler;
 }
 
-bool
-JITType::operator!=(const JITType& other) const
+JITTypeHolder::JITTypeHolder() :
+    t(nullptr)
 {
-    return this->GetAddr() != other.GetAddr();
+}
+
+JITTypeHolder::JITTypeHolder(JITType * t) :
+    t(t)
+{
 }
 
 bool
-JITType::operator==(const JITType& other) const
+JITTypeHolder::operator==(const JITTypeHolder& p) const
 {
-    return this->GetAddr() == other.GetAddr();
+    if (this->t != nullptr && p.t != nullptr)
+    {
+        return this->t->GetAddr() == p.t->GetAddr();
+    }
+    return this->t == nullptr && p.t == nullptr;
+}
+
+bool
+JITTypeHolder::operator!= (const JITTypeHolder& p) const
+{
+    return !(*this == p);
+}
+
+bool
+JITTypeHolder::operator>(const JITTypeHolder& p) const
+{
+    if (this->t != nullptr && p.t != nullptr)
+    {
+        return this->t->GetAddr() > p.t->GetAddr();
+    }
+    return false;
+}
+
+bool
+JITTypeHolder::operator<=(const JITTypeHolder& p) const
+{
+    return !(*this > p);
+}
+
+bool
+JITTypeHolder::operator>=(const JITTypeHolder& p) const
+{
+    if (this->t != nullptr && p.t != nullptr)
+    {
+        return this->t->GetAddr() >= p.t->GetAddr();
+    }
+    return false;
+}
+
+bool
+JITTypeHolder::operator<(const JITTypeHolder& p) const
+{
+    return !(*this >= p);
+}
+
+void
+JITTypeHolder::operator=(const JITTypeHolder &p)
+{
+    this->t = p.t;
 }

@@ -43,10 +43,10 @@ public:
     JITTimeConstructorCache * GetCtorCache() const;
 
     Js::EquivalentTypeSet * GetEquivalentTypeSet() const;
-    JITType * GetType() const;
-    JITType * GetType(uint i) const;
-    JITType * GetInitialType() const;
-    JITType * GetFirstEquivalentType() const;
+    JITTypeHolder GetType() const;
+    JITTypeHolder GetType(uint i) const;
+    JITTypeHolder GetInitialType() const;
+    JITTypeHolder GetFirstEquivalentType() const;
 
     void SetIsBeingStored(bool value); // REVIEW: this doesn't flow out of JIT, should it?
 

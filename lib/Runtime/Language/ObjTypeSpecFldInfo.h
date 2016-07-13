@@ -350,11 +350,7 @@ namespace Js
             return this->typeSet;
         }
 
-        JITType * GetFirstEquivalentType() const
-        {
-            Assert(IsObjTypeSpecCandidate() && this->typeSet);
-            return this->typeSet->GetFirstType();
-        }
+        JITTypeHolder GetFirstEquivalentType() const;
 
         Js::FixedFieldInfo* GetFixedFieldInfoArray()
         {

@@ -39,6 +39,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     CompileAssert(sizeof(FldIDL) == sizeof(Js::FldInfo));
     data->inlineCacheCount = functionBody->GetProfiledFldCount();
     data->fldData = (FldIDL*)profileInfo->GetFldInfo();
+    data->fldDataAddr = (intptr_t)profileInfo->GetFldInfo();
 
     CompileAssert(sizeof(ThisIDL) == sizeof(Js::ThisInfo));
     data->thisData = *reinterpret_cast<ThisIDL*>(&profileInfo->GetThisInfo());
@@ -165,6 +166,13 @@ JITTimeProfileInfo::GetFldInfo(uint fieldAccessId) const
 {
     Assert(fieldAccessId < GetProfiledFldCount());
     return &(reinterpret_cast<Js::FldInfo*>(m_profileData.fldData)[fieldAccessId]);
+}
+
+intptr_t
+JITTimeProfileInfo::GetFldInfoAddr(uint fieldAccessId) const
+{
+    Assert(fieldAccessId < GetProfiledFldCount());
+    return m_profileData.fldDataAddr + fieldAccessId;
 }
 
 ValueType

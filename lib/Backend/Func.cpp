@@ -1342,11 +1342,11 @@ Func::EnsureEquivalentTypeGuards()
 }
 
 Js::JitEquivalentTypeGuard*
-Func::CreateEquivalentTypeGuard(JITType* type, uint32 objTypeSpecFldId)
+Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
 {
     EnsureEquivalentTypeGuards();
 
-    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type.t->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.

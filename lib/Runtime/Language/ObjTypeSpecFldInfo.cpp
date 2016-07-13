@@ -325,9 +325,9 @@ namespace Js
         if (forcePoly)
         {
             uint16 typeCount = 1;
-            JITType** types = RecyclerNewArray(recycler, JITType*, typeCount);
-            types[0] = RecyclerNew(recycler, JITType);
-            JITType::BuildFromJsType(type, types[0]);
+            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+            types[0].t = RecyclerNew(recycler, JITType);
+            JITType::BuildFromJsType(type, types[0].t);
             EquivalentTypeSet* typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
 
             info = RecyclerNew(recycler, ObjTypeSpecFldInfo,
@@ -641,7 +641,7 @@ namespace Js
         Assert(jitTransferData != nullptr);
         if (areEquivalent || areStressEquivalent)
         {
-            JITType** types = RecyclerNewArray(recycler, JITType*, typeCount);
+            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
             for (uint16 i = 0; i < typeCount; i++)
             {
                 jitTransferData->AddJitTimeTypeRef(localTypes[i], recycler);
@@ -660,8 +660,8 @@ namespace Js
                     }
                 }
                 // TODO: OOP JIT, consider putting these inline
-                types[i] = RecyclerNew(recycler, JITType);
-                JITType::BuildFromJsType(localTypes[i], types[i]);
+                types[i].t = RecyclerNew(recycler, JITType);
+                JITType::BuildFromJsType(localTypes[i], types[i].t);
             }
             typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
         }
@@ -743,6 +743,12 @@ namespace Js
         Assert(IsPoly());
         return this->fixedFieldInfoArray[i].fieldValue != nullptr && JavascriptFunction::Is(this->fixedFieldInfoArray[i].fieldValue) ?
             JavascriptFunction::FromVar(this->fixedFieldInfoArray[i].fieldValue) : nullptr;
+    }
+
+    JITTypeHolder ObjTypeSpecFldInfo::GetFirstEquivalentType() const
+    {
+        Assert(IsObjTypeSpecCandidate() && this->typeSet);
+        return this->typeSet->GetFirstType();
     }
 
     Js::Var ObjTypeSpecFldInfo::GetFieldValueAsFixedDataIfAvailable() const

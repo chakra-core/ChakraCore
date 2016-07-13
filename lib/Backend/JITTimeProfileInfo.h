@@ -21,6 +21,7 @@ public:
     Js::ArrayCallSiteInfo * GetArrayCallSiteInfo(Js::ProfileId index) const;
     intptr_t GetArrayCallSiteInfoAddr(Js::ProfileId index) const;
     Js::FldInfo * GetFldInfo(uint fieldAccessId) const;
+    intptr_t GetFldInfoAddr(uint fieldAccessId) const;
     Js::ThisInfo GetThisInfo() const;
     ValueType GetSlotLoad(Js::ProfileId slotLoadId) const;
     ValueType GetReturnType(Js::OpCode opcode, Js::ProfileId callSiteId) const;

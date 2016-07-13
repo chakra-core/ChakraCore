@@ -18,7 +18,7 @@ public:
 
     intptr_t GetRuntimeCacheAddr() const;
     intptr_t GetRuntimeCacheGuardAddr() const;
-    JITType * GetType() const;
+    JITTypeHolder GetType() const;
     int GetSlotCount() const;
     int16 GetInlineSlotCount() const;
     bool SkipNewScObject() const;

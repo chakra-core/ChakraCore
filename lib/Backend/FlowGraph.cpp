@@ -3354,9 +3354,9 @@ BasicBlock::Dump()
 void
 AddPropertyCacheBucket::Dump() const
 {
-    Assert(this->initialType != nullptr);
-    Assert(this->finalType != nullptr);
-    Output::Print(_u(" initial type: 0x%x, final type: 0x%x "), this->initialType, this->finalType);
+    Assert(this->initialType.t != nullptr);
+    Assert(this->finalType.t != nullptr);
+    Output::Print(_u(" initial type: 0x%x, final type: 0x%x "), this->initialType.t->GetAddr(), this->finalType.t->GetAddr());
 }
 
 void

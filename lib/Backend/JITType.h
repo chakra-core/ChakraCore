@@ -25,9 +25,32 @@ public:
 
     static void BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType);
 
-    bool operator!=(const JITType& bucket) const;
-    bool operator==(const JITType& bucket) const;
-
 private:
     TypeIDL m_data;
+};
+
+class JITTypeHolder
+{
+public:
+    JITType * t;
+
+    JITTypeHolder();
+    JITTypeHolder(JITType * t);
+    bool operator== (const JITTypeHolder& p) const;
+    bool operator!= (const JITTypeHolder& p) const;
+    bool operator> (const JITTypeHolder& p) const;
+    bool operator>= (const JITTypeHolder& p) const;
+    bool operator< (const JITTypeHolder& p) const;
+    bool operator<= (const JITTypeHolder& p) const;
+    void operator =(const JITTypeHolder &p);
+
+private:
+    // prevent implicit conversion
+    template<typename T> bool operator== (T p) const;
+    template<typename T> bool operator!= (T p) const;
+    template<typename T> bool operator>= (T p) const;
+    template<typename T> bool operator> (T p) const;
+    template<typename T> bool operator< (T p) const;
+    template<typename T> bool operator<= (T p) const;
+    template<typename T> void operator =(T p);
 };

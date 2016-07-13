@@ -184,31 +184,31 @@ JITObjTypeSpecFldInfo::GetEquivalentTypeSet() const
     return (Js::EquivalentTypeSet *)m_data.typeSet;
 }
 
-JITType *
+JITTypeHolder
 JITObjTypeSpecFldInfo::GetType() const
 {
     Assert(IsMono());
-    return (JITType *)&m_data.fixedFieldInfoArray[0].type;
+    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[0].type);
 }
 
-JITType *
+JITTypeHolder
 JITObjTypeSpecFldInfo::GetType(uint i) const
 {
     Assert(IsPoly());
-    return (JITType *)&m_data.fixedFieldInfoArray[i].type;
+    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[i].type);
 }
 
-JITType *
+JITTypeHolder
 JITObjTypeSpecFldInfo::GetInitialType() const
 {
-    return (JITType *)m_data.initialType;
+    return JITTypeHolder((JITType *)m_data.initialType);
 }
 
-JITType *
+JITTypeHolder
 JITObjTypeSpecFldInfo::GetFirstEquivalentType() const
 {
     Assert(HasEquivalentTypeSet());
-    return GetEquivalentTypeSet()->GetFirstType();
+    return JITTypeHolder(GetEquivalentTypeSet()->GetFirstType());
 }
 
 void

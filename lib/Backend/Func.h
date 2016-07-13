@@ -380,7 +380,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     Js::JitTypePropertyGuard* GetOrCreateSingleTypeGuard(intptr_t typeAddr);
 
     void  EnsureEquivalentTypeGuards();
-    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(JITType* type, uint32 objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId);
 
     void EnsurePropertyGuardsByPropertyId();
     void EnsureCtorCachesByPropertyId();

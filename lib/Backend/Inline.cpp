@@ -835,15 +835,15 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
         InsertOneInlinee(callInstr, returnValueOpnd, constMethodValueOpnd, inlineesDataArray[i], doneLabel, symCallerThis, safeThis, recursiveInlineDepth);
         while (fixedFunctionInfoArray[i].nextHasSameFixedField)
         {
-            dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel, typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i)->GetAddr(),
+            dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel, typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i).t->GetAddr(),
                 IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
-            this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i)); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
+            this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i).t); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
             i++;
         }
 
         dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel,
-            typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i)->GetAddr(), IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
-        this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i)); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
+            typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i).t->GetAddr(), IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
+        this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i).t); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
     }
 
     ldMethodFldInstr->Unlink();

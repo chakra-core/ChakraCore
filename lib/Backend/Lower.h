@@ -123,20 +123,20 @@ private:
                         IR::LabelInstr* labelObjCheckFailed, IR::LabelInstr *labelTypeCheckFailed, IR::LabelInstr *labelSecondChance = nullptr);
     void            GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, IR::Opnd *typeOpnd, IR::LabelInstr *labelTypeCheckFailed);
     void            GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
-    Js::JitTypePropertyGuard* CreateTypePropertyGuardForGuardedProperties(JITType* type, IR::PropertySymOpnd* propertySymOpnd);
-    Js::JitEquivalentTypeGuard* CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITType* type, IR::PropertySymOpnd* propertySymOpnd);
+    Js::JitTypePropertyGuard* CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::PropertySymOpnd* propertySymOpnd);
+    Js::JitEquivalentTypeGuard* CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type, IR::PropertySymOpnd* propertySymOpnd);
     bool            LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* cache);
     template<typename LinkFunc>
     bool            LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link);
     void            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     IR::Instr *     GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr);
     void            GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
-    void            GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITType* initialType, JITType* finalType);
+    void            GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* propertySymOpnd);
-    void            GenerateAdjustSlots(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITType* initialType, JITType* finalType);
-    bool            GenerateAdjustBaseSlots(IR::Instr * instrStFld, IR::RegOpnd *baseOpnd, JITType* initialType, JITType* finalType);
+    void            GenerateAdjustSlots(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
+    bool            GenerateAdjustBaseSlots(IR::Instr * instrStFld, IR::RegOpnd *baseOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GeneratePrototypeCacheInvalidateCheck(IR::PropertySymOpnd *propertySymOpnd, IR::Instr *instrStFld);
-    void            PinTypeRef(JITType* type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
+    void            PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
     IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr);
 
     void            EnsureStackFunctionListStackSym();

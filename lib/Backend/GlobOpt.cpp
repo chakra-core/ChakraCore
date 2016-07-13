@@ -2788,7 +2788,7 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
     Assert(ldInstr);
 
-    JITType *propertyType = nullptr;
+    JITTypeHolder propertyType(nullptr);
 
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstr->m_opcode));
@@ -3365,9 +3365,9 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
         return nullptr;
     }
 
-    const JITType* toType = toValueInfo->GetJsType();
-    const JITType* fromType = fromValueInfo->GetJsType();
-    const JITType* mergedType = toType == fromType ? toType : nullptr;
+    const JITTypeHolder toType = toValueInfo->GetJsType();
+    const JITTypeHolder fromType = fromValueInfo->GetJsType();
+    const JITTypeHolder mergedType = toType == fromType ? toType : nullptr;
 
     Js::EquivalentTypeSet* toTypeSet = toValueInfo->GetJsTypeSet();
     Js::EquivalentTypeSet* fromTypeSet = fromValueInfo->GetJsTypeSet();
@@ -3397,7 +3397,7 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
         return toValueInfo;
     }
 
-    if (mergedType == nullptr && mergedTypeSet == nullptr)
+    if (mergedType.t == nullptr && mergedTypeSet == nullptr)
     {
         // No info, so don't bother making a value.
         return nullptr;
@@ -20331,8 +20331,8 @@ void ValueInfo::Dump()
     }
     else if(IsJsType())
     {
-        const JITType* type = AsJsType()->GetJsType();
-        type != nullptr ? Output::Print(_u("type: 0x%p, "), type) : Output::Print(_u("type: null, "));
+        const JITTypeHolder type(AsJsType()->GetJsType());
+        type.t != nullptr ? Output::Print(_u("type: 0x%p, "), type.t->GetAddr()) : Output::Print(_u("type: null, "));
         Output::Print(_u("type Set: "));
         Js::EquivalentTypeSet* typeSet = AsJsType()->GetJsTypeSet();
         if (typeSet != nullptr)

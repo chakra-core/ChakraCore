@@ -181,6 +181,7 @@ typedef struct ProfileDataIDL
     [size_is(loopCount)] byte * loopImplicitCallFlags;
 
     __int3264 arrayCallSiteDataAddr;
+    __int3264 fldDataAddr;
     __int64 flags;
 } ProfileDataIDL;
 
