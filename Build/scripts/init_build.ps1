@@ -12,23 +12,47 @@
 # before running the Pre-Build script.
 
 param (
+    [ValidateSet("x86", "x64", "arm", "")]
+    [string]$arch = "",
+    [ValidateSet("debug", "release", "test", "codecoverage", "")]
+    [string]$flavor = "",
+    [ValidateSet("default", "codecoverage", "pogo")]
+    [string]$subtype = "default",
+    [string]$buildtype,
+
     [string]$envConfigScript = "ComputedEnvironment.cmd",
 
     [string[]]$supportedPogoBuildTypes = @("x64_release", "x86_release"),
 
-    [Parameter(Mandatory=$True)]
+    [string]$verMajor = "",
+    [string]$verMinor = "",
+    [string]$verPatch = "",
+    [string]$verSecurity = "",
+
+    [string]$dropRoot,
+
+    [switch]$cleanBinDir,
+
     [string]$oauth
 )
 
-# If $Env:BuildType is specified, extract BuildPlatform and BuildConfiguration
-# Otherwise, if $Env:BuildPlatform and $Env:BuildConfiguration are specified, construct $BuildType
-$BuildPlatform = $Env:BuildPlatform
-$BuildConfiguration = $Env:BuildConfiguration
-$BuildType = $Env:BuildType
-$BuildSubtype = "default" # will remain as "default" or become e.g. "pogo", "codecoverage"
+#
+# Define values for variables based on parameters and environment variables
+# with default values in case the environment variables are not defined.
+#
 
-if (Test-Path Env:\BuildType) {
-    $BuildType = $Env:BuildType
+. $PSScriptRoot\util.ps1
+$gitExe = GetGitPath
+
+$BuildType = UseValueOrDefault $buildtype $Env:BuildType
+$BuildPlatform = UseValueOrDefault $arch $Env:BuildPlatform
+$BuildConfiguration = UseValueOrDefault $flavor $Env:BuildConfiguration
+$BuildSubtype = UseValueOrDefault $subtype $Env:BuildSubtype
+
+# If $BuildType is specified, extract BuildPlatform and BuildConfiguration
+# Otherwise, if $BuildPlatform and $BuildConfiguration are specified, construct $BuildType
+# $BuildSubtype will remain as "default" if not already specified, or become e.g. "pogo", "codecoverage"
+if ($BuildType) {
     $buildTypeSegments = $BuildType.split("_")
     $BuildPlatform = $buildTypeSegments[0]
     $BuildConfiguration = $buildTypeSegments[1]
@@ -42,12 +66,10 @@ if (Test-Path Env:\BuildType) {
         $BuildSubtype = "codecoverage" # keep information about codecoverage in the subtype
     }
 
-    if (-not ($BuildSubtype -in @("default","pogo","codecoverage"))) {
+    if (-not ($BuildSubtype -in @("default", "pogo", "codecoverage"))) {
         Write-Error "Unsupported BuildSubtype: $BuildSubtype"
     }
-} elseif ((Test-Path Env:\BuildPlatform) -and (Test-Path Env:\BuildConfiguration)) {
-    $BuildPlatform = $Env:BuildPlatform
-    $BuildConfiguration = $Env:BuildConfiguration
+} elseif ($BuildPlatform -and $BuildConfiguration) {
     $BuildType = "${BuildPlatform}_${BuildConfiguration}"
 } else {
     Write-Error (@"
@@ -56,11 +78,22 @@ if (Test-Path Env:\BuildType) {
         BuildType={0}
         BuildPlatform={1}
         BuildConfiguration={2}
+        BuildSubtype={3}
 
-"@ -f $Env:BuildType, $Env:BuildPlatform, $Env:BuildConfiguration)
+"@ -f $BuildType, $BuildPlatform, $BuildConfiguration, $BuildSubtype)
 
     exit 1
 }
+
+$CommitHash = UseValueOrDefault $Env:BUILD_SOURCEVERSION $(iex "${gitExe} rev-parse HEAD")
+
+$branchFullName  = UseValueOrDefault $Env:BUILD_SOURCEBRANCH $(iex "${gitExe} rev-parse --symbolic-full-name HEAD")
+
+$SourcesDirectory = UseValueOrDefault $Env:BUILD_SOURCESDIRECTORY $(GetRepoRoot)
+$BinariesDirectory = UseValueOrDefault (Join-Path $SourcesDirectory "Build\VcBuild")
+$ObjectDirectory = Join-Path $BinariesDirectory "obj\${BuildPlatform}_${BuildConfiguration}"
+
+$DropRoot = UseValueOrDefault $dropRoot $Env:DROP_ROOT (Join-Path $(GetRepoRoot) "_DROP")
 
 # set up required variables and import pre_post_util.ps1
 $arch = $BuildPlatform
@@ -68,55 +101,69 @@ $flavor = $BuildConfiguration
 $OuterScriptRoot = $PSScriptRoot # Used in pre_post_util.ps1
 . "$PSScriptRoot\pre_post_util.ps1"
 
-$gitExe = GetGitPath
-
 $BuildName = ConstructBuildName -arch $BuildPlatform -flavor $BuildConfiguration -subtype $BuildSubtype
 
-$branch = $Env:BUILD_SOURCEBRANCH
-if (-not $branch) {
-    $branch = iex "$gitExe rev-parse --symbolic-full-name HEAD"
-}
-
-$BranchName = $branch.split('/',3)[2]
+$BranchName = $branchFullName.split('/',3)[2]
 $BranchPath = $BranchName.replace('/','\')
-$CommitHash = $Env:BUILD_SOURCEVERSION
-if (-not $CommitHash) {
-    $CommitHash = iex "$gitExe rev-parse HEAD"
-}
 
-$Username = (iex "$gitExe log $CommitHash -1 --pretty=%ae").split('@')[0]
-$CommitDateTime = [DateTime]$(iex "$gitExe log $CommitHash -1 --pretty=%aD")
+if (-not $CommitHash) {
+    $CommitHash = iex "${gitExe} rev-parse HEAD"
+}
+$CommitShortHash = $(iex "${gitExe} rev-parse --short $CommitHash")
+
+$Username = (iex "${gitExe} log $CommitHash -1 --pretty=%ae").split('@')[0]
+$CommitDateTime = [DateTime]$(iex "${gitExe} log $CommitHash -1 --pretty=%aD")
 $CommitTime = Get-Date $CommitDateTime -Format yyMMdd.HHmm
 
 #
 # Get Build Info
 #
 
-$info = GetBuildInfo $oauth $CommitHash
+$buildPushDate = $null
+$buildPushIdString = $null
 
-$BuildPushDate = [datetime]$info.push.date
-$PushDate = Get-Date $BuildPushDate -Format yyMMdd.HHmm
+if (-not $oauth)
+{
+    $buildPushIdPart1 = 65535
+    $buildPushIdPart2 = 65535
+    $buildPushIdString = "65535.65535"
+    $buildPushDate = [DateTime]$CommitDateTime
+}
+else
+{
+    $info = GetBuildInfo $oauth $CommitHash
+    $_, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
+    $buildPushDate = [DateTime]$info.push.date
+}
 
-$buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
+$PushDate = Get-Date $buildPushDate -Format yyMMdd.HHmm
 
-$VersionMajor = UseValueOrDefault "$Env:VERSION_MAJOR" "1"
-$VersionMinor = UseValueOrDefault "$Env:VERSION_MINOR" "2"
-$VersionPatch = UseValueOrDefault "$Env:VERSION_PATCH" "0"
-$VersionQFE   = UseValueOrDefault "$Env:VERSION_QFE"   "0"
+$VersionMajor       = UseValueOrDefault $verMajor       $Env:VERSION_MAJOR  (GetVersionField "CHAKRA_CORE_MAJOR_VERSION")       "0"
+$VersionMinor       = UseValueOrDefault $verMinor       $Env:VERSION_MINOR  (GetVersionField "CHAKRA_CORE_MINOR_VERSION")       "0"
+$VersionPatch       = UseValueOrDefault $verPatch       $Env:VERSION_PATCH  (GetVersionField "CHAKRA_CORE_PATCH_VERSION")       "0"
+$VersionSecurity    = UseValueOrDefault $verSecurity    $Env:VERSION_QFE    (GetVersionField "CHAKRA_CORE_VERSION_RELEASE_QFE") "0"
 
-$VersionString = "${VersionMajor}.${VersionMinor}.${VersionPatch}.${VersionQFE}"
-$PreviewVersionString = "${VersionString}-preview"
+$VersionString = "${VersionMajor}.${VersionMinor}.${VersionPatch}" # Only use MAJOR.MINOR.PATCH to align with SemVer
+
+$buildVersionString = "{0}-{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
+$PreviewVersionString = "${VersionString}-preview-${buildVersionString}"
+
+$ShortBranch = "commit"
+if ($BranchName -eq "master") {
+    $ShortBranch = "master"
+} elseif ($BranchName.StartsWith("release")) {
+    $ShortBranch = $BranchName.replace("release/","")
+}
 
 # unless it is a build branch, subdivide the output directory by month
 if ($BranchPath.StartsWith("build")) {
     $YearAndMonth = ""
 } else {
-    $YearAndMonth = (Get-Date $BuildPushDate -Format yyMM) + "\"
+    $YearAndMonth = (Get-Date $buildPushDate -Format yyMM) + "\"
 }
 
 $BuildIdentifier = "${buildPushIdString}_${PushDate}_${Username}_${CommitHash}"
 $ComputedDropPathSegment = "${BranchPath}\${YearAndMonth}${BuildIdentifier}"
-$BinariesDirectory = "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
 $ObjectDirectory = "${BinariesDirectory}\obj\${BuildPlatform}_${BuildConfiguration}"
 
 # Create a sentinel file for each build flavor to track whether the build is complete.
@@ -128,9 +175,9 @@ This could mean that the build is in progress, or that it was unable to run to c
 The contents of this directory should not be relied on until the build completes.
 "@
 
-$DropPath = Join-Path $Env:DROP_ROOT $ComputedDropPathSegment
+$DropPath = Join-Path $DropRoot $ComputedDropPathSegment
 New-Item -ItemType Directory -Force -Path $DropPath
-New-Item -ItemType Directory -Force -Path (Join-Path $Env:BUILD_SOURCESDIRECTORY "test\logs")
+New-Item -ItemType Directory -Force -Path (Join-Path $SourcesDirectory "test\logs")
 New-Item -ItemType Directory -Force -Path (Join-Path $BinariesDirectory "buildlogs")
 New-Item -ItemType Directory -Force -Path (Join-Path $BinariesDirectory "logs")
 
@@ -138,26 +185,33 @@ $FlavorBuildIncompleteFile = Join-Path $DropPath "${BuildType}.incomplete"
 
 if (-not (Test-Path $FlavorBuildIncompleteFile)) {
     ($buildIncompleteFileContentsString -f "Build of ${BuildType}") `
-        | Out-File $FlavorBuildIncompleteFile -Encoding Ascii
+        | Out-File $FlavorBuildIncompleteFile -Encoding utf8
 }
 
-$PogoConfig = $supportedPogoBuildTypes -contains "${Env:BuildPlatform}_${Env:BuildConfiguration}"
+$PogoConfig = $supportedPogoBuildTypes -contains "${BuildPlatform}_${BuildConfiguration}"
 
 # Write the $envConfigScript
 
 @"
 set BranchName=${BranchName}
+set ShortBranch=${ShortBranch}
 set BranchPath=${BranchPath}
 set YearAndMonth=${YearAndMonth}
 set BuildIdentifier=${BuildIdentifier}
 
-set buildPushIdString=${buildPushIdString}
+set VersionMajor=${VersionMajor}
+set VersionMinor=${VersionMinor}
+set VersionPatch=${VersionPatch}
+set VersionSecurity=${VersionSecurity}
+
+set BuildPushIdString=${buildPushIdString}
 set VersionString=${VersionString}
 set PreviewVersionString=${PreviewVersionString}
 set PushDate=${PushDate}
 set CommitTime=${CommitTime}
 set Username=${Username}
 set CommitHash=${CommitHash}
+set CommitShortHash=${CommitShortHash}
 
 set ComputedDropPathSegment=${ComputedDropPathSegment}
 set BinariesDirectory=${BinariesDirectory}
@@ -174,24 +228,30 @@ set FlavorBuildIncompleteFile=${FlavorBuildIncompleteFile}
 set PogoConfig=${PogoConfig}
 
 "@ `
-    | Out-File $envConfigScript -Encoding Ascii
+    | Out-File $envConfigScript -Encoding ASCII
 
 # Use the VSTS environment vars to construct a backwards-compatible VSO build environment
 # for the sake of reusing the pre-build and post-build scripts as they are.
 
 @"
-set TF_BUILD_SOURCEGETVERSION=LG:${branch}:${CommitHash}
+set TF_BUILD_SOURCEGETVERSION=LG:${branchFullName}:${CommitHash}
 set TF_BUILD_DROPLOCATION=${BinariesDirectory}
 
-set TF_BUILD_SOURCESDIRECTORY=${Env:BUILD_SOURCESDIRECTORY}
+set TF_BUILD_SOURCESDIRECTORY=${SourcesDirectory}
 set TF_BUILD_BUILDDIRECTORY=${ObjectDirectory}
 set TF_BUILD_BINARIESDIRECTORY=${BinariesDirectory}
 
+REM The following variables are only used for logging build metadata.
 set TF_BUILD_BUILDDEFINITIONNAME=${Env:BUILD_DEFINITIONNAME}
 set TF_BUILD_BUILDNUMBER=${Env:BUILD_BUILDNUMBER}
 set TF_BUILD_BUILDURI=${Env:BUILD_BUILDURI}
 "@ `
-    | Out-File $envConfigScript -Encoding Ascii -Append
+    | Out-File $envConfigScript -Encoding ASCII -Append
+
+# Print contents of $envConfigScript as a sanity check
+Write-Output ""
+Get-Content $envConfigScript | Write-Output
+Write-Output ""
 
 # Export VSO variables that can be consumed by other VSO tasks where the task
 # definition in VSO itself needs to know the value of the variable.
@@ -216,10 +276,10 @@ Write-Output "Setting VSO variable VSO_VersionString = ${VersionString}"
 Write-Output "##vso[task.setvariable variable=VSO_VersionString;]${VersionString}"
 
 #
-# Clean up files that might have been left behind from a previous build.
+# Optionally ($cleanBinDir): clean up files that might have been left behind from a previous build.
 #
 
-if ((Test-Path Env:\BUILD_BINARIESDIRECTORY) -and (Test-Path "$Env:BUILD_BINARIESDIRECTORY"))
+if ($BinariesDirectory -and (Test-Path "$BinariesDirectory") -and $cleanBinDir)
 {
-    Remove-Item -Verbose "${Env:BUILD_BINARIESDIRECTORY}\*" -Recurse
+    Remove-Item -Verbose "${BinariesDirectory}\*" -Recurse
 }

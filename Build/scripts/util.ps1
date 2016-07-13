@@ -3,14 +3,13 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-function UseValueOrDefault($value, $defaultvalue, $defaultvalue2) {
-    if ($value -ne "") {
-        return $value
-    } elseif ($defaultvalue -ne "") {
-        return $defaultvalue
-    } else {
-        return $defaultvalue2
+function UseValueOrDefault() {
+    foreach ($value in $args) {
+        if ($value) {
+            return $value
+        }
     }
+    return ""
 }
 
 function GetGitPath() {
@@ -24,6 +23,11 @@ function GetGitPath() {
     }
 
     return $gitExe
+}
+
+function GetRepoRoot() {
+    $gitExe = GetGitPath
+    return iex "$gitExe rev-parse --show-toplevel"
 }
 
 function WriteMessage($str) {
