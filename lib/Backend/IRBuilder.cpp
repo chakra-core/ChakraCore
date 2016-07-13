@@ -6643,7 +6643,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                     this->AddInstr(
                         IR::Instr::New(
                             Js::OpCode::NewScopeObject,
-                            this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
+                            this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalClosureReg()),
                             m_func),
                         Js::Constants::NoByteCodeOffset);
                 }
@@ -6653,8 +6653,8 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                 this->AddInstr(
                     IR::Instr::New(
                         Js::OpCode::NewScopeSlots,
-                        this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
-                        IR::IntConstOpnd::New(this->m_func->GetJnFunction()->scopeSlotArraySize + Js::ScopeSlots::FirstSlotIndex, TyUint32, this->m_func),
+                        this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalClosureReg()),
+                        IR::IntConstOpnd::New(this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() + Js::ScopeSlots::FirstSlotIndex, TyUint32, this->m_func),
                         m_func),
                     Js::Constants::NoByteCodeOffset);
             }
@@ -6664,14 +6664,14 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                 IR::Instr::New(
                     Js::OpCode::LdFrameDisplay,
                     tempRegOpnd,
-                    this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
-                    this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    this->BuildSrcOpnd(this->m_func->GetJITFunctionBody()->GetLocalClosureReg()),
+                    this->BuildSrcOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
                     this->m_func),
                 Js::Constants::NoByteCodeOffset);
             this->AddInstr(
                 IR::Instr::New(
                     Js::OpCode::MOV,
-                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
                     tempRegOpnd,
                     this->m_func),
                 Js::Constants::NoByteCodeOffset);

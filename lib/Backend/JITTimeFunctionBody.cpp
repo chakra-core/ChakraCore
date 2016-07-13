@@ -70,13 +70,13 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     if (statementMap->pActualOffsetList)
     {
-        jitBody->statementMap.actualOffsetLength = statementMap->pActualOffsetList->GetLength();
+        jitBody->statementMap.actualOffsetLength = statementMap->pActualOffsetList->Count();
         jitBody->statementMap.actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
     }
 
     if (statementMap->pStatementBuffer)
     {
-        jitBody->statementMap.statementLength = statementMap->pStatementBuffer->GetLength();
+        jitBody->statementMap.statementLength = statementMap->pStatementBuffer->Count();
         jitBody->statementMap.statementBuffer = statementMap->pStatementBuffer->GetBuffer();
     }
 
