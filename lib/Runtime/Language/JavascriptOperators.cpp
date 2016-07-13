@@ -4599,7 +4599,7 @@ CommonNumber:
     {
         if (length <= 0)
         {
-            return true;
+            return false;
         }
 
         TypeId instanceType = JavascriptOperators::GetTypeId(srcInstance);
@@ -4706,7 +4706,7 @@ CommonNumber:
     {
         if (length <= 0)
         {
-            return true;
+            return false;
         }
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         BOOL  returnValue = false;
