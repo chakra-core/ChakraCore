@@ -258,28 +258,24 @@ namespace Js
     {
     private:
         PolymorphicInlineCacheInfo selfInfo;
-        SListBase<PolymorphicInlineCacheInfo*> inlineeInfo;
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler> inlineeInfo;
 
         static void SetPolymorphicInlineCache(PolymorphicInlineCacheInfo * polymorphicInlineCacheInfo, FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, byte polyCacheUtil);
 
     public:
-        EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody)
-            : selfInfo(functionBody)
-        {
-        }
-
+        EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody);
 
         PolymorphicInlineCacheInfo * GetSelfInfo() { return &selfInfo; }
         PolymorphicInlineCacheInfo * EnsureInlineeInfo(Recycler * recycler, FunctionBody * inlineeFunctionBody);
         PolymorphicInlineCacheInfo * GetInlineeInfo(FunctionBody * inlineeFunctionBody);
-        SListBase<PolymorphicInlineCacheInfo*> * GetInlineeInfo() { return &this->inlineeInfo; }
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler> * GetInlineeInfo() { return &this->inlineeInfo; }
 
         void SetPolymorphicInlineCache(FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, bool isInlinee, byte polyCacheUtil);
 
         template <class Fn>
         void MapInlinees(Fn fn)
         {
-            SListBase<PolymorphicInlineCacheInfo*>::Iterator iter(&inlineeInfo);
+            SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
             while (iter.Next())
             {
                 fn(iter.Data());

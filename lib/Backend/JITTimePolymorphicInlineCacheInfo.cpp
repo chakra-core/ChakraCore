@@ -24,12 +24,12 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
     Js::PolymorphicInlineCacheInfo * selfInfo = runtimeInfo->GetSelfInfo();
     JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, selfInfo, &jitInfo->selfInfo);
 
-    SListBase<Js::PolymorphicInlineCacheInfo*> * inlineeList = runtimeInfo->GetInlineeInfo();
+    SListCounted<Js::PolymorphicInlineCacheInfo*, Recycler> * inlineeList = runtimeInfo->GetInlineeInfo();
     jitInfo->inlineeInfoCount = inlineeList->Count();
-    if (jitInfo->inlineeInfoCount > 0)
+    if (!inlineeList->Empty())
     {
         jitInfo->inlineeInfo = RecyclerNewArray(recycler, PolymorphicInlineCacheInfoIDL, inlineeList->Count());
-        SListBase<Js::PolymorphicInlineCacheInfo*>::Iterator iter(inlineeList);
+        SListCounted<Js::PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(inlineeList);
         uint i = 0;
         while (iter.Next())
         {

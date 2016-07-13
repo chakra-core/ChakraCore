@@ -8130,9 +8130,15 @@ namespace Js
         return m_isEnterBlock;
     }
 
+    EntryPointPolymorphicInlineCacheInfo::EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody) :
+        selfInfo(functionBody),
+        inlineeInfo(functionBody->GetRecycler())
+    {
+    }
+
     PolymorphicInlineCacheInfo * EntryPointPolymorphicInlineCacheInfo::GetInlineeInfo(FunctionBody * inlineeFunctionBody)
     {
-        SListBase<PolymorphicInlineCacheInfo*>::Iterator iter(&inlineeInfo);
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
         while (iter.Next())
         {
             PolymorphicInlineCacheInfo * info = iter.Data();
@@ -8151,7 +8157,7 @@ namespace Js
         if (!info)
         {
             info = RecyclerNew(recycler, PolymorphicInlineCacheInfo, inlineeFunctionBody);
-            inlineeInfo.Prepend(recycler, info);
+            inlineeInfo.Prepend(info);
         }
         return info;
     }
