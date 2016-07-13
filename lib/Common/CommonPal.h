@@ -27,6 +27,19 @@
     #define __forceinline inline
 #endif
 
+#ifdef __clang__
+#define CLANG_WNO_BEGIN_(x) \
+    _Pragma("clang diagnostic push")\
+    _Pragma(#x)
+
+#define CLANG_WNO_BEGIN(x) CLANG_WNO_BEGIN_(clang diagnostic ignored x)
+#define CLANG_WNO_END
+    _Pragma("clang diagnostic pop")
+#else
+#define CLANG_WNO_BEGIN(x)
+#define CLANG_WNO_END
+#endif
+
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */

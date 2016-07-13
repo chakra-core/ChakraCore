@@ -4,7 +4,7 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd
         )
 endif()
 
-add_library (Chakra.Runtime.Language STATIC
+add_library (Chakra.Runtime.Language OBJECT
     AsmJs.cpp
     AsmJsByteCodeGenerator.cpp
     AsmJsCodeGenerator.cpp

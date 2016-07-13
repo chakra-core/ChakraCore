@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Math STATIC
+add_library (Chakra.Runtime.Math OBJECT
     AsmJsMath.cpp
     JavascriptSSE2MathOperators.cpp
     RuntimeMathPch.cpp

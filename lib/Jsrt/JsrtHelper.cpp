@@ -6,6 +6,30 @@
 #include "jsrtHelper.h"
 #include "Base/ThreadContextTlsEntry.h"
 
+#ifdef CHAKRA_STATIC_LIBRARY
+#include "Core/ConfigParser.h"
+
+void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
+{
+    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
+    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
+}
+
+bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
+{
+    return false;
+}
+
+void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
+{
+}
+
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+{
+    return _u("");
+}
+#endif
+
 JsrtCallbackState::JsrtCallbackState(ThreadContext* currentThreadContext)
 {
     if (currentThreadContext == nullptr)

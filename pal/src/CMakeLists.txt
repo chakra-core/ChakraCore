@@ -116,9 +116,9 @@ set(SOURCES
   exception/seh.cpp
   exception/signal.cpp
   file/directory.cpp
-  file/file.cpp
+  file/pal_file.cpp
   file/filetime.cpp
-  file/path.cpp
+  file/pal_path.cpp
   file/shmfilelockmgr.cpp
   handlemgr/handleapi.cpp
   handlemgr/handlemgr.cpp
@@ -154,7 +154,7 @@ set(SOURCES
   sync/cs.cpp
   thread/context.cpp
   thread/process.cpp
-  thread/thread.cpp
+  thread/pal_thread.cpp
   thread/threadsusp.cpp
   thread/tls.cpp
 )

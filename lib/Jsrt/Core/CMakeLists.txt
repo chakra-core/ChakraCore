@@ -1,4 +1,4 @@
-add_library (Chakra.Jsrt.Core STATIC
+add_library (Chakra.Jsrt.Core OBJECT
     JsrtContextCore.cpp
     )
 

@@ -13,6 +13,26 @@ add_library (Chakra.Jsrt STATIC
     JsrtRuntime.cpp
     JsrtSourceHolder.cpp
     JsrtThreadService.cpp
+    $<TARGET_OBJECTS:Chakra.Jsrt.Core>
+#   Do not take this in. We need to control the 
+#   linker order because of global constructors
+#   and cross dependencies among them
+#   $<TARGET_OBJECTS:Chakra.Common.Core>
+    $<TARGET_OBJECTS:Chakra.Common.Common>
+    $<TARGET_OBJECTS:Chakra.Common.Codex>
+    $<TARGET_OBJECTS:Chakra.Common.DataStructures>
+    $<TARGET_OBJECTS:Chakra.Common.Exceptions>
+    $<TARGET_OBJECTS:Chakra.Common.Memory>
+    $<TARGET_OBJECTS:Chakra.Common.Util>
+    $<TARGET_OBJECTS:Chakra.Runtime.Base>
+    $<TARGET_OBJECTS:Chakra.Runtime.ByteCode>
+    $<TARGET_OBJECTS:Chakra.Runtime.Debug>
+    $<TARGET_OBJECTS:Chakra.Runtime.Language>
+    $<TARGET_OBJECTS:Chakra.Runtime.Library>
+    $<TARGET_OBJECTS:Chakra.Runtime.Math>
+    $<TARGET_OBJECTS:Chakra.Runtime.Types>
+    $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
+    $<TARGET_OBJECTS:Chakra.Parser>
     )
 
 add_subdirectory(Core)

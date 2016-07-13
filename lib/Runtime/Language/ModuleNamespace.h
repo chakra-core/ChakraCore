@@ -20,8 +20,6 @@ namespace Js
     public:
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
 
-        static bool Is(Var ns) { return ModuleNamespace::Is(ns); }
-
         //virtual int GetPropertyCount() override;
         //virtual PropertyId GetPropertyId(PropertyIndex index) override;
         //virtual PropertyId GetPropertyId(BigPropertyIndex index) override;

@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Types STATIC
+add_library (Chakra.Runtime.Types OBJECT
     ActivationObject.cpp
     ArrayObject.cpp
     DeferredTypeHandler.cpp

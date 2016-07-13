@@ -25,7 +25,6 @@
 typedef int (*OUTPUTFN)(miniFILE *, const char *, va_list);
 
 static int _vsnprintf_helper( OUTPUTFN outfn, char *string, size_t count, const char *format, va_list ap );
-static int _vscprintf_helper ( OUTPUTFN outfn, const char *format, va_list ap);
 
 /***
 *ifndef _COUNT_
@@ -222,45 +221,3 @@ int __cdecl _vsnprintf_s (
 
     return (retvalue < 0 ? -1 : retvalue);
 }
-
-/***
-* _vscprintf() - counts the number of character needed to print the formatted
-* data
-*
-*Purpose:
-*       Counts the number of characters in the fotmatted data.
-*
-*Entry:
-*       char *format - format string, describes format of data
-*       va_list ap - varargs argument pointer
-*
-*Exit:
-*       returns number of characters needed to print formatted data.
-*
-*Exceptions:
-*
-*******************************************************************************/
-
-#ifndef _COUNT_
-
-int __cdecl _vscprintf_helper (
-        OUTPUTFN outfn,
-        const char *format,
-        va_list ap
-        )
-{
-        miniFILE str;
-        miniFILE *outfile = &str;
-        int retval;
-
-        _VALIDATE_RETURN( (format != NULL), EINVAL, -1);
-
-        outfile->_cnt = INT_MAX; //MAXSTR;
-        outfile->_flag = _IOWRT|_IOSTRG;
-        outfile->_ptr = outfile->_base = NULL;
-
-        retval = outfn(outfile, format, ap);
-        return(retval);
-}
-
-#endif  /* _COUNT_ */
