@@ -383,25 +383,26 @@ Encoder::Encode()
         if (this->m_func->IsOOPJIT())
         {
             auto& equivalentTypeGuardOffsets = this->m_func->GetJITOutput()->GetOutputData()->equivalentTypeGuardOffsets;
-            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(offsetof(EquivalentTypeGuardOffsets, offsets) + equivalentTypeGuardsCount * sizeof(unsigned int));
+            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(offsetof(EquivalentTypeGuardOffsets, guards) + equivalentTypeGuardsCount * sizeof(EquivalentTypeGuardIDL));
             equivalentTypeGuardOffsets->count = equivalentTypeGuardsCount;
 
             int i = 0;
             this->m_func->equivalentTypeGuards->Map([&equivalentTypeGuardOffsets, &i](Js::JitEquivalentTypeGuard* srcGuard) -> void
             {
-                equivalentTypeGuardOffsets->offsets[i++] = NativeCodeData::GetDataTotalOffset(srcGuard);
+                equivalentTypeGuardOffsets->guards[i].offset = NativeCodeData::GetDataTotalOffset(srcGuard);
 
                 auto cache = srcGuard->GetCache();
-                equivalentTypeGuardOffsets->cache.guardOffset = NativeCodeData::GetDataTotalOffset(cache->guard);
-                equivalentTypeGuardOffsets->cache.hasFixedValue = cache->hasFixedValue;
-                equivalentTypeGuardOffsets->cache.isLoadedFromProto = cache->isLoadedFromProto;
-                equivalentTypeGuardOffsets->cache.nextEvictionVictim = cache->nextEvictionVictim;
-                equivalentTypeGuardOffsets->cache.record.propertyCount = cache->record.propertyCount;
-                equivalentTypeGuardOffsets->cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
+                equivalentTypeGuardOffsets->guards[i].cache.guardOffset = NativeCodeData::GetDataTotalOffset(cache->guard);
+                equivalentTypeGuardOffsets->guards[i].cache.hasFixedValue = cache->hasFixedValue;
+                equivalentTypeGuardOffsets->guards[i].cache.isLoadedFromProto = cache->isLoadedFromProto;
+                equivalentTypeGuardOffsets->guards[i].cache.nextEvictionVictim = cache->nextEvictionVictim;
+                equivalentTypeGuardOffsets->guards[i].cache.record.propertyCount = cache->record.propertyCount;
+                equivalentTypeGuardOffsets->guards[i].cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
                 for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE_IDL; j++)
                 {
-                    equivalentTypeGuardOffsets->cache.types[j] = (intptr_t)cache->types[j];
+                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)cache->types[j];
                 }
+                i++;
             });
             Assert(equivalentTypeGuardsCount == i);
         }

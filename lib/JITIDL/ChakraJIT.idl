@@ -585,11 +585,17 @@ typedef struct EquivlentTypeCacheIDL
     boolean hasFixedValue;
 } EquivlentTypeCacheIDL;
 
-typedef struct EquivalentTypeGuardOffsets
+typedef struct EquivalentTypeGuardIDL
 {
     EquivlentTypeCacheIDL cache;
+    unsigned int offset;
+
+} EquivalentTypeGuardIDL;
+
+typedef struct EquivalentTypeGuardOffsets
+{
     unsigned int count;
-    [size_is(count)] unsigned int offsets[*];
+    [size_is(count)] EquivalentTypeGuardIDL guards[*];
 
 } EquivalentTypeGuardOffsets;
 

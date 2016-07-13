@@ -9,7 +9,7 @@ namespace Js
     class BranchDictionaryWrapper
     {
     public:
-        class Allocator :public NativeCodeData::Allocator
+        class DictAllocator :public NativeCodeData::Allocator
         {
         public:
             char * Alloc(size_t requestedBytes)
@@ -39,7 +39,6 @@ namespace Js
                         chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
                 }
 #endif
-
                 return dataBlock;
             }
         };
@@ -55,12 +54,12 @@ namespace Js
             }
         };       
 
-        typedef JsUtil::BaseDictionary<T, void*, Allocator, PowerOf2SizePolicy, DefaultComparer, SimpleDictionaryEntryWithFixUp> BranchBaseDictionary;
+        typedef JsUtil::BaseDictionary<T, void*, DictAllocator, PowerOf2SizePolicy, DefaultComparer, SimpleDictionaryEntryWithFixUp> BranchBaseDictionary;
 
         class BranchDictionary :public BranchBaseDictionary
         {
         public:
-            BranchDictionary(Allocator* allocator, uint dictionarySize)
+            BranchDictionary(DictAllocator* allocator, uint dictionarySize)
                 : BranchBaseDictionary(allocator, dictionarySize)
             {
             }
@@ -76,34 +75,47 @@ namespace Js
             }
         };
 
-        BranchDictionaryWrapper(NativeCodeData::Allocator * allocator, uint dictionarySize) :
-            defaultTarget(nullptr), dictionary((Allocator*)allocator, dictionarySize)
+        BranchDictionaryWrapper(NativeCodeData::Allocator * allocator, uint dictionarySize, bool oopjit) :
+            defaultTarget(nullptr), dictionary((DictAllocator*)allocator, dictionarySize)
         {
-            remoteKeys = HeapNewArrayZ(void*, dictionarySize);
+            if (oopjit)
+            {
+                remoteKeys = HeapNewArrayZ(void*, dictionarySize);
+            }
+            else
+            {
+                remoteKeys = nullptr;
+            }
         }
 
         BranchDictionary dictionary;
         void* defaultTarget;
         void** remoteKeys;
 
-        static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize)
+        bool IsOOPJit()
         {
-            return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize);
+            return remoteKeys != nullptr;
         }
 
-        __declspec(noinline)
+        static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize, bool oopjit)
+        {
+            return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize, oopjit);
+        }
+
         void AddEntry(uint32 offset, T key, void* remoteVar)
         {
             int index = dictionary.AddNew(key, (void**)offset);
             remoteKeys[index] = remoteVar;
         }
-        __declspec(noinline)
+
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            dictionary.Fixup(chunkList, remoteKeys);
-            HeapDeleteArray(dictionary.Count(), remoteKeys);
-        }       
-
+            if (IsOOPJit())
+            {
+                dictionary.Fixup(chunkList, remoteKeys);
+                HeapDeleteArray(dictionary.Count(), remoteKeys);
+            }
+        }
     };
 
     class JavascriptNativeOperators

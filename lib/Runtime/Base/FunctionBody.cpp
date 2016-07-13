@@ -8303,12 +8303,12 @@ namespace Js
             this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
 
             this->RegisterEquivalentTypeCaches();
-            EquivalentTypeCache* cache = this->equivalentTypeCaches;
-            auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->cache;
+            EquivalentTypeCache* cache = this->equivalentTypeCaches;            
 
             for (int i = 0; i < guardCount; i++)
             {
-                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->offsets[i];
+                auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->guards[i].cache;
+                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->guards[i].offset;
                 JitEquivalentTypeGuard* guard = (JitEquivalentTypeGuard*)(this->GetNativeDataBuffer() + guardOffset);                
                 cache[i].guard = guard;
                 cache[i].hasFixedValue = cacheIDL.hasFixedValue != 0;
