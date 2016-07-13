@@ -8,6 +8,7 @@
 #include "Common.h"
 
 #include "Runtime.h"
+#include "Language/WasmAsmJsCommon.h"
 #ifdef ENABLE_WASM
 #if DBG
 #define TRACE_WASM(condition, ...) \
@@ -74,7 +75,6 @@ namespace Wasm
 #include "WasmSection.h"
 
 #include "WasmBinaryReader.h"
-#include "WasmRegisterSpace.h"
 #include "WasmBytecodeGenerator.h"
 
 // TODO (michhol): cleanup includes

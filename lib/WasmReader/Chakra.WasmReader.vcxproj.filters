@@ -9,7 +9,6 @@
     <ClInclude Include="WasmReader.h" />
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
-    <ClInclude Include="WasmRegisterSpace.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />
     <ClInclude Include="ModuleInfo.h" />
@@ -23,7 +22,6 @@
     <ClCompile Include="WasmFunctionInfo.cpp" />
     <ClCompile Include="WasmReaderPch.cpp" />
     <ClCompile Include="WasmBytecodeGenerator.cpp" />
-    <ClCompile Include="WasmRegisterSpace.cpp" />
     <ClCompile Include="WasmBinaryReader.cpp" />
     <ClCompile Include="ModuleInfo.cpp" />
     <ClCompile Include="WasmSignature.cpp" />

@@ -173,6 +173,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd64\StackFrame.h">
@@ -184,6 +185,7 @@
     <ClInclude Include="AsmJs.h" />
     <ClInclude Include="AsmJsByteCodeGenerator.h" />
     <ClInclude Include="AsmJsCodeGenerator.h" />
+    <ClInclude Include="WasmAsmJsCommon.h" />
     <ClInclude Include="AsmJsEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -248,6 +250,7 @@
     <ClInclude Include="SimdUtils.h" />
     <ClInclude Include="TaggedInt.h" />
     <ClInclude Include="RuntimeLanguagePch.h" />
+    <ClInclude Include="WAsmjsUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptOperatorsA.asm">

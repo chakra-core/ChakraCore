@@ -41,7 +41,6 @@
     <ClCompile Include="WasmReaderPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="WasmRegisterSpace.cpp" />
     <ClCompile Include="WasmBinaryReader.cpp" />
     <ClCompile Include="WasmSection.cpp" />
     <ClCompile Include="WasmSignature.cpp" />
@@ -57,7 +56,6 @@
     <ClInclude Include="WasmKeywords.h" />
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmParseTree.h" />
-    <ClInclude Include="WasmRegisterSpace.h" />
     <ClInclude Include="WasmSection.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSignature.h" />
