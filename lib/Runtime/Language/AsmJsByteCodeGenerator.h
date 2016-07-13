@@ -8,22 +8,15 @@
 namespace Js
 {
     // Information about the expression that has been emitted
-    struct EmitExpressionInfo
+    struct EmitExpressionInfo : WAsmJs::EmitInfoBase
     {
         EmitExpressionInfo( RegSlot location_, const AsmJsType& type_ ) :
-            location( location_ ), type( type_ )
+            WAsmJs::EmitInfoBase( location_ ), type( type_ )
         {
         }
-        EmitExpressionInfo( const AsmJsType& type_ ) :
-            location( Constants::NoRegister ), type( type_ )
-        {
-        }
-        EmitExpressionInfo():
-            location( Constants::NoRegister ), type( AsmJsType::Void )
-        {
-        }
+        EmitExpressionInfo( const AsmJsType& type_ ) : type( type_ ) {}
+        EmitExpressionInfo(): type( AsmJsType::Void ) {}
 
-        RegSlot location;
         AsmJsType type;
     };
 

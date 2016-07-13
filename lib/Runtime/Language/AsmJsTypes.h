@@ -22,6 +22,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
+#include "Language/WasmAsmJsCommon.h"
 
 #ifndef TEMP_DISABLE_ASMJS
 namespace Wasm
@@ -477,179 +478,6 @@ namespace Js
         inline Js::PropertyName GetField() const { return mField; }
     };
 
-#if DBG_DUMP
-    // Function used to debug Temporary register allocation in the bytecode generator
-    template<typename T> void PrintTmpRegisterAllocation( RegSlot loc );
-    template<typename T> void PrintTmpRegisterDeAllocation( RegSlot loc );
-#endif
-
-    /// Register space for const, parameters, variables and tmp values
-    ///     --------------------------------------------------------
-    ///     | 0 (Reserved) | Consts  | Parameters | Variables | Tmp
-    ///     --------------------------------------------------------
-    ///     Cannot allocate in any different order
-    template<typename T, RegSlot Reserved_Slots_Count>
-    class AsmJsRegisterSpaceGeneric
-    {
-        // Total number of register allocated
-        RegSlot   mRegisterCount;
-
-        // location of the first temporary register and last variable + 1
-        RegSlot   mFirstTmpReg;
-
-        // Location of the next register to be allocated
-        RegSlot   mNextLocation;
-
-        // number of const, includes the reserved slots
-        RegSlot    mNbConst;
-
-    public:
-        // Constructor
-        AsmJsRegisterSpaceGeneric() :
-            mRegisterCount( Reserved_Slots_Count )
-            , mFirstTmpReg( Reserved_Slots_Count )
-            , mNextLocation( Reserved_Slots_Count )
-            , mNbConst( Reserved_Slots_Count )
-        {
-            CompileAssert( Reserved_Slots_Count >= 0 );
-        }
-        // Get the number of const allocated
-        inline RegSlot GetConstCount() const      { return mNbConst; }
-        // Get the location of the first temporary register
-        inline RegSlot GetFirstTmpRegister() const{ return mFirstTmpReg; }
-        // Get the total number of temporary register allocated
-        inline RegSlot GetTmpCount() const        { return mRegisterCount-mFirstTmpReg; }
-        // Get number of local variables
-        inline RegSlot GetVarCount() const        { return mFirstTmpReg - mNbConst; }
-        // Get the total number of variable allocated ( including temporaries )
-        inline RegSlot GetTotalVarCount() const        { return mRegisterCount - mNbConst; }
-        inline RegSlot GetRegisterCount()const { return mRegisterCount; }
-
-        // Acquire a location for a register. Use only for arguments and Variables
-        inline RegSlot AcquireRegister()
-        {
-            // Makes sure no temporary register have been allocated yet
-            Assert( mFirstTmpReg == mRegisterCount && mNextLocation == mFirstTmpReg );
-            ++mFirstTmpReg;
-            ++mRegisterCount;
-            return mNextLocation++;
-        }
-
-        // Acquire a location for a constant
-        inline RegSlot AcquireConstRegister()
-        {
-            ++mNbConst;
-            return AcquireRegister();
-        }
-
-        // Acquire a location for a temporary register
-        RegSlot AcquireTmpRegister()
-        {
-            // Make sure this function is called correctly
-            Assert( this->mNextLocation <= this->mRegisterCount && this->mNextLocation >= this->mFirstTmpReg );
-
-            // Allocate a new temp pseudo-register, increasing the locals count if necessary.
-            if( this->mNextLocation == this->mRegisterCount )
-            {
-                ++this->mRegisterCount;
-            }
-#if DBG_DUMP
-            PrintTmpRegisterAllocation<T>( mNextLocation );
-#endif
-            return mNextLocation++;
-        }
-
-        // Release a location for a temporary register, must be the last location acquired
-        void ReleaseTmpRegister( RegSlot tmpReg )
-        {
-            // make sure the location released is valid
-            Assert( tmpReg != Constants::NoRegister );
-
-            // Put this reg back on top of the temp stack (if it's a temp).
-            if( this->IsTmpReg( tmpReg ) )
-            {
-                Assert( tmpReg == this->mNextLocation - 1 );
-#if DBG_DUMP
-                PrintTmpRegisterDeAllocation<T>( mNextLocation-1 );
-#endif
-                this->mNextLocation--;
-            }
-        }
-
-        // Checks if the register is a temporary register
-        bool IsTmpReg( RegSlot tmpReg )
-        {
-            Assert( this->mFirstTmpReg != Js::Constants::NoRegister );
-            return !IsConstReg( tmpReg ) && tmpReg >= mFirstTmpReg;
-        }
-
-        // Checks if the register is a const register
-        bool IsConstReg( RegSlot reg )
-        {
-            // a register is const if it is between the first register and the end of consts
-            return reg < mNbConst && reg != 0;
-        }
-
-        // Checks if the register is a variable register
-        bool IsVarReg( RegSlot reg )
-        {
-            // a register is a var if it is between the last const and the end
-            // equivalent to  reg>=mNbConst && reg<mRegisterCount
-            // forcing unsigned, if reg < mNbConst then reg-mNbConst = 0xFFFFF..
-            return (uint32_t)( reg - mNbConst ) < (uint32_t)( mRegisterCount - mNbConst );
-        }
-
-        // Releases a location if its a temporary, safe to call with any expression
-        void ReleaseLocation( const EmitExpressionInfo *pnode )
-        {
-            // Release the temp assigned to this expression so it can be re-used.
-            if( pnode && pnode->location != Js::Constants::NoRegister )
-            {
-                this->ReleaseTmpRegister( pnode->location );
-            }
-        }
-
-        // Checks if the location points to a temporary register
-        bool IsTmpLocation( const EmitExpressionInfo* pnode )
-        {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
-            {
-                return IsTmpReg( pnode->location );
-            }
-            return false;
-        }
-
-        // Checks if the location points to a constant register
-        bool IsConstLocation( const EmitExpressionInfo* pnode )
-        {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
-            {
-                return IsConstReg( pnode->location );
-            }
-            return false;
-        }
-
-        // Checks if the location points to a variable register
-        bool IsVarLocation( const EmitExpressionInfo* pnode )
-        {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
-            {
-                return IsVarReg( pnode->location );
-            }
-            return false;
-        }
-
-        // Checks if the location is valid ( within bounds of already allocated registers )
-        bool IsValidLocation( const EmitExpressionInfo* pnode )
-        {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
-            {
-                return pnode->location < mRegisterCount;
-            }
-            return false;
-        }
-    };
-
     template <typename T>
     struct AsmJsComparer : public DefaultComparer<T> {};
 
@@ -688,7 +516,7 @@ namespace Js
 
     // Register space use by the function, include a map to quickly find the location assigned to constants
     template<typename T>
-    class AsmJsRegisterSpace : public AsmJsRegisterSpaceGeneric < T, 1 > // reserves 1 location for return
+    class AsmJsRegisterSpace : public WAsmJs::RegisterSpace
     {
         typedef JsUtil::BaseDictionary<T, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> ConstMap;
         // Map for constant and their location
@@ -696,6 +524,8 @@ namespace Js
     public:
         // Constructor
         AsmJsRegisterSpace( ArenaAllocator* allocator ) :
+            // reserves 1 location for return
+            WAsmJs::RegisterSpace(1),
             mConstMap( allocator )
         {
         }

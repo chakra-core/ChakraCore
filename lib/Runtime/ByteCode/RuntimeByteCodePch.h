@@ -19,7 +19,6 @@
 #include "ByteCode/ByteCodeGenerator.h"
 
 #include "ByteCode/OpCodeUtilAsmJs.h"
-#include "Language/AsmJsTypes.h"
 
 #include "ByteCode/ByteCodeApi.h"
 #include "ByteCode/BackendOpCodeAttr.h"
