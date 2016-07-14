@@ -94,3 +94,41 @@ void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::
         jsrtDebugManager->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
     }
 }
+
+HRESULT ChakraCoreHostScriptContext::FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord)
+{
+    if (fetchImportedModuleCallback == nullptr)
+    {
+        return E_INVALIDARG;
+    }
+    Js::JavascriptString* specifierVar = Js::JavascriptString::NewCopySz(specifier, GetScriptContext());
+    JsModuleRecord dependentRecord = JS_INVALID_REFERENCE;
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = fetchImportedModuleCallback(referencingModule, specifierVar, &dependentRecord);
+        if (errorCode == JsNoError)
+        {
+            *dependentModuleRecord = static_cast<Js::ModuleRecordBase*>(dependentRecord);
+            return NOERROR;
+        }
+    }
+    return E_INVALIDARG;
+}
+
+HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar)
+{
+    if (notifyModuleReadyCallback == nullptr)
+    {
+        return E_INVALIDARG;
+    }
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = notifyModuleReadyCallback(referencingModule, exceptionVar);
+        if (errorCode == JsNoError)
+        {
+            return NOERROR;
+        }
+    }
+    return E_INVALIDARG;
+}
+
