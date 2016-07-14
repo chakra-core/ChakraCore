@@ -30,6 +30,11 @@
   <ItemGroup>
     <ClInclude Include="JITServerPch.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>

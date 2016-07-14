@@ -14,18 +14,18 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)SourceContextInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DiagHelperMethodWrapper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeDebugPch.cpp" />
-    <ClCompile Include="TTSupport.cpp" />
-    <ClCompile Include="TTInflateMap.cpp" />
-    <ClCompile Include="TTRuntmeInfoTracker.cpp" />
-    <ClCompile Include="TTSerialize.cpp" />
-    <ClCompile Include="TTSnapValues.cpp" />
-    <ClCompile Include="TTSnapTypes.cpp" />
-    <ClCompile Include="TTSnapObjects.cpp" />
-    <ClCompile Include="TTSnapshot.cpp" />
-    <ClCompile Include="TTSnapshotExtractor.cpp" />
-    <ClCompile Include="TTEvents.cpp" />
-    <ClCompile Include="TTActionEvents.cpp" />
-    <ClCompile Include="TTEventLog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTActionEvents.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTEventLog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTEvents.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTInflateMap.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTRuntmeInfoTracker.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSerialize.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapObjects.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapshot.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapshotExtractor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapTypes.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapValues.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TTSupport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugContext.h" />

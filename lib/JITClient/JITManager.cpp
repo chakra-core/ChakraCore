@@ -229,6 +229,25 @@ JITManager::CleanupThreadContext(
     return hr;
 }
 
+HRESULT
+JITManager::AddDOMFastPathHelper(
+    __in intptr_t scriptContextInfoAddress,
+    __in intptr_t funcInfoAddr,
+    __in int helper)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientAddDOMFastPathHelper(m_rpcBindingHandle, scriptContextInfoAddress, funcInfoAddr, helper);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
 
 HRESULT
 JITManager::AddPropertyRecord(

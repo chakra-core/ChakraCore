@@ -175,9 +175,6 @@ namespace Js
 #ifdef ENABLE_SCRIPT_PROFILING
         , m_fTraceDomCall(FALSE)
 #endif
-#ifdef ENABLE_DOM_FAST_PATH
-        , domFastPathIRHelperMap(nullptr)
-#endif
         , intConstPropsOnGlobalObject(nullptr)
         , intConstPropsOnGlobalUserObject(nullptr)
 #ifdef PROFILE_STRINGS
@@ -4424,20 +4421,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
         return function;
     }
-
-#ifdef ENABLE_DOM_FAST_PATH
-    DOMFastPathIRHelperMap* ScriptContext::EnsureDOMFastPathIRHelperMap()
-    {
-        if (domFastPathIRHelperMap == nullptr)
-        {
-            // Anew throws if it OOMs, so the caller into this function needs to handle that exception
-            domFastPathIRHelperMap = Anew(GeneralAllocator(), DOMFastPathIRHelperMap,
-                GeneralAllocator(), 17);    // initial capacity set to 17; unlikely to grow much bigger.
-        }
-
-        return domFastPathIRHelperMap;
-    }
-#endif
 
 #if ENABLE_PROFILE_INFO
     void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo)

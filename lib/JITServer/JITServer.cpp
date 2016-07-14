@@ -128,6 +128,21 @@ ServerAddPropertyRecord(
 }
 
 HRESULT
+ServerAddDOMFastPathHelper(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 scriptContextRoot,
+    /* [in] */ __int3264 funcInfoAddr,
+    /* [in] */ int helper)
+{
+    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
+    scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
+
+    return S_OK;
+}
+
+HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,

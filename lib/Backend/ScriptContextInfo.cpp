@@ -10,6 +10,12 @@ ScriptContextInfo::ScriptContextInfo(ScriptContextDataIDL * contextData) :
     m_isPRNGSeeded(false),
     m_activeJITCount(0)
 {
+    m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
+}
+
+ScriptContextInfo::~ScriptContextInfo()
+{
+    HeapDelete(m_domFastPathHelperMap);
 }
 
 intptr_t
@@ -225,16 +231,21 @@ ScriptContextInfo::IsJITActive()
     return m_activeJITCount != 0;
 }
 
-// TODO: OOP JIT, populate the map
-JITDOMFastPathHelperMap*
-ScriptContextInfo::EnsureDOMFastPathHelperMap()
+void
+ScriptContextInfo::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
-    // TODO: OOP JIT, critical section?
-    if (m_domFastPathHelperMap == nullptr)
-    {
-        // initial capacity set to 17; unlikely to grow much bigger
-        m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
-    }
+    m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+}
 
-    return m_domFastPathHelperMap;
+IR::JnHelperMethod
+ScriptContextInfo::GetDOMFastPathHelper(intptr_t funcInfoAddr)
+{
+    IR::JnHelperMethod helper;
+    
+    m_domFastPathHelperMap->LockResize();
+    bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+    m_domFastPathHelperMap->UnlockResize();
+
+    Assert(found);
+    return helper;
 }

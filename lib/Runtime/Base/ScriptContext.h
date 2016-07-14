@@ -341,10 +341,6 @@ namespace Js
         }
     };
 
-#ifdef ENABLE_DOM_FAST_PATH
-    typedef JsUtil::BaseDictionary<Js::FunctionInfo*, IR::JnHelperMethod, ArenaAllocator, PowerOf2SizePolicy> DOMFastPathIRHelperMap;
-#endif
-
     // valid if object!= NULL
     struct EnumeratedObjectCache {
         static const int kMaxCachedPropStrings=16;
@@ -896,13 +892,6 @@ private:
         typedef void(*TransitionToDebugModeIfFirstSourceFn)(ScriptContext *, Utf8SourceInfo *);
         TransitionToDebugModeIfFirstSourceFn transitionToDebugModeIfFirstSourceFn;
 
-#ifdef ENABLE_DOM_FAST_PATH
-        // Theoretically we can put this in ThreadContext; don't want to keep the dictionary forever, and preserve the possibility of
-        // using JavascriptFunction as key.
-        DOMFastPathIRHelperMap* domFastPathIRHelperMap;
-#endif
-
-
         ScriptContext(ThreadContext* threadContext);
         void InitializeAllocations();
         void InitializePreGlobal();
@@ -956,9 +945,6 @@ private:
 
         intptr_t GetRemoteScriptAddr() { return m_remoteScriptContextAddr; }
 
-#ifdef ENABLE_DOM_FAST_PATH
-        DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();
-#endif
         char16 const * GetUrl() const { return url; }
         void SetUrl(BSTR bstr);
 #ifdef RUNTIME_DATA_COLLECTION

@@ -23,6 +23,11 @@ public:
         __in intptr_t threadContextInfoAddress,
         __in PropertyRecordIDL * propertyRecord);
 
+    HRESULT AddDOMFastPathHelper(
+        __in intptr_t scriptContextInfoAddress,
+        __in intptr_t funcInfoAddr,
+        __in int helper);
+
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
         __out intptr_t *scriptContextInfoAddress);

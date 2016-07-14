@@ -3502,9 +3502,7 @@ IR::Instr * Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const F
     Assert(ldFldInstr->GetSrc1()->AsPropertySymOpnd()->GetObjTypeSpecInfo()->UsesAccessor());
 
     // Find the helper routine for this functionInfo.
-    IR::JnHelperMethod helperMethod;
-    bool found = this->topFunc->GetScriptContextInfo()->EnsureDOMFastPathHelperMap()->TryGetValue(functionInfo, &helperMethod);
-    Assert(found);
+    IR::JnHelperMethod helperMethod = this->topFunc->GetScriptContextInfo()->GetDOMFastPathHelper(functionInfo);
 
     // Find the instance object (External object).
     PropertySym * fieldSym = ldFldInstr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();

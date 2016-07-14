@@ -5,12 +5,11 @@
 
 #pragma once
 
-typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy> JITDOMFastPathHelperMap;
-
 class ScriptContextInfo
 {
 public:
     ScriptContextInfo(ScriptContextDataIDL * contextData);
+    ~ScriptContextInfo();
     intptr_t GetNullAddr() const;
     intptr_t GetUndefinedAddr() const;
     intptr_t GetTrueAddr() const;
@@ -43,7 +42,8 @@ public:
 
     intptr_t GetVTableAddress(VTableValue vtableType) const;
 
-    JITDOMFastPathHelperMap *  EnsureDOMFastPathHelperMap();
+    void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper);
+    IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr);
 
     bool IsRecyclerVerifyEnabled() const;
     uint GetRecyclerVerifyPad() const;
@@ -58,6 +58,9 @@ private:
     bool m_isPRNGSeeded;
 
     uint m_activeJITCount;
+
+    typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy,
+        DefaultComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> JITDOMFastPathHelperMap;
 
     JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 };
