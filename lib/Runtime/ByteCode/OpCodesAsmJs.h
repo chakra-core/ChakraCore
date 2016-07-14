@@ -212,16 +212,17 @@ MACRO_WMS   ( Sqrt_Flt                  , Float2        , None           )
 MACRO_WMS   ( Abs_Flt                   , Float2        , None           )
 MACRO_WMS   ( Atan2_Db                  , Double3       , None           )
 MACRO_WMS   ( Min_Db                    , Double3       , None           )
+MACRO_WMS   ( Min_Flt                   , Float3        , None           )
 MACRO_WMS   ( Max_Db                    , Double3       , None           )
+MACRO_WMS   ( Max_Flt                   , Float3        , None           )
 
 // Fround
 MACRO_WMS   ( Fround_Flt                , Float2        , None           )
 MACRO_WMS   ( Fround_Db                 , Float1Double1 , None           )
 MACRO_WMS   ( Fround_Int                , Float1Int1    , None           )
 
-MACRO_WMS(Copysign_Db, Double3, None)
-MACRO_WMS(Copysign_Flt, Float3, None)
-
+MACRO_EXTEND_WMS(Copysign_Db, Double3, None)
+MACRO_EXTEND_WMS(Copysign_Flt, Float3, None)
 MACRO_EXTEND_WMS(Trunc_Db, Double2, None)
 MACRO_EXTEND_WMS(Trunc_Flt, Float2, None)
 MACRO_EXTEND_WMS(Nearest_Db, Double2, None)

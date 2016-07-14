@@ -4,36 +4,49 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Js
 {
+
     template<typename T>
-    inline T AsmJsMath::Min(T aLeft, T aRight)
+    inline T minCheckNan(T aLeft, T aRight)
     {
+        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
+        {
+            return (T)NumberConstants::NaN;
+        }
         return aLeft < aRight ? aLeft : aRight;
     }
 
     template<>
     inline double AsmJsMath::Min<double>(double aLeft, double aRight)
     {
-        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
-        {
-            return NumberConstants::NaN;
-        }
-        return aLeft < aRight ? aLeft : aRight;
+        return minCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline float AsmJsMath::Min<float>(float aLeft, float aRight)
+    {
+        return minCheckNan(aLeft, aRight);
     }
 
     template<typename T>
-    inline T AsmJsMath::Max(T aLeft, T aRight)
+    inline T maxCheckNan(T aLeft, T aRight)
     {
+        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
+        {
+            return (T)NumberConstants::NaN;
+        }
         return aLeft > aRight ? aLeft : aRight;
     }
 
     template<>
     inline double AsmJsMath::Max<double>(double aLeft, double aRight)
     {
-        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
-        {
-            return NumberConstants::NaN;
-        }
-        return aLeft > aRight ? aLeft : aRight;
+        return maxCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline float AsmJsMath::Max<float>(float aLeft, float aRight)
+    {
+        return maxCheckNan(aLeft, aRight);
     }
 
     template<typename T>
