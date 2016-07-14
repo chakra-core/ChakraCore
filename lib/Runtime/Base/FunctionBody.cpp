@@ -1049,6 +1049,7 @@ namespace Js
         CopyDeferParseField(m_isStrictMode);
         CopyDeferParseField(m_isGlobalFunc);
         CopyDeferParseField(m_doBackendArgumentsOptimization);
+        CopyDeferParseField(m_usesArgumentsObject);
         CopyDeferParseField(m_isEval);
         CopyDeferParseField(m_isDynamicFunction);
         CopyDeferParseField(m_hasImplicitArgIns);
@@ -1143,6 +1144,7 @@ namespace Js
       m_isNameIdentifierRef (true),
       m_isStaticNameFunction(false),
       m_doBackendArgumentsOptimization(true),
+      m_usesArgumentsObject(false),
       m_isStrictMode(false),
       m_isAsmjsMode(false),
       m_dontInline(false),

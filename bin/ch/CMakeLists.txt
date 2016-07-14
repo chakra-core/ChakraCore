@@ -28,6 +28,8 @@ target_include_directories (ch
   ../ChakraCore
   ../../lib/Common
   ../../lib/Jsrt
+  ../../lib/Runtime
+  ../../lib/Parser
   )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
@@ -38,73 +40,40 @@ endif()
 
 if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    set(lib_target
-      -Wl,--no-undefined
-      -Wl,--start-group
-      -Wl,--whole-archive
-      Chakra.Jsrt
-      Chakra.Jsrt.Core
-      -Wl,--no-whole-archive
-      )
-  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(lib_target
-      -Wl,-undefined,error
-      Chakra.Jsrt
-      Chakra.Jsrt.Core
-      )
-  else()
-    message("This platform is not yet supported")
-  endif() # Linux ?
-
-  # make sure to include Common.Core before others
-  # this will help linker on some platforms for correct
-  # initialization order
-  set(lib_target "${lib_target}"
-    Chakra.Common.Core
-    )
+    set(LINKER_START_GROUP -Wl,--start-group)
+    set(LINKER_END_GROUP -Wl,--end-group)
+  endif()
 
   # common link deps
   set(lib_target "${lib_target}"
-    Chakra.Runtime.Types
-    Chakra.Runtime.Math
-    Chakra.Runtime.Library
-    Chakra.Runtime.Language
-    Chakra.Runtime.Debug
-    Chakra.Runtime.ByteCode
-    Chakra.Runtime.PlatformAgnostic
-    Chakra.Runtime.Base
-    Chakra.Parser
-    Chakra.Common.Util
-    Chakra.Common.Memory
-    Chakra.Common.Common
-    Chakra.Common.DataStructures
-    Chakra.Common.Exceptions
-    Chakra.Common.Codex
-    )
+    -Wl,-undefined,error
+    ${LINKER_START_GROUP}
+    Chakra.Pal
+    Chakra.Common.Core
+    Chakra.Jsrt
+    ${LINKER_END_GROUP}
+    pthread
+    stdc++
+    dl
+  )
 
-    if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-      set(lib_target "${lib_target}"
-        -Wl,--end-group
-        Chakra.Pal
-        pthread
-        stdc++
-        dl
-        icuuc
-        )
-    elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-      set(lib_target "${lib_target}"
-        Chakra.Pal
-        pthread
-        stdc++
-        dl
-        icucore
-        )
-    endif() # Linux ?
+  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(lib_target "${lib_target}"
+      icuuc
+      unwind-x86_64
+      )
+  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(lib_target "${lib_target}"
+      icucore
+      "-framework CoreFoundation"
+      "-framework Security"
+      )
+  endif() # Linux ?
 else() # // !from shared library
   set(lib_target
     PRIVATE Chakra.Pal
-    PRIVATE Chakra.Common.Codex
-    PRIVATE Chakra.Runtime.PlatformAgnostic
+    PRIVATE Chakra.Common.Codex.Singular
+    PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )
 endif()
 

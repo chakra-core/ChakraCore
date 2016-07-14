@@ -2331,7 +2331,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
         {
             // 3. the function directly references an 'arguments' identifier
             funcInfo->SetHasArguments(true);
-            
+            funcInfo->GetParsedFunctionBody()->SetUsesArgumentsObject(true);
             if (pnode->sxFnc.HasHeapArguments())
             {
                 bool doStackArgsOpt = !pnode->sxFnc.HasAnyWriteToFormals();

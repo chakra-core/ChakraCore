@@ -1402,7 +1402,7 @@ namespace JsUtil
         _u("BackgroundJobProcessor thread 5"),
         _u("BackgroundJobProcessor thread 6"),
         _u("BackgroundJobProcessor thread 7"),
-        _u("BackgroundJobProcessor thread 8")
+        _u("BackgroundJobProcessor thread 8"),
         _u("BackgroundJobProcessor thread 9"),
         _u("BackgroundJobProcessor thread 10"),
         _u("BackgroundJobProcessor thread 11"),

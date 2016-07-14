@@ -66,7 +66,10 @@ namespace DateTime
 
     class DaylightTimeHelper
     {
+    CLANG_WNO_BEGIN("-Wunused-private-field")
         DaylightTimeHelperPlatformData data;
+    CLANG_WNO_END
+
     public:
         double UtcToLocal(double utcTime, int &bias, int &offset, bool &isDaylightSavings);
         double LocalToUtc(double time);

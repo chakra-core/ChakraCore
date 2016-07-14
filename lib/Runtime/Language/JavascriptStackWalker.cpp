@@ -358,31 +358,21 @@ namespace Js
             pCodeAddr--;
         }
 
-        uint loopNum = GetLoopNumber();
+        bool usedInternalFrameInfo = false;
+        uint loopNum = GetLoopNumber(usedInternalFrameInfo);
 
         JavascriptFunction *function = nullptr;
         FunctionBody *inlinee = nullptr;
 
-        if (this->interpreterFrame == nullptr) //Inlining is disabled in Jit Loopbody. Don't attempt to get the statement map from the inlined frame.
-        {
-            function = this->GetCurrentFunctionFromPhysicalFrame();
+        function = usedInternalFrameInfo ? this->GetCachedInternalFrameInfo().function : this->GetCurrentFunctionFromPhysicalFrame();
 
-            // If there are inlined frames on the stack, we have to be able to return the byte code offsets of those inlined calls
-            // from their respective callers. But, we can use the current native address as IP for only the topmost inlined frame.
-            // TryGetByteCodeOffsetOfInlinee takes care of these conditions and sets up the offset of an inlinee in 'offset', if the
-            // current inlinee frame is not the topmost of the inlinee frames.
-            if (HasInlinedFramesOnStack() && TryGetByteCodeOffsetOfInlinee(function, loopNum, pCodeAddr, &inlinee, offset))
-            {
-                return true;
-            }
-        }
-        else
+        // If there are inlined frames on the stack, we have to be able to return the byte code offsets of those inlined calls
+        // from their respective callers. But, we can use the current native address as IP for only the topmost inlined frame.
+        // TryGetByteCodeOffsetOfInlinee takes care of these conditions and sets up the offset of an inlinee in 'offset', if the
+        // current inlinee frame is not the topmost of the inlinee frames.
+        if (HasInlinedFramesOnStack() && TryGetByteCodeOffsetOfInlinee(function, loopNum, pCodeAddr, &inlinee, offset, usedInternalFrameInfo))
         {
-            //Get the function from the interpreterFrame in jit loop body case
-            //This is exactly same as this->GetCurrentFunctionFromPhysicalFrame() if the interpreterFrame is not
-            //called from bailout path.
-            Assert(this->lastInternalFrameInfo.codeAddress);
-            function = this->interpreterFrame->GetJavascriptFunction();
+            return true;
         }
 
         StatementData data;
@@ -395,7 +385,7 @@ namespace Js
         return false;
     }
 
-    uint JavascriptStackWalker::GetLoopNumber() const
+    uint JavascriptStackWalker::GetLoopNumber(bool& usedInternalFrameInfo) const
     {
         uint loopNum = LoopHeader::NoLoop;
         if (this->lastInternalFrameInfo.codeAddress != nullptr)
@@ -405,6 +395,7 @@ namespace Js
                 AnalysisAssert(this->interpreterFrame);
                 loopNum = this->interpreterFrame->GetCurrentLoopNum();
                 Assert(loopNum != LoopHeader::NoLoop);
+                usedInternalFrameInfo = true;
             }
         }
         else
@@ -415,13 +406,14 @@ namespace Js
                 Assert(this->tempInterpreterFrame);
                 loopNum = this->tempInterpreterFrame->GetCurrentLoopNum();
                 Assert(loopNum != LoopHeader::NoLoop);
+                usedInternalFrameInfo = false;
             }
         }
 
         return loopNum;
     }
 
-    bool JavascriptStackWalker::TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* function, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset) const
+    bool JavascriptStackWalker::TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* parentFunction, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset, bool useInternalFrameInfo) const
     {
         // For inlined frames, translation from native offset -> source code happens in two steps.
         // The native offset is first translated into a statement index using the physical frame's
@@ -447,25 +439,35 @@ namespace Js
                 inlineeOffset = inlinedFrameWalker.GetCurrentInlineeOffset();
             }
         }
-        else if (ScriptFunction::Is(function) && HasInlinedFramesOnStack())
+        else if (ScriptFunction::Is(parentFunction) && HasInlinedFramesOnStack())
         {
             // Inlined frames are not being walked right now. However, if there
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
             // has the native offset of the current physical frame.
             Assert(!*inlinee);
-            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(function), previousInterpreterFrameIsFromBailout, loopNum, this);
+            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo);
             inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
             tmpFrameWalker.Close();
         }
 
         if (inlineeOffset != 0 && 
-            this->GetCurrentFunctionFromPhysicalFrame()->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr, inlineeOffset, data, loopNum, *inlinee))
+            parentFunction->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr, inlineeOffset, data, loopNum, *inlinee))
         {
             offset = data.bytecodeBegin;
             return true;
         }
 
         return false;
+    }
+
+    bool JavascriptStackWalker::PreviousInterpreterFrameIsFromBailout() const
+    {
+        if (lastInternalFrameInfo.codeAddress)
+        {
+            return lastInternalFrameInfo.previousInterpreterFrameIsFromBailout;
+        }
+
+        return this->previousInterpreterFrameIsFromBailout;
     }
 
     bool JavascriptStackWalker::InlinedFramesBeingWalked() const
@@ -475,7 +477,7 @@ namespace Js
             return false;
         }
 
-        return inlinedFramesBeingWalked;
+        return this->inlinedFramesBeingWalked;
     }
 
     bool JavascriptStackWalker::HasInlinedFramesOnStack() const
@@ -552,7 +554,7 @@ namespace Js
                         }
 
                         bool hasInlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this);
+                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/);
                         if (hasInlinedFramesOnStack)
                         {
                             // We're now back in the state where currentFrame == physical frame of the inliner, but
@@ -576,7 +578,7 @@ namespace Js
                         // inlined frames in the stack walk, we need to set the codeAddress on lastInternalFrameInfo,
                         // which would have otherwise been set upon closing the inlinedFrameWalker, now.
                         // Note that we already have an assert in CheckJavascriptFrame to ensure this.
-                        SetCachedInternalFrameInfo(InternalFrameType_LoopBody, false /*hasInlinedFramesOnStack*/);
+                        SetCachedInternalFrameInfo(InternalFrameType_LoopBody, function, false /*hasInlinedFramesOnStack*/, true /*previousInterpreterFrameIsFromBailout*/);
                     }
 #else
                     // How did we bail out when JIT was disabled?
@@ -689,7 +691,7 @@ namespace Js
                 {
                     // Done walking inlined frames in a loop body, cache the native code address now
                     // in order to skip the loop body frame.
-                    this->SetCachedInternalFrameInfo(InternalFrameType_LoopBody, true /*hasInlinedFramesOnStack*/);
+                    this->SetCachedInternalFrameInfo(InternalFrameType_LoopBody, this->GetCurrentFunctionFromPhysicalFrame(), true /*hasInlinedFramesOnStack*/, previousInterpreterFrameIsFromBailout);
                     isJavascriptFrame = false;
                 }
             }
@@ -893,7 +895,7 @@ namespace Js
                 Assert((this->interpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0);
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, true /*noAlloc*/));
+                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
 #endif //DBG
@@ -939,7 +941,7 @@ namespace Js
             {
                 if (includeInlineFrames &&
                     InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this))
+                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.
                     this->inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
@@ -948,7 +950,7 @@ namespace Js
                     return true;
                 }
 
-                SetCachedInternalFrameInfo(InternalFrameType_LoopBody, false /*hasInlinedFramesOnStack*/);
+                SetCachedInternalFrameInfo(InternalFrameType_LoopBody, funcObj, false /*hasInlinedFramesOnStack*/, previousInterpreterFrameIsFromBailout);
                 return false;
             }
 
@@ -1055,11 +1057,18 @@ namespace Js
         this->lastInternalFrameInfo.Clear();
     }
 
-    void JavascriptStackWalker::SetCachedInternalFrameInfo(InternalFrameType frameType, bool hasInlinedFramesOnStack)
+    void JavascriptStackWalker::SetCachedInternalFrameInfo(InternalFrameType frameType, JavascriptFunction* function, bool hasInlinedFramesOnStack, bool previousInterpreterFrameIsFromBailout)
     {
         if (!this->lastInternalFrameInfo.codeAddress)
         {
-            this->lastInternalFrameInfo.Set(this->GetCurrentCodeAddr(), this->currentFrame.GetFrame(), this->currentFrame.GetStackCheckCodeHeight(), frameType, hasInlinedFramesOnStack);
+            this->lastInternalFrameInfo.Set(
+                this->GetCurrentCodeAddr(),
+                this->currentFrame.GetFrame(),
+                this->currentFrame.GetStackCheckCodeHeight(),
+                frameType,
+                function,
+                hasInlinedFramesOnStack,
+                previousInterpreterFrameIsFromBailout);
         }
     }
 #endif
@@ -1141,7 +1150,8 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    bool InlinedFrameWalker::FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout, int loopNum, const JavascriptStackWalker * const stackWalker, bool noAlloc)
+    bool InlinedFrameWalker::FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout,
+        int loopNum, const JavascriptStackWalker * const stackWalker, bool useInternalFrameInfo, bool noAlloc)
     {
         bool inlinedFramesFound = false;
         FunctionBody* parentFunctionBody = parent->GetFunctionBody();
@@ -1151,8 +1161,22 @@ namespace Js
         {
             Assert(stackWalker);
         }
-        void *nativeCodeAddress = (loopNum == -1 || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetInstructionPointer() : stackWalker->GetCachedInternalFrameInfo().codeAddress;
-        void *framePointer = (loopNum == -1 || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetFrame() : stackWalker->GetCachedInternalFrameInfo().framePointer;
+
+        void *nativeCodeAddress = nullptr;
+        void *framePointer = nullptr;
+        if (loopNum != -1 && useInternalFrameInfo)
+        {
+            Assert(stackWalker->GetCachedInternalFrameInfo().codeAddress != nullptr);
+            InternalFrameInfo lastInternalFrameInfo = stackWalker->GetCachedInternalFrameInfo();
+            
+            nativeCodeAddress = lastInternalFrameInfo.codeAddress;
+            framePointer = lastInternalFrameInfo.framePointer;
+        }
+        else
+        {
+            nativeCodeAddress = physicalFrame.GetInstructionPointer();
+            framePointer = physicalFrame.GetFrame();
+        }
 
         if (loopNum != -1)
         {
@@ -1160,14 +1184,14 @@ namespace Js
         }
         else
         {
-            entryPointInfo = (Js::EntryPointInfo*)parentFunctionBody->GetEntryPointFromNativeAddress((DWORD_PTR)physicalFrame.GetInstructionPointer());
+            entryPointInfo = (Js::EntryPointInfo*)parentFunctionBody->GetEntryPointFromNativeAddress((DWORD_PTR)nativeCodeAddress);
         }
 
         AssertMsg(entryPointInfo != nullptr, "Inlined frame should resolve to the right parent address");
         if (entryPointInfo->HasInlinees())
         {
             void *entry = reinterpret_cast<void*>(entryPointInfo->GetNativeAddress());
-            InlinedFrameWalker::InlinedFrame *outerMostFrame = InlinedFrame::FromPhysicalFrame(physicalFrame, stackWalker, entry, entryPointInfo);
+            InlinedFrameWalker::InlinedFrame *outerMostFrame = InlinedFrame::FromPhysicalFrame(physicalFrame, stackWalker, entry, entryPointInfo, useInternalFrameInfo);
 
             if (!outerMostFrame)
             {
@@ -1379,7 +1403,7 @@ namespace Js
         this->currentIndex   = -1;
     }
     
-    InlinedFrameWalker::InlinedFrame* InlinedFrameWalker::InlinedFrame::FromPhysicalFrame(StackFrame& currentFrame, const JavascriptStackWalker * const stackWalker, void *entry, EntryPointInfo* entryPointInfo)
+    InlinedFrameWalker::InlinedFrame* InlinedFrameWalker::InlinedFrame::FromPhysicalFrame(StackFrame& currentFrame, const JavascriptStackWalker * const stackWalker, void *entry, EntryPointInfo* entryPointInfo, bool useInternalFrameInfo)
     {
         // If the current javascript frame is a native frame, get the inlined frame from it, otherwise
         // it may be possible that current frame is the interpreter frame for a jitted loop body
@@ -1389,7 +1413,7 @@ namespace Js
         void *codeAddr, *framePointer;
         size_t stackCheckCodeHeight;
 
-        if (entryPointInfo->IsLoopBody() && stackWalker && stackWalker->GetCachedInternalFrameInfo().codeAddress)
+        if (useInternalFrameInfo)
         {
             codeAddr = stackWalker->GetCachedInternalFrameInfo().codeAddress;
             framePointer = stackWalker->GetCachedInternalFrameInfo().framePointer;
@@ -1410,7 +1434,14 @@ namespace Js
         return inlinedFrame;
     }
 
-    void InternalFrameInfo::Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, bool hasInlinedFramesOnStack)
+    void InternalFrameInfo::Set(
+        void *codeAddress,
+        void *framePointer,
+        size_t stackCheckCodeHeight,
+        InternalFrameType frameType,
+        JavascriptFunction* function,
+        bool hasInlinedFramesOnStack,
+        bool previousInterpreterFrameIsFromBailout)
     {
         // We skip a jitted loop body's native frame when walking the stack and refer to the loop body's interpreter frame to get the function. 
         // However, if the loop body has inlinees, to retrieve inlinee frames we need to cache some info about the loop body's native frame.
@@ -1418,7 +1449,9 @@ namespace Js
         this->framePointer = framePointer;
         this->stackCheckCodeHeight = stackCheckCodeHeight;
         this->frameType = frameType;
+        this->function = function;
         this->hasInlinedFramesOnStack = hasInlinedFramesOnStack;
+        this->previousInterpreterFrameIsFromBailout = previousInterpreterFrameIsFromBailout;
     }
 
     void InternalFrameInfo::Clear()
@@ -1427,7 +1460,9 @@ namespace Js
         this->framePointer = nullptr;
         this->stackCheckCodeHeight = (uint)-1;
         this->frameType = InternalFrameType_None;
+        this->function = nullptr;
         this->hasInlinedFramesOnStack = false;
+        this->previousInterpreterFrameIsFromBailout = false;
     }
 #endif
 

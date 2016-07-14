@@ -4,37 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
-#ifdef CHAKRA_STATIC_LIBRARY
-#include "Runtime.h"
-#include "Core/ConfigParser.h"
-#include "Base/ThreadContextTlsEntry.h"
-#include "Base/ThreadBoundThreadContextManager.h"
-#ifdef DYNAMIC_PROFILE_STORAGE
-#include "Language/DynamicProfileStorage.h"
-#endif
-#include "JsrtContext.h"
-#include "../ChakraCore/TestHooks.h"
-
-void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
-{
-    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
-    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
-}
-
-bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
-{
-    return false;
-}
-
-void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
-{
-}
-
-LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
-{
-    return _u("");
-}
-#endif
 
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;
