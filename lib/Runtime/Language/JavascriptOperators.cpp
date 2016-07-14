@@ -6893,7 +6893,7 @@ CommonNumber:
     HeapArgumentsObject *JavascriptOperators::CreateHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, ScriptContext* scriptContext)
     {
         JavascriptLibrary *library = scriptContext->GetLibrary();
-        HeapArgumentsObject *argsObj = library->CreateHeapArguments(frameObj, formalsCount);
+        HeapArgumentsObject *argsObj = library->CreateHeapArguments(frameObj, formalsCount, !!funcCallee->IsStrictMode());
 
         //
         // Set the number of arguments of Arguments Object
@@ -6904,27 +6904,12 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            PropertyDescriptor propertyDescriptorCaller;
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();
-
-            propertyDescriptorCaller.SetGetter(callerAccessor);
-            propertyDescriptorCaller.SetSetter(callerAccessor);
-            propertyDescriptorCaller.SetEnumerable(false);
-            propertyDescriptorCaller.SetConfigurable(false);
-
+            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
             argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
-            JavascriptOperators::SetAttributes(argsObj, PropertyIds::caller, propertyDescriptorCaller, false);
 
-            PropertyDescriptor propertyDescriptorCallee;
             JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-
-            propertyDescriptorCallee.SetGetter(calleeAccessor);
-            propertyDescriptorCallee.SetSetter(calleeAccessor);
-            propertyDescriptorCallee.SetEnumerable(false);
-            propertyDescriptorCallee.SetConfigurable(false);
-
             argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
-            JavascriptOperators::SetAttributes(argsObj, PropertyIds::callee, propertyDescriptorCallee, false);
+
         }
         else
         {
