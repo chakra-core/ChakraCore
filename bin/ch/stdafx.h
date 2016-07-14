@@ -27,8 +27,6 @@
 #include "CommonDefines.h"
 #include <map>
 
-#include <map>
-
 #ifdef _WIN32
 #include <windows.h>
 #else
