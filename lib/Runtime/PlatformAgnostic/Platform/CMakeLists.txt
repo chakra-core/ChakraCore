@@ -13,7 +13,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 set(PL_SOURCE_FILES
   # xplat-todo: implement them for unix! or carry them into common
   Linux/UnicodeText.ICU.cpp
-  Linux/DateTime.cpp
+  Unix/DateTime.cpp
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Unix/SystemInfo.cpp
