@@ -195,6 +195,19 @@ test11(1,2);
 test11('x','y');
 verify([20,40,20,40], "TEST 11");
 
+
+var obj12 = { method1: function () {} };
+function test12_1(arg1) {
+  this.prop1 = arg1;
+  obj12.method1.apply(obj12, arguments);
+}
+function test12() {
+  new test12_1(-{});
+}
+test12();
+test12();
+verify([], "TEST 12");
+
 if(hasAllPassed)
 {
     print("PASSED");

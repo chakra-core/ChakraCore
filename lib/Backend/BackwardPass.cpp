@@ -2938,8 +2938,9 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
 
                         Assert(currFunc->HasStackSymForFormal(value));
                         StackSym * paramStackSym = currFunc->GetStackSymForFormal(value);
-                        instr->ReplaceSrc1(IR::RegOpnd::New(paramStackSym, TyVar, currFunc));
-                        this->currentBlock->upwardExposedUses->Set(paramStackSym->m_id);
+                        IR::RegOpnd * srcOpnd = IR::RegOpnd::New(paramStackSym, TyVar, currFunc);
+                        instr->ReplaceSrc1(srcOpnd);
+                        this->ProcessSymUse(paramStackSym, true, true);
 
                         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                         {
