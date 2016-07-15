@@ -69,6 +69,13 @@
   </test>
   <test>
     <default>
+      <files>delaycapture-loopbody.js</files>
+      <compile-flags>-lic:1 -off:simplejit -bgjit- -off:stackfunc -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
+      <tags>exclude_fre</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>initcachedscope.js</files>
       <compile-flags>-recyclerstress -force:cachedscope</compile-flags>
       <baseline>initcachedscope.baseline</baseline>
