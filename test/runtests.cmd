@@ -163,7 +163,6 @@ goto :main
   if /i "%1" == "-quiet"            set _quiet=-quiet&                                          goto :ArgOk
   :: TODO Consider removing -drt and exclude_drt in some reasonable manner
   if /i "%1" == "-drt"              set _drt=1& set _NOTTAGS=%_NOTTAGS% -nottags:exclude_drt&   goto :ArgOk
-  if /i "%1" == "-nightly"          set _nightly=1&                                             goto :ArgOk
   if /i "%1" == "-rebase"           set _rebase=-rebase&                                        goto :ArgOk
   if /i "%1" == "-rundebug"         set _RUNDEBUG=1&                                            goto :ArgOk
   :: TODO Figure out best way to specify build arch for tests that are excluded to specific archs
@@ -210,6 +209,16 @@ goto :main
   if /i "%1" == "-disablejit" (
     set _DisableJit=1
     set _Variants=disable_jit
+    goto :ArgOk
+  )
+  
+  if /i "%1" == "-nightly" (
+    set _nightly=1
+    if "%_ExtraVariants%" == "" (
+      set _ExtraVariants=mediumlayout,largelayout,forceserialized
+    ) else (
+      set _ExtraVariants=%_ExtraVariants%,mediumlayout,largelayout,forceserialized
+    )
     goto :ArgOk
   )
 
@@ -344,6 +353,24 @@ goto :main
 :: ============================================================================
 :RunOneVariant
 
+  if "%_BuildType%" == "test" (
+    rem bytecode layout switches not available in test build
+    if "%_TESTCONFIG%"=="largelayout" (
+      if not exist %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG% (
+        mkdir %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
+      )
+      echo. > %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%\rl.log
+      goto :eof
+    )
+    if "%_TESTCONFIG%"=="mediumlayout" (
+      if not exist %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG% (
+        mkdir %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
+      )
+      echo. > %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%\rl.log
+      goto :eof
+    )
+  )
+
   set _OLD_CC_FLAGS=%EXTRA_CC_FLAGS%
   set EXTRA_RL_FLAGS=-appendtestnametoextraccflags
   set _exclude_serialized=
@@ -407,6 +434,16 @@ goto :main
     set EXTRA_RL_FLAGS=
     set _exclude_serialized=-nottags:exclude_serialized
   )
+  if "%_TESTCONFIG%"=="mediumlayout" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -MediumByteCodeLayout -forceserialized
+    set EXTRA_RL_FLAGS=
+    set _exclude_serialized=-nottags:exclude_serialized
+  )
+  if "%_TESTCONFIG%"=="largelayout" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -LargeByteCodeLayout -forceserialized
+    set EXTRA_RL_FLAGS=
+    set _exclude_serialized=-nottags:exclude_serialized
+  )
 
   echo.
   echo ############# Starting %_TESTCONFIG% variant #############
@@ -447,6 +484,7 @@ goto :main
   call :do move /Y %_logsRoot%\*.log %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
   if %ERRORLEVEL% NEQ 0 set _HadFailures=1
 
+:cleanupOneVariant
   set EXTRA_CC_FLAGS=%_OLD_CC_FLAGS%
 
   goto :eof
