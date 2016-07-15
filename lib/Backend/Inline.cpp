@@ -832,7 +832,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
         IR::AddrOpnd * constMethodValueOpnd = IR::AddrOpnd::New(methodPropertyOpnd->GetFieldValue(i), IR::AddrOpndKind::AddrOpndKindDynamicVar, callInstr->m_func);
         constMethodValueOpnd->m_isFunction = true;
 
-        InsertOneInlinee(callInstr, returnValueOpnd, constMethodValueOpnd, inlineesDataArray[i], doneLabel, symCallerThis, safeThis, recursiveInlineDepth);
+        InsertOneInlinee(callInstr, returnValueOpnd, constMethodValueOpnd, inlineesDataArray[i], inlineesDataArray[i]->GetRuntimeInfo(), doneLabel, symCallerThis, safeThis, recursiveInlineDepth);
         while (fixedFunctionInfoArray[i].nextHasSameFixedField)
         {
             dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel, typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i).t->GetAddr(),
@@ -991,8 +991,7 @@ Inline::InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInf
     {
         IR::LabelInstr* inlineeStartLabel = IR::LabelInstr::New(Js::OpCode::Label, callInstr->m_func);
         callInstr->InsertBefore(inlineeStartLabel);
-
-        InsertOneInlinee(callInstr, returnValueOpnd, callInstr->GetSrc1(), inlineesDataArray[i], doneLabel, symCallerThis, /*fixedFunctionSafeThis*/ false, recursiveInlineDepth);
+        InsertOneInlinee(callInstr, returnValueOpnd, callInstr->GetSrc1(), inlineesDataArray[i], inlineesDataArray[i]->GetRuntimeInfo(), doneLabel, symCallerThis, /*fixedFunctionSafeThis*/ false, recursiveInlineDepth);
 
         IR::RegOpnd* functionObject = callInstr->GetSrc1()->AsRegOpnd();
         dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel,
@@ -1063,9 +1062,9 @@ void Inline::CompletePolymorphicInlining(IR::Instr* callInstr, IR::RegOpnd* retu
 // The IR for the args & calls is cloned to do this
 //
 void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd, IR::Opnd* methodOpnd,
-    const FunctionJITTimeInfo * inlineeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth)
+    const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth)
 {
-    bool isInlined = inlineeData->IsInlined();
+    bool isInlined = inlineeJITData->IsInlined();
 
     IR::Instr* currentCallInstr;
     if (isInlined)
@@ -1087,8 +1086,8 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
 
     if (isInlined)
     {
-        JITTimeFunctionBody *funcBody = inlineeData->GetBody();
-        Func *inlinee = BuildInlinee(funcBody, inlineeData, returnValueOpnd ? returnValueOpnd->m_sym->GetByteCodeRegSlot() : Js::Constants::NoRegister, callInstr, recursiveInlineDepth);
+        JITTimeFunctionBody *funcBody = inlineeJITData->GetBody();
+        Func *inlinee = BuildInlinee(funcBody, inlineeJITData, inlineeRuntimeData, returnValueOpnd ? returnValueOpnd->m_sym->GetByteCodeRegSlot() : Js::Constants::NoRegister, callInstr, recursiveInlineDepth);
 
         IR::Instr *argOuts[Js::InlineeCallInfo::MaxInlineeArgoutCount];
 #if DBG
@@ -1159,7 +1158,7 @@ Inline::SetInlineeFrameStartSym(Func *inlinee, uint actualCount)
 }
 
 Func *
-Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * inlineeData, Js::RegSlot returnRegSlot, IR::Instr *callInstr, uint recursiveInlineDepth)
+Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, Js::RegSlot returnRegSlot, IR::Instr *callInstr, uint recursiveInlineDepth)
 {
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
@@ -1172,7 +1171,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
     workItemData->loopNumber = Js::LoopHeader::NoLoop;
 
-    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
+    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeJITData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
     JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(funcBody->GetAddr());
@@ -1183,7 +1182,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
                             this->topFunc->GetThreadContextInfo(),
                             this->topFunc->GetScriptContextInfo(),
                             this->topFunc->GetJITOutput()->GetOutputData(),
-                            callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetInlineeRuntimeData(callSiteId),
+                            inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo,
                             this->topFunc->GetCodeGenAllocators(),
                             this->topFunc->GetNumberAllocator(),

@@ -110,11 +110,11 @@ private:
         );
 
     // Builds IR for inlinee
-    Func * BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * inlineeData, Js::RegSlot returnRegSlot, IR::Instr *callInstr, uint recursiveInlineDepth);
+    Func * BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, Js::RegSlot returnRegSlot, IR::Instr *callInstr, uint recursiveInlineDepth);
     void BuildIRForInlinee(Func *inlinee, JITTimeFunctionBody *funcBody, IR::Instr *callInstr, bool isApplyTarget = false, uint recursiveInlineDepth = 0);
     void InsertStatementBoundary(IR::Instr * instrNext);
     void InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd,
-        IR::Opnd* methodOpnd, const FunctionJITTimeInfo * inlineeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth);
+        IR::Opnd* methodOpnd, const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth);
     void CompletePolymorphicInlining(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd, IR::LabelInstr* doneLabel, IR::Instr* dispatchStartLabel, IR::Instr* ldMethodFldInstr, IR::BailOutKind bailoutKind);
     uint HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) Js::FixedFieldInfo* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount);
     void SetInlineeFrameStartSym(Func *inlinee, uint actualCount);
