@@ -1265,10 +1265,10 @@ namespace Js
 
             PropertyDescriptor propertyDescriptor;
 
-            BOOL propertyKeyResult = JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
-            Assert(propertyKeyResult);
+            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
             propertyId = propertyRecord->GetPropertyId();
             Assert(propertyId != Constants::NoProperty);
+
             if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyId, scriptContext, &propertyDescriptor))
             {
                 if (propertyDescriptor.IsEnumerable())
