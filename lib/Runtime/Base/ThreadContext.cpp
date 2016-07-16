@@ -185,6 +185,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isAllJITCodeInPreReservedRegion(true),
     m_codeGenManager(),
     tridentLoadAddress(nullptr),
+    m_remoteThreadContextInfo(0),
     debugManager(nullptr)
 #if ENABLE_TTD
     , IsTTRequested(false)

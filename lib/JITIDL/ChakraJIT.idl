@@ -599,6 +599,21 @@ typedef struct EquivalentTypeGuardOffsets
 
 } EquivalentTypeGuardOffsets;
 
+typedef struct TypeGuardTransferEntryIDL
+{
+    unsigned int propId;
+    unsigned int guardsCount;
+    struct TypeGuardTransferEntryIDL* next;
+    [size_is(guardsCount)] int guardOffsets[*];
+} TypeGuardTransferEntryIDL;
+
+typedef struct TypeGuardTransferData
+{
+    unsigned int propertyGuardCount;
+    TypeGuardTransferEntryIDL* entries;
+} TypeGuardTransferData;
+
+
 typedef struct NativeDataBuffer
 {
     unsigned int len;
@@ -629,6 +644,7 @@ typedef struct JITOutputIDL
     NativeDataFixupTable* nativeDataFixupTable;
     NativeDataBuffer* buffer;
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
+    TypeGuardTransferData typeGuardTransferData;
 
     __int64 codeAddress;
     __int64 xdataAddr;

@@ -434,22 +434,22 @@ Encoder::Encode()
     // point to register each guard for invalidation.
     if (this->m_func->propertyGuardsByPropertyId != nullptr)
     {
+        Assert(!isSimpleJit);
+        AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
+            "Why do we have type guards if we don't do object type spec or fixed methods?");
+        
+#if DBG
+        int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
+            + (this->m_func->equivalentTypeGuards != nullptr ? this->m_func->equivalentTypeGuards->Count() : 0);
+        Assert(totalGuardCount > 0);
+        Assert(totalGuardCount == this->m_func->indexedPropertyGuardCount);
+#endif
+
+
         if (!this->m_func->IsOOPJIT())
         {
-            Assert(!isSimpleJit);
-
-            AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
-                "Why do we have type guards if we don't do object type spec or fixed methods?");
-
             int propertyCount = this->m_func->propertyGuardsByPropertyId->Count();
             Assert(propertyCount > 0);
-
-#if DBG
-            int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
-                + (this->m_func->equivalentTypeGuards != nullptr ? this->m_func->equivalentTypeGuards->Count() : 0);
-            Assert(totalGuardCount > 0);
-            Assert(totalGuardCount == this->m_func->indexedPropertyGuardCount);
-#endif
 
             int guardSlotCount = 0;
             this->m_func->propertyGuardsByPropertyId->Map([&guardSlotCount](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* set) -> void
@@ -488,9 +488,32 @@ Encoder::Encode()
 
             Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
 
-            //TODO: OOP JIT need a way to pass back the jitTransferData and in main process it need to amend the reference to typeGuardTransferRecord
-            // or just have a allocation offset to locate the typeGuardTransferRecord
             entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+        }
+        else
+        {
+            Func* func = this->m_func;
+            this->m_func->GetJITOutput()->GetOutputData()->typeGuardTransferData.propertyGuardCount = this->m_func->indexedPropertyGuardCount;
+            auto entry = &this->m_func->GetJITOutput()->GetOutputData()->typeGuardTransferData.entries;
+
+            this->m_func->propertyGuardsByPropertyId->Map([func, &entry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
+            {
+                auto count = srcSet->Count();
+                (*entry) = (TypeGuardTransferEntryIDL*)midl_user_allocate(offsetof(TypeGuardTransferEntryIDL, guardOffsets) + count*sizeof(int));
+                (*entry)->propId = propertyId;
+                (*entry)->guardsCount = count;
+                (*entry)->next = nullptr;
+                
+                auto& guardOffsets = (*entry)->guardOffsets;
+                int guardIndex = 0;
+                srcSet->Map([&guardOffsets, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+                {
+                    guardOffsets[guardIndex++] = NativeCodeData::GetDataTotalOffset(guard);
+                });
+                Assert(guardIndex == count);
+                entry = &(*entry)->next;
+            });
+
         }
     }
 

@@ -8289,7 +8289,6 @@ namespace Js
                 this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
             }
 
-
             // InstallGuards
             int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
 
@@ -8324,8 +8323,56 @@ namespace Js
             }
 
             midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+        }
 
-            FreeJitTransferData();
+        if (jitTransferData->typeGuardTransferData.entries != nullptr)
+        {
+            this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            auto next = &jitTransferData->typeGuardTransferData.entries;
+            while (*next)
+            {
+                Js::PropertyId propertyId = (*next)->propId;
+                Js::PropertyGuard* sharedPropertyGuard;
+
+                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
+                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
+                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
+                // guard for some property during work item creation, we won't find out about it here.
+                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
+                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
+                if (isNeeded)
+                {
+                    for (unsigned int i = 0; i < (*next)->guardsCount; i++)
+                    {
+                        Js::JitIndexedPropertyGuard* guard = (Js::JitIndexedPropertyGuard*)(this->nativeDataBuffer + (*next)->guardOffsets[i]);
+                        int guardIndex = guard->GetIndex();
+                        Assert(guardIndex >= 0 && guardIndex < this->propertyGuardCount);
+                        // We use the shared guard here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                        // If they did, we proactively invalidate the guard here, so that we bail out if we try to call this code.
+                        if (isValid)
+                        {
+                            auto propertyGuardWeakRef = this->propertyGuardWeakRefs[guardIndex];
+                            if (propertyGuardWeakRef == nullptr)
+                            {
+                                propertyGuardWeakRef = Js::FakePropertyGuardWeakReference::New(scriptContext->GetRecycler(), guard);
+                                this->propertyGuardWeakRefs[guardIndex] = propertyGuardWeakRef;
+                            }
+                            Assert(propertyGuardWeakRef->Get() == guard);
+                            threadContext->RegisterUniquePropertyGuard(propertyId, propertyGuardWeakRef);
+                        }
+                        else
+                        {
+                            guard->Invalidate();
+                        }
+                    }
+                }
+
+                auto current = (*next);
+                *next = (*next)->next;
+                midl_user_free(current);
+            }
         }
 
 
@@ -8333,8 +8380,10 @@ namespace Js
         {
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
-            FreeJitTransferData();
+            
         }
+
+        FreeJitTransferData();
 
         autoCleanup.Done();
     }

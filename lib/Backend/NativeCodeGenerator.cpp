@@ -997,7 +997,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
                         
     epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
-
+    epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
     XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);

@@ -395,6 +395,7 @@ namespace Js
             Js::PropertyId* lazyBailoutProperties;
             NativeCodeData* data;
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
+            TypeGuardTransferData typeGuardTransferData;
 
             bool falseReferencePreventionBit;
             bool isReady;
@@ -427,6 +428,11 @@ namespace Js
             void SetEquivalentTypeGuardOffsets(EquivalentTypeGuardOffsets* offsets)
             {
                 equivalentTypeGuardOffsets = offsets;
+            }
+            void SetTypeGuardTransferData(TypeGuardTransferData* data)
+            {
+                typeGuardTransferData.entries = data->entries;
+                typeGuardTransferData.propertyGuardCount = data->propertyGuardCount;
             }
             bool GetIsReady() { return this->isReady; }
             void SetIsReady() { this->isReady = true; }
