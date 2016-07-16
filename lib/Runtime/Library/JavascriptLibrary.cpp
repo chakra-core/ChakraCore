@@ -531,10 +531,6 @@ namespace Js
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
 
-        DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
-        heapArgumentsTypeStrictMode = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
-            dictTypeHandlerForArgumentsInStrictMode, false, false);
-
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -5600,7 +5596,7 @@ namespace Js
 
     HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
-        AssertMsg(heapArgumentsType && heapArgumentsTypeStrictMode, "Where's heapArgumentsType?");
+        AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
 
         Recycler *recycler = this->GetRecycler();
 
@@ -5610,7 +5606,10 @@ namespace Js
 
         if (isStrictMode)
         {
-            argumentsType = heapArgumentsTypeStrictMode;
+            //TODO: Make DictionaryTypeHandler shareable - So that Arguments' type can be cached on the javascriptLibrary.
+            DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
+            argumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
+                dictTypeHandlerForArgumentsInStrictMode, false, false);
         }
         else
         {
