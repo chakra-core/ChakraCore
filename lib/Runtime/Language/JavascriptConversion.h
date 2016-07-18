@@ -14,7 +14,7 @@ namespace Js {
         static Var ToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
         static BOOL CanonicalNumericIndexString(Var aValue, double *indexValue, ScriptContext * scriptContext);
 
-        static BOOL ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord);
+        static void ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord);
 
         static JavascriptString* ToString(Var aValue, ScriptContext* scriptContext);
         static JavascriptString* ToLocaleString(Var aValue, ScriptContext* scriptContext);
