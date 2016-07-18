@@ -240,7 +240,6 @@ namespace Js {
         // function - however, if it can't be called like a function, it's set to DefaultEntryPoint
         // which will emit an error.
         static Var DefaultEntryPoint(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var DefaultExternalEntryPoint(RecyclableObject* function, CallInfo callInfo, Var* arguments);
 
         virtual PropertyId GetPropertyId(PropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }

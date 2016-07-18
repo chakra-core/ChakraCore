@@ -375,7 +375,7 @@ namespace Js
 
     ScriptContext::~ScriptContext()
     {
-        Assert(isFinalized);
+        Assert(isFinalized || !isInitialized);
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
