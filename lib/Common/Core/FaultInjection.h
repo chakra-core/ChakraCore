@@ -64,6 +64,8 @@ namespace Js
             StackMatchCountOnly = 4,
             StackHashCountOnly = 5,
             DisplayAvailableFaultTypes = 6,
+            InstallExceptionHandlerOnly = 7,
+
         };
 
         uint countOfInjectionPoints;
