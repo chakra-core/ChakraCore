@@ -66,7 +66,7 @@ bool Symbol::NeedsSlotAlloc(FuncInfo *funcInfo)
 
 bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 {
-    if (this->GetIsGlobal())
+    if (this->GetIsGlobal() || this->GetIsModuleExportStorage())
     {
         return false;
     }

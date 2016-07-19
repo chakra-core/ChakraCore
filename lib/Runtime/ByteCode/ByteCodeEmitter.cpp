@@ -1340,7 +1340,14 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
 
             if (sym->GetSymbolType() == STVariable)
             {
-                if (fGlobal)
+                if (sym->GetIsModuleExportStorage())
+                {
+                    Js::RegSlot reg = funcInfo->AcquireTmpRegister();
+                    this->m_writer.Reg1(Js::OpCode::LdUndef, reg);
+                    EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, reg, funcInfo);
+                    funcInfo->ReleaseTmpRegister(reg);
+                }
+                else if (fGlobal)
                 {
                     Js::PropertyId propertyId = sym->EnsurePosition(this);
                     // We do need to initialize some globals to avoid JS errors on loading undefined variables.
@@ -1360,13 +1367,6 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                             this->m_writer.ElementScopedU(
                                 Js::OpCode::LdElemUndefScoped, funcInfo->FindOrAddReferencedPropertyId(propertyId));
                         }
-                    }
-                    else if (sym->GetIsModuleExportStorage())
-                    {
-                        Js::RegSlot reg = funcInfo->AcquireTmpRegister();
-                        this->m_writer.Reg1(Js::OpCode::LdUndef, reg);
-                        EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, reg, funcInfo);
-                        funcInfo->ReleaseTmpRegister(reg);
                     }
                     else
                     {
@@ -1484,7 +1484,7 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
                 auto fnInit = [this, funcInfo](ParseNode *pnode)
                 {
                     Symbol *sym = pnode->sxVar.sym;
-                    if (!sym->IsInSlot(funcInfo) && !sym->GetIsGlobal())
+                    if (!sym->IsInSlot(funcInfo) && !sym->GetIsGlobal() && !sym->GetIsModuleImport())
                     {
                         this->m_writer.Reg1(Js::OpCode::InitUndecl, pnode->sxVar.sym->GetLocation());
                     }
@@ -4418,6 +4418,12 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
     Scope *symScope = sym ? sym->GetScope() : this->globalScope;
     Assert(symScope);
 
+    if (sym != nullptr && sym->GetIsModuleExportStorage())
+    {
+        *pInstLocation = Js::Constants::NoRegister;
+        return;
+    }
+
     for (;;)
     {
         scope = this->FindScopeForSym(symScope, scope, &envIndex, funcInfo);
@@ -4516,11 +4522,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         this->m_writer.MarkLabel(nextLabel);
     }
 
-    if (sym != nullptr && sym->GetIsModuleExportStorage())
-    {
-        instLocation = Js::Constants::NoRegister;
-    }
-    else if (sym == nullptr || sym->GetIsGlobal())
+    if (sym == nullptr || sym->GetIsGlobal())
     {
         if (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
         {
