@@ -6476,7 +6476,7 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                 // We're creating a copy of this operand to be reused in the same spot in the flow, so we can copy all
                 // flow sensitive fields.  However, we will do only a type check here (no property access) and only for
                 // the sake of downstream instructions, so the flags pertaining to this property access are irrelevant.
-                IR::PropertySymOpnd* checkObjTypeOpnd = propertySymOpnd->CopyForTypeCheckOnly(instr->m_func);
+                IR::PropertySymOpnd* checkObjTypeOpnd = CreateOpndForTypeCheckOnly(propertySymOpnd, instr->m_func);
                 IR::Instr* checkObjTypeInstr = IR::Instr::New(Js::OpCode::CheckObjType, instr->m_func);
                 checkObjTypeInstr->SetSrc1(checkObjTypeOpnd);
                 checkObjTypeInstr->SetByteCodeOffset(instr);

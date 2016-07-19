@@ -1316,6 +1316,7 @@ private:
     bool                    OptTagChecks(IR::Instr *instr);
     void                    TryOptimizeInstrWithFixedDataProperty(IR::Instr * * const pInstr);
     bool                    CheckIfPropOpEmitsTypeCheck(IR::Instr *instr, IR::PropertySymOpnd *opnd);
+    IR::PropertySymOpnd *   CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func);
     bool                    FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block = nullptr, bool updateExistingValue = false, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr);
     void                    FinishOptHoistedPropOps(Loop * loop);
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
