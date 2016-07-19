@@ -245,13 +245,19 @@ Encoder::Encode()
         }
     }
 #endif
-#if 0 // TODO: michhol OOP JIT, understand this code
-    for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i ++)
+
+    if (m_pragmaInstrToRecordMap->Count() > 0)
     {
-        IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
-        inst->RecordThrowMap(iter, inst->m_offsetInBuffer);
+        Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
+        for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+        {
+            IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
+            throwMap[i].iter = iter;
+            throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
+            throwMap[i].statementIndex = inst->m_statementIndex;
+        }
+        m_func->GetJITOutput()->RecordThrowMap(throwMap, m_pragmaInstrToRecordMap->Count());
     }
-#endif
 
     JITTimeWorkItem * workItem = m_func->GetWorkItem();
 

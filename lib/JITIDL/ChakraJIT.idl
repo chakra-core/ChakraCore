@@ -643,20 +643,21 @@ typedef struct JITOutputIDL
     EntryPointInfoOutputIDL writeableEPData;
     FunctionBodyOutputIDL writeableBodyData;
 
+    TypeGuardTransferData typeGuardTransferData;
+
     unsigned int codeSize;
+    unsigned int throwMapOffset;
+    unsigned int throwMapCount;
+    unsigned int inlineeFrameOffsetArrayOffset;
+    unsigned int inlineeFrameOffsetArrayCount;
 
     NativeDataFixupTable* nativeDataFixupTable;
     NativeDataBuffer* buffer;
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
-    TypeGuardTransferData typeGuardTransferData;
+    XProcNumberPageSegment* numberPageSegments;
 
     __int64 codeAddress;
     __int64 xdataAddr;
-
-    XProcNumberPageSegment* numberPageSegments;
-    
-    unsigned int inlineeFrameOffsetArrayOffset;
-    unsigned int inlineeFrameOffsetArrayCount;
 } JITOutputIDL;
 
 [

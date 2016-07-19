@@ -936,7 +936,6 @@ public:
 #if DBG_DUMP | defined(VTUNE_PROFILING)
     void Record(uint32 nativeBufferOffset);
 #endif
-    void RecordThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeBufferOffset);
     PragmaInstr * ClonePragma();
     PragmaInstr * CopyPragma();
 };

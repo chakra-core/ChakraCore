@@ -52,6 +52,13 @@ JITOutput::SetFrameHeight(uint val)
     m_outputData->writeableEPData.frameHeight = val;
 }
 
+void
+JITOutput::RecordThrowMap(Js::ThrowMapEntry * throwMap, uint mapCount)
+{
+    m_outputData->throwMapOffset = NativeCodeData::GetDataTotalOffset(throwMap);
+    m_outputData->throwMapCount = mapCount;
+}
+
 uint16
 JITOutput::GetArgUsedForBranch() const
 {

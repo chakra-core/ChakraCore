@@ -52,5 +52,4 @@ public: // TODO: (michhol) remove these. currently needed to compile
     void DumpNativeOffsetMaps() { __debugbreak(); }
     void DumpNativeThrowSpanSequence() { __debugbreak(); }
     void RecordNativeMap(...) { __debugbreak(); }
-    void RecordNativeThrowMap(...) { __debugbreak(); }
 };

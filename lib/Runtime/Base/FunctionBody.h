@@ -3381,6 +3381,13 @@ namespace Js
         int indexOfActualOffset;
     };
 
+    struct ThrowMapEntry
+    {
+        SmallSpanSequenceIter iter;
+        uint32 nativeBufferOffset;
+        uint32 statementIndex;
+    };
+
     // This class compacts the range of the statement to BYTEs instead of ints.
     // Instead of having start and end as int32s we will have them stored in bytes, and they will be
     // treated as start offset and end offset.

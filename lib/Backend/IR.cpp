@@ -1865,12 +1865,6 @@ PragmaInstr::Record(uint32 nativeBufferOffset)
 }
 #endif
 
-void
-PragmaInstr::RecordThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeBufferOffset)
-{
-    m_func->GetTopFunc()->m_workItem->RecordNativeThrowMap(iter, nativeBufferOffset, m_statementIndex);
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// Instr::New
