@@ -1155,13 +1155,12 @@ if (!sourceList)
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(), 
-            Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
 #endif
 
 #ifdef ASMJS_PLAT
         asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
-            Js::InterpreterStackFrame::InterpreterAsmThunk);
+            true);
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
