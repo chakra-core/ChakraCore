@@ -31,14 +31,10 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         // TODO (michhol): OOP JIT, will be different for asm.js
         jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
 
-        if (functionBody->GetIsAsmJsFunction())
+        jitBody->constTableContent = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
+        // TODO: asm.js has const table structured differently and doesn't need type info, so don't allocate it
+        if (!functionBody->GetIsAsmJsFunction())
         {
-            // asm.js has const table structured differently and doesn't need type info
-            jitBody->constTableContent = nullptr;
-        }
-        else
-        {
-            jitBody->constTableContent = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
@@ -84,8 +80,9 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     if (functionBody->GetInlineCacheCount() > 0)
     {
         jitBody->cacheIdToPropertyIdMap = functionBody->GetCacheIdToPropertyIdMap();
-        jitBody->inlineCaches = reinterpret_cast<intptr_t*>(functionBody->GetInlineCaches());
     }
+
+    jitBody->inlineCaches = reinterpret_cast<intptr_t*>(functionBody->GetInlineCaches());
 
     // body data
     jitBody->functionBodyAddr = (intptr_t)functionBody;
@@ -170,7 +167,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
     jitBody->formalsPropIdArrayAddr = (intptr_t)functionBody->GetFormalsPropIdArray(false);
 
-    if (Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
+    if (functionBody->HasDynamicProfileInfo() && Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
     {
         jitBody->hasNonBuiltInCallee = functionBody->HasNonBuiltInCallee();
     }

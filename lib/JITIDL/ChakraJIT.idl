@@ -542,6 +542,10 @@ typedef struct CodeGenWorkItemIDL
 
     EntryPointPolymorphicInlineCacheInfoIDL polymorphicInlineCacheInfo;
 
+    // TODO: OOP JIT, move loop body data to separate struct
+    unsigned int symIdToValueTypeMapCount;
+    [size_is(symIdToValueTypeMapCount)] unsigned short * symIdToValueTypeMap;
+
     FunctionJITTimeDataIDL * jitData;
     __int3264 jittedLoopIterationsSinceLastBailoutAddr;
     __int3264 nativeDataAddr;
@@ -667,6 +671,10 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
         [out] __int3264 * threadContextInfoAddress);
+
+    HRESULT CleanupProcess(
+        [in] handle_t binding,
+        [in] __int3264 processHandle);
 
     HRESULT CleanupThreadContext(
         [in] handle_t binding,

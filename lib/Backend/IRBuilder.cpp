@@ -3909,17 +3909,13 @@ IRBuilder::EnsureLoopBodyLoadSlot(SymID symId, bool isCatchObjectSym)
     IR::RegOpnd * dstOpnd = IR::RegOpnd::New(symDst, TyVar, m_func);
     IR::Instr * ldSlotInstr;
 
-#if 0 // OOP JIT, pass over symIdToValueTypeMap
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-
     ValueType symValueType;
-    if(loopBodyCodeGen->symIdToValueTypeMap && loopBodyCodeGen->symIdToValueTypeMap->TryGetValue(symId, &symValueType))
+    if(m_func->GetWorkItem()->HasSymIdToValueTypeMap() && m_func->GetWorkItem()->TryGetValueType(symId, &symValueType))
     {
         ldSlotInstr = IR::ProfiledInstr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
         ldSlotInstr->AsProfiledInstr()->u.FldInfo().valueType = symValueType;
     }
     else
-#endif
     {
         ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
     }

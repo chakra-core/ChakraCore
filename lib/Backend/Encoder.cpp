@@ -435,9 +435,11 @@ Encoder::Encode()
     if (this->m_func->propertyGuardsByPropertyId != nullptr)
     {
         Assert(!isSimpleJit);
+# if 0 // TODO: OOP JIT, is this assert valid?
         AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
             "Why do we have type guards if we don't do object type spec or fixed methods?");
-        
+#endif
+
 #if DBG
         int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
             + (this->m_func->equivalentTypeGuards != nullptr ? this->m_func->equivalentTypeGuards->Count() : 0);

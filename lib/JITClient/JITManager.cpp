@@ -18,6 +18,29 @@ void __RPC_USER midl_user_free(__inout void * ptr)
     }
 }
 
+JITManager JITManager::s_jitManager = JITManager();
+
+JITManager::JITManager() :
+    m_rpcBindingHandle(nullptr),
+    m_rpcServerProcessHandle(nullptr),
+    m_jitProcessId(0),
+    m_jitConnectionId()
+{
+}
+
+JITManager::~JITManager()
+{
+    // TODO: OOP JIT, what to do in case we fail to disconnect?
+    DisconnectRpcServer();
+}
+
+/* static */
+JITManager * 
+JITManager::GetJITManager()
+{
+    return &s_jitManager;
+}
+
 // This routine creates a binding with the server.
 HRESULT
 JITManager::CreateBinding(
@@ -126,51 +149,86 @@ JITManager::CreateBinding(
     return S_OK;
 }
 
+bool
+JITManager::IsConnected() const
+{
+    return m_rpcBindingHandle != nullptr && m_rpcServerProcessHandle != nullptr && m_targetHandle != nullptr;
+}
+
+HANDLE
+JITManager::GetJITTargetHandle() const
+{
+    Assert(m_targetHandle != nullptr);
+    return m_targetHandle;
+}
+
 HRESULT
 JITManager::ConnectRpcServer(DWORD proccessId, UUID connectionUuid)
 {
     HRESULT hr;
-    RPC_STATUS status;
-    HANDLE localServerProcessHandle = NULL;
-    WCHAR* connectionUuidString = NULL;
+    HANDLE localServerProcessHandle = nullptr;
+    WCHAR* connectionUuidString = nullptr;
     RPC_BINDING_HANDLE localBindingHandle;
 
-    status = UuidToStringW(&connectionUuid, &connectionUuidString);
-    if (status != S_OK)
+    if (IsConnected() && (proccessId != m_jitProcessId || connectionUuid != m_jitConnectionId))
     {
-        return HRESULT_FROM_WIN32(status);
+        return E_FAIL;
+    }
+
+    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, &connectionUuidString));
+    if (FAILED(hr))
+    {
+        return hr;
     }
 
     localServerProcessHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, proccessId);
 
     hr = CreateBinding(localServerProcessHandle, &connectionUuid, &localBindingHandle);
-    if (SUCCEEDED(hr))
-    {
-        m_rpcBindingHandle = localBindingHandle;
-        m_rpcServerProcessHandle = localServerProcessHandle;
-    }
-    else
+    if (FAILED(hr))
     {
         CloseHandle(localServerProcessHandle);
+        return hr;
     }
 
+    HANDLE targetHandle;
+    HANDLE jitProcHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, proccessId);
+    BOOL succeeded = DuplicateHandle(
+        GetCurrentProcess(), GetCurrentProcess(),
+        jitProcHandle, &targetHandle,
+        NULL, FALSE, DUPLICATE_SAME_ACCESS);
 
-    // log an event
+    if (!succeeded)
+    {
+        CloseHandle(localServerProcessHandle);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    if (!CloseHandle(jitProcHandle))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    m_targetHandle = targetHandle;
+    m_rpcBindingHandle = localBindingHandle;
+    m_rpcServerProcessHandle = localServerProcessHandle;
+    m_jitProcessId = proccessId;
+    m_jitConnectionId = connectionUuid;
 
     return hr;
 }
 
-void
+HRESULT
 JITManager::DisconnectRpcServer()
 {
     HRESULT hr = S_OK;
 
-    if (m_rpcBindingHandle == NULL)
+    if (m_rpcBindingHandle == nullptr)
     {
-        NT_ASSERT(m_rpcBindingHandle == NULL);
-        NT_ASSERT(m_rpcServerProcessHandle == NULL);
-        return;
+        Assert(m_rpcBindingHandle == nullptr);
+        Assert(m_rpcServerProcessHandle == nullptr);
+        Assert(m_targetHandle == nullptr);
+        return hr;
     }
+
+    CleanupProcess((intptr_t)m_targetHandle);
 
     RpcTryExcept
     {
@@ -182,14 +240,33 @@ JITManager::DisconnectRpcServer()
     }
     RpcEndExcept;
 
-    RpcBindingFree(&m_rpcBindingHandle);
-    m_rpcBindingHandle = NULL;
+    if (FAILED(hr))
+    {
+        return hr;
+    }
 
-    // log an event
+    hr = HRESULT_FROM_WIN32(RpcBindingFree(&m_rpcBindingHandle));
+    if (FAILED(hr))
+    {
+        return hr;
+    }
 
-    CloseHandle(m_rpcServerProcessHandle);
-    m_rpcServerProcessHandle = NULL;
+    if (!CloseHandle(m_rpcServerProcessHandle))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    if (!CloseHandle(m_targetHandle))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
 
+    m_targetHandle = nullptr;
+    m_rpcBindingHandle = nullptr;
+    m_rpcServerProcessHandle = nullptr;
+    m_jitProcessId = 0;
+    m_jitConnectionId = {0};
+
+    return hr;
 }
 
 HRESULT
@@ -201,6 +278,24 @@ JITManager::InitializeThreadContext(
     RpcTryExcept
     {
         hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
+JITManager::CleanupProcess(
+    __in intptr_t processHandle)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientCleanupProcess(m_rpcBindingHandle, processHandle);
     }
         RpcExcept(1)
     {

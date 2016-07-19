@@ -10,11 +10,18 @@ class JITManager
 public:
     HRESULT ConnectRpcServer(__in DWORD processId, __in UUID connectionUuid);
 
-    void DisconnectRpcServer();
+    bool IsConnected() const;
+
+    ~JITManager();
+
+    HANDLE GetJITTargetHandle() const;
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out intptr_t *threadContextInfoAddress);
+
+    HRESULT CleanupProcess(
+        __in intptr_t processHandle);
 
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
@@ -50,7 +57,10 @@ public:
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
 
+    static JITManager * GetJITManager();
 private:
+    JITManager();
+    HRESULT DisconnectRpcServer();
 
     HRESULT JITManager::CreateBinding(
         __in HANDLE serverProcessHandle,
@@ -59,4 +69,9 @@ private:
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     HANDLE m_rpcServerProcessHandle;
+    HANDLE m_targetHandle;
+    DWORD m_jitProcessId;
+    UUID m_jitConnectionId;
+
+    static JITManager s_jitManager;
 };

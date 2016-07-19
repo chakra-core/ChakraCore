@@ -3915,7 +3915,7 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
                     if (undefinedSym == nullptr)
                     {
                         undefinedSym = StackSym::New(inlinerFunc);
-                        IR::Opnd * srcOpnd = IR::AddrOpnd::New(inlinerFunc->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicMisc, inlinerFunc);
+                        IR::Opnd * srcOpnd = IR::AddrOpnd::New(inlinerFunc->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicMisc, inlinerFunc);
                         IR::Opnd * dstOpnd = IR::RegOpnd::New(undefinedSym, TyVar, inlinerFunc);
                         IR::Instr * assignUndefined = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, inlinerFunc);
                         instr->InsertBefore(assignUndefined);

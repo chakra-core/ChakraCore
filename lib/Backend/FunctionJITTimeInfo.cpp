@@ -264,6 +264,12 @@ FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfo(uint index) const
 }
 
 uint
+FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfoCount() const
+{
+    return m_data.globalObjTypeSpecFldInfoCount;
+}
+
+uint
 FunctionJITTimeInfo::GetSourceContextId() const
 {
     Assert(HasBody());

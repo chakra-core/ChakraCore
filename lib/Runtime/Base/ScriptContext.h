@@ -486,7 +486,7 @@ namespace Js
             {
                 contextData.vtableAddresses[i] = vtblAddresses[i];
             }
-            this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
+            JITManager::GetJITManager()->InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
         }
 
 #ifdef ENABLE_JS_ETW

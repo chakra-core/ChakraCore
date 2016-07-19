@@ -302,15 +302,12 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         JsUtil::JobManager *const manager, Js::FunctionBody *const functionBody,
         Js::EntryPointInfo* entryPointInfo, bool isJitInDebugMode, Js::LoopHeader * loopHeader) :
         CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType),
-        symIdToValueTypeMap(nullptr),
         loopHeader(loopHeader)
     {
         this->jitData.loopNumber = GetLoopNumber();
     }
 
     Js::LoopHeader * loopHeader;
-    typedef JsUtil::BaseDictionary<uint, ValueType, HeapAllocator> SymIdToValueTypeMap;
-    SymIdToValueTypeMap *symIdToValueTypeMap;
 
     uint GetLoopNumber() const override
     {
@@ -372,10 +369,10 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 
     ~JsLoopBodyCodeGen()
     {
-        if (this->symIdToValueTypeMap)
+        if (this->jitData.symIdToValueTypeMap != nullptr)
         {
-            HeapDelete(this->symIdToValueTypeMap);
-            this->symIdToValueTypeMap = NULL;
+            HeapDeleteArray(this->jitData.symIdToValueTypeMapCount, this->jitData.symIdToValueTypeMap);
+            this->jitData.symIdToValueTypeMap = nullptr;
         }
     }
 };

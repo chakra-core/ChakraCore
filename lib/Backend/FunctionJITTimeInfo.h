@@ -31,6 +31,7 @@ public:
     const FunctionJITTimeInfo * GetJitTimeDataFromFunctionInfoAddr(intptr_t polyFuncInfo) const;
     JITObjTypeSpecFldInfo * GetObjTypeSpecFldInfo(uint index) const;
     JITObjTypeSpecFldInfo * GetGlobalObjTypeSpecFldInfo(uint index) const;
+    uint GetGlobalObjTypeSpecFldInfoCount() const;
     const FunctionJITRuntimeInfo * GetInlineeForTargetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId, intptr_t inlineeFuncBodyAddr) const;
     const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
     const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;

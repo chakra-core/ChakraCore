@@ -138,6 +138,12 @@ ThreadContextInfo::GetDoubleNegTwoToFractionAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetDoubleNaNAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Nan);
+}
+
+intptr_t
 ThreadContextInfo::GetFloatNegTwoToFractionAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32NegTwoToFraction);

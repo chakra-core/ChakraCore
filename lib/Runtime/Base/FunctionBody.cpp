@@ -8270,120 +8270,12 @@ namespace Js
 
         ScriptContext* scriptContext = GetScriptContext();
 
-        if (jitTransferData->equivalentTypeGuardOffsets)
-        {
-            // OOP JIT
-
-            //PinTypeRefs
-
-            Recycler* recycler = scriptContext->GetRecycler();
-            if (this->jitTransferData->GetRuntimeTypeRefs() != nullptr)
-            {
-                // Copy pinned types from a heap allocated array created on the background thread
-                // to a recycler allocated array which will live as long as this EntryPointInfo.
-                // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
-                void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
-                size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
-                this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
-                js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
-                this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
-            }
-
-            // InstallGuards
-            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
-
-            // Create an array of equivalent type caches on the entry point info to ensure they are kept
-            // alive for the lifetime of the entry point.
-            this->equivalentTypeCacheCount = guardCount;
-
-            // No need to zero-initialize, since we will populate all data slots.
-            // We used to let the recycler scan the types in the cache, but we no longer do. See
-            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
-            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
-
-            this->RegisterEquivalentTypeCaches();
-            EquivalentTypeCache* cache = this->equivalentTypeCaches;            
-
-            for (int i = 0; i < guardCount; i++)
-            {
-                auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->guards[i].cache;
-                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->guards[i].offset;
-                JitEquivalentTypeGuard* guard = (JitEquivalentTypeGuard*)(this->GetNativeDataBuffer() + guardOffset);                
-                cache[i].guard = guard;
-                cache[i].hasFixedValue = cacheIDL.hasFixedValue != 0;
-                cache[i].isLoadedFromProto = cacheIDL.isLoadedFromProto != 0;
-                cache[i].nextEvictionVictim = cacheIDL.nextEvictionVictim;
-                cache[i].record.propertyCount = cacheIDL.record.propertyCount;
-                cache[i].record.properties = (EquivalentPropertyEntry*)(this->GetNativeDataBuffer() + cacheIDL.record.propertyOffset);
-                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
-                {
-                    cache[i].types[j] = (Js::Type*)cacheIDL.types[j];
-                }
-                guard->SetCache(&cache[i]);
-            }
-
-            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
-        }
-
-        if (jitTransferData->typeGuardTransferData.entries != nullptr)
-        {
-            this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
-            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
-            ThreadContext* threadContext = scriptContext->GetThreadContext();
-            auto next = &jitTransferData->typeGuardTransferData.entries;
-            while (*next)
-            {
-                Js::PropertyId propertyId = (*next)->propId;
-                Js::PropertyGuard* sharedPropertyGuard;
-
-                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
-                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
-                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
-                // guard for some property during work item creation, we won't find out about it here.
-                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
-                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
-                if (isNeeded)
-                {
-                    for (unsigned int i = 0; i < (*next)->guardsCount; i++)
-                    {
-                        Js::JitIndexedPropertyGuard* guard = (Js::JitIndexedPropertyGuard*)(this->nativeDataBuffer + (*next)->guardOffsets[i]);
-                        int guardIndex = guard->GetIndex();
-                        Assert(guardIndex >= 0 && guardIndex < this->propertyGuardCount);
-                        // We use the shared guard here to make sure the conditions we assumed didn't change while we were JIT-ing.
-                        // If they did, we proactively invalidate the guard here, so that we bail out if we try to call this code.
-                        if (isValid)
-                        {
-                            auto propertyGuardWeakRef = this->propertyGuardWeakRefs[guardIndex];
-                            if (propertyGuardWeakRef == nullptr)
-                            {
-                                propertyGuardWeakRef = Js::FakePropertyGuardWeakReference::New(scriptContext->GetRecycler(), guard);
-                                this->propertyGuardWeakRefs[guardIndex] = propertyGuardWeakRef;
-                            }
-                            Assert(propertyGuardWeakRef->Get() == guard);
-                            threadContext->RegisterUniquePropertyGuard(propertyId, propertyGuardWeakRef);
-                        }
-                        else
-                        {
-                            guard->Invalidate();
-                        }
-                    }
-                }
-
-                auto current = (*next);
-                *next = (*next)->next;
-                midl_user_free(current);
-            }
-        }
-
-
         if (jitTransferData->GetIsReady())
         {
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
-            
+            FreeJitTransferData();
         }
-
-        FreeJitTransferData();
 
         autoCleanup.Done();
     }
@@ -8481,6 +8373,112 @@ namespace Js
             }
         }
 
+        if (jitTransferData->equivalentTypeGuardOffsets)
+        {
+            // OOP JIT
+
+            //PinTypeRefs
+
+            Recycler* recycler = scriptContext->GetRecycler();
+            if (this->jitTransferData->GetRuntimeTypeRefs() != nullptr)
+            {
+                // Copy pinned types from a heap allocated array created on the background thread
+                // to a recycler allocated array which will live as long as this EntryPointInfo.
+                // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
+                void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
+                size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
+                this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
+                js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+                this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
+            }
+
+            // InstallGuards
+            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
+
+            // Create an array of equivalent type caches on the entry point info to ensure they are kept
+            // alive for the lifetime of the entry point.
+            this->equivalentTypeCacheCount = guardCount;
+
+            // No need to zero-initialize, since we will populate all data slots.
+            // We used to let the recycler scan the types in the cache, but we no longer do. See
+            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
+            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
+
+            this->RegisterEquivalentTypeCaches();
+            EquivalentTypeCache* cache = this->equivalentTypeCaches;
+
+            for (int i = 0; i < guardCount; i++)
+            {
+                auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->guards[i].cache;
+                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->guards[i].offset;
+                JitEquivalentTypeGuard* guard = (JitEquivalentTypeGuard*)(this->GetNativeDataBuffer() + guardOffset);
+                cache[i].guard = guard;
+                cache[i].hasFixedValue = cacheIDL.hasFixedValue != 0;
+                cache[i].isLoadedFromProto = cacheIDL.isLoadedFromProto != 0;
+                cache[i].nextEvictionVictim = cacheIDL.nextEvictionVictim;
+                cache[i].record.propertyCount = cacheIDL.record.propertyCount;
+                cache[i].record.properties = (EquivalentPropertyEntry*)(this->GetNativeDataBuffer() + cacheIDL.record.propertyOffset);
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
+                {
+                    cache[i].types[j] = (Js::Type*)cacheIDL.types[j];
+                }
+                guard->SetCache(&cache[i]);
+            }
+
+            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+        }
+
+        if (jitTransferData->typeGuardTransferData.entries != nullptr)
+        {
+            this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            auto next = &jitTransferData->typeGuardTransferData.entries;
+            while (*next)
+            {
+                Js::PropertyId propertyId = (*next)->propId;
+                Js::PropertyGuard* sharedPropertyGuard;
+
+                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
+                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
+                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
+                // guard for some property during work item creation, we won't find out about it here.
+                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
+                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
+                if (isNeeded)
+                {
+                    for (unsigned int i = 0; i < (*next)->guardsCount; i++)
+                    {
+                        Js::JitIndexedPropertyGuard* guard = (Js::JitIndexedPropertyGuard*)(this->nativeDataBuffer + (*next)->guardOffsets[i]);
+                        int guardIndex = guard->GetIndex();
+                        Assert(guardIndex >= 0 && guardIndex < this->propertyGuardCount);
+                        // We use the shared guard here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                        // If they did, we proactively invalidate the guard here, so that we bail out if we try to call this code.
+                        if (isValid)
+                        {
+                            auto propertyGuardWeakRef = this->propertyGuardWeakRefs[guardIndex];
+                            if (propertyGuardWeakRef == nullptr)
+                            {
+                                propertyGuardWeakRef = Js::FakePropertyGuardWeakReference::New(scriptContext->GetRecycler(), guard);
+                                this->propertyGuardWeakRefs[guardIndex] = propertyGuardWeakRef;
+                            }
+                            Assert(propertyGuardWeakRef->Get() == guard);
+                            threadContext->RegisterUniquePropertyGuard(propertyId, propertyGuardWeakRef);
+                        }
+                        else
+                        {
+                            guard->Invalidate();
+                        }
+                    }
+                }
+
+                auto current = (*next);
+                *next = (*next)->next;
+                midl_user_free(current);
+            }
+        }
+
+#if 0 // TODO: in-proc jit
         if (this->jitTransferData->equivalentTypeGuardCount > 0)
         {
             Assert(this->jitTransferData->equivalentTypeGuards != nullptr);
@@ -8568,6 +8566,7 @@ namespace Js
                 entry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&entry->guards[++entryGuardIndex]);
             }
         }
+#endif
 
         // The ctorCacheGuardsByPropertyId structure is temporary and serves only to register the constructor cache guards for the correct
         // properties.  If we've done code gen for this EntryPointInfo, ctorCacheGuardsByPropertyId will have been used and nulled out.

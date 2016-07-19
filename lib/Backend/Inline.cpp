@@ -5127,9 +5127,11 @@ Inline::InlineSpread(IR::Instr *spreadCall)
     IR::Instr *spreadIndicesInstr = Lowerer::GetLdSpreadIndicesInstr(spreadCall);
 
     IR::Opnd *spreadIndicesOpnd = spreadIndicesInstr->GetSrc1();
-    Js::AuxArray<uint32>* spreadIndices = static_cast<Js::AuxArray<uint32>*>(spreadIndicesOpnd->AsAddrOpnd()->m_address);
+    Assert(spreadIndicesOpnd->AsAddrOpnd()->GetAddrOpndKind() == IR::AddrOpndKindDynamicAuxBufferRef);
 
+    Js::AuxArray<uint32>* spreadIndices = static_cast<Js::AuxArray<uint32>*>(spreadIndicesOpnd->AsAddrOpnd()->m_metadata);
     Assert(spreadIndices->count > 0);
+
     IR::Instr *argInstr = spreadIndicesInstr;
 
     IR::SymOpnd *argLinkOpnd = argInstr->GetSrc2()->AsSymOpnd();

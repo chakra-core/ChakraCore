@@ -97,6 +97,15 @@ ServerInitializeThreadContext(
 }
 
 HRESULT
+ServerCleanupProcess(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 processHandle)
+{
+    CloseHandle((HANDLE)processHandle);
+    return S_OK;
+}
+
+HRESULT
 ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextRoot)
@@ -104,12 +113,10 @@ ServerCleanupThreadContext(
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
-    HANDLE processHandle = threadContextInfo->GetProcessHandle();
 
     while (threadContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(threadContextInfo);
 
-    CloseHandle(processHandle);
     return S_OK;
 }
 

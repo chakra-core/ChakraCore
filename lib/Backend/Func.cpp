@@ -130,6 +130,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
     , argInsCount(0)
+    , m_globalObjTypeSpecFldInfoArray(nullptr)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -138,7 +139,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     {
         m_inlineeId = ++(GetTopFunc()->m_inlineeId);
     }
-
     m_jnFunction = nullptr;
     bool doStackNestedFunc = GetJITFunctionBody()->DoStackNestedFunc();
 
@@ -223,6 +223,21 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     if (GetJITFunctionBody()->IsGenerator())
     {
         m_yieldOffsetResumeLabelList = YieldOffsetResumeLabelList::New(this->m_alloc);
+    }
+
+    if (this->IsTopFunc())
+    {
+        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, JITObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+    }
+
+    for (uint i = 0; i < GetJITFunctionBody()->GetInlineCacheCount(); ++i)
+    {
+        JITObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
+        if (info != nullptr)
+        {
+            Assert(info->GetObjTypeSpecFldId() < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+            GetTopFunc()->m_globalObjTypeSpecFldInfoArray[info->GetObjTypeSpecFldId()] = info;
+        }
     }
 
     canHoistConstantAddressLoad = !PHASE_OFF(Js::HoistConstAddrPhase, this);
@@ -1278,13 +1293,15 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
         Assert(UNREACHED);
         return nullptr;
     }
+
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
 JITObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
-    return GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfo(propertyInfoId);
+    Assert(propertyInfoId < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+    return GetTopFunc()->m_globalObjTypeSpecFldInfoArray[propertyInfoId];
 }
 
 void

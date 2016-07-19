@@ -380,7 +380,7 @@ namespace Js
 
         if (m_remoteScriptContextAddr != 0)
         {
-            GetThreadContext()->m_codeGenManager.CleanupScriptContext(m_remoteScriptContextAddr);
+            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
         }
 
         // TODO: Can we move this on Close()?

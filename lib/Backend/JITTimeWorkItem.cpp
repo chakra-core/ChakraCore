@@ -125,8 +125,29 @@ JITTimeWorkItem::SetJITTimeData(FunctionJITTimeDataIDL * jitData)
     m_workItemData->jitData = jitData;
 }
 
-const FunctionJITTimeInfo *
+FunctionJITTimeInfo *
 JITTimeWorkItem::GetJITTimeInfo() const
 {
-    return reinterpret_cast<const FunctionJITTimeInfo *>(m_workItemData->jitData);
+    return reinterpret_cast<FunctionJITTimeInfo *>(m_workItemData->jitData);
+}
+
+bool
+JITTimeWorkItem::HasSymIdToValueTypeMap() const
+{
+    return m_workItemData->symIdToValueTypeMap != nullptr;
+}
+
+bool
+JITTimeWorkItem::TryGetValueType(uint symId, ValueType * valueType) const
+{
+    Assert(IsLoopBody());
+    uint index = symId - m_jitBody.GetConstCount();
+    Assert(index < m_workItemData->symIdToValueTypeMapCount);
+    ValueType type = ((ValueType*)m_workItemData->symIdToValueTypeMap)[index];
+    if (type.GetRawData() != 0)
+    {
+        *valueType = type;
+        return true;
+    }
+    return false;
 }

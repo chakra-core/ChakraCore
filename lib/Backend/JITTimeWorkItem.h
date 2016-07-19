@@ -36,7 +36,10 @@ public:
     JITTimePolymorphicInlineCacheInfo * GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr);
 
     void SetJITTimeData(FunctionJITTimeDataIDL * jitData);
-    const FunctionJITTimeInfo * GetJITTimeInfo() const;
+    FunctionJITTimeInfo * GetJITTimeInfo() const;
+
+    bool TryGetValueType(uint symId, ValueType * valueType) const;
+    bool HasSymIdToValueTypeMap() const;
 
 private:
     CodeGenWorkItemIDL * m_workItemData;

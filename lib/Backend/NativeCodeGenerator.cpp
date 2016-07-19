@@ -672,14 +672,14 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
             const uint profiledRegEnd = localCount;
             if (profiledRegBegin < profiledRegEnd)
             {
-                workitem->symIdToValueTypeMap =
-                    HeapNew(JsLoopBodyCodeGen::SymIdToValueTypeMap, &HeapAllocator::Instance, profiledRegEnd - profiledRegBegin);
+                workitem->GetJITData()->symIdToValueTypeMapCount = profiledRegEnd - profiledRegBegin;
+                workitem->GetJITData()->symIdToValueTypeMap = (uint16*)HeapNewArrayZ(ValueType, workitem->GetJITData()->symIdToValueTypeMapCount);
                 Recycler *recycler = fn->GetScriptContext()->GetRecycler();
                 for (uint i = profiledRegBegin; i < profiledRegEnd; i++)
                 {
                     if (localSlots[i] && IsValidVar(localSlots[i], recycler))
                     {
-                        workitem->symIdToValueTypeMap->Add(i, ValueType::Uninitialized.Merge(localSlots[i]));
+                        workitem->GetJITData()->symIdToValueTypeMap[i - profiledRegBegin] = ValueType::Uninitialized.Merge(localSlots[i]).GetRawData();
                     }
                 }
             }
@@ -919,7 +919,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
-    HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
+    HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
         workItem->GetJITData(),
         scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
         scriptContext->GetRemoteScriptAddr(),
@@ -994,10 +994,15 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
     }
 
-    epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
-                        
-    epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
-    epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
+    if (workItem->GetJitMode() != ExecutionMode::SimpleJit)
+    {
+        epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
+
+        epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
+        epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
+
+        workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
+    }
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
     XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -2993,7 +2998,7 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
     if(this->backgroundAllocators)
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+        JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
         // TODO: OOP JIT, add following condition back in case we are in-proc
         // this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
     }
@@ -3014,7 +3019,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
 
     // The foreground allocators may have been used
     ThreadContext * context = this->scriptContext->GetThreadContext();
-    if(this->foregroundAllocators && context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address) != S_OK)
+    if(this->foregroundAllocators && JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address) != S_OK)
     {
         // TODO: OOP JIT, add following condition back in case we are in-proc
         //if(this->foregroundAllocators->emitBufferManager.FreeAllocation(address)

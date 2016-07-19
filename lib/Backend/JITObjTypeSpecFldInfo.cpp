@@ -214,7 +214,7 @@ JITObjTypeSpecFldInfo::GetFirstEquivalentType() const
 void
 JITObjTypeSpecFldInfo::SetIsBeingStored(bool value)
 {
-    ((Js::ObjTypeSpecFldInfoFlags*)&m_data.flags)->isBeingStored = true;
+    ((Js::ObjTypeSpecFldInfoFlags*)&m_data.flags)->isBeingStored = value;
 }
 
 /* static */

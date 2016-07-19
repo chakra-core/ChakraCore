@@ -527,13 +527,9 @@ public:
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
 private:
-    DWORD m_jitProcessId;
-    UUID m_jitConnectionId;
-
     intptr_t m_remoteThreadContextInfo;
 
 public:
-    JITManager m_codeGenManager;
     void SetJITConnectionInfo(DWORD processId, UUID connectionId);
 
     intptr_t GetRemoteThreadContextAddr() const
@@ -1064,8 +1060,7 @@ public:
 
     void ShutdownThreads()
     {
-        m_codeGenManager.CleanupThreadContext(m_remoteThreadContextInfo);
-        m_codeGenManager.DisconnectRpcServer();
+        JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
 #if ENABLE_NATIVE_CODEGEN
         if (jobProcessor)
         {

@@ -6260,16 +6260,34 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         Assert(regOpnd->m_sym->m_isSingleDef);
         Js::Var value = regOpnd->m_sym->GetFloatConstValueAsVar_PostGlobOpt();
 #if FLOATVAR
-        double *pDouble = (double*)NativeCodeDataNewNoFixup(this->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_EmitLoadFloatCommon_Double>);
-        AnalysisAssert(pDouble);
-        *pDouble = Js::JavascriptNumber::GetValue(value);
-        IR::MemRefOpnd *memRef = IR::MemRefOpnd::New((BYTE*)pDouble, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        void *pDouble = (double*)NativeCodeDataNewNoFixup(this->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_EmitLoadFloatCommon_Double>, Js::JavascriptNumber::GetValue(value));
+        IR::Opnd * doubleRef;
+        if (!m_func->IsOOPJIT())
+        {
+            doubleRef = IR::MemRefOpnd::New(pDouble, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        }
+        else
+        {
+            int offset = NativeCodeData::GetDataTotalOffset(pDouble);
+            IR::RegOpnd * addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+
+            Lowerer::InsertMove(
+                addressRegOpnd,
+                IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachDouble, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+                insertInstr);
+
+            doubleRef = IR::IndirOpnd::New(addressRegOpnd, offset, TyMachDouble,
+#if DBG
+                NativeCodeData::GetDataDescription(pDouble, m_func->m_alloc),
+#endif
+                m_func);
+        }
 #else
-        IR::MemRefOpnd *memRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func,
+        IR::MemRefOpnd *doubleRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func,
             IR::AddrOpndKindDynamicDoubleRef);
 #endif
         regFloatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOVSD, regFloatOpnd, memRef, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::MOVSD, regFloatOpnd, doubleRef, this->m_func);
         insertInstr->InsertBefore(instr);
         Legalize(instr);
         isFloatConst = true;
@@ -9234,7 +9252,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNaNHelper);
-                IR::Opnd * opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+                IR::Opnd * opndNaN = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNaNAddr(), IRType::TyFloat64, this->m_func);
                 this->m_lowerer->InsertMove(dst, opndNaN, instr);
             }
             instr->InsertBefore(doneLabel);
