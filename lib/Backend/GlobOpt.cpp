@@ -3880,8 +3880,9 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
             //So we don't want to track the stack sym for this argout.- Skipping it here.
             if (instr->m_func->IsInlinedConstructor())
             {
-                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() != nullptr);
-                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
+                //PRE might introduce a second defintion for the Src1. So assert for the opcode only when it has single definition.
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() == nullptr ||
+                    argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
                 argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
             }
             if (formalsCount < actualsCount)

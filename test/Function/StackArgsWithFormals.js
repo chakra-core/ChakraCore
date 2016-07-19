@@ -208,6 +208,13 @@ test12();
 test12();
 verify([], "TEST 12");
 
+function test13(a) {
+    actuals.push(typeof arguments[1]);
+}
+test13(1,2);
+test13({}, {});
+verify(["number", "object"], "TEST 13");
+
 if(hasAllPassed)
 {
     print("PASSED");
