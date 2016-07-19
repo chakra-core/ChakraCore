@@ -61,7 +61,7 @@ private:
     EmitBufferAllocation *allocation;
     SListBase<ThunkBlock> thunkBlocks;
     SListBase<ThunkBlock> freeListedThunkBlocks;
-    void * interpreterThunk; // the static interpreter thunk invoked by the dynamic emitted thunk
+    bool isAsmInterpreterThunk; // To emit address of InterpreterAsmThunk or InterpreterThunk
     BYTE*                thunkBuffer;
     ArenaAllocator*      allocator;
     DWORD thunkCount;                      // Count of thunks available in the current thunk block
@@ -94,7 +94,7 @@ private:
 
     /* ------private helpers -----------*/
     void NewThunkBlock();
-    void EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize);
+    void EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk);
 #if defined(_M_ARM32_OR_ARM64)
     DWORD EncodeMove(DWORD opCode, int reg, DWORD imm16);
     void GeneratePdata(_In_ const BYTE* entryPoint, _In_ const DWORD functionSize, _Out_ RUNTIME_FUNCTION* function);
@@ -116,7 +116,7 @@ public:
     static const uint BlockSize;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
-    InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, void * interpreterThunk);
+    InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
 
     BYTE* GetNextThunk(PVOID* ppDynamicInterpreterThunk);
 
