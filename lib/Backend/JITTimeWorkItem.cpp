@@ -142,12 +142,14 @@ JITTimeWorkItem::TryGetValueType(uint symId, ValueType * valueType) const
 {
     Assert(IsLoopBody());
     uint index = symId - m_jitBody.GetConstCount();
-    Assert(index < m_workItemData->symIdToValueTypeMapCount);
-    ValueType type = ((ValueType*)m_workItemData->symIdToValueTypeMap)[index];
-    if (type.GetRawData() != 0)
+    if (symId >= m_jitBody.GetConstCount() && index < m_workItemData->symIdToValueTypeMapCount)
     {
-        *valueType = type;
-        return true;
+        ValueType type = ((ValueType*)m_workItemData->symIdToValueTypeMap)[index];
+        if (type.GetRawData() != 0)
+        {
+            *valueType = type;
+            return true;
+        }
     }
     return false;
 }

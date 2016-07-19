@@ -2877,16 +2877,16 @@ void ThreadContext::NotifyInlineCacheBatchUnregistered(uint count)
 void
 ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 {
-    if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
-    {
-        Output::Print(_u("InlineCacheInvalidation: invalidating proto caches for property %s(%u)\n"),
-            GetPropertyName(propertyId)->GetBuffer(), propertyId);
-        Output::Flush();
-    }
-
     InlineCacheList* inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating proto caches for property %s(%u)\n"),
+                GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Flush();
+        }
+
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
@@ -2894,16 +2894,16 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 void
 ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
 {
-    if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
-    {
-        Output::Print(_u("InlineCacheInvalidation: invalidating store field caches for property %s(%u)\n"),
-            GetPropertyName(propertyId)->GetBuffer(), propertyId);
-        Output::Flush();
-    }
-
     InlineCacheList* inlineCacheList;
     if (storeFieldInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating store field caches for property %s(%u)\n"),
+                GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Flush();
+        }
+
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
