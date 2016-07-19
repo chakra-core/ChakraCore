@@ -868,25 +868,15 @@ namespace Js
             }
         }
 
-        Var ownPropertyKeys = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
-        Assert(JavascriptArray::Is(ownPropertyKeys));
-
-        if (!JavascriptArray::Is(ownPropertyKeys))
-        {
-            ownPropertyKeys = scriptContext->GetLibrary()->CreateArray(0);
-        }
-
-
-        JavascriptArray *ownPropsArray = JavascriptArray::FromVar(ownPropertyKeys);
-
-        RecyclableObject* resultObj = scriptContext->GetLibrary()->CreateObject(true, (Js::PropertyIndex) ownPropsArray->GetLength());
+        JavascriptArray* ownPropertyKeys = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
+        RecyclableObject* resultObj = scriptContext->GetLibrary()->CreateObject(true, (Js::PropertyIndex) ownPropertyKeys->GetLength());
         
         PropertyDescriptor propDesc;
         Var propKey = nullptr;
 
-        for (uint i = 0; i < ownPropsArray->GetLength(); i++)
+        for (uint i = 0; i < ownPropertyKeys->GetLength(); i++)
         {
-            BOOL getPropResult = ownPropsArray->DirectGetItemAt(i, &propKey);
+            BOOL getPropResult = ownPropertyKeys->DirectGetItemAt(i, &propKey);
             Assert(getPropResult);
 
             if (!getPropResult)
@@ -1242,17 +1232,7 @@ namespace Js
         Assert(scriptContext != nullptr);
         JavascriptArray* valuesArray = scriptContext->GetLibrary()->CreateArray(0);
 
-        Var ownKeysVar = JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
-        JavascriptArray* ownKeysResult = nullptr;
-        if (JavascriptArray::Is(ownKeysVar))
-        {
-            ownKeysResult = JavascriptArray::FromVar(ownKeysVar);
-        }
-        else
-        {
-            return valuesArray;
-        }
-
+        JavascriptArray* ownKeysResult = JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         uint32 length = ownKeysResult->GetLength();
 
         Var nextKey;
@@ -1322,33 +1302,33 @@ namespace Js
         return GetValuesOrEntries(object, false /*valuesToReturn*/, scriptContext);
     }
 
-    Var JavascriptObject::CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, true /*includeSymbolsOnly */, false, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, false, true /*includeStringsOnly*/, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, true/*includeSymbolsOnly*/, true /*includeStringsOnly*/, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, FALSE, false, true/*includeStringsOnly*/, false);
     }
 
-    Var JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, FALSE, true/*includeSymbolsOnly*/, true/*includeStringsOnly*/, false);
     }
 
     // 9.1.12 [[OwnPropertyKeys]] () in RC#4 dated April 3rd 2015.
-    Var JavascriptObject::CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL includeNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties)
+    JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL includeNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties)
     {
         //1. Let keys be a new empty List.
         //2. For each own property key P of O that is an integer index, in ascending numeric index order
@@ -1786,17 +1766,8 @@ namespace Js
 
     void JavascriptObject::AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
-        Var keysResult = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
-        JavascriptArray *keys;
+         JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
 
-        if (JavascriptArray::Is(keysResult))
-        {
-            keys = JavascriptArray::FromVar(keysResult);
-        }
-        else
-        {
-            return;
-        }
         //      c. Repeat for each element nextKey of keys in List order,
         //          i. Let desc be from.[[GetOwnProperty]](nextKey).
         //          ii. ReturnIfAbrupt(desc).
@@ -2010,16 +1981,7 @@ namespace Js
         //3.  Let keys be props.[[OwnPropertyKeys]]().
         //4.  ReturnIfAbrupt(keys).
         //5.  Let descriptors be an empty List.
-        JavascriptArray* keys;
-        Var ownKeysResult = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(props, scriptContext);
-        if (JavascriptArray::Is(ownKeysResult))
-        {
-            keys = JavascriptArray::FromVar(ownKeysResult);
-        }
-        else
-        {
-            return object;
-        }
+        JavascriptArray* keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(props, scriptContext);
         uint32 length = keys->GetLength();
 
         ENTER_PINNED_SCOPE(DescriptorMap, descriptors);
