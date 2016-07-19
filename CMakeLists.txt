@@ -24,6 +24,12 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
         -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
     )
 
+    if (NOT ICU_INCLUDE_PATH)
+      set(ICU_INCLUDE_PATH
+        "/usr/local/opt/icu4c/include/"
+        )
+    endif()
+
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
         set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
