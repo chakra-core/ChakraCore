@@ -54,22 +54,13 @@ namespace Wasm
 
 namespace Wasm
 {
-    struct Local
-    {
-        WasmTypes::WasmType t;
-        char16* name;
-
-        Local(WasmTypes::WasmType _t) : t(_t), name(nullptr) {}
-        Local() : t(WasmTypes::Limit), name(nullptr) {}
-    };
-
-    typedef JsUtil::GrowingArray<Local, ArenaAllocator> WasmTypeArray;
+    typedef WasmTypes::WasmType Local;
 }
 
 #include "WasmSignature.h"
 #include "WasmDataSegment.h"
 #include "WasmFunctionInfo.h"
-#include "ModuleInfo.h"
+#include "WasmModule.h"
 
 #include "WasmSection.h"
 

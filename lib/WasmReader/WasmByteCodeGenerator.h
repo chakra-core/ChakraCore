@@ -90,7 +90,7 @@ namespace Wasm
 
     struct WasmReaderInfo
     {
-        Binary::WasmBinaryReader* m_reader;
+        WasmBinaryReader* m_reader;
         WasmFunctionInfo* m_funcInfo;
         WasmModule* m_module;
     };
@@ -100,12 +100,12 @@ namespace Wasm
     public:
         WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
         WasmModule * GenerateModule();
-        WasmFunction * GenerateFunctionHeader(uint32 index);
+        void GenerateFunctionHeader(uint32 index);
     private:
         Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo * m_sourceInfo;
         Js::ScriptContext * m_scriptContext;
-        Binary::WasmBinaryReader* m_reader;
+        WasmBinaryReader* m_reader;
         WasmModule * m_module;
     };
 
@@ -123,8 +123,8 @@ namespace Wasm
         static const Js::RegSlot ScriptContextBufferRegister = 4;
         static const Js::RegSlot ReservedRegisterCount = 5;
 
-        WasmBytecodeGenerator(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo);
-        static void GenerateFunctionBytecode(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo);
+        WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo);
+        static void GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo);
 
     private:
         void GenerateFunction();
@@ -181,17 +181,18 @@ namespace Wasm
         void EnterEvalStackScope();
         void ExitEvalStackScope();
 
+        Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
+
         ArenaAllocator m_alloc;
 
         WasmLocal * m_locals;
 
         WasmFunctionInfo * m_funcInfo;
-        Js::FunctionBody * m_body;
         WasmModule * m_module;
 
         uint m_maxArgOutDepth;
 
-        Binary::WasmBinaryReader* m_reader;
+        WasmBinaryReader* m_reader;
 
         Js::AsmJsByteCodeWriter m_writer;
         Js::ScriptContext * m_scriptContext;

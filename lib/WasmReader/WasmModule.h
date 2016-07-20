@@ -7,7 +7,7 @@
 
 namespace Wasm
 {
-    class ModuleInfo
+    class WasmModule : public FinalizableObject
     {
     private:
         struct Memory
@@ -21,9 +21,9 @@ namespace Wasm
             static const uint64 PAGE_SIZE = 64 * 1024;
         } m_memory;
     public:
-        ModuleInfo(ArenaAllocator * alloc);
+        WasmModule(Js::ScriptContext* scriptContext);
 
-        bool InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
+        void InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
 
         const Memory * GetMemory() const;
 
@@ -37,12 +37,10 @@ namespace Wasm
         uint32 GetIndirectFunctionIndex(uint32 indirTableIndex) const;
         uint32 GetIndirectFunctionCount() const;
 
-        void SetFunctionCount(uint count);
         uint GetFunctionCount() const;
-
         void AllocateFunctions(uint32 count);
-        bool SetFunSig(WasmFunctionInfo* funsig, uint32 index);
-        WasmFunctionInfo * GetFunSig(uint index) const;
+        bool SetFunctionInfo(WasmFunctionInfo* funsig, uint32 index);
+        WasmFunctionInfo * GetFunctionInfo(uint index) const;
 
         void AllocateFunctionExports(uint32 entries);
         uint GetExportCount() const { return m_exportCount; }
@@ -61,10 +59,26 @@ namespace Wasm
 
         void SetStartFunction(uint32 i);
         uint32 GetStartFunction() const;
+
+        uint32 GetModuleEnvironmentSize() const;
+
+        uint GetHeapOffset() const { return heapOffset; }
+        void SetHeapOffset(uint val) { heapOffset = val; }
+        uint GetFuncOffset() const { return funcOffset; }
+        void SetFuncOffset(uint val) { funcOffset = val; }
+        uint GetImportFuncOffset() const { return importFuncOffset; }
+        void SetImportFuncOffset(uint val) { importFuncOffset = val; }
+        uint GetIndirFuncTableOffset() const { return indirFuncTableOffset; }
+        void SetIndirFuncTableOffset(uint val) { indirFuncTableOffset = val; }
+
+        virtual void Finalize(bool isShutdown) override;
+        virtual void Dispose(bool isShutdown) override;
+        virtual void Mark(Recycler * recycler) override;
+
     private:
         WasmSignature** m_signatures;
         uint32* m_indirectfuncs;
-        WasmFunctionInfo** m_funsigs;
+        WasmFunctionInfo** m_functionsInfo;
         WasmExport* m_exports;
         WasmImport* m_imports;
         WasmDataSegment** m_datasegs;
@@ -76,30 +90,14 @@ namespace Wasm
         uint32 m_importCount;
         uint32 m_datasegCount;
 
-        uint32 m_startFunc;
+        uint32 m_startFuncIndex;
 
-        ArenaAllocator * m_alloc;
-    };
+        ArenaAllocator m_alloc;
 
-    struct WasmModule
-    {
-        WasmModule() :
-            functions(nullptr),
-            memSize(0),
-            indirFuncTableOffset(0),
-            heapOffset(0),
-            funcOffset(0),
-            funcCount(0),
-            importFuncOffset(0)
-        {
-        }
-        WasmFunction** functions;
-        ModuleInfo * info;
+        // Describes the module's Environment
         uint heapOffset;
         uint funcOffset;
-        uint funcCount;
         uint importFuncOffset;
         uint indirFuncTableOffset;
-        uint memSize;
     };
 } // namespace Wasm

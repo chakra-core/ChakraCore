@@ -28,7 +28,6 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtGetPropertyIdFromNameUtf8Ptr)(const char *name, JsPropertyIdRef *propertyId);
     typedef JsErrorCode (WINAPI *JsrtGetPropertyPtr)(JsValueRef object, JsPropertyIdRef property, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtHasPropertyPtr)(JsValueRef object, JsPropertyIdRef property, bool *hasProperty);
-    typedef JsErrorCode (WINAPI *JsrtRunWasmScriptPtr)(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, const bool isBinary, const UINT lengthBytes, JsValueRef ffi, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtNumberToDoublePtr)(JsValueRef value, double *doubleValue);
     typedef JsErrorCode (WINAPI *JsrtNumberToIntPtr)(JsValueRef value, int *intValue);
@@ -120,7 +119,6 @@ struct JsAPIHooks
     JsrtGetPropertyIdFromNameUtf8Ptr pfJsrtGetPropertyIdFromNameUtf8;
     JsrtGetPropertyPtr pfJsrtGetProperty;
     JsrtHasPropertyPtr pfJsrtHasProperty;
-    JsrtRunWasmScriptPtr pfJsrtRunWasmScript;
     JsrtCallFunctionPtr pfJsrtCallFunction;
     JsrtNumberToDoublePtr pfJsrtNumberToDouble;
     JsrtNumberToIntPtr pfJsrtNumberToInt;
@@ -288,9 +286,6 @@ public:
     static JsErrorCode WINAPI JsGetPropertyIdFromNameUtf8(const char *name, JsPropertyIdRef *propertyId) { return HOOK_JS_API(GetPropertyIdFromNameUtf8(name, propertyId)); }
     static JsErrorCode WINAPI JsGetProperty(JsValueRef object, JsPropertyIdRef property, JsValueRef* value) { return HOOK_JS_API(GetProperty(object, property, value)); }
     static JsErrorCode WINAPI JsHasProperty(JsValueRef object, JsPropertyIdRef property, bool *hasProperty) { return HOOK_JS_API(HasProperty(object, property, hasProperty)); }
-#ifdef ENABLE_WASM
-    static JsErrorCode WINAPI JsRunWasmScript(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, const bool isBinary, const UINT lengthBytes, JsValueRef ffi, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunWasmScript(script, sourceContext, sourceUrl, isBinary, lengthBytes, ffi, result); }
-#endif
     static JsErrorCode WINAPI JsCallFunction(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return HOOK_JS_API(CallFunction(function, arguments, argumentCount, result)); }
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return HOOK_JS_API(NumberToDouble(value, doubleValue)); }
     static JsErrorCode WINAPI JsNumberToInt(JsValueRef value, int* intValue) { return HOOK_JS_API(NumberToInt(value, intValue)); }

@@ -10,10 +10,10 @@
 namespace Wasm
 {
 
-ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
+WasmModule::WasmModule(Js::ScriptContext* scriptContext) :
     m_memory(),
-    m_alloc(alloc),
-    m_funsigs(nullptr),
+    m_alloc(_u("WasmModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
+    m_functionsInfo(nullptr),
     m_funcCount(0),
     m_importCount(0),
     m_indirectfuncs(nullptr),
@@ -23,39 +23,41 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_datasegCount(0),
     m_signatures(nullptr),
     m_signaturesCount(0),
-    m_startFunc(Js::Constants::UninitializedValue)
+    m_startFuncIndex(Js::Constants::UninitializedValue),
+    indirFuncTableOffset(0),
+    heapOffset(0),
+    funcOffset(0),
+    importFuncOffset(0)
 {
 }
 
-bool
-ModuleInfo::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
+void
+WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
 {
     if (m_memory.minSize != 0)
     {
-        return false;
+        throw WasmCompilationException(_u("Memory already allocated"));
     }
 
     if (maxPage < minPage)
     {
-        return false;
+        throw WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
     }
 
     CompileAssert(Memory::PAGE_SIZE < INT_MAX);
     m_memory.minSize = (uint64)minPage * Memory::PAGE_SIZE;
     m_memory.maxSize = (uint64)maxPage * Memory::PAGE_SIZE;
     m_memory.exported = exported;
-
-    return true;
 }
 
-const ModuleInfo::Memory *
-ModuleInfo::GetMemory() const
+const WasmModule::Memory *
+WasmModule::GetMemory() const
 {
     return &m_memory;
 }
 
 void
-ModuleInfo::SetSignature(uint32 index, WasmSignature * signature)
+WasmModule::SetSignature(uint32 index, WasmSignature * signature)
 {
     Assert(index < GetSignatureCount());
     signature->SetSignatureId(index);
@@ -63,7 +65,7 @@ ModuleInfo::SetSignature(uint32 index, WasmSignature * signature)
 }
 
 WasmSignature *
-ModuleInfo::GetSignature(uint32 index) const
+WasmModule::GetSignature(uint32 index) const
 {
     if (index >= GetSignatureCount())
     {
@@ -74,20 +76,20 @@ ModuleInfo::GetSignature(uint32 index) const
 }
 
 uint32
-ModuleInfo::GetSignatureCount() const
+WasmModule::GetSignatureCount() const
 {
     return m_signaturesCount;
 }
 
 void
-ModuleInfo::AllocateIndirectFunctions(uint32 entries)
+WasmModule::AllocateIndirectFunctions(uint32 entries)
 {
     m_indirectFuncCount = entries;
-    m_indirectfuncs = AnewArray(m_alloc, uint32, entries);
+    m_indirectfuncs = AnewArray(&m_alloc, uint32, entries);
 }
 
 void
-ModuleInfo::SetIndirectFunction(uint32 funcIndex, uint32 indirTableIndex)
+WasmModule::SetIndirectFunction(uint32 funcIndex, uint32 indirTableIndex)
 {
     if (indirTableIndex < GetIndirectFunctionCount())
     {
@@ -96,7 +98,7 @@ ModuleInfo::SetIndirectFunction(uint32 funcIndex, uint32 indirTableIndex)
 }
 
 uint32
-ModuleInfo::GetIndirectFunctionIndex(uint32 indirTableIndex) const
+WasmModule::GetIndirectFunctionIndex(uint32 indirTableIndex) const
 {
     if (indirTableIndex >= GetIndirectFunctionCount())
     {
@@ -106,68 +108,62 @@ ModuleInfo::GetIndirectFunctionIndex(uint32 indirTableIndex) const
 }
 
 uint32
-ModuleInfo::GetIndirectFunctionCount() const
+WasmModule::GetIndirectFunctionCount() const
 {
     return m_indirectFuncCount;
 }
 
-void
-ModuleInfo::SetFunctionCount(uint count)
-{
-    m_funcCount = count;
-}
-
 uint32
-ModuleInfo::GetFunctionCount() const
+WasmModule::GetFunctionCount() const
 {
     return m_funcCount;
 }
 
-void ModuleInfo::AllocateFunctions(uint32 count)
+void WasmModule::AllocateFunctions(uint32 count)
 {
     m_funcCount = count;
     if (count > 0)
     {
-        m_funsigs = AnewArray(m_alloc, WasmFunctionInfo*, count);
+        m_functionsInfo = AnewArray(&m_alloc, WasmFunctionInfo*, count);
     }
 }
 
 bool
-ModuleInfo::SetFunSig(WasmFunctionInfo* funsig, uint32 index)
+WasmModule::SetFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index)
 {
     if (index < m_funcCount)
     {
-        m_funsigs[index] = funsig;
-        funsig->SetNumber(index);
+        m_functionsInfo[index] = funcInfo;
+        Assert(funcInfo->GetNumber() == index);
         return true;
     }
     return false;
 }
 
 WasmFunctionInfo*
-ModuleInfo::GetFunSig(uint index) const
+WasmModule::GetFunctionInfo(uint index) const
 {
     if (index >= m_funcCount)
     {
         return nullptr;
     }
-    return m_funsigs[index];
+    return m_functionsInfo[index];
 }
 
-void ModuleInfo::AllocateFunctionExports(uint32 entries)
+void WasmModule::AllocateFunctionExports(uint32 entries)
 {
-    m_exports = AnewArrayZ(m_alloc, WasmExport, entries);
+    m_exports = AnewArrayZ(&m_alloc, WasmExport, entries);
     m_exportCount = entries;
 }
 
-void ModuleInfo::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength)
+void WasmModule::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;
     m_exports[iExport].name = exportName;
 }
 
-Wasm::WasmExport* ModuleInfo::GetFunctionExport(uint32 iExport) const
+Wasm::WasmExport* WasmModule::GetFunctionExport(uint32 iExport) const
 {
     if (iExport >= m_exportCount)
     {
@@ -177,14 +173,14 @@ Wasm::WasmExport* ModuleInfo::GetFunctionExport(uint32 iExport) const
 }
 
 void
-ModuleInfo::AllocateFunctionImports(uint32 entries)
+WasmModule::AllocateFunctionImports(uint32 entries)
 {
-    m_imports = AnewArrayZ(m_alloc, WasmImport, entries);
+    m_imports = AnewArrayZ(&m_alloc, WasmImport, entries);
     m_importCount = entries;
 }
 
 void
-ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen)
+WasmModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen)
 {
     m_imports[i].sigId = sigId;
     m_imports[i].modNameLen = modNameLen;
@@ -194,7 +190,7 @@ ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 mo
 }
 
 Wasm::WasmImport*
-ModuleInfo::GetFunctionImport(uint32 i) const
+WasmModule::GetFunctionImport(uint32 i) const
 {
     if (i >= m_importCount)
     {
@@ -204,15 +200,15 @@ ModuleInfo::GetFunctionImport(uint32 i) const
 }
 
 void
-ModuleInfo::AllocateDataSegs(uint32 count)
+WasmModule::AllocateDataSegs(uint32 count)
 {
     Assert(count != 0);
     m_datasegCount = count;
-    m_datasegs = AnewArray(m_alloc, WasmDataSegment*, count);
+    m_datasegs = AnewArray(&m_alloc, WasmDataSegment*, count);
 }
 
 bool
-ModuleInfo::AddDataSeg(WasmDataSegment* seg, uint32 index)
+WasmModule::AddDataSeg(WasmDataSegment* seg, uint32 index)
 {
     if (index >= m_datasegCount)
     {
@@ -223,7 +219,7 @@ ModuleInfo::AddDataSeg(WasmDataSegment* seg, uint32 index)
 }
 
 WasmDataSegment*
-ModuleInfo::GetDataSeg(uint32 index) const
+WasmModule::GetDataSeg(uint32 index) const
 {
     if (index >= m_datasegCount)
     {
@@ -233,26 +229,51 @@ ModuleInfo::GetDataSeg(uint32 index) const
 }
 
 void
-ModuleInfo::SetStartFunction(uint32 i)
+WasmModule::SetStartFunction(uint32 i)
 {
     if (i >= m_funcCount) {
         TRACE_WASM_DECODER(L"Invalid start function index");
         return;
     }
-    m_startFunc = i;
+    m_startFuncIndex = i;
 }
 
 uint32
-ModuleInfo::GetStartFunction() const
+WasmModule::GetStartFunction() const
 {
-    return m_startFunc;
+    return m_startFuncIndex;
 }
 
-void ModuleInfo::SetSignatureCount(uint32 count)
+void WasmModule::SetSignatureCount(uint32 count)
 {
     Assert(m_signaturesCount == 0 && m_signatures == nullptr);
     m_signaturesCount = count;
-    m_signatures = AnewArray(m_alloc, WasmSignature*, count);
+    m_signatures = AnewArray(&m_alloc, WasmSignature*, count);
+}
+
+uint32 WasmModule::GetModuleEnvironmentSize() const
+{
+    // 1 for the heap
+    uint32 size = 1;
+    size = UInt32Math::Add(size, GetFunctionCount());
+    // reserve space for as many function tables as there are signatures, though we won't fill them all
+    size = UInt32Math::Add(size, GetSignatureCount());
+    size = UInt32Math::Add(size, GetImportCount());
+    return size;
+}
+
+void WasmModule::Finalize(bool isShutdown)
+{
+    m_alloc.Clear();
+}
+
+void WasmModule::Dispose(bool isShutdown)
+{
+    Assert(m_alloc.Size() == 0);
+}
+
+void WasmModule::Mark(Recycler * recycler)
+{
 }
 
 } // namespace Wasm

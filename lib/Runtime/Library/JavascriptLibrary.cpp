@@ -1554,7 +1554,7 @@ namespace Js
 
         nullEnumerator = RecyclerNew(this->recycler, NullEnumerator, scriptContext);
 #ifdef ENABLE_WASM
-        if (!PHASE_OFF1(WasmPhase))
+        if (PHASE_ON1(WasmPhase))
         {
             wasmObject  = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,

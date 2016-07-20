@@ -8,7 +8,7 @@
 #ifdef ENABLE_WASM
 
 #if DBG_DUMP
-#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, m_body)) { PrintOpName(op); }
+#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpName(op); }
 #else
 #define DebugPrintOp(op)
 #endif
@@ -79,62 +79,41 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::
     m_scriptContext(scriptContext),
     m_recycler(scriptContext->GetRecycler())
 {
-    m_reader = RecyclerNew(m_recycler, Binary::WasmBinaryReader, scriptContext, binaryBuffer, binaryBufferLength);
+    m_module = RecyclerNewFinalized(m_recycler, WasmModule, scriptContext);
+    m_reader = RecyclerNewFinalized(m_recycler, WasmBinaryReader, scriptContext, m_module , binaryBuffer, binaryBufferLength);
 
-    // Initialize maps needed by binary reader
-    Binary::WasmBinaryReader::Init(scriptContext);
-}
-
-Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
-{
-    // TODO: can this be in a better place?
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
-    m_module = RecyclerNew(m_recycler, WasmModule);
-    m_module->info = m_reader->m_moduleInfo;
-    m_module->heapOffset = 0;
-    m_module->importFuncOffset = m_module->heapOffset + 1;
-    m_module->funcOffset = m_module->heapOffset + 1;
+    // Initialize maps needed by binary reader
+    WasmBinaryReader::Init(scriptContext);
+}
+
+WasmModule* WasmModuleGenerator::GenerateModule()
+{
+    m_module->SetHeapOffset(0);
+    m_module->SetImportFuncOffset(m_module->GetHeapOffset() + 1);
+    m_module->SetFuncOffset(m_module->GetHeapOffset() + 1);
 
     m_reader->InitializeReader();
-    m_reader->m_module = m_module;
 
     BVStatic<bSectLimit + 1> visitedSections;
-
-    const auto readerProcess = [](WasmModuleGenerator* gen) { return gen->m_reader->ProcessCurrentSection(); };
-    // By default lest the reader process the section
-#define WASM_SECTION(name, id, flag, precedent) readerProcess,
-    SectionProcessFunc sectionProcess[bSectLimit + 1] = {
-#include "WasmSections.h"
-        nullptr
-    };
 
     // Will callback regardless if the section is present or not
     AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
 
     afterSectionCallback[bSectFunctionSignatures] = [](WasmModuleGenerator* gen) {
-        gen->m_module->funcOffset = gen->m_module->importFuncOffset + gen->m_module->info->GetImportCount();
+        gen->m_module->SetFuncOffset(gen->m_module->GetImportFuncOffset() + gen->m_module->GetImportCount());
     };
     afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
-        gen->m_module->indirFuncTableOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount();
+        gen->m_module->SetIndirFuncTableOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetFunctionCount());
     };
-
-    sectionProcess[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
-        uint32 funcCount = gen->m_module->info->GetFunctionCount();
-        gen->m_module->funcCount = funcCount;
-        gen->m_module->functions = RecyclerNewArrayZ(gen->m_recycler, WasmFunction*, funcCount);
-        if (!gen->m_reader->ReadFunctionHeaders())
-        {
-            return false;
-        }
-
+    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
+        uint32 funcCount = gen->m_module->GetFunctionCount();
         for (uint32 i = 0; i < funcCount; ++i)
         {
-            WasmFunction* fn = gen->GenerateFunctionHeader(i);
-            gen->m_module->functions[i] = fn;
+            gen->GenerateFunctionHeader(i);
         }
-        return true;
     };
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
@@ -150,7 +129,7 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
             }
             visitedSections.Set(sectionCode);
 
-            if (!sectionProcess[sectionCode](this))
+            if (!m_reader->ProcessCurrentSection())
             {
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
@@ -173,48 +152,53 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
     {
         throw WasmCompilationException(_u("Missing required section: %s"), SectionInfo::All[bSectFunctionBodies].name);
     }
-    // reserve space for as many function tables as there are signatures, though we won't fill them all
-    m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount() + m_module->info->GetImportCount();
 
     return m_module;
 }
 
-Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
+void WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
     TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), index);
-    WasmFunctionInfo* wasmInfo = m_module->info->GetFunSig(index);
+    WasmFunctionInfo* wasmInfo = m_module->GetFunctionInfo(index);
     if (!wasmInfo)
     {
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    WasmFunction* func = RecyclerNew(m_recycler, WasmFunction);
-
     char16* functionName = nullptr;
     int nameLength = 0;
-    for (uint32 iExport = 0; iExport < m_module->info->GetExportCount(); ++iExport)
+
+    if (wasmInfo->GetNameLength() > 0)
     {
-        Wasm::WasmExport* funcExport = m_module->info->GetFunctionExport(iExport);
-        if (funcExport && funcExport->nameLength > 0)
+        functionName = wasmInfo->GetName();
+        nameLength = wasmInfo->GetNameLength();
+    }
+    else
+    {
+        for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
-            const uint32 funcIndex = funcExport->funcIndex;
-            if (funcIndex == wasmInfo->GetNumber())
+            Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
+            if (funcExport && funcExport->nameLength > 0)
             {
-                nameLength = funcExport->nameLength + 16;
-                functionName = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), char16, nameLength);
-                nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
-                break;
+                const uint32 funcIndex = funcExport->funcIndex;
+                if (funcIndex == wasmInfo->GetNumber())
+                {
+                    nameLength = funcExport->nameLength + 16;
+                    functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
+                    nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                    break;
+                }
             }
         }
     }
 
     if (!functionName)
     {
-        functionName = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), char16, 32);
+        functionName = RecyclerNewArrayLeafZ(m_recycler, char16, 32);
         nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
     }
 
-    Js::FunctionBody* body = func->body = Js::FunctionBody::NewFromRecycler(
+    Js::FunctionBody* body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
         functionName,
         nameLength,
@@ -229,6 +213,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         , false /* is function from deferred deserialized proxy */
 #endif
     );
+    wasmInfo->SetBody(body);
     // TODO (michhol): numbering
     body->SetSourceInfo(0);
     body->AllocateAsmJsFunctionInfo();
@@ -254,10 +239,10 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
     info->SetArgSizeArrayLength(argSizeLength);
-    uint* argSizeArray = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), uint, argSizeLength);
+    uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
-    if (m_module->memSize > 0)
+    if (m_module->GetMemory()->minSize > 0)
     {
         info->SetUsesHeapBuffer(true);
     }
@@ -266,7 +251,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         body->SetHasImplicitArgIns(true);
         body->SetInParamsCount(paramCount + 1);
         body->SetReportedInParamsCount(paramCount + 1);
-        info->SetArgTypeArray(RecyclerNewArrayLeaf(m_scriptContext->GetRecycler(), Js::AsmJsVarType::Which, paramCount));
+        info->SetArgTypeArray(RecyclerNewArrayLeaf(m_recycler, Js::AsmJsVarType::Which, paramCount));
     }
     Js::ArgSlot paramSize = 0;
     for (Js::ArgSlot i = 0; i < paramCount; ++i)
@@ -302,19 +287,16 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     }
     info->SetArgByteSize(paramSize);
     info->SetReturnType(WasmToAsmJs::GetAsmJsReturnType(wasmInfo->GetResultType()));
-
-    return func;
 }
 
-WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerInfo) :
+WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerInfo) :
     m_scriptContext(scriptContext),
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_evalStack(&m_alloc),
     m_i32RegSlots(ReservedRegisterCount),
     m_f32RegSlots(ReservedRegisterCount),
     m_f64RegSlots(ReservedRegisterCount),
-    m_blockInfos(&m_alloc),
-    m_body(body)
+    m_blockInfos(&m_alloc)
 {
     m_writer.Create();
     // Init reader to current func offset
@@ -329,9 +311,9 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, J
 }
 
 void
-WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo)
+WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
 {
-    WasmBytecodeGenerator generator(scriptContext, body, readerinfo);
+    WasmBytecodeGenerator generator(scriptContext, readerinfo);
     generator.GenerateFunction();
     if (!generator.m_reader->IsCurrentFunctionCompleted())
     {
@@ -343,7 +325,7 @@ WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext
 void
 WasmBytecodeGenerator::GenerateFunction()
 {
-    if (PHASE_OFF(Js::WasmBytecodePhase, m_body))
+    if (PHASE_OFF(Js::WasmBytecodePhase, GetFunctionBody()))
     {
         throw WasmCompilationException(_u("Compilation skipped"));
     }
@@ -353,7 +335,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_maxArgOutDepth = 0;
 
     // TODO: fix these bools
-    m_writer.Begin(m_body, &m_alloc, true, true, false);
+    m_writer.Begin(GetFunctionBody(), &m_alloc, true, true, false);
     try
     {
         m_funcInfo->SetExitLabel(m_writer.DefineLabel());
@@ -398,13 +380,13 @@ WasmBytecodeGenerator::GenerateFunction()
     m_writer.End();
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, m_body))
+    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()))
     {
-        Js::AsmJsByteCodeDumper::DumpBasic(m_body);
+        Js::AsmJsByteCodeDumper::DumpBasic(GetFunctionBody());
     }
 #endif
 
-    Js::AsmJsFunctionInfo * info = m_body->GetAsmJsFunctionInfo();
+    Js::AsmJsFunctionInfo * info = GetFunctionBody()->GetAsmJsFunctionInfo();
     info->SetIntVarCount(m_i32RegSlots.GetVarCount());
     info->SetFloatVarCount(m_f32RegSlots.GetVarCount());
     info->SetDoubleVarCount(m_f64RegSlots.GetVarCount());
@@ -423,15 +405,15 @@ WasmBytecodeGenerator::GenerateFunction()
         + (int)((info->GetIntConstCount() + 1) * sizeof(int) + 0.5/*ceil*/) //
         + Js::AsmJsFunctionMemory::RequiredVarConstants;
 
-    m_body->CheckAndSetConstantCount(nbConst);
+    GetFunctionBody()->CheckAndSetConstantCount(nbConst);
 
     // REVIEW: overflow checks?
     info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
     info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots.GetRegisterCount() * sizeof(int32));
     info->SetDoubleByteOffset(Math::Align<int>(info->GetFloatByteOffset() + m_f32RegSlots.GetRegisterCount() * sizeof(float), sizeof(double)));
 
-    m_body->SetOutParamMaxDepth(m_maxArgOutDepth);
-    m_body->SetVarCount(m_f32RegSlots.GetRegisterCount() + m_f64RegSlots.GetRegisterCount() + m_i32RegSlots.GetRegisterCount());
+    GetFunctionBody()->SetOutParamMaxDepth(m_maxArgOutDepth);
+    GetFunctionBody()->SetVarCount(m_f32RegSlots.GetRegisterCount() + m_f64RegSlots.GetRegisterCount() + m_i32RegSlots.GetRegisterCount());
 }
 
 void
@@ -707,26 +689,26 @@ WasmBytecodeGenerator::EmitCall()
     {
     case wnCALL:
         funcNum = m_reader->m_currentNode.call.num;
-        if (funcNum >= m_module->info->GetFunctionCount())
+        if (funcNum >= m_module->GetFunctionCount())
         {
             throw WasmCompilationException(_u("Call is to unknown function"));
         }
-        calleeSignature = m_module->info->GetFunSig(funcNum)->GetSignature();
+        calleeSignature = m_module->GetFunctionInfo(funcNum)->GetSignature();
         break;
     case wnCALL_IMPORT:
     {
         funcNum = m_reader->m_currentNode.call.num;
-        if (funcNum >= m_module->info->GetImportCount())
+        if (funcNum >= m_module->GetImportCount())
         {
             throw WasmCompilationException(L"Call is to unknown function");
         }
-        uint sigId = m_module->info->GetFunctionImport(funcNum)->sigId;
-        calleeSignature = m_module->info->GetSignature(sigId);
+        uint sigId = m_module->GetFunctionImport(funcNum)->sigId;
+        calleeSignature = m_module->GetSignature(sigId);
         break;
     }
     case wnCALL_INDIRECT:
         signatureId = m_reader->m_currentNode.call.num;
-        calleeSignature = m_module->info->GetSignature(signatureId);
+        calleeSignature = m_module->GetSignature(signatureId);
         break;
     default:
         Assume(UNREACHED);
@@ -810,10 +792,10 @@ WasmBytecodeGenerator::EmitCall()
     switch (wasmOp)
     {
     case wnCALL:
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->funcOffset);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetFuncOffset());
         break;
     case wnCALL_IMPORT:
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->importFuncOffset);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetImportFuncOffset());
         break;
     case wnCALL_INDIRECT:
         indirectIndexInfo = PopEvalStack();
@@ -822,7 +804,7 @@ WasmBytecodeGenerator::EmitCall()
             throw WasmCompilationException(_u("Indirect call index must be int type"));
         }
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetIndirFuncTableOffset());
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
         ReleaseLocation(&indirectIndexInfo);
         break;
@@ -1035,7 +1017,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemRead()
 {
     const uint offset = m_reader->m_currentNode.mem.offset;
-    m_body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
     EmitInfo exprInfo = PopEvalStack();
 
@@ -1064,7 +1046,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
     const uint offset = m_reader->m_currentNode.mem.offset;
-    m_body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
 
     EmitInfo rhsInfo = PopEvalStack();

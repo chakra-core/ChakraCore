@@ -12,11 +12,12 @@ class WasmSignature
 public:
     WasmSignature(ArenaAllocator * alloc);
 
-    void AddParam(WasmTypes::WasmType type);
+    void AllocateParams(uint32 count);
+    void SetParam(WasmTypes::WasmType type, uint32 index);
     void SetResultType(WasmTypes::WasmType type);
     void SetSignatureId(uint32 id);
 
-    WasmTypes::WasmType GetParam(uint index) const;
+    Local GetParam(uint index) const;
     WasmTypes::WasmType GetResultType() const;
     uint32 GetParamCount() const;
     uint32 GetParamSize(uint index) const;
@@ -24,9 +25,10 @@ public:
     uint32 GetSignatureId() const;
 
 private:
+    ArenaAllocator* m_alloc;
     WasmTypes::WasmType m_resultType;
-    WasmTypeArray * m_params;
-    ArenaAllocator * m_alloc;
+    Local* m_params;
+    uint32 m_paramsCount;
     uint32 m_id;
     uint32 m_paramSize;
 };

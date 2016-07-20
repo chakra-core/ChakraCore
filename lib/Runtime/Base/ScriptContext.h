@@ -1220,10 +1220,6 @@ private:
         JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag);
 
-#ifdef ENABLE_WASM
-        Var LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start = nullptr);
-#endif
-
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -1604,12 +1600,6 @@ private:
         static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
         static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
-
-#ifdef ENABLE_WASM
-        static JavascriptMethod WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-        static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
-#endif
 
         // Thunks for deferred deserialization of function bodies from the byte code cache
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);

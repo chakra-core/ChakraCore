@@ -38,11 +38,11 @@ namespace JsUtil
             }
         }
 
-        TValue ItemInBuffer(uint32 index)
+        TValue ItemInBuffer(uint32 index) const
         {
             if (index >= count)
             {
-                return 0;
+                return (TValue)0;
             }
 
             return buffer[index];

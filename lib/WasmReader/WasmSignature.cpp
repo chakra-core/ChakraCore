@@ -14,15 +14,27 @@ WasmSignature::WasmSignature(ArenaAllocator * alloc) :
     m_alloc(alloc),
     m_resultType(WasmTypes::Void),
     m_id(Js::Constants::UninitializedValue),
-    m_paramSize(Js::Constants::UninitializedValue)
+    m_paramSize(Js::Constants::UninitializedValue),
+    m_params(nullptr),
+    m_paramsCount(0)
 {
-    m_params = Anew(m_alloc, WasmTypeArray, m_alloc, 0);
 }
 
 void
-WasmSignature::AddParam(WasmTypes::WasmType type)
+WasmSignature::AllocateParams(uint32 count)
 {
-    m_params->Add(Wasm::Local(type));
+    m_params = AnewArrayZ(m_alloc, Local, count);
+    m_paramsCount = count;
+}
+
+void
+WasmSignature::SetParam(WasmTypes::WasmType type, uint32 index)
+{
+    if (index >= GetParamCount())
+    {
+        throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, GetParamCount());
+    }
+    m_params[index] = Local(type);
 }
 
 void
@@ -39,14 +51,14 @@ WasmSignature::SetSignatureId(uint32 id)
     m_id = id;
 }
 
-WasmTypes::WasmType
+Local
 WasmSignature::GetParam(uint index) const
 {
-    if (index < m_params->Count())
+    if (index >= GetParamCount())
     {
-        return m_params->GetBuffer()[index].t;
+        throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, GetParamCount());
     }
-    throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, m_params->Count());
+    return m_params[index];
 }
 
 WasmTypes::WasmType
@@ -58,7 +70,7 @@ WasmSignature::GetResultType() const
 uint32
 WasmSignature::GetParamCount() const
 {
-    return m_params->Count();
+    return m_paramsCount;
 }
 
 uint32

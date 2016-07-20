@@ -448,15 +448,15 @@ endif
 ?AsmJsExternalEntryPoint@Js@@YAPEAXPEAVRecyclableObject@1@UCallInfo@1@ZZ ENDP
 
 ;;============================================================================================================
-;; ScriptContext::WasmDeferredParseExternalThunk
+;; WasmLibrary::WasmDeferredParseExternalThunk
 ;;============================================================================================================
 
-;;  JavascriptMethod ScriptContext::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
 
-;; Var ScriptContext::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+;; Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
-?WasmDeferredParseExternalThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
+?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
         ;; save volatile registers
         mov qword ptr [rsp + 8h],  rcx
         mov qword ptr [rsp + 10h], rdx
@@ -472,7 +472,7 @@ align 16
         sub rsp, 20h
         lea rcx, [rsp + 30h]
         mov rdx, 0
-        call ?WasmDeferredParseEntryPoint@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
@@ -491,20 +491,20 @@ endif
         mov r9,  qword ptr [rsp + 20h]
 
         rex_jmp_reg rax
-?WasmDeferredParseExternalThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
 
 ;;============================================================================================================
 
 ;;============================================================================================================
-;; ScriptContext::WasmDeferredParseInternalThunk
+;; WasmLibrary::WasmDeferredParseInternalThunk
 ;;============================================================================================================
 
-;;  JavascriptMethod ScriptContext::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
 
-;; Var ScriptContext::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+;; Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
-?WasmDeferredParseInternalThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
+?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
         ;; save volatile registers
         mov qword ptr [rsp + 8h],  rcx
         mov qword ptr [rsp + 10h], rdx
@@ -526,7 +526,7 @@ align 16
 
         lea rcx, [rsp + 70h]
         mov rdx, 1
-        call ?WasmDeferredParseEntryPoint@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
@@ -550,7 +550,7 @@ endif
         mov r9,  qword ptr [rsp + 20h]
 
         rex_jmp_reg rax
-?WasmDeferredParseInternalThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
 
 ;;============================================================================================================
 
