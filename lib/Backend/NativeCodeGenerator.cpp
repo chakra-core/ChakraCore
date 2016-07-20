@@ -1004,13 +1004,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-    // TODO: OOP JIT, is it possible that offset is really 0?
-    if (jitWriteData.throwMapOffset != 0)
+    if (jitWriteData.throwMapCount > 0)
     {
         Js::ThrowMapEntry * throwMap = (Js::ThrowMapEntry * )(jitWriteData.buffer->data + jitWriteData.throwMapOffset);
+        Js::SmallSpanSequenceIter iter;
         for (uint i = 0; i < jitWriteData.throwMapCount; ++i)
         {
-            workItem->RecordNativeThrowMap(throwMap[i].iter, throwMap[i].nativeBufferOffset, throwMap[i].statementIndex);
+            workItem->RecordNativeThrowMap(iter, throwMap[i].nativeBufferOffset, throwMap[i].statementIndex);
         }
     }
 

@@ -3383,7 +3383,6 @@ namespace Js
 
     struct ThrowMapEntry
     {
-        SmallSpanSequenceIter iter;
         uint32 nativeBufferOffset;
         uint32 statementIndex;
     };

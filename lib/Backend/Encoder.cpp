@@ -54,7 +54,6 @@ Encoder::Encode()
     m_inlineeFrameMap = Anew(m_tempAlloc, InlineeFrameMap, m_tempAlloc);
     m_bailoutRecordMap = Anew(m_tempAlloc, BailoutRecordMap, m_tempAlloc);
 
-    Js::SmallSpanSequenceIter iter;
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
 
@@ -252,7 +251,6 @@ Encoder::Encode()
         for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
         {
             IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
-            throwMap[i].iter = iter;
             throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
             throwMap[i].statementIndex = inst->m_statementIndex;
         }
