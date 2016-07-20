@@ -76,7 +76,14 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     Assert(this == nullptr);
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
     size_t bytes = (dwFreeType == MEM_RELEASE)? 0 : dwSize;
-    return VirtualFree(lpAddress, bytes, dwFreeType);
+    if (process)
+    {
+        return VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
+    }
+    else
+    {
+        return VirtualFree(lpAddress, bytes, dwFreeType);
+    }
 }
 
 /*
