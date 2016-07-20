@@ -2040,6 +2040,7 @@ public:
         if (moduleInfo->GetExportsCount() > 0)
         {
             PropertyIdArray * propArray = moduleInfo->GetExportsIdArray();
+            size += PrependByte(builder, _u("ExtraSlotsCount"), propArray->extraSlots);
             size += PrependByte(builder, _u("ExportsIdArrayDups"), propArray->hadDuplicates);
             size += PrependByte(builder, _u("ExportsIdArray__proto__"), propArray->has__proto__);
             size += PrependInt32(builder, _u("ExportsIdArrayLength"), propArray->count);
