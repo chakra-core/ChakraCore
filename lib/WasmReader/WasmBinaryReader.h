@@ -85,7 +85,7 @@ namespace Wasm
         class WasmBinaryReader
         {
         public:
-            WasmBinaryReader(ArenaAllocator* alloc, byte* source, size_t length);
+            WasmBinaryReader(Js::ScriptContext* scriptContext, byte* source, size_t length);
             static void Init(Js::ScriptContext *scriptContext);
 
             void InitializeReader();
@@ -151,7 +151,7 @@ namespace Wasm
             DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
             Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
-            ArenaAllocator* m_alloc;
+            ArenaAllocator m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc, *m_curFuncEnd;
             SectionHeader m_currentSection;

@@ -102,7 +102,7 @@ namespace Wasm
         WasmModule * GenerateModule();
         WasmFunction * GenerateFunctionHeader(uint32 index);
     private:
-        ArenaAllocator* m_alloc;
+        Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo * m_sourceInfo;
         Js::ScriptContext * m_scriptContext;
         Binary::WasmBinaryReader* m_reader;

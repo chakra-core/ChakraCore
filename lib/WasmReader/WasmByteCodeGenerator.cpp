@@ -77,9 +77,9 @@ typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength) :
     m_sourceInfo(sourceInfo),
     m_scriptContext(scriptContext),
-    m_alloc(scriptContext->GetThreadContext()->GetThreadAlloc())
+    m_recycler(scriptContext->GetRecycler())
 {
-    m_reader = Anew(m_alloc, Binary::WasmBinaryReader, m_alloc, binaryBuffer, binaryBufferLength);
+    m_reader = RecyclerNew(m_recycler, Binary::WasmBinaryReader, scriptContext, binaryBuffer, binaryBufferLength);
 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
@@ -91,7 +91,7 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
-    m_module = Anew(m_alloc, WasmModule);
+    m_module = RecyclerNew(m_recycler, WasmModule);
     m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->importFuncOffset = m_module->heapOffset + 1;
@@ -123,8 +123,8 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
     sectionProcess[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
         uint32 funcCount = gen->m_module->info->GetFunctionCount();
         gen->m_module->funcCount = funcCount;
-        gen->m_module->functions = AnewArrayZ(gen->m_alloc, WasmFunction*, funcCount);
-        if (!gen->m_reader->ReadFunctionHeaders()) 
+        gen->m_module->functions = RecyclerNewArrayZ(gen->m_recycler, WasmFunction*, funcCount);
+        if (!gen->m_reader->ReadFunctionHeaders())
         {
             return false;
         }
@@ -188,7 +188,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    WasmFunction* func = Anew(m_alloc, WasmFunction);
+    WasmFunction* func = RecyclerNew(m_recycler, WasmFunction);
 
     char16* functionName = nullptr;
     int nameLength = 0;
@@ -237,11 +237,11 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     body->SetIsWasmFunction(true);
     body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
 
-    WasmReaderInfo* readerInfo = Anew(m_alloc, WasmReaderInfo);
+    WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_reader = m_reader;
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
-    
+
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
 
@@ -328,7 +328,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, J
     m_writer.InitData(&m_alloc, astSize);
 }
 
-void 
+void
 WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, Js::FunctionBody* body, WasmReaderInfo* readerinfo)
 {
     WasmBytecodeGenerator generator(scriptContext, body, readerinfo);
@@ -443,7 +443,7 @@ WasmBytecodeGenerator::EnregisterLocals()
     {
         WasmTypes::WasmType type = m_funcInfo->GetLocal(i);
         WasmRegisterSpace * regSpace = GetRegisterSpace(type);
-        if (regSpace == nullptr) 
+        if (regSpace == nullptr)
         {
             throw WasmCompilationException(_u("Unable to find local register space"));
         }
@@ -773,7 +773,7 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            if (wasmOp == wnCALL_IMPORT) 
+            if (wasmOp == wnCALL_IMPORT)
             {
                 throw WasmCompilationException(_u("External calls with float argument NYI"));
             }
@@ -796,7 +796,7 @@ WasmBytecodeGenerator::EmitCall()
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
         argsBytesLeft -= wasmOp == wnCALL_IMPORT ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
-        if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0) 
+        if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0)
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
         }
@@ -915,7 +915,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     EmitInfo falseExpr;
     if (op == wnELSE)
     {
-        falseExpr = EmitBlock(); 
+        falseExpr = EmitBlock();
         // Read END
         op = m_reader->GetLastOp();
     }
@@ -963,7 +963,7 @@ WasmBytecodeGenerator::EmitBrTable()
 
     m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
     EmitInfo yieldInfo;
-    if (arity == 1) 
+    if (arity == 1)
     {
         yieldInfo = PopEvalStack();
     }
@@ -1319,7 +1319,7 @@ WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
             yieldEmitInfo.location = yieldInfo->yieldLocs[yieldInfo->type];
             yieldEmitInfo.type = yieldInfo->type;
         }
-        else 
+        else
         {
             yieldEmitInfo.type = yieldInfo->type == WasmTypes::Limit ? WasmTypes::Unreachable : WasmTypes::Void;
             yieldEmitInfo.location = Js::Constants::NoRegister;
@@ -1359,7 +1359,7 @@ WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
     {
         return;
     }
-    
+
     // If the type differs on any path, do not yield.
     // This will introduce some dead code on the first paths that tried to Yield a valid type
     if (

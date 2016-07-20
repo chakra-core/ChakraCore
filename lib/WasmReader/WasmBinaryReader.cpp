@@ -12,7 +12,7 @@ namespace Wasm
 {
     namespace WasmTypes
     {
-        bool IsLocalType(WasmTypes::WasmType type) 
+        bool IsLocalType(WasmTypes::WasmType type)
         {
             // Check if type in range ]Void,Limit[
             return (uint)(type - 1) < (WasmTypes::Limit - 1);
@@ -49,18 +49,18 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 }
 } // namespace WasmTypes
 
-WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, byte* source, size_t length) :
-    m_alloc(alloc),
+WasmBinaryReader::WasmBinaryReader(Js::ScriptContext* scriptContext, byte* source, size_t length) :
     m_curFuncEnd(nullptr),
-    m_lastOp(WasmBinOp::wbLimit)
+    m_lastOp(WasmBinOp::wbLimit),
+    m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory)
 {
-    m_moduleInfo = Anew(m_alloc, ModuleInfo, m_alloc);
+    m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
     m_start = m_pc = source;
     m_end = source + length;
     m_currentSection.code = bSectInvalid;
 #if DBG_DUMP
-    m_ops = Anew(m_alloc, OpSet, m_alloc);
+    m_ops = Anew(&m_alloc, OpSet, &m_alloc);
 #endif
 }
 
@@ -301,7 +301,7 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
     m_funcState.count += len;
 
     WasmFunctionInfo* funcInfo = m_moduleInfo->GetFunSig(readerInfo.index);
-    if (!funcInfo) 
+    if (!funcInfo)
     {
         ThrowDecodingError(_u("Invalid function index %u"), readerInfo.index);
     }
@@ -317,7 +317,7 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
         }
         m_funcState.count += len;
         funcInfo->AddLocal(type, count);
-        switch (type) 
+        switch (type)
         {
 #define WASM_LOCALTYPE(token, name) case Wasm::WasmTypes::token: TRACE_WASM_DECODER(_u("Local: type = " #name## ", count = %u"), type, count); break;
 #include "WasmKeywords.h"
@@ -523,7 +523,7 @@ WasmBinaryReader::BrTableNode()
 
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
-    m_currentNode.brTable.targetTable = AnewArray(m_alloc, UINT32, m_currentNode.brTable.numTargets);
+    m_currentNode.brTable.targetTable = AnewArray(&m_alloc, UINT32, m_currentNode.brTable.numTargets);
 
     for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
@@ -634,7 +634,7 @@ WasmBinaryReader::ReadSignatures()
     for (UINT32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
-        WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
+        WasmSignature * sig = Anew(&m_alloc, WasmSignature, &m_alloc);
 
         char form = ReadConst<UINT8>();
         if (form != 0x40)
@@ -680,7 +680,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
             ThrowDecodingError(_u("Function signature is out of bound"));
         }
 
-        WasmFunctionInfo* newFunction = Anew(m_alloc, WasmFunctionInfo, m_alloc);
+        WasmFunctionInfo* newFunction = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
         WasmSignature* sig = m_moduleInfo->GetSignature(sigIndex);
         newFunction->SetSignature(sig);
         m_moduleInfo->SetFunSig(newFunction, iFunc);
@@ -741,7 +741,7 @@ WasmBinaryReader::ReadDataSegments()
         TRACE_WASM_DECODER(L"Data Segment #%u", i);
         UINT32 offset = LEB128(len);
         UINT32 dataByteLen = LEB128(len);
-        WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
+        WasmDataSegment *dseg = Anew(&m_alloc, WasmDataSegment, &m_alloc, offset, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
         m_moduleInfo->AddDataSeg(dseg, i);
@@ -788,7 +788,7 @@ char16* WasmBinaryReader::CvtUtf8Str(LPUTF8 name, uint32 nameLen)
 {
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
     charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
-    char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
+    char16* contents = AnewArray(&m_alloc, char16, utf16Len + 1);
     if (contents == nullptr)
     {
         Js::Throw::OutOfMemory();
