@@ -309,7 +309,15 @@ namespace Js
             if (funcInfo->GetFunctionProxy()->IsFunctionBody() &&
                 funcInfo->GetFunctionBody()->GetIsAsmJsFunction())
             {
-                entryPoint = Js::AsmJsExternalEntryPoint;
+                AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
+                if (asmInfo && asmInfo->IsWasmDeferredParse()) 
+                {
+                    entryPoint = ScriptContext::WasmDeferredParseExternalThunk;
+                }
+                else 
+                {
+                    entryPoint = Js::AsmJsExternalEntryPoint;
+                }
             }
             else
 #endif

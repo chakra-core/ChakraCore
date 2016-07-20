@@ -25,11 +25,11 @@ namespace Wasm
 
         bool InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
 
-
         const Memory * GetMemory() const;
 
-        uint32 AddSignature(WasmSignature * signature);
+        void SetSignature(uint32 index, WasmSignature * signature);
         WasmSignature * GetSignature(uint32 index) const;
+        void SetSignatureCount(uint32 count);
         uint32 GetSignatureCount() const;
 
         void AllocateIndirectFunctions(uint32 entries);
@@ -61,19 +61,17 @@ namespace Wasm
 
         void SetStartFunction(uint32 i);
         uint32 GetStartFunction() const;
-
     private:
-        typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;
-
-        WasmSignatureArray * m_signatures;
+        WasmSignature** m_signatures;
         uint32* m_indirectfuncs;
         WasmFunctionInfo** m_funsigs;
         WasmExport* m_exports;
         WasmImport* m_imports;
         WasmDataSegment** m_datasegs;
 
-        uint m_funcCount;
+        uint m_signaturesCount;
         uint m_indirectFuncCount;
+        uint m_funcCount;
         uint m_exportCount;
         uint32 m_importCount;
         uint32 m_datasegCount;
@@ -87,7 +85,6 @@ namespace Wasm
     {
         WasmModule() :
             functions(nullptr),
-            lazyTraps(nullptr),
             memSize(0),
             indirFuncTableOffset(0),
             heapOffset(0),
@@ -97,7 +94,6 @@ namespace Wasm
         {
         }
         WasmFunction** functions;
-        class WasmCompilationException** lazyTraps;
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;

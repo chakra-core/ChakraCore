@@ -30,11 +30,6 @@ namespace Wasm
         wnNYI
     };
 
-    struct WasmFuncNode
-    {
-        WasmFunctionInfo * info;
-    };
-
     struct WasmConstLitNode
     {
         union
@@ -94,7 +89,6 @@ namespace Wasm
         {
             WasmVarNode var;
             WasmConstLitNode cnst;
-            WasmFuncNode func;
             WasmBrNode br;
             WasmBrTableNode brTable;
             WasmMemOpNode mem;

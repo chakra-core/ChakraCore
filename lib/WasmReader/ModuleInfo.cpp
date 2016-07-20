@@ -13,17 +13,18 @@ namespace Wasm
 ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_memory(),
     m_alloc(alloc),
+    m_funsigs(nullptr),
     m_funcCount(0),
     m_importCount(0),
+    m_indirectfuncs(nullptr),
     m_indirectFuncCount(0),
+    m_exports(nullptr),
     m_exportCount(0),
     m_datasegCount(0),
+    m_signatures(nullptr),
+    m_signaturesCount(0),
     m_startFunc(Js::Constants::UninitializedValue)
 {
-    m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
-    m_indirectfuncs = nullptr;
-    m_funsigs = nullptr;
-    m_exports = nullptr;
 }
 
 bool
@@ -53,32 +54,29 @@ ModuleInfo::GetMemory() const
     return &m_memory;
 }
 
-uint32
-ModuleInfo::AddSignature(WasmSignature * signature)
+void
+ModuleInfo::SetSignature(uint32 index, WasmSignature * signature)
 {
-    uint32 id = m_signatures->Count();
-
-    signature->SetSignatureId(id);
-    m_signatures->Add(signature);
-
-    return id;
+    Assert(index < GetSignatureCount());
+    signature->SetSignatureId(index);
+    m_signatures[index] = signature;
 }
 
 WasmSignature *
 ModuleInfo::GetSignature(uint32 index) const
 {
-    if (index >= m_signatures->Count())
+    if (index >= GetSignatureCount())
     {
         return nullptr;
     }
 
-    return m_signatures->GetBuffer()[index];
+    return m_signatures[index];
 }
 
 uint32
 ModuleInfo::GetSignatureCount() const
 {
-    return m_signatures->Count();
+    return m_signaturesCount;
 }
 
 void
@@ -248,6 +246,13 @@ uint32
 ModuleInfo::GetStartFunction() const
 {
     return m_startFunc;
+}
+
+void ModuleInfo::SetSignatureCount(uint32 count)
+{
+    Assert(m_signaturesCount == 0 && m_signatures == nullptr);
+    m_signaturesCount = count;
+    m_signatures = AnewArray(m_alloc, WasmSignature*, count);
 }
 
 } // namespace Wasm

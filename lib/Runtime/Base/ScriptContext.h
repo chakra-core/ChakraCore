@@ -1605,6 +1605,12 @@ private:
         static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
         static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
+#ifdef ENABLE_WASM
+        static JavascriptMethod WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+        static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
+
         // Thunks for deferred deserialization of function bodies from the byte code cache
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
         static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -1761,7 +1767,39 @@ private:
 
         return functionBody;
     }
+
+    class AutoProfilingPhase
+    {
+    public:
+        AutoProfilingPhase(ScriptContext* scriptcontext, Js::Phase phase) : scriptcontext(scriptcontext), phase(phase), isPhaseComplete(false)
+        {
+    #ifdef PROFILE_EXEC
+            scriptcontext->ProfileBegin(phase);
+    #endif
+        }
+
+        ~AutoProfilingPhase()
+        {
+            if(!this->isPhaseComplete)
+            {
+                EndProfile();
+            }
+        }
+
+        void EndProfile()
+        {
+            this->isPhaseComplete = true;
+#ifdef PROFILE_EXEC
+            scriptcontext->ProfileEnd(phase);
+#endif
+        }
+    private:
+        ScriptContext* scriptcontext;
+        Js::Phase phase;
+        bool isPhaseComplete;
+    };
 }
+
 
 #define BEGIN_TEMP_ALLOCATOR(allocator, scriptContext, name) \
     Js::TempArenaAllocatorObject *temp##allocator = scriptContext->GetTemporaryAllocator(name); \

@@ -2965,16 +2965,21 @@ namespace Js
         uint homingAreaSize = 0;
 #endif
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         const bool tracingFunc = PHASE_TRACE(AsmjsFunctionEntryPhase, functionBody);
         if (tracingFunc)
         {
+#if DBG_DUMP
             if (AsmJsCallDepth)
             {
                 Output::Print(_u("%*c"), AsmJsCallDepth, ' ');
             }
             Output::Print(_u("Executing function %s("), functionBody->GetDisplayName());
             ++AsmJsCallDepth;
+#else
+            Output::Print(_u("%s()\n"), functionBody->GetDisplayName());
+            Output::Flush();
+#endif
         }
 #endif
         uintptr_t argAddress = (uintptr_t)m_inParams;

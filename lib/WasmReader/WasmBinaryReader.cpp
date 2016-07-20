@@ -12,7 +12,7 @@ namespace Wasm
 {
     namespace WasmTypes
     {
-        bool IsLocalType(WasmTypes::WasmType type) 
+        bool IsLocalType(WasmTypes::WasmType type)
         {
             // Check if type in range ]Void,Limit[
             return (uint)(type - 1) < (WasmTypes::Limit - 1);
@@ -49,8 +49,10 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 }
 } // namespace WasmTypes
 
-WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length) :
-    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory), m_lastOp(WasmBinOp::wbLimit)
+WasmBinaryReader::WasmBinaryReader(Js::ScriptContext* scriptContext, byte* source, size_t length) :
+    m_curFuncEnd(nullptr),
+    m_lastOp(WasmBinOp::wbLimit),
+    m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory)
 {
     m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
@@ -64,7 +66,7 @@ WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t l
 
 void WasmBinaryReader::InitializeReader()
 {
-    ModuleHeader();
+    ValidateModuleHeader();
 #if DBG_DUMP
     if (DO_WASM_TRACE_SECTION)
     {
@@ -94,7 +96,6 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 {
     va_list argptr;
     va_start(argptr, msg);
-    // We need to do a format twice (or concat the 2 strings)
     throw WasmCompilationException(msg, argptr);
 }
 
@@ -202,7 +203,7 @@ WasmBinaryReader::ReadSectionHeader()
         }
     }
 
-#if DBG
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     Assert(idSize < 64);
     char16 buf[64];
     size_t convertedChars = 0;
@@ -252,12 +253,12 @@ WasmBinaryReader::PrintOps()
     }
     HeapDeleteArray(m_ops->Count(), ops);
 }
+
 #endif
 
 bool
-WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata)
+WasmBinaryReader::ReadFunctionHeaders()
 {
-    Assert(callback != nullptr);
     uint32 len;
     uint32 entries = LEB128(len);
     if (entries != m_moduleInfo->GetFunctionCount())
@@ -267,55 +268,66 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
 
     for (uint32 i = 0; i < entries; ++i)
     {
-        m_funcInfo = m_moduleInfo->GetFunSig(i);
-        m_currentNode.func.info = m_funcInfo;
+        WasmFunctionInfo* funcInfo = m_moduleInfo->GetFunSig(i);
 
-        // Reset func state
-        m_funcState.count = 0;
-        m_funcState.size = LEB128(len); // function body size in bytes including AST
-        byte* end = m_pc + m_funcState.size;
-        CheckBytesLeft(m_funcState.size);
-
-        UINT32 entryCount = LEB128(len);
-        m_funcState.count += len;
-
-        // locals
-        for (UINT32 j = 0; j < entryCount; j++)
-        {
-            UINT32 count = LEB128(len);
-            m_funcState.count += len;
-            Wasm::WasmTypes::WasmType type = ReadWasmType(len);
-            if (type == Wasm::WasmTypes::Void)
-            {
-                ThrowDecodingError(_u("Invalid local type"));
-            }
-            m_funcState.count += len;
-            m_funcInfo->AddLocal(type, count);
-            TRACE_WASM_DECODER(_u("Function body header: type = %u, count = %u"), type, count);
-        }
-        bool errorOccurred = !callback(i, callbackdata) || m_funcState.count != m_funcState.size;
-        if (errorOccurred)
-        {
-            if (!PHASE_ON1(Js::WasmLazyTrapPhase))
-            {
-                ThrowDecodingError(_u("Error while processing function #%u"), i);
-            }
-            m_pc = end;
-        }
+        const uint32 funcSize = LEB128(len);
+        funcInfo->m_readerInfo.index = i;
+        funcInfo->m_readerInfo.size = funcSize;
+        funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
+        CheckBytesLeft(funcSize);
+        TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), i, funcSize);
+        byte* end = m_pc + funcSize;
+        m_pc = end;
     }
     return m_pc == m_currentSection.end;
 }
 
-WasmOp
-WasmBinaryReader::ReadFromBlock()
+void
+WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
 {
-    return GetWasmToken(ASTNode());
+    if (readerInfo.startOffset >= (m_end - m_start))
+    {
+        ThrowDecodingError(_u("Function byte offset out of bounds"));
+    }
+    // Seek to the function start and skip function header (count)
+    m_pc = m_start + readerInfo.startOffset;
+    m_funcState.size = readerInfo.size;
+    m_funcState.count = 0;
+    CheckBytesLeft(readerInfo.size);
+    m_curFuncEnd = m_pc + m_funcState.size;
+
+    uint32 len = 0;
+    uint32 entryCount = LEB128(len);
+    m_funcState.count += len;
+
+    WasmFunctionInfo* funcInfo = m_moduleInfo->GetFunSig(readerInfo.index);
+    if (!funcInfo)
+    {
+        ThrowDecodingError(_u("Invalid function index %u"), readerInfo.index);
+    }
+    // locals
+    for (uint32 j = 0; j < entryCount; j++)
+    {
+        uint32 count = LEB128(len);
+        m_funcState.count += len;
+        Wasm::WasmTypes::WasmType type = ReadWasmType(len);
+        if (!Wasm::WasmTypes::IsLocalType(type))
+        {
+            ThrowDecodingError(_u("Invalid local type"));
+        }
+        m_funcState.count += len;
+        funcInfo->AddLocal(type, count);
+        switch (type)
+        {
+#define WASM_LOCALTYPE(token, name) case Wasm::WasmTypes::token: TRACE_WASM_DECODER(_u("Local: type = " #name## ", count = %u"), type, count); break;
+#include "WasmKeywords.h"
+        }
+    }
 }
 
-WasmOp
-WasmBinaryReader::ReadFromCall()
+bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 {
-    return GetWasmToken(ASTNode());
+    return m_pc == m_curFuncEnd;
 }
 
 WasmOp
@@ -414,7 +426,7 @@ WasmBinaryReader::ASTNode()
 }
 
 void
-WasmBinaryReader::ModuleHeader()
+WasmBinaryReader::ValidateModuleHeader()
 {
     uint32 magicNumber = ReadConst<UINT32>();
     uint32 version = ReadConst<UINT32>();
@@ -617,6 +629,7 @@ WasmBinaryReader::ReadSignatures()
 {
     UINT len = 0;
     const uint32 count = LEB128(len);
+    m_moduleInfo->SetSignatureCount(count);
     // signatures table
     for (UINT32 i = 0; i < count; i++)
     {
@@ -648,7 +661,7 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
-        m_moduleInfo->AddSignature(sig);
+        m_moduleInfo->SetSignature(i, sig);
     }
 }
 
@@ -666,6 +679,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         {
             ThrowDecodingError(_u("Function signature is out of bound"));
         }
+
         WasmFunctionInfo* newFunction = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
         WasmSignature* sig = m_moduleInfo->GetSignature(sigIndex);
         newFunction->SetSignature(sig);
@@ -706,10 +720,7 @@ void WasmBinaryReader::ReadIndirectFunctionTable()
         {
             ThrowDecodingError(_u("Indirect function index %u is out of bound (max %u)"), functionIndex, m_moduleInfo->GetFunctionCount());
         }
-        if (PHASE_TRACE1(Js::WasmReaderPhase))
-        {
-            Output::Print(_u("%u, "), functionIndex);
-        }
+        TRACE_WASM_DECODER(_u("%u, "), functionIndex);
         m_moduleInfo->SetIndirectFunction(functionIndex, i);
     }
     TRACE_WASM_DECODER(_u("]"), entries);
@@ -770,7 +781,20 @@ char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     m_pc += nameLength;
     length += nameLength;
 
-    return CvtUtf8Str(&m_alloc, rawName, nameLength);
+    return CvtUtf8Str(rawName, nameLength);
+}
+
+char16* WasmBinaryReader::CvtUtf8Str(LPUTF8 name, uint32 nameLen)
+{
+    utf8::DecodeOptions decodeOptions = utf8::doDefault;
+    charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
+    char16* contents = AnewArray(&m_alloc, char16, utf16Len + 1);
+    if (contents == nullptr)
+    {
+        Js::Throw::OutOfMemory();
+    }
+    utf8::DecodeIntoAndNullTerminate((char16*)contents, name, utf16Len, decodeOptions);
+    return contents;
 }
 
 void
@@ -809,40 +833,6 @@ WasmBinaryReader::ReadStartFunction()
     // TODO: Validate
     // 1. Valid function id
     // 2. Function should be void and nullary
-}
-
-const char *
-WasmBinaryReader::Name(UINT32 offset, UINT &length)
-{
-    BYTE* str = m_start + offset;
-    length = 0;
-    if (offset == 0)
-    {
-        return "<?>";
-    }
-    // validate string and get length
-    do
-    {
-        if (str >= m_end)
-        {
-            ThrowDecodingError(_u("Offset is out of range"));
-        }
-        length++;
-    } while (*str++);
-
-    return (const char*)(m_start + offset);
-}
-
-UINT
-WasmBinaryReader::Offset()
-{
-    UINT len = 0;
-    UINT32 offset = LEB128(len);
-    if (offset > (UINT)(m_end - m_start))
-    {
-        ThrowDecodingError(_u("Offset is out of range"));
-    }
-    return offset;
 }
 
 UINT
@@ -929,10 +919,9 @@ void
 WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
 {
     UINT bytesLeft = (UINT)(m_end - m_pc);
-    if ( bytesNeeded > bytesLeft)
+    if (bytesNeeded > bytesLeft)
     {
-        Output::Print(_u("Out of file: Needed: %d, Left: %d"), bytesNeeded, bytesLeft);
-        ThrowDecodingError(_u("Out of file."));
+        ThrowDecodingError(_u("Out of file: Needed: %d, Left: %d"), bytesNeeded, bytesLeft);
     }
 }
 
