@@ -9,6 +9,8 @@
 #include <unicode/ustring.h>
 #include <unicode/normalizer2.h>
 
+using namespace icu;
+
 namespace PlatformAgnostic
 {
     namespace UnicodeText
@@ -49,10 +51,10 @@ namespace PlatformAgnostic
             return normalizer;
         }
 
-        // 
+        //
         // Check if a UTF16 string is valid according to the UTF16 standard
         // Specifically, check that we don't have any invalid surrogate pairs
-        // If the string is valid, we return true. 
+        // If the string is valid, we return true.
         // If not, we set invalidIndex to the index of the first invalid char index
         // and return false
         // If the invalid char is a lead surrogate pair, we return its index
@@ -80,7 +82,7 @@ namespace PlatformAgnostic
                 if (c == 0)
                 {
                     return true;
-                }                
+                }
                 if (U_IS_SURROGATE(c))
                 {
                     if (U16_IS_LEAD(c))
@@ -88,11 +90,11 @@ namespace PlatformAgnostic
                         *invalidIndex = i;
                     }
                     else
-                    { 
+                    {
                         Assert(i > 0);
                         *invalidIndex = i - 1;
                     }
-                    
+
                     return false;
                 }
 
@@ -100,7 +102,7 @@ namespace PlatformAgnostic
                 {
                     return true;
                 }
-            }            
+            }
         }
 
         static ApiError TranslateUErrorCode(UErrorCode icuError)
@@ -133,7 +135,7 @@ namespace PlatformAgnostic
             Assert(destString != nullptr || destLength == 0);
 
             // This is semantically different than the Win32 NormalizeString API
-            // For our usage, we always pass in the length rather than letting Windows 
+            // For our usage, we always pass in the length rather than letting Windows
             // calculate the length for us
             Assert(sourceLength > 0);
             Assert(destLength >= 0);
@@ -179,7 +181,7 @@ namespace PlatformAgnostic
                 *pErrorOut = TranslateUErrorCode(errorCode);
                 return -1;
             }
-            
+
             return normalizedStringLength;
         }
 
@@ -193,7 +195,7 @@ namespace PlatformAgnostic
             {
                 length = u_strlen((const UChar*) testString);
             }
-            
+
             // On Windows, IsNormalizedString returns failure if the string
             // is a malformed utf16 string. Maintain the same behavior here.
             size_t invalidIndex = 0;
@@ -201,7 +203,7 @@ namespace PlatformAgnostic
             {
                 return false;
             }
-                
+
             const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
@@ -243,7 +245,7 @@ namespace PlatformAgnostic
             default: return false;
             }
         }
-        
+
         bool IsIdContinue(codepoint_t ch)
         {
             if (u_hasBinaryProperty(ch, UCHAR_ID_CONTINUE) == 1)
@@ -321,7 +323,7 @@ namespace PlatformAgnostic
             {
                 return UnicodeGeneralCategoryClass::CategoryClassConnectorPunctuation;
             }
-            
+
             return UnicodeGeneralCategoryClass::CategoryClassOther;
         }
 
@@ -336,7 +338,7 @@ namespace PlatformAgnostic
             {
                 return CharacterClassificationType::Letter;
             }
-            
+
             if ((charTypeMask & (U_GC_ND_MASK | U_GC_P_MASK)) != 0)
             {
                 return CharacterClassificationType::DigitOrPunct;
@@ -346,17 +348,17 @@ namespace PlatformAgnostic
             //  * C1_SPACE corresponds to the Unicode Zs category.
             //  * C1_BLANK corresponds to a hardcoded list thats ill-defined.
             // We'll skip that compatibility here and just check for Zs.
-            // We explicitly check for 0xFEFF to satisfy the unit test in es5/Lex_u3.js   
+            // We explicitly check for 0xFEFF to satisfy the unit test in es5/Lex_u3.js
             if ((charTypeMask & U_GC_ZS_MASK) != 0 ||
                 character == 0xFEFF ||
                 character == 0xFFFE)
             {
                 return CharacterClassificationType::Whitespace;
             }
-            
+
             return CharacterClassificationType::Invalid;
         }
-            
+
         int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
         {
             int32_t resultStringLength = 0;
@@ -399,7 +401,7 @@ namespace PlatformAgnostic
             {
                 return 0;
             }
-            
+
             int32 ret = ChangeStringLinguisticCase(caseFlags, stringToChange, bufferLength, stringToChange, bufferLength, &error);
 
             // Callers to this function don't expect any errors

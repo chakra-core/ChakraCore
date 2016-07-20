@@ -1,4 +1,4 @@
-set(ch_source_files 
+set(ch_source_files
   ch.cpp
   ChakraRtInterface.cpp
   CodexAssert.cpp
@@ -40,8 +40,23 @@ endif()
 
 if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(ICULIB "icuuc")
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group)
+  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(ICULIB "icucore")
+  endif()
+
+  if(CC_EMBED_ICU)
+    set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
+    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    set(ICULIB
+      ${ICUUC}
+      ${ICU18}
+      ${ICUDATA}
+      )
   endif()
 
   # common link deps
@@ -59,12 +74,12 @@ if(STATIC_LIBRARY)
 
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(lib_target "${lib_target}"
-      icuuc
+      ${ICULIB}
       unwind-x86_64
       )
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(lib_target "${lib_target}"
-      icucore
+      ${ICULIB}
       "-framework CoreFoundation"
       "-framework Security"
       )
@@ -78,7 +93,7 @@ else() # // !from shared library
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}" 
+  set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
     )
 endif()

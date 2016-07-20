@@ -10,6 +10,15 @@ function(clr_unknown_arch)
     endif()
 endfunction()
 
+if(CC_EMBED_ICU)
+    if(ICU_INCLUDE_PATH)
+        message(FATAL_ERROR "both `--embed-icu` and `--icu` are set?")
+    else()
+        set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
+    endif()
+    add_definitions(-DU_STATIC_IMPLEMENTATION)
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -21,8 +30,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
         -DPLATFORM_UNIX
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
     )
+
+    if(NOT CC_EMBED_ICU)
+      add_definitions(
+        -DU_DISABLE_RENAMING=1 #darwin icucore has this enabled
+      )
+    endif()
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
