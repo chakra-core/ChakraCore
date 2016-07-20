@@ -251,15 +251,6 @@ JITManager::DisconnectRpcServer()
         return hr;
     }
 
-    if (!CloseHandle(m_rpcServerProcessHandle))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    if (!CloseHandle(m_targetHandle))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-
     m_targetHandle = nullptr;
     m_rpcBindingHandle = nullptr;
     m_rpcServerProcessHandle = nullptr;

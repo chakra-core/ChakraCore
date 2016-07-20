@@ -3199,6 +3199,8 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                     WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
                     break;
                 }
+#else
+                WriteToBuffer(&buffer, &n, _u(" (unknown)"));
 #endif
             }
             break;
@@ -3309,13 +3311,21 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         case IR::AddrOpndKindDynamicFunctionBody:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             // TODO: OOP JIT, allow this when in proc
-            //DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+#if 0
+            DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+#else
+            WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
+#endif
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             // TODO: OOP JIT
-            // DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+#if 0
+            DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+#else
+            WriteToBuffer(&buffer, &n, _u(" (FunctionBodyWeakRef)"));
+#endif
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:

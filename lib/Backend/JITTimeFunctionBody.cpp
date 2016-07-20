@@ -196,7 +196,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMap();
     jitBody->hasFinally = functionBody->GetHasFinally();
 
-    jitBody->nameLength = functionBody->GetDisplayNameLength();
+    jitBody->nameLength = functionBody->GetDisplayNameLength() + 1; // +1 for null terminator
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
