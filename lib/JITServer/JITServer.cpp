@@ -596,6 +596,9 @@ ServerRemoteCodeGen(
         PageAllocator* pageAllocator = autoReturnPageAllocator.GetPageAllocator();
 
         NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", pageAllocator, Js::Throw::OutOfMemory);
+#if DBG
+        jitArena.SetNeedsDelayFreeList();
+#endif
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
         if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
