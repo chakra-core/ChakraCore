@@ -459,10 +459,12 @@ public:
 
     struct SimdFuncSignature
     {
+        typedef void* SIMD_OP_POINTER;
         bool valid;
         uint argCount;          // actual arguments count (excluding this)
         ValueType returnType;
         ValueType *args;        // argument types
+        SIMD_OP_POINTER op;
     };
 
     SimdFuncSignature *simdOpcodeToSignatureMap;
@@ -471,6 +473,7 @@ public:
     void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+    ThreadContext::SimdFuncSignature::SIMD_OP_POINTER GetSimdOperation(Js::OpCode op);
 
 #if _M_IX86 || _M_AMD64
     // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 

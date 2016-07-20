@@ -226,7 +226,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     simdOpcodeToSignatureMap = AnewArrayZ(this->GetThreadAlloc(), SimdFuncSignature, Js::Simd128OpcodeCount());
     {
 #define MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) \
-    AddSimdFuncToMaps(Js::OpCode::##op, __VA_ARGS__);
+    AddSimdFuncToMaps(Js::OpCode::##op, __VA_ARGS__, nullptr);
 
 #define MACRO_SIMD_EXTEND_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, __VA_ARGS__)
 
@@ -599,6 +599,9 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
         simdFuncSignature.args[iArg] = va_arg(arguments, ValueType);
     }
 
+    ThreadContext::SimdFuncSignature::SIMD_OP_POINTER pOp = va_arg(arguments, ThreadContext::SimdFuncSignature::SIMD_OP_POINTER);
+    simdFuncSignature.op = pOp;
+
     simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)] = simdFuncSignature;
 
     va_end(arguments);
@@ -650,7 +653,14 @@ void ThreadContext::GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignat
     Assert(simdOpcodeToSignatureMap != nullptr);
     funcSignature = simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)];
 }
+
+ThreadContext::SimdFuncSignature::SIMD_OP_POINTER ThreadContext::GetSimdOperation(Js::OpCode op)
+{
+    return simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)].op;
+}
 #endif
+
+
 
 class AutoRecyclerPtr : public AutoPtr<Recycler>
 {

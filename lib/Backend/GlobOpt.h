@@ -13,7 +13,8 @@ enum class ValueStructureKind
     FloatConstant,
     VarConstant,
     JsType,
-    Array
+    Array,
+    Simd128Const
 };
 
 class IntConstantValueInfo;
@@ -21,6 +22,7 @@ class IntRangeValueInfo;
 class IntBoundedValueInfo;
 class FloatConstantValueInfo;
 class VarConstantValueInfo;
+class Simd128ConstantValueInfo;
 class JsTypeValueInfo;
 class EquivalentTypeSetValueInfo;
 class ArrayValueInfo;
@@ -199,6 +201,8 @@ public:
     const FloatConstantValueInfo *  AsFloatConstant() const;
     bool                            IsVarConstant() const;
     VarConstantValueInfo *          AsVarConstant();
+    bool                            IsSimd128Const() const;
+    Simd128ConstantValueInfo*       AsSimd128ConstantValueInfo();
     bool                            IsJsType() const;
     JsTypeValueInfo *               AsJsType();
     const JsTypeValueInfo *         AsJsType() const;
@@ -467,6 +471,55 @@ public:
     {
         return this->isFunction;
     }
+};
+
+class Simd128ConstantValueInfo : public ValueInfo
+{
+public:
+    static Simd128ConstantValueInfo *New(JitArenaAllocator *const allocator, const SIMDValue value, IRType type)
+    {
+        return JitAnew(allocator, Simd128ConstantValueInfo, value, type);
+    }
+
+    Simd128ConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
+    {
+        return JitAnew(allocator, Simd128ConstantValueInfo, *this);
+    }
+
+    SIMDValue GetSIMDValue() const
+    {
+        return value;
+    }
+
+protected:
+	Simd128ConstantValueInfo(const SIMDValue v, IRType type)
+		: ValueInfo(convertSimdOpndToValueType(type), ValueStructureKind::Simd128Const),
+		value(v)
+	{
+	}
+
+private:
+	const SIMDValue value;
+
+	static ValueType convertSimdOpndToValueType(IRType type)
+	{
+
+		ValueType vt = ValueType::UninitializedObject;
+		switch (type)
+		{
+#define OPND2VALUE(_NAME_, _TAG_) \
+                case TySimd128##_TAG_##: \
+                    vt =  ValueType::GetSimd128(ObjectType::Simd128##_NAME_##); \
+                    break;
+			SIMD_EXPAND_W_NAME(OPND2VALUE)
+		default:
+			Assert(UNREACHED);
+#undef OPND2VALUE
+		}
+
+		return vt;
+	}
+
 };
 
 struct ObjectTypePropertyEntry
@@ -1379,6 +1432,7 @@ private:
     Value *                 NewFloatConstantValue(const FloatConstType floatValue, IR::Opnd *const opnd = nullptr);
     Value *                 GetVarConstantValue(IR::AddrOpnd *addrOpnd);
     Value *                 NewVarConstantValue(IR::AddrOpnd *addrOpnd, bool isString);
+    Value *                 GetSimd128ConstantValue(const SIMDValue value, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 HoistConstantLoadAndPropagateValueBackward(Js::Var varConst, IR::Instr * origInstr, Value * value);
     Value *                 NewFixedFunctionValue(Js::JavascriptFunction *functionValue, IR::AddrOpnd *addrOpnd);
 
@@ -1416,6 +1470,7 @@ private:
     bool                    OptConstFoldUnary(IR::Instr * *pInstr, const int32 intConstantValue, const bool isUsingOriginalSrc1Value, Value **pDstVal);
     bool                    OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, ValueInfo *vInfo);
     bool                    OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal);
+    bool                    OptConstFoldSimd128(IR::Instr **instr, Value *src1Val, Value*src2Val, Value **pDstVal);
     Js::Var                 GetConstantVar(IR::Opnd *opnd, Value *val);
     bool                    IsWorthSpecializingToInt32DueToSrc(IR::Opnd *const src, Value *const val);
     bool                    IsWorthSpecializingToInt32DueToDst(IR::Opnd *const dst);

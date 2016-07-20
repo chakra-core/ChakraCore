@@ -1,0 +1,4 @@
+Successfully compiled asm.js code
+SIMD.Int32x4(13, 13, 13, 13)
+SIMD.Int32x4(13, 13, 13, 13)
+PASS

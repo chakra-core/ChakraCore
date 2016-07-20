@@ -5657,6 +5657,11 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         return val;
     }
 
+    case IR::OpndKindSimd128Const:
+        val = this->GetSimd128ConstantValue(opnd->AsSimd128ConstOpnd()->m_value, instr /*double check that we associate value with the right opnd/sym*/);
+        opnd->SetValueType(val->GetValueInfo()->Type());
+        return val;
+
     case IR::OpndKindAddr:
         {
             IR::AddrOpnd *addrOpnd = opnd->AsAddrOpnd();
@@ -6791,6 +6796,17 @@ GlobOpt::NewGenericValue(const ValueType valueType, Sym *const sym)
 }
 
 Value *
+GlobOpt::GetSimd128ConstantValue(const SIMDValue value, IR::Instr * instr, IR::Opnd *const opnd) {
+
+    Assert((opnd ? opnd : instr->GetDst())->IsRegOpnd());
+    IRType simd128type = (opnd ? opnd : instr->GetDst())->AsRegOpnd()->GetType();
+    Simd128ConstantValueInfo* valueInfo = Simd128ConstantValueInfo::New(this->alloc, value, simd128type);
+    Value *val = NewValue(valueInfo);
+    this->InsertNewValue(val, opnd);
+    return val;
+}
+
+Value *
 GlobOpt::GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *const opnd)
 {
     Value *value = nullptr;
@@ -7539,6 +7555,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::LdC_A_R8:
     case Js::OpCode::LdC_A_I4:
+    case Js::OpCode::Simd128_LdC:
     case Js::OpCode::ArgIn_A:
         dstVal = src1Val;
         break;
@@ -8744,6 +8761,11 @@ GlobOpt::TypeSpecialization(
         return instr;
     }
 #endif
+
+    if (OptConstFoldSimd128(&instr, *pSrc1Val, *pSrc2Val, pDstVal)) //no overflow checks
+    {
+        return instr;
+    }
 
     if(!instr->ShouldCheckForIntOverflow())
     {
@@ -15192,6 +15214,70 @@ GlobOpt::AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *con
         (!likelyIntValueinfo->IsLikelyTaggedInt() || !Js::TaggedInt::IsOverflow(int32Value));
 }
 
+bool GlobOpt::OptConstFoldSimd128(IR::Instr ** pInstr, Value * src1Val, Value * src2Val, Value ** pDstVal)
+{
+    //TODO: later on we might want to add support for ops taking nonSIMD types such as extractLane/swizzle, select
+    IR::Instr* &instr = *pInstr;
+    SIMDValue result;
+    result.Zero();
+    bool successful = false;
+
+    if (!Js::IsSimd128Opcode(instr->m_opcode) || IsLoopPrePass()) 
+        return false;
+
+    if (instr->GetSrc2())
+    {
+        typedef SIMDValue(*Simd128BinaryOp) (const SIMDValue& aValue, const SIMDValue& bValue);
+        Simd128BinaryOp op = (Simd128BinaryOp)instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdOperation(instr->m_opcode);
+        if (op && src1Val->GetValueInfo()->IsSimd128Const() && src2Val->GetValueInfo()->IsSimd128Const())
+        {
+            result = op(src1Val->GetValueInfo()->AsSimd128ConstantValueInfo()->GetSIMDValue(), src2Val->GetValueInfo()->AsSimd128ConstantValueInfo()->GetSIMDValue());
+            successful = true;
+        }
+    }
+    else //unary
+    {
+        typedef SIMDValue(*Simd128UnaryOp) (const SIMDValue& aValue);
+        Simd128UnaryOp op = (Simd128UnaryOp)instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdOperation(instr->m_opcode);
+        if (op && src1Val->GetValueInfo()->IsSimd128Const())
+        {
+            result = op(src1Val->GetValueInfo()->AsSimd128ConstantValueInfo()->GetSIMDValue());
+            successful = true;
+        }
+    }
+
+    if (!successful)
+        return false;
+
+    Assert(this->GetIsAsmJSFunc());
+    this->CaptureByteCodeSymUses(instr);
+    if (instr->GetSrc2())
+    {
+        instr->FreeSrc2();
+    }
+    IR::Opnd* constOpnd = IR::Simd128ConstOpnd::New(result, instr->GetDst()->GetType(), func);
+    instr->ReplaceSrc1(constOpnd);
+    this->OptSrc(constOpnd, &instr);
+
+    IR::Opnd *dst = instr->GetDst();
+    Assert(dst->IsRegOpnd());
+
+    StackSym *dstSym = dst->AsRegOpnd()->m_sym;
+
+    *pDstVal = GetSimd128ConstantValue(result, instr, instr->GetDst());
+
+    if (dstSym->IsSingleDef())
+    {
+        dstSym->SetIsSimd128Const();
+    }
+
+    GOPT_TRACE_INSTR(instr, _u("Constant folding at %p: \n"), instr);
+
+    instr->m_opcode = Js::OpCode::Simd128_LdC;
+    this->ToSimd128Dst(instr->GetDst()->GetType(), instr, instr->GetDst()->AsRegOpnd(), this->currentBlock);
+    return true;
+}
+
 #if DBG
 void
 GlobOpt::VerifyArrayValueInfoForTracking(
@@ -20210,6 +20296,17 @@ ValueInfo::AsIntBounded() const
 {
     Assert(IsIntBounded());
     return static_cast<const IntBoundedValueInfo *>(this);
+}
+
+bool ValueInfo::IsSimd128Const() const
+{
+    return structureKind == ValueStructureKind::Simd128Const;
+}
+
+Simd128ConstantValueInfo* ValueInfo::AsSimd128ConstantValueInfo()
+{
+    Assert(IsSimd128Const());
+    return static_cast<Simd128ConstantValueInfo *>(this);
 }
 
 bool
