@@ -8736,26 +8736,42 @@ namespace Js
         }
         else // OOP JIT
         {
-            if (this->inlineeFrameOffsetArrayCount > 0)
+            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
+            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+
+            if (this->inlineeFrameOffsetArrayCount == 0)
             {
-                NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
-                size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+                return nullptr;
+            }
 
-                // TODO: binary search
+            uint fromIndex = 0;
+            uint toIndex = this->inlineeFrameOffsetArrayCount - 1;
+            while (fromIndex <= toIndex)
+            {
+                uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
+                auto item = offsets[midIndex];
 
-                for (unsigned int i = 0; i < this->inlineeFrameOffsetArrayCount - 1; i++)
+                if (item.offset >= offset)
                 {
-                    if (offsets[i].offset < offset && offsets[i + 1].offset >= offset)
+                    if (midIndex == 0 || midIndex > 0 && offsets[midIndex - 1].offset < offset)
                     {
-                        if (offsets[i + 1].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        if (offsets[midIndex].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
                         {
                             return nullptr;
                         }
                         else
                         {
-                            return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i + 1].recordOffset);
+                            return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[midIndex].recordOffset);
                         }
                     }
+                    else
+                    {
+                        toIndex = midIndex - 1;
+                    }
+                }
+                else
+                {
+                    fromIndex = midIndex + 1;
                 }
             }
             return nullptr;
