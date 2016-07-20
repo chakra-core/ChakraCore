@@ -87,11 +87,11 @@ namespace Js
         static Var GetPrototypeOf(RecyclableObject* obj, ScriptContext* scriptContext);
         static BOOL ChangePrototype(RecyclableObject* object, RecyclableObject* newPrototype, bool validate, ScriptContext* scriptContext);
 
-        static Var CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
-        static Var CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
-        static Var CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
-        static Var CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
-        static Var CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
+        static JavascriptArray* CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
+        static JavascriptArray* CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
+        static JavascriptArray* CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
+        static JavascriptArray* CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
+        static JavascriptArray* CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext);
 
         static Var GetOwnPropertyDescriptorHelper(RecyclableObject* obj, Var propertyKey, ScriptContext* scriptContext);
         static BOOL GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor);
@@ -113,7 +113,7 @@ namespace Js
     private:
         static void AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
         static void AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
-        static Var CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties);
+        static JavascriptArray* CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties);
 
         static void ModifyGetterSetterFuncName(const PropertyRecord * propertyRecord, const PropertyDescriptor& descriptor, ScriptContext* scriptContext);
         static char16 * ConstructName(const PropertyRecord * propertyRecord, const char16 * getOrSetStr, ScriptContext* scriptContext);

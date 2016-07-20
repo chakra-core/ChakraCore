@@ -603,17 +603,7 @@ namespace JSON
             if (JavascriptProxy::Is(object))
             {
                 JavascriptProxy* proxyObject = JavascriptProxy::FromVar(object);
-                Var propertyKeysTrapResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
-
-                AssertMsg(JavascriptArray::Is(propertyKeysTrapResult), "PropertyKeysTrap should return JavascriptArray.");
-                JavascriptArray* proxyResult;
-                if (JavascriptArray::Is(propertyKeysTrapResult))
-                {
-                    proxyResult = JavascriptArray::FromVar(propertyKeysTrapResult);
-                } else
-                {
-                    proxyResult = scriptContext->GetLibrary()->CreateArray(0);
-                }
+                JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
 
                 // filter enumerable keys
                 uint32 resultLength = proxyResult->GetLength();
