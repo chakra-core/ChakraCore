@@ -1846,6 +1846,10 @@ ThreadContext::IsInAsyncHostOperation() const
 void
 ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
 {
+    if (m_remoteThreadContextInfo)
+    {
+        return;
+    }
     if (!JITManager::GetJITManager()->IsConnected())
     {
         HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processId, connectionId);
