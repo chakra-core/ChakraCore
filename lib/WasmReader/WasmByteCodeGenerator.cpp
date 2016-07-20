@@ -79,7 +79,7 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::
     m_scriptContext(scriptContext),
     m_recycler(scriptContext->GetRecycler())
 {
-    m_reader = RecyclerNewLeaf(m_recycler, Binary::WasmBinaryReader, scriptContext, binaryBuffer, binaryBufferLength);
+    m_reader = RecyclerNew(m_recycler, Binary::WasmBinaryReader, scriptContext, binaryBuffer, binaryBufferLength);
 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
@@ -91,7 +91,7 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
-    m_module = RecyclerNewLeaf(m_recycler, WasmModule);
+    m_module = RecyclerNew(m_recycler, WasmModule);
     m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->importFuncOffset = m_module->heapOffset + 1;
@@ -123,7 +123,7 @@ Wasm::WasmModule* WasmModuleGenerator::GenerateModule()
     sectionProcess[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
         uint32 funcCount = gen->m_module->info->GetFunctionCount();
         gen->m_module->funcCount = funcCount;
-        gen->m_module->functions = RecyclerNewArrayLeafZ(gen->m_recycler, WasmFunction*, funcCount);
+        gen->m_module->functions = RecyclerNewArrayZ(gen->m_recycler, WasmFunction*, funcCount);
         if (!gen->m_reader->ReadFunctionHeaders())
         {
             return false;
@@ -188,7 +188,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    WasmFunction* func = RecyclerNewLeaf(m_recycler, WasmFunction);
+    WasmFunction* func = RecyclerNew(m_recycler, WasmFunction);
 
     char16* functionName = nullptr;
     int nameLength = 0;
@@ -237,7 +237,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     body->SetIsWasmFunction(true);
     body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
 
-    WasmReaderInfo* readerInfo = RecyclerNewLeaf(m_recycler, WasmReaderInfo);
+    WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_reader = m_reader;
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
@@ -254,7 +254,7 @@ Wasm::WasmFunction * WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
     info->SetArgSizeArrayLength(argSizeLength);
-    uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
+    uint* argSizeArray = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
     if (m_module->memSize > 0)
