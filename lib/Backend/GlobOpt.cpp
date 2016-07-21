@@ -1061,9 +1061,6 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         this->KillAllObjectTypes();
     }
 
-    this->blockData.capturedArgs = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-    this->blockData.changedSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-
     this->CopyBlockData(&block->globOptData, &this->blockData);
 
     if (this->IsLoopPrePass())
@@ -1513,7 +1510,6 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
     data->stackLiteralInitFldDataMap = nullptr;
 
     data->capturedValues = nullptr;
-    data->capturedArgs = nullptr;
     data->changedSyms = nullptr;
 
     data->OnDataUnreferenced();
@@ -1561,6 +1557,8 @@ GlobOpt::InitBlockData()
     data->curFunc = this->func;
 
     data->stackLiteralInitFldDataMap = nullptr;
+
+    data->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
 
     data->OnDataInitialized(alloc);
 }
@@ -1610,9 +1608,7 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
-    toData->capturedArgs = fromData->capturedArgs;
     toData->changedSyms = fromData->changedSyms;
-    toData->capturedArgs->ClearAll();
     toData->changedSyms->ClearAll();
 
     toData->OnDataReused(fromData);
@@ -1651,9 +1647,7 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->inlinedArgOutCount = fromData->inlinedArgOutCount;
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
-    toData->capturedArgs = fromData->capturedArgs;
     toData->changedSyms = fromData->changedSyms;
-    toData->capturedArgs->ClearAll();
     toData->changedSyms->ClearAll();
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
@@ -1769,6 +1763,9 @@ void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const 
         toData->stackLiteralInitFldDataMap = nullptr;
     }
 
+    toData->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    toData->changedSyms->Copy(fromData->changedSyms);
+
     Assert(fromData->HasData());
     toData->OnDataInitialized(alloc);
 }
@@ -1829,6 +1826,60 @@ GlobOpt::CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOp
     ProcessValueKills(toBlock, toData);
 }
 
+template <typename CapturedList, typename CapturedItemsAreEqual>
+void
+GlobOpt::MergeCapturedValues(
+    GlobOptBlockData * toData,
+    SListBase<CapturedList> * toList,
+    SListBase<CapturedList> * fromList,
+    CapturedItemsAreEqual itemsAreEqual)
+{
+    SListBase<CapturedList>::Iterator iterTo(toList);
+    SListBase<CapturedList>::Iterator iterFrom(fromList);
+    bool hasTo = iterTo.Next();
+    bool hasFrom = fromList == nullptr ? false : iterFrom.Next();
+
+    // to be conservative, only copy the captured value for common sym Ids
+    // in from and to CapturedList, mark all non-common sym Ids for re-capture
+    while (hasFrom && hasTo)
+    {
+        Sym * symFrom = iterFrom.Data().Key();
+        Sym * symTo = iterTo.Data().Key();
+
+        if (symFrom->m_id < symTo->m_id) 
+        {
+            toData->changedSyms->Set(symFrom->m_id);
+            hasFrom = iterFrom.Next();
+        }
+        else if(symFrom->m_id > symTo->m_id)
+        {
+            toData->changedSyms->Set(symTo->m_id);
+            hasTo = iterTo.Next();
+        }
+        else
+        {
+            if (!itemsAreEqual(&iterFrom.Data(), &iterTo.Data()))
+            {
+                toData->changedSyms->Set(symTo->m_id);
+            }
+
+            hasFrom = iterFrom.Next();
+            hasTo = iterTo.Next();
+        }
+    }
+    bool hasRemain = hasFrom || hasTo;
+    if (hasRemain)
+    {
+        SListBase<CapturedList>::Iterator iterRemain(hasFrom ? iterFrom : iterTo);
+        do
+        {
+            Sym * symRemain = iterRemain.Data().Key();
+            toData->changedSyms->Set(symRemain->m_id);
+            hasRemain = iterRemain.Next();
+        } while (hasRemain);
+    }
+}
+
 void
 GlobOpt::MergeBlockData(
     GlobOptBlockData *toData,
@@ -1855,6 +1906,39 @@ GlobOpt::MergeBlockData(
     toData->liveArrayValues->And(fromData->liveArrayValues);
     toData->isTempSrc->And(fromData->isTempSrc);
     toData->hasCSECandidates &= fromData->hasCSECandidates;
+
+    if (toData->capturedValues == nullptr)
+    {
+        toData->capturedValues = fromData->capturedValues;
+        toData->changedSyms->Or(fromData->changedSyms);
+    }
+    else
+    {
+        MergeCapturedValues(
+            toData,
+            &toData->capturedValues->constantValues,
+            fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->constantValues,
+            [&](ConstantStackSymValue * symValueFrom, ConstantStackSymValue * symValueTo)
+            {
+                return symValueFrom->Value().IsEqual(symValueTo->Value());
+            });
+
+        MergeCapturedValues(
+            toData,
+            &toData->capturedValues->copyPropSyms,
+            fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->copyPropSyms,
+            [&](CopyPropSyms * copyPropSymFrom, CopyPropSyms * copyPropSymTo)
+            {
+                if (copyPropSymFrom->Value()->m_id == copyPropSymTo->Value()->m_id)
+                {
+                    Value * val = FindValue(copyPropSymFrom->Key());
+                    Value * copyVal = FindValue(copyPropSymTo->Key());
+                    return (val != nullptr && copyVal != nullptr &&
+                        val->GetValueNumber() == copyVal->GetValueNumber());
+                }
+                return false;
+            });
+    }
 
     if (fromData->maybeWrittenTypeSyms)
     {
@@ -2268,6 +2352,8 @@ GlobOpt::DeleteBlockData(GlobOptBlockData *data)
     {
         JitAdelete(alloc, data->stackLiteralInitFldDataMap);
     }
+
+    JitAdelete(alloc, data->changedSyms);
 
     data->OnDataDeleted();
 }
@@ -5080,7 +5166,6 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
-        this->currentBlock->globOptData.capturedArgs->ClearAll();
         this->currentBlock->globOptData.changedSyms->ClearAll();
         this->currentBlock->globOptData.capturedValues = 
             this->currentBlock->globOptData.capturedValuesCandidate;
@@ -7097,9 +7182,9 @@ GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
 {
     Sym * prevSymStore = valueInfo->GetSymStore();
     if (prevSymStore && prevSymStore->IsStackSym() &&
-        prevSymStore->AsStackSym()->HasByteCodeRegSlot() &&
-        this->blockData.changedSyms)
+        prevSymStore->AsStackSym()->HasByteCodeRegSlot())
     {
+        Assert(this->blockData.changedSyms != nullptr);
         this->blockData.changedSyms->Set(prevSymStore->m_id);
     }
     valueInfo->SetSymStore(sym);
@@ -7122,8 +7207,9 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
     else
     {
         SetValueToHashTable(blockData->symToValueMap, val, sym);
-        if (blockData->changedSyms && isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
+        if (isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
         {
+            Assert(blockData->changedSyms != nullptr);
             blockData->changedSyms->Set(sym->m_id);
         }
     }
