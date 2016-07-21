@@ -5330,9 +5330,10 @@ CommonNumber:
     {
         switch (state->GetTypeId())
         {
+        case TypeIds_SharedArrayBuffer:
+            return Js::SharedArrayBuffer::NewFromSharedState(state, library);
         case TypeIds_ArrayBuffer:
             return Js::ArrayBuffer::NewFromDetachedState(state, library);
-            break;
         default:
             AssertMsg(false, "We should explicitly have a case statement for each object which has detached state.");
             return nullptr;

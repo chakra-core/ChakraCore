@@ -362,13 +362,13 @@
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -ESSharedArrayBuffer -Off:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -ESSharedArrayBuffer -Force:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -438,7 +438,7 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>

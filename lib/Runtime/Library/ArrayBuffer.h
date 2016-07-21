@@ -9,13 +9,38 @@
 namespace Js
 {
     class ArrayBufferParent;
-    class ArrayBuffer : public DynamicObject
+    class ArrayBuffer;
+    class SharedArrayBuffer;
+    class ArrayBufferBase : public DynamicObject
+    {
+    public:
+        DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferBase, DynamicObject);
+
+        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
+
+        ArrayBufferBase(DynamicType *type) : DynamicObject(type) { }
+
+        virtual bool IsArrayBuffer() = 0;
+        virtual bool IsSharedArrayBuffer() = 0;
+        virtual ArrayBuffer * GetAsArrayBuffer() = 0;
+        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
+        virtual void AddParent(ArrayBufferParent* parent) { }
+        virtual void RemoveParent(ArrayBufferParent* parent) { }
+        virtual bool IsDetached() { return false; }
+        virtual uint32 GetByteLength() const = 0;
+        virtual BYTE* GetBuffer() const = 0;
+        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+
+        static bool Is(Var value);
+        static ArrayBufferBase* FromVar(Var value);
+    };
+
+    class ArrayBuffer : public ArrayBufferBase
     {
     public:
         // we need to install cross-site thunk on the nested array buffer when marshaling
         // typed array.
-        DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, DynamicObject);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
+        DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, ArrayBufferBase);
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
         void ClearParentsLength(ArrayBufferParent* parent);
@@ -84,17 +109,17 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         virtual ArrayBufferDetachedStateBase* DetachAndGetState();
-        bool IsDetached() { return this->isDetached; }
+        virtual bool IsDetached() override { return this->isDetached; }
         void SetIsAsmJsBuffer(){ mIsAsmJsBuffer = true; }
-        uint32 GetByteLength() const { return bufferLength; }
-        BYTE* GetBuffer() const { return buffer; }
+        virtual uint32 GetByteLength() const override { return bufferLength; }
+        virtual BYTE* GetBuffer() const override { return buffer; }
 
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
         static int GetIsDetachedOffset() { return offsetof(ArrayBuffer, isDetached); }
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
-        void AddParent(ArrayBufferParent* parent);
-        void RemoveParent(ArrayBufferParent* parent);
+        virtual void AddParent(ArrayBufferParent* parent) override;
+        virtual void RemoveParent(ArrayBufferParent* parent) override;
 #if _WIN64
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
@@ -103,8 +128,12 @@ namespace Js
         static const uint32 MaxArrayBufferLength = 1 << 30;
 #endif
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
-        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+        virtual bool IsArrayBuffer() override { return true; }
+        virtual bool IsSharedArrayBuffer() override { return false; }
+        virtual ArrayBuffer * GetAsArrayBuffer() override { return ArrayBuffer::FromVar(this); }
+
     protected:
+
         typedef void __cdecl FreeFn(void* ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) = 0;
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) = 0;
@@ -130,14 +159,15 @@ namespace Js
     class ArrayBufferParent : public ArrayObject
     {
         friend ArrayBuffer;
+        friend ArrayBufferBase;
 
     private:
-        ArrayBuffer* arrayBuffer;
+        ArrayBufferBase* arrayBuffer;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferParent, ArrayObject);
 
-        ArrayBufferParent(DynamicType * type, uint32 length, ArrayBuffer* arrayBuffer)
+        ArrayBufferParent(DynamicType * type, uint32 length, ArrayBufferBase* arrayBuffer)
             : ArrayObject(type, /*initSlots*/true, length),
             arrayBuffer(arrayBuffer)
         {
@@ -153,19 +183,8 @@ namespace Js
             }
         }
 
-        void SetArrayBuffer(ArrayBuffer* arrayBuffer)
-        {
-            this->ClearArrayBuffer();
-
-            if (arrayBuffer != nullptr)
-            {
-                this->arrayBuffer->AddParent(this);
-                this->arrayBuffer = arrayBuffer;
-            }
-        }
-
     public:
-        ArrayBuffer* GetArrayBuffer() const
+        ArrayBufferBase* GetArrayBuffer() const
         {
             return this->arrayBuffer;
         }

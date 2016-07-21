@@ -2,6 +2,7 @@ add_library (Chakra.Runtime.Library OBJECT
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
     ArrayBuffer.cpp
+    AtomicsObject.cpp
     BoundFunction.cpp
     BufferStringBuilder.cpp
     CommonExternalApiImpl.cpp
@@ -100,6 +101,7 @@ add_library (Chakra.Runtime.Library OBJECT
     # SimdUint16x8Lib.cpp
     # SimdUint32x4Lib.cpp
     # SimdUint8x16Lib.cpp
+    SharedArrayBuffer.cpp
     SingleCharString.cpp
     SparseArraySegment.cpp
     StackScriptFunction.cpp

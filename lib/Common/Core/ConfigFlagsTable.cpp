@@ -396,6 +396,12 @@ namespace Js
             Name = Acronym; \
         }
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #define FLAGPRA(Type, ParentName, Name, Acronym, ...) \
+        if(!IsEnabled(Name##Flag) && IsEnabled(Acronym##Flag)) \
+        { \
+            Enable(Name##Flag); \
+            Name = Acronym; \
+        }
         #define FLAGRA(Type, Name, Acronym, ...) FLAGNRA(Type, Name, Acronym, __VA_ARGS__)
     #endif
     #include "ConfigFlagsList.h"

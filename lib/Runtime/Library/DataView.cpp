@@ -25,7 +25,7 @@ namespace Js
         uint32 mappedLength;
         int32 offset = 0;
         double numberOffset = 0;
-        ArrayBuffer* arrayBuffer = nullptr;
+        ArrayBufferBase* arrayBuffer = nullptr;
         DataView* dataView;
 
         //1.    If NewTarget is undefined, throw a TypeError exception.
@@ -43,11 +43,13 @@ namespace Js
         RecyclableObject* jsArraySource = NULL;
         if (JavascriptOperators::IsObject(args[1]) && JavascriptConversion::ToObject(args[1], scriptContext, &jsArraySource))
         {
-            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &arrayBuffer);
+            ArrayBuffer *ab = nullptr;
+            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &ab);
             switch (hr)
             {
             case S_OK:
             case S_FALSE:
+                arrayBuffer = static_cast<ArrayBuffer *> (ab);
                 // Both of these cases will be handled by the arrayBuffer null check.
                 break;
 
@@ -62,9 +64,9 @@ namespace Js
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
         {
-            if (ArrayBuffer::Is(args[1]))
+            if (ArrayBufferBase::Is(args[1]))
             {
-                arrayBuffer = ArrayBuffer::FromVar(args[1]);
+                arrayBuffer = ArrayBufferBase::FromVar(args[1]);
             }
             else
             {
@@ -142,7 +144,7 @@ namespace Js
             dataView;
     }
 
-    DataView::DataView(ArrayBuffer* arrayBuffer, uint32 byteoffset, uint32 mappedLength, DynamicType* type)
+    DataView::DataView(ArrayBufferBase* arrayBuffer, uint32 byteoffset, uint32 mappedLength, DynamicType* type)
         : ArrayBufferParent(type, mappedLength, arrayBuffer),
           byteOffset(byteoffset)
     {
@@ -605,7 +607,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
@@ -630,7 +632,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
@@ -659,7 +661,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
