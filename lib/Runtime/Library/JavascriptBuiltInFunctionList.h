@@ -139,6 +139,7 @@ BUILTIN(JavascriptError, ToString, EntryToString, FunctionInfo::ErrorOnNew | Fun
 BUILTIN(JavascriptExternalFunction, ExternalFunctionThunk, ExternalFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, WrappedFunctionThunk, WrappedFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, StdCallExternalFunctionThunk, StdCallExternalFunctionThunk, FunctionInfo::None)
+BUILTIN(JavascriptExternalFunction, DefaultExternalFunctionThunk, DefaultExternalFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptFunction, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(JavascriptFunction, PrototypeEntryPoint, PrototypeEntryPoint, FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptFunction, Apply, EntryApply, FunctionInfo::ErrorOnNew)

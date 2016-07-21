@@ -474,7 +474,11 @@ BOOLEAN
 BVSparse<TAllocator>::TestAndClear(BVIndex i)
 {
     BVSparseNode ** prevNextField;
-    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField);
+    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
+    if (current == nullptr)
+    {
+        return false;
+    }
     BVIndex bvIndex = SparseBVUnit::Offset(i);
     BOOLEAN bit = current->data.Test(bvIndex);
     current->data.Clear(bvIndex);

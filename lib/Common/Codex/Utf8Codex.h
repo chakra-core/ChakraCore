@@ -161,6 +161,9 @@ namespace utf8
     // special cases ASCII to avoid a call the most common characters.
     LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
 
+    // Encode a surrogate pair into a utf8 sequence 
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr);
+
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points).
     inline LPUTF8 Encode(char16 ch, __out_ecount(3) LPUTF8 ptr)
@@ -171,6 +174,46 @@ namespace utf8
             return ptr + 1;
         }
         return EncodeFull(ch, ptr);
+    }
+
+    // Encode ch into a UTF8 sequence while being aware of surrogate pairs.
+    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount(3) LPUTF8 ptr)
+    {
+        if (ch < 0x80)
+        {
+            *ptr = static_cast<utf8char_t>(ch);
+            return ptr + 1;
+        }
+        else if (ch < 0xD800 || (ch >= 0xE000 && ch <= 0xFFFF))
+        {
+            return EncodeFull(ch, ptr);
+        } 
+
+        // We're now decoding a surrogate pair. If the input is malformed (eg. low surrogate is absent)
+        // we'll instead encode the unicode replacement character as utf8
+        if (*cch > 0)
+        {
+            char16 surrogateHigh = ch;
+            char16 surrogateLow = **source;
+
+            // Validate that the surrogate code units are within the appropriate 
+            // ranges for high and low surrogates
+            if ((surrogateHigh >= 0xD800 && surrogateHigh <= 0xDBFF) &&
+                (surrogateLow >= 0xDC00 && surrogateLow <= 0xDFFF))
+            {
+                // Consume the low surrogate
+                *source = *source + 1;
+                *cch = *cch - 1;
+
+                return EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+            }
+        }
+
+        // Invalid input: insert the unicode replacement character instead
+        ptr[0] = 0xEF;
+        ptr[1] = 0xBF;
+        ptr[2] = 0xBD;
+        return ptr + 3;
     }
 
     // Return true if ch is a lead byte of a UTF8 multi-unit sequence.
@@ -262,6 +305,10 @@ namespace utf8
     // Like EncodeInto but ensures that buffer[return value] == 0.
     __range(0, cch * 3)
     size_t EncodeIntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
+
+    // Like EncodeInto but ensures that buffer[return value] == 0.
+    __range(0, cch * 3)
+    size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
 
     // Returns true if the pch refers to a UTF-16LE encoding of the given UTF-8 encoding bch.
     bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options = doDefault);

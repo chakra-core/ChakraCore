@@ -185,6 +185,7 @@ namespace Js
         DynamicType * generatorConstructorPrototypeObjectType;
         DynamicType * constructorPrototypeObjectType;
         DynamicType * heapArgumentsType;
+        DynamicType * heapArgumentsTypeStrictMode;
         DynamicType * activationObjectType;
         DynamicType * arrayType;
         DynamicType * nativeIntArrayType;
@@ -242,6 +243,7 @@ namespace Js
         DynamicType * stdCallFunctionWithDeferredPrototypeType;
         DynamicType * idMappedFunctionWithPrototypeType;
         DynamicType * externalConstructorFunctionWithDeferredPrototypeType;
+        DynamicType * defaultExternalConstructorFunctionWithDeferredPrototypeType;
         DynamicType * boundFunctionType;
         DynamicType * regexConstructorType;
         DynamicType * crossSiteDeferredPrototypeFunctionType;
@@ -836,7 +838,7 @@ namespace Js
         FinalizableObject* GetPinnedJsrtContextObject();
         void EnqueueTask(Var taskVar);
 
-        HeapArgumentsObject* CreateHeapArguments(Var frameObj, uint formalCount);
+        HeapArgumentsObject* CreateHeapArguments(Var frameObj, uint formalCount, bool isStrictMode = false);
         JavascriptArray* CreateArray();
         JavascriptArray* CreateArray(uint32 length);
         JavascriptArray *CreateArrayOnStack(void *const stackAllocationPointer);

@@ -344,6 +344,13 @@ Error:
     if (messageQueue != nullptr)
     {
         messageQueue->RemoveAll();
+        // clean up possible pinned exception object on exit to avoid potential leak
+        bool hasException;
+        if (ChakraRTInterface::JsHasException(&hasException) == JsNoError && hasException)
+        {
+            JsValueRef exception = JS_INVALID_REFERENCE;
+            ChakraRTInterface::JsGetAndClearException(&exception);
+        }
         delete messageQueue;
     }
     return hr;

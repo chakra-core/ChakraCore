@@ -28,8 +28,31 @@ public:
         }
     };
 
+    class ModuleMessage : public MessageBase
+    {
+    private:
+        JsModuleRecord moduleRecord;
+        JsValueRef specifier;
+
+        ModuleMessage(JsModuleRecord module, JsValueRef specifier);
+
+    public:
+        ~ModuleMessage();
+
+        virtual HRESULT Call(LPCSTR fileName) override;
+
+        static ModuleMessage* Create(JsModuleRecord module, JsValueRef specifier)
+        {
+            return new ModuleMessage(module, specifier);
+        }
+
+    };
+
     static void AddMessageQueue(MessageQueue *messageQueue);
     static void PushMessage(MessageBase *message) { messageQueue->InsertSorted(message); }
+
+    static JsErrorCode FetchImportedModule(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord);
+    static JsErrorCode NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar);
 
     static LPCWSTR ConvertErrorCodeToMessage(JsErrorCode errorCode)
     {
@@ -68,7 +91,6 @@ private:
     static bool CreateNamedFunction(const char*, JsNativeFunction callback, JsValueRef* functionVar);
     static JsValueRef __stdcall EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef __stdcall LoadModuleFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadScriptFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadScriptCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadModuleCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
@@ -80,7 +102,10 @@ private:
     static JsValueRef __stdcall RequestAsyncBreakCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
 
     static JsValueRef __stdcall EmptyCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsErrorCode __stdcall LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent);
+    static JsErrorCode __stdcall InitializeModuleInfo(JsValueRef specifier, JsModuleRecord moduleRecord);
 
     static MessageQueue *messageQueue;
     static DWORD_PTR sourceContext;
+    static std::map<std::string, JsModuleRecord> moduleRecordMap;
 };

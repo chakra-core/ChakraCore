@@ -10,4 +10,3 @@ void CodexAssert(bool condition)
 {
     Assert(condition);
 }
-

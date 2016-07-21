@@ -313,6 +313,37 @@ LFourByte:
         return ptr;
     }
 
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr)
+    {
+        // A unicode codepoint is encoded into a surrogate pair by doing the following:
+        //  subtract 0x10000 from the codepoint
+        //  Split the resulting value into the high-ten bits and low-ten bits
+        //  Add 0xD800 to the high ten bits, and 0xDC00 to the low ten bits
+        // Below, we want to decode the surrogate pair to its original codepoint
+        // So we do the above process in reverse
+        uint32 highTen = (surrogateHigh - 0xD800);
+        uint32 lowTen  = (surrogateLow - 0xDC00);
+        uint32 codepoint = 0x10000 + ((highTen << 10) | lowTen);
+
+        // This is the maximum valid unicode codepoint
+        // This should be ensured anyway since you can't encode a value higher 
+        // than this as a surrogate pair, so we assert this here
+        CodexAssert(codepoint <= 0x10FFFF);
+
+        // Now we need to encode the code point into utf-8
+        // Codepoints in the range that gets encoded into a surrogate pair
+        // gets encoded into 4 bytes under utf8
+        // Since the codepoint can be represented by 21 bits, the encoding 
+        // does the following: first 3 bits in the first byte, the next 6 in the
+        // second, the next six in the third, and the last six in the 4th byte
+        *ptr++ = static_cast<utf8char_t>(codepoint >> 18) | 0xF0;
+        *ptr++ = static_cast<utf8char_t>((codepoint >> 12) & 0x3F) | 0x80;
+        *ptr++ = static_cast<utf8char_t>((codepoint >> 6) & 0x3F) | 0x80;
+        *ptr++ = static_cast<utf8char_t>(codepoint & 0x3F) | 0x80;
+
+        return ptr;
+    }
+
     LPCUTF8 NextCharFull(LPCUTF8 ptr)
     {
         return ptr + EncodedBytes(*ptr);
@@ -430,8 +461,9 @@ LSlowPath:
         return true;
     }
 
+    template <bool cesu8Encoding>
     __range(0, cch * 3)
-    size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    size_t EncodeIntoImpl(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
     {
         LPUTF8 dest = buffer;
 
@@ -451,13 +483,34 @@ LFastPath:
         }
 
 LSlowPath:
-        while( cch-- > 0 )
+        if (cesu8Encoding)
         {
-            dest = Encode(*source++, dest);
-            if (ShouldFastPath(dest, source)) goto LFastPath;
+            while (cch-- > 0)
+            {
+                dest = Encode(*source++, dest);
+                if (ShouldFastPath(dest, source)) goto LFastPath;
+            }
+        }
+        else
+        {
+            while (cch-- > 0)
+            {
+                // We increment the source pointer here since at least one utf16 code unit is read here
+                // If the code unit turns out to be the high surrogate in a surrogate pair, then 
+                // EncodeTrueUtf8 will consume the low surrogate code unit too by decrementing cch 
+                // and incrementing source
+                dest = EncodeTrueUtf8(*source++, &source, &cch, dest);
+                if (ShouldFastPath(dest, source)) goto LFastPath;
+            }
         }
 
         return dest - buffer;
+    }
+
+    __range(0, cch * 3)
+        size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    {
+        return EncodeIntoImpl<true>(buffer, source, cch);
     }
 
     __range(0, cch * 3)
@@ -468,7 +521,13 @@ LSlowPath:
         return result;
     }
 
-
+    __range(0, cch * 3)
+        size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    {
+        size_t result = EncodeIntoImpl<false>(buffer, source, cch);
+        buffer[result] = 0;
+        return result;
+    }
 
     // Convert the character index into a byte index.
     size_t CharacterIndexToByteIndex(__in_ecount(cbLength) LPCUTF8 pch, size_t cbLength, charcount_t cchIndex, DecodeOptions options)

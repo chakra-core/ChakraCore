@@ -60,6 +60,8 @@ namespace Js
         // Create a new type handler for a future DynamicObject. This is for public usage. "initialCapacity" indicates desired slotCapacity, subject to alignment round up.
         static DictionaryTypeHandlerBase* New(Recycler * recycler, int initialCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
 
+        static DictionaryTypeHandlerBase* CreateTypeHandlerForArgumentsInStrictMode(Recycler * recycler, ScriptContext * scriptContext);
+
         BOOL IsBigDictionaryTypeHandler();
 
         virtual BOOL IsLockable() const override { return false; }
