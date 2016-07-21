@@ -47,23 +47,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
                 Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
                 Js::FunctionEntryPointInfo *functionEntryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(defaultEntryPointInfo);
                 jitData->callsCountAddress = (intptr_t)&functionEntryPointInfo->callsCount;
-
-                auto sharedGuards = functionEntryPointInfo->GetSharedPropertyGuards();
-                if (sharedGuards != nullptr)
-                {
-                    jitData->sharedPropGuardCount = sharedGuards->Count();
-                    jitData->sharedPropertyGuards = AnewArray(alloc, Js::PropertyId, sharedGuards->Count());
-                    auto sharedGuardIter = sharedGuards->GetIterator();
-                    uint i = 0;
-
-                    // TODO: sharedGuards can be changed in main thread
-                    while (sharedGuardIter.IsValid())
-                    {
-                        jitData->sharedPropertyGuards[i] = sharedGuardIter.CurrentKey();
-                        sharedGuardIter.MoveNext();
-                        ++i;
-                    }
-                }
+                jitData->sharedPropertyGuards = functionEntryPointInfo->GetSharedPropertyGuardsWithLock(alloc, jitData->sharedPropGuardCount);
             }
         }
         if (jitData->bodyData->profiledCallSiteCount > 0)

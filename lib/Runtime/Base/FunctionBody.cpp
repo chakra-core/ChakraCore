@@ -8608,6 +8608,7 @@ namespace Js
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
+        AutoCriticalSection autoCs(FunctionProxy::GetLock());
         if (this->sharedPropertyGuards == nullptr)
         {
             Recycler* recycler = scriptContext->GetRecycler();
@@ -8625,9 +8626,25 @@ namespace Js
         return guard;
     }
 
-    bool EntryPointInfo::HasSharedPropertyGuard(Js::PropertyId propertyId)
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const
     {
-        return this->sharedPropertyGuards != nullptr ? this->sharedPropertyGuards->ContainsKey(propertyId) : false;
+        AutoCriticalSection autoCs(FunctionProxy::GetLock());
+        if (sharedPropertyGuards != nullptr)
+        {
+            auto guards = AnewArray(alloc, Js::PropertyId, sharedPropertyGuards->Count());
+            count = sharedPropertyGuards->Count();
+            auto sharedGuardIter = sharedPropertyGuards->GetIterator();
+            uint i = 0;
+
+            while (sharedGuardIter.IsValid())
+            {
+                guards[i] = sharedGuardIter.CurrentKey();
+                sharedGuardIter.MoveNext();
+                ++i;
+            }
+            return guards;
+        }
+        return nullptr;
     }
 
     bool EntryPointInfo::TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard)

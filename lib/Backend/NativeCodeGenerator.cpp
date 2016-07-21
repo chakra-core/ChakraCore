@@ -889,31 +889,19 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, false);
 
+    auto jitData = workItem->GetJITData()->jitData;
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
         auto funcEPInfo = (Js::FunctionEntryPointInfo*)epInfo;
-        workItem->GetJITData()->jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+        jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
     }
     else
     {
         workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
     }
-
-    auto sharedGuards = epInfo->GetSharedPropertyGuards();
-    if (sharedGuards != nullptr)
-    {
-        workItem->GetJITData()->jitData->sharedPropGuardCount = sharedGuards->Count();
-        workItem->GetJITData()->jitData->sharedPropertyGuards = AnewArray(&alloc, Js::PropertyId, sharedGuards->Count());
-        auto sharedGuardIter = sharedGuards->GetIterator();
-        uint i = 0;
-        while (sharedGuardIter.IsValid())
-        {
-            workItem->GetJITData()->jitData->sharedPropertyGuards[i] = sharedGuardIter.CurrentKey();
-            sharedGuardIter.MoveNext();
-            ++i;
-        }
-    }
+    
+    jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
 
     JITOutputIDL jitWriteData = {0};
 

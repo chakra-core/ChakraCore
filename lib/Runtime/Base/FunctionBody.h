@@ -885,9 +885,8 @@ namespace Js
         virtual void ResetOnNativeCodeInstallFailure() = 0;
 
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
-        bool HasSharedPropertyGuards() { return this->sharedPropertyGuards != nullptr; }
-        bool HasSharedPropertyGuard(Js::PropertyId propertyId);
-        const SharedPropertyGuardDictionary * GetSharedPropertyGuards() const { return sharedPropertyGuards; }
+        Js::PropertyId* GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const;
+
         bool TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard);
         void RecordTypeGuards(int propertyGuardCount, TypeGuardTransferEntry* typeGuardTransferRecord, size_t typeGuardTransferPlusSize);
         void RecordCtorCacheGuards(CtorCacheGuardTransferEntry* ctorCacheTransferRecord, size_t ctorCacheTransferPlusSize);
