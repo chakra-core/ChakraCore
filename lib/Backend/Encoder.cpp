@@ -355,15 +355,27 @@ Encoder::Encode()
     if (this->m_func->pinnedTypeRefs != nullptr)
     {
         Assert(!isSimpleJit);
+        int pinnedTypeRefCount = this->m_func->pinnedTypeRefs->Count();
+        PinnedTypeRefsIDL* pinnedTypeRefs = nullptr;
 
-        Func::TypeRefSet* pinnedTypeRefs = this->m_func->pinnedTypeRefs;
-        int pinnedTypeRefCount = pinnedTypeRefs->Count();
-        void** compactPinnedTypeRefs = HeapNewArrayZ(void*, pinnedTypeRefCount);
+        if (this->m_func->IsOOPJIT())
+        {
+            pinnedTypeRefs = (PinnedTypeRefsIDL*)midl_user_allocate(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*pinnedTypeRefCount);
+            pinnedTypeRefs->count = pinnedTypeRefCount;
+            pinnedTypeRefs->isOOPJIT = true;
+            this->m_func->GetJITOutput()->GetOutputData()->pinnedTypeRefs = pinnedTypeRefs;
+        }
+        else
+        {
+            pinnedTypeRefs = HeapNewStructPlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*pinnedTypeRefCount - sizeof(PinnedTypeRefsIDL), PinnedTypeRefsIDL);
+            pinnedTypeRefs->count = pinnedTypeRefCount;
+            pinnedTypeRefs->isOOPJIT = false;
+        }
 
         int index = 0;
-        pinnedTypeRefs->Map([compactPinnedTypeRefs, &index](void* typeRef) -> void
+        this->m_func->pinnedTypeRefs->Map([&pinnedTypeRefs, &index](void* typeRef) -> void
         {
-            compactPinnedTypeRefs[index++] = typeRef;
+            pinnedTypeRefs->typeRefs[index++] = ((JITType*)typeRef)->GetAddr();
         });
 
         if (PHASE_TRACE(Js::TracePinnedTypesPhase, this->m_func))
@@ -373,8 +385,11 @@ Encoder::Encode()
                 this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
-        // TODO: OOP JIT, JIT Transfer data
-        //entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(compactPinnedTypeRefs, pinnedTypeRefCount);
+
+        if (!this->m_func->IsOOPJIT())
+        {
+            entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(pinnedTypeRefs);
+        }
     }
 
     // Save all equivalent type guards in a fixed size array on the JIT transfer data

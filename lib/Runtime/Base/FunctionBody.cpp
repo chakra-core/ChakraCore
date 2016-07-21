@@ -8341,7 +8341,11 @@ namespace Js
             void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
             size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
             this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
-            js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+            //js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+            for (size_t i = 0; i < jitPinnedTypeRefCount; i++)
+            {
+                this->runtimeTypeRefs[i] = jitPinnedTypeRefs[i];
+            }
             this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
         }
     }
@@ -8375,22 +8379,7 @@ namespace Js
 
         if (jitTransferData->equivalentTypeGuardOffsets)
         {
-            // OOP JIT
-
-            //PinTypeRefs
-
             Recycler* recycler = scriptContext->GetRecycler();
-            if (this->jitTransferData->GetRuntimeTypeRefs() != nullptr)
-            {
-                // Copy pinned types from a heap allocated array created on the background thread
-                // to a recycler allocated array which will live as long as this EntryPointInfo.
-                // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
-                void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
-                size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
-                this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
-                js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
-                this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
-            }
 
             // InstallGuards
             int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
@@ -8838,10 +8827,17 @@ namespace Js
             // All structures below are heap allocated and need to be freed explicitly.
             if (jitTransferData->runtimeTypeRefs != nullptr)
             {
-                HeapDeleteArray(jitTransferData->runtimeTypeRefCount, jitTransferData->runtimeTypeRefs);
+                if (jitTransferData->runtimeTypeRefs->isOOPJIT)
+                {
+                    midl_user_free(jitTransferData->runtimeTypeRefs);
+                }
+                else
+                {
+                    HeapDeletePlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*jitTransferData->runtimeTypeRefs->count - sizeof(PinnedTypeRefsIDL), 
+                        jitTransferData->runtimeTypeRefs);
+                }
                 jitTransferData->runtimeTypeRefs = nullptr;
             }
-            jitTransferData->runtimeTypeRefCount = 0;
 
             if (jitTransferData->propertyGuardsByPropertyId != nullptr)
             {

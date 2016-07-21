@@ -5889,7 +5889,7 @@ Lowerer::LowerAdjustObjType(IR::Instr * instrAdjustObjType)
     this->GenerateAdjustBaseSlots(
         instrAdjustObjType, baseOpnd, JITTypeHolder((JITType*)initialTypeOpnd->m_metadata), JITTypeHolder((JITType*)finalTypeOpnd->m_metadata));
 
-    this->m_func->PinTypeRef(finalTypeOpnd->m_address);
+    this->m_func->PinTypeRef((JITType*)finalTypeOpnd->m_metadata);
 
     IR::Opnd *opnd = IR::IndirOpnd::New(baseOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, instrAdjustObjType->m_func);
     this->m_lowererMD.CreateAssign(opnd, finalTypeOpnd, instrAdjustObjType);

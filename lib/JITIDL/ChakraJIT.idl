@@ -84,6 +84,14 @@ typedef struct ObjTypeSpecFldIDL
     [size_is(fixedFieldCount)] FixedFieldIDL * fixedFieldInfoArray;
 } ObjTypeSpecFldIDL;
 
+typedef struct PinnedTypeRefsIDL
+{
+    boolean isOOPJIT;// REVIEW: remove this
+    unsigned int count;
+    [size_is(count)] __int3264 typeRefs[*];
+
+} PinnedTypeRefsIDL;
+
 typedef struct BVUnitIDL
 {
     unsigned __int3264 word;
@@ -625,7 +633,6 @@ typedef struct NativeDataBuffer
     unsigned int len;
     unsigned int unused;
     [size_is(len)] byte data[*];
-
 } NativeDataBuffer;
 
 // Fields that JIT modifies
@@ -646,6 +653,7 @@ typedef struct JITOutputIDL
     FunctionBodyOutputIDL writeableBodyData;
 
     TypeGuardTransferData typeGuardTransferData;
+    PinnedTypeRefsIDL* pinnedTypeRefs;
 
     unsigned int codeSize;
     unsigned int throwMapOffset;

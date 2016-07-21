@@ -55,6 +55,8 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
                     jitData->sharedPropertyGuards = AnewArray(alloc, Js::PropertyId, sharedGuards->Count());
                     auto sharedGuardIter = sharedGuards->GetIterator();
                     uint i = 0;
+
+                    // TODO: sharedGuards can be changed in main thread
                     while (sharedGuardIter.IsValid())
                     {
                         jitData->sharedPropertyGuards[i] = sharedGuardIter.CurrentKey();

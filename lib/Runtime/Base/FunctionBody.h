@@ -372,8 +372,8 @@ namespace Js
         private:
             TypeRefSet* jitTimeTypeRefs;
 
-            void** runtimeTypeRefs;
-            int runtimeTypeRefCount;
+            PinnedTypeRefsIDL* runtimeTypeRefs;
+
 
             int propertyGuardCount;
             // This is a dynamically sized array of dynamically sized TypeGuardTransferEntries.  It's heap allocated by the JIT
@@ -402,7 +402,7 @@ namespace Js
 
         public:
             JitTransferData():
-                jitTimeTypeRefs(nullptr), runtimeTypeRefCount(0), runtimeTypeRefs(nullptr),
+                jitTimeTypeRefs(nullptr), runtimeTypeRefs(nullptr),
                 propertyGuardCount(0), propertyGuardsByPropertyId(nullptr), propertyGuardsByPropertyIdPlusSize(0),
                 ctorCacheGuardsByPropertyId(nullptr), ctorCacheGuardsByPropertyIdPlusSize(0),
                 equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), data(nullptr),
@@ -410,9 +410,9 @@ namespace Js
 
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
-            int GetRuntimeTypeRefCount() { return this->runtimeTypeRefCount; }
-            void** GetRuntimeTypeRefs() { return this->runtimeTypeRefs; }
-            void SetRuntimeTypeRefs(void** runtimeTypeRefs, int count) { this->runtimeTypeRefs = runtimeTypeRefs; this->runtimeTypeRefCount = count; }
+            int GetRuntimeTypeRefCount() { return this->runtimeTypeRefs ? this->runtimeTypeRefs->count : 0; }
+            void** GetRuntimeTypeRefs() { return this->runtimeTypeRefs ? (void**)this->runtimeTypeRefs->typeRefs : nullptr; }
+            void SetRuntimeTypeRefs(PinnedTypeRefsIDL* pinnedTypeRefs) { this->runtimeTypeRefs = pinnedTypeRefs;}
 
             JitEquivalentTypeGuard** GetEquivalentTypeGuards() const { return this->equivalentTypeGuards; }
             void SetEquivalentTypeGuards(JitEquivalentTypeGuard** guards, int count)

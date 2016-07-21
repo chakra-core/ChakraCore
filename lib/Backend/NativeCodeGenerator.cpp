@@ -994,6 +994,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
     }
 
+    epInfo->GetJitTransferData()->SetRuntimeTypeRefs(jitWriteData.pinnedTypeRefs);
+
     if (workItem->GetJitMode() != ExecutionMode::SimpleJit)
     {
         epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
