@@ -51,6 +51,26 @@ public:
     intptr_t GetDebugFrameAddressAddr() const;
     intptr_t GetDebugScriptIdWhenSetAddr() const;
 
+    intptr_t GetX86AbsMaskF4Addr() const;
+    intptr_t GetX86AbsMaskD2Addr() const;
+    intptr_t GetX86NegMaskF4Addr() const;
+    intptr_t GetX86NegMaskD2Addr() const;
+    intptr_t GetX86AllNegOnesAddr() const;
+    intptr_t GetX86AllNegOnesF4Addr() const;
+    intptr_t GetX86AllZerosAddr() const;
+    intptr_t GetX86AllOnesF4Addr() const;
+    intptr_t GetX86LowBytesMaskAddr() const;
+    intptr_t GetX86HighBytesMaskAddr() const;
+    intptr_t GetX86DoubleWordSignBitsAddr() const;
+    intptr_t GetX86WordSignBitsAddr() const;
+    intptr_t GetX86ByteSignBitsAddr() const;
+    intptr_t GetX86TwoPower32F4Addr() const;
+    intptr_t GetX86TwoPower31F4Addr() const;
+    intptr_t GetX86TwoPower31I4Addr() const;
+    intptr_t GetX86NegTwoPower31F4Addr() const;
+    intptr_t GetX86FourLanesMaskAddr(uint8 minorityLane) const;
+    intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const;
+
     size_t GetScriptStackLimit() const;
 
     bool IsThreadBound() const;

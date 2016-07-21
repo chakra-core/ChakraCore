@@ -1875,6 +1875,11 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     contextData.debugScriptIdWhenSetAddr = (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
     contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
     contextData.isThreadBound = GetIsThreadBound();
+
+#if _M_IX86 || _M_AMD64
+    contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
+#endif
+
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
 
     // we may have populated propertyMap prior to initializing JIT connection

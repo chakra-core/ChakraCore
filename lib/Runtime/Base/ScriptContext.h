@@ -479,7 +479,8 @@ namespace Js
             contextData.recyclerVerifyPad = 0;
 #endif
             contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
-            CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl chen this changes
+            contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
+            CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl when this changes
 
             auto vtblAddresses = GetLibrary()->GetVTableAddresses();
             for (unsigned int i = 0; i < VTableValue::Count; i++)

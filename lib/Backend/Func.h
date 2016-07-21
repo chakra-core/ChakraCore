@@ -297,9 +297,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     bool IsSIMDEnabled() const
     {
-        // TODO: michhol OOP JIT, this flag is accessed in a weird way, temporarily completely disable
-        // m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled()
-        return false;
+        return GetScriptContextInfo()->IsSIMDEnabled();
     }
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const

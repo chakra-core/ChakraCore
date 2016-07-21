@@ -18,11 +18,9 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Midl />
-  </ItemDefinitionGroup>
   <ItemGroup>
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
+      <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /target NT60 /prefix client "Client" server "Server"</AdditionalOptions>
     </Midl>
   </ItemGroup>

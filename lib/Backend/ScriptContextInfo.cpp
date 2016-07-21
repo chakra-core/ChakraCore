@@ -176,6 +176,12 @@ ScriptContextInfo::GetRecyclerAllowNativeCodeBumpAllocation() const
     return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
 }
 
+bool
+ScriptContextInfo::IsSIMDEnabled() const
+{
+    return m_contextData.isSIMDEnabled != 0;
+}
+
 intptr_t
 ScriptContextInfo::GetBuiltinFunctionsBaseAddr() const
 {

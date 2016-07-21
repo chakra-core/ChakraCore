@@ -201,7 +201,8 @@ char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[]    = "";
 char DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts[] = "";
 char DataDesc_LowererMD_LoadFloatValue_Float[]              = "";
 char DataDesc_LowererMD_LoadFloatValue_Double[]             = "";
-char DataDesc_LowererMD_EmitLoadFloatCommon_Double[]        = "";
+char DataDesc_LowererMD_EmitLoadFloatCommon_Double[] = "";
+char DataDesc_LowererMD_Simd128LoadConst[]        = "";
 
 template<char const *desc = DataDesc_None>
 struct IntType 
@@ -228,6 +229,14 @@ struct DoubleType
     DoubleType() {}
     DoubleType(double val) :data(val) {}
     double data;
+};
+
+template<char const *desc = DataDesc_None>
+struct SIMDType
+{
+    SIMDType() {}
+    SIMDType(AsmJsSIMDValue val) :data(val) {}
+    AsmJsSIMDValue data;
 };
 
 template<char const *desc = DataDesc_None>

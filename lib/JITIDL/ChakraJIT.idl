@@ -202,11 +202,14 @@ typedef struct ThreadContextDataIDL
     __int3264 debugScriptIdWhenSetAddr;
     __int3264 stringReplaceNameAddr;
     __int3264 stringMatchNameAddr;
+    __int3264 simdTempAreaBaseAddr;
 } ThreadContextDataIDL;
 
 typedef struct ScriptContextDataIDL
 {
     boolean isRecyclerVerifyEnabled;
+    boolean recyclerAllowNativeCodeBumpAllocation;
+    boolean isSIMDEnabled;
     unsigned int recyclerVerifyPad;
     __int3264 vtableAddresses[VTABLE_COUNT];
 
@@ -235,7 +238,6 @@ typedef struct ScriptContextDataIDL
     __int3264 floatArraySetElementFastPathVtableAddr;
     __int3264 numberAllocatorAddr;
     __int3264 recyclerAddr;
-    boolean recyclerAllowNativeCodeBumpAllocation;
     __int3264 builtinFunctionsBaseAddr;
 } ScriptContextDataIDL;
 

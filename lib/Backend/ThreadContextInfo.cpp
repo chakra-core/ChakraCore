@@ -180,6 +180,121 @@ ThreadContextInfo::GetMantissaMaskAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetX86AbsMaskF4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_ABS_MASK_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AbsMaskD2Addr() const
+{
+    return SHIFT_ADDR(this, &X86_ABS_MASK_D2);
+}
+
+intptr_t
+ThreadContextInfo::GetX86NegMaskF4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_NEG_MASK_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86NegMaskD2Addr() const
+{
+    return SHIFT_ADDR(this, &X86_NEG_MASK_D2);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllNegOnesAddr() const
+{
+    return SHIFT_ADDR(this, &X86_ALL_NEG_ONES);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllNegOnesF4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_ALL_NEG_ONES_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllZerosAddr() const
+{
+    return SHIFT_ADDR(this, &X86_ALL_ZEROS);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllOnesF4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_ALL_ONES_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86LowBytesMaskAddr() const
+{
+    return SHIFT_ADDR(this, &X86_LOWBYTES_MASK);
+}
+
+intptr_t
+ThreadContextInfo::GetX86HighBytesMaskAddr() const
+{
+    return SHIFT_ADDR(this, &X86_HIGHBYTES_MASK);
+}
+
+intptr_t
+ThreadContextInfo::GetX86DoubleWordSignBitsAddr() const
+{
+    return SHIFT_ADDR(this, &X86_DWORD_SIGNBITS);
+}
+
+intptr_t
+ThreadContextInfo::GetX86WordSignBitsAddr() const
+{
+    return SHIFT_ADDR(this, &X86_WORD_SIGNBITS);
+}
+
+intptr_t
+ThreadContextInfo::GetX86ByteSignBitsAddr() const
+{
+    return SHIFT_ADDR(this, &X86_BYTE_SIGNBITS);
+}
+
+intptr_t
+ThreadContextInfo::GetX86TwoPower32F4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_TWO_32_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86TwoPower31F4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_TWO_31_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86TwoPower31I4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_TWO_31_I4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86NegTwoPower31F4Addr() const
+{
+    return SHIFT_ADDR(this, &X86_NEG_TWO_31_F4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86FourLanesMaskAddr(uint8 minorityLane) const
+{
+    return SHIFT_ADDR(this, &X86_4LANES_MASKS[minorityLane]);
+}
+
+intptr_t
+ThreadContextInfo::GetSimdTempAreaAddr(uint8 tempIndex) const
+{
+    Assert(tempIndex < SIMD_TEMP_SIZE);
+    return m_threadContextData.simdTempAreaBaseAddr + tempIndex * sizeof(_x86_SIMDValue);
+}
+
+intptr_t
 ThreadContextInfo::GetThreadStackLimitAddr() const
 {
     return static_cast<intptr_t>(m_threadContextData.threadStackLimitAddr);
