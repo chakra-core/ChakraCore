@@ -1839,6 +1839,8 @@ GlobOpt::MergeCapturedValues(
     bool hasTo = iterTo.Next();
     bool hasFrom = fromList == nullptr ? false : iterFrom.Next();
 
+    // to be conservative, only copy the captured value for common sym Ids
+    // in from and to CapturedList, mark all non-common sym Ids for re-capture
     while (hasFrom && hasTo)
     {
         Sym * symFrom = iterFrom.Data().Key();
@@ -1846,12 +1848,12 @@ GlobOpt::MergeCapturedValues(
 
         if (symFrom->m_id < symTo->m_id) 
         {
-            toData->changedSyms->Set(symTo->m_id);
+            toData->changedSyms->Set(symFrom->m_id);
             hasFrom = iterFrom.Next();
         }
-        else if(symTo->m_id > symFrom->m_id)
+        else if(symFrom->m_id > symTo->m_id)
         {
-            toData->changedSyms->Set(symFrom->m_id);
+            toData->changedSyms->Set(symTo->m_id);
             hasTo = iterTo.Next();
         }
         else
@@ -1869,12 +1871,12 @@ GlobOpt::MergeCapturedValues(
     if (hasRemain)
     {
         SListBase<CapturedList>::Iterator iterRemain(hasFrom ? iterFrom : iterTo);
-        while (hasRemain)
+        do
         {
             Sym * symRemain = iterRemain.Data().Key();
             toData->changedSyms->Set(symRemain->m_id);
             hasRemain = iterRemain.Next();
-        }
+        } while (hasRemain);
     }
 }
 

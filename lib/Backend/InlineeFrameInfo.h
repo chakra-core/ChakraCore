@@ -14,7 +14,7 @@ public:
     };
     void InitVarConstValue(Js::Var value);
     void InitFloatConstValue(FloatConstType value) { this->type = TyFloat64; this->u.floatConst.value = value; }
-    bool operator==(const BailoutConstantValue & bailoutConstValue);
+    bool IsEqual(const BailoutConstantValue & bailoutConstValue);
 public:
     IRType type;
     union
