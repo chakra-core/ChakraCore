@@ -246,7 +246,10 @@ namespace Js
 #endif
         if (result == nullptr)
         {
+#pragma warning(push)
+#pragma warning(disable:6011) // scriptContext cannot be null here
             result = scriptContext->GetLibrary()->GetUndefined();
+#pragma warning(pop)
         }
         else
         {
