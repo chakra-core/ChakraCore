@@ -39,7 +39,7 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        size_t cbEncoded = utf8::EncodeIntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
+        size_t cbEncoded = utf8::EncodeTrueUtf8IntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
         Assert(cbEncoded <= cbDestString);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = (char*)destString;
@@ -74,7 +74,11 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString);
+        // Some node tests depend on the utf8 decoder not swallowing invalid unicode characters
+        // instead of replacing them with the "replacement" chracter. Pass a flag to our 
+        // decoder to require such behavior
+        utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString,
+            DecodeOptions::doAllowInvalidWCHARs);
         Assert(destString[cchDestString] == 0);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = destString;

@@ -64,7 +64,7 @@ namespace Js
                 *utf8Script = HeapNewArray(utf8char_t, cbUtf8Buffer);
             }
 
-            *utf8Length = utf8::EncodeIntoAndNullTerminate(*utf8Script, script, static_cast<charcount_t>(length));
+            *utf8Length = utf8::EncodeTrueUtf8IntoAndNullTerminate(*utf8Script, script, static_cast<charcount_t>(length));
             *scriptLength = length;
 
             if (utf8AllocLength != nullptr)
