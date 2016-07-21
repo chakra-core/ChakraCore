@@ -3605,24 +3605,13 @@ namespace Js
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64)JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64)JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
 
         if (pArr)
@@ -5051,25 +5040,16 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
 
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetSmallIndex(), scriptContext);
@@ -5719,24 +5699,14 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        Var lenValue = JavascriptOperators::OP_GetLength(obj, scriptContext);
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            Var lenValue = JavascriptOperators::OP_GetLength(obj, scriptContext);
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(lenValue, scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(lenValue, scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(lenValue, scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(lenValue, scriptContext);
         }
 
         if (length.IsSmallIndex())
@@ -8077,24 +8047,15 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::EveryHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
@@ -8248,26 +8209,17 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
 
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
-        if (length.IsSmallIndex())
+
+            if (length.IsSmallIndex())
         {
             return JavascriptArray::SomeHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
         }
@@ -8429,23 +8381,13 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
@@ -8838,17 +8780,8 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
-        {
-            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-        }
-        else
-        {
-            length = pArr->length;
-        }
+        length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::MapHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
@@ -9089,23 +9022,13 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
 
         if (length.IsSmallIndex())
@@ -9465,24 +9388,15 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::ReduceRightHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);

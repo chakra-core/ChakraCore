@@ -10,21 +10,10 @@
 
 #define INSTANTIATE_BUILT_IN_ENTRYPOINTS(typeName) \
     template Var typeName::NewInstance(RecyclableObject* function, CallInfo callInfo, ...); \
-    template Var typeName::EntrySet(RecyclableObject* function, CallInfo callInfo, ...); \
-    template Var typeName::EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...); \
+    template Var typeName::EntrySet(RecyclableObject* function, CallInfo callInfo, ...);
 
 namespace Js
 {
-    /*static*/
-    PropertyId const TypedArrayBase::specialPropertyIds[] =
-    {
-        PropertyIds::length,
-        PropertyIds::buffer,
-        PropertyIds::byteOffset,
-        PropertyIds::byteLength,
-        PropertyIds::BYTES_PER_ELEMENT
-    };
-
     // explicitly instantiate these function for the built in entry point FunctionInfo
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(Int8Array)
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(Uint8Array)
@@ -643,29 +632,8 @@ namespace Js
             object;
     };
 
-    inline BOOL TypedArrayBase::IsBuiltinProperty(PropertyId propertyId)
-    {
-        // We only return the builtins in pre-ES6 mode
-        if (!GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled() &&
-            (propertyId == PropertyIds::length ||
-            propertyId == PropertyIds::buffer ||
-            propertyId == PropertyIds::byteOffset ||
-            propertyId == PropertyIds::byteLength ||
-            propertyId == PropertyIds::BYTES_PER_ELEMENT))
-        {
-            return TRUE;
-        }
-
-        return FALSE;
-    }
-
     BOOL TypedArrayBase::HasProperty(PropertyId propertyId)
     {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return true;
-        }
-
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index) && (index < this->GetLength()))
         {
@@ -677,10 +645,6 @@ namespace Js
 
     BOOL TypedArrayBase::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
     {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index) && (index < this->GetLength()))
         {
@@ -689,34 +653,6 @@ namespace Js
         }
         return DynamicObject::DeleteProperty(propertyId, flags);
 
-    }
-
-    BOOL TypedArrayBase::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
-    {
-        uint length = GetSpecialPropertyCount();
-        if (index < length)
-        {
-            *propertyName = requestContext->GetPropertyString(specialPropertyIds[index]);
-            return true;
-        }
-        return false;
-    }
-
-    // Returns the number of special non-enumerable properties this type has.
-    uint TypedArrayBase::GetSpecialPropertyCount() const
-    {
-        if (GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            return 0;
-        }
-
-        return _countof(specialPropertyIds);
-    }
-
-    // Returns the list of special non-enumerable properties for the type.
-    PropertyId const * TypedArrayBase::GetSpecialPropertyIds() const
-    {
-        return specialPropertyIds;
     }
 
     BOOL TypedArrayBase::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -737,11 +673,6 @@ namespace Js
             return true;
         }
 
-        if (GetPropertyBuiltIns(propertyId, value))
-        {
-            return true;
-        }
-
         return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
     }
 
@@ -750,45 +681,7 @@ namespace Js
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value))
-        {
-            return true;
-        }
-
         return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
-    }
-
-    BOOL TypedArrayBase::GetPropertyBuiltIns(PropertyId propertyId, Var* value)
-    {
-        //
-        // Only return built-ins for pre-ES6 mode
-        //
-        if (!GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            switch (propertyId)
-            {
-            case PropertyIds::length:
-                *value = JavascriptNumber::ToVar(this->GetLength(), GetScriptContext());
-                return true;
-            case PropertyIds::byteLength:
-                *value = JavascriptNumber::ToVar(this->GetByteLength(), GetScriptContext());
-                return true;
-            case PropertyIds::byteOffset:
-                *value = JavascriptNumber::ToVar(this->GetByteOffset(), GetScriptContext());
-                return true;
-            case PropertyIds::buffer:
-                *value = GetArrayBuffer();
-                return true;
-            case PropertyIds::BYTES_PER_ELEMENT:
-                *value = JavascriptNumber::ToVar(this->GetBytesPerElement(), GetScriptContext());
-                return true;
-            }
-        }
-
-        return false;
     }
 
     BOOL TypedArrayBase::HasItem(uint32 index)
@@ -821,11 +714,7 @@ namespace Js
     {
         uint32 index;
 
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-        else if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
+        if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
             this->DirectSetItem(index, value);
             return true;
@@ -841,13 +730,6 @@ namespace Js
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && IsBuiltinProperty(propertyRecord->GetPropertyId()))
-        {
-            return false;
-        }
 
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     }
@@ -866,10 +748,6 @@ namespace Js
 
     BOOL TypedArrayBase::IsEnumerable(PropertyId propertyId)
     {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
@@ -880,10 +758,6 @@ namespace Js
 
     BOOL TypedArrayBase::IsConfigurable(PropertyId propertyId)
     {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
@@ -900,10 +774,6 @@ namespace Js
 
     BOOL TypedArrayBase::IsWritable(PropertyId propertyId)
     {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
@@ -916,17 +786,8 @@ namespace Js
     BOOL TypedArrayBase::SetEnumerable(PropertyId propertyId, BOOL value)
     {
         ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
         uint32 index;
+
         // all numeric properties are enumerable
         if (scriptContext->IsNumericPropertyId(propertyId, &index) )
         {
@@ -944,17 +805,8 @@ namespace Js
     BOOL TypedArrayBase::SetWritable(PropertyId propertyId, BOOL value)
     {
         ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
         uint32 index;
+
         // default is writable
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
@@ -972,17 +824,8 @@ namespace Js
     BOOL TypedArrayBase::SetConfigurable(PropertyId propertyId, BOOL value)
     {
         ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
         uint32 index;
+
         // default is not configurable
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
@@ -1000,18 +843,8 @@ namespace Js
     BOOL TypedArrayBase::SetAttributes(PropertyId propertyId, PropertyAttributes attributes)
     {
         ScriptContext* scriptContext = this->GetScriptContext();
-
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (attributes != PropertyNone)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
         uint32 index;
+
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             VerifySetItemAttributes(propertyId, attributes);
@@ -1024,13 +857,8 @@ namespace Js
     BOOL TypedArrayBase::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
     {
         ScriptContext* scriptContext = this->GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-        }
-
         uint32 index;
+
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
@@ -1044,17 +872,8 @@ namespace Js
     {
         ScriptContext* scriptContext = GetScriptContext();
 
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (attributes != PropertyNone)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
         uint32 index;
+
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             VerifySetItemAttributes(propertyId, attributes);
@@ -1496,7 +1315,6 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        Assert(!scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled());
 
         // This method is only called in pre-ES6 compat modes. In those modes, we need to throw an error
         // if the this argument is not the same type as our TypedArray template instance.
@@ -1566,33 +1384,6 @@ namespace Js
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
-        }
-
-        return CommonSubarray(args);
-    }
-
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    Var TypedArray<TypeName, clamped, virtualAllocated>::EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-        Assert(!scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled());
-
-        // This method is only called in pre-ES6 compat modes. In those modes, we need to throw an error
-        // if the this argument is not the same type as our TypedArray template instance.
-        if (args.Info.Count == 0 || !TypedArray::Is(args[0]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
-        }
-
-        // In ES5, it is an error to call subarray with no begin parameter.
-        if (args.Info.Count < 2)
-        {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArraySubarrayLength);
         }
 
         return CommonSubarray(args);
