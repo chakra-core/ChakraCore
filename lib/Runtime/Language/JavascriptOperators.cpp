@@ -1112,7 +1112,7 @@ CommonNumber:
         return result;
     }
 
-    Var JavascriptOperators::GetOwnPropertyNames(Var instance, ScriptContext *scriptContext)
+    JavascriptArray* JavascriptOperators::GetOwnPropertyNames(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
 
@@ -1125,7 +1125,7 @@ CommonNumber:
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
 
-    Var JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
+    JavascriptArray* JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(GetOwnPropertySymbolsCount);
@@ -1139,7 +1139,7 @@ CommonNumber:
         return JavascriptObject::CreateOwnSymbolPropertiesHelper(object, scriptContext);
     }
 
-    Var JavascriptOperators::GetOwnPropertyKeys(Var instance, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptOperators::GetOwnPropertyKeys(Var instance, ScriptContext* scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
 
@@ -1152,26 +1152,15 @@ CommonNumber:
         return JavascriptObject::CreateOwnStringSymbolPropertiesHelper(object, scriptContext);
     }
 
-    Var JavascriptOperators::GetOwnEnumerablePropertyNames(Var instance, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptOperators::GetOwnEnumerablePropertyNames(Var instance, ScriptContext* scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
 
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            Var result = proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
-
-            AssertMsg(JavascriptArray::Is(result), "PropertyKeysTrap should return JavascriptArray.");
-            JavascriptArray* proxyResult;
+            JavascriptArray* proxyResult = proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
             JavascriptArray* proxyResultToReturn = scriptContext->GetLibrary()->CreateArray(0);
-            if (JavascriptArray::Is(result))
-            {
-                proxyResult = JavascriptArray::FromVar(result);
-            }
-            else
-            {
-                return proxyResultToReturn;
-            }
 
             // filter enumerable keys
             uint32 resultLength = proxyResult->GetLength();
@@ -1199,7 +1188,7 @@ CommonNumber:
         return JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(object, scriptContext);
     }
 
-    Var JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(Var instance, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(Var instance, ScriptContext* scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
 
@@ -4599,7 +4588,7 @@ CommonNumber:
     {
         if (length <= 0)
         {
-            return true;
+            return false;
         }
 
         TypeId instanceType = JavascriptOperators::GetTypeId(srcInstance);
@@ -4706,7 +4695,7 @@ CommonNumber:
     {
         if (length <= 0)
         {
-            return true;
+            return false;
         }
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         BOOL  returnValue = false;
@@ -6893,7 +6882,7 @@ CommonNumber:
     HeapArgumentsObject *JavascriptOperators::CreateHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, ScriptContext* scriptContext)
     {
         JavascriptLibrary *library = scriptContext->GetLibrary();
-        HeapArgumentsObject *argsObj = library->CreateHeapArguments(frameObj, formalsCount);
+        HeapArgumentsObject *argsObj = library->CreateHeapArguments(frameObj, formalsCount, !!funcCallee->IsStrictMode());
 
         //
         // Set the number of arguments of Arguments Object
@@ -6904,27 +6893,12 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            PropertyDescriptor propertyDescriptorCaller;
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();
-
-            propertyDescriptorCaller.SetGetter(callerAccessor);
-            propertyDescriptorCaller.SetSetter(callerAccessor);
-            propertyDescriptorCaller.SetEnumerable(false);
-            propertyDescriptorCaller.SetConfigurable(false);
-
+            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
             argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
-            JavascriptOperators::SetAttributes(argsObj, PropertyIds::caller, propertyDescriptorCaller, false);
 
-            PropertyDescriptor propertyDescriptorCallee;
             JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-
-            propertyDescriptorCallee.SetGetter(calleeAccessor);
-            propertyDescriptorCallee.SetSetter(calleeAccessor);
-            propertyDescriptorCallee.SetEnumerable(false);
-            propertyDescriptorCallee.SetConfigurable(false);
-
             argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
-            JavascriptOperators::SetAttributes(argsObj, PropertyIds::callee, propertyDescriptorCallee, false);
+
         }
         else
         {

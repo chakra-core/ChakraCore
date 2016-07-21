@@ -375,7 +375,7 @@ namespace Js
 
     ScriptContext::~ScriptContext()
     {
-        Assert(isFinalized);
+        Assert(isFinalized || !isInitialized);
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
@@ -642,7 +642,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-        
+
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -1189,13 +1189,12 @@ if (!sourceList)
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
-            Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
 #endif
 
 #ifdef ASMJS_PLAT
         asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
-            Js::InterpreterStackFrame::InterpreterAsmThunk);
+            true);
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
@@ -3344,11 +3343,11 @@ if (!sourceList)
                     || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
 #else
-                Assert(entryPoint == DefaultDeferredParsingThunk 
+                Assert(entryPoint == DefaultDeferredParsingThunk
                     || entryPoint == DefaultDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk);
 #endif
-                
+
                 Assert(!proxy->IsDeferred());
                 Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
 

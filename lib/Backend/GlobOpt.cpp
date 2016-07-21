@@ -3880,8 +3880,9 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
             //So we don't want to track the stack sym for this argout.- Skipping it here.
             if (instr->m_func->IsInlinedConstructor())
             {
-                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() != nullptr);
-                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
+                //PRE might introduce a second defintion for the Src1. So assert for the opcode only when it has single definition.
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() == nullptr ||
+                    argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
                 argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
             }
             if (formalsCount < actualsCount)
@@ -4023,6 +4024,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
+    case Js::OpCode::TypeofElem:
     {
         Assert(src1->IsIndirOpnd());
         IR::RegOpnd *indexOpnd = src1->AsIndirOpnd()->GetIndexOpnd();
@@ -4800,7 +4802,8 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     this->OptArguments(instr);
 
     //StackArguments Optimization - We bail out if the index is out of range of actuals.
-    if (instr->m_opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
+    if ((instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem) && 
+        instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
     {
         GenerateBailAtOperation(&instr, IR::BailOnStackArgsOutOfActualsRange);
     }

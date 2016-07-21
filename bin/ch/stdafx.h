@@ -25,6 +25,7 @@
 
 #define ENABLE_TEST_HOOKS 1
 #include "CommonDefines.h"
+#include <map>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -63,7 +64,9 @@
 #if defined(DBG)
 
 #define _STRINGIZE_(x) #x
+#if !defined(_STRINGIZE)
 #define _STRINGIZE(x) _STRINGIZE_(x)
+#endif
 
 #define AssertMsg(exp, comment)   \
 do { \
@@ -80,10 +83,9 @@ if (!(exp)) \
 
 #define Assert(exp)             AssertMsg(exp, #exp)
 #define _JSRT_
-#include "ChakraCommon.h"
+#include "ChakraCore.h"
 #include "Core/CommonTypedefs.h"
 #include "TestHooksRt.h"
-#include "ChakraDebug.h"
 
 typedef void * Var;
 

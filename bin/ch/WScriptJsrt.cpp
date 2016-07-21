@@ -3,8 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#include <string>
 
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
+std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
 DWORD_PTR WScriptJsrt::sourceContext = 0;
 
 #define ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString)        \
@@ -125,11 +127,6 @@ JsValueRef __stdcall WScriptJsrt::QuitCallback(JsValueRef callee, bool isConstru
     ExitProcess(exitCode);
 }
 
-JsValueRef __stdcall WScriptJsrt::LoadModuleFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
-{
-    return LoadScriptFileHelper(callee, arguments, argumentCount, true);
-}
-
 JsValueRef __stdcall WScriptJsrt::LoadScriptFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     return LoadScriptFileHelper(callee, arguments, argumentCount, false);
@@ -220,10 +217,12 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
     else
     {
         AutoString fileContent;
-        AutoString fileName;
+        char* fileNameNarrow = nullptr;
+        bool freeFileName = false;
         AutoString scriptInjectType;
         size_t fileContentLength;
         size_t scriptInjectTypeLength;
+        char fileNameBuffer[MAX_PATH];
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[1], &fileContent, &fileContentLength));
 
@@ -234,15 +233,26 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
             if (argumentCount > 3)
             {
                 size_t unused;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[3], &fileName, &unused));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[3], &fileNameNarrow, &unused));
+                freeFileName = true;
             }
+        }
+
+        if (!freeFileName && isSourceModule)
+        {
+            sprintf_s(fileNameBuffer, MAX_PATH, "moduleScript%i.js", (int)sourceContext);
+            fileNameNarrow = fileNameBuffer;
         }
 
         if (*fileContent)
         {
             // TODO: This is CESU-8. How to tell the engine?
             // TODO: How to handle this source (script) life time?
-            returnValue = LoadScript(callee, *fileName, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
+            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
+            if (freeFileName)
+            {
+                ChakraRTInterface::JsStringFree(fileNameNarrow);
+            }
         }
     }
 
@@ -263,6 +273,64 @@ Error:
     }
 
     return returnValue;
+}
+
+JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleRecord moduleRecord)
+{
+    JsErrorCode errorCode = JsNoError;
+    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_FetchImportedModuleCallback, (void*)WScriptJsrt::FetchImportedModule);
+    if (errorCode == JsNoError)
+    {
+        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
+    }
+    if (errorCode == JsNoError)
+    {
+        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
+    }
+    IfJsrtErrorFailLogAndRetErrorCode(errorCode);
+    return JsNoError;
+}
+
+JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent)
+{
+    DWORD_PTR dwSourceCookie = WScriptJsrt::GetNextSourceContext();
+    JsModuleRecord requestModule = JS_INVALID_REFERENCE;
+    auto moduleRecordEntry = moduleRecordMap.find(std::string(fileName));
+    JsErrorCode errorCode = JsNoError;
+    // we need to create a new moduleRecord if the specifier (fileName) is not found; otherwise we'll use the old one.
+    if (moduleRecordEntry == moduleRecordMap.end())
+    {
+        JsValueRef specifier;
+        errorCode = ChakraRTInterface::JsPointerToStringUtf8(fileName, strlen(fileName), &specifier);
+        if (errorCode == JsNoError)
+        {
+            errorCode = ChakraRTInterface::JsInitializeModuleRecord(nullptr, specifier, &requestModule);
+        }
+        if (errorCode == JsNoError)
+        {
+            errorCode = InitializeModuleInfo(specifier, requestModule);
+        }
+        if (errorCode == JsNoError)
+        {
+            moduleRecordMap[std::string(fileName)] = requestModule;
+        }
+    }
+    else
+    {
+        requestModule = moduleRecordEntry->second;
+    }
+    IfJsrtErrorFailLogAndRetErrorCode(errorCode);
+    JsValueRef errorObject = JS_INVALID_REFERENCE;
+
+    // ParseModuleSource is sync, while additional fetch & evaluation are async.
+    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent, 
+        (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
+    if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE)
+    {
+        ChakraRTInterface::JsSetException(errorObject);
+        return errorCode;
+    }
+    return JsNoError;
 }
 
 JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule)
@@ -301,25 +369,24 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         strcpy_s(fullPathNarrow, "script.js");
     }
 
-    if (strcmp(scriptInjectType, "self") == 0)
+    // this is called with LoadModuleCallback method as well where caller pass in a string that should be
+    // treated as a module source text instead of opening a new file.
+    if (isSourceModule || (strcmp(scriptInjectType, "module") == 0))
+    {
+        errorCode = LoadModuleFromString(fileName, fileContent);
+    }
+    else if (strcmp(scriptInjectType, "self") == 0)
     {
         JsContextRef calleeContext;
         IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(calleeContext));
 
-        if (isSourceModule)
-        {
-            errorCode = ChakraRTInterface::JsRunModuleUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-        }
-        else
-        {
 #if ENABLE_TTD
-            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
+        errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #else
-            errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
+        errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #endif
-        }
 
         if (errorCode == JsNoError)
         {
@@ -339,19 +406,11 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         // Initialize the host objects
         Initialize();
 
-
-        if (isSourceModule)
-        {
-            errorCode = ChakraRTInterface::JsRunModuleUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-        }
-        else
-        {
 #if ENABLE_TTD
             errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #else
             errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #endif
-        }
 
         if (errorCode == JsNoError)
         {
@@ -654,7 +713,6 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Quit", QuitCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadModuleFile", LoadModuleFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScript", LoadScriptCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadModule", LoadModuleCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "SetTimeout", SetTimeoutCallback));
@@ -864,3 +922,128 @@ HRESULT WScriptJsrt::CallbackMessage::CallFunction(LPCSTR fileName)
 Error:
     return hr;
 }
+
+WScriptJsrt::ModuleMessage::ModuleMessage(JsModuleRecord module, JsValueRef specifier)
+    : MessageBase(0), moduleRecord(module), specifier(specifier)
+{
+    ChakraRTInterface::JsAddRef(module, nullptr);
+    if (specifier != nullptr)
+    {
+        // nullptr specifier means a Promise to execute; non-nullptr means a "fetch" operation.
+        ChakraRTInterface::JsAddRef(specifier, nullptr);
+    }
+}
+
+WScriptJsrt::ModuleMessage::~ModuleMessage()
+{
+    ChakraRTInterface::JsRelease(moduleRecord, nullptr);
+    if (specifier != nullptr)
+    {
+        ChakraRTInterface::JsRelease(specifier, nullptr);
+    }
+}
+
+HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
+{
+    JsErrorCode errorCode;
+    JsValueRef result = JS_INVALID_REFERENCE;
+    HRESULT hr;
+    if (specifier == nullptr)
+    {
+        errorCode = ChakraRTInterface::JsModuleEvaluation(moduleRecord, &result);
+        if (errorCode != JsNoError)
+        {
+            PrintException(fileName, errorCode);
+        }
+    }
+    else
+    {
+        LPCSTR fileContent = nullptr;
+        char* specifierStr = nullptr;
+        size_t length;
+        errorCode = ChakraRTInterface::JsStringToPointerUtf8Copy(specifier, &specifierStr, &length);
+        if (errorCode == JsNoError)
+        {
+            hr = Helpers::LoadScriptFromFile(specifierStr, fileContent);
+            if (FAILED(hr))
+            {
+                fprintf(stderr, "Couldn't load file.\n");
+            }
+            else
+            {
+                LoadScript(nullptr, specifierStr, fileContent, "module", true);
+            }
+        }
+    }
+    return errorCode;
+}
+
+// Callback from chakracore to fetch dependent module. In the test harness, we are not doing any translation, just treat the specifier as fileName.
+// While this call will come back directly from ParseModuleSource, the additional task are treated as Promise that will be executed later.
+JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+{
+    JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
+    AutoString specifierStr;
+    size_t length;
+
+    JsErrorCode errorCode = ChakraRTInterface::JsStringToPointerUtf8Copy(specifier, &specifierStr, &length);
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+    auto moduleEntry = moduleRecordMap.find(std::string(*specifierStr));
+    if (moduleEntry != moduleRecordMap.end())
+    {
+        *dependentModuleRecord = moduleEntry->second;
+        return JsNoError;
+    }
+
+    if (errorCode == JsNoError)
+    {
+        errorCode = ChakraRTInterface::JsInitializeModuleRecord(referencingModule, specifier, &moduleRecord);
+    }
+    if (errorCode == JsNoError)
+    {
+        InitializeModuleInfo(specifier, moduleRecord);
+        moduleRecordMap[std::string(*specifierStr)] = moduleRecord;
+        ModuleMessage* moduleMessage =
+            WScriptJsrt::ModuleMessage::Create(referencingModule, specifier);
+        if (moduleMessage == nullptr)
+        {
+            return JsErrorOutOfMemory;
+        }
+        WScriptJsrt::PushMessage(moduleMessage);
+        *dependentModuleRecord = moduleRecord;
+    }
+    return errorCode;
+}
+
+// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully. 
+JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
+{
+    if (exceptionVar != nullptr)
+    {
+        ChakraRTInterface::JsSetException(exceptionVar);
+        JsValueRef specifier = JS_INVALID_REFERENCE;
+        ChakraRTInterface::JsGetModuleHostInfo(referencingModule, JsModuleHostInfo_HostDefined, &specifier);
+        AutoString fileName;
+        size_t length;
+        if (specifier != JS_INVALID_REFERENCE)
+        {
+            ChakraRTInterface::JsStringToPointerUtf8Copy(specifier, &fileName, &length);
+        }
+        PrintException(*fileName, JsErrorScriptException);
+    }
+    else
+    {
+        WScriptJsrt::ModuleMessage* moduleMessage =
+            WScriptJsrt::ModuleMessage::Create(referencingModule, nullptr);
+        if (moduleMessage == nullptr)
+        {
+            return JsErrorOutOfMemory;
+        }
+        WScriptJsrt::PushMessage(moduleMessage);
+    }
+    return JsNoError;
+}
+

@@ -325,7 +325,7 @@
       <files>FuncBody.bug231397.js</files>
       <baseline>FuncBody.bug231397.baseline</baseline>
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_fre,require_backend</tags>
+      <tags>exclude_bytecodelayout,exclude_fre,require_backend</tags>
     </default>
   </test>
   <test>

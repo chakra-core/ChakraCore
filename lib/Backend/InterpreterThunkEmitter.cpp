@@ -189,13 +189,13 @@ const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
-InterpreterThunkEmitter::InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, void * interpreterThunk) :
+InterpreterThunkEmitter::InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
     emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer")),
     allocation(nullptr),
     allocator(allocator),
     thunkCount(0),
     thunkBuffer(nullptr),
-    interpreterThunk(interpreterThunk)
+    isAsmInterpreterThunk(isAsmInterpreterThunk)
 {
 }
 
@@ -253,6 +253,20 @@ void InterpreterThunkEmitter::NewThunkBlock()
     DWORD bufferSize = BlockSize;
     DWORD thunkCount = 0;
 
+    void * interpreterThunk = nullptr;
+
+    // the static interpreter thunk invoked by the dynamic emitted thunk
+#ifdef ASMJS_PLAT
+    if (isAsmInterpreterThunk)
+    {
+        interpreterThunk = Js::InterpreterStackFrame::InterpreterAsmThunk;
+    }
+    else
+#endif
+    {
+        interpreterThunk = Js::InterpreterStackFrame::InterpreterThunk;
+    }
+
     allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);
     if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
     {
@@ -280,7 +294,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
 
     // Copy the thunk buffer and modify it.
     js_memcpy_s(currentBuffer, bytesRemaining, InterpreterThunk, HeaderSize);
-    EncodeInterpreterThunk(currentBuffer, buffer, HeaderSize, epilogStart, epilogSize);
+    EncodeInterpreterThunk(currentBuffer, buffer, HeaderSize, epilogStart, epilogSize, interpreterThunk);
     currentBuffer += HeaderSize;
     bytesRemaining -= HeaderSize;
 
@@ -359,16 +373,16 @@ void InterpreterThunkEmitter::NewThunkBlock()
 
 
 #if _M_ARM
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
 {
     _Analysis_assume_(thunkSize == HeaderSize);
     // Encode MOVW
-    DWORD lowerThunkBits = (uint32)this->interpreterThunk & 0x0000FFFF;
+    DWORD lowerThunkBits = (uint32)interpreterThunk & 0x0000FFFF;
     DWORD movW = EncodeMove(/*Opcode*/ 0x0000F240, /*register*/1, lowerThunkBits);
     Emit(thunkBuffer,ThunkAddressOffset, movW);
 
     // Encode MOVT
-    DWORD higherThunkBits = ((uint32)this->interpreterThunk & 0xFFFF0000) >> 16;
+    DWORD higherThunkBits = ((uint32)interpreterThunk & 0xFFFF0000) >> 16;
     DWORD movT = EncodeMove(/*Opcode*/ 0x0000F2C0, /*register*/1, higherThunkBits);
     Emit(thunkBuffer, ThunkAddressOffset + sizeof(movW), movT);
 
@@ -424,7 +438,7 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
 }
 
 #elif _M_ARM64
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
 {
     int addrOffset = ThunkAddressOffset;
 
@@ -434,28 +448,28 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
     // Following 4 MOV Instrs are to move the 64-bit address of the InterpreterThunk address into register x1.
 
     // Encode MOVZ (movz        x1, #<interpreterThunk 16-0 bits>)
-    DWORD lowerThunkBits = (uint64)this->interpreterThunk & 0x0000FFFF;
+    DWORD lowerThunkBits = (uint64)interpreterThunk & 0x0000FFFF;
     DWORD movZ = EncodeMove(/*Opcode*/ 0xD2800000, /*register x1*/1, lowerThunkBits); // no shift; hw = 00
     Emit(thunkBuffer,addrOffset, movZ);
     AssertMsg(sizeof(movZ) == 4, "movZ has to be 32-bit encoded");
     addrOffset+= sizeof(movZ);
 
     // Encode MOVK (movk        x1, #<interpreterThunk 32-16 bits>, lsl #16)
-    DWORD higherThunkBits = ((uint64)this->interpreterThunk & 0xFFFF0000) >> 16;
+    DWORD higherThunkBits = ((uint64)interpreterThunk & 0xFFFF0000) >> 16;
     DWORD movK = EncodeMove(/*Opcode*/ 0xF2A00000, /*register x1*/1, higherThunkBits); // left shift 16 bits; hw = 01
     Emit(thunkBuffer, addrOffset, movK);
     AssertMsg(sizeof(movK) == 4, "movK has to be 32-bit encoded");
     addrOffset+= sizeof(movK);
 
     // Encode MOVK (movk        x1, #<interpreterThunk 48-32 bits>, lsl #16)
-    higherThunkBits = ((uint64)this->interpreterThunk & 0xFFFF00000000) >> 32;
+    higherThunkBits = ((uint64)interpreterThunk & 0xFFFF00000000) >> 32;
     movK = EncodeMove(/*Opcode*/ 0xF2C00000, /*register x1*/1, higherThunkBits); // left shift 32 bits; hw = 02
     Emit(thunkBuffer, addrOffset, movK);
     AssertMsg(sizeof(movK) == 4, "movK has to be 32-bit encoded");
     addrOffset += sizeof(movK);
 
     // Encode MOVK (movk        x1, #<interpreterThunk 64-48 bits>, lsl #16)
-    higherThunkBits = ((uint64)this->interpreterThunk & 0xFFFF000000000000) >> 48;
+    higherThunkBits = ((uint64)interpreterThunk & 0xFFFF000000000000) >> 48;
     movK = EncodeMove(/*Opcode*/ 0xF2E00000, /*register x1*/1, higherThunkBits); // left shift 48 bits; hw = 03
     AssertMsg(sizeof(movK) == 4, "movK has to be 32-bit encoded");
     Emit(thunkBuffer, addrOffset, movK);
@@ -498,7 +512,7 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
     function->FrameSize = 5;                    // the number of bytes of stack that is allocated for this function divided by 16
 }
 #else
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
 {
     _Analysis_assume_(thunkSize == HeaderSize);
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);

@@ -38,3 +38,9 @@ JsTTDNotifyYield
 JsTTDPrepContextsForTopLevelEventMove
 JsTTDMoveToTopLevelEvent
 JsTTDReplayExecution
+
+JsInitializeModuleRecord
+JsParseModuleSource
+JsModuleEvaluation
+JsSetModuleHostInfo
+JsGetModuleHostInfo

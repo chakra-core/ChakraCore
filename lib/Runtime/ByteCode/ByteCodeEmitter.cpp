@@ -1387,7 +1387,9 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                         }
                     }
 
-                    if ((!sym->GetHasInit() && !sym->IsInSlot(funcInfo)) ||
+                    // Undef-initialize the home location if it is a register (not closure-captured, or else capture
+                    // is delayed) or a property of an object.
+                    if ((!sym->GetHasInit() && (!sym->NeedsSlotAlloc(funcInfo) || sym->GetHasNonCommittedReference())) ||
                         (funcInfo->bodyScope->GetIsObject() && !funcInfo->GetHasCachedScope()))
                     {
                         Js::RegSlot reg = sym->GetLocation();
