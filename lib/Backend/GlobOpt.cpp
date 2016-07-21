@@ -1918,7 +1918,7 @@ GlobOpt::MergeBlockData(
             fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->constantValues,
             [&](ConstantStackSymValue * symValueFrom, ConstantStackSymValue * symValueTo)
             {
-                return symValueFrom->Value() == symValueTo->Value();
+                return symValueFrom->Value().IsEqual(symValueTo->Value());
             });
 
         MergeCapturedValues(

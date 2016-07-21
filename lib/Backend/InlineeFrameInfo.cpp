@@ -53,7 +53,7 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
 
 }
 
-bool BailoutConstantValue::operator == (const BailoutConstantValue & bailoutConstValue)
+bool BailoutConstantValue::IsEqual(const BailoutConstantValue & bailoutConstValue)
 {
     if (this->type == bailoutConstValue.type)
     {

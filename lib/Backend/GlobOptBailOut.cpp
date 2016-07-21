@@ -957,6 +957,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                 {
                     sym = opnd->GetStackSym();
                     Assert(FindValue(sym));
+                    // StackSym args need to be re-captured
                     this->blockData.changedSyms->Set(sym->m_id);
                 }
 
