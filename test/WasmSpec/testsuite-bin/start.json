@@ -1,0 +1,65 @@
+{
+  "modules": [{
+    "filename": "start.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "start.wast",
+      "line": 42
+    }, {
+      "type": "invoke",
+      "name": "$invoke_1",
+      "file": "start.wast",
+      "line": 43
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "start.wast",
+      "line": 44
+    }, {
+      "type": "invoke",
+      "name": "$invoke_3",
+      "file": "start.wast",
+      "line": 45
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "start.wast",
+      "line": 46
+    }]
+  }, {
+    "filename": "start.1.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "start.wast",
+      "line": 71
+    }, {
+      "type": "invoke",
+      "name": "$invoke_1",
+      "file": "start.wast",
+      "line": 72
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "start.wast",
+      "line": 73
+    }, {
+      "type": "invoke",
+      "name": "$invoke_3",
+      "file": "start.wast",
+      "line": 74
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "start.wast",
+      "line": 75
+    }]
+  }, {
+    "filename": "start.2.wasm",
+    "commands": []
+  }, {
+    "filename": "start.3.wasm",
+    "commands": []
+  }]
+}

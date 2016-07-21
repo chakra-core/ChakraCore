@@ -1,0 +1,15 @@
+83
+$invoke_3 = undefined
+func_ptrs.wast:61: $assert_trap_3 failed, runtime trap NYI
+func_ptrs.wast:62: $assert_trap_4 failed, runtime trap NYI
+func_ptrs.wast:65: $assert_trap_7 failed, runtime trap NYI
+func_ptrs.wast:66: $assert_trap_8 failed, runtime trap NYI
+func_ptrs.wast:67: $assert_trap_9 failed, runtime trap NYI
+func_ptrs.wast:69: $assert_trap_10 failed, runtime trap NYI
+func_ptrs.wast:70: $assert_trap_11 failed, runtime trap NYI
+func_ptrs.wast:71: $assert_trap_12 failed, runtime trap NYI
+func_ptrs.wast:74: $assert_trap_15 failed, runtime trap NYI
+func_ptrs.wast:75: $assert_trap_16 failed, runtime trap NYI
+func_ptrs.wast:76: $assert_trap_17 failed, runtime trap NYI
+func_ptrs.wast:77: $assert_trap_18 failed, runtime trap NYI
+12/24 tests passed.

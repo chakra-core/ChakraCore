@@ -1,0 +1,17 @@
+Unexpected Error while compiling traps.0.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling traps.1.wasm
+Error: Compiling wasm failed: I64 support NYI
+traps.wast:65: $assert_trap_0 failed, runtime trap NYI
+traps.wast:66: $assert_trap_1 failed, runtime trap NYI
+traps.wast:67: $assert_trap_2 failed, runtime trap NYI
+traps.wast:68: $assert_trap_3 failed, runtime trap NYI
+traps.wast:69: $assert_trap_4 failed, runtime trap NYI
+traps.wast:70: $assert_trap_5 failed, runtime trap NYI
+traps.wast:71: $assert_trap_6 failed, runtime trap NYI
+traps.wast:72: $assert_trap_7 failed, runtime trap NYI
+traps.wast:87: $assert_trap_0 failed, runtime trap NYI
+traps.wast:88: $assert_trap_1 failed, runtime trap NYI
+traps.wast:89: $assert_trap_2 failed, runtime trap NYI
+traps.wast:90: $assert_trap_3 failed, runtime trap NYI
+0/12 tests passed.

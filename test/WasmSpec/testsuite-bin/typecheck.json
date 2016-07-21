@@ -1,0 +1,6 @@
+{
+  "modules": [{
+    "filename": "typecheck.0.wasm",
+    "commands": []
+  }]
+}

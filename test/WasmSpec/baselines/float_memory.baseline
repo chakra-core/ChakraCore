@@ -1,0 +1,20 @@
+$invoke_0 = undefined
+$invoke_3 = undefined
+$invoke_4 = undefined
+$invoke_7 = undefined
+Unexpected Error while compiling float_memory.1.wasm
+Error: Compiling wasm failed: I64 support NYI
+float_memory.wast:95: $assert_return_0 failed.
+$invoke_1 = undefined
+$invoke_4 = undefined
+$invoke_5 = undefined
+$invoke_8 = undefined
+Unexpected Error while compiling float_memory.3.wasm
+Error: Compiling wasm failed: I64 support NYI
+$invoke_2 = undefined
+$invoke_5 = undefined
+$invoke_8 = undefined
+$invoke_11 = undefined
+Unexpected Error while compiling float_memory.5.wasm
+Error: Compiling wasm failed: I64 support NYI
+20/21 tests passed.

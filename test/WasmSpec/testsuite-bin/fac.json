@@ -1,0 +1,36 @@
+{
+  "modules": [{
+    "filename": "fac.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "fac.wast",
+      "line": 82
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "fac.wast",
+      "line": 83
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "fac.wast",
+      "line": 84
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_3",
+      "file": "fac.wast",
+      "line": 85
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "fac.wast",
+      "line": 86
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_5",
+      "file": "fac.wast",
+      "line": 87
+    }]
+  }]
+}

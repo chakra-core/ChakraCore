@@ -1,0 +1,33 @@
+Unexpected Error while compiling int_exprs.0.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.1.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.2.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.3.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.4.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.5.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.6.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.7.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.8.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.9.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.10.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.11.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.12.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.13.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.14.wasm
+Error: Compiling wasm failed: I64 support NYI
+Unexpected Error while compiling int_exprs.15.wasm
+Error: Compiling wasm failed: I64 support NYI
+0/0 tests passed.
