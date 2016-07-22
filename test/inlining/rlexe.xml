@@ -238,4 +238,10 @@
       <files>missingInlineeEnd.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>inliningInLoopBody.js</files>
+      <compile-flags>-loopinterpretcount:1 -bgjit- -force:inline</compile-flags>
+    </default>
+  </test>
 </regress-exe>

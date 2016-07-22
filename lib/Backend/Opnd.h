@@ -495,7 +495,6 @@ public:
 public:
     PropertySymOpnd * CopyCommon(Func *func);
     PropertySymOpnd * CopyWithoutFlowSensitiveInfo(Func *func);
-    PropertySymOpnd * CopyForTypeCheckOnly(Func *func);
     PropertySymOpnd * CopyInternalSub(Func *func);
     PropertySymOpnd * CloneDefInternalSub(Func *func);
     PropertySymOpnd * CloneUseInternalSub(Func *func);

@@ -3730,7 +3730,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
                          this->topFunc->GetCodeGenProfiler(),
                          this->topFunc->IsBackgroundJIT(),
                          callInstr->m_func,
-                         callInstr->m_next->GetByteCodeOffset(),
+                         callInstr->GetNextRealInstr()->GetByteCodeOffset(),
                          returnRegSlot,
                          isCtor,
                          callSiteId,
