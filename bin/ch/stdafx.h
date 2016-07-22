@@ -26,6 +26,7 @@
 #define ENABLE_TEST_HOOKS 1
 #include "CommonDefines.h"
 #include <map>
+#include <string>
 
 #ifdef _WIN32
 #include <windows.h>
