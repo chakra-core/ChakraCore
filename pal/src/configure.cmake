@@ -102,6 +102,21 @@ check_cxx_symbol_exists(_SC_PHYS_PAGES unistd.h HAVE__SC_PHYS_PAGES)
 check_cxx_symbol_exists(_SC_AVPHYS_PAGES unistd.h HAVE__SC_AVPHYS_PAGES)
 
 check_cxx_source_runs("
+#include <stdlib.h>
+#include <stdio.h>
+
+extern \"C++\" {
+  inline long long abs(long long _X) {
+    return llabs(_X);
+  }
+}
+
+int main(int argc, char **argv) {
+  long long X = 123456789 + argc;
+  printf(\"%lld\", abs(X));
+  exit(0);
+}" PLATFORM_ACCEPTS_ABS_OVERLOAD)
+check_cxx_source_runs("
 #include <sys/param.h>
 #include <stdlib.h>
 
