@@ -1,4 +1,4 @@
-set(ch_source_files 
+set(ch_source_files
   ch.cpp
   ChakraRtInterface.cpp
   CodexAssert.cpp
@@ -67,6 +67,8 @@ if(STATIC_LIBRARY)
       icucore
       "-framework CoreFoundation"
       "-framework Security"
+      # set stack size to 64Mb for stack tests
+      -Wl,-stack_size,0x04000000
       )
   endif() # Linux ?
 else() # // !from shared library
@@ -78,7 +80,7 @@ else() # // !from shared library
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}" 
+  set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
     )
 endif()
