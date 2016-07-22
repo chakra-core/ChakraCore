@@ -10,9 +10,10 @@
 namespace Wasm
 {
 
-WasmModule::WasmModule(Js::ScriptContext* scriptContext) :
+WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength) :
     m_memory(),
     m_alloc(_u("WasmModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
+    m_reader(Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength)),
     m_functionsInfo(nullptr),
     m_funcCount(0),
     m_importCount(0),
@@ -29,6 +30,10 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext) :
     funcOffset(0),
     importFuncOffset(0)
 {
+    // Initialize maps needed by binary reader
+    WasmBinaryReader::Init(scriptContext);
+
+    m_reader->InitializeReader();
 }
 
 void

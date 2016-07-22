@@ -90,7 +90,6 @@ namespace Wasm
 
     struct WasmReaderInfo
     {
-        WasmBinaryReader* m_reader;
         WasmFunctionInfo* m_funcInfo;
         WasmModule* m_module;
     };
@@ -98,15 +97,16 @@ namespace Wasm
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
-        WasmModule * GenerateModule();
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
+        WasmModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
+        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+
         Memory::Recycler* m_recycler;
-        Js::Utf8SourceInfo * m_sourceInfo;
-        Js::ScriptContext * m_scriptContext;
-        WasmBinaryReader* m_reader;
-        WasmModule * m_module;
+        Js::Utf8SourceInfo* m_sourceInfo;
+        Js::ScriptContext* m_scriptContext;
+        WasmModule* m_module;
     };
 
     class WasmBytecodeGenerator
@@ -164,7 +164,7 @@ namespace Wasm
         EmitInfo EmitConst();
 
         void EnregisterLocals();
-        void ReleaseLocation(EmitInfo * info);
+        void ReleaseLocation(EmitInfo* info);
 
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
         void PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
@@ -174,7 +174,7 @@ namespace Wasm
 
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
-        WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type);
+        WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
@@ -182,20 +182,19 @@ namespace Wasm
         void ExitEvalStackScope();
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
+        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
 
         ArenaAllocator m_alloc;
 
-        WasmLocal * m_locals;
+        WasmLocal* m_locals;
 
-        WasmFunctionInfo * m_funcInfo;
-        WasmModule * m_module;
+        WasmFunctionInfo* m_funcInfo;
+        WasmModule* m_module;
 
         uint m_maxArgOutDepth;
 
-        WasmBinaryReader* m_reader;
-
         Js::AsmJsByteCodeWriter m_writer;
-        Js::ScriptContext * m_scriptContext;
+        Js::ScriptContext* m_scriptContext;
 
         WasmRegisterSpace m_i32RegSlots;
         WasmRegisterSpace m_f32RegSlots;

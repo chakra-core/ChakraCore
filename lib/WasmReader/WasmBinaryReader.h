@@ -80,11 +80,11 @@ namespace Wasm
 
     static const unsigned int experimentalVersion = 0xb;
 
-    class WasmBinaryReader : public FinalizableObject
+    class WasmBinaryReader
     {
     public:
-        WasmBinaryReader(Js::ScriptContext* scriptContext, WasmModule* module, byte* source, size_t length);
-        static void Init(Js::ScriptContext *scriptContext);
+        WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length);
+        static void Init(Js::ScriptContext* scriptContext);
 
         void InitializeReader();
         bool ReadNextSection(SectionCode nextSection);
@@ -147,13 +147,9 @@ namespace Wasm
         DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
         Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
-        virtual void Finalize(bool isShutdown) override;
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Mark(Recycler * recycler) override;
-
-        ArenaAllocator m_alloc;
+        ArenaAllocator* m_alloc;
         uint m_funcNumber;
-        byte *m_start, *m_end, *m_pc, *m_curFuncEnd;
+        byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
         WasmBinOp m_lastOp;
         ReaderState m_funcState;   // func AST level
@@ -170,7 +166,7 @@ namespace Wasm
         static Wasm::WasmOp binWasmOpToWasmOp[];
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmBinOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
-        OpSet * m_ops;
+        OpSet* m_ops;
 #endif
     }; // WasmBinaryReader
 } // namespace Wasm

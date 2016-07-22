@@ -43,17 +43,17 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 }
 } // namespace WasmTypes
 
-WasmBinaryReader::WasmBinaryReader(Js::ScriptContext* scriptContext, WasmModule* module, byte* source, size_t length) :
+WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
     m_lastOp(WasmBinOp::wbLimit),
-    m_alloc(_u("WasmBinaryReader"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory)
+    m_alloc(alloc)
 {
     m_start = m_pc = source;
     m_end = source + length;
     m_currentSection.code = bSectInvalid;
 #if DBG_DUMP
-    m_ops = Anew(&m_alloc, OpSet, &m_alloc);
+    m_ops = Anew(m_alloc, OpSet, m_alloc);
 #endif
 }
 
@@ -515,7 +515,7 @@ WasmBinaryReader::BrTableNode()
 
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
-    m_currentNode.brTable.targetTable = AnewArray(&m_alloc, UINT32, m_currentNode.brTable.numTargets);
+    m_currentNode.brTable.targetTable = AnewArray(m_alloc, UINT32, m_currentNode.brTable.numTargets);
 
     for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
@@ -626,7 +626,7 @@ WasmBinaryReader::ReadSignatures()
     for (UINT32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
-        WasmSignature * sig = Anew(&m_alloc, WasmSignature, &m_alloc);
+        WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
 
         char form = ReadConst<UINT8>();
         if (form != 0x40)
@@ -673,7 +673,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         }
 
         WasmSignature* sig = m_module->GetSignature(sigIndex);
-        WasmFunctionInfo* newFunction = Anew(&m_alloc, WasmFunctionInfo, &m_alloc, sig, iFunc);
+        WasmFunctionInfo* newFunction = Anew(m_alloc, WasmFunctionInfo, m_alloc, sig, iFunc);
         m_module->SetFunctionInfo(newFunction, iFunc);
     }
 }
@@ -732,7 +732,7 @@ WasmBinaryReader::ReadDataSegments()
         TRACE_WASM_DECODER(L"Data Segment #%u", i);
         UINT32 offset = LEB128(len);
         UINT32 dataByteLen = LEB128(len);
-        WasmDataSegment *dseg = Anew(&m_alloc, WasmDataSegment, &m_alloc, offset, dataByteLen, m_pc);
+        WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
         m_module->AddDataSeg(dseg, i);
@@ -779,7 +779,7 @@ char16* WasmBinaryReader::CvtUtf8Str(LPUTF8 name, uint32 nameLen)
 {
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
     charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
-    char16* contents = AnewArray(&m_alloc, char16, utf16Len + 1);
+    char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
     if (contents == nullptr)
     {
         Js::Throw::OutOfMemory();
@@ -904,20 +904,6 @@ WasmBinaryReader::ReadWasmType(uint32& length)
         ThrowDecodingError(_u("Invalid type"));
     }
     return type;
-}
-
-void WasmBinaryReader::Finalize(bool isShutdown)
-{
-    m_alloc.Clear();
-}
-
-void WasmBinaryReader::Dispose(bool isShutdown)
-{
-    Assert(m_alloc.Size() == 0);
-}
-
-void WasmBinaryReader::Mark(Recycler * recycler)
-{
 }
 
 void

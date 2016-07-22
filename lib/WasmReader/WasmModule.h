@@ -7,6 +7,8 @@
 
 namespace Wasm
 {
+    class WasmBinaryReader;
+
     class WasmModule : public FinalizableObject
     {
     private:
@@ -21,14 +23,14 @@ namespace Wasm
             static const uint64 PAGE_SIZE = 64 * 1024;
         } m_memory;
     public:
-        WasmModule(Js::ScriptContext* scriptContext);
+        WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength);
 
         void InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
 
-        const Memory * GetMemory() const;
+        const Memory* GetMemory() const;
 
         void SetSignature(uint32 index, WasmSignature * signature);
-        WasmSignature * GetSignature(uint32 index) const;
+        WasmSignature* GetSignature(uint32 index) const;
         void SetSignatureCount(uint32 count);
         uint32 GetSignatureCount() const;
 
@@ -40,7 +42,7 @@ namespace Wasm
         uint GetFunctionCount() const;
         void AllocateFunctions(uint32 count);
         bool SetFunctionInfo(WasmFunctionInfo* funsig, uint32 index);
-        WasmFunctionInfo * GetFunctionInfo(uint index) const;
+        WasmFunctionInfo* GetFunctionInfo(uint index) const;
 
         void AllocateFunctionExports(uint32 entries);
         uint GetExportCount() const { return m_exportCount; }
@@ -54,7 +56,7 @@ namespace Wasm
 
         void AllocateDataSegs(uint32 count);
         bool AddDataSeg(WasmDataSegment* seg, uint32 index);
-        WasmDataSegment * GetDataSeg(uint32 index) const;
+        WasmDataSegment* GetDataSeg(uint32 index) const;
         uint32 GetDataSegCount() const { return m_datasegCount; }
 
         void SetStartFunction(uint32 i);
@@ -71,6 +73,8 @@ namespace Wasm
         uint GetIndirFuncTableOffset() const { return indirFuncTableOffset; }
         void SetIndirFuncTableOffset(uint val) { indirFuncTableOffset = val; }
 
+        WasmBinaryReader* GetReader() const { return m_reader; }
+
         virtual void Finalize(bool isShutdown) override;
         virtual void Dispose(bool isShutdown) override;
         virtual void Mark(Recycler * recycler) override;
@@ -82,6 +86,7 @@ namespace Wasm
         WasmExport* m_exports;
         WasmImport* m_imports;
         WasmDataSegment** m_datasegs;
+        WasmBinaryReader* m_reader;
 
         uint m_signaturesCount;
         uint m_indirectFuncCount;
