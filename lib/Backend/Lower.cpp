@@ -2986,11 +2986,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Trunc_A:
-            m_lowererMD.GenerateTrunc(instr);
+            m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
         case Js::OpCode::Nearest_A:
-            m_lowererMD.GenerateNearest(instr);
+            m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 #endif //ENABLE_WASM
 

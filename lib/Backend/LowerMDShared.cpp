@@ -6131,18 +6131,6 @@ LowererMD::GenerateCopysign(IR::Instr * instr)
     instr->m_opcode = Js::OpCode::ORPS;
     Legalize(instr);
 };
-
-void
-LowererMD::GenerateTrunc(IR::Instr * instr)
-{
-    Assert(UNREACHED);
-}
-
-void
-LowererMD::GenerateNearest(IR::Instr * instr)
-{
-    Assert(UNREACHED);
-}
 #endif //ENABLE_WASM
 
 void
@@ -9162,7 +9150,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
             // ROUNDSD srcCopy, srcCopy, round_mode
             IR::Opnd * roundMode;
-            if(isNotCeil)
+            if (instr->m_opcode == Js::OpCode::Trunc_A)
+            {
+                roundMode = IR::IntConstOpnd::New(0x03, TyInt32, this->m_func);
+            }
+            else if (instr->m_opcode == Js::OpCode::Nearest_A)
+            {
+                roundMode = IR::IntConstOpnd::New(0x00, TyInt32, this->m_func);
+            }
+            else if(isNotCeil)
             {
                 roundMode = IR::IntConstOpnd::New(0x01, TyInt32, this->m_func);
             }
