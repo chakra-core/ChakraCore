@@ -110,7 +110,7 @@ CHAKRA_API
 JsParseModuleSource(
     _In_ JsModuleRecord requestModule,
     _In_ JsSourceContext sourceContext,
-    _In_ byte* script,
+    _In_ BYTE* script,
     _In_ unsigned int scriptLength,
     _In_ JsParseModuleSourceFlags sourceFlag,
     _Outptr_result_maybenull_ JsValueRef* exceptionValueRef);
