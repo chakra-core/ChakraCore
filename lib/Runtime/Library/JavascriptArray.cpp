@@ -3136,7 +3136,7 @@ namespace Js
             }
 
             bool converted;
-            if (JavascriptArray::IsAnyArray(aItem))
+            if (JavascriptArray::IsAnyArray(aItem) || remoteTypeIds[idxArg] == TypeIds_Array)
             {
                 if (JavascriptNativeIntArray::Is(aItem)) // Fast path
                 {
@@ -3156,7 +3156,6 @@ namespace Js
                     ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
                     return pVarDestArray;
                 }
-
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
@@ -3167,8 +3166,6 @@ namespace Js
             }
             else
             {
-                Assert(!JavascriptArray::IsAnyArray(aItem) && remoteTypeIds[idxArg] != TypeIds_Array);
-
                 if (TaggedInt::Is(aItem))
                 {
                     pDestArray->DirectSetItemAt(idxDest, (double)TaggedInt::ToInt32(aItem));
@@ -3327,9 +3324,52 @@ namespace Js
         pDestObj = ArraySpeciesCreate(args[0], 0, scriptContext);
         if (pDestObj)
         {
-            isInt = JavascriptNativeIntArray::Is(pDestObj);
-            isFloat = !isInt && JavascriptNativeFloatArray::Is(pDestObj); // if we know it is an int short the condition to avoid a function call
-            isArray = isInt || isFloat || JavascriptArray::Is(pDestObj);
+            // Check the thing that species create made. If it's a native array that can't handle the source
+            // data, convert it. If it's a more conservative kind of array than the source data, indicate that
+            // so that the data will be converted on copy.
+            if (isInt)
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    isArray = true;
+                }
+                else
+                {
+                    isInt = false;
+                    isFloat = JavascriptNativeFloatArray::Is(pDestObj);
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
+            else if (isFloat)
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    JavascriptNativeIntArray::ToNativeFloatArray(JavascriptNativeIntArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else
+                {
+                    isFloat = JavascriptNativeFloatArray::Is(pDestObj);
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
+            else
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    JavascriptNativeIntArray::ToVarArray(JavascriptNativeIntArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else if (JavascriptNativeFloatArray::Is(pDestObj))
+                {
+                    JavascriptNativeFloatArray::ToVarArray(JavascriptNativeFloatArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else
+                {
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
         }
 
         if (pDestObj == nullptr || isArray)
