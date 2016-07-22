@@ -6,19 +6,7 @@
 
 #include "TargetVer.h"
 #include "Warnings.h"
-
-//----------------------------------------------------------------------------------------------------
-// Chakra Core version
-//----------------------------------------------------------------------------------------------------
-#define CHAKRA_CORE_MAJOR_VERSION 1
-#define CHAKRA_CORE_MINOR_VERSION 2
-#define CHAKRA_CORE_VERSION_RELEASE 0
-#define CHAKRA_CORE_VERSION_PRERELEASE 0
-#define CHAKRA_CORE_VERSION_RELEASE_QFE 0
-
-#define CHAKRA_VERSION_RELEASE 0
-
-// NOTE: need to update the GUID in ByteCodeCacheReleaseFileVersion.h as well
+#include "ChakraCoreVersion.h"
 
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
