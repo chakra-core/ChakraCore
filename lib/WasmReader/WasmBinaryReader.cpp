@@ -10,11 +10,14 @@
 
 namespace Wasm
 {
-bool WasmBinaryReader::isInit = false;
-WasmTypes::Signature WasmBinaryReader::opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
-WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
 const WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { WasmTypes::WasmType::Void, WasmTypes::WasmType::I32, WasmTypes::WasmType::I64, WasmTypes::WasmType::F32, WasmTypes::WasmType::F64 };
-WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1];
+WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1] = {
+#define WASM_OPCODE(opname, opcode, token) \
+    WasmOp::wn##token,
+#include "WasmBinaryOpcodes.h"
+    WasmOp::wnFUNC_END,
+    WasmOp::wnLIMIT
+};
 
 namespace WasmTypes
 {
@@ -24,23 +27,6 @@ bool IsLocalType(WasmTypes::WasmType type)
     return (uint)(type - 1) < (WasmTypes::Limit - 1);
 }
 
-Signature::Signature() : args(nullptr), retType(LocalType::bAstLimit), argCount(0){}
-
-Signature::Signature(ArenaAllocator *alloc, uint count, ...)
-{
-    va_list arguments;
-    va_start(arguments, count);
-
-    Assert(count > 0);
-    argCount = count - 1;
-    retType = va_arg(arguments, LocalType);
-    args = AnewArray(alloc, LocalType, argCount);
-    for (uint i = 0; i < argCount; i++)
-    {
-        args[i] = va_arg(arguments, LocalType);
-    }
-    va_end(arguments);
-}
 } // namespace WasmTypes
 
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
@@ -235,7 +221,7 @@ WasmBinaryReader::PrintOps()
     {
         switch (ops[i])
         {
-#define WASM_OPCODE(opname, opcode, token, sig) \
+#define WASM_OPCODE(opname, opcode, token) \
     case opcode: \
         Output::Print(_u(#token ## "\r\n")); \
         break;
@@ -396,11 +382,11 @@ WasmBinaryReader::ASTNode()
         break;
     case wbNop:
         break;
-#define WASM_MEM_OPCODE(opname, opcode, token, sig) \
+#define WASM_MEM_OPCODE(opname, opcode, token) \
     case wb##opname: \
     m_currentNode.op = MemNode(op); \
     break;
-#define WASM_SIMPLE_OPCODE(opname, opcode, token, sig) \
+#define WASM_SIMPLE_OPCODE(opname, opcode, token) \
     case wb##opname: \
     m_currentNode.op = GetWasmToken(op); \
     break;
@@ -916,44 +902,6 @@ WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
     }
 }
 
-void
-WasmBinaryReader::Init(Js::ScriptContext * scriptContext)
-{
-    if (isInit)
-    {
-        return;
-    }
-    ArenaAllocator *alloc =  scriptContext->GetThreadContext()->GetThreadAlloc();
-    // initialize Op Signature table
-    {
-
-#define WASM_SIGNATURE(id, count, ...) \
-    AssertMsg(count >= 0 && count <= 3, "Invalid count for op signature"); \
-    AssertMsg(WasmTypes::bSig##id >= 0 && WasmTypes::bSig##id < WasmTypes::bSigLimit, "Invalid signature ID for op"); \
-    opSignatureTable[WasmTypes::bSig##id] = WasmTypes::Signature(alloc, count, __VA_ARGS__);
-
-#include "WasmBinaryOpcodes.h"
-    }
-
-    // initialize opcode to op signature map
-    {
-#define WASM_OPCODE(opname, opcode, token, sig) \
-    opSignature[wb##opname] = WasmTypes::bSig##sig;
-
-#include "WasmBinaryOpcodes.h"
-    }
-
-    // initialize binary opcodes to SExpr tokens  map
-    {
-#define WASM_OPCODE(opname, opcode, token, sig) \
-    binWasmOpToWasmOp[WasmBinOp::wb##opname] = WasmOp::wn##token;
-#include "WasmBinaryOpcodes.h"
-    binWasmOpToWasmOp[WasmBinOp::wbFuncEnd] = WasmOp::wnFUNC_END;
-    binWasmOpToWasmOp[WasmBinOp::wbLimit] = WasmOp::wnLIMIT;
-    }
-
-    isInit = true;
-}
 } // namespace Wasm
 
 #undef TRACE_WASM_DECODER

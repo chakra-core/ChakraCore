@@ -114,31 +114,3 @@ namespace Wasm
     };
 
 }
-
-#define FOREACH_WASMNODE_IN_LIST(node, head) \
-    Wasm::WasmNode * node; \
-    Wasm::WasmNode * wasmNodeList; \
-    if (head->op == wnLIST) \
-    { \
-        wasmNodeList = head; \
-        node = head->bin.lhs; \
-    } \
-    else \
-    { \
-        wasmNodeList = nullptr; \
-        node = head; \
-    } \
-    while (node != nullptr) \
-    {
-
-#define NEXT_WASMNODE_IN_LIST(node) \
-        if (wasmNodeList != nullptr && wasmNodeList->bin.rhs != nullptr) \
-        { \
-            wasmNodeList = wasmNodeList->bin.rhs; \
-            node = wasmNodeList->bin.lhs; \
-        } \
-        else \
-        { \
-            node = nullptr; \
-        } \
-    }

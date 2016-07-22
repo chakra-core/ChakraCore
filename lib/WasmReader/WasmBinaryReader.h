@@ -19,45 +19,12 @@ namespace Wasm
             bAstLimit
         };
 
-        // memory and global types in binary format
-        enum MemType {
-            bMemI8 = 0,
-            bMemU8 = 1,
-            bMemI16 = 2,
-            bMemU16 = 3,
-            bMemI32 = 4,
-            bMemU32 = 5,
-            bMemI64 = 6,
-            bMemU64 = 7,
-            bMemF32 = 8,
-            bMemF64 = 9,
-            bMemLimit
-        };
-
-        // for functions and opcodes
-        class Signature
-        {
-        public:
-            LocalType *args;
-            LocalType retType;
-            uint32 argCount;
-            Signature();
-            Signature(ArenaAllocator *alloc, uint count, ...);
-        };
-
-        enum OpSignatureId
-        {
-#define WASM_SIGNATURE(id, ...) bSig##id,
-#include "WasmBinaryOpcodes.h"
-            bSigLimit
-        };
-
     } // namespace WasmTypes
 
     // binary opcodes
     enum WasmBinOp
     {
-#define WASM_OPCODE(opname, opcode, token, sig) wb##opname = opcode,
+#define WASM_OPCODE(opname, opcode, token) wb##opname = opcode,
 #include "WasmBinaryOpcodes.h"
         wbFuncEnd,
         wbLimit
@@ -84,7 +51,6 @@ namespace Wasm
     {
     public:
         WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length);
-        static void Init(Js::ScriptContext* scriptContext);
 
         void InitializeReader();
         bool ReadNextSection(SectionCode nextSection);
@@ -156,10 +122,6 @@ namespace Wasm
 
     private:
         WasmModule* m_module;
-        static bool isInit;
-        static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
-        static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
-        // maps from binary format to sexpr codes
         // types
         static const Wasm::WasmTypes::WasmType binaryToWasmTypes[];
         // opcodes

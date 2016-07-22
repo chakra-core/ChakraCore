@@ -30,9 +30,6 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     funcOffset(0),
     importFuncOffset(0)
 {
-    // Initialize maps needed by binary reader
-    WasmBinaryReader::Init(scriptContext);
-
     m_reader->InitializeReader();
 }
 

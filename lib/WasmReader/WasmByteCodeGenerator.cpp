@@ -530,7 +530,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wnNYI:
         switch (GetReader()->GetLastBinOp())
         {
-#define WASM_OPCODE(opname, opcode, token, sig) \
+#define WASM_OPCODE(opname, opcode, token) \
     case opcode: \
         throw WasmCompilationException(_u("Operator " #opname## " NYI"));
         break;
