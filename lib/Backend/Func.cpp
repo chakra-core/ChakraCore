@@ -258,9 +258,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     const FunctionJITRuntimeInfo *const runtimeInfo,
     JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
-    Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
-    uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
-    Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter)
+    Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT)
 {
     bool rejit;
     do
@@ -268,9 +266,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         Func func(alloc, workItem, threadContextInfo,
             scriptContextInfo, outputData, runtimeInfo,
             polymorphicInlineCacheInfo, codeGenAllocators, numberAllocator,
-            codeGenProfiler, isBackgroundJIT, parentFunc,
-            postCallByteCodeOffset, returnValueRegSlot, isInlinedConstructor,
-            callSiteIdInParentFunc, isGetterSetter);
+            codeGenProfiler, isBackgroundJIT);
         try
         {
             func.TryCodegen();

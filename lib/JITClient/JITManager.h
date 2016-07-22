@@ -11,6 +11,8 @@ public:
     HRESULT ConnectRpcServer(__in DWORD processId, __in UUID connectionUuid);
 
     bool IsConnected() const;
+    bool IsOOPJITEnabled() const;
+    void EnableOOPJIT();
 
     ~JITManager();
 
@@ -72,6 +74,7 @@ private:
     HANDLE m_targetHandle;
     DWORD m_jitProcessId;
     UUID m_jitConnectionId;
+    bool m_oopJitEnabled;
 
     static JITManager s_jitManager;
 };

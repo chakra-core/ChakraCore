@@ -64,7 +64,7 @@ void ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread()
     ThreadContext * threadContext = static_cast<ThreadContext *>(entry->GetThreadContext());
     entries.Remove(entry);
 
-    if (threadContext != NULL && threadContext->GetIsThreadBound())
+    if (threadContext != NULL && threadContext->IsThreadBound())
     {
         ShutdownThreadContext(threadContext);
     }
@@ -106,7 +106,7 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 
             if (threadContext != NULL)
             {
-                if (threadContext->GetIsThreadBound())
+                if (threadContext->IsThreadBound())
                 {
                     ShutdownThreadContext(threadContext);
                     ThreadContextTLSEntry::ClearThreadContext(currentEntry, false);

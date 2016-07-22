@@ -16,14 +16,14 @@
 #endif
 
 class ThreadContext;
-class ThreadContextInfo;
+class ServerThreadContext;
 
 namespace Js
 {
     class PropertyRecord : public FinalizableObject
     {
         friend class ::ThreadContext;
-        friend class ::ThreadContextInfo;
+        friend class ::ServerThreadContext;
         template <int LEN>
         friend struct BuiltInPropertyRecord;
         friend class InternalPropertyRecords;

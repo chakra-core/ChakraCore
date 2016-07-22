@@ -161,7 +161,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     hasCatchHandler(FALSE),
     disableImplicitFlags(DisableImplicitNoFlag),
     hasCatchHandlerToUserCode(false),
-    propertyMap(nullptr),
     caseInvariantPropertySet(nullptr),
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
@@ -182,7 +181,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isProfilingUserCode(true),
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
-    isAllJITCodeInPreReservedRegion(true),
     tridentLoadAddress(nullptr),
     m_remoteThreadContextInfo(0),
     debugManager(nullptr)
@@ -195,6 +193,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , TTSnapHistoryLength(UINT32_MAX)
     , TTDLog(nullptr)
     , TTDInitializeTTDUriFunction(nullptr)
+    , m_propertyMap(nullptr)
     , TTDWriteInitializeFunction(nullptr)
     , TTDStreamFunctions({ 0 })
 #endif
@@ -304,9 +303,75 @@ void ThreadContext::SetStackProber(StackProber * stackProber)
     }
 }
 
-PBYTE ThreadContext::GetScriptStackLimit() const
+size_t ThreadContext::GetScriptStackLimit() const
 {
     return stackProber->GetScriptStackLimit();
+}
+
+HANDLE
+ThreadContext::GetProcessHandle() const
+{
+    return GetCurrentProcess();
+}
+
+intptr_t
+ThreadContext::GetThreadStackLimitAddr() const
+{
+    return (intptr_t)GetAddressOfStackLimitForCurrentThread();
+}
+
+intptr_t
+ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
+{
+    return (intptr_t)&X86_TEMP_SIMD[tempIndex];
+}
+
+intptr_t 
+ThreadContext::GetDisableImplicitFlagsAddr() const
+{
+    return (intptr_t)&disableImplicitFlags;
+}
+
+intptr_t
+ThreadContext::GetImplicitCallFlagsAddr() const
+{
+    return (intptr_t)&implicitCallFlags;
+}
+
+intptr_t
+ThreadContext::GetDebuggingFlagsAddr() const
+{
+    return this->debugManager->GetDebuggingFlagsAddr();
+}
+
+intptr_t
+ThreadContext::GetDebugStepTypeAddr() const
+{
+    return (intptr_t)this->debugManager->stepController.GetAddressOfStepType();
+}
+
+intptr_t
+ThreadContext::GetDebugFrameAddressAddr() const
+{
+    return (intptr_t)this->debugManager->stepController.GetAddressOfFrameAddress();
+}
+
+intptr_t
+ThreadContext::GetDebugScriptIdWhenSetAddr() const
+{
+    return (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
+}
+
+ptrdiff_t
+ThreadContext::GetChakraBaseAddressDifference() const
+{
+    return 0;
+}
+
+ptrdiff_t
+ThreadContext::GetCRTBaseAddressDifference() const
+{
+    return 0;
 }
 
 IActiveScriptProfilerHeapEnum* ThreadContext::GetHeapEnum()
@@ -419,10 +484,10 @@ ThreadContext::~ThreadContext()
             this->recyclableData->returnedValueList = nullptr;
         }
 
-        if (this->propertyMap != nullptr)
+        if (this->m_propertyMap != nullptr)
         {
-            HeapDelete(this->propertyMap);
-            this->propertyMap = nullptr;
+            HeapDelete(this->m_propertyMap);
+            this->m_propertyMap = nullptr;
         }
 
         // Unpin the memory for leak report so we don't report this as a leak.
@@ -695,7 +760,7 @@ Recycler* ThreadContext::EnsureRecycler()
 
         this->recyclableData.Root(RecyclerNewZ(newRecycler, RecyclableData, newRecycler), newRecycler);
 
-        if (this->GetIsThreadBound())
+        if (this->IsThreadBound())
         {
             newRecycler->SetIsThreadBound();
         }
@@ -784,15 +849,15 @@ ThreadContext::GetPropertyNameImpl(Js::PropertyId propertyId)
 
     int propertyIndex = propertyId - Js::PropertyIds::_none;
 
-    if (propertyIndex < 0 || propertyIndex > propertyMap->GetLastIndex())
+    if (propertyIndex < 0 || propertyIndex > m_propertyMap->GetLastIndex())
     {
         propertyIndex = 0;
     }
 
     const Js::PropertyRecord * propertyRecord = nullptr;
-    if (locked) { propertyMap->LockResize(); }
-    bool found = propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
-    if (locked) { propertyMap->UnlockResize(); }
+    if (locked) { m_propertyMap->LockResize(); }
+    bool found = m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
+    if (locked) { m_propertyMap->UnlockResize(); }
 
     AssertMsg(found && propertyRecord != nullptr, "using invalid propertyid");
     return propertyRecord;
@@ -813,6 +878,12 @@ ThreadContext::FindPropertyRecord(__in LPCWSTR propertyName, __in int propertyNa
     LeavePinnedScope();
 }
 
+Js::PropertyRecord const *
+ThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
+{
+    return GetPropertyNameLocked(propertyId);
+}
+
 const Js::PropertyRecord *
 ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameLength)
 {
@@ -821,11 +892,11 @@ ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameL
     if (IsDirectPropertyName(propertyName, propertyNameLength))
     {
         propertyRecord = propertyNamesDirect[propertyName[0]];
-        Assert(propertyRecord == propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
+        Assert(propertyRecord == m_propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
     }
     else
     {
-        propertyRecord = propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
+        propertyRecord = m_propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
     }
 
     return propertyRecord;
@@ -841,12 +912,12 @@ void ThreadContext::InitializePropertyMaps()
 {
     Assert(this->recycler != nullptr);
     Assert(this->recyclableData != nullptr);
-    Assert(this->propertyMap == nullptr);
+    Assert(this->m_propertyMap == nullptr);
     Assert(this->caseInvariantPropertySet == nullptr);
 
     try
     {
-        this->propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+        this->m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
 
         this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
 
@@ -861,11 +932,11 @@ void ThreadContext::InitializePropertyMaps()
         // Initialization failed, undo what was done above. Callees that throw must clean up after themselves. The recycler will
         // be trashed, so clear members that point to recyclable memory. Stuff in 'recyclableData' will be taken care of by the
         // recycler, and the 'recyclableData' instance will be trashed as well.
-        if (this->propertyMap != nullptr)
+        if (this->m_propertyMap != nullptr)
         {
-            HeapDelete(this->propertyMap);
+            HeapDelete(this->m_propertyMap);
         }
-        this->propertyMap = nullptr;
+        this->m_propertyMap = nullptr;
 
         this->caseInvariantPropertySet = nullptr;
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
@@ -928,7 +999,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     }
 #endif
 
-    this->propertyMap->EnsureCapacity();
+    this->m_propertyMap->EnsureCapacity();
 
     // Automatically bind direct (single-character) property names, so that they can be
     // stored in the direct property table
@@ -1019,9 +1090,9 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
 #endif
 
     // Add to the map
-    propertyMap->Add(propertyRecord);
+    m_propertyMap->Add(propertyRecord);
 
-    if (m_remoteThreadContextInfo)
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
     }
@@ -1166,7 +1237,7 @@ bool ThreadContext::IsActivePropertyId(Js::PropertyId pid)
     int propertyIndex = pid - Js::PropertyIds::_none;
 
     const Js::PropertyRecord * propertyRecord;
-    if (propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
+    if (m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
     {
         return true;
     }
@@ -1178,7 +1249,7 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
 
-    this->propertyMap->Remove(propertyRecord);
+    this->m_propertyMap->Remove(propertyRecord);
 
     PropertyRecordTrace(_u("Reclaimed property '%s' at 0x%08x, pid = %d\n"),
         propertyRecord->GetBuffer(), propertyRecord, propertyRecord->GetPropertyId());
@@ -1186,12 +1257,12 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 
 Js::PropertyId ThreadContext::GetNextPropertyId()
 {
-    return this->propertyMap->GetNextIndex() + Js::PropertyIds::_none;
+    return this->m_propertyMap->GetNextIndex() + Js::PropertyIds::_none;
 }
 
 Js::PropertyId ThreadContext::GetMaxPropertyId()
 {
-    auto maxPropertyId = this->propertyMap->Count() + Js::InternalPropertyIds::Count;
+    auto maxPropertyId = this->m_propertyMap->Count() + Js::InternalPropertyIds::Count;
     return maxPropertyId;
 }
 
@@ -1210,10 +1281,10 @@ void ThreadContext::CreateNoCasePropertyMap()
     // Thus, don't use BaseDictionary::Map here, as it cannot tolerate changes while mapping.
     // Instead, walk the PropertyRecord entries in index order.  This will work even if a GC occurs.
 
-    for (int propertyIndex = 0; propertyIndex <= this->propertyMap->GetLastIndex(); propertyIndex++)
+    for (int propertyIndex = 0; propertyIndex <= this->m_propertyMap->GetLastIndex(); propertyIndex++)
     {
         const Js::PropertyRecord * propertyRecord;
-        if (this->propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
+        if (this->m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
         {
             AddCaseInvariantPropertyRecord(propertyRecord);
         }
@@ -1512,18 +1583,18 @@ ThreadContext::IsOnStack(void const *ptr)
 #endif
 }
 
- PBYTE
+ size_t
  ThreadContext::GetStackLimitForCurrentThread() const
 {
     FAULTINJECT_SCRIPT_TERMINATION;
-    PBYTE limit = this->stackLimitForCurrentThread;
+    size_t limit = this->stackLimitForCurrentThread;
     Assert(limit == Js::Constants::StackLimitForScriptInterrupt
         || !this->GetStackProber()
         || limit == this->GetStackProber()->GetScriptStackLimit());
     return limit;
 }
 void
-ThreadContext::SetStackLimitForCurrentThread(PBYTE limit)
+ThreadContext::SetStackLimitForCurrentThread(size_t limit)
 {
     this->stackLimitForCurrentThread = limit;
 }
@@ -1532,9 +1603,9 @@ __declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if
 bool
 ThreadContext::IsStackAvailable(size_t size)
 {
-    PBYTE sp = (PBYTE)_AddressOfReturnAddress();
-    PBYTE stackLimit = this->GetStackLimitForCurrentThread();
-    bool stackAvailable = ((size_t)sp > size && (sp - size) > stackLimit);
+    size_t sp = (size_t)_AddressOfReturnAddress();
+    size_t stackLimit = this->GetStackLimitForCurrentThread();
+    bool stackAvailable = (sp > size && (sp - size) > stackLimit);
 
     // Verify that JIT'd frames didn't mess up the ABI stack alignment
     Assert(((uintptr_t)sp & (AutoSystemInfo::StackAlign - 1)) == (sizeof(void*) & (AutoSystemInfo::StackAlign - 1)));
@@ -1568,9 +1639,9 @@ __declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if
 bool
 ThreadContext::IsStackAvailableNoThrow(size_t size)
 {
-    PBYTE sp = (PBYTE)_AddressOfReturnAddress();
-    PBYTE stackLimit = this->GetStackLimitForCurrentThread();
-    bool stackAvailable = (sp > stackLimit) && ((size_t)sp > size) && ((sp - size) > stackLimit);
+    size_t sp = (size_t)_AddressOfReturnAddress();
+    size_t stackLimit = this->GetStackLimitForCurrentThread();
+    bool stackAvailable = (sp > stackLimit) && (sp > size) && ((sp - size) > stackLimit);
 
     FAULTINJECT_STACK_PROBE
 
@@ -1846,6 +1917,7 @@ ThreadContext::IsInAsyncHostOperation() const
 void
 ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
 {
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (m_remoteThreadContextInfo)
     {
         return;
@@ -1865,16 +1937,15 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
-    contextData.bailOutRegisterSaveSpace = (intptr_t)bailOutRegisterSaveSpace;
+    contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
     contextData.implicitCallFlagsAddr = (intptr_t)GetAddressOfImplicitCallFlags();
-    contextData.stringReplaceNameAddr = (intptr_t)Js::Constants::StringReplace;
     contextData.debuggingFlagsAddr = (intptr_t)this->debugManager->GetDebuggingFlags();
     contextData.debugStepTypeAddr = (intptr_t)this->debugManager->stepController.GetAddressOfStepType();
     contextData.debugFrameAddressAddr = (intptr_t)this->debugManager->stepController.GetAddressOfFrameAddress();
     contextData.debugScriptIdWhenSetAddr = (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
-    contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
-    contextData.isThreadBound = GetIsThreadBound();
+    contextData.scriptStackLimit = GetScriptStackLimit();
+    contextData.isThreadBound = IsThreadBound();
 
 #if _M_IX86 || _M_AMD64
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
@@ -1883,9 +1954,9 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
 
     // we may have populated propertyMap prior to initializing JIT connection
-    if (propertyMap != nullptr)
+    if (m_propertyMap != nullptr)
     {
-        propertyMap->Map([=](const Js::PropertyRecord * record)
+        m_propertyMap->Map([=](const Js::PropertyRecord * record)
         {
             JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)record);
         });
@@ -3639,28 +3710,31 @@ void DumpRecyclerObjectGraph()
 BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 {
     boolean result;
-    HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
-    if (FAILED(hr))
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        // TODO: OOP JIT, what to do in failure case?
-        Js::Throw::FatalInternalError();
+        HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
+        if (FAILED(hr))
+        {
+            // TODO: OOP JIT, what to do in failure case?
+            Js::Throw::FatalInternalError();
+        }
+        return result;
     }
-    return result;
+    else
+    {
+        PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->GetPreReservedVirtualAllocator();
+        if (preReservedVirtualAllocWrapper->IsInRange(pCodeAddr))
+        {
+            return TRUE;
+        }
 
-#if 0 // TODO: OOP JIT, non-oop jit
-    PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->GetPreReservedVirtualAllocator();
-    if (preReservedVirtualAllocWrapper->IsInRange(pCodeAddr))
-    {
-        return TRUE;
+        if (!this->IsAllJITCodeInPreReservedRegion())
+        {
+            CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
+            return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
+        }
+        return FALSE;
     }
-
-    if (!this->IsAllJITCodeInPreReservedRegion())
-    {
-        CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
-        return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
-    }
-    return FALSE;
-#endif
 }
 #endif
 
@@ -3873,7 +3947,7 @@ uint ThreadContext::GetRandomNumber()
 #ifdef ENABLE_JS_ETW
 void ThreadContext::EtwLogPropertyIdList()
 {
-    propertyMap->Map([&](const Js::PropertyRecord* propertyRecord){
+    m_propertyMap->Map([&](const Js::PropertyRecord* propertyRecord){
         EventWriteJSCRIPT_HOSTING_PROPERTYID_LIST(propertyRecord, propertyRecord->GetBuffer());
     });
 }
@@ -4098,12 +4172,6 @@ Js::DelayLoadWinCoreMemory * ThreadContext::GetWinCoreMemoryLibrary()
 }
 #endif
 
-Js::DelayLoadWinCoreProcessThreads * ThreadContext::GetWinCoreProcessThreads()
-{
-    delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
-    return &delayLoadWinCoreProcessThreads;
-}
-
 Js::DelayLoadWinRtString * ThreadContext::GetWinRTStringLibrary()
 {
     delayLoadWinRtString.EnsureFromSystemDirOnly();
@@ -4241,7 +4309,7 @@ void ThreadContext::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSet
 
 uint ThreadContext::GetHighestPropertyNameIndex() const
 {
-    return propertyMap->GetLastIndex() + 1 + Js::InternalPropertyIds::Count;
+    return m_propertyMap->GetLastIndex() + 1 + Js::InternalPropertyIds::Count;
 }
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)

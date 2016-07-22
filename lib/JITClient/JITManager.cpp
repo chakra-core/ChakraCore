@@ -24,6 +24,7 @@ JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_rpcServerProcessHandle(nullptr),
     m_jitProcessId(0),
+    m_oopJitEnabled(false),
     m_jitConnectionId()
 {
 }
@@ -48,6 +49,8 @@ JITManager::CreateBinding(
     __in UUID * connectionUuid,
     __out RPC_BINDING_HANDLE * bindingHandle)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     RPC_STATUS status;
     RPC_SECURITY_QOS_V4 securityQOS; // TODO: V5???
     DWORD attemptCount = 0;
@@ -152,12 +155,29 @@ JITManager::CreateBinding(
 bool
 JITManager::IsConnected() const
 {
+    Assert(JITManager::IsOOPJITEnabled());
     return m_rpcBindingHandle != nullptr && m_rpcServerProcessHandle != nullptr && m_targetHandle != nullptr;
+}
+
+void
+JITManager::EnableOOPJIT()
+{
+    m_oopJitEnabled = true;
+}
+
+bool
+JITManager::IsOOPJITEnabled() const
+{
+    return m_oopJitEnabled;
 }
 
 HANDLE
 JITManager::GetJITTargetHandle() const
 {
+    if (!IsOOPJITEnabled())
+    {
+        return GetCurrentProcess();
+    }
     Assert(m_targetHandle != nullptr);
     return m_targetHandle;
 }
@@ -165,6 +185,8 @@ JITManager::GetJITTargetHandle() const
 HRESULT
 JITManager::ConnectRpcServer(DWORD proccessId, UUID connectionUuid)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr;
     HANDLE localServerProcessHandle = nullptr;
     WCHAR* connectionUuidString = nullptr;
@@ -228,8 +250,11 @@ JITManager::DisconnectRpcServer()
         return hr;
     }
 
+    Assert(JITManager::IsOOPJITEnabled());
+
     CleanupProcess((intptr_t)m_targetHandle);
 
+    // TODO: OOP JIT, host should do this
     RpcTryExcept
     {
         ClientShutdown(m_rpcBindingHandle);
@@ -265,6 +290,8 @@ JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
     __out intptr_t * threadContextInfoAddress)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -283,6 +310,8 @@ HRESULT
 JITManager::CleanupProcess(
     __in intptr_t processHandle)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -301,6 +330,8 @@ HRESULT
 JITManager::CleanupThreadContext(
     __in intptr_t threadContextInfoAddress)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -321,6 +352,8 @@ JITManager::AddDOMFastPathHelper(
     __in intptr_t funcInfoAddr,
     __in int helper)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -340,6 +373,8 @@ JITManager::AddPropertyRecord(
     __in intptr_t threadContextInfoAddress,
     __in PropertyRecordIDL * propertyRecord)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -359,6 +394,8 @@ JITManager::InitializeScriptContext(
     __in ScriptContextDataIDL * data,
     __out intptr_t * scriptContextInfoAddress)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -377,6 +414,8 @@ HRESULT
 JITManager::CleanupScriptContext(
     __in intptr_t scriptContextInfoAddress)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -396,6 +435,8 @@ JITManager::FreeAllocation(
     __in intptr_t threadContextInfoAddress,
     __in intptr_t address)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -416,6 +457,8 @@ JITManager::IsNativeAddr(
     __in intptr_t address,
     __out boolean * result)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
@@ -437,6 +480,8 @@ JITManager::RemoteCodeGenCall(
     __in intptr_t scriptContextInfoAddress,
     __out JITOutputIDL *jitData)
 {
+    Assert(JITManager::IsOOPJITEnabled());
+
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {

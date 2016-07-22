@@ -113,7 +113,7 @@ namespace Js
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;
 #endif
 
-        static const PBYTE StackLimitForScriptInterrupt;
+        static const size_t StackLimitForScriptInterrupt;
 
 
         // Arguments object created on the fly is 1 slot before the frame

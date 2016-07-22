@@ -57,6 +57,7 @@ HRESULT JsInitializeRpcServer(
     {
         return status;
     }
+    JITManager::GetJITManager()->EnableOOPJIT();
 
     status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, FALSE);
 
@@ -88,9 +89,9 @@ ServerInitializeThreadContext(
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
     /* [out] */ __RPC__out __int3264 *threadContextRoot)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ThreadContextInfo * contextInfo = HeapNew(ThreadContextInfo, threadContextData);
+    ServerThreadContext * contextInfo = HeapNew(ServerThreadContext, threadContextData);
 
     *threadContextRoot = (intptr_t)contextInfo;
     return S_OK;
@@ -110,9 +111,9 @@ ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextRoot)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
 
     while (threadContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(threadContextInfo);
@@ -126,9 +127,9 @@ ServerAddPropertyRecord(
     /* [in] */ __int3264 threadContextRoot,
     /* [in] */ PropertyRecordIDL * propertyRecord)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
     threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecord);
 
     return S_OK;
@@ -141,9 +142,9 @@ ServerAddDOMFastPathHelper(
     /* [in] */ __int3264 funcInfoAddr,
     /* [in] */ int helper)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
+    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
     scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
 
     return S_OK;
@@ -155,9 +156,9 @@ ServerInitializeScriptContext(
     /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
     /* [out] */ __RPC__out __int3264 * scriptContextInfoAddress)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ScriptContextInfo * contextInfo = HeapNew(ScriptContextInfo, scriptContextData);
+    ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData);
     *scriptContextInfoAddress = (intptr_t)contextInfo;
     return S_OK;
 }
@@ -167,7 +168,7 @@ ServerCleanupScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 scriptContextRoot)
 {
-    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
+    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
     while (scriptContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(scriptContextInfo);
     return S_OK;
@@ -179,8 +180,8 @@ ServerFreeAllocation(
     /* [in] */ __int3264 threadContextInfo,
     /* [in] */ __int3264 address)
 {
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-    ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
     bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
     return succeeded ? S_OK : E_FAIL;
 }
@@ -192,7 +193,7 @@ ServerIsNativeAddr(
     /* [in] */ __int3264 address,
     /* [out] */ boolean * result)
 {
-    ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
+    ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
     // TODO: OOP JIT, prereserved segment
     CustomHeap::CodePageAllocators::AutoLock autoLock(context->GetCodePageAllocators());
     *result = context->GetCodePageAllocators()->IsInNonPreReservedPageAllocator((void*)address);
@@ -208,9 +209,9 @@ ServerRemoteCodeGen(
     /* [out] */ JITOutputIDL *jitData)
 {
     UNREFERENCED_PARAMETER(binding);
-    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextInfoAddress);
+    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextInfoAddress);
 
 
     PageAllocator backgroundPageAllocator(threadContextInfo->GetAllocationPolicyManager(), Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
@@ -219,7 +220,7 @@ ServerRemoteCodeGen(
             PageAllocator::DefaultMaxFreePageCount));
 
     NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
-    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextInfoAddress);
+    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
 
     scriptContextInfo->BeginJIT(); // TODO: OOP JIT, improve how we do this
     threadContextInfo->BeginJIT();

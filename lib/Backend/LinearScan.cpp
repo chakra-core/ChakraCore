@@ -1316,7 +1316,7 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->isLoopBody = topFunc->IsLoopBody();
         globalBailOutRecordDataTable->returnValueRegSlot = func->returnValueRegSlot;
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
-        globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpace();
+        globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY

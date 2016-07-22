@@ -9,11 +9,10 @@
 class ThreadContextInfo
 {
 public:
-    ThreadContextInfo(ThreadContextDataIDL * data);
-    ~ThreadContextInfo();
+    ThreadContextInfo();
+
     intptr_t GetNullFrameDisplayAddr() const;
     intptr_t GetStrictNullFrameDisplayAddr() const;
-    intptr_t GetThreadStackLimitAddr() const;
 
     intptr_t GetAbsDoubleCstAddr() const;
     intptr_t GetAbsFloatCstAddr() const;
@@ -40,17 +39,6 @@ public:
     intptr_t GetMantissaMaskAddr() const;
     intptr_t GetExponentMaskAddr() const;
 
-    intptr_t GetDisableImplicitFlagsAddr() const;
-    intptr_t GetImplicitCallFlagsAddr() const;
-    intptr_t GetBailOutRegisterSaveSpace() const;
-    intptr_t GetStringReplaceNameAddr() const;
-    intptr_t GetStringMatchNameAddr() const;
-
-    intptr_t GetDebuggingFlagsAddr() const;
-    intptr_t GetDebugStepTypeAddr() const;
-    intptr_t GetDebugFrameAddressAddr() const;
-    intptr_t GetDebugScriptIdWhenSetAddr() const;
-
     intptr_t GetX86AbsMaskF4Addr() const;
     intptr_t GetX86AbsMaskD2Addr() const;
     intptr_t GetX86NegMaskF4Addr() const;
@@ -69,51 +57,51 @@ public:
     intptr_t GetX86TwoPower31I4Addr() const;
     intptr_t GetX86NegTwoPower31F4Addr() const;
     intptr_t GetX86FourLanesMaskAddr(uint8 minorityLane) const;
-    intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const;
 
-    size_t GetScriptStackLimit() const;
-
-    bool IsThreadBound() const;
-
-    PageAllocator * GetPageAllocator();
-    CodeGenAllocators * GetCodeGenAllocators();
-    AllocationPolicyManager * GetAllocationPolicyManager();
-    CustomHeap::CodePageAllocators * GetCodePageAllocators();
-    HANDLE GetProcessHandle() const;
+    intptr_t GetStringReplaceNameAddr() const;
+    intptr_t GetStringMatchNameAddr() const;
 
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
 
-    ptrdiff_t GetChakraBaseAddressDifference() const;
-    ptrdiff_t GetCRTBaseAddressDifference() const;
+    virtual HANDLE GetProcessHandle() const = 0;
 
-    Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId);
+    virtual bool IsThreadBound() const = 0;
+
+    virtual size_t GetScriptStackLimit() const = 0;
+
+    virtual intptr_t GetThreadStackLimitAddr() const = 0;
+
+    virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
+
+    virtual intptr_t GetDisableImplicitFlagsAddr() const = 0;
+    virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
+    virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
+
+    virtual intptr_t GetDebuggingFlagsAddr() const = 0;
+    virtual intptr_t GetDebugStepTypeAddr() const = 0;
+    virtual intptr_t GetDebugFrameAddressAddr() const = 0;
+    virtual intptr_t GetDebugScriptIdWhenSetAddr() const = 0;
+
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
+
+    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
 
     bool IsCFGEnabled();
-    void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void BeginJIT();
     void EndJIT();
     bool IsJITActive();
 
-private:
-    intptr_t GetRuntimeChakraBaseAddress() const;
-    intptr_t GetRuntimeCRTBaseAddress() const;
-    uint m_activeJITCount;
+#ifdef ENABLE_GLOBALIZATION
+    Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
-    PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
-    CustomHeap::CodePageAllocators m_codePageAllocators;
-    PageAllocator m_pageAlloc;
-    AllocationPolicyManager m_policyManager;
-    CodeGenAllocators m_codeGenAlloc;
+#endif
 
-    ThreadContextDataIDL m_threadContextData;
+private:
 
-    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
-        DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> JITPropertyMap;
-    JITPropertyMap * m_propertyMap;
-    intptr_t m_jitChakraBaseAddress;
-    intptr_t m_jitCRTBaseAddress;
+    uint m_activeJITCount;
     bool m_isAllJITCodeInPreReservedRegion;
 };
 

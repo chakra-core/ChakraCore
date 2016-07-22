@@ -20,7 +20,7 @@ public:
 
     void SetSideEffects(SideEffects se);
     SideEffects GetSideEffects() { return sideEffects; }
-    SideEffects * GetAddressOfSideEffects() { return &sideEffects; }
+    intptr_t GetAddressOfSideEffects() const { return (intptr_t)&sideEffects; }
 
     bool IsEnabledArraySetElementFastPath() const;
     void DisableArraySetElementFastPath();

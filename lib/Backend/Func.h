@@ -237,10 +237,7 @@ public:
         const FunctionJITRuntimeInfo *const runtimeInfo,
         JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
-        Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
-        uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
-        Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
-        Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
+        Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT);
 
     int32 StackAllocate(int size);
     int32 StackAllocate(StackSym *stackSym, int size);

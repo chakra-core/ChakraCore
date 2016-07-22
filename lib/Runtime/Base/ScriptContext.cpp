@@ -380,6 +380,7 @@ namespace Js
 
         if (m_remoteScriptContextAddr != 0)
         {
+            Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
             JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
         }
 
@@ -4410,6 +4411,170 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
             builtInLibraryFunctions->Item(entryPoint, function);
         }
+    }
+
+    intptr_t ScriptContext::GetNullAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetNull();
+    }
+
+    intptr_t ScriptContext::GetUndefinedAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetUndefined();
+    }
+
+    intptr_t ScriptContext::GetTrueAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetTrue();
+    }
+
+    intptr_t ScriptContext::GetFalseAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetFalse();
+    }
+
+    intptr_t ScriptContext::GetUndeclBlockVarAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetUndeclBlockVar();
+    }
+
+    intptr_t ScriptContext::GetEmptyStringAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetEmptyString();
+    }
+
+    intptr_t ScriptContext::GetNegativeZeroAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetNegativeZero();
+    }
+
+    intptr_t ScriptContext::GetNumberTypeStaticAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetNumberTypeStatic();
+    }
+
+    intptr_t ScriptContext::GetStringTypeStaticAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetStringTypeStatic();
+    }
+
+    intptr_t ScriptContext::GetObjectTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetObjectType();
+    }
+
+    intptr_t ScriptContext::GetObjectHeaderInlinedTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetObjectHeaderInlinedType();
+    }
+
+    intptr_t ScriptContext::GetRegexTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetRegexType();
+    }
+
+    intptr_t ScriptContext::GetArrayTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetArrayType();
+    }
+
+    intptr_t ScriptContext::GetNativeIntArrayTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetNativeIntArrayType();
+    }
+
+    intptr_t ScriptContext::GetNativeFloatArrayTypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetNativeFloatArrayType();
+    }
+
+    intptr_t ScriptContext::GetArrayConstructorAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetArrayConstructor();
+    }
+
+    intptr_t ScriptContext::GetCharStringCacheAddr() const
+    {
+        return (intptr_t)&GetLibrary()->GetCharStringCache();
+    }
+
+    intptr_t ScriptContext::GetSideEffectsAddr() const
+    {
+        return optimizationOverrides.GetAddressOfSideEffects();
+    }
+
+    intptr_t ScriptContext::GetArraySetElementFastPathVtableAddr() const
+    {
+        return optimizationOverrides.GetArraySetElementFastPathVtable();
+    }
+
+    intptr_t ScriptContext::GetIntArraySetElementFastPathVtableAddr() const
+    {
+        return optimizationOverrides.GetIntArraySetElementFastPathVtable();
+    }
+
+    intptr_t ScriptContext::GetFloatArraySetElementFastPathVtableAddr() const
+    {
+        return optimizationOverrides.GetFloatArraySetElementFastPathVtable();
+    }
+
+    intptr_t ScriptContext::GetBuiltinFunctionsBaseAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetBuiltinFunctions();
+    }
+
+    intptr_t ScriptContext::GetLibraryAddr() const
+    {
+        return (intptr_t)GetLibrary();
+    }
+
+    intptr_t ScriptContext::GetNumberAllocatorAddr() const
+    {
+        return (intptr_t)&numberAllocator;
+    }
+
+    intptr_t ScriptContext::GetRecyclerAddr() const
+    {
+        return (intptr_t)GetRecycler();
+    }
+
+    bool ScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
+    {
+        return GetRecycler()->AllowNativeCodeBumpAllocation();
+    }
+
+    bool ScriptContext::IsSIMDEnabled() const
+    {
+        return GetConfig()->IsSimdjsEnabled();
+    }
+
+    intptr_t ScriptContext::GetAddr() const
+    {
+        return (intptr_t)this;
+    }
+
+    intptr_t ScriptContext::GetVTableAddress(VTableValue vtableType) const
+    {
+        Assert(vtableType < VTableValue::Count);
+        return GetLibrary()->GetVTableAddresses()[vtableType];
+    }
+
+    bool ScriptContext::IsRecyclerVerifyEnabled() const
+    {
+#ifdef RECYCLER_MEMORY_VERIFY
+        return recycler->VerifyEnabled() != FALSE;
+#else
+        return false;
+#endif
+    }
+
+    uint ScriptContext::GetRecyclerVerifyPad() const
+    {
+#ifdef RECYCLER_MEMORY_VERIFY
+        return recycler->GetVerifyPad();
+#else
+        return 0;
+#endif
     }
 
     JavascriptFunction* ScriptContext::GetBuiltInLibraryFunction(JavascriptMethod entryPoint)

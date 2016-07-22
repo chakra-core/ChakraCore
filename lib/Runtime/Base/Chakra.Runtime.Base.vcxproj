@@ -69,6 +69,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeBasePch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ScriptContextInfo.cpp" />
+    <ClCompile Include="ThreadContextInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CompactCounters.h" />
@@ -97,6 +99,7 @@
     <ClInclude Include="RegexPatternMruMap.h" />
     <ClInclude Include="ScriptContext.h" />
     <ClInclude Include="ScriptContextBase.h" />
+    <ClInclude Include="ScriptContextInfo.h" />
     <ClInclude Include="ScriptContextOptimizationOverrideInfo.h" />
     <ClInclude Include="ScriptContextProfiler.h" />
     <ClInclude Include="ScriptMemoryDumper.h" />
@@ -107,6 +110,7 @@
     <ClInclude Include="ThreadBoundThreadContextManager.h" />
     <ClInclude Include="ThreadConfigFlagsList.h" />
     <ClInclude Include="ThreadContext.h" />
+    <ClInclude Include="ThreadContextInfo.h" />
     <ClInclude Include="ThreadContextTlsEntry.h" />
     <ClInclude Include="ThreadServiceWrapper.h" />
     <ClInclude Include="ThreadServiceWrapperBase.h" />

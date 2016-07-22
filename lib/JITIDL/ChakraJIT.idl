@@ -201,7 +201,7 @@ typedef struct ThreadContextDataIDL
     __int3264 crtBaseAddress;
     __int3264 threadStackLimitAddr;
     __int3264 scriptStackLimit;
-    __int3264 bailOutRegisterSaveSpace;
+    __int3264 bailOutRegisterSaveSpaceAddr;
     __int3264 disableImplicitFlagsAddr;
     __int3264 implicitCallFlagsAddr;
     __int3264 debuggingFlagsAddr;

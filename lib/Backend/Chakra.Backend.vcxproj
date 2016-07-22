@@ -196,8 +196,6 @@
     <ClCompile Include="JITTimeFunctionBody.cpp" />
     <ClCompile Include="JITTimeProfileInfo.cpp" />
     <ClCompile Include="JITTimeScriptContext.cpp" />
-    <ClCompile Include="ScriptContextInfo.cpp" />
-    <ClCompile Include="ThreadContextInfo.cpp" />
     <ClCompile Include="JITTimeWorkItem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -379,8 +377,6 @@
     <ClInclude Include="JITTimeScriptContext.h" />
     <ClInclude Include="JITType.h" />
     <ClInclude Include="JITTypeHandler.h" />
-    <ClInclude Include="ScriptContextInfo.h" />
-    <ClInclude Include="ThreadContextInfo.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />
     <ClInclude Include="JnHelperMethodList.h" />
@@ -401,6 +397,8 @@
     <ClInclude Include="Region.h" />
     <ClInclude Include="SccLiveness.h" />
     <ClInclude Include="Security.h" />
+    <ClInclude Include="ServerScriptContext.h" />
+    <ClInclude Include="ServerThreadContext.h" />
     <ClInclude Include="SimpleJitProfilingHelpers.h" />
     <ClInclude Include="SimpleLayout.h" />
     <ClInclude Include="Sym.h" />
@@ -449,6 +447,8 @@
     <ClCompile Include="JITTimePolymorphicInlineCacheInfo.cpp" />
     <ClCompile Include="JITType.cpp" />
     <ClCompile Include="JITTypeHandler.cpp" />
+    <ClCompile Include="ServerScriptContext.cpp" />
+    <ClCompile Include="ServerThreadContext.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

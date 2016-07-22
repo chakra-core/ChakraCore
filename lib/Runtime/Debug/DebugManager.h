@@ -46,6 +46,7 @@ namespace Js
         void Close();
 
         DebuggingFlags* GetDebuggingFlags();
+        intptr_t GetDebuggingFlagsAddr() const;
 
         bool IsAtDispatchHalt() const { return this->isAtDispatchHalt; }
         void SetDispatchHalt(bool set) { this->isAtDispatchHalt = set; }

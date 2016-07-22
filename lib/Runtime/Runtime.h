@@ -470,6 +470,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(feature, m_scriptContext)
 #endif
+#include "Base/ThreadContextInfo.h"
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"
@@ -480,6 +481,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Base/ScriptContextOptimizationOverrideInfo.h"
 #include "Base/ScriptContextBase.h"
+#include "Base/ScriptContextInfo.h"
 #include "Base/ScriptContext.h"
 #include "Base/LeaveScriptObject.h"
 #include "Base/PropertyRecord.h"

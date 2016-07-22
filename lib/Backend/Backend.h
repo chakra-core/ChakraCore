@@ -116,12 +116,11 @@ enum IRDumpFlags
 #include "JITTimePolymorphicInlineCacheInfo.h"
 #include "CodeGenWorkItemType.h"
 #include "CodeGenAllocators.h"
-#include "ThreadContextInfo.h"
 #include "JITTimeConstructorCache.h"
 #include "JITTypeHandler.h"
 #include "JITType.h"
 #include "JITObjTypeSpecFldInfo.h"
-#include "ScriptContextInfo.h"
+#include "ServerScriptContext.h"
 #include "JITOutput.h"
 #include "JITTimeScriptContext.h"
 #include "AsmJsJITInfo.h"
@@ -160,6 +159,7 @@ enum IRDumpFlags
 
 #include "PDataManager.h"
 
+#include "ServerThreadContext.h"
 #include "CaseNode.h"
 #include "SwitchIRBuilder.h"
 #include "IRBuilder.h"

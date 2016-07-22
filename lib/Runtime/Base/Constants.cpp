@@ -26,9 +26,9 @@ const char16 Constants::StringReplace[] = _u("String.prototype.replace");
 const char16 Constants::StringMatch[] = _u("String.prototype.match");
 
 #ifdef _M_AMD64
-const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffffffffffff;
+const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffffffffffff;
 #else
-const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffff;
+const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffff;
 #endif
 
 #pragma warning(push)

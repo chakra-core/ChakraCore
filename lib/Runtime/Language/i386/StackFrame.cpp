@@ -17,7 +17,7 @@ X86StackFrame::InitializeByFrameId(void * frame, ScriptContext* scriptContext)
 
     this->stackCheckCodeHeight =
         scriptContext->GetThreadContext()->DoInterruptProbe() ? stackCheckCodeHeightWithInterruptProbe
-        : scriptContext->GetThreadContext()->GetIsThreadBound() ? stackCheckCodeHeightThreadBound
+        : scriptContext->GetThreadContext()->IsThreadBound() ? stackCheckCodeHeightThreadBound
         : stackCheckCodeHeightNotThreadBound;
 
     return Next();
@@ -35,7 +35,7 @@ X86StackFrame::InitializeByReturnAddress(void * returnAddress, ScriptContext* sc
 
     this->stackCheckCodeHeight =
         scriptContext->GetThreadContext()->DoInterruptProbe() ? stackCheckCodeHeightWithInterruptProbe
-        : scriptContext->GetThreadContext()->GetIsThreadBound() ? stackCheckCodeHeightThreadBound
+        : scriptContext->GetThreadContext()->IsThreadBound() ? stackCheckCodeHeightThreadBound
         : stackCheckCodeHeightNotThreadBound;
 
     while (Next())

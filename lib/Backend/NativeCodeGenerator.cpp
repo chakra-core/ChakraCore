@@ -907,15 +907,31 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
-    HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
-        workItem->GetJITData(),
-        scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
-        scriptContext->GetRemoteScriptAddr(),
-        &jitWriteData);
-    if (hr != S_OK)
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        Js::Throw::InternalError();
+        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
+            workItem->GetJITData(),
+            scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
+            scriptContext->GetRemoteScriptAddr(),
+            &jitWriteData);
+        if (hr != S_OK)
+        {
+            Js::Throw::InternalError();
+        }
     }
+    else
+    {
+        CodeGenAllocators *const allocators =
+            foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
+        NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", pageAllocator, Js::Throw::OutOfMemory);
+
+        JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
+
+        Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
+            scriptContext, &jitWriteData, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
+            allocators, nullptr, nullptr, !foreground);
+    }
+
 
     workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
 
