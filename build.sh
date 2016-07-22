@@ -13,6 +13,13 @@ SAFE_RUN() {
     echo $SF_RETURN_VALUE
 }
 
+ERROR_EXIT() {
+    if [[ $? != 0 ]]; then
+      echo $($1 2>&1)
+      exit 1;
+    fi
+}
+
 PRINT_USAGE() {
     echo ""
     echo "[ChakraCore Build Script Help]"
@@ -23,6 +30,7 @@ PRINT_USAGE() {
     echo "      --cxx=PATH      Path to Clang++ (see example below)"
     echo "      --cc=PATH       Path to Clang   (see example below)"
     echo "  -d, --debug         Debug build (by default Release build)"
+    echo "      --embed-icu     Download and embed ICU statically"
     echo "  -h, --help          Show help"
     echo "      --icu=PATH      Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]  Multicore build, allow N jobs at once"
@@ -53,6 +61,17 @@ MULTICORE_BUILD=""
 ICU_PATH=""
 STATIC_LIBRARY=""
 WITHOUT_FEATURES=""
+
+if [ -f "/proc/version" ]; then
+    OS_LINUX=1
+    PROC_INFO=$(cat /proc/version)
+    if [[ $PROC_INFO =~ 'Ubuntu' || $PROC_INFO =~ 'Debian'
+       || $PROC_INFO =~ 'Linaro' ]]; then
+        OS_APT_GET=1
+    fi
+else
+    OS_UNIX=1
+fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -104,6 +123,40 @@ while [[ $# -gt 0 ]]; do
     --icu=*)
         ICU_PATH=$1
         ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:6}"
+        ;;
+
+    --embed-icu)
+        if [ ! -d "${CHAKRACORE_DIR}/deps/icu/source/output" ]; then
+            SAFE_RUN `mkdir -p ${CHAKRACORE_DIR}/deps/`
+
+            ICU_URL="http://source.icu-project.org/repos/icu/icu/tags/release-55-1"
+            cd "${CHAKRACORE_DIR}/deps/";
+            ABS_DIR=`pwd`
+            if [ ! -d "${ABS_DIR}/icu/" ]; then
+                echo "Downloading ICU ${ICU_URL}"
+                if [ ! -f "/usr/bin/svn" ]; then
+                    echo -e "\nYou should install 'svn' client in order to use this feature"
+                    if [ $OS_APT_GET == 1 ]; then
+                        echo "tip: Try 'sudo apt-get install subversion'"
+                    fi
+                    exit 1
+                fi
+                svn export -q $ICU_URL icu
+                ERROR_EXIT "rm -rf ${ABS_DIR}/icu/"
+            fi
+
+            cd "${ABS_DIR}/icu/source";./configure --with-data-packaging=static\
+                    --prefix="${ABS_DIR}/icu/source/output/"\
+                    --enable-static --disable-shared --with-library-bits=64\
+                    --disable-icuio --disable-layout\
+                    CXXFLAGS="-fPIC" CFLAGS="-fPIC"
+
+            ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
+            make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
+            ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
+            cd "${ABS_DIR}/../"
+        fi
+        ICU_PATH="-DCC_EMBED_ICU=1"
         ;;
 
     -n | --ninja)

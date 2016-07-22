@@ -3,7 +3,7 @@ add_library (ChakraCore SHARED
   ConfigParserExternals.cpp
   TestHooks.cpp
 )
-  
+
 target_include_directories (
   ChakraCore PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -23,6 +23,7 @@ target_include_directories (
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(ICULIB "icuuc")
   set(LINKER_START_GROUP
     -Wl,--start-group
     -Wl,--whole-archive
@@ -31,6 +32,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_END_GROUP
     -Wl,--no-whole-archive
     -Wl,--end-group
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(ICULIB "icucore")
+endif()
+
+if(CC_EMBED_ICU)
+  set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
+  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  set(ICULIB
+    ${ICUUC}
+    ${ICU18}
+    ${ICUDATA}
     )
 endif()
 
@@ -45,17 +60,8 @@ set(lib_target "${lib_target}"
   pthread
   stdc++
   dl
+  ${ICULIB}
   )
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}"
-    icuuc
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(lib_target "${lib_target}"
-    icucore
-    )
-endif() # Linux ?
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(lib_target "${lib_target}"
@@ -72,7 +78,7 @@ if(NOT CC_XCODE_PROJECT)
   if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CC_LIB_EXT "dylib")
   endif()
-  
+
   add_custom_command(TARGET ChakraCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
