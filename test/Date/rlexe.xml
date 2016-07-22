@@ -13,7 +13,8 @@
       <files>DateGetSet.js</files>
       <baseline>DateGetSet.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_jenkins</tags>
+      <!-- OSX doesn't provide expected DST info for year 35816 -->
+      <tags>exclude_jenkins,exclude_mac</tags>
     </default>
   </test>
   <test>
@@ -43,7 +44,8 @@
       <files>parseISO.js</files>
       <baseline>parseISO.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_jenkins</tags>
+      <!-- OSX doesn't provide expected DST for minus years -->
+      <tags>exclude_jenkins,exclude_mac</tags>
     </default>
   </test>
   <test>
@@ -89,7 +91,9 @@
       <baseline>formatting.baseline</baseline>
       <compile-flags>-ForceOldDateAPI</compile-flags>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_jenkins</tags>
+      <!-- on DST pass Win OldDateAPI jumps back to 01:00 after 01:59 -->
+      <!-- todo: Do not force OLDDateAPI ? -->
+      <tags>exclude_jenkins,exclude_mac</tags>
     </default>
     <condition order="1" type="include">
       <os>win8</os>
