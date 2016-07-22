@@ -954,7 +954,6 @@ public:
         callSequence(nullptr),
         capturedValuesCandidate(nullptr),
         capturedValues(nullptr),
-        capturedArgs(nullptr),
         changedSyms(nullptr),
         hasCSECandidates(false),
         curFunc(func),
@@ -1008,7 +1007,6 @@ public:
 
     CapturedValues *                        capturedValuesCandidate;
     CapturedValues *                        capturedValues;
-    BVSparse<JitArenaAllocator> *           capturedArgs;
     BVSparse<JitArenaAllocator> *           changedSyms;
 
     uint                                    inlinedArgOutCount;
@@ -1306,6 +1304,9 @@ private:
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
     void                    CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const toData, BasicBlock *const fromBlock);
     void                    CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
+
+    template <typename CapturedList, typename CapturedItemsAreEqual>
+    void                    MergeCapturedValues(GlobOptBlockData * toData, SListBase<CapturedList> * toList, SListBase<CapturedList> * fromList, CapturedItemsAreEqual itemsAreEqual);
     void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
     void                    DeleteBlockData(GlobOptBlockData *data);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
@@ -1316,6 +1317,7 @@ private:
     bool                    OptTagChecks(IR::Instr *instr);
     void                    TryOptimizeInstrWithFixedDataProperty(IR::Instr * * const pInstr);
     bool                    CheckIfPropOpEmitsTypeCheck(IR::Instr *instr, IR::PropertySymOpnd *opnd);
+    IR::PropertySymOpnd *   CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func);
     bool                    FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block = nullptr, bool updateExistingValue = false, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr);
     void                    FinishOptHoistedPropOps(Loop * loop);
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
@@ -1643,6 +1645,14 @@ private:
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
+    void                    GlobOpt::CaptureValuesFromScratch(
+                                BasicBlock * block,
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+    void                    GlobOpt::CaptureValuesIncremental(
+                                BasicBlock * block,
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
     void                    CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter);
     void                    CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArenaAllocator *allocator);
     void                    CaptureByteCodeSymUses(IR::Instr * instr);
