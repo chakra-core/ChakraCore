@@ -929,7 +929,25 @@ PageAllocatorBase<T>::FillFreePages(__in void * address, uint pageCount)
 #endif
     if (ZeroPages())
     {
-        memset(address, 0, AutoSystemInfo::PageSize * pageCount);
+        //
+        // Do memset via non-temporal store to avoid evicting existing processor cache.
+        // This helps low-end machines with limited cache size.
+        //
+#if defined(_M_IX86) || defined(_M_X64)
+        if (CONFIG_FLAG(ZeroMemoryWithNonTemporalStore))
+        {
+            size_t writeBytes = 0;
+            __m128i simdZero = _mm_setzero_si128();
+            for (__m128i * p = (__m128i *)address; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
+            {
+                _mm_stream_si128(p, simdZero);
+            }
+        }
+        else
+#endif
+        {
+            memset(address, 0, AutoSystemInfo::PageSize * pageCount);
+        }
     }
 #endif
 
@@ -1554,15 +1572,26 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         }
         PageSegmentBase<T> * segment = freePageEntry->segment;
         uint pageCount = freePageEntry->pageCount;
-        memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
 
-        // Expriment code to perform non-temporal write to zero pages instead of memset, the idea is keeping cache untouched.
-        // Haven't observed perf win for low-end machines, just keep it here to be re-used later.
-        // size_t writeBytes = 0;
-        // for (__m128i * p = (__m128i *)freePageEntry; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
-        // {
-        //     _mm_stream_si128(p, simdZero);
-        // }
+        //
+        // Do memset via non-temporal store to avoid evicting existing processor cache.
+        // This helps low-end machines with limited cache size.
+        //
+#if defined(_M_IX86) || defined(_M_X64)
+        if (CONFIG_FLAG(ZeroMemoryWithNonTemporalStore))
+        {
+            size_t writeBytes = 0;
+            __m128i simdZero = _mm_setzero_si128();
+            for (__m128i * p = (__m128i *)freePageEntry; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
+            {
+                _mm_stream_si128(p, simdZero);
+            }
+        }
+        else
+#endif
+        {
+            memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
+        }
 
         QueuePages(freePageEntry, pageCount, segment);
     }
