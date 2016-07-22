@@ -48,6 +48,7 @@ typedef BYTE* ChakraBytePtr;
 #define _Pre_writable_byte_size_(byteLength)
 #define _Outptr_result_buffer_(byteLength)
 #define _Outptr_result_bytebuffer_(byteLength)
+#define _Outptr_result_maybenull_
 #define _Outptr_result_z_
 #define _Ret_maybenull_
 #define _Out_writes_(size)
@@ -70,6 +71,16 @@ typedef BYTE* ChakraBytePtr;
 #include <stdint.h>  // for uintptr_t
 typedef uintptr_t ChakraCookie;
 typedef unsigned char* ChakraBytePtr;
+
+// xplat-todo: try reduce usage of following types
+#if !defined(__MSTYPES_DEFINED)
+typedef uint32_t UINT32;
+typedef int64_t INT64;
+typedef void* HANDLE;
+typedef unsigned char BYTE;
+typedef UINT32 DWORD;
+#endif
+
 #endif //  defined(_WIN32) && defined(_MSC_VER)
 
     /// <summary>
