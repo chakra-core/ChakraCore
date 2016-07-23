@@ -821,7 +821,7 @@
     <default>
       <files>generators-deferred.js</files>
       <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -serialized</compile-flags>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_forceserialized</tags>
     </default>
   </test>
   <test>

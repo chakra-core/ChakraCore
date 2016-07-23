@@ -18,6 +18,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>array_init2.js</files>
       <baseline>array_init2.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>
@@ -616,7 +617,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_cache_index_overflow.js</files>
-      <tags>BugFix,require_backend</tags>
+      <tags>BugFix,require_backend,exclude_forceserialized</tags>
       <compile-flags>-force:copyonaccessarray -testtrace:CopyOnAccessArray</compile-flags>
       <baseline>CopyOnAccessArray_cache_index_overflow.baseline</baseline>
     </default>

@@ -431,17 +431,17 @@ goto :main
   )
   if "%_TESTCONFIG%"=="forceserialized" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceserialized
-    set EXTRA_RL_FLAGS=
+    set EXTRA_RL_FLAGS=-nottags:exclude_forceserialized
     set _exclude_serialized=-nottags:exclude_serialized
   )
   if "%_TESTCONFIG%"=="mediumlayout" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -MediumByteCodeLayout -forceserialized
-    set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout
+    set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout -nottags:exclude_forceserialized
     set _exclude_serialized=-nottags:exclude_serialized
   )
   if "%_TESTCONFIG%"=="largelayout" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -LargeByteCodeLayout -forceserialized
-    set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout
+    set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout -nottags:exclude_forceserialized
     set _exclude_serialized=-nottags:exclude_serialized
   )
 
