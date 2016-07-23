@@ -5690,6 +5690,13 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         }
         originalPropertySym = sym->AsPropertySym();
 
+        //Don't copy-prop for cases like foo.arguments
+        //We need new copies of the arguments object for accesses like foo.arguments - So copy-proping is not allowed.
+        if (instr->m_opcode == Js::OpCode::LdFld && originalPropertySym->m_propertyId == Js::PropertyIds::arguments)
+        {
+            return nullptr;
+        }
+
         Value *const objectValue = FindValue(originalPropertySym->m_stackSym);
         opnd->AsSymOpnd()->SetPropertyOwnerValueType(
             objectValue ? objectValue->GetValueInfo()->Type() : ValueType::Uninitialized);
