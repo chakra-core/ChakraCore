@@ -159,6 +159,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>defineProperty.js</files>
       <baseline>defineProperty.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>
@@ -172,6 +173,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>defineIndexProperty.js</files>
       <baseline>defineIndexProperty.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>

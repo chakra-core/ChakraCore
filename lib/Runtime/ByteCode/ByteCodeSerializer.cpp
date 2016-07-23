@@ -790,7 +790,7 @@ public:
             opStart = reader.GetIP();
             opStart; // For prefast. It can't figure out that opStart is captured in saveBlock above.
             LayoutSize layoutSize;
-            OpCodeAsmJs op = (OpCodeAsmJs)reader.ReadOp(layoutSize);
+            OpCodeAsmJs op = reader.ReadAsmJsOp(layoutSize);
             if (op == OpCodeAsmJs::EndOfBlock)
             {
                 saveBlock();
@@ -868,13 +868,18 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Float32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Bool32x4_1Float32x4_2)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Float32x4_2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Bool32x4_1Float32x4_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Int4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3Int4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Float1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int16x8_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int8x16_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Uint8x16_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Uint32x4_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Uint16x8_1);
                 //DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float32x4_1);
@@ -889,6 +894,11 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_3Int4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2Int2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Int8x16_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Int16x8_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Uint8x16_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Uint16x8_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Uint32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int32x4_1Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Int1Float1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Float32x4_1Int1);
@@ -1182,6 +1192,8 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Class);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementRootU);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(ElementScopedC);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(ElementScopedC2);
                 DEFAULT_LAYOUT(BrProperty);
                 DEFAULT_LAYOUT(BrEnvProperty);
                 DEFAULT_LAYOUT(BrLocalProperty);

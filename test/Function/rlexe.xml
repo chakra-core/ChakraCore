@@ -381,7 +381,7 @@
     <default>
       <files>StackArgsWithFormals.js</files>
       <compile-flags>-mic:1 -off:simpleJit -trace:stackargformalsopt</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,exclude_fre,exclude_nonative,require_backend</tags>
+      <tags>exclude_dynapogo,exclude_ship,exclude_fre,exclude_nonative,require_backend,exclude_forceserialized</tags>
       <baseline>StackArgsWithFormals.baseline</baseline>
     </default>
   </test>

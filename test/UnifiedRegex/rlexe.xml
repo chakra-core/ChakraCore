@@ -143,6 +143,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>propertyString.js</files>
       <baseline>propertyString.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>
