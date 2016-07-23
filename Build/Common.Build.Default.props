@@ -63,6 +63,7 @@
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
+    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>    
     <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>

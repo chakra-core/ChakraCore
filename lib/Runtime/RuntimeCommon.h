@@ -214,7 +214,7 @@ namespace JSON
 #define JS_DISPLAY_STRING_NAN           _u("NaN")
 #define JS_DISPLAY_STRING_DATE          _u("Date")
 #define JS_DISPLAY_STRING_INVALID_DATE  _u("Invalid Date")
-#define JS_DISPLAY_STRING_FUNCTION_ANONYMOUS        _u("\012function() {\012    [native code]\012}\012")
+#define JS_DISPLAY_STRING_FUNCTION_ANONYMOUS        _u("function() {\n    [native code]\n}")
 #define JS_DISPLAY_STRING_FUNCTION_HEADER           _u("function ")
 #define JS_DISPLAY_STRING_FUNCTION_BODY             _u("() { [native code] }")
 

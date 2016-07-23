@@ -115,54 +115,58 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
 
 def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
-        ['debug', 'release'].each { buildType ->
-            def config = "linux_${buildType}"
-            config = (configTag == null) ? config : "${configTag}_${config}"
+        ['debug', 'test', 'release'].each { buildType ->
+            [true, false].each { staticBuild ->
+                def config = "linux_${buildType}"
+                config = (configTag == null) ? config : "${configTag}_${config}"
+                config = staticBuild ? "${config}_static" : config
 
-            // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
-            def jobName = Utilities.getFullJobName(project, config, isPR)
+                // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
+                def jobName = Utilities.getFullJobName(project, config, isPR)
 
-            def testableConfig = buildType in ['debug']
+                def testableConfig = buildType in ['debug', 'test']
 
-            def infoScript = 'bash jenkins/get_system_info.sh'
-            def debugFlag = buildType == 'debug' ? '--debug' : ''
-            def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
-            def testScript = "bash test/runtests.sh"
+                def infoScript = 'bash jenkins/get_system_info.sh'
+                def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
+                def staticFlag = staticBuild ? "--static" : ""
+                def buildScript = "bash ./build.sh ${staticFlag} -j=`nproc` ${buildFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+                def testScript = "bash test/runtests.sh"
 
-            def newJob = job(jobName) {
-                steps {
-                    shell(infoScript)
-                    shell(buildScript)
-                    if (testableConfig) {
-                        shell(testScript)
+                def newJob = job(jobName) {
+                    steps {
+                        shell(infoScript)
+                        shell(buildScript)
+                        if (testableConfig) {
+                            shell(testScript)
+                        }
                     }
                 }
-            }
 
-            def archivalString = "BuildLinux/build.log"
-            Utilities.addArchival(newJob, archivalString,
-                '', // no exclusions from archival
-                true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
-                false) // archiveOnlyIfSuccessful=false ~= archiveAlways
+                def archivalString = "BuildLinux/build.log"
+                Utilities.addArchival(newJob, archivalString,
+                    '', // no exclusions from archival
+                    true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
+                    false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-            Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
-            Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+                Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
-            if (nonDefaultTaskSetup == null) {
-                if (isPR) {
-                    def osTag = machineTypeToOSTagMap.get(machine)
-                    // Set up checks which apply to PRs targeting any branch
-                    Utilities.addGithubPRTriggerForBranch(newJob, linuxBranch, "${osTag} ${config}")
+                if (nonDefaultTaskSetup == null) {
+                    if (isPR) {
+                        def osTag = machineTypeToOSTagMap.get(machine)
+                        // Set up checks which apply to PRs targeting any branch
+                        Utilities.addGithubPRTriggerForBranch(newJob, linuxBranch, "${osTag} ${config}")
+                    } else {
+                        Utilities.addGithubPushTrigger(newJob)
+                    }
                 } else {
-                    Utilities.addGithubPushTrigger(newJob)
+                    // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
+                    // These jobs will only be configured for the branch specified below,
+                    // which is the name of the branch netci.groovy was processed for.
+                    // See list of such branches at:
+                    // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
+                    nonDefaultTaskSetup(newJob, isPR, config)
                 }
-            } else {
-                // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
-                // These jobs will only be configured for the branch specified below,
-                // which is the name of the branch netci.groovy was processed for.
-                // See list of such branches at:
-                // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
-                nonDefaultTaskSetup(newJob, isPR, config)
             }
         }
     }

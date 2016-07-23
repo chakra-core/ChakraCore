@@ -11,7 +11,6 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
-    JsExperimentalApiRunModule
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue
@@ -104,3 +103,14 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+    JsRunScriptUtf8
+    JsSerializeScriptUtf8
+    JsRunSerializedScriptUtf8
+    JsGetPropertyIdFromNameUtf8
+    JsStringFree
+    JsDiagEvaluateUtf8
+    JsParseScriptUtf8
+    JsParseScriptWithAttributesUtf8
+    JsStringToPointerUtf8Copy
+    JsPointerToStringUtf8
+    JsGetPropertyNameFromIdUtf8Copy

@@ -36,7 +36,7 @@ var tests = [
             assert.areEqual('foo'.padStart(3), 'foo', "No padding added if maxLength (first argument) is equal to the length of actual string");
             assert.areEqual('foo'.padStart(4), ' foo', "String with one ' ' (SPACE) as pad is returned");
             assert.areEqual('foo'.padStart(10), '       foo', "String of length 10, with spaces filled as padding, is returned");
-            assert.areEqual('foo'.padStart(10, ''), '       foo', "Empty fillString - string of length 10, with spaces filled as padding, is returned");
+            assert.areEqual('foo'.padStart(10, ''), 'foo', "No padding added if the fillString is empty string");
             assert.areEqual('foo'.padStart(10, undefined), '       foo', "'undefined' fillString - string of length 10, with spaces filled as padding, is returned");
             assert.areEqual('foo'.padStart(10, ' '), '       foo', "fillString as one space - string of length 10, with spaces filled as padding, is returned");
             assert.areEqual('foo'.padStart(4, '123'), '1foo', "String of length 4, with only one character from fillString added as a padding, is returned");
@@ -52,7 +52,7 @@ var tests = [
             assert.areEqual('foo'.padEnd(3), 'foo', "No padding added if maxLength (first argument) is equal to the length of actual string");
             assert.areEqual('foo'.padEnd(4), 'foo ', "String with one ' ' (SPACE) as pad is returned");
             assert.areEqual('foo'.padEnd(10), 'foo       ', "String of length 10, with spaces filled as padding, is returned");
-            assert.areEqual('foo'.padEnd(10, ''), 'foo       ', "Empty fillString - string of length 10, with spaces filled as padding, is returned");
+            assert.areEqual('foo'.padEnd(10, ''), 'foo', "No padding added if the fillString is empty string");
             assert.areEqual('foo'.padEnd(10, undefined), 'foo       ', "'undefined' fillString - string of length 10, with spaces filled as padding, is returned");
             assert.areEqual('foo'.padEnd(10, ' '), 'foo       ', "fillString as one space - string of length 10, with spaces filled as padding, is returned");
             assert.areEqual('foo'.padEnd(4, '123'), 'foo1', "String of length 4, with only one character from fillString added as a padding, is returned");

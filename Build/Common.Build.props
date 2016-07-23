@@ -9,6 +9,9 @@
 
       <PreprocessorDefinitions Condition="'$(RuntimeLib)'=='static_library'">%(PreprocessorDefinitions);USE_STATIC_RUNTIMELIB</PreprocessorDefinitions>
 
+      <!-- Add any preprocessor definitions passed using msbuild environment -->
+      <PreprocessorDefinitions Condition="'$(AdditionalPreprocessorDefinitions)'!=''">%(PreprocessorDefinitions);$(AdditionalPreprocessorDefinitions)</PreprocessorDefinitions>
+      
       <!-- /W4 -->
       <WarningLevel>Level4</WarningLevel>
       <!-- /WX -->

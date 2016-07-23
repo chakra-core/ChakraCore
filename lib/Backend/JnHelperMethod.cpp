@@ -154,7 +154,7 @@ GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 
 // TODO:  Remove this define once makes it into WINNT.h
 #ifndef DECLSPEC_GUARDIGNORE
-#if (_MSC_FULL_VER >= 170065501)
+#if (_MSC_FULL_VER >= 170065501) && !defined(__clang__)
 #define DECLSPEC_GUARDIGNORE  __declspec(guard(ignore))
 #else
 #define DECLSPEC_GUARDIGNORE
@@ -165,7 +165,7 @@ GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 // Import function ptr require dynamic initialization, and cause the table to be in read-write memory.
 // Additionally, all function ptrs are automatically marked as safe CFG addresses by the compiler.
 // __declspec(guard(ignore)) can be used on methods to have the compiler not mark these as valid CFG targets.
-DECLSPEC_GUARDIGNORE __declspec(noinline) intptr_t GetNonTableMethodAddress(ThreadContextInfo * context, JnHelperMethod helperMethod)
+DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextInfo * context, JnHelperMethod helperMethod)
 {
     switch (helperMethod)
     {

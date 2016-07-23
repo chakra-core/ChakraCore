@@ -117,15 +117,9 @@ DefaultRecyclerCollectionWrapper::DisposeObjects(Recycler * recycler)
 
 static void* GetStackBase();
 
-#ifdef _MSC_VER
-template __forceinline char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
-template __forceinline char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
-template __forceinline _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
-#else
-template __attribute__((always_inline)) char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
-template __attribute__((always_inline)) char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
-template __attribute__((always_inline)) void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
-#endif
+template _ALWAYSINLINE char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
+template _ALWAYSINLINE char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
+template _ALWAYSINLINE _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
 
 Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void (*outOfMemoryFunc)(), Js::ConfigFlagsTable& configFlagsTable) :
     collectionState(CollectionStateNotCollecting),
@@ -1101,14 +1095,10 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
 
-    // xplat-todo: reenable this Assert once GetThreadId is implemented on
-    // non-Win32 platforms
-#ifdef _WIN32
     // Either the mainThreadHandle is null (we're not thread bound)
     // or we should be calling this function on the main script thread
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
-#endif
 
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 

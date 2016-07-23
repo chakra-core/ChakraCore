@@ -59,7 +59,7 @@
   </test>
   <test>
     <default>
-      <files>parseWithGC.js</files>
+      <files>parseWithGc.js</files>
       <compile-flags>-ForceGCAfterJSONParse</compile-flags>
       <tags>exclude_fre</tags>
     </default>

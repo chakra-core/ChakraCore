@@ -165,7 +165,7 @@ namespace Js
         static DWORD GetCharStringCacheOffset() { return offsetof(JavascriptLibrary, charStringCache); }
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
-        void SetGlobalObject(GlobalObject* globalObject) {globalObject = globalObject; }
+        void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
 
@@ -185,6 +185,7 @@ namespace Js
         DynamicType * generatorConstructorPrototypeObjectType;
         DynamicType * constructorPrototypeObjectType;
         DynamicType * heapArgumentsType;
+        DynamicType * heapArgumentsTypeStrictMode;
         DynamicType * activationObjectType;
         DynamicType * arrayType;
         DynamicType * nativeIntArrayType;
@@ -242,6 +243,7 @@ namespace Js
         DynamicType * stdCallFunctionWithDeferredPrototypeType;
         DynamicType * idMappedFunctionWithPrototypeType;
         DynamicType * externalConstructorFunctionWithDeferredPrototypeType;
+        DynamicType * defaultExternalConstructorFunctionWithDeferredPrototypeType;
         DynamicType * boundFunctionType;
         DynamicType * regexConstructorType;
         DynamicType * crossSiteDeferredPrototypeFunctionType;
@@ -520,7 +522,7 @@ namespace Js
                               bindRefChunkEnd(nullptr),
                               dynamicFunctionReference(nullptr)
         {
-            globalObject = globalObject;
+            this->globalObject = globalObject;
         }
 
         void Initialize(ScriptContext* scriptContext, GlobalObject * globalObject);
@@ -836,7 +838,7 @@ namespace Js
         FinalizableObject* GetPinnedJsrtContextObject();
         void EnqueueTask(Var taskVar);
 
-        HeapArgumentsObject* CreateHeapArguments(Var frameObj, uint formalCount);
+        HeapArgumentsObject* CreateHeapArguments(Var frameObj, uint formalCount, bool isStrictMode = false);
         JavascriptArray* CreateArray();
         JavascriptArray* CreateArray(uint32 length);
         JavascriptArray *CreateArrayOnStack(void *const stackAllocationPointer);

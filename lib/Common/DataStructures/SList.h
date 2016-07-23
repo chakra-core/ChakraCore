@@ -201,6 +201,22 @@ public:
             return nullptr;
         }
 
+        template <typename TAllocator, typename TParam1, typename TParam2>
+        TData * InsertNodeBefore(TAllocator * allocator, TParam1 param1, TParam2 param2)
+        {
+            Assert(last != nullptr);
+            Node * newNode = AllocatorNew(TAllocator, allocator, Node, param1, param2);
+            if (newNode)
+            {
+                newNode->Next() = last->Next();
+                const_cast<NodeBase *>(last)->Next() = newNode;
+                const_cast<SListBase *>(this->list)->IncrementCount();
+                last = newNode;
+                return &newNode->data;
+            }
+            return nullptr;
+        }
+
         template <typename TAllocator>
         bool InsertBefore(TAllocator * allocator, TData const& data)
         {
@@ -223,6 +239,12 @@ public:
             node->Next() = toList->Next();
             toList->Next() = node;
             toList->IncrementCount();
+        }
+
+        void SetNext(SListBase * newNext)
+        {
+            Assert(last != nullptr);
+            const_cast<NodeBase *>(last)->Next() = newNext;
         }
 
     private:
@@ -648,7 +670,7 @@ public:
 };
 
 #define _FOREACH_LIST_ENTRY_EX(List, T, Iterator, iter, data, list) \
-    List<T>::Iterator iter(list); \
+    _TYPENAME List<T>::Iterator iter(list); \
     while (iter.Next()) \
     { \
         T& data = iter.Data();

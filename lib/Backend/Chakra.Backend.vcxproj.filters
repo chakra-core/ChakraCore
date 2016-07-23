@@ -124,6 +124,7 @@
     <ClCompile Include="JITTimePolymorphicInlineCache.cpp" />
     <ClCompile Include="ServerThreadContext.cpp" />
     <ClCompile Include="ServerScriptContext.cpp" />
+    <ClCompile Include="BackendApi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />

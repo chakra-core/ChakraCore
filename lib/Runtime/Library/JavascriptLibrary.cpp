@@ -530,6 +530,11 @@ namespace Js
         // Initialize Array/Argument types
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
+
+        DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
+        heapArgumentsTypeStrictMode = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
+            dictTypeHandlerForArgumentsInStrictMode, false, false);
+
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -664,6 +669,8 @@ namespace Js
         idMappedFunctionWithPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::ExternalFunctionThunk,
             &SharedIdMappedFunctionWithPrototypeTypeHandler, true, true);
         externalConstructorFunctionWithDeferredPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::ExternalFunctionThunk,
+            Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredInitializer>::GetDefaultInstance(), true, true);
+        defaultExternalConstructorFunctionWithDeferredPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::DefaultExternalFunctionThunk,
             Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredInitializer>::GetDefaultInstance(), true, true);
 
         if (config->IsES6FunctionNameEnabled())
@@ -1063,6 +1070,8 @@ namespace Js
             // Clear the weak reference dictionary so we don't need to clean them
             // during PostCollectCallBack before Dispose deleting the script context.
             scriptContext->ResetWeakReferenceDictionaryList();
+            scriptContext->SetIsFinalized();
+            scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
         }
     }
 
@@ -1137,7 +1146,7 @@ namespace Js
         generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
         asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
         functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
-        xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("\012function anonymous() {\012    [x-domain code]\012}\012"));
+        xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("function anonymous() {\n    [x-domain code]\n}"));
         invalidDateString = CreateStringFromCppLiteral(_u("Invalid Date"));
         objectTypeDisplayString = CreateStringFromCppLiteral(_u("object"));
         functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
@@ -3793,6 +3802,11 @@ namespace Js
             propertyCount += 2;
         }
 
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            propertyCount++;
+        }
+
         typeHandler->Convert(objectConstructor, mode, propertyCount);
 
         library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
@@ -3806,6 +3820,11 @@ namespace Js
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::defineProperty, &JavascriptObject::EntryInfo::DefineProperty, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertyDescriptor.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyDescriptor, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptor, 2));
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertyDescriptors.GetOriginalEntryPoint(),
+                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyDescriptors, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptors, 1));
+        }
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::DefineProperties.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::defineProperties, &JavascriptObject::EntryInfo::DefineProperties, 2));
         library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::create, &JavascriptObject::EntryInfo::Create, 2);
@@ -4102,11 +4121,8 @@ namespace Js
 
         library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
 
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
-        {
             builtinFuncs[BuiltinFunction::JavascriptString_PadStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padStart, &JavascriptString::EntryInfo::PadStart, 1);
             builtinFuncs[BuiltinFunction::JavascriptString_PadEnd] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padEnd, &JavascriptString::EntryInfo::PadEnd, 1);
-        }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -4448,16 +4464,18 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
-
-        // Make sure the actual entry point is never null.
-        if (entryPoint == nullptr)
+        
+        JavascriptExternalFunction* function = nullptr;
+        if (entryPoint != nullptr)
         {
-            entryPoint = Js::RecyclableObject::DefaultExternalEntryPoint;
+             function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint,
+                externalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
         }
-
-        JavascriptExternalFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint,
-            externalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
-
+        else
+        {
+            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, 
+                defaultExternalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
+        }
         function->SetFunctionNameId(TaggedInt::ToVarUnchecked(nameId));
 
         return function;
@@ -5594,15 +5612,26 @@ namespace Js
                     ) / InlineSlotCountIncrement];
     }
 
-    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount)
+    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
-        AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
+        AssertMsg(heapArgumentsType && heapArgumentsTypeStrictMode, "Where's heapArgumentsType?");
 
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
+        
+        DynamicType * argumentsType = nullptr;
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, heapArgumentsType);
+        if (isStrictMode)
+        {
+            argumentsType = heapArgumentsTypeStrictMode;
+        }
+        else
+        {
+            argumentsType = heapArgumentsType;
+        }
+
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()
@@ -6822,6 +6851,10 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(defineProperty, JavascriptObject::EntryDefineProperty);
         REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptor, JavascriptObject::EntryGetOwnPropertyDescriptor);
+        if (scriptContext->GetConfig()->IsESObjectGetOwnPropertyDescriptorsEnabled())
+        {
+            REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptors, JavascriptObject::EntryGetOwnPropertyDescriptors);
+        }
 
         REG_OBJECTS_LIB_FUNC(defineProperties, JavascriptObject::EntryDefineProperties);
         REG_OBJECTS_LIB_FUNC(create, JavascriptObject::EntryCreate);
@@ -7157,11 +7190,8 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC2(_symbolIterator, _u("[Symbol.iterator]"), JavascriptString::EntrySymbolIterator);
 
-        if (config.IsES7BuiltinsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(padStart, JavascriptString::EntryPadStart);
-            REG_OBJECTS_LIB_FUNC(padEnd, JavascriptString::EntryPadEnd);
-        }
+        REG_OBJECTS_LIB_FUNC(padStart, JavascriptString::EntryPadStart);
+        REG_OBJECTS_LIB_FUNC(padEnd, JavascriptString::EntryPadEnd);
 
         return hr;
     }

@@ -338,7 +338,7 @@ namespace TTD
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetOwnPropertyNamesInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            Js::Var res = Js::JavascriptOperators::GetOwnPropertyNames(var, ctx);
+            Js::JavascriptArray* res = Js::JavascriptOperators::GetOwnPropertyNames(var, ctx);
 
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetOwnPropertyNamesInfoActionTag>(ctx, evt, res);
         }
@@ -348,7 +348,7 @@ namespace TTD
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetOwnPropertySymbolsInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            Js::Var res = Js::JavascriptOperators::GetOwnPropertySymbols(var, ctx);
+            Js::JavascriptArray* res = Js::JavascriptOperators::GetOwnPropertySymbols(var, ctx);
 
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetOwnPropertySymbolsInfoActionTag>(ctx, evt, res);
         }
@@ -605,7 +605,7 @@ namespace TTD
             CompileScriptException se;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                function = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
+                function = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, (LoadScriptFlag)(cpInfo->LoadFlag & ~LoadScriptFlag::LoadScriptFlag_Utf8Source));
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(function != nullptr, "Something went wrong");

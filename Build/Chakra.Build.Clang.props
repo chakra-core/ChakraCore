@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalOptions>
+        %(AdditionalOptions)
+        -msse4.1
+        -Qunused-arguments
+        -Wno-unknown-pragmas
+        -Wno-writable-strings
+        -Wno-int-to-void-pointer-cast
+        -Wno-unused-parameter
+        -Wno-switch
+        -Wno-sign-compare
+        -Wno-missing-declarations
+        -Wno-missing-braces
+        -Wno-reorder
+        -Wno-pointer-bool-conversion
+        -Wno-delete-non-virtual-dtor
+        -Wno-deprecated-declarations
+        -Wno-missing-field-initializers
+        -Wno-ignored-qualifiers
+        -Wno-mismatched-tags
+        -Wno-invalid-token-paste
+        -Wno-invalid-offsetof
+        -Wno-inconsistent-missing-override
+        -Wno-int-to-pointer-cast
+        -Wno-address-of-temporary
+        -Wno-self-assign
+        -Wno-overloaded-virtual
+        -Wno-tautological-undefined-compare
+        -Wno-char-subscripts
+        -Wno-logical-not-parentheses
+        -Wno-infinite-recursion
+        -Wno-undefined-inline
+        -Wno-format
+        -Wno-unused-variable
+        -Wno-unused-value
+        -Wno-unused-private-field
+        -Wno-enum-compare
+        -Wno-null-conversion
+        -Wno-sizeof-pointer-memaccess
+        -Wno-assume
+        -Wno-invalid-noreturn
+        -Wno-tautological-constant-out-of-range-compare
+        -Wno-c++11-narrowing
+        -Wno-uninitialized
+        -Wno-return-type
+        -Wno-unused-local-typedef
+        -Wno-logical-op-parentheses
+        -Wno-dynamic-class-memaccess
+        -Wno-non-pod-varargs
+        -Wno-undefined-bool-conversion
+        -Wno-microsoft-cast
+        -Wno-microsoft-enum-value
+        -Wno-microsoft-include
+        -Wno-microsoft-goto
+        -Wno-microsoft-sealed
+        -Wno-microsoft-template
+        -Wno-microsoft-unqualified-friend
+        -Wno-microsoft-extra-qualification
+        -Wno-microsoft-default-arg-redefinition
+        -Wno-microsoft-exception-spec
+        -v
+      </AdditionalOptions>
+      <!-- Clang doesn't support code view information, but will generate line number.  It only support /Z7 generation -->
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <ProgramDataBaseFileName />
+    </ClCompile>  
+  </ItemDefinitionGroup>
+
+  <Import Project="Chakra.Build.Clang.targets" />
+</Project>

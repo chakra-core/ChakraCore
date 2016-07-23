@@ -787,10 +787,11 @@ namespace Js
                 // missing lane args
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
-            Var lane0 = args[2];
-            Var lane1 = args[3];
+            Var lanes[2];
+            lanes[0] = args[2];
+            lanes[1] = args[3];
 
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[1], lane0, lane1, NULL, NULL, 2, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2>(args[1], args[1], lanes, 2, 2, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("swizzle"));
     }
@@ -815,10 +816,11 @@ namespace Js
                 // missing lane args
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
-            Var lane0 = args[3];
-            Var lane1 = args[4];
+            Var lanes[2];
+            lanes[0] = args[3];
+            lanes[1] = args[4];
 
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2>(args[1], args[2], lanes, 2, 4, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("shuffle"));
     }

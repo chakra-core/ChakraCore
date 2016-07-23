@@ -43,6 +43,11 @@ namespace Js
         void* GetHostDefined() const { return hostDefined; }
         void SetHostDefined(void* hostObj) { hostDefined = hostObj; }
 
+        void SetSpecifier(Var specifier) { this->normalizedSpecifier = specifier; }
+        Var GetSpecifier() const { return normalizedSpecifier; }
+
+        Var GetErrorObject() const { return errorObject; }
+
         bool WasParsed() const { return wasParsed; }
         void SetWasParsed() { wasParsed = true; }
         bool WasDeclarationInitialized() const { return wasDeclarationInitialized; }
@@ -65,6 +70,17 @@ namespace Js
             Assert((moduleRecord == nullptr) || (moduleRecord->magicNumber == moduleRecord->ModuleMagicNumber));
             return moduleRecord;
         }
+
+        static bool Is(void* hostModuleRecord)
+        {
+            SourceTextModuleRecord* moduleRecord = static_cast<SourceTextModuleRecord*>(hostModuleRecord);
+            if (moduleRecord != nullptr && (moduleRecord->magicNumber == moduleRecord->ModuleMagicNumber))
+            {
+                return true;
+            }
+            return false;
+        }
+
         static SourceTextModuleRecord* Create(ScriptContext* scriptContext);
 
         uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
@@ -89,6 +105,7 @@ namespace Js
         bool wasParsed;
         bool wasDeclarationInitialized;
         bool isRootModule;
+        bool hadNotifyHostReady;
         ParseNodePtr parseTree;
         Utf8SourceInfo* pSourceInfo;
         uint sourceIndex;
@@ -110,6 +127,7 @@ namespace Js
 
         Js::JavascriptFunction* rootFunction;
         void* hostDefined;
+        Var normalizedSpecifier;
         Var errorObject;
         Var* localExportSlots;
 

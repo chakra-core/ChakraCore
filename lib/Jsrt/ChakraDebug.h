@@ -22,6 +22,14 @@
 
 #include "ChakraCommon.h"
 
+#if (!defined(_WIN32) || !defined(_MSC_VER)) && !defined(__MSTYPES_DEFINED)
+typedef uint32_t UINT32;
+typedef int64_t INT64;
+typedef void* HANDLE;
+typedef unsigned char BYTE;
+typedef UINT32 DWORD;
+#endif
+
     /// <summary>
     ///     Debug events reported from ChakraCore engine.
     /// </summary>
@@ -581,31 +589,73 @@
             _In_ const wchar_t *expression,
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
+
 #endif // _WIN32
 
-    /////////////////////
+    /// <summary>
+    ///     Evaluates an expression on given frame.
+    /// </summary>
+    /// <param name="expression">Expression to evaluate.</param>
+    /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the expression.</param>
+    /// <param name="evalResult">Result of evaluation.</param>
+    /// <remarks>
+    ///     <para>
+    ///     evalResult when evaluating 'this' and return is JsNoError
+    ///     {
+    ///         "name" : "this",
+    ///         "type" : "object",
+    ///         "className" : "Object",
+    ///         "display" : "{...}",
+    ///         "propertyAttributes" : 1,
+    ///         "handle" : 18
+    ///     }
+    ///
+    ///     evalResult when evaluating a script which throws JavaScript error and return is JsErrorScriptException
+    ///     {
+    ///         "name" : "a.b.c",
+    ///         "type" : "object",
+    ///         "className" : "Error",
+    ///         "display" : "'a' is undefined",
+    ///         "propertyAttributes" : 1,
+    ///         "handle" : 18
+    ///     }
+    ///     </para>
+    /// </remarks>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, evalResult will contain the result
+    ///     The code <c>JsErrorScriptException</c> if evaluate generated a JavaScript exception, evalResult will contain the error details
+    ///     Other error code for invalid parameters or API was not called at break
+    /// </returns>
+    /// <remarks>
+    ///     The current runtime should be in debug state. This API can only be called when runtime is at a break.
+    /// </remarks>
+    CHAKRA_API JsDiagEvaluateUtf8(
+        _In_ const char *expression,
+        _In_ unsigned int stackFrameIndex,
+        _Out_ JsValueRef *evalResult);
 
+    /////////////////////
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Given the uri location specified for the TTD output data, which may be relative or contain other implcit information, 
-    ///     convert it into a fully normalized location descriptor. This fully resolved location will be passed to the later callbacks 
+    ///     Given the uri location specified for the TTD output data, which may be relative or contain other implcit information,
+    ///     convert it into a fully normalized location descriptor. This fully resolved location will be passed to the later callbacks
     ///     such as JsTTDInitializeForWriteLogStreamCallback, JsTTDGetLogStreamCallback, and JsTTDGetSnapshotStreamCallback.
     /// </summary>
     /// <param name="uri">The uri the user provided for the output location of the TTD data.</param>
     /// <param name="fullTTDUri">The fully resolved location for the TTD data output.</param>
-    typedef void (CALLBACK *JsTTDInitializeUriCallback)(_In_z_ const wchar_t* uri, _Out_ wchar_t** fullTTDUri);
+    typedef void (CHAKRA_CALLBACK *JsTTDInitializeUriCallback)(_In_z_ const wchar_t* uri, _Out_ wchar_t** fullTTDUri);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD 
+    ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD
     ///     in the location has been removed.
     /// </summary>
     /// <param name="fullTTDUri">The fully resolved location for the TTD data output as provied by JsTTDInitializeUriCallback.</param>
-    typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_z_ const wchar_t* uri);
+    typedef void (CHAKRA_CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_z_ const wchar_t* uri);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Construct a HANDLE that will be used to read/write the event log portion of the TTD data based on the uri 
+    ///     Construct a HANDLE that will be used to read/write the event log portion of the TTD data based on the uri
     ///     provided by JsTTDInitializeUriCallback.
     /// </summary>
     /// <remarks>
@@ -615,7 +665,7 @@
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE(CALLBACK *JsTTDGetLogStreamCallback)(_In_z_ const wchar_t* uri, _In_ bool read, _In_ bool write);
+    typedef HANDLE (CHAKRA_CALLBACK *JsTTDGetLogStreamCallback)(_In_z_ const wchar_t* uri, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -629,7 +679,7 @@
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE(CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_ bool read, _In_ bool write);
+    typedef HANDLE (CHAKRA_CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -644,7 +694,7 @@
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE(CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* bodyCtrId, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
+    typedef HANDLE (CHAKRA_CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* bodyCtrId, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -655,7 +705,7 @@
     /// <param name="size">The max number of bytes that should be read.</param>
     /// <param name="readCount">The actual number of bytes read and placed in the buffer.</param>
     /// <returns>true if the read was successful false otherwise.</returns>
-    typedef bool(CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE handle, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
+    typedef bool (CHAKRA_CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE handle, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -666,7 +716,7 @@
     /// <param name="size">The max number of bytes that should be written.</param>
     /// <param name="readCount">The actual number of bytes written to the HANDLE.</param>
     /// <returns>true if the write was successful false otherwise.</returns>
-    typedef bool(CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE handle, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
+    typedef bool (CHAKRA_CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE handle, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -678,7 +728,7 @@
     /// <param name="handle">The HANDLE to close.</param>
     /// <param name="read">If the handle was opened for reading.</param>
     /// <param name="write">If the handle was opened for writing.</param>
-    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE handle, _In_ bool read, _In_ bool write);
+    typedef void (CHAKRA_CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE handle, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -699,7 +749,8 @@
     CHAKRA_API
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_z_ wchar_t* infoUri,
+            _In_z_ char* infoUri,
+            _In_ size_t infoUriCount,
             _In_ UINT32 snapInterval,
             _In_ UINT32 snapHistoryLength,
             _In_opt_ JsThreadServiceCallback threadService,
@@ -722,7 +773,8 @@
     CHAKRA_API
         JsTTDCreateDebugRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_z_ wchar_t* infoUri,
+            _In_z_ char* infoUri,
+            _In_ size_t infoUriCount,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
 
@@ -760,9 +812,9 @@
     CHAKRA_API
         JsTTDRunScript(
             _In_ INT64 hostCallbackId,
-            _In_z_ const wchar_t *script,
+            _In_z_ const char *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const char *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -771,7 +823,7 @@
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Requires thisArg as first argument of arguments. 
+    ///         Requires thisArg as first argument of arguments.
     ///         Requires an active script context.
     ///     </para>
     /// </remarks>
@@ -932,5 +984,4 @@
     CHAKRA_API
         JsTTDReplayExecution(
             _Out_ INT64* rootEventTime);
-
 #endif // _CHAKRADEBUG_H_

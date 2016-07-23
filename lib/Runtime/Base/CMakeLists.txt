@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Base STATIC
+add_library (Chakra.Runtime.Base OBJECT
     CallInfo.cpp
     CharStringCache.cpp
     Constants.cpp
@@ -11,7 +11,6 @@ add_library (Chakra.Runtime.Base STATIC
     ExpirableObject.cpp
     FunctionBody.cpp
     FunctionInfo.cpp
-    # HiResTimer.cpp
     LeaveScriptObject.cpp
     PerfHint.cpp
     PropertyRecord.cpp
@@ -29,6 +28,7 @@ add_library (Chakra.Runtime.Base STATIC
     ThreadContextTlsEntry.cpp
     ThreadServiceWrapperBase.cpp
     Utf8SourceInfo.cpp
+    VTuneChakraProfile.cpp
     # WindowsFoundationAdapter.cpp
     # WindowsGlobalizationAdapter.cpp
     )

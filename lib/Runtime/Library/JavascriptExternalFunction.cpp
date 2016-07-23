@@ -15,35 +15,43 @@ namespace Js
 
     JavascriptExternalFunction::JavascriptExternalFunction(ExternalMethod entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), callCount(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(ExternalMethod entryPoint, DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(method),
-        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors), callCount(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors),prototypeTypeId(-1), flags(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
+    JavascriptExternalFunction::JavascriptExternalFunction(DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors)
+        : RuntimeFunction(type, &EntryInfo::DefaultExternalFunctionThunk), nativeMethod(nullptr), signature(nullptr), callbackState(nullptr), initMethod(method),
+        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors), prototypeTypeId(-1), flags(0)
+    {
+        DebugOnly(VerifyEntryPoint());
+    }
+
+
     JavascriptExternalFunction::JavascriptExternalFunction(JavascriptExternalFunction* entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::WrappedFunctionThunk), wrappedMethod(entryPoint), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), callCount(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(StdCallJavascriptMethod entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::StdCallExternalFunctionThunk), stdCallNativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), callCount(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(DynamicType *type)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(nullptr), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), callCount(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
@@ -112,69 +120,6 @@ namespace Js
 
         Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(thisVar);
 
-        this->callCount++;
-        if (IS_JS_ETW(EventEnabledJSCRIPT_HOSTING_EXTERNAL_FUNCTION_CALL_START()))
-        {
-            JavascriptFunction* caller = nullptr;
-
-            // Lot the caller function if the call count of the external function pass certain threshold (randomly pick 256)
-            // we don't want to call stackwalk too often. The threshold can be adjusted as needed.
-            if (callCount >= ETW_MIN_COUNT_FOR_CALLER && ((callCount % ETW_MIN_COUNT_FOR_CALLER) == 0))
-            {
-                Js::JavascriptStackWalker stackWalker(scriptContext);
-                bool foundScriptCaller = false;
-                while(stackWalker.GetCaller(&caller))
-                {
-                    if(caller != nullptr && Js::ScriptFunction::Is(caller))
-                    {
-                        foundScriptCaller = true;
-                        break;
-                    }
-                }
-                if(foundScriptCaller)
-                {
-                    Var sourceString = caller->EnsureSourceString();
-                    Assert(JavascriptString::Is(sourceString));
-                    const char16* callerString = Js::JavascriptString::FromVar(sourceString)->GetSz();
-                    char16* outString = (char16*)callerString;
-                    int length = 0;
-                    if (wcschr(callerString, _u('\n')) != NULL || wcschr(callerString, _u('\n')) != NULL)
-                    {
-                        length = Js::JavascriptString::FromVar(sourceString)->GetLength();
-                        outString = HeapNewArray(char16, length+1);
-                        int j = 0;
-                        for (int i = 0; i < length; i++)
-                        {
-                            if (callerString[i] != _u('\n') && callerString[i] != _u('\r'))
-                            {
-                                outString[j++] = callerString[i];
-                            }
-                        }
-                        outString[j] = _u('\0');
-                    }
-                    JS_ETW(EventWriteJSCRIPT_HOSTING_CALLER_TO_EXTERNAL(scriptContext, this, typeId, outString, callCount));
-                    if (outString != callerString)
-                    {
-                        HeapDeleteArray(length+1, outString);
-                    }
-#if DBG_DUMP
-                    if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
-                    {
-                        Output::Print(_u("Large number of Call to trampoline: methodAddr= %p, Object typeid= %d, caller method= %s, callcount= %d\n"),
-                            this, typeId, callerString, callCount);
-                    }
-#endif
-                }
-            }
-            JS_ETW(EventWriteJSCRIPT_HOSTING_EXTERNAL_FUNCTION_CALL_START(scriptContext, this, typeId));
-#if DBG_DUMP
-            if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
-            {
-                Output::Print(_u("Call to trampoline: methodAddr= %p, Object typeid= %d\n"), this, typeId);
-            }
-#endif
-        }
-
         Js::RecyclableObject* directHostObject = nullptr;
         switch(typeId)
         {
@@ -229,36 +174,10 @@ namespace Js
         }
     }
 
-    Var JavascriptExternalFunction::FinishExternalCall(Var result)
-    {
-        ScriptContext * scriptContext = this->type->GetScriptContext();
-
-        if ( NULL == result )
-        {
-            result = scriptContext->GetLibrary()->GetUndefined();
-        }
-        else
-        {
-            result = CrossSite::MarshalVar(scriptContext, result);
-        }
-        if (IS_JS_ETW(EventEnabledJSCRIPT_HOSTING_EXTERNAL_FUNCTION_CALL_STOP()))
-        {
-            JS_ETW(EventWriteJSCRIPT_HOSTING_EXTERNAL_FUNCTION_CALL_STOP(scriptContext, this, 0));
-        }
-        return result;
-    }
-
     Var JavascriptExternalFunction::ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         RUNTIME_ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
-
-        // Deferred constructors which are not callable fall back to using the RecyclableObject::DefaultEntryPoint. In order to call
-        // this function we have to be inside script so all this and return before doing any of the external call preparation.
-        if (externalFunction->nativeMethod == Js::RecyclableObject::DefaultExternalEntryPoint)
-        {
-            return Js::RecyclableObject::DefaultExternalEntryPoint(function, callInfo, args.Values);
-        }
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
 
@@ -325,8 +244,19 @@ namespace Js
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
 #endif
+        if (result == nullptr)
+        {
+#pragma warning(push)
+#pragma warning(disable:6011) // scriptContext cannot be null here
+            result = scriptContext->GetLibrary()->GetUndefined();
+#pragma warning(pop)
+        }
+        else
+        {
+            result = CrossSite::MarshalVar(scriptContext, result);
+        }
 
-        return externalFunction->FinishExternalCall(result);
+        return result;
     }
 
     Var JavascriptExternalFunction::WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
@@ -344,6 +274,13 @@ namespace Js
         // don't need to leave script here, ExternalFunctionThunk will
         Assert(externalFunction->wrappedMethod->GetFunctionInfo()->GetOriginalEntryPoint() == JavascriptExternalFunction::ExternalFunctionThunk);
         return JavascriptFunction::CallFunction<true>(externalFunction->wrappedMethod, externalFunction->wrappedMethod->GetEntryPoint(), args);
+    }
+
+    Var JavascriptExternalFunction::DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        TypeId typeId = function->GetTypeId();
+        rtErrors err = typeId == TypeIds_Undefined || typeId == TypeIds_Null ? JSERR_NeedObject : JSERR_NeedFunction;
+        JavascriptError::ThrowTypeError(function->GetScriptContext(), err);
     }
 
     Var JavascriptExternalFunction::StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
@@ -430,7 +367,16 @@ namespace Js
             }
         }
 
-        return externalFunction->FinishExternalCall(result);
+        if (result == nullptr)
+        {
+            result = scriptContext->GetLibrary()->GetUndefined();
+        }
+        else
+        {
+            result = CrossSite::MarshalVar(scriptContext, result);
+        }
+
+        return result;
     }
 
     BOOL JavascriptExternalFunction::SetLengthProperty(Var length)

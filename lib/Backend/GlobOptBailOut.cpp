@@ -5,7 +5,211 @@
 #include "Backend.h"
 
 void
-GlobOpt::CaptureValue(BasicBlock *block, StackSym * stackSym, Value * value, BailOutInfo * bailOutInfo)
+GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+{
+    if (!sym->IsStackSym())
+    {
+        return;
+    }
+
+    StackSym * copyPropSym = this->GetCopyPropSym(block, sym, val);
+    if (copyPropSym != nullptr)
+    {
+        bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
+    }
+}
+
+void
+GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
+    SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+{
+    Sym * sym = nullptr;
+    Value * value = nullptr;
+    ValueInfo * valueInfo = nullptr;
+
+    block->globOptData.changedSyms->ClearAll();
+
+    FOREACH_GLOBHASHTABLE_ENTRY(bucket, block->globOptData.symToValueMap)
+    {
+        value = bucket.element;
+        valueInfo = value->GetValueInfo();
+
+        if (valueInfo->GetSymStore() == nullptr && !valueInfo->HasIntConstantValue())
+        {
+            continue;
+        }
+
+        sym = bucket.value;
+        if (sym == nullptr || !sym->IsStackSym() || !(sym->AsStackSym()->HasByteCodeRegSlot()))
+        {
+            continue;
+        }
+        block->globOptData.changedSyms->Set(sym->m_id);
+    }
+    NEXT_GLOBHASHTABLE_ENTRY;
+
+    FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
+    {
+        HashBucket<Sym*, Value*> * bucket = block->globOptData.symToValueMap->GetBucket(symId);
+        StackSym * stackSym = bucket->value->AsStackSym();
+        value =  bucket->element;
+        valueInfo = value->GetValueInfo();
+
+        int intConstantValue;
+        if (valueInfo->TryGetIntConstantValue(&intConstantValue))
+        {
+            BailoutConstantValue constValue;
+            constValue.InitIntConstValue(intConstantValue);
+            bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, stackSym, constValue);
+        }
+        else if (valueInfo->IsVarConstant())
+        {
+            BailoutConstantValue constValue;
+            constValue.InitVarConstValue(valueInfo->AsVarConstant()->VarValue());
+            bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, stackSym, constValue);
+        }
+        else
+        {
+            CaptureCopyPropValue(block, stackSym, value, bailOutCopySymsIter);
+        }
+    }
+    NEXT_BITSET_IN_SPARSEBV
+}
+
+void
+GlobOpt::CaptureValuesIncremental(BasicBlock * block,
+    SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+{
+    CapturedValues * currCapturedValues = block->globOptData.capturedValues;
+    SListBase<ConstantStackSymValue>::Iterator iterConst(currCapturedValues ? &currCapturedValues->constantValues : nullptr);
+    SListBase<CopyPropSyms>::Iterator iterCopyPropSym(currCapturedValues ? &currCapturedValues->copyPropSyms : nullptr);
+    bool hasConstValue = currCapturedValues ? iterConst.Next() : false;
+    bool hasCopyPropSym = currCapturedValues ? iterCopyPropSym.Next() : false;
+
+    block->globOptData.changedSyms->Set(Js::Constants::InvalidSymID);
+
+    FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
+    {
+        Sym * sym = hasConstValue ? iterConst.Data().Key() : nullptr;
+        Value * val = nullptr;
+        HashBucket<Sym *, Value *> * symIdBucket = nullptr;
+
+        // copy unchanged sym to new capturedValues
+        while (sym && sym->m_id < symId)
+        {
+            Assert(sym->IsStackSym());
+            if (!sym->AsStackSym()->HasArgSlotNum())
+            {
+                bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), iterConst.Data().Value());
+            }
+
+            hasConstValue = iterConst.Next();
+            sym = hasConstValue ? iterConst.Data().Key() : nullptr;
+        }
+        if (sym && sym->m_id == symId)
+        {
+            hasConstValue = iterConst.Next();
+        }
+        if (symId != Js::Constants::InvalidSymID)
+        {
+            // recapture changed constant sym
+
+            symIdBucket = block->globOptData.symToValueMap->GetBucket(symId);
+            if (symIdBucket == nullptr)
+            {
+                continue;
+            }
+
+            Sym * symIdSym = symIdBucket->value;
+            Assert(symIdSym->IsStackSym() && (symIdSym->AsStackSym()->HasByteCodeRegSlot() || symIdSym->AsStackSym()->HasArgSlotNum()));
+
+            val =  symIdBucket->element;
+            ValueInfo* valueInfo = val->GetValueInfo();
+
+            if (valueInfo->GetSymStore() != nullptr)
+            {
+                int32 intConstValue;
+                BailoutConstantValue constValue;
+
+                if (valueInfo->TryGetIntConstantValue(&intConstValue))
+                {
+                    constValue.InitIntConstValue(intConstValue);
+                    bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, symIdSym->AsStackSym(), constValue);
+
+                    continue;
+                }
+                else if(valueInfo->IsVarConstant())
+                {
+                    constValue.InitVarConstValue(valueInfo->AsVarConstant()->VarValue());
+                    bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, symIdSym->AsStackSym(), constValue);
+
+                    continue;
+                }
+            }
+            else if (!valueInfo->HasIntConstantValue())
+            {
+                continue;
+            }
+        }
+
+        sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
+
+        // process unchanged sym, but copy sym might have changed
+        while (sym && sym->m_id < symId)
+        {
+            StackSym * copyPropSym = iterCopyPropSym.Data().Value();
+
+            Assert(sym->IsStackSym());
+
+            if (!block->globOptData.changedSyms->Test(copyPropSym->m_id))
+            {
+                if (!sym->AsStackSym()->HasArgSlotNum())
+                {
+                    bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
+                }
+            }
+            else
+            {
+                if (!sym->AsStackSym()->HasArgSlotNum())
+                {
+                    val = FindValue(sym);
+                    if (val != nullptr)
+                    {
+                        CaptureCopyPropValue(block, sym, val, bailOutCopySymsIter);
+                    }
+                }
+            }
+
+            hasCopyPropSym = iterCopyPropSym.Next();
+            sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
+        }
+        if (sym && sym->m_id == symId)
+        {
+            hasCopyPropSym = iterCopyPropSym.Next();
+        }
+        if (symId != Js::Constants::InvalidSymID)
+        {
+            // recapture changed copy prop sym
+            symIdBucket = block->globOptData.symToValueMap->GetBucket(symId);
+            if (symIdBucket != nullptr)
+            {
+                Sym * symIdSym = symIdBucket->value;
+                val = FindValue(symIdSym);
+                if (val != nullptr)
+                {
+                    CaptureCopyPropValue(block, symIdSym, val, bailOutCopySymsIter);
+                }
+            }
+        }
+    }
+    NEXT_BITSET_IN_SPARSEBV
+}
+
+
+void
+GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 {
     if (!this->func->DoGlobOptsForGeneratorFunc())
     {
@@ -15,52 +219,39 @@ GlobOpt::CaptureValue(BasicBlock *block, StackSym * stackSym, Value * value, Bai
         return;
     }
 
-    ValueInfo * valueInfo = value->GetValueInfo();
-    Assert(stackSym->HasByteCodeRegSlot() || stackSym->HasArgSlotNum());
-    Assert(!stackSym->IsTypeSpec());
-    int32 intConstantValue;
-    if (valueInfo->TryGetIntConstantValue(&intConstantValue))
+    CapturedValues capturedValues;
+    SListBase<ConstantStackSymValue>::EditingIterator bailOutConstValuesIter(&capturedValues.constantValues);
+    SListBase<CopyPropSyms>::EditingIterator bailOutCopySymsIter(&capturedValues.copyPropSyms);
+
+    bailOutConstValuesIter.Next();
+    bailOutCopySymsIter.Next();
+
+    if (!block->globOptData.capturedValues)
     {
-        BailoutConstantValue constValue;
-        constValue.InitIntConstValue(intConstantValue);
-        bailOutInfo->capturedValues.constantValues.PrependNode(this->func->m_alloc, stackSym, constValue);
-    }
-    else if (valueInfo->IsVarConstant())
-    {
-        BailoutConstantValue constValue;
-        constValue.InitVarConstValue(valueInfo->AsVarConstant()->VarValue());
-        bailOutInfo->capturedValues.constantValues.PrependNode(this->func->m_alloc, stackSym, constValue);
+        CaptureValuesFromScratch(block, bailOutConstValuesIter, bailOutCopySymsIter);
     }
     else
     {
-        StackSym * copyPropSym = this->GetCopyPropSym(block, stackSym, value);
-        if (copyPropSym)
-        {
-            bailOutInfo->capturedValues.copyPropSyms.PrependNode(this->func->m_alloc, stackSym, copyPropSym);
-        }
+        CaptureValuesIncremental(block, bailOutConstValuesIter, bailOutCopySymsIter);
     }
-}
 
-void
-GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
-{
-    FOREACH_GLOBHASHTABLE_ENTRY(bucket, block->globOptData.symToValueMap)
+    // attach capturedValues to bailOutInfo
+
+    bailOutInfo->capturedValues.constantValues.Clear(this->func->m_alloc);
+    bailOutConstValuesIter.SetNext(&bailOutInfo->capturedValues.constantValues);
+    bailOutInfo->capturedValues.constantValues = capturedValues.constantValues;
+    capturedValues.constantValues.Reset();
+
+    bailOutInfo->capturedValues.copyPropSyms.Clear(this->func->m_alloc);
+    bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues.copyPropSyms);
+    bailOutInfo->capturedValues.copyPropSyms = capturedValues.copyPropSyms;
+    capturedValues.copyPropSyms.Reset();
+    
+    if (!PHASE_OFF(Js::IncrementalBailoutPhase, func))
     {
-        Value* value = bucket.element;
-        ValueInfo * valueInfo = value->GetValueInfo();
-
-        if (valueInfo->GetSymStore() == nullptr && !valueInfo->HasIntConstantValue())
-        {
-            continue;
-        }
-        Sym * sym = bucket.value;
-        if (sym == nullptr || !sym->IsStackSym() || !sym->AsStackSym()->HasByteCodeRegSlot())
-        {
-            continue;
-        }
-        this->CaptureValue(block, sym->AsStackSym(), value, bailOutInfo);
+        // cache the pointer of current bailout as potential baseline for later bailout in this block
+        block->globOptData.capturedValuesCandidate = &bailOutInfo->capturedValues;
     }
-    NEXT_GLOBHASHTABLE_ENTRY;
 }
 
 void
@@ -722,10 +913,6 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
         }
     }
 
-    // Save the constant values that we know so we can restore them directly.
-    // This allows us to dead store the constant value assign.
-    this->CaptureValues(block, bailOutInfo);
-
     if (TrackArgumentsObject())
     {
         this->CaptureArguments(block, bailOutInfo, this->func->m_alloc);
@@ -769,9 +956,9 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                 else
                 {
                     sym = opnd->GetStackSym();
-                    Value* val = FindValue(sym);
-                    Assert(val);
-                    CaptureValue(block, sym, val, bailOutInfo);
+                    Assert(FindValue(sym));
+                    // StackSym args need to be re-captured
+                    this->blockData.changedSyms->Set(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
@@ -836,6 +1023,10 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
         Assert(startCallNumber == 0);
         Assert(currentArgOutCount == 0);
     }
+
+    // Save the constant values that we know so we can restore them directly.
+    // This allows us to dead store the constant value assign.
+    this->CaptureValues(block, bailOutInfo);
 }
 
 IR::ByteCodeUsesInstr *

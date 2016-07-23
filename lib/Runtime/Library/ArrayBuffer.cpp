@@ -447,22 +447,33 @@ namespace Js
                 buffer = (BYTE*)allocator(length);
                 if (buffer == nullptr)
                 {
-                    recycler->CollectNow<CollectOnTypedArrayAllocation>();
+                    recycler->ReportExternalMemoryFree(length);
+                }
+            }
+
+            if (buffer == nullptr)
+            {
+                recycler->CollectNow<CollectOnTypedArrayAllocation>();
+
+                if (recycler->ReportExternalMemoryAllocation(length))
+                {
                     buffer = (BYTE*)allocator(length);
                     if (buffer == nullptr)
                     {
                         recycler->ReportExternalMemoryFailure(length);
                     }
                 }
+                else
+                {
+                    JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                }
             }
 
-            if (buffer == nullptr)
+            if (buffer != nullptr)
             {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                bufferLength = length;
+                ZeroMemory(buffer, bufferLength);
             }
-
-            bufferLength = length;
-            ZeroMemory(buffer, bufferLength);
         }
     }
 
@@ -865,30 +876,60 @@ namespace Js
             // matching scriptContext might have been deleted and the javascriptLibrary->scriptContext
             // field reset (but javascriptLibrary is still alive).
             // Use the recycler field off library instead of scriptcontext to avoid av.
+
+            // Recycler may not be available at Dispose. We need to
+            // free the memory and report that it has been freed at the same
+            // time. Otherwise, AllocationPolicyManager is unable to provide correct feedback
+#if _WIN64
+            //AsmJS Virtual Free
+            //TOD - see if isBufferCleared need to be added for free too
+            if (IsValidVirtualBufferLength(this->bufferLength) && !isBufferCleared)
+            {
+              LPVOID startBuffer = (LPVOID)((uint64)buffer);
+              BOOL fSuccess = VirtualFree((LPVOID)startBuffer, 0, MEM_RELEASE);
+              Assert(fSuccess);
+              isBufferCleared = true;
+            }
+            else
+            {
+              free(buffer);
+            }
+#else
+            free(buffer);
+#endif
             Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
             recycler->ReportExternalMemoryFree(bufferLength);
+
+            buffer = nullptr;
+            bufferLength = 0;
     }
 
     void JavascriptArrayBuffer::Dispose(bool isShutdown)
     {
+        /* See JavascriptArrayBuffer::Finalize */
+    }
 
-#if _WIN64
-        //AsmJS Virtual Free
-        //TOD - see if isBufferCleared need to be added for free too
-        if (IsValidVirtualBufferLength(this->bufferLength) && !isBufferCleared)
+    // Copy memory from src to dst, truncate if dst smaller, zero extra memory
+    // if dst larger
+    static void MemCpyZero(__bcount(dstSize) BYTE* dst, size_t dstSize,
+                           __in_bcount(count) const BYTE* src, size_t count)
+    {
+        js_memcpy_s(dst, dstSize, src, min(dstSize, count));
+        if (dstSize > count)
         {
-            LPVOID startBuffer = (LPVOID)((uint64)buffer);
-            BOOL fSuccess = VirtualFree((LPVOID)startBuffer, 0, MEM_RELEASE);
-            Assert(fSuccess);
-            isBufferCleared = true;
+            ZeroMemory(dst + count, dstSize - count);
         }
-        else
+    }
+
+    // Same as realloc but zero newly allocated portion if newSize > oldSize
+    static BYTE* ReallocZero(BYTE* ptr, size_t oldSize, size_t newSize)
+    {
+        BYTE* ptrNew = (BYTE*)realloc(ptr, newSize);
+        if (ptrNew && newSize > oldSize)
         {
-            free(buffer);
+            ZeroMemory(ptrNew + oldSize, newSize - oldSize);
         }
-#else
-        free(buffer);
-#endif
+        return ptrNew;
     }
 
     ArrayBuffer * JavascriptArrayBuffer::TransferInternal(uint32 newBufferLength)
@@ -906,7 +947,11 @@ namespace Js
             {
                 if (!recycler->ReportExternalMemoryAllocation(newBufferLength - this->bufferLength))
                 {
-                    JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                    recycler->CollectNow<CollectOnTypedArrayAllocation>();
+                    if (!recycler->ReportExternalMemoryAllocation(newBufferLength - this->bufferLength))
+                    {
+                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                    }
                 }
             }
             // Contracting buffer
@@ -953,7 +998,7 @@ namespace Js
                         recycler->ReportExternalMemoryFailure(newBufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
-                    js_memcpy_s(newBuffer, newBufferLength, this->buffer, newBufferLength);
+                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
             }
             else
@@ -962,12 +1007,12 @@ namespace Js
                 {
                     // we are transferring from an unoptimized buffer, but new length can be optimized, so move to that
                     newBuffer = (BYTE*)JavascriptArrayBuffer::AllocWrapper(newBufferLength);
-                    js_memcpy_s(newBuffer, newBufferLength, this->buffer, newBufferLength);
+                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
                 else if (newBufferLength != this->bufferLength)
                 {
                     // both sides will just be regular ArrayBuffer, so realloc
-                    newBuffer = (BYTE*)realloc(this->buffer, newBufferLength);
+                    newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
                     if (!newBuffer)
                     {
                         recycler->ReportExternalMemoryFailure(newBufferLength);

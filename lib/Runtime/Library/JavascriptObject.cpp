@@ -158,6 +158,7 @@ namespace Js
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
             return proxy->SetPrototypeTrap(newPrototype, shouldThrow);
         }
+        
         // 2.   Let extensible be the value of the [[Extensible]] internal data property of O.
         // 3.   Let current be the value of the [[Prototype]] internal data property of O.
         // 4.   If SameValue(V, current), then return true.
@@ -205,45 +206,64 @@ namespace Js
         // 7.   Set the value of the [[Prototype]] internal data property of O to V.
         // 8.   Return true.
 
-        // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
-        if (!JavascriptProxy::Is(object))
+        bool isInvalidationOfInlineCacheNeeded = true;
+        DynamicObject * obj = DynamicObject::FromVar(object);
+
+        // If this object was not prototype object, then no need to invalidate inline caches.
+        // Simply assign it a new type so if this object used protoInlineCache in past, it will
+        // be invalidated because of type mismatch and subsequently we will update its protoInlineCache
+        if (!(obj->GetDynamicType()->GetTypeHandler()->GetFlags() & DynamicTypeHandler::IsPrototypeFlag))
         {
+            // If object has locked type, skip changing its type here as it will be changed anyway below
+            // when object gets newPrototype object.
+            if (!obj->HasLockedType())
+            {
+                obj->ChangeType();
+            }
+            Assert(!obj->GetScriptContext()->GetThreadContext()->IsObjectRegisteredInProtoInlineCaches(obj));
+            Assert(!obj->GetScriptContext()->GetThreadContext()->IsObjectRegisteredInStoreFieldInlineCaches(obj));
+            isInvalidationOfInlineCacheNeeded = false;
+        }
+
+        if (isInvalidationOfInlineCacheNeeded)
+        {
+            // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
             JavascriptOperators::MapObjectAndPrototypes<true>(object->GetPrototype(), [=](RecyclableObject* obj)
             {
                 obj->RemoveFromPrototype(scriptContext);
             });
-        }
 
-        // Examine new prototype chain. If it brings in any non-WritableData property, we need to invalidate related caches.
-        bool objectAndPrototypeChainHasOnlyWritableDataProperties =
-            JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype);
+            // Examine new prototype chain. If it brings in any non-WritableData property, we need to invalidate related caches.
+            bool objectAndPrototypeChainHasOnlyWritableDataProperties =
+                JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype);
 
-        if (!objectAndPrototypeChainHasOnlyWritableDataProperties
-            || object->GetScriptContext() != newPrototype->GetScriptContext())
-        {
-            // The HaveOnlyWritableDataProperties cache is cleared when a property is added or changed,
-            // but only for types in the same script context. Therefore, if the prototype is in another
-            // context, the object's cache won't be cleared when a property is added or changed on the prototype.
-            // Moreover, an object is added to the cache only when its whole prototype chain is in the same
-            // context.
-            //
-            // Since we don't have a way to find out which objects have a certain object as their prototype,
-            // we clear the cache here instead.
-
-            // Invalidate fast prototype chain writable data test flag
-            object->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-        }
-
-        if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
-        {
-            // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
-            JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
+            if (!objectAndPrototypeChainHasOnlyWritableDataProperties
+                || object->GetScriptContext() != newPrototype->GetScriptContext())
             {
-                if (!obj->HasOnlyWritableDataProperties())
+                // The HaveOnlyWritableDataProperties cache is cleared when a property is added or changed,
+                // but only for types in the same script context. Therefore, if the prototype is in another
+                // context, the object's cache won't be cleared when a property is added or changed on the prototype.
+                // Moreover, an object is added to the cache only when its whole prototype chain is in the same
+                // context.
+                //
+                // Since we don't have a way to find out which objects have a certain object as their prototype,
+                // we clear the cache here instead.
+
+                // Invalidate fast prototype chain writable data test flag
+                object->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            }
+
+            if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
+            {
+                // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
+                JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
                 {
-                    obj->AddToPrototype(scriptContext);
-                }
-            });
+                    if (!obj->HasOnlyWritableDataProperties())
+                    {
+                        obj->AddToPrototype(scriptContext);
+                    }
+                });
+            }
         }
 
         // Set to new prototype
@@ -817,6 +837,63 @@ namespace Js
         return isPropertyDescriptorDefined;
     }
 
+    Var JavascriptObject::EntryGetOwnPropertyDescriptors(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        RecyclableObject* obj = nullptr;
+
+        if (args.Info.Count < 2)
+        {
+            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext));
+        }
+        else
+        {
+            // Convert the argument to object first
+            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(args[1], scriptContext));
+        }
+
+        // If the object is HostDispatch try to invoke the operation remotely
+        if (obj->GetTypeId() == TypeIds_HostDispatch)
+        {
+            Var result;
+            if (obj->InvokeBuiltInOperationRemotely(EntryGetOwnPropertyDescriptors, args, &result))
+            {
+                return result;
+            }
+        }
+
+        JavascriptArray* ownPropertyKeys = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
+        RecyclableObject* resultObj = scriptContext->GetLibrary()->CreateObject(true, (Js::PropertyIndex) ownPropertyKeys->GetLength());
+        
+        PropertyDescriptor propDesc;
+        Var propKey = nullptr;
+
+        for (uint i = 0; i < ownPropertyKeys->GetLength(); i++)
+        {
+            BOOL getPropResult = ownPropertyKeys->DirectGetItemAt(i, &propKey);
+            Assert(getPropResult);
+
+            if (!getPropResult)
+            {
+                continue;
+            }
+            
+            PropertyRecord const * propertyRecord;
+            JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
+
+            Var newDescriptor = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propKey, scriptContext);
+            resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+        }
+
+        return resultObj;
+    }
+
     Var JavascriptObject::EntryGetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1155,17 +1232,7 @@ namespace Js
         Assert(scriptContext != nullptr);
         JavascriptArray* valuesArray = scriptContext->GetLibrary()->CreateArray(0);
 
-        Var ownKeysVar = JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
-        JavascriptArray* ownKeysResult = nullptr;
-        if (JavascriptArray::Is(ownKeysVar))
-        {
-            ownKeysResult = JavascriptArray::FromVar(ownKeysVar);
-        }
-        else
-        {
-            return valuesArray;
-        }
-
+        JavascriptArray* ownKeysResult = JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         uint32 length = ownKeysResult->GetLength();
 
         Var nextKey;
@@ -1178,10 +1245,10 @@ namespace Js
 
             PropertyDescriptor propertyDescriptor;
 
-            BOOL propertyKeyResult = JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
-            Assert(propertyKeyResult);
+            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
             propertyId = propertyRecord->GetPropertyId();
             Assert(propertyId != Constants::NoProperty);
+
             if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyId, scriptContext, &propertyDescriptor))
             {
                 if (propertyDescriptor.IsEnumerable())
@@ -1235,33 +1302,33 @@ namespace Js
         return GetValuesOrEntries(object, false /*valuesToReturn*/, scriptContext);
     }
 
-    Var JavascriptObject::CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, true /*includeSymbolsOnly */, false, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, false, true /*includeStringsOnly*/, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, true/*includeSymbolsOnly*/, true /*includeStringsOnly*/, true /*includeSpecialProperties*/);
     }
 
-    Var JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, FALSE, false, true/*includeStringsOnly*/, false);
     }
 
-    Var JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, FALSE, true/*includeSymbolsOnly*/, true/*includeStringsOnly*/, false);
     }
 
     // 9.1.12 [[OwnPropertyKeys]] () in RC#4 dated April 3rd 2015.
-    Var JavascriptObject::CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL includeNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties)
+    JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL includeNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties)
     {
         //1. Let keys be a new empty List.
         //2. For each own property key P of O that is an integer index, in ascending numeric index order
@@ -1699,17 +1766,8 @@ namespace Js
 
     void JavascriptObject::AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
-        Var keysResult = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
-        JavascriptArray *keys;
+         JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
 
-        if (JavascriptArray::Is(keysResult))
-        {
-            keys = JavascriptArray::FromVar(keysResult);
-        }
-        else
-        {
-            return;
-        }
         //      c. Repeat for each element nextKey of keys in List order,
         //          i. Let desc be from.[[GetOwnProperty]](nextKey).
         //          ii. ReturnIfAbrupt(desc).
@@ -1923,16 +1981,7 @@ namespace Js
         //3.  Let keys be props.[[OwnPropertyKeys]]().
         //4.  ReturnIfAbrupt(keys).
         //5.  Let descriptors be an empty List.
-        JavascriptArray* keys;
-        Var ownKeysResult = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(props, scriptContext);
-        if (JavascriptArray::Is(ownKeysResult))
-        {
-            keys = JavascriptArray::FromVar(ownKeysResult);
-        }
-        else
-        {
-            return object;
-        }
+        JavascriptArray* keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(props, scriptContext);
         uint32 length = keys->GetLength();
 
         ENTER_PINNED_SCOPE(DescriptorMap, descriptors);

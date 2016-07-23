@@ -1045,10 +1045,11 @@ Instr::UnlinkBailOutInfo()
     return bailOutInfo;
 }
 
-void
+bool
 Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
 {
     BailOutInfo *oldBailOutInfo;
+    bool deleteOld = false;
 
 #if DBG
     newBailOutInfo->wasCopied = true;
@@ -1080,7 +1081,10 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
         JitArenaAllocator * alloc = this->m_func->m_alloc;
         oldBailOutInfo->Clear(alloc);
         JitAdelete(alloc, oldBailOutInfo);
+        deleteOld = true;
     }
+
+    return deleteOld;
 }
 
 IR::Instr *Instr::ShareBailOut()
@@ -1377,7 +1381,7 @@ LabelInstr::Init(Js::OpCode opcode, IRKind kind, Func *func, bool isOpHelper)
 
     this->m_pc.pc = nullptr;
     this->m_id = ++(func->GetTopFunc()->m_labelCount);
-    AssertMsg(this->m_id != 0, "Label numbers wrapped around??!?");
+    AssertMsg(this->m_id != 0, "Label numbers wrapped around?");
 }
 
 ///----------------------------------------------------------------------------

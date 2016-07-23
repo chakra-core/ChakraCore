@@ -60,7 +60,6 @@ template<> struct IntMath<uint16> { using Type = UInt16Math; };
 template<> struct IntMath<uint32> { using Type = UInt32Math; };
 template<> struct IntMath<int64> { using Type = Int64Math; };
 
-#include "Common/DaylightTimeHelper.h"
 #include "Common/DateUtilities.h"
 #include "Common/NumberUtilitiesBase.h"
 #include "Common/NumberUtilities.h"

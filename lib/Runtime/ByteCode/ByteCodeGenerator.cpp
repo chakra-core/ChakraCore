@@ -286,11 +286,13 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     }
     case knopClassDecl:
     {
-        // Visit the extends expression first, since it's bound outside the scope containing the class name.
-        Visit(pnode->sxClass.pnodeExtends, byteCodeGenerator, prefix, postfix);
         Visit(pnode->sxClass.pnodeDeclName, byteCodeGenerator, prefix, postfix);
         // Now visit the class name and methods.
         BeginVisitBlock(pnode->sxClass.pnodeBlock, byteCodeGenerator);
+        // The extends clause is bound to the scope which contains the class name
+        // (and the class name identifier is in a TDZ when the extends clause is evaluated).
+        // See ES 2017 14.5.13 Runtime Semantics: ClassDefinitionEvaluation.
+        Visit(pnode->sxClass.pnodeExtends, byteCodeGenerator, prefix, postfix);
         Visit(pnode->sxClass.pnodeName, byteCodeGenerator, prefix, postfix);
         Visit(pnode->sxClass.pnodeStaticMembers, byteCodeGenerator, prefix, postfix);
         Visit(pnode->sxClass.pnodeConstructor, byteCodeGenerator, prefix, postfix);
@@ -2329,7 +2331,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
         {
             // 3. the function directly references an 'arguments' identifier
             funcInfo->SetHasArguments(true);
-            
+            funcInfo->GetParsedFunctionBody()->SetUsesArgumentsObject(true);
             if (pnode->sxFnc.HasHeapArguments())
             {
                 bool doStackArgsOpt = !pnode->sxFnc.HasAnyWriteToFormals();
@@ -2785,18 +2787,29 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             Assert(CONFIG_FLAG(DeferNested));
             parentFunc->SetHasDeferredChild();
+        }
 
-            // If a deferred child has with, parent scopes may contain symbols called inside the with.
+        if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
+        {
+            // Parent scopes may contain symbols called inside the with.
             // Current implementation needs the symScope isObject.
-            if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
-            {
-                parentFunc->SetChildHasWith();
-                parentFunc->GetBodyScope()->SetIsObject();
-                parentFunc->GetParamScope()->SetIsObject();
 
+            parentFunc->SetChildHasWith();
+
+            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure())
+            {
+                parentFunc->GetBodyScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
                 parentFunctionBody->SetHasSetIsObject(true);
             }
+
+            if (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
+                !parentFunc->GetParamScope()->GetCanMergeWithBodyScope())
+            {
+                parentFunc->GetParamScope()->SetIsObject();
+                // Record this for future use in the no-refresh debugging.
+                parentFunctionBody->SetHasSetIsObject(true);
+            }       
         }
 
         // Propagate HasMaybeEscapedNestedFunc

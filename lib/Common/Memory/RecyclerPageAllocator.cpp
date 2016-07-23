@@ -197,7 +197,7 @@ size_t
 RecyclerPageAllocator::GetAllWriteWatchPageCount(DListBase<T> * segmentList)
 {
     size_t totalCount = 0;
-    DListBase<T>::Iterator it(segmentList);
+    _TYPENAME DListBase<T>::Iterator it(segmentList);
     while (it.Next())
     {
         T& segment = it.Data();

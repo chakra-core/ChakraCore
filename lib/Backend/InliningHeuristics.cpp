@@ -4,8 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-InliningThreshold::InliningThreshold(uint nonLoadByteCodeCount, bool aggressive) : nonLoadByteCodeCount(nonLoadByteCodeCount)
+InliningThreshold::InliningThreshold(uint nonLoadByteCodeCount, bool forLoopBody, bool aggressive) : nonLoadByteCodeCount(nonLoadByteCodeCount)
 {
+    this->forLoopBody = forLoopBody;
     if (aggressive)
     {
         SetAggressiveHeuristics();
@@ -17,6 +18,7 @@ InliningThreshold::InliningThreshold(uint nonLoadByteCodeCount, bool aggressive)
 }
 void InliningThreshold::SetAggressiveHeuristics()
 {
+    Assert(!this->forLoopBody);
     int limit = CONFIG_FLAG(AggressiveInlineThreshold);
 
     inlineThreshold = limit;
@@ -60,7 +62,7 @@ void InliningThreshold::SetHeuristics()
     polymorphicInlineThreshold = CONFIG_FLAG(PolymorphicInlineThreshold);
     maxNumberOfInlineesWithLoop = CONFIG_FLAG(MaxNumberOfInlineesWithLoop);
     constantArgumentInlineThreshold = CONFIG_FLAG(ConstantArgumentInlineThreshold);
-    inlineCountMax = CONFIG_FLAG(InlineCountMax);
+    inlineCountMax = !forLoopBody ? CONFIG_FLAG(InlineCountMax) : CONFIG_FLAG(InlineCountMaxInLoopBodies);
 }
 
 // Called from background thread to commit inlining.
@@ -185,3 +187,4 @@ bool InliningHeuristics::BackendInlineIntoInliner(const FunctionJITTimeInfo * in
     }
     return true;
 }
+    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || bytecodeInlinedCount <= (uint)threshold.inlineCountMax)

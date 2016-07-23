@@ -1387,7 +1387,9 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                         }
                     }
 
-                    if ((!sym->GetHasInit() && !sym->IsInSlot(funcInfo)) ||
+                    // Undef-initialize the home location if it is a register (not closure-captured, or else capture
+                    // is delayed) or a property of an object.
+                    if ((sym->GetLocation() != Js::Constants::NoRegister && (!sym->GetHasInit() || (sym->NeedsSlotAlloc(funcInfo) && sym->GetHasNonCommittedReference()))) ||
                         (funcInfo->bodyScope->GetIsObject() && !funcInfo->GetHasCachedScope()))
                     {
                         Js::RegSlot reg = sym->GetLocation();
@@ -10814,6 +10816,11 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     {
         funcInfo->AcquireLoc(pnode);
 
+        Assert(pnode->sxClass.pnodeConstructor);
+        pnode->sxClass.pnodeConstructor->location = pnode->location;
+
+        BeginEmitBlock(pnode->sxClass.pnodeBlock, byteCodeGenerator, funcInfo);
+
         // Extends
         if (pnode->sxClass.pnodeExtends)
         {
@@ -10821,11 +10828,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             // defer and nondefer parse modes.
             Emit(pnode->sxClass.pnodeExtends, byteCodeGenerator, funcInfo, false);
         }
-
-        Assert(pnode->sxClass.pnodeConstructor);
-        pnode->sxClass.pnodeConstructor->location = pnode->location;
-
-        BeginEmitBlock(pnode->sxClass.pnodeBlock, byteCodeGenerator, funcInfo);
 
         // Constructor
         Emit(pnode->sxClass.pnodeConstructor, byteCodeGenerator, funcInfo, false);

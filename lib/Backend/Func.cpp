@@ -5,6 +5,9 @@
 #include "Backend.h"
 #include "Base/EtwTrace.h"
 #include "Base/ScriptContextProfiler.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
@@ -83,7 +86,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
     hasNonSimpleParams(false),
-    hasArgumentObject(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),
     hasImplicitCalls(false),
@@ -160,7 +162,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (m_workItem->Type() == JsFunctionType)
     {
-        if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0)
+        if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0) &&
+            this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
         {
             Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
             stackNestedFunc = true;
@@ -368,7 +371,7 @@ Func::TryCodegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
-        InliningHeuristics heuristics(GetWorkItem()->GetJITTimeInfo());
+        InliningHeuristics heuristics(GetWorkItem()->GetJITTimeInfo(), this->IsLoopBody());
         Inline inliner(this, heuristics);
         inliner.Optimize();
 
@@ -1858,7 +1861,7 @@ Func::GetVtableName(INT_PTR address)
 bool Func::DoRecordNativeMap() const
 {
 #if defined(VTUNE_PROFILING)
-    if (EtwTrace::isJitProfilingActive)
+    if (VTuneChakraProfile::isJitProfilingActive)
     {
         return true;
     }

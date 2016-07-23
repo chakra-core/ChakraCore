@@ -1736,6 +1736,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     m_lowererMD.EmitLoadFloatFromNumber(instr->GetDst(), instr->GetSrc1(), instr);
                 }
             }
+#ifdef ENABLE_SIMDJS
             // Support on IA only
 #if defined(_M_IX86) || defined(_M_X64)
             else if (instr->GetDst()->IsSimd128())
@@ -1744,6 +1745,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 m_lowererMD.GenerateCheckedSimdLoad(instr);
             }
 #endif
+#endif // ENABLE_SIMDJS
             else
             {
                 Assert(UNREACHED);
@@ -1790,11 +1792,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     instr->GetSrc1()->AsRegOpnd(), instr, instr);
                 instr->Remove();
             }
+#ifdef ENABLE_SIMDJS
 #if defined(_M_IX86) || defined(_M_X64)
             else if (IRType_IsSimd128(instr->GetSrc1()->GetType()))
             {
                 m_lowererMD.GenerateSimdStore(instr);
             }
+#endif
 #endif
             else
             {
@@ -2959,12 +2963,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         default:
+#ifdef ENABLE_SIMDJS
 #if defined(_M_IX86) || defined(_M_X64)
             if (IsSimd128Opcode(instr->m_opcode))
             {
                 instrPrev = m_lowererMD.Simd128Instruction(instr);
                 break;
             }
+#endif
 #endif
             AssertMsg(instr->IsLowered(), "Unknown opcode");
             if(!instr->IsLowered())

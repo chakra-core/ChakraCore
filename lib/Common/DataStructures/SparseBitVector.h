@@ -91,10 +91,7 @@ struct BVSparseNode
 #endif
 };
 
-// xplat-todo: revisit for unix
-#ifdef _WIN32
 CompileAssert(sizeof(BVSparseNode) == 16); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
-#endif
 
 template <class TAllocator>
 class BVSparse
@@ -477,7 +474,11 @@ BOOLEAN
 BVSparse<TAllocator>::TestAndClear(BVIndex i)
 {
     BVSparseNode ** prevNextField;
-    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField);
+    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
+    if (current == nullptr)
+    {
+        return false;
+    }
     BVIndex bvIndex = SparseBVUnit::Offset(i);
     BOOLEAN bit = current->data.Test(bvIndex);
     current->data.Clear(bvIndex);

@@ -142,6 +142,7 @@ namespace Js{
             }
         }
 
+#ifdef ENABLE_SIMDJS
         Var asmSimdObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::SIMD, scriptContext);
         for (int i = 0; i < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_COUNT; i++)
         {
@@ -156,6 +157,7 @@ namespace Js{
                 return false;
             }
         }
+#endif
 
         return true;
     }
@@ -567,6 +569,7 @@ namespace Js{
         return false;
     }
 
+#ifdef ENABLE_SIMDJS
     bool ASMLink::CheckSimdLibraryMethod(ScriptContext* scriptContext, const Var asmSimdObject, const AsmJsSIMDBuiltinFunction simdLibMethod)
     {
         Var simdConstructorObj, simdFuncObj;
@@ -609,6 +612,7 @@ namespace Js{
         }
         return false;
     }
+#endif
 
     
         

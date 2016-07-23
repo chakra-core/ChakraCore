@@ -679,46 +679,6 @@ done:
 
 /*++
 Function:
-  PAL_RegisterModule
-
-  Register the module with the target module and return a module handle in
-  the target module's context. Doesn't call the DllMain because it is used
-  as part of calling DllMain in the calling module.
-
---*/
-HINSTANCE
-PALAPI
-PAL_RegisterModule(
-    IN LPCSTR lpLibFileName)
-{
-    HINSTANCE hinstance = nullptr;
-
-    int err = PAL_InitializeDLL();
-    if (err == 0)
-    {
-        PERF_ENTRY(PAL_RegisterModule);
-        ENTRY("PAL_RegisterModule(%s)\n", lpLibFileName ? lpLibFileName : "");
-
-        LockModuleList();
-
-        void *dl_handle = LOADLoadLibraryDirect(lpLibFileName);
-        if (dl_handle)
-        {
-            // This only creates/adds the module handle and doesn't call DllMain
-            hinstance = LOADAddModule(dl_handle, lpLibFileName);
-        }
-
-        UnlockModuleList();
-
-        LOGEXIT("PAL_RegisterModule returns HINSTANCE %p\n", hinstance);
-        PERF_EXIT(PAL_RegisterModule);
-    }
-
-    return hinstance;
-}
-
-/*++
-Function:
   PAL_UnregisterModule
 
   Used to cleanup the module HINSTANCE from PAL_RegisterModule.
@@ -1651,35 +1611,6 @@ static HMODULE LOADLoadLibrary(LPCSTR shortAsciiName, BOOL fDynamic)
     UnlockModuleList();
 
     return module;
-}
-
-/*++
-    LOADInitializeCoreCLRModule
-
-    Run the initialization methods for ChakraCore module (the module containing this PAL).
-
-Parameters:
-    None
-
-Return value:
-    TRUE if successful
-    FALSE if failure
---*/
-BOOL LOADInitializeChakraCoreModule()
-{
-    MODSTRUCT *module = LOADGetPalLibrary();
-    if (!module)
-    {
-        ERROR("Can not load the PAL module\n");
-        return FALSE;
-    }
-    PDLLMAIN pRuntimeDllMain = (PDLLMAIN)dlsym(module->dl_handle, "CoreDllMain");
-    if (!pRuntimeDllMain)
-    {
-        ERROR("Can not find the CoreDllMain entry point\n");
-        return FALSE;
-    }
-    return pRuntimeDllMain(module->hinstance, DLL_PROCESS_ATTACH, nullptr);
 }
 
 /*++

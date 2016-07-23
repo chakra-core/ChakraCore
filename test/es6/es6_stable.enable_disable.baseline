@@ -25,8 +25,6 @@ FLAG ES6 = 1 - setting child flag ES6Generators = 1
 FLAG ES6Generators = 1
 FLAG ES6 = 1 - setting child flag ES7ExponentiationOperator = 1
 FLAG ES7ExponentiationOperator = 1
-FLAG ES6 = 1 - setting child flag ES7Builtins = 0
-FLAG ES7Builtins = 0
 FLAG ES6 = 1 - setting child flag ES7ValuesEntries = 1
 FLAG ES7ValuesEntries = 1
 FLAG ES6 = 1 - setting child flag ES7TrailingComma = 1
@@ -83,6 +81,8 @@ FLAG ES6 = 1 - setting child flag ES6Verbose = 0
 FLAG ES6Verbose = 0
 FLAG ES6 = 1 - setting child flag ArrayBufferTransfer = 0
 FLAG ArrayBufferTransfer = 0
+FLAG ES6 = 1 - setting child flag ESObjectGetOwnPropertyDescriptors = 1
+FLAG ESObjectGetOwnPropertyDescriptors = 1
 FLAG ES6 = 0
 FLAG ES6 = 0 - setting child flag Simdjs = 0
 FLAG Simdjs = 0
@@ -110,8 +110,6 @@ FLAG ES6 = 0 - setting child flag ES6Generators = 0
 FLAG ES6Generators = 0
 FLAG ES6 = 0 - setting child flag ES7ExponentiationOperator = 0
 FLAG ES7ExponentiationOperator = 0
-FLAG ES6 = 0 - setting child flag ES7Builtins = 0
-FLAG ES7Builtins = 0
 FLAG ES6 = 0 - setting child flag ES7ValuesEntries = 0
 FLAG ES7ValuesEntries = 0
 FLAG ES6 = 0 - setting child flag ES7TrailingComma = 0
@@ -168,6 +166,8 @@ FLAG ES6 = 0 - setting child flag ES6Verbose = 0
 FLAG ES6Verbose = 0
 FLAG ES6 = 0 - setting child flag ArrayBufferTransfer = 0
 FLAG ArrayBufferTransfer = 0
+FLAG ES6 = 0 - setting child flag ESObjectGetOwnPropertyDescriptors = 0
+FLAG ESObjectGetOwnPropertyDescriptors = 0
 FLAG ES6DefaultArgs = 1
 FLAG WERExceptionSupport = 1
 default argument

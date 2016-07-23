@@ -307,6 +307,7 @@ public:
     static void InsertIncUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
     static void InsertDecUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
 
+#ifdef ENABLE_SIMDJS
     void                Simd128InitOpcodeMap();
     IR::Instr*          Simd128Instruction(IR::Instr* instr);
     IR::Instr*          Simd128LoadConst(IR::Instr* instr);
@@ -359,6 +360,7 @@ public:
     void                GenerateSimdStore(IR::Instr * instr);
     void                CheckShuffleLanes_4(uint8 lanes[], uint8 lanesSrc[], uint *fromSrc1, uint *fromSrc2);
     void                InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *insertBeforeInstr);
+#endif
 
 private:
 

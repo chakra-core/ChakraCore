@@ -77,12 +77,10 @@ namespace Js
         guestArena(nullptr),
         raiseMessageToDebuggerFunctionType(nullptr),
         transitionToDebugModeIfFirstSourceFn(nullptr),
-#ifdef ENABLE_GLOBALIZATION
-        lastTimeZoneUpdateTickCount(0),
-#endif
         sourceSize(0),
         deferredBody(false),
         isScriptContextActuallyClosed(false),
+        isFinalized(false),
         isInvalidatedForHostObjects(false),
         fastDOMenabled(false),
         directHostTypeId(TypeIds_GlobalObject),
@@ -375,6 +373,7 @@ namespace Js
 
     ScriptContext::~ScriptContext()
     {
+        Assert(isFinalized || !isInitialized);
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
@@ -399,6 +398,7 @@ namespace Js
             // clear out all inline caches to remove our proto inline caches from the thread context
             threadContext->ClearInlineCaches();
 
+            ClearInlineCaches();
             Assert(!this->hasProtoOrStoreFieldInlineCache);
         }
 
@@ -406,10 +406,9 @@ namespace Js
         {
             // clear out all inline caches to remove our proto inline caches from the thread context
             threadContext->ClearIsInstInlineCaches();
+            ClearIsInstInlineCaches();
             Assert(!this->hasIsInstInlineCache);
         }
-
-        threadContext->UnregisterScriptContext(this);
 
         // Only call RemoveFromPendingClose if we are in a pending close state.
         if (isClosed && !isScriptContextActuallyClosed)
@@ -647,7 +646,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-        
+
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -1194,13 +1193,12 @@ if (!sourceList)
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
-            Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
 #endif
 
 #ifdef ASMJS_PLAT
         asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
-            Js::InterpreterStackFrame::InterpreterAsmThunk);
+            true);
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
@@ -1485,6 +1483,7 @@ if (!sourceList)
 
     void ScriptContext::InvalidatePropertyStringCache(PropertyId propertyId, Type* type)
     {
+        Assert(!isFinalized);
         PropertyStringCacheMap* propertyStringMap = this->javascriptLibrary->GetPropertyStringMap();
         if (propertyStringMap != nullptr)
         {
@@ -2324,14 +2323,6 @@ if (!sourceList)
             }
             return si;
     }
-
-#ifdef ENABLE_GLOBALIZATION
-    void ScriptContext::UpdateTimeZoneInfo()
-    {
-        GetTimeZoneInformation(&timeZoneInfo);
-        _tzset();
-    }
-#endif
 
 #if ENABLE_TTD
     void ScriptContext::InitializeCoreImage_TTD()
@@ -3355,11 +3346,11 @@ if (!sourceList)
                     || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
 #else
-                Assert(entryPoint == DefaultDeferredParsingThunk 
+                Assert(entryPoint == DefaultDeferredParsingThunk
                     || entryPoint == DefaultDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk);
 #endif
-                
+
                 Assert(!proxy->IsDeferred());
                 Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
 
@@ -4290,7 +4281,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     void ScriptContext::ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches()
     {
         Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext != nullptr);
-        javascriptLibrary->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+        if (!isFinalized)
+        {
+            javascriptLibrary->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+        }
 
         // Caller will unregister the script context from the thread context
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext = nullptr;

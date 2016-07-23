@@ -64,7 +64,7 @@ extern "C"{
 
 namespace Js {
 #if defined(GENERATE_DUMP) && defined(STACK_BACK_TRACE)
-    StackBackTrace * Throw::stackBackTrace = nullptr;
+    __declspec(thread) StackBackTrace * Throw::stackBackTrace = nullptr;
 #endif
     void Throw::FatalInternalError()
     {
@@ -256,10 +256,10 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const char16 * caption = _u("CHAKRA ASSERT");
+#define CHAKRA_ASSERT_CAPTION _u("CHAKRA ASSERT")
 #endif
 
-    bool Throw::ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message)
+    bool Throw::ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::AssertBreakFlag))
@@ -301,7 +301,7 @@ namespace Js {
             swprintf_s(buff, _countof(buff), _u("%S (%u)\n%S\n%S"), fileName, lineNumber, message, error);
             buff[_countof(buff)-1] = 0;
 
-            int ret = MessageBox(nullptr, buff, caption, MB_ABORTRETRYIGNORE);
+            int ret = MessageBox(nullptr, buff, CHAKRA_ASSERT_CAPTION, MB_ABORTRETRYIGNORE);
 
             switch (ret)
             {

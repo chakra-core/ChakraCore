@@ -22,10 +22,10 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..;
+        $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
-        $(MSBuildThisFileDirectory)..\..\Backend;
         $(ChakraJITIDLIntDir);
         $(MSBuildThisFileDirectory)..\..\JITClient;
         %(AdditionalIncludeDirectories)
@@ -47,7 +47,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExpirableObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)HiResTimer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
@@ -71,9 +70,14 @@
     </ClCompile>
     <ClCompile Include="ScriptContextInfo.cpp" />
     <ClCompile Include="ThreadContextInfo.cpp" />
+    <ClCompile Include="jitprofiling.cpp" />
+    <ClCompile Include="VTuneChakraProfile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CompactCounters.h" />
+    <ClInclude Include="ittnotify_config.h" />
+    <ClInclude Include="ittnotify_types.h" />
+    <ClInclude Include="jitprofiling.h" />
     <ClInclude Include="RuntimeBasePch.h" />
     <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />
@@ -90,7 +94,6 @@
     <ClInclude Include="ExpirableObject.h" />
     <ClInclude Include="FunctionBody.h" />
     <ClInclude Include="FunctionInfo.h" />
-    <ClInclude Include="HiResTimer.h" />
     <ClInclude Include="JnDirectFields.h" />
     <ClInclude Include="LeaveScriptObject.h" />
     <ClInclude Include="PerfHint.h" />
@@ -115,6 +118,7 @@
     <ClInclude Include="ThreadServiceWrapper.h" />
     <ClInclude Include="ThreadServiceWrapperBase.h" />
     <ClInclude Include="Utf8SourceInfo.h" />
+    <ClInclude Include="VTuneChakraProfile.h" />
     <ClInclude Include="WindowsFoundationAdapter.h" />
     <ClInclude Include="WindowsGlobalizationAdapter.h" />
   </ItemGroup>

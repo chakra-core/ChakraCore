@@ -198,42 +198,6 @@ char * __cdecl PAL_getenv(const char *varname)
 /*++
 Function:
 
-    mktime
-
-See MSDN for more details.
---*/
-
-PAL_time_t 
-__cdecl 
-PAL_mktime(struct PAL_tm *tm)
-{
-    time_t result;
-    struct tm tmpTm;
-
-    PERF_ENTRY(mktime);
-    ENTRY( "mktime( tm=%p )\n",tm );
-
-    /*copy the value of Windows struct into BSD struct*/
-    tmpTm.tm_sec = tm->tm_sec;
-    tmpTm.tm_min = tm->tm_min;
-    tmpTm.tm_hour = tm->tm_hour;
-    tmpTm.tm_mday = tm->tm_mday;
-    tmpTm.tm_mon  = tm->tm_mon;
-    tmpTm.tm_year = tm->tm_year;
-    tmpTm.tm_wday = tm->tm_wday;
-    tmpTm.tm_yday = tm->tm_yday;
-    tmpTm.tm_isdst = tm->tm_isdst;
-
-    result = mktime(&tmpTm);
-
-    LOGEXIT( "mktime returned %#lx\n",result );
-    PERF_EXIT(mktime);
-    return result;
-}
-
-/*++
-Function:
-
    rand
 
    The difference between the FreeBSD and Windows implementations is the max
@@ -481,24 +445,26 @@ char *MiscGetenv(const char *name)
     InternalEnterCriticalSection(pthrCurrent, &gcsEnvironment);
 
     length = strlen(name);
-    for(i = 0; palEnvironment[i] != NULL; i++)
+    if (palEnvironment)
     {
-        if (memcmp(palEnvironment[i], name, length) == 0)
+        for(i = 0; palEnvironment[i] != NULL; i++)
         {
-            equals = palEnvironment[i] + length;
-            if (*equals == '\0')
+            if (memcmp(palEnvironment[i], name, length) == 0)
             {
-                pRet = (char *) "";
-                goto done;
-            } 
-            else if (*equals == '=') 
-            {
-                pRet = equals + 1;
-                goto done;
+                equals = palEnvironment[i] + length;
+                if (*equals == '\0')
+                {
+                    pRet = (char *) "";
+                    goto done;
+                }
+                else if (*equals == '=')
+                {
+                    pRet = equals + 1;
+                    goto done;
+                }
             }
         }
     }
-
 done:
     InternalLeaveCriticalSection(pthrCurrent, &gcsEnvironment);
     return pRet;

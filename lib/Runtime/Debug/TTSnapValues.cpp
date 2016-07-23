@@ -1066,7 +1066,8 @@ namespace TTD
             {
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
                 {
-                    scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
+                    // TODO: We should use the utf8 source here if possible
+                    scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, (LoadScriptFlag)(fbInfo->LoadFlag & ~LoadScriptFlag::LoadScriptFlag_Utf8Source));
                 }
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
                 AssertMsg(scriptFunction != nullptr, "Something went wrong");

@@ -7,6 +7,7 @@
 struct InliningThreshold
 {
     uint nonLoadByteCodeCount;
+    bool forLoopBody;
     int inlineThreshold;
     int constructorInlineThreshold;
     int outsideLoopInlineThreshold;
@@ -17,7 +18,7 @@ struct InliningThreshold
     int maxNumberOfInlineesWithLoop;
     int constantArgumentInlineThreshold;
 
-    InliningThreshold(uint nonLoadByteCodeCount, bool aggressive = false);
+    InliningThreshold(Js::FunctionBody * topFunc, bool aggressive = false);
     void SetHeuristics();
     void SetAggressiveHeuristics();
     void Reset();
@@ -33,7 +34,7 @@ class InliningHeuristics
 public:
 
 public:
-    InliningHeuristics(const FunctionJITTimeInfo * topFunc) :topFunc(topFunc), threshold(topFunc->GetBody()->GetNonLoadByteCodeCount()) {};
+    InliningHeuristics(const FunctionJITTimeInfo * topFunc, bool forLoopBody) :topFunc(topFunc), threshold(topFunc->GetBody()->GetNonLoadByteCodeCount(), forLoopBody) {};
     bool BackendInlineIntoInliner(const FunctionJITTimeInfo * inlinee,
                                 Func * inliner,
                                 Func *topFunc,

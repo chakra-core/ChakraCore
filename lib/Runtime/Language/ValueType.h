@@ -354,6 +354,21 @@ struct DefaultComparer<ValueType> : public ValueTypeComparer
 {
 };
 
+__forceinline ValueType ValueType::Merge(const ValueType other) const
+{
+    Verify(*this);
+    Verify(other);
+
+    if (*this == other)
+        return *this;
+
+    const ValueType merged(bits | other.bits);
+    if (!merged.OneOn(Bits::Object)) // neither has the Object bit set
+        return Verify(merged);
+
+    return MergeWithObject(other);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Template function definitions
 

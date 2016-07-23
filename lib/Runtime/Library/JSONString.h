@@ -96,7 +96,7 @@ namespace Js
                 {
                     if (wch < _countof(escapeMap))
                     {
-                        extra = UInt32Math::Add(extra, escapeMapCount[(char)wch]);
+                        extra = UInt32Math::Add(extra, escapeMapCount[static_cast<int>((char)wch)]);
                     }
                 }
                 else
@@ -104,7 +104,7 @@ namespace Js
                     WCHAR specialChar;
                     if (wch < _countof(escapeMap))
                     {
-                        specialChar = escapeMap[(char)wch];
+                        specialChar = escapeMap[static_cast<int>((char)wch)];
                     }
                     else
                     {

@@ -2023,7 +2023,7 @@ NativeCodeGenerator::GatherCodeGenData(
     Assert(functionBody);
     Assert(jitTimeData);
     Assert(IsInlinee == !!runtimeData);
-    Assert(!IsInlinee || !inliningDecider.GetIsLoopBody());
+    Assert(!IsInlinee || (!inliningDecider.GetIsLoopBody() || !PHASE_OFF(Js::InlineInJitLoopBodyPhase, topFunctionBody)));
     Assert(topFunctionBody != nullptr && (!entryPoint->GetWorkItem() || entryPoint->GetWorkItem()->GetFunctionBody() == topFunctionBody));
     Assert(objTypeSpecFldInfoList != nullptr);
 
@@ -2075,7 +2075,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 inliningDecider.SetAggressiveHeuristics();
                 if (!TryAggressiveInlining(topFunctionBody, functionBody, inliningDecider, inlineeCount, 0))
                 {
-                    uint countOfInlineesWithLoops = inliningDecider.getNumberOfInlineesWithLoop();
+                    uint countOfInlineesWithLoops = inliningDecider.GetNumberOfInlineesWithLoop();
                     //TryAggressiveInlining failed, set back to default heuristics.
                     inliningDecider.ResetInlineHeuristics();
                     inliningDecider.SetLimitOnInlineesWithLoop(countOfInlineesWithLoops);

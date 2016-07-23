@@ -3,7 +3,7 @@ add_executable (GCStress
   RecyclerTestObject.cpp
   stdafx.cpp
   StubExternalApi.cpp
-    )
+  )
 
 include_directories(..)
 
@@ -13,13 +13,19 @@ target_include_directories (GCStress
   $<BUILD_INTERFACE:${ROOT_SOURCE_DIR}/lib/Common/Memory>  
   )
 
-set(LINK_FLAGS ${LINK_FLAGS} "-Wl,-whole-archive")
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(LINKER_START_GROUP -Wl,--start-group)
+  set(LINKER_END_GROUP -Wl,--end-group)
+endif()
 
-target_link_libraries (GCStress
-  Chakra.Common.Memory
-  Chakra.Common.Common
+# common link deps
+set(lib_target "${lib_target}"
+  -Wl,-undefined,error
+  ${LINKER_START_GROUP}
   Chakra.Common.Core
-  Chakra.Common.DataStructures
-  Chakra.Common.Exceptions
   Chakra.Pal
+  Chakra.Jsrt
+  ${LINKER_END_GROUP}
   )
+
+target_link_libraries (GCStress ${lib_target})

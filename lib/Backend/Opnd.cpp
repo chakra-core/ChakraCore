@@ -788,32 +788,6 @@ PropertySymOpnd::CopyWithoutFlowSensitiveInfo(Func *func)
 }
 
 PropertySymOpnd *
-PropertySymOpnd::CopyForTypeCheckOnly(Func *func)
-{
-    Assert(!IsRootObjectNonConfigurableFieldLoad());
-    PropertySymOpnd *newOpnd = CopyCommon(func);
-
-    newOpnd->objTypeSpecFldInfo = this->objTypeSpecFldInfo;
-    newOpnd->usesAuxSlot = usesAuxSlot;
-    newOpnd->slotIndex = slotIndex;
-
-    newOpnd->objTypeSpecFlags = this->objTypeSpecFlags;
-    // If we're turning the instruction owning this operand into a CheckObjType, we will do a type check here
-    // only for the sake of downstream instructions, so the flags pertaining to this property access are
-    // irrelevant, because we don't do a property access here.
-    newOpnd->SetTypeCheckOnly(true);
-    newOpnd->usesFixedValue = false;
-
-    newOpnd->finalType = this->finalType;
-    newOpnd->guardedPropOps = this->guardedPropOps != nullptr ? this->guardedPropOps->CopyNew() : nullptr;
-    newOpnd->writeGuards = this->writeGuards != nullptr ? this->writeGuards->CopyNew() : nullptr;
-
-    newOpnd->SetIsJITOptimizedReg(this->GetIsJITOptimizedReg());
-
-    return newOpnd;
-}
-
-PropertySymOpnd *
 PropertySymOpnd::CopyInternalSub(Func *func)
 {
     Assert(m_kind == OpndKindSym && this->IsPropertySymOpnd());

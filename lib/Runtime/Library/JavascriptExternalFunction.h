@@ -21,6 +21,8 @@ namespace Js
     public:
         JavascriptExternalFunction(ExternalMethod nativeMethod, DynamicType* type);
         JavascriptExternalFunction(ExternalMethod entryPoint, DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors);
+        // this is default external function for DOM constructor that cannot be new'ed.
+        JavascriptExternalFunction(DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors);
         JavascriptExternalFunction(JavascriptExternalFunction* wrappedMethod, DynamicType* type);
         JavascriptExternalFunction(StdCallJavascriptMethod nativeMethod, DynamicType* type);
 
@@ -37,6 +39,7 @@ namespace Js
             static FunctionInfo ExternalFunctionThunk;
             static FunctionInfo WrappedFunctionThunk;
             static FunctionInfo StdCallExternalFunctionThunk;
+            static FunctionInfo DefaultExternalFunctionThunk;
         };
 
         ExternalMethod GetNativeMethod() { return nativeMethod; }
@@ -62,9 +65,7 @@ namespace Js
         unsigned int typeSlots:15;
         // Determines if we need are a dictionary type
         unsigned int hasAccessors:1;
-        // This is used for etw tracking for now; potentially we can use this as heuristic
-        // to determine if when to JIT the method.
-        unsigned int callCount:15;
+        unsigned int unused:15;
 
         JavascriptTypeId prototypeTypeId;
         UINT64 flags;
@@ -72,10 +73,10 @@ namespace Js
         static Var ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static void __cdecl DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode);
 
         void PrepareExternalCall(Arguments * args);
-        Var FinishExternalCall(Var result);
 
 #if ENABLE_TTD
     public:

@@ -2,14 +2,14 @@
 <regress-exe>
   <test>
     <default>
-      <files>prototype.js</files>
-      <baseline>prototype.baseline</baseline>
+      <files>Prototype.js</files>
+      <baseline>Prototype.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <files>prototype2.js</files>
-      <baseline>prototype2.baseline</baseline>
+      <files>Prototype2.js</files>
+      <baseline>Prototype2.baseline</baseline>
     </default>
   </test>
   <test>

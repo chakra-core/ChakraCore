@@ -168,20 +168,6 @@ Return value:
 BOOL PAL_LOADUnloadPEFile(void * ptr);
 
 /*++
-    LOADInitializeChakraCoreModule
-
-    Run the initialization methods for CoreCLR module.
-
-Parameters:
-    None
-
-Return value:
-    TRUE if successful
-    FALSE if failure
---*/
-BOOL LOADInitializeChakraCoreModule();
-
-/*++
 Function :
     LOADGetPalLibrary
 
@@ -201,4 +187,3 @@ MODSTRUCT *LOADGetPalLibrary();
 #endif // __cplusplus
 
 #endif /* _PAL_MODULE_H_ */
-

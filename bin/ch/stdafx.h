@@ -25,6 +25,8 @@
 
 #define ENABLE_TEST_HOOKS 1
 #include "CommonDefines.h"
+#include <map>
+#include <string>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -63,7 +65,9 @@
 #if defined(DBG)
 
 #define _STRINGIZE_(x) #x
+#if !defined(_STRINGIZE)
 #define _STRINGIZE(x) _STRINGIZE_(x)
+#endif
 
 #define AssertMsg(exp, comment)   \
 do { \
@@ -80,13 +84,15 @@ if (!(exp)) \
 
 #define Assert(exp)             AssertMsg(exp, #exp)
 #define _JSRT_
-#include "ChakraCommon.h"
+#include "ChakraCore.h"
 #include "Core/CommonTypedefs.h"
 #include "TestHooksRt.h"
-#include "ChakraDebug.h"
 
 typedef void * Var;
 
+#include "Codex/Utf8Helper.h"
+using utf8::NarrowStringToWideDynamic;
+using utf8::WideStringToNarrowDynamic;
 #include "Helpers.h"
 
 #define IfJsErrorFailLog(expr) \
@@ -137,3 +143,33 @@ do { \
 #include "MessageQueue.h"
 #include "WScriptJsrt.h"
 #include "Debugger.h"
+
+template<class T, bool JSRTHeap>
+class AutoStringPtr
+{
+    T* data;
+public:
+    AutoStringPtr():data(nullptr) { }
+    ~AutoStringPtr()
+    {
+        if (data == nullptr)
+        {
+            return;
+        }
+
+        if (JSRTHeap)
+        {
+            ChakraRTInterface::JsStringFree((char*)data);
+        }
+        else
+        {
+            free(data);
+        }
+    }
+
+    T* operator*() { return data; }
+    T** operator&()  { return &data; }
+};
+
+typedef AutoStringPtr<char, true> AutoString;
+typedef AutoStringPtr<wchar_t, false> AutoWideString;

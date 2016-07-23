@@ -5,7 +5,7 @@
 #include "Backend.h"
 
 InliningDecider::InliningDecider(Js::FunctionBody *const topFunc, bool isLoopBody, bool isInDebugMode, const ExecutionMode jitMode)
-    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), threshold(topFunc->GetByteCodeWithoutLDACount())
+    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), threshold(topFunc->GetByteCodeWithoutLDACount(), isLoopBody)
 {
     Assert(topFunc);
 }
@@ -190,7 +190,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
     Js::FunctionProxy * proxy = functionInfo->GetFunctionProxy();
     if (proxy && proxy->IsFunctionBody())
     {
-        if (isLoopBody && !PHASE_ON(Js::InlineInJitLoopBodyPhase, this->topFunc))
+        if (isLoopBody && PHASE_OFF(Js::InlineInJitLoopBodyPhase, this->topFunc))
         {
             INLINE_TESTTRACE_VERBOSE(_u("INLINING: Skip Inline: Jit loop body: %s (%s)\n"), this->topFunc->GetDisplayName(),
                 this->topFunc->GetDebugNumberSet(debugStringBuffer));
@@ -268,7 +268,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
         }
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-        TraceInlining(inliner, inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->topFunc, this->bytecodeInlinedCount, inlinee, callSiteId);
+        TraceInlining(inliner, inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->topFunc, this->bytecodeInlinedCount, inlinee, callSiteId, this->isLoopBody);
 #endif
 
         this->bytecodeInlinedCount += inlinee->GetByteCodeCount();
@@ -622,14 +622,24 @@ bool InliningDecider::GetBuiltInInfoCommon(
         break;
 #endif
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     // we only inline, and hence type-spec on IA
 #if defined(_M_X64) || defined(_M_IX86)
     default:
     {
-        return false;
+        // inline only if simdjs and simd128 type-spec is enabled.
+        if (scriptContext->GetConfig()->IsSimdjsEnabled() && SIMD128_TYPE_SPEC_FLAG)
+        {
+            *inlineCandidateOpCode = scriptContext->GetThreadContext()->GetSimdOpcodeFromFuncInfo(funcInfo);
+        }
+        else
+        {
+            return false;
+        }
     }
 #endif
+#endif // ENABLE_SIMDJS
     }
     return true;
 }
@@ -726,29 +736,24 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     //       7a. As of now it is still governed by the InlineThreshold. Plan to play with this in future.
     // 8. Rest should be inlined.
 
-    if (!isPolymorphicCall && !isConstructorCall && IsInlineeLeaf(inlinee) && (inlinee->GetLoopCount() <= 2))
-    {
-        // Inlinee is a leaf function
-        if (getNumberOfInlineesWithLoop() <= (uint)threshold.maxNumberOfInlineesWithLoop) // Don't inlinee too many inlinees with loops.
-        {
-            // Negative LeafInlineThreshold disable the threshold
-            if (threshold.leafInlineThreshold >= 0 && inlineeByteCodeCount < (uint)threshold.leafInlineThreshold)
-            {
-                if (inlinee->GetLoopCount())
-                {
-                    incrementNumberOfInlineesWithLoop();
-                }
-                return true;
-            }
-        }
-
-    }
-
-
     uint16 mask = constantArgInfo &  inlinee->m_argUsedForBranch;
     if (mask && inlineeByteCodeCount <  (uint)CONFIG_FLAG(ConstantArgumentInlineThreshold))
     {
         return true;
+    }
+
+    int inlineThreshold = threshold.inlineThreshold;
+    if (!isPolymorphicCall && !isConstructorCall && IsInlineeLeaf(inlinee) && (inlinee->GetLoopCount() <= 2))
+    {
+        // Inlinee is a leaf function
+        if (inlinee->GetLoopCount() == 0 || GetNumberOfInlineesWithLoop() <= (uint)threshold.maxNumberOfInlineesWithLoop) // Don't inlinee too many inlinees with loops.
+        {
+            // Negative LeafInlineThreshold disable the threshold
+            if (threshold.leafInlineThreshold >= 0)
+            {
+                inlineThreshold += threshold.leafInlineThreshold - threshold.inlineThreshold;
+            }
+        }
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -757,29 +762,18 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     wchar_t debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-    if (inlineeByteCodeCount > (uint)this->threshold.inlineThreshold)         // Don't inline function too big to inline
-    {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline: Bytecode greater than threshold\tInlinee: %s (%s)\tByteCodeCount: %d\tByteCodeInlinedThreshold: %d\tCaller: %s (%s) \tRoot: %s (%s)\n",
-            inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->threshold.inlineThreshold,
-            inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
-            topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
-        return false;
-    }
-
     if (inlinee->GetHasLoops())
     {
-        // Small function with a single loop, go ahead and inline that.
         if (threshold.loopInlineThreshold < 0 ||                                     // Negative LoopInlineThreshold disable inlining with loop
-            inlineeByteCodeCount >(uint)threshold.loopInlineThreshold ||
-            getNumberOfInlineesWithLoop()  > (uint)threshold.maxNumberOfInlineesWithLoop || // See if we are inlining too many inlinees with loops.
+            GetNumberOfInlineesWithLoop()  >(uint)threshold.maxNumberOfInlineesWithLoop || // See if we are inlining too many inlinees with loops.
             (inlinee->GetLoopCount() > 2) ||                                         // Allow at most 2 loops.
             inlinee->GetHasNestedLoop() ||                                           // Nested loops are not a good inlinee candidate
-            isConstructorCall ||                                                        // If the function is constructor or has polymorphic fields don't inline.
+            isConstructorCall ||                                                     // If the function is constructor with loops, don't inline.
             PHASE_OFF(Js::InlineFunctionsWithLoopsPhase, this->topFunc))
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %B\tisConstructorCall:%B\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %B\tisConstructorCall:%B\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 inlinee->GetByteCodeCount(),
-                getNumberOfInlineesWithLoop(),
+                GetNumberOfInlineesWithLoop(),
                 inlinee->GetLoopCount(),
                 inlinee->GetHasNestedLoop(),
                 isConstructorCall,
@@ -789,17 +783,18 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
             // Don't inline function with loops
             return false;
         }
-        incrementNumberOfInlineesWithLoop();
-        return true;
+        else
+        {
+            inlineThreshold -= (threshold.inlineThreshold > threshold.loopInlineThreshold) ? threshold.inlineThreshold - threshold.loopInlineThreshold : 0;
+        }
     }
 
     if (isPolymorphicCall)
     {
         if (threshold.polymorphicInlineThreshold < 0 ||                              // Negative PolymorphicInlineThreshold disable inlining
-            inlineeByteCodeCount >(uint)threshold.polymorphicInlineThreshold ||     // This is second level check to ensure we don't inline huge polymorphic functions.
             isConstructorCall)
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Polymorphic call under PolymorphicInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Polymorphic call under PolymorphicInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 threshold.polymorphicInlineThreshold,
                 inlinee->GetByteCodeCount(),
                 inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
@@ -807,7 +802,10 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
                 topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
             return false;
         }
-        return true;
+        else
+        {
+            inlineThreshold -= (threshold.inlineThreshold > threshold.polymorphicInlineThreshold) ? threshold.inlineThreshold - threshold.polymorphicInlineThreshold : 0;
+        }
     }
 
     if (isConstructorCall)
@@ -828,16 +826,16 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
             return true;
         }
 
-        if (inlinee->HasDynamicProfileInfo() && inlinee->GetDynamicProfileInfo()->HasPolymorphicFldAccess())
+        if (inlinee->HasDynamicProfileInfo() && inlinee->GetAnyDynamicProfileInfo()->HasPolymorphicFldAccess())
         {
-            // As of now this is dependent on bytecodeInlinedThreshold.
+            // As of now this is not dependent on bytecodeInlinedThreshold.
             return true;
         }
 
         // Negative ConstructorInlineThreshold always disable constructor inlining
-        if (threshold.constructorInlineThreshold < 0 || inlineeByteCodeCount >(uint)this->threshold.constructorInlineThreshold)
+        if (threshold.constructorInlineThreshold < 0)
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Constructor with no polymorphic field access \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Constructor with no polymorphic field access \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 inlinee->GetByteCodeCount(),
                 inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
                 inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
@@ -846,10 +844,29 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
             // caches is disabled
             return false;
         }
-        return true;
+        else
+        {
+            inlineThreshold -= (threshold.inlineThreshold > threshold.constructorInlineThreshold) ? threshold.inlineThreshold - threshold.constructorInlineThreshold : 0;
+        }
     }
 
-    return true;
+    if (threshold.forLoopBody)
+    {
+        inlineThreshold /= CONFIG_FLAG(InlineInLoopBodyScaleDownFactor);
+    }
+
+    if (inlineThreshold > 0 && inlineeByteCodeCount <= (uint)inlineThreshold)
+    {
+        if (inlinee->GetLoopCount())
+        {
+            IncrementNumberOfInlineesWithLoop();
+        }
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool InliningDecider::ContinueInliningUserDefinedFunctions(uint32 bytecodeInlinedCount) const
@@ -872,32 +889,32 @@ bool InliningDecider::ContinueInliningUserDefinedFunctions(uint32 bytecodeInline
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 // static
 void InliningDecider::TraceInlining(Js::FunctionBody *const inliner, const char16* inlineeName, const char16* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
-    Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, uint builtIn)
+    Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, bool inLoopBody, uint builtIn)
 {
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     if (inlineeName == nullptr)
     {
-
         int len = swprintf_s(debugStringBuffer3, MAX_FUNCTION_BODY_DEBUG_STRING_SIZE, _u("built In Id: %u"), builtIn);
         Assert(len > 14);
         inlineeName = debugStringBuffer3;
     }
-    INLINE_TESTTRACE(_u("INLINING: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
+    INLINE_TESTTRACE(_u("INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
         inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
-        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(), inlinedByteCodeCount,
-        topFunc->GetDisplayName(),
-        topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetByteCodeCount(),
+        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(),
+        inlinedByteCodeCount,
+        topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetByteCodeCount(),
         callSiteId
         );
 
-    INLINE_TRACE(_u("INLINING:\n\tInlinee: size: %4d  %s\n\tCaller: size: %4d  %-25s (%s)  InlineCount: %d\tRoot:  size: %4d  %s  (%s) CallSiteId %d\n"),
-        inlineeByteCodeCount, inlineeName,
-        inliner->GetByteCodeCount(), inliner->GetDisplayName(),
-        inliner->GetDebugNumberSet(debugStringBuffer), inlinedByteCodeCount,
-        topFunc->GetByteCodeCount(),
-        topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
+    INLINE_TRACE(_u("INLINING %s: Inlinee: %s(%s)\tSize : %d\tCaller : %s(%s)\tSize : %d\tInlineCount : %d\tRoot : %s(%s)\tSize : %d\tCallSiteId : %d\n"),
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
+        inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
+        inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(),
+        inlinedByteCodeCount,
+        topFunc->GetByteCodeCount(), topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
         callSiteId
         );
 

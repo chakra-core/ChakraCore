@@ -309,16 +309,11 @@ public:
     Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
 
 #if DBG_DUMP
-    __declspec(noinline) void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
+    _NOINLINE void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
 #endif
 };
 
-template<>
-ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
-{
-    Assert(value);
-    return value->GetValueNumber();
-}
+template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
 
 class IntConstantValueInfo : public ValueInfo
 {
@@ -957,6 +952,9 @@ public:
         argOutCount(0),
         totalOutParamCount(0),
         callSequence(nullptr),
+        capturedValuesCandidate(nullptr),
+        capturedValues(nullptr),
+        changedSyms(nullptr),
         hasCSECandidates(false),
         curFunc(func),
         hasDataRef(nullptr),
@@ -1006,6 +1004,10 @@ public:
     uint                                    totalOutParamCount;
     SListBase<IR::Opnd *> *                 callSequence;
     StackLiteralInitFldDataMap *            stackLiteralInitFldDataMap;
+
+    CapturedValues *                        capturedValuesCandidate;
+    CapturedValues *                        capturedValues;
+    BVSparse<JitArenaAllocator> *           changedSyms;
 
     uint                                    inlinedArgOutCount;
 
@@ -1302,6 +1304,9 @@ private:
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
     void                    CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const toData, BasicBlock *const fromBlock);
     void                    CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
+
+    template <typename CapturedList, typename CapturedItemsAreEqual>
+    void                    MergeCapturedValues(GlobOptBlockData * toData, SListBase<CapturedList> * toList, SListBase<CapturedList> * fromList, CapturedItemsAreEqual itemsAreEqual);
     void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
     void                    DeleteBlockData(GlobOptBlockData *data);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
@@ -1312,6 +1317,7 @@ private:
     bool                    OptTagChecks(IR::Instr *instr);
     void                    TryOptimizeInstrWithFixedDataProperty(IR::Instr * * const pInstr);
     bool                    CheckIfPropOpEmitsTypeCheck(IR::Instr *instr, IR::PropertySymOpnd *opnd);
+    IR::PropertySymOpnd *   CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func);
     bool                    FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block = nullptr, bool updateExistingValue = false, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr);
     void                    FinishOptHoistedPropOps(Loop * loop);
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
@@ -1377,6 +1383,7 @@ private:
     StackSym *              GetTaggedIntConstantStackSym(const int32 intConstantValue) const;
     StackSym *              GetOrCreateTaggedIntConstantStackSym(const int32 intConstantValue) const;
     Sym *                   SetSymStore(ValueInfo *valueInfo, Sym *sym);
+    void                    SetSymStoreDirect(ValueInfo *valueInfo, Sym *sym);
     Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
     Value *                 InsertNewValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
     Value *                 SetValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
@@ -1384,21 +1391,22 @@ private:
     void                    SetValueToHashTable(GlobHashTable * valueNumberMap, Value *val, Sym *sym);
     IR::Instr *             TypeSpecialization(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal, bool *redoTypeSpecRef, bool *const forceInvariantHoistingRef);
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     bool                    TypeSpecializeSimd128(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal);
     bool                    Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal);
     bool                    Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal, const ThreadContext::SimdFuncSignature *simdFuncSignature);
     bool                    Simd128CanTypeSpecOpnd(const ValueType opndType, const ValueType expectedType);
     bool                    Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos);
-    
+    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);    
+    void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
+#endif
+
     IRType                  GetIRTypeFromValueType(const ValueType &valueType);
     ValueType               GetValueTypeFromIRType(const IRType &type);
     IR::BailOutKind         GetBailOutKindFromValueType(const ValueType &valueType);
     IR::Instr *             GetExtendedArg(IR::Instr *instr);
-    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
-    void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
-
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
     bool                    OptConstFoldBinary(IR::Instr * *pInstr, const IntConstantBounds &src1IntConstantBounds, const IntConstantBounds &src2IntConstantBounds, Value **pDstVal);
@@ -1636,7 +1644,15 @@ private:
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
-    void                    CaptureValue(BasicBlock *block, StackSym * stackSym, Value * value, BailOutInfo * bailOutInfo);
+    void                    GlobOpt::CaptureValuesFromScratch(
+                                BasicBlock * block,
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+    void                    GlobOpt::CaptureValuesIncremental(
+                                BasicBlock * block,
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+    void                    CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter);
     void                    CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArenaAllocator *allocator);
     void                    CaptureByteCodeSymUses(IR::Instr * instr);
     IR::ByteCodeUsesInstr * InsertByteCodeUses(IR::Instr * instr, bool includeDef = false);

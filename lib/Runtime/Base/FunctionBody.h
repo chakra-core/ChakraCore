@@ -1570,6 +1570,19 @@ namespace Js
             return m_doBackendArgumentsOptimization;
         }
 
+        void SetUsesArgumentsObject(bool set)
+        {
+            if (!m_usesArgumentsObject)
+            {
+                m_usesArgumentsObject = set;
+            }
+        }
+
+        bool GetUsesArgumentsObject()
+        {
+            return m_usesArgumentsObject;
+        }
+
         bool IsFunctionParsed()
         {
             return !IsDeferredParseFunction() || m_hasBeenParsed;
@@ -1640,6 +1653,7 @@ namespace Js
         bool m_isAsmJsFunction : 1;
         bool m_isGlobalFunc : 1;
         bool m_doBackendArgumentsOptimization : 1;
+        bool m_usesArgumentsObject : 1;
         bool m_isEval : 1;              // Source code is in 'eval'
         bool m_isDynamicFunction : 1;   // Source code is in 'Function'
         bool m_hasImplicitArgIns : 1;

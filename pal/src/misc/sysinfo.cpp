@@ -87,6 +87,19 @@ SET_DEFAULT_DEBUG_CHANNEL(MISC);
 #endif
 #endif // __APPLE__
 
+#ifdef __LINUX__
+// There is no reasonable way to get the max. value for the VAS on
+// Linux, so just hardcode the ABI values for 64 and 32bits.
+#ifdef LINUX64
+// The hardware limit for x86-64 CPUs is 256TB, but the practical
+// limit at the moment for Linux kernels is 128TB.  See for example:
+// https://access.redhat.com/articles/rhel-limits
+#define MAX_PROCESS_VA_SPACE_LINUX (128ull * 1024 * 1024 * 1024 * 1024)
+#else
+// This is unsupported at the moment, but the x32 ABI has a 4GB limit.
+#define MAX_PROCESS_VA_SPACE_LINUX (4ull * 1024 * 1024 * 1024)
+#endif
+#endif // __LINUX__
 
 /*++
 Function:
@@ -157,11 +170,7 @@ GetSystemInfo(
 #ifdef VM_MAXUSER_ADDRESS
     lpSystemInfo->lpMaximumApplicationAddress = (PVOID) VM_MAXUSER_ADDRESS;
 #elif defined(__LINUX__)
-    // Temporarily setting it to 128 TB which is the Ubuntu (debian) max
-    // xplat-todo: Revert this to be dynamically determined
-    const unsigned long long maxProcessVASpace = 128ull * 1024 * 1024 * 1024 * 1024;
-
-    lpSystemInfo->lpMaximumApplicationAddress = (PVOID) maxProcessVASpace;
+    lpSystemInfo->lpMaximumApplicationAddress = (PVOID) MAX_PROCESS_VA_SPACE_LINUX;
 #elif defined(USERLIMIT)
     lpSystemInfo->lpMaximumApplicationAddress = (PVOID) USERLIMIT;
 #elif defined(_WIN64)
@@ -283,12 +292,13 @@ GlobalMemoryStatusEx(
 #endif // __APPLE__
     }
 
-    // There is no API to get the total virtual address space size on 
-    // Unix, so we use a constant value representing 128TB, which is 
-    // the approximate size of total user virtual address space on
-    // the currently supported Unix systems.
-    static const UINT64 _128TB = (1ull << 47); 
+#ifdef __LINUX__
+    lpBuffer->ullTotalVirtual = MAX_PROCESS_VA_SPACE_LINUX;
+#else
+    // xplat-todo: for all the other unices just use 128TB for now.
+    static const UINT64 _128TB = (1ull << 47);
     lpBuffer->ullTotalVirtual = _128TB;
+#endif
     lpBuffer->ullAvailVirtual = lpBuffer->ullAvailPhys;
 
     LOGEXIT("GlobalMemoryStatusEx returns %d\n", fRetVal);

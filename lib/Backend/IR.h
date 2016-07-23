@@ -298,7 +298,7 @@ public:
 
     BailOutInfo *   GetBailOutInfo() const;
     BailOutInfo *   UnlinkBailOutInfo();
-    void            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
+    bool            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
     IR::Instr *     ShareBailOut();
     BailOutKind     GetBailOutKind() const;
     BailOutKind     GetBailOutKindNoBits() const;

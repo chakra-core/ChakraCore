@@ -88,6 +88,8 @@ namespace Js
         virtual bool IsFake() { return (this->GetTypeAttribute() & DBGPROP_ATTRIB_VALUE_IS_FAKE) == DBGPROP_ATTRIB_VALUE_IS_FAKE; }
         virtual bool IsLiteralProperty() const = 0;
         virtual bool IsSymbolProperty() { return false; }
+
+        virtual ~IDiagObjectModelDisplay() { /* Dummy */ }
     };
 
     //

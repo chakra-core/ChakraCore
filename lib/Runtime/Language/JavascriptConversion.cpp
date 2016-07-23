@@ -295,7 +295,7 @@ CommonNumber:
     // ToPropertyKey() takes a value and converts it to a property key
     // Implementation of ES6 7.1.14
     //----------------------------------------------------------------------------
-    BOOL JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
+    void JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
     {
         Var key = JavascriptConversion::ToPrimitive(argument, JavascriptHint::HintString, scriptContext);
 
@@ -319,8 +319,6 @@ CommonNumber:
                 scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
             }
         }
-
-        return TRUE;
     }
 
     //----------------------------------------------------------------------------

@@ -134,7 +134,6 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,int32 len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 

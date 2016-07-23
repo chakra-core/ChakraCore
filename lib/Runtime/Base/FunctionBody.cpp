@@ -12,6 +12,9 @@
 
 #include "ByteCode/ScopeInfo.h"
 #include "Base/EtwTrace.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 #include "Language/DynamicProfileMutator.h"
@@ -575,7 +578,7 @@ namespace Js
     Var
     FunctionBody::GetFormalsPropIdArrayOrNullObj()
     {
-        Var formalsPropIdArray = this->GetAuxPtr(AuxPointerType::FormalsPropIdArray);
+        Var formalsPropIdArray = this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray);
         if (formalsPropIdArray == nullptr)
         {
             return GetScriptContext()->GetLibrary()->GetNull();
@@ -588,15 +591,15 @@ namespace Js
     {
         if (checkForNull)
         {
-            Assert(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+            Assert(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
         }
-        return static_cast<PropertyIdArray*>(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+        return static_cast<PropertyIdArray*>(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
     }
 
     void 
     FunctionBody::SetFormalsPropIdArray(PropertyIdArray * propIdArray)
     {
-        AssertMsg(propIdArray == nullptr || this->GetAuxPtr(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
+        AssertMsg(propIdArray == nullptr || this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
         this->SetAuxPtr(AuxPointerType::FormalsPropIdArray, propIdArray);
     }
 
@@ -1047,6 +1050,7 @@ namespace Js
         CopyDeferParseField(m_isStrictMode);
         CopyDeferParseField(m_isGlobalFunc);
         CopyDeferParseField(m_doBackendArgumentsOptimization);
+        CopyDeferParseField(m_usesArgumentsObject);
         CopyDeferParseField(m_isEval);
         CopyDeferParseField(m_isDynamicFunction);
         CopyDeferParseField(m_hasImplicitArgIns);
@@ -1141,6 +1145,7 @@ namespace Js
       m_isNameIdentifierRef (true),
       m_isStaticNameFunction(false),
       m_doBackendArgumentsOptimization(true),
+      m_usesArgumentsObject(false),
       m_isStrictMode(false),
       m_isAsmjsMode(false),
       m_dontInline(false),
@@ -3238,6 +3243,9 @@ namespace Js
         TraceExecutionMode();
 
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogMethodNativeLoadEvent(this, entryPointInfo);
+#endif
 
 #ifdef _M_ARM
         // For ARM we need to make sure that pipeline is synchronized with memory/cache for newly jitted code.
@@ -3296,6 +3304,9 @@ namespace Js
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
         JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader))));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader)));
+#endif
     }
 #endif
 
@@ -4432,16 +4443,7 @@ namespace Js
 #endif /* IR_VIEWER */
 
 #ifdef VTUNE_PROFILING
-#ifdef CDECL
-#define ORIGINAL_CDECL CDECL
-#undef CDECL
-#endif
-    // Not enabled in ChakraCore
-#include "jitProfiling.h"
-#ifdef ORIGINAL_CDECL
-#undef CDECL
-#endif
-#define CDECL ORIGINAL_CDECL
+#include "jitprofiling.h"
 
     int EntryPointInfo::GetNativeOffsetMapCount() const
     {

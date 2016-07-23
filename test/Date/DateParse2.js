@@ -50,6 +50,11 @@ testParseDate("Tue Feb 02 2012 01:02:03 GMT+0430 (prisec@)");
 testParseDate("Tue Feb 2 01:02:03 PST 2013 B.C.");
 testParseDate("Thu Feb 2 01:02:03 PST 2012");
 
+function CUT_NAME(str) {
+    return str.replace("(PST)", "(Pacific Standard Time)")
+              .replace("(PDT)", "(Pacific Daylight Time)");
+}
+
 function testDate(date) {
     testParseDate(date.toString());
 }
@@ -84,7 +89,7 @@ function testParseDateCore(d) {
 
 function myPrint(str) {
     if (WScript.Echo !== undefined) {
-        WScript.Echo(str);
+        WScript.Echo(CUT_NAME(str));
     }
     else {
         throw "no print!";

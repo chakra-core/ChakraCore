@@ -164,39 +164,70 @@ public:
 template <class TBlockAttributes>
 class HeapBucketGroup
 {
-public:
     template <ObjectInfoBits objectAttributes>
-    typename SmallHeapBlockType<objectAttributes, TBlockAttributes>::BucketType& GetBucket()
+    class BucketGetter
     {
-        CompileAssert(objectAttributes & FinalizeBit);
-        return this->finalizableHeapBucket;
-    }
+    public:
+        typedef typename SmallHeapBlockType<objectAttributes, TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            CompileAssert(objectAttributes & FinalizeBit);
+            return heapBucketGroup->finalizableHeapBucket;
+        }
+    };
 
     template <>
-    typename SmallHeapBlockType<LeafBit, TBlockAttributes>::BucketType& GetBucket<LeafBit>()
+    class BucketGetter<LeafBit>
     {
-        return this->leafHeapBucket;
-    }
+    public:
+        typedef typename SmallHeapBlockType<LeafBit, TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {            
+            return heapBucketGroup->leafHeapBucket;
+        }
+    };
 
     template <>
-    typename SmallHeapBlockType<NoBit, TBlockAttributes>::BucketType& GetBucket<NoBit>()
+    class BucketGetter<NoBit>
     {
-        return this->heapBucket;
-    }
+    public:
+        typedef typename SmallHeapBlockType<NoBit, TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            return heapBucketGroup->heapBucket;
+        }
+    };
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
-    typename SmallHeapBlockType<WithBarrierBit, TBlockAttributes>::BucketType& GetBucket<WithBarrierBit>()
+    class BucketGetter<WithBarrierBit>
     {
-        return this->smallNormalWithBarrierHeapBucket;
-    }
+    public:
+        typedef typename SmallHeapBlockType<WithBarrierBit, TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            return heapBucketGroup->smallNormalWithBarrierHeapBucket;
+        }
+    };
 
     template <>
-    typename SmallHeapBlockType<FinalizableWithBarrierBit, TBlockAttributes>::BucketType& GetBucket<FinalizableWithBarrierBit>()
+    class BucketGetter<FinalizableWithBarrierBit>
     {
-        return this->smallFinalizableWithBarrierHeapBucket;
-    }
+    public:
+        typedef typename SmallHeapBlockType<FinalizableWithBarrierBit, TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            return heapBucketGroup->smallFinalizableWithBarrierHeapBucket;
+        }
+    };
 #endif
+public:
+
+    template <ObjectInfoBits objectAttributes>
+    typename SmallHeapBlockType<objectAttributes, TBlockAttributes>::BucketType& GetBucket()
+    {
+        return BucketGetter<objectAttributes>::GetBucket(this);
+    }
 
     void Initialize(HeapInfo * heapInfo, uint sizeCat);
     void ResetMarks(ResetMarkFlags flags);
