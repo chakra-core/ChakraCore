@@ -88,6 +88,7 @@ public:
     bool HasLoops() const;
     bool HasNonBuiltInCallee() const;
     bool HasNestedLoop() const;
+    bool UsesArgumentsObject() const;
     bool IsParamAndBodyScopeMerged() const;
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;

@@ -691,7 +691,7 @@ public:
     bool                IsStackArgsEnabled()
     {
                         Func* curFunc = this;
-                        bool isStackArgsEnabled = this->m_jnFunction->GetUsesArgumentsObject() && curFunc->GetHasStackArgs();
+                        bool isStackArgsEnabled = GetJITFunctionBody()->UsesArgumentsObject() && curFunc->GetHasStackArgs();
                         Func * topFunc = curFunc->GetTopFunc();
                         if (topFunc != nullptr)
                         {

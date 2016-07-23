@@ -373,6 +373,7 @@ typedef struct FunctionBodyDataIDL
     boolean hasNonBuiltInCallee;
     boolean isParamAndBodyScopeMerged;
     boolean hasFinally;
+    boolean usesArgumentsObject;
 
     unsigned short envDepth;
     unsigned short inParamCount;

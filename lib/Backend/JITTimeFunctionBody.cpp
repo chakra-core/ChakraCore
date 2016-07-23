@@ -162,6 +162,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->hasNestedLoop = functionBody->GetHasNestedLoop();
     jitBody->isParamAndBodyScopeMerged = functionBody->IsParamAndBodyScopeMerged();
     jitBody->paramClosureReg = functionBody->GetParamClosureRegister();
+    jitBody->usesArgumentsObject = functionBody->GetUsesArgumentsObject();
     
     //CompileAssert(sizeof(PropertyIdArrayIDL) == sizeof(Js::PropertyIdArray));
     jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
@@ -552,6 +553,12 @@ bool
 JITTimeFunctionBody::HasNestedLoop() const
 {
     return m_bodyData.hasNestedLoop != FALSE;
+}
+
+bool
+JITTimeFunctionBody::UsesArgumentsObject() const
+{
+    return m_bodyData.usesArgumentsObject != FALSE;
 }
 
 bool

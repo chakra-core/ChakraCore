@@ -628,12 +628,14 @@ bool InliningDecider::GetBuiltInInfoCommon(
 #if defined(_M_X64) || defined(_M_IX86)
     default:
     {
+#if 0 // TODO OOP JIT, inline SIMD
         // inline only if simdjs and simd128 type-spec is enabled.
         if (scriptContext->GetConfig()->IsSimdjsEnabled() && SIMD128_TYPE_SPEC_FLAG)
         {
             *inlineCandidateOpCode = scriptContext->GetThreadContext()->GetSimdOpcodeFromFuncInfo(funcInfo);
         }
         else
+#endif
         {
             return false;
         }

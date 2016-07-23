@@ -18,7 +18,7 @@ struct InliningThreshold
     int maxNumberOfInlineesWithLoop;
     int constantArgumentInlineThreshold;
 
-    InliningThreshold(Js::FunctionBody * topFunc, bool aggressive = false);
+    InliningThreshold(uint nonLoadByteCodeCount, bool forLoopBody, bool aggressive = false);
     void SetHeuristics();
     void SetAggressiveHeuristics();
     void Reset();

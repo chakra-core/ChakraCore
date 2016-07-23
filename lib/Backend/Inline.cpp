@@ -2233,7 +2233,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     TraceInlining(inlinerData, Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, callInstr->m_func->GetTopFunc()->IsLoopBody(), builtInId);
+        nullptr, 0, this->topFunc->GetWorkItem()->GetJITTimeInfo(), 0, nullptr, callSiteId, callInstr->m_func->GetTopFunc()->IsLoopBody(), builtInId);
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
@@ -3589,7 +3589,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     // Inlining a function that uses arguments object could potentially hurt perf because we'll have to create arguments object on the 
     // heap for that function (versus otherwise the function will be jitted and have its arguments object creation optimized).
     // TODO: Allow arguments object creation to be optimized on a function level instead of an all-or-nothing approach.
-    if (callInstr->m_func->IsLoopBody() && funcBody->GetUsesArgumentsObject())
+    if (callInstr->m_func->IsLoopBody() && funcBody->UsesArgumentsObject())
     {
         return instrNext;
     }
@@ -5028,7 +5028,7 @@ Inline::HasArgumentsAccess(IR::Instr * instr, SymID argumentsSymId)
 bool
 Inline::GetInlineeHasArgumentObject(Func * inlinee)
 {
-    if (!inlinee->GetJnFunction()->GetUsesArgumentsObject())
+    if (!inlinee->GetJITFunctionBody()->UsesArgumentsObject())
     {
         // If inlinee has no arguments access return false
         return false;
@@ -5346,11 +5346,12 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
 
     }
 }
+#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 // static
 void Inline::TraceInlining(const FunctionJITTimeInfo *const inliner, const wchar_t* inlineeName, const wchar_t* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
-    const FunctionJITTimeInfo* topFunc, uint inlinedByteCodeCount, const FunctionJITTimeInfo *const inlinee, uint callSiteId, uint builtIn)
+    const FunctionJITTimeInfo* topFunc, uint inlinedByteCodeCount, const FunctionJITTimeInfo *const inlinee, uint callSiteId, bool inLoopBody, uint builtIn)
 {
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -5362,7 +5363,8 @@ void Inline::TraceInlining(const FunctionJITTimeInfo *const inliner, const wchar
         Assert(len > 14);
         inlineeName = debugStringBuffer3;
     }
-    INLINE_TESTTRACE(L"INLINING: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n",
+    INLINE_TESTTRACE(L"INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n",
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
         inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
         inliner->GetBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
         topFunc->GetBody()->GetDisplayName(),
@@ -5370,12 +5372,12 @@ void Inline::TraceInlining(const FunctionJITTimeInfo *const inliner, const wchar
         callSiteId
     );
 
-    INLINE_TRACE(L"INLINING:\n\tInlinee: size: %4d  %s\n\tCaller: size: %4d  %-25s (%s)  InlineCount: %d\tRoot:  size: %4d  %s  (%s) CallSiteId %d\n",
-        inlineeByteCodeCount, inlineeName,
-        inliner->GetBody()->GetByteCodeCount(), inliner->GetBody()->GetDisplayName(),
-        inliner->GetDebugNumberSet(debugStringBuffer), inlinedByteCodeCount,
-        topFunc->GetBody()->GetByteCodeCount(),
-        topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
+    INLINE_TRACE(L"INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n",
+        inLoopBody ? _u("IN LOOP BODY") : _u(""),
+        inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
+        inliner->GetBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
+        topFunc->GetBody()->GetDisplayName(),
+        topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetBody()->GetByteCodeCount(),
         callSiteId
     );
 

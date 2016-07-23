@@ -162,7 +162,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (m_workItem->Type() == JsFunctionType)
     {
-        if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0) &&
+        if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0 &&
             this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
         {
             Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
