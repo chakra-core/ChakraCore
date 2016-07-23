@@ -66,7 +66,6 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
-      "Wasm": "Object {...}",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "Func2": "function <large string>",

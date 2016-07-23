@@ -24,7 +24,6 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
-      "Wasm": "Object {...}",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
@@ -63,7 +62,6 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
-      "Wasm": "Object {...}",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
