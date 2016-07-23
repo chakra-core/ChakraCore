@@ -7,27 +7,31 @@
 
 namespace Wasm
 {
-
     namespace WasmTypes
     {
         enum WasmType
         {
-            Void,
-#define WASM_LOCALTYPE(token, name) token,
-#include "WasmKeywords.h"
+            // based on binary format encoding values
+            Void = 0,
+            I32 = 1,
+            I64 = 2,
+            F32 = 3,
+            F64 = 4,
             Limit,
             Unreachable
         };
         bool IsLocalType(WasmTypes::WasmType type);
     }
 
-    enum WasmOp
+#define WASM_SIGNATURE(id, nTypes, ...) struct WasmSignature##id {static const WasmTypes::WasmType types[nTypes];};
+#include "WasmBinaryOpcodes.h"
+
+    enum WasmOp : byte
     {
-#define WASM_KEYWORD(token, name) wn##token,
-#include "WasmKeywords.h"
-        wnFUNC_END,
-        wnLIMIT,
-        wnNYI
+#define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
+#include "WasmBinaryOpcodes.h"
+        wbFuncEnd,
+        wbLimit
     };
 
     struct WasmConstLitNode

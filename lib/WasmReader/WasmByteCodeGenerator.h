@@ -148,16 +148,16 @@ namespace Wasm
         template<WasmOp wasmOp>
         EmitInfo EmitBr();
 
-        template<WasmOp wasmOp, WasmTypes::WasmType type>
+        template<WasmOp wasmOp, typename Signature>
         EmitInfo EmitMemRead();
 
-        template<WasmOp wasmOp, WasmTypes::WasmType type>
+        template<WasmOp wasmOp, typename Signature>
         EmitInfo EmitMemStore();
 
-        template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
+        template<Js::OpCodeAsmJs op, typename Signature>
         EmitInfo EmitBinExpr();
 
-        template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType inputType>
+        template<Js::OpCodeAsmJs op, typename Signature>
         EmitInfo EmitUnaryExpr();
 
         template<WasmTypes::WasmType type>

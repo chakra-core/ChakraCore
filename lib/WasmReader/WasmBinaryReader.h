@@ -7,29 +7,6 @@
 #ifdef ENABLE_WASM
 namespace Wasm
 {
-    namespace WasmTypes
-    {
-        // based on binary format encoding values
-        enum LocalType {
-            bAstStmt = 0,  // void
-            bAstI32 = 1,
-            bAstI64 = 2,
-            bAstF32 = 3,
-            bAstF64 = 4,
-            bAstLimit
-        };
-
-    } // namespace WasmTypes
-
-    // binary opcodes
-    enum WasmBinOp
-    {
-#define WASM_OPCODE(opname, opcode, token) wb##opname = opcode,
-#include "WasmBinaryOpcodes.h"
-        wbFuncEnd,
-        wbLimit
-    };
-
     enum FuncDeclFlag
     {
         bFuncDeclName = 0x01,
@@ -60,7 +37,6 @@ namespace Wasm
         bool IsCurrentFunctionCompleted() const;
         WasmOp ReadExpr();
         WasmOp GetLastOp();
-        WasmBinOp GetLastBinOp() const { return m_lastOp; }
 #if DBG_DUMP
         void PrintOps();
 #endif
@@ -73,16 +49,14 @@ namespace Wasm
             UINT32 size;  // number of entries
         };
 
-        Wasm::WasmTypes::WasmType GetWasmType(WasmTypes::LocalType type);
-        WasmOp GetWasmToken(WasmBinOp op);
-        WasmBinOp ASTNode();
+        WasmOp ASTNode();
 
         void CallNode();
         void CallIndirectNode();
         void CallImportNode();
         void BrNode();
         void BrTableNode();
-        WasmOp MemNode(WasmBinOp op);
+        WasmOp MemNode(WasmOp op);
         void VarNode();
 
         // Module readers
@@ -100,7 +74,7 @@ namespace Wasm
         void ReadNamesSection();
 
         // Primitive reader
-        template <WasmTypes::LocalType type> void ConstNode();
+        template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
         char16* ReadInlineName(uint32& length, uint32& nameLength);
         char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
@@ -117,17 +91,13 @@ namespace Wasm
         uint m_funcNumber;
         byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
-        WasmBinOp m_lastOp;
+        WasmOp m_lastOp;
         ReaderState m_funcState;   // func AST level
 
     private:
         WasmModule* m_module;
-        // types
-        static const Wasm::WasmTypes::WasmType binaryToWasmTypes[];
-        // opcodes
-        static Wasm::WasmOp binWasmOpToWasmOp[];
 #if DBG_DUMP
-        typedef JsUtil::BaseHashSet<WasmBinOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
+        typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
         OpSet* m_ops;
 #endif
     }; // WasmBinaryReader

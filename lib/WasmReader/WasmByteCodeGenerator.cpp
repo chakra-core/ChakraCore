@@ -15,17 +15,20 @@
 
 namespace Wasm
 {
+#define WASM_SIGNATURE(id, nTypes, ...) const WasmTypes::WasmType WasmSignature##id::types[] = {__VA_ARGS__};
+#include "WasmBinaryOpcodes.h"
+
 #if DBG_DUMP
 void
 WasmBytecodeGenerator::PrintOpName(WasmOp op) const
 {
     switch (op)
     {
-#define WASM_KEYWORD(token, name) \
-case wn##token: \
-    Output::Print(_u(#token ## "\r\n")); \
+#define WASM_OPCODE(opname, opcode, sig, nyi) \
+case wb##opname: \
+    Output::Print(_u(#opname ## "\r\n")); \
     break;
-#include "WasmKeywords.h"
+#include "WasmBinaryOpCodes.h"
     }
 }
 #endif
@@ -334,10 +337,10 @@ WasmBytecodeGenerator::GenerateFunction()
         m_funcInfo->SetExitLabel(m_writer.DefineLabel());
         EnregisterLocals();
 
-        WasmOp op = wnLIMIT;
+        WasmOp op = wbLimit;
         EmitInfo exprInfo;
         EnterEvalStackScope();
-        while ((op = GetReader()->ReadExpr()) != wnFUNC_END)
+        while ((op = GetReader()->ReadExpr()) != wbFuncEnd)
         {
             exprInfo = EmitExpr(op);
         }
@@ -450,94 +453,92 @@ EmitInfo
 WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
     DebugPrintOp(op);
+    switch (op)
+    {
+#define WASM_OPCODE(opname, opcode, sig, nyi) \
+    case opcode: \
+        if (nyi) throw WasmCompilationException(_u("Operator " #opname## " NYI")); break;
+#include "WasmBinaryOpcodes.h"
+    default:
+        break;
+    }
 
     EmitInfo info;
 
     switch (op)
     {
-    case wnGETLOCAL:
+    case wbGetLocal:
         info = EmitGetLocal();
         break;
-    case wnSETLOCAL:
+    case wbSetLocal:
         info = EmitSetLocal();
         break;
-    case wnRETURN:
+    case wbReturn:
         info = EmitReturnExpr();
         break;
-    case wnCONST_F32:
+    case wbF32Const:
         info = EmitConst<WasmTypes::F32>();
         break;
-    case wnCONST_F64:
+    case wbF64Const:
         info = EmitConst<WasmTypes::F64>();
         break;
-    case wnCONST_I32:
+    case wbI32Const:
         info = EmitConst<WasmTypes::I32>();
         break;
-    case wnBLOCK:
+    case wbBlock:
         info = EmitBlock();
         break;
-    case wnLOOP:
+    case wbLoop:
         info = EmitLoop();
         break;
-    case wnCALL_IMPORT:
-        info = EmitCall<wnCALL_IMPORT>();
+    case wbCallImport:
+        info = EmitCall<wbCallImport>();
         break;
-    case wnCALL:
-        info = EmitCall<wnCALL>();
+    case wbCall:
+        info = EmitCall<wbCall>();
         break;
-    case wnCALL_INDIRECT:
-        info = EmitCall<wnCALL_INDIRECT>();
+    case wbCallIndirect:
+        info = EmitCall<wbCallIndirect>();
         break;
-    case wnIF:
+    case wbIf:
         info = EmitIfElseExpr();
         break;
-    case wnELSE:
+    case wbElse:
         throw WasmCompilationException(_u("Unexpected else opcode"));
-    case wnEND:
+    case wbEnd:
         throw WasmCompilationException(_u("Unexpected end opcode"));
-    case wnBR:
-        info = EmitBr<wnBR>();
+    case wbBr:
+        info = EmitBr<wbBr>();
         break;
-    case wnBR_IF:
-        info = EmitBr<wnBR_IF>();
+    case wbBrIf:
+        info = EmitBr<wbBrIf>();
         break;
-    case wnSELECT:
+    case wbSelect:
         info = EmitSelect();
         break;
-    case wnBR_TABLE:
+    case wbBrTable:
         info = EmitBrTable();
         break;
-    case wnNOP:
+    case wbNop:
         info = EmitInfo();
         break;
-#define WASM_MEMREAD(token, name, type) \
-    case wn##token: \
-        info = EmitMemRead<wn##token, WasmTypes::##type>(); \
+#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
+    case wb##opname: \
+        info = EmitMemRead<wb##opname, WasmSignature##sig>(); \
         break;
-#define WASM_MEMSTORE(token, name, type) \
-    case wn##token: \
-        info = EmitMemStore<wn##token, WasmTypes::##type>(); \
+#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) \
+    case wb##opname: \
+        info = EmitMemStore<wb##opname, WasmSignature##sig>(); \
         break;
-#define WASM_KEYWORD_BIN_TYPED(token, name, op, resultType, lhsType, rhsType) \
-    case wn##token: \
-        info = EmitBinExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##lhsType, WasmTypes::##rhsType>(); \
+#define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
+    case wb##opname: \
+        info = EmitBinExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
         break;
-#define WASM_KEYWORD_UNARY(token, name, op, resultType, inputType) \
-    case wn##token: \
-        info = EmitUnaryExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##inputType>(); \
+#define WASM_UNARY__OPCODE(opname, opcode, sig, asmjop, nyi) \
+    case wb##opname: \
+        info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
         break;
-#include "WasmKeywords.h"
-    case wnNYI:
-        switch (GetReader()->GetLastBinOp())
-        {
-#define WASM_OPCODE(opname, opcode, token) \
-    case opcode: \
-        throw WasmCompilationException(_u("Operator " #opname## " NYI"));
-        break;
-#include "WasmBinaryOpcodes.h"
-        default:
-            break;
-        }
+#include "WasmBinaryOpCodes.h"
     default:
         throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
@@ -619,7 +620,7 @@ WasmBytecodeGenerator::EmitBlockCommon()
     WasmOp op;
     EmitInfo blockInfo;
     EnterEvalStackScope();
-    while ((op = GetReader()->ReadExpr()) != wnEND && op != wnELSE)
+    while ((op = GetReader()->ReadExpr()) != wbEnd && op != wbElse)
     {
         blockInfo = EmitExpr(op);
     }
@@ -680,7 +681,7 @@ WasmBytecodeGenerator::EmitCall()
     EmitInfo indirectIndexInfo;
     switch (wasmOp)
     {
-    case wnCALL:
+    case wbCall:
         funcNum = GetReader()->m_currentNode.call.num;
         if (funcNum >= m_module->GetFunctionCount())
         {
@@ -688,7 +689,7 @@ WasmBytecodeGenerator::EmitCall()
         }
         calleeSignature = m_module->GetFunctionInfo(funcNum)->GetSignature();
         break;
-    case wnCALL_IMPORT:
+    case wbCallImport:
     {
         funcNum = GetReader()->m_currentNode.call.num;
         if (funcNum >= m_module->GetImportCount())
@@ -699,7 +700,7 @@ WasmBytecodeGenerator::EmitCall()
         calleeSignature = m_module->GetSignature(sigId);
         break;
     }
-    case wnCALL_INDIRECT:
+    case wbCallIndirect:
         signatureId = GetReader()->m_currentNode.call.num;
         calleeSignature = m_module->GetSignature(signatureId);
         break;
@@ -710,7 +711,7 @@ WasmBytecodeGenerator::EmitCall()
     // emit start call
     Js::ArgSlot argSize;
     Js::OpCodeAsmJs startCallOp;
-    if (wasmOp == wnCALL_IMPORT)
+    if (wasmOp == wbCallImport)
     {
         argSize = (Js::ArgSlot)(calleeSignature->GetParamCount() * sizeof(Js::Var));
         startCallOp = Js::OpCodeAsmJs::StartCall;
@@ -748,14 +749,14 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            if (wasmOp == wnCALL_IMPORT)
+            if (wasmOp == wbCallImport)
             {
                 throw WasmCompilationException(_u("External calls with float argument NYI"));
             }
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
-            if (wasmOp == wnCALL_IMPORT)
+            if (wasmOp == wbCallImport)
             {
                 argOp = Js::OpCodeAsmJs::ArgOut_Db;
             }
@@ -765,12 +766,12 @@ WasmBytecodeGenerator::EmitCall()
             }
             break;
         case WasmTypes::I32:
-            argOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
+            argOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
-        argsBytesLeft -= wasmOp == wnCALL_IMPORT ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
+        argsBytesLeft -= wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
         if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0)
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
@@ -784,13 +785,13 @@ WasmBytecodeGenerator::EmitCall()
     // emit call
     switch (wasmOp)
     {
-    case wnCALL:
+    case wbCall:
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetFuncOffset());
         break;
-    case wnCALL_IMPORT:
+    case wbCallImport:
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetImportFuncOffset());
         break;
-    case wnCALL_INDIRECT:
+    case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
         if (indirectIndexInfo.type != WasmTypes::I32)
         {
@@ -808,7 +809,7 @@ WasmBytecodeGenerator::EmitCall()
     // calculate number of RegSlots the arguments consume
     Js::ArgSlot args;
     Js::OpCodeAsmJs callOp = Js::OpCodeAsmJs::Nop;
-    if (wasmOp == wnCALL_IMPORT)
+    if (wasmOp == wbCallImport)
     {
         args = (Js::ArgSlot)(calleeSignature->GetParamCount() + 1);
         callOp = Js::OpCodeAsmJs::Call;
@@ -831,15 +832,15 @@ WasmBytecodeGenerator::EmitCall()
         {
         case WasmTypes::F32:
             retInfo.location = m_f32RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
             break;
         case WasmTypes::F64:
             retInfo.location = m_f64RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
             break;
         case WasmTypes::I32:
             retInfo.location = m_i32RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
             throw WasmCompilationException(_u("I64 return type NYI"));
@@ -885,10 +886,10 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_writer.MarkAsmJsLabel(falseLabel);
 
-    WasmOp op = GetReader()->GetLastOp(); // wnEND or wnELSE
+    WasmOp op = GetReader()->GetLastOp(); // wbEnd or wbElse
     EmitInfo retInfo;
     EmitInfo falseExpr;
-    if (op == wnELSE)
+    if (op == wbElse)
     {
         falseExpr = EmitBlock();
         // Read END
@@ -911,7 +912,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
         retInfo = trueExpr;
     }
 
-    if (op != wnEND)
+    if (op != wbEnd)
     {
         throw WasmCompilationException(_u("Missing END opcode"));
     }
@@ -959,10 +960,14 @@ WasmBytecodeGenerator::EmitBrTable()
     return EmitInfo(WasmTypes::Unreachable);
 }
 
-template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
+template<Js::OpCodeAsmJs op, typename Signature>
 EmitInfo
 WasmBytecodeGenerator::EmitBinExpr()
 {
+    WasmTypes::WasmType resultType = Signature::types[0];
+    WasmTypes::WasmType lhsType = Signature::types[1];
+    WasmTypes::WasmType rhsType = Signature::types[2];
+
     EmitInfo rhs = PopEvalStack();
     EmitInfo lhs = PopEvalStack();
 
@@ -985,10 +990,13 @@ WasmBytecodeGenerator::EmitBinExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType inputType>
+template<Js::OpCodeAsmJs op, typename Signature>
 EmitInfo
 WasmBytecodeGenerator::EmitUnaryExpr()
 {
+    WasmTypes::WasmType resultType = Signature::types[0];
+    WasmTypes::WasmType inputType = Signature::types[1];
+
     EmitInfo info = PopEvalStack();
 
     if (inputType != info.type)
@@ -1005,10 +1013,11 @@ WasmBytecodeGenerator::EmitUnaryExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<WasmOp wasmOp, WasmTypes::WasmType type>
+template<WasmOp wasmOp, typename Signature>
 EmitInfo
 WasmBytecodeGenerator::EmitMemRead()
 {
+    WasmTypes::WasmType type = Signature::types[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
@@ -1034,10 +1043,11 @@ WasmBytecodeGenerator::EmitMemRead()
     return EmitInfo(resultReg, type);
 }
 
-template<WasmOp wasmOp, WasmTypes::WasmType type>
+template<WasmOp wasmOp, typename Signature>
 EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
+    WasmTypes::WasmType type = Signature::types[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
@@ -1167,7 +1177,7 @@ WasmBytecodeGenerator::EmitBr()
     bool hasSubExpr = GetReader()->m_currentNode.br.hasSubExpr;
 
     EmitInfo conditionInfo;
-    if (wasmOp == WasmOp::wnBR_IF)
+    if (wasmOp == WasmOp::wbBrIf)
     {
         conditionInfo = PopEvalStack();
         if (conditionInfo.type != WasmTypes::I32)
@@ -1185,13 +1195,13 @@ WasmBytecodeGenerator::EmitBr()
     YieldToBlock(depth, info);
 
     Js::ByteCodeLabel target = GetLabel(depth);
-    if (wasmOp == WasmOp::wnBR)
+    if (wasmOp == WasmOp::wbBr)
     {
         m_writer.AsmBr(target);
     }
     else
     {
-        Assert(wasmOp == WasmOp::wnBR_IF);
+        Assert(wasmOp == WasmOp::wbBrIf);
         m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, target, conditionInfo.location);
         m_i32RegSlots.ReleaseLocation(&conditionInfo);
     }
@@ -1225,30 +1235,30 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
 {
     switch (op)
     {
-    case wnLOAD8S_I32:
-    case wnSTORE8_I32:
+    case wbI32LoadMem8S:
+    case wbI32StoreMem8:
         return Js::ArrayBufferView::TYPE_INT8;
         break;
-    case wnLOAD8U_I32:
+    case wbI32LoadMem8U:
         return Js::ArrayBufferView::TYPE_UINT8;
         break;
-    case wnLOAD16S_I32:
-    case wnSTORE16_I32:
+    case wbI32LoadMem16S:
+    case wbI32StoreMem16:
         return Js::ArrayBufferView::TYPE_INT16;
         break;
-    case wnLOAD16U_I32:
+    case wbI32LoadMem16U:
         return Js::ArrayBufferView::TYPE_UINT16;
         break;
-    case wnLOAD_F32:
-    case wnSTORE_F32:
+    case wbF32LoadMem:
+    case wbF32StoreMem:
         return Js::ArrayBufferView::TYPE_FLOAT32;
         break;
-    case wnLOAD_F64:
-    case wnSTORE_F64:
+    case wbF64LoadMem:
+    case wbF64StoreMem:
         return Js::ArrayBufferView::TYPE_FLOAT64;
         break;
-    case wnLOAD_I32:
-    case wnSTORE_I32:
+    case wbI32LoadMem:
+    case wbI32StoreMem:
         return Js::ArrayBufferView::TYPE_INT32;
         break;
     default:

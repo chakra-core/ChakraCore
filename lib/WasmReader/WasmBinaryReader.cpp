@@ -10,14 +10,6 @@
 
 namespace Wasm
 {
-const WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { WasmTypes::WasmType::Void, WasmTypes::WasmType::I32, WasmTypes::WasmType::I64, WasmTypes::WasmType::F32, WasmTypes::WasmType::F64 };
-WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1] = {
-#define WASM_OPCODE(opname, opcode, token) \
-    WasmOp::wn##token,
-#include "WasmBinaryOpcodes.h"
-    WasmOp::wnFUNC_END,
-    WasmOp::wnLIMIT
-};
 
 namespace WasmTypes
 {
@@ -32,7 +24,7 @@ bool IsLocalType(WasmTypes::WasmType type)
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
-    m_lastOp(WasmBinOp::wbLimit),
+    m_lastOp(WasmOp::wbLimit),
     m_alloc(alloc)
 {
     m_start = m_pc = source;
@@ -195,7 +187,7 @@ WasmBinaryReader::ReadSectionHeader()
 void
 WasmBinaryReader::PrintOps()
 {
-    WasmBinOp * ops = HeapNewArray(WasmBinOp, m_ops->Count());
+    WasmOp * ops = HeapNewArray(WasmOp, m_ops->Count());
 
     auto iter = m_ops->GetIterator();
     int i = 0;
@@ -210,7 +202,7 @@ WasmBinaryReader::PrintOps()
         int j = i;
         while (j > 0 && ops[j-1] > ops[j])
         {
-            WasmBinOp tmp = ops[j];
+            WasmOp tmp = ops[j];
             ops[j] = ops[j - 1];
             ops[j - 1] = tmp;
 
@@ -221,9 +213,9 @@ WasmBinaryReader::PrintOps()
     {
         switch (ops[i])
         {
-#define WASM_OPCODE(opname, opcode, token) \
+#define WASM_OPCODE(opname, opcode, sig, nyi) \
     case opcode: \
-        Output::Print(_u(#token ## "\r\n")); \
+        Output::Print(_u(#opname ## "\r\n")); \
         break;
 #include "WasmBinaryOpcodes.h"
         }
@@ -297,8 +289,13 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
         funcInfo->AddLocal(type, count);
         switch (type)
         {
-#define WASM_LOCALTYPE(token, name) case WasmTypes::token: TRACE_WASM_DECODER(_u("Local: type = " #name## ", count = %u"), type, count); break;
-#include "WasmKeywords.h"
+        case WasmTypes::I32: TRACE_WASM_DECODER(_u("Local: type = I32, count = %u"), count); break;
+        case WasmTypes::I64: TRACE_WASM_DECODER(_u("Local: type = I64, count = %u"), count); break;
+        case WasmTypes::F32: TRACE_WASM_DECODER(_u("Local: type = F32, count = %u"), count); break;
+        case WasmTypes::F64: TRACE_WASM_DECODER(_u("Local: type = F64, count = %u"), count); break;
+            break;
+        default:
+            break;
         }
     }
 }
@@ -311,18 +308,18 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 WasmOp
 WasmBinaryReader::ReadExpr()
 {
-    return GetWasmToken(ASTNode());
+    return ASTNode();
 }
 
 WasmOp WasmBinaryReader::GetLastOp()
 {
-    return GetWasmToken(m_lastOp);
+    return m_lastOp;
 }
 
 /*
 Entry point for decoding a node
 */
-WasmBinOp
+WasmOp
 WasmBinaryReader::ASTNode()
 {
     if (EndOfFunc())
@@ -331,7 +328,7 @@ WasmBinaryReader::ASTNode()
         return wbFuncEnd;
     }
 
-    WasmBinOp op = (WasmBinOp)*m_pc++;
+    WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
     switch (op)
     {
@@ -359,16 +356,16 @@ WasmBinaryReader::ASTNode()
         ++m_funcState.count;
         break;
     case wbI32Const:
-        ConstNode<WasmTypes::bAstI32>();
+        ConstNode<WasmTypes::I32>();
         break;
     case wbI64Const:
-        ConstNode<WasmTypes::bAstI64>();
+        ConstNode<WasmTypes::I64>();
         break;
     case wbF32Const:
-        ConstNode<WasmTypes::bAstF32>();
+        ConstNode<WasmTypes::F32>();
         break;
     case wbF64Const:
-        ConstNode<WasmTypes::bAstF64>();
+        ConstNode<WasmTypes::F64>();
         break;
     case wbSetLocal:
     case wbGetLocal:
@@ -382,18 +379,13 @@ WasmBinaryReader::ASTNode()
         break;
     case wbNop:
         break;
-#define WASM_MEM_OPCODE(opname, opcode, token) \
+#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
     m_currentNode.op = MemNode(op); \
     break;
-#define WASM_SIMPLE_OPCODE(opname, opcode, token) \
-    case wb##opname: \
-    m_currentNode.op = GetWasmToken(op); \
-    break;
 #include "WasmBinaryOpcodes.h"
-
     default:
-        ThrowDecodingError(_u("Unknown opcode 0x%X"), op);
+        m_currentNode.op = op;
     }
 
 #if DBG_DUMP
@@ -513,7 +505,7 @@ WasmBinaryReader::BrTableNode()
 }
 
 WasmOp
-WasmBinaryReader::MemNode(WasmBinOp op)
+WasmBinaryReader::MemNode(WasmOp op)
 {
     uint len = 0;
 
@@ -523,7 +515,7 @@ WasmBinaryReader::MemNode(WasmBinOp op)
     m_currentNode.mem.offset = LEB128(len);
     m_funcState.count += len;
 
-    return GetWasmToken(op);
+    return op;
 }
 
 // Locals/Globals
@@ -536,47 +528,29 @@ WasmBinaryReader::VarNode()
 }
 
 // Const
-template <WasmTypes::LocalType localType>
+template <WasmTypes::WasmType localType>
 void WasmBinaryReader::ConstNode()
 {
     UINT len = 0;
     switch (localType)
     {
-    case WasmTypes::bAstI32:
+    case WasmTypes::I32:
         m_currentNode.cnst.i32 = SLEB128(len);
         m_funcState.count += len;
         break;
-    case WasmTypes::bAstI64:
+    case WasmTypes::I64:
         m_currentNode.cnst.i32 = SLEB128(len);
         m_funcState.count += len;
         break;
-    case WasmTypes::bAstF32:
+    case WasmTypes::F32:
         m_currentNode.cnst.f32 = ReadConst<float>();
         m_funcState.count += sizeof(float);
         break;
-    case WasmTypes::bAstF64:
+    case WasmTypes::F64:
         m_currentNode.cnst.f64 = ReadConst<double>();
         m_funcState.count += sizeof(double);
         break;
     }
-}
-
-WasmTypes::WasmType
-WasmBinaryReader::GetWasmType(WasmTypes::LocalType type)
-{
-    const uint32 binaryToWasmTypesLength = sizeof(WasmBinaryReader::binaryToWasmTypes) / sizeof(WasmTypes::WasmType);
-    if ((uint32)type >= binaryToWasmTypesLength)
-    {
-        ThrowDecodingError(_u("Invalid local type %u"), type);
-    }
-    return binaryToWasmTypes[type];
-}
-
-WasmOp
-WasmBinaryReader::GetWasmToken(WasmBinOp op)
-{
-    Assert(op <= WasmBinOp::wbLimit);
-    return binWasmOpToWasmOp[op];
 }
 
 bool
@@ -884,7 +858,7 @@ WasmTypes::WasmType
 WasmBinaryReader::ReadWasmType(uint32& length)
 {
     length = 1;
-    WasmTypes::WasmType type = GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>());
+    WasmTypes::WasmType type = (WasmTypes::WasmType)ReadConst<UINT8>();
     if (type >= WasmTypes::Limit)
     {
         ThrowDecodingError(_u("Invalid type"));
