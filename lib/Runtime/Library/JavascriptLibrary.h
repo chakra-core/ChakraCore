@@ -185,7 +185,6 @@ namespace Js
         DynamicType * generatorConstructorPrototypeObjectType;
         DynamicType * constructorPrototypeObjectType;
         DynamicType * heapArgumentsType;
-        DynamicType * heapArgumentsTypeStrictMode;
         DynamicType * activationObjectType;
         DynamicType * arrayType;
         DynamicType * nativeIntArrayType;
