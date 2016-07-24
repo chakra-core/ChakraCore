@@ -59,12 +59,12 @@ if(STATIC_LIBRARY)
 
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(lib_target "${lib_target}"
-      icuuc
+      ${ICULIB}
       unwind-x86_64
       )
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(lib_target "${lib_target}"
-      icucore
+      ${ICULIB}
       "-framework CoreFoundation"
       "-framework Security"
       # set stack size to 64Mb for stack tests

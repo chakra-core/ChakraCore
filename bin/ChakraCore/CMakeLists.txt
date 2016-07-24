@@ -3,7 +3,7 @@ add_library (ChakraCore SHARED
   ConfigParserExternals.cpp
   TestHooks.cpp
 )
-  
+
 target_include_directories (
   ChakraCore PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -45,17 +45,8 @@ set(lib_target "${lib_target}"
   pthread
   stdc++
   dl
+  ${ICULIB}
   )
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}"
-    icuuc
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(lib_target "${lib_target}"
-    icucore
-    )
-endif() # Linux ?
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(lib_target "${lib_target}"
@@ -72,7 +63,7 @@ if(NOT CC_XCODE_PROJECT)
   if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CC_LIB_EXT "dylib")
   endif()
-  
+
   add_custom_command(TARGET ChakraCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
