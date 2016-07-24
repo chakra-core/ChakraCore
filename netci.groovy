@@ -133,8 +133,6 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
                 // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
                 def jobName = Utilities.getFullJobName(project, config, isPR)
 
-                def testableConfig = buildType in ['debug', 'test']
-
                 def infoScript = "bash jenkins/get_system_info.sh --${platform}"
                 def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
                 def staticFlag = staticBuild ? "--static" : ""
@@ -147,9 +145,7 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
                     steps {
                         shell(infoScript)
                         shell(buildScript)
-                        if (testableConfig) {
-                            shell(testScript)
-                        }
+                        shell(testScript)
                     }
                 }
 
