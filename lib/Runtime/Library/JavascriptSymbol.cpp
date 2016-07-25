@@ -203,7 +203,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("Symbol[Symbol.toPrimitive]"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSymbol, _u("Symbol[Symbol.toPrimitive]"));
         }
     }
 

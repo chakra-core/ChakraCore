@@ -976,7 +976,10 @@ FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prot
     #define COMPILE_DISABLE_ES6PrototypeChain 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
-FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
+#ifndef COMPILE_DISABLE_ES6ToPrimitive
+    #define COMPILE_DISABLE_ES6ToPrimitive 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
 FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
 FLAGPR           (Boolean, ES6, ES6ToStringTag         , "Enable ES6 ToStringTag symbol"                            , DEFAULT_CONFIG_ES6ToStringTag)
 FLAGPR           (Boolean, ES6, ES6TypedArrayExtensions, "Enable ES6 TypedArray extensions"                         , DEFAULT_CONFIG_ES6TypedArrayExtensions)
