@@ -137,6 +137,14 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     Assert(this->IsInlined() == !!runtimeInfo);
 
+    if (this->IsTopFunc())
+    {
+        outputData->writeableEPData.hasJittedStackClosure = false;
+        // TODO: (michhol) validate initial values
+        outputData->writeableEPData.localVarSlotsOffset = 0;
+        outputData->writeableEPData.localVarChangedOffset = 0;
+    }
+
     if (this->IsInlined())
     {
         m_inlineeId = ++(GetTopFunc()->m_inlineeId);

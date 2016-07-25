@@ -8,10 +8,6 @@
 JITOutput::JITOutput(JITOutputIDL * outputData) :
     m_outputData(outputData)
 {
-    m_outputData->writeableEPData.hasJittedStackClosure = false;
-    // TODO: (michhol) validate initial values
-    m_outputData->writeableEPData.localVarSlotsOffset = 0;
-    m_outputData->writeableEPData.localVarChangedOffset = 0;
 }
 
 void
