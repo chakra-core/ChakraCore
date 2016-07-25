@@ -94,6 +94,7 @@ namespace Js
         enum Which
         {
             Int,
+            Int64,
             Double,
             Float,
             MaybeDouble,
@@ -170,6 +171,7 @@ namespace Js
         {
             Void = AsmJsType::Void,
             Signed = AsmJsType::Signed,
+            Int64 = AsmJsType::Int64,
             Double = AsmJsType::Double,
             Float = AsmJsType::Float,
             Fixnum = AsmJsType::Fixnum,
@@ -230,6 +232,7 @@ namespace Js
         enum Which : byte
         {
             Int = AsmJsType::Int,
+            Int64 = AsmJsType::Int64,
             Double = AsmJsType::Double,
             Float = AsmJsType::Float,
             Int32x4 = AsmJsType::Int32x4,
@@ -257,6 +260,7 @@ namespace Js
         AsmJSCoercion toCoercion() const;
         static AsmJsVarType FromCheckedType( AsmJsType type );
         inline bool isInt()const {return which_ == Int; }
+        inline bool isInt64()const {return which_ == Int64; }
         inline bool isDouble()const {return which_ == Double; }
         inline bool isFloat()const {return which_ == Float; }
         inline bool isInt32x4()const    { return which_ == Int32x4; }
