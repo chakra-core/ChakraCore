@@ -15,6 +15,7 @@ import traceback
 import argparse
 import xml.etree.ElementTree as ET
 import re
+import time
 
 # handle command line args
 parser = argparse.ArgumentParser(
@@ -530,6 +531,10 @@ def main():
     if len(args.folders) == 0:
         files = (os.path.join(test_root, x) for x in os.listdir(test_root))
         args.folders = [f for f in sorted(files) if not os.path.isfile(f)]
+
+    # Set the right timezone, the tests need Pacific Standard Time
+    os.environ['TZ'] = 'US/Pacific'
+    time.tzset()
 
     # load all tests
     tests = []

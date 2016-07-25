@@ -151,13 +151,13 @@ namespace Js
         static void OP_EnsureNoRootProperty(Var instance, PropertyId propertyId);
         static void OP_EnsureNoRootRedeclProperty(Var instance, PropertyId propertyId);
         static void OP_ScopedEnsureNoRedeclProperty(FrameDisplay *pDisplay, PropertyId propertyId, Var instanceDefault);
-        static Var  GetOwnPropertyNames(Var instance, ScriptContext *scriptContext);
-        static Var  GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext);
-        static Var  GetOwnPropertyKeys(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnPropertyNames(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnPropertyKeys(Var instance, ScriptContext *scriptContext);
 
 
-        static Var  GetOwnEnumerablePropertyNames(Var instance, ScriptContext *scriptContext);
-        static Var  GetOwnEnumerablePropertyNamesSymbols(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnEnumerablePropertyNames(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnEnumerablePropertyNamesSymbols(Var instance, ScriptContext *scriptContext);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, JavascriptString* propertyKey, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);

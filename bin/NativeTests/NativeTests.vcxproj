@@ -43,6 +43,7 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CodexTests.cpp" />
     <ClCompile Include="FileLoadHelpers.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
     <ClCompile Include="JsRTApiTest.cpp" />

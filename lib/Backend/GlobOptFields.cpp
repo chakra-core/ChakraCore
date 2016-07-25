@@ -2154,6 +2154,35 @@ GlobOpt::CheckIfPropOpEmitsTypeCheck(IR::Instr *instr, IR::PropertySymOpnd *opnd
     return CheckIfInstrInTypeCheckSeqEmitsTypeCheck(instr, opnd);
 }
 
+IR::PropertySymOpnd *
+GlobOpt::CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func)
+{
+    // Used only for CheckObjType instruction today. Future users should make a call
+    // whether the new operand is jit optimized in their scenario or not.
+
+    Assert(!opnd->IsRootObjectNonConfigurableFieldLoad());
+    IR::PropertySymOpnd *newOpnd = opnd->CopyCommon(func);
+
+    newOpnd->SetObjTypeSpecFldInfo(opnd->GetObjTypeSpecInfo());
+    newOpnd->SetUsesAuxSlot(opnd->UsesAuxSlot());
+    newOpnd->SetSlotIndex(opnd->GetSlotIndex());
+
+    newOpnd->objTypeSpecFlags = opnd->objTypeSpecFlags;
+    // If we're turning the instruction owning this operand into a CheckObjType, we will do a type check here
+    // only for the sake of downstream instructions, so the flags pertaining to this property access are
+    // irrelevant, because we don't do a property access here.
+    newOpnd->SetTypeCheckOnly(true);
+    newOpnd->usesFixedValue = false;
+
+    newOpnd->finalType = opnd->finalType;
+    newOpnd->guardedPropOps = opnd->guardedPropOps != nullptr ? opnd->guardedPropOps->CopyNew() : nullptr;
+    newOpnd->writeGuards = opnd->writeGuards != nullptr ? opnd->writeGuards->CopyNew() : nullptr;
+
+    newOpnd->SetIsJITOptimizedReg(true);
+
+    return newOpnd;
+}
+
 bool
 GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut, bool* changesTypeValueOut)
 {

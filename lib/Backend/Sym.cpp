@@ -512,7 +512,7 @@ StackSym::GetIntConstValue() const
 
     if (src1->IsAddrOpnd())
     {
-        Assert(defInstr->m_opcode == Js::OpCode::Ld_A || LowererMD::IsAssign(defInstr) || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
+        Assert(defInstr->m_opcode == Js::OpCode::Ld_A || LowererMD::IsAssign(defInstr) || defInstr->m_opcode == Js::OpCode::ArgOut_A || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
         IR::AddrOpnd *addr = src1->AsAddrOpnd();
         Assert(addr->IsVar());
         Js::Var var = src1->AsAddrOpnd()->m_address;

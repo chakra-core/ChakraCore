@@ -256,7 +256,7 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const char16 * caption = _u("CHAKRA ASSERT");
+#define CHAKRA_ASSERT_CAPTION _u("CHAKRA ASSERT")
 #endif
 
     bool Throw::ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message)
@@ -301,7 +301,7 @@ namespace Js {
             swprintf_s(buff, _countof(buff), _u("%S (%u)\n%S\n%S"), fileName, lineNumber, message, error);
             buff[_countof(buff)-1] = 0;
 
-            int ret = MessageBox(nullptr, buff, caption, MB_ABORTRETRYIGNORE);
+            int ret = MessageBox(nullptr, buff, CHAKRA_ASSERT_CAPTION, MB_ABORTRETRYIGNORE);
 
             switch (ret)
             {

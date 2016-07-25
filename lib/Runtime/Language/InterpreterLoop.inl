@@ -166,7 +166,8 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
     }
 
     Assert(this->returnAddress != nullptr);
-    AssertMsg(m_arguments == NULL || Js::ArgumentsObject::Is(m_arguments), "Bad arguments!");
+    AssertMsg(!this->GetFunctionBody()->GetUsesArgumentsObject() || m_arguments == NULL || Js::ArgumentsObject::Is(m_arguments), "Bad arguments!");
+
     // IP Passing in the interpreter:
     // We keep a local copy of the bytecode's instruction pointer and
     // pass it by reference to the bytecode reader.

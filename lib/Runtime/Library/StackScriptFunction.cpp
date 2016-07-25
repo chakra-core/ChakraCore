@@ -240,7 +240,7 @@ namespace Js
                         this->UpdateFrameDisplay(stackFunction);
                     }
 
-                    if (walker.IsBailedOutFromInlinee())
+                    if (walker.IsBailedOutFromInlinee() && !walker.IsCurrentPhysicalFrameForLoopBody())
                     {
                         // this is the interpret frame from bailing out of inline frame
                         // Just mark we have inlinee to box so we will walk the native frame's list when we get there.
@@ -266,7 +266,7 @@ namespace Js
                 }
                 else
                 {
-                    if (walker.IsInlineFrame())
+                    if (walker.IsInlineFrame() && !walker.IsCurrentPhysicalFrameForLoopBody())
                     {
                         // We may have function that are not in slots.  So we have to walk the stack function list of the inliner
                         // to box all the needed function to catch those

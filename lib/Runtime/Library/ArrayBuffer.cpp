@@ -909,6 +909,29 @@ namespace Js
         /* See JavascriptArrayBuffer::Finalize */
     }
 
+    // Copy memory from src to dst, truncate if dst smaller, zero extra memory
+    // if dst larger
+    static void MemCpyZero(__bcount(dstSize) BYTE* dst, size_t dstSize,
+                           __in_bcount(count) const BYTE* src, size_t count)
+    {
+        js_memcpy_s(dst, dstSize, src, min(dstSize, count));
+        if (dstSize > count)
+        {
+            ZeroMemory(dst + count, dstSize - count);
+        }
+    }
+
+    // Same as realloc but zero newly allocated portion if newSize > oldSize
+    static BYTE* ReallocZero(BYTE* ptr, size_t oldSize, size_t newSize)
+    {
+        BYTE* ptrNew = (BYTE*)realloc(ptr, newSize);
+        if (ptrNew && newSize > oldSize)
+        {
+            ZeroMemory(ptrNew + oldSize, newSize - oldSize);
+        }
+        return ptrNew;
+    }
+
     ArrayBuffer * JavascriptArrayBuffer::TransferInternal(uint32 newBufferLength)
     {
         ArrayBuffer* newArrayBuffer;
@@ -975,7 +998,7 @@ namespace Js
                         recycler->ReportExternalMemoryFailure(newBufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
-                    js_memcpy_s(newBuffer, newBufferLength, this->buffer, newBufferLength);
+                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
             }
             else
@@ -984,12 +1007,12 @@ namespace Js
                 {
                     // we are transferring from an unoptimized buffer, but new length can be optimized, so move to that
                     newBuffer = (BYTE*)JavascriptArrayBuffer::AllocWrapper(newBufferLength);
-                    js_memcpy_s(newBuffer, newBufferLength, this->buffer, newBufferLength);
+                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
                 else if (newBufferLength != this->bufferLength)
                 {
                     // both sides will just be regular ArrayBuffer, so realloc
-                    newBuffer = (BYTE*)realloc(this->buffer, newBufferLength);
+                    newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
                     if (!newBuffer)
                     {
                         recycler->ReportExternalMemoryFailure(newBufferLength);

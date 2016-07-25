@@ -16,12 +16,6 @@ target_include_directories (
 #
 # Link step for the ChakraCore shared library
 #
-# This requires that the library have no undefined
-# symbols after linking
-# Chakra.Jsrt and Chakra.Jsrt.Core have their archives
-# imported wholesale since all functions used in these
-# libraries are considered to be used by Chakra
-#
 # External libraries we link with are the following:
 #  pthread: For threading
 #  stdc++/gcc_s: C++ runtime code
@@ -29,65 +23,36 @@ target_include_directories (
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target
-    -Wl,--no-undefined
+  set(LINKER_START_GROUP
     -Wl,--start-group
     -Wl,--whole-archive
-    Chakra.Jsrt
-    Chakra.Jsrt.Core
-    -Wl,--no-whole-archive
     )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(lib_target
-    -Wl,-undefined,error
-    Chakra.Jsrt
-    Chakra.Jsrt.Core
-    )
-else()
-  message("This platform is not yet supported")
-endif() # Linux ?
 
-# make sure to include Common.Core before others
-# this will help linker on some platforms for correct
-# initialization order
-set(lib_target "${lib_target}"
-  Chakra.Common.Core
-  )
+  set(LINKER_END_GROUP
+    -Wl,--no-whole-archive
+    -Wl,--end-group
+    )
+endif()
 
 # common link deps
 set(lib_target "${lib_target}"
-  Chakra.Runtime.Types
-  Chakra.Runtime.Math
-  Chakra.Runtime.Library
-  Chakra.Runtime.Language
-  Chakra.Runtime.Debug
-  Chakra.Runtime.ByteCode
-  Chakra.Runtime.PlatformAgnostic
-  Chakra.Runtime.Base
-  Chakra.Parser
-  Chakra.Common.Util
-  Chakra.Common.Memory
-  Chakra.Common.Common
-  Chakra.Common.DataStructures
-  Chakra.Common.Exceptions
-  Chakra.Common.Codex
+  -Wl,-undefined,error
+  ${LINKER_START_GROUP}
+  Chakra.Pal
+  Chakra.Common.Core
+  Chakra.Jsrt
+  ${LINKER_END_GROUP}
+  pthread
+  stdc++
+  dl
   )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(lib_target "${lib_target}"
-    -Wl,--end-group
-    Chakra.Pal
-    pthread
-    stdc++
-    dl
     icuuc
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(lib_target "${lib_target}"
-    Chakra.Pal
-    pthread
-    stdc++
-    dl
     icucore
     )
 endif() # Linux ?

@@ -530,6 +530,7 @@ namespace Js
         // Initialize Array/Argument types
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
+
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -664,6 +665,8 @@ namespace Js
         idMappedFunctionWithPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::ExternalFunctionThunk,
             &SharedIdMappedFunctionWithPrototypeTypeHandler, true, true);
         externalConstructorFunctionWithDeferredPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::ExternalFunctionThunk,
+            Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredInitializer>::GetDefaultInstance(), true, true);
+        defaultExternalConstructorFunctionWithDeferredPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::DefaultExternalFunctionThunk,
             Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredInitializer>::GetDefaultInstance(), true, true);
 
         if (config->IsES6FunctionNameEnabled())
@@ -4462,16 +4465,18 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
-
-        // Make sure the actual entry point is never null.
-        if (entryPoint == nullptr)
+        
+        JavascriptExternalFunction* function = nullptr;
+        if (entryPoint != nullptr)
         {
-            entryPoint = Js::RecyclableObject::DefaultExternalEntryPoint;
+             function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint,
+                externalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
         }
-
-        JavascriptExternalFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint,
-            externalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
-
+        else
+        {
+            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, 
+                defaultExternalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
+        }
         function->SetFunctionNameId(TaggedInt::ToVarUnchecked(nameId));
 
         return function;
@@ -5608,15 +5613,29 @@ namespace Js
                     ) / InlineSlotCountIncrement];
     }
 
-    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount)
+    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
         AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
 
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
+        
+        DynamicType * argumentsType = nullptr;
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, heapArgumentsType);
+        if (isStrictMode)
+        {
+            //TODO: Make DictionaryTypeHandler shareable - So that Arguments' type can be cached on the javascriptLibrary.
+            DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
+            argumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
+                dictTypeHandlerForArgumentsInStrictMode, false, false);
+        }
+        else
+        {
+            argumentsType = heapArgumentsType;
+        }
+
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()

@@ -639,13 +639,13 @@
         <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
      </default>
   </test>
-  <!-- 
+  <!--
    <test>
      <default>
         <files>memset_simd.js</files>
         <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody -simdjs -simd128typespec</compile-flags>
      </default>
-  </test>  
+  </test>
 -->
   <test>
      <default>
@@ -707,5 +707,18 @@
         <files>bug4587739.js</files>
         <compile-flags>-mic:1 -off:simplejit</compile-flags>
      </default>
+  </test>
+  <test>
+     <default>
+        <files>bug8159763.js</files>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:bailonnoprofile</compile-flags>
+     </default>
+  </test>
+  <test>
+    <default>
+      <files>Array_TypeConfusion_bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>BugFix</tags>
+    </default>
   </test>
 </regress-exe>

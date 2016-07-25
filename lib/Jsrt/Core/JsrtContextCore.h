@@ -12,6 +12,7 @@ class JsrtContextCore sealed : public JsrtContext
 public:
     static JsrtContextCore *New(JsrtRuntime * runtime);
     virtual void Dispose(bool isShutdown) override;
+    ChakraCoreHostScriptContext* GetHostScriptContext() const { return hostContext; }
 
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 private:
@@ -25,7 +26,9 @@ class ChakraCoreHostScriptContext sealed : public HostScriptContext
 {
 public:
     ChakraCoreHostScriptContext(Js::ScriptContext* scriptContext)
-        : HostScriptContext(scriptContext)
+        : HostScriptContext(scriptContext),
+        notifyModuleReadyCallback(nullptr),
+        fetchImportedModuleCallback(nullptr)
     {
     }
     ~ChakraCoreHostScriptContext()
@@ -162,18 +165,15 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override
-    {
-        AssertMsg(false, "not implemented");
-        return S_FALSE;
-    }
+    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override;
 
-    HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override
-    {
-        AssertMsg(false, "not implemented");
-        return S_FALSE;
-    }
+    HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override;
 
+    void SetNotifyModuleReadyCallback(NotifyModuleReadyCallback notifyCallback) { this->notifyModuleReadyCallback = notifyCallback; }
+    NotifyModuleReadyCallback GetNotifyModuleReadyCallback() const { return this->notifyModuleReadyCallback; }
+
+    void SetFetchImportedModuleCallback(FetchImportedModuleCallBack fetchCallback) { this->fetchImportedModuleCallback = fetchCallback ; }
+    FetchImportedModuleCallBack GetFetchImportedModuleCallback() const { return this->fetchImportedModuleCallback; }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
@@ -183,4 +183,7 @@ public:
     }
 #endif
 
+private:
+    FetchImportedModuleCallBack fetchImportedModuleCallback;
+    NotifyModuleReadyCallback notifyModuleReadyCallback;
 };

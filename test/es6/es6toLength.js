@@ -12,46 +12,12 @@ var tests = [
        {
             var c = [];
             c[0] = 1;
-            c[4294967294] = 2;
-            var obj = {length : 3, 0 : 3, 1 : 4, 2: 5, [Symbol.isConcatSpreadable] : true}
-            c = c.concat(obj);
-            assert.areEqual(1, c[0], "confirm indices of array concated to did not change")
-            assert.areEqual(2, c[4294967294], "confirm indices of array concated to did not change");
-            assert.areEqual(3, c[4294967295], "confirm obj is spread as properties beyond array length bound");
-            assert.areEqual(4, c[4294967296], "confirm obj is spread as properties beyond array length bound");
-            assert.areEqual(5, c[4294967297], "confirm obj is spread as properties beyond array length bound");
-            assert.areEqual(4294967295, c.length, "length maxes out at 4294967295");
-
-            var c = [];
-            c[0] = 1;
-            c[4294967294] = 2;
-            c = c.concat(3,4,5);
-            assert.areEqual(1, c[0], "confirm indices of array concated to did not change")
-            assert.areEqual(2, c[4294967294], "confirm indices of array concated to did not change");
-            assert.areEqual(3, c[4294967295], "confirm integers are spread as properties beyond array length bound");
-            assert.areEqual(4, c[4294967296], "confirm integers are spread as properties beyond array length bound");
-            assert.areEqual(5, c[4294967297], "confirm integers are spread as properties beyond array length bound");
-            assert.areEqual(4294967295, c.length, "length maxes out at 4294967295");
-
-            var c = [];
-            c[0] = 1;
-            c[4294967294] = 2;
-            c = c.concat([3,4,5]);
-            assert.areEqual(1, c[0], "confirm indices of array concated to did not change")
-            assert.areEqual(2, c[4294967294], "confirm indices of array concated to did not change");
-            assert.areEqual(3, c[4294967295], "confirm array is spread as properties beyond array length bound");
-            assert.areEqual(4, c[4294967296], "confirm array is spread as properties beyond array length bound");
-            assert.areEqual(5, c[4294967297], "confirm array is spread as properties beyond array length bound");
-            assert.areEqual(4294967295, c.length, "length maxes out at 4294967295");
-
-            var c = [];
-            c[0] = 1;
-            c[4294967294] = 2;
+            c[4294967293] = 2;
             var oNeg = { length : -1, 0 : 3, 1: 4, [Symbol.isConcatSpreadable] : true};
             c = c.concat(oNeg);
             assert.areEqual(1, c[0], "confirm indices of array concated to did not change")
-            assert.areEqual(2, c[4294967294], "confirm indices of array concated to did not change");
-            assert.areEqual(undefined, c[4294967295], "Length of oNeg is coerced to 0 nothing is concated here");
+            assert.areEqual(2, c[4294967293], "confirm indices of array concated to did not change");
+            assert.areEqual(undefined, c[4294967294], "Length of oNeg is coerced to 0 nothing is concated here");
        }
    },
    {

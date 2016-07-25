@@ -186,7 +186,22 @@ typedef unsigned char* ChakraBytePtr;
         ///     The error code is returned by existing JsGetPropertyNamefromId if the function is called with non-string property id.
         /// </summary>
         JsErrorPropertyNotString,
-
+        /// <summary>
+        ///     Module evaulation is called in wrong context.
+        /// </summary>
+        JsErrorInvalidContext,
+        /// <summary>
+        ///     Module evaulation is called in wrong context.
+        /// </summary>
+        JsInvalidModuleHostInfoKind,
+        /// <summary>
+        ///     Module was parsed already when JsParseModuleSource is called.
+        /// </summary>
+        JsErrorModuleParsed,
+        /// <summary>
+        ///     Module was evaluated already when JsModuleEvaluation is called.
+        /// </summary>
+        JsErrorModuleEvaluated,
         /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
@@ -195,6 +210,10 @@ typedef unsigned char* ChakraBytePtr;
         ///     The Chakra engine has run out of memory.
         /// </summary>
         JsErrorOutOfMemory,
+        /// <summary>
+        ///     The Chakra engine failed to set the Floating Point Unit state.
+        /// </summary>
+        JsErrorBadFPUState,
 
         /// <summary>
         ///     Category of errors that relates to errors in a script.
@@ -1068,28 +1087,6 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsRunScriptUtf8(
-            _In_z_ const char *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Executes a module.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The module script to parse and execute, encoded as utf8.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the module script came from, encoded as utf8.</param>
-    /// <param name="result">The result of executing the module script, if any. This parameter can be null.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsExperimentalApiRunModuleUtf8(
             _In_z_ const char *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const char *sourceUrl,
