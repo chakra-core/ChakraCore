@@ -2637,8 +2637,8 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
     }
 
     bool isNeqOp = instr->m_opcode == Js::OpCode::CmSrNeq_A || instr->m_opcode == Js::OpCode::CmNeq_A;
-    intptr_t notEqualResult = m_func->GetScriptContextInfo()->GetTrueOrFalseAddr(isNeqOp);
-    intptr_t equalResult = m_func->GetScriptContextInfo()->GetTrueOrFalseAddr(!isNeqOp);
+    intptr_t notEqualResult = isNeqOp ? m_func->GetScriptContextInfo()->GetTrueAddr() : m_func->GetScriptContextInfo()->GetFalseAddr();
+    intptr_t equalResult = !isNeqOp ? m_func->GetScriptContextInfo()->GetTrueAddr() : m_func->GetScriptContextInfo()->GetFalseAddr();
 
     // Tagged ints?
     bool isTaggedInts = false;

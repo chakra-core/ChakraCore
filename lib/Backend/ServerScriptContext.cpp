@@ -6,10 +6,17 @@
 #include "Backend.h"
 
 ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
-    m_contextData(*contextData)
+    m_contextData(*contextData),
+    m_isPRNGSeeded(false),
+    m_activeJITCount(0)
 {
+    m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 
+ServerScriptContext::~ServerScriptContext()
+{
+    HeapDelete(m_domFastPathHelperMap);
+}
 
 intptr_t
 ServerScriptContext::GetNullAddr() const
@@ -196,4 +203,47 @@ uint
 ServerScriptContext::GetRecyclerVerifyPad() const
 {
     return m_contextData.recyclerVerifyPad;
+}
+
+bool
+ServerScriptContext::IsPRNGSeeded() const
+{
+    return m_isPRNGSeeded;
+}
+
+void
+ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
+{
+    m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+}
+
+IR::JnHelperMethod
+ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
+{
+    IR::JnHelperMethod helper;
+
+    m_domFastPathHelperMap->LockResize();
+    bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+    m_domFastPathHelperMap->UnlockResize();
+
+    Assert(found);
+    return helper;
+}
+
+void
+ServerScriptContext::BeginJIT()
+{
+    InterlockedExchangeAdd(&m_activeJITCount, 1);
+}
+
+void
+ServerScriptContext::EndJIT()
+{
+    InterlockedExchangeSubtract(&m_activeJITCount, 1);
+}
+
+bool
+ServerScriptContext::IsJITActive()
+{
+    return m_activeJITCount != 0;
 }

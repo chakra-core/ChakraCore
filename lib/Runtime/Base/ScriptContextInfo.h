@@ -8,11 +8,6 @@
 class ScriptContextInfo
 {
 public:
-    ScriptContextInfo();
-    ~ScriptContextInfo();
-
-    intptr_t GetTrueOrFalseAddr(bool value) const;
-
     virtual intptr_t GetNullAddr() const = 0;
     virtual intptr_t GetUndefinedAddr() const = 0;
     virtual intptr_t GetTrueAddr() const = 0;
@@ -39,6 +34,7 @@ public:
     virtual intptr_t GetRecyclerAddr() const = 0;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const = 0;
     virtual bool IsSIMDEnabled() const = 0;
+    virtual bool IsPRNGSeeded() const = 0;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const = 0;
 
     virtual intptr_t GetAddr() const = 0;
@@ -48,22 +44,10 @@ public:
     virtual bool IsRecyclerVerifyEnabled() const = 0;
     virtual uint GetRecyclerVerifyPad() const = 0;
 
-    void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper);
-    IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr);
-
-    bool IsPRNGSeeded() const;
-
-    void BeginJIT();
-    void EndJIT();
-    bool IsJITActive();
-private:
-    // TODO: OOP JIT, set this when we initialize PRNG
-    bool m_isPRNGSeeded;
-
-    uint m_activeJITCount;
+    virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) = 0;
+    virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) = 0;
 
     typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy,
         DefaultComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> JITDOMFastPathHelperMap;
 
-    JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 };

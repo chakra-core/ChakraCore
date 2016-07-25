@@ -1731,7 +1731,11 @@ private:
         virtual intptr_t GetRecyclerAddr() const override;
         virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
         virtual bool IsSIMDEnabled() const override;
+        virtual bool IsPRNGSeeded() const override;
         virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
+
+        virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
+        virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
 
         virtual intptr_t GetAddr() const override;
 
@@ -1745,6 +1749,8 @@ private:
 
     private:
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
+
+        JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 
 #ifdef RECYCLER_PERF_COUNTERS
         size_t bindReferenceCount;

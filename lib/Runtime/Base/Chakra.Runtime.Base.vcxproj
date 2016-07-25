@@ -68,7 +68,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeBasePch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="ScriptContextInfo.cpp" />
     <ClCompile Include="ThreadContextInfo.cpp" />
     <ClCompile Include="jitprofiling.cpp" />
     <ClCompile Include="VTuneChakraProfile.cpp" />

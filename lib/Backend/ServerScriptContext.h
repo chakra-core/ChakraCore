@@ -9,6 +9,7 @@ class ServerScriptContext : public ScriptContextInfo
 {
 public:
     ServerScriptContext(ScriptContextDataIDL * contextData);
+    ~ServerScriptContext();
     virtual intptr_t GetNullAddr() const override;
     virtual intptr_t GetUndefinedAddr() const override;
     virtual intptr_t GetTrueAddr() const override;
@@ -35,6 +36,7 @@ public:
     virtual intptr_t GetRecyclerAddr() const override;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
     virtual bool IsSIMDEnabled() const override;
+    virtual bool IsPRNGSeeded() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
     virtual intptr_t GetAddr() const override;
@@ -44,7 +46,19 @@ public:
     virtual bool IsRecyclerVerifyEnabled() const override;
     virtual uint GetRecyclerVerifyPad() const override;
 
+    virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
+    virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
+
+    void BeginJIT();
+    void EndJIT();
+    bool IsJITActive();
 private:
+    JITDOMFastPathHelperMap * m_domFastPathHelperMap;
+
     ScriptContextDataIDL m_contextData;
+    uint m_activeJITCount;
+
+    // TODO: OOP JIT, set this when we initialize PRNG
+    bool m_isPRNGSeeded;
 
 };

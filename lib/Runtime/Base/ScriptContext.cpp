@@ -326,6 +326,7 @@ namespace Js
         intConstPropsOnGlobalObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
         intConstPropsOnGlobalUserObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
 
+        m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
         this->debugContext = HeapNew(DebugContext, this);
     }
 
@@ -377,6 +378,10 @@ namespace Js
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
+        if (m_domFastPathHelperMap != nullptr)
+        {
+            HeapDelete(m_domFastPathHelperMap);
+        }
         if (m_remoteScriptContextAddr != 0)
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
@@ -4542,9 +4547,31 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return GetConfig()->IsSimdjsEnabled();
     }
 
+    bool ScriptContext::IsPRNGSeeded() const
+    {
+        return GetLibrary()->IsPRNGSeeded();
+    }
+
     intptr_t ScriptContext::GetAddr() const
     {
         return (intptr_t)this;
+    }
+
+    void ScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
+    {
+        m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+    }
+
+    IR::JnHelperMethod ScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
+    {
+        IR::JnHelperMethod helper;
+
+        m_domFastPathHelperMap->LockResize();
+        bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+        m_domFastPathHelperMap->UnlockResize();
+
+        Assert(found);
+        return helper;
     }
 
     intptr_t ScriptContext::GetVTableAddress(VTableValue vtableType) const
