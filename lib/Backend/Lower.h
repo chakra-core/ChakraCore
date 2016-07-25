@@ -485,9 +485,9 @@ private:
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>
-    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed);
+    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool containMissingValues = false);
 
-    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length);
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length, IR::LabelInstr* labelDone);
     void            GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, uint32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
