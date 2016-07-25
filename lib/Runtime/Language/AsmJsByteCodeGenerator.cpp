@@ -72,10 +72,10 @@ namespace Js
 
     const OpCodeAsmJs BinaryComparatorOpCodes[BCO_MAX][BCOT_MAX] = {
                     //  int            unsigned int     double
-        /*BCO_LT*/{ OpCodeAsmJs::CmLt_Int, OpCodeAsmJs::CmLt_UnInt, OpCodeAsmJs::CmLt_Flt, OpCodeAsmJs::CmLt_Db },
-        /*BCO_LE*/{ OpCodeAsmJs::CmLe_Int, OpCodeAsmJs::CmLe_UnInt, OpCodeAsmJs::CmLe_Flt, OpCodeAsmJs::CmLe_Db },
-        /*BCO_GT*/{ OpCodeAsmJs::CmGt_Int, OpCodeAsmJs::CmGt_UnInt, OpCodeAsmJs::CmGt_Flt, OpCodeAsmJs::CmGt_Db },
-        /*BCO_GE*/{ OpCodeAsmJs::CmGe_Int, OpCodeAsmJs::CmGe_UnInt, OpCodeAsmJs::CmGe_Flt, OpCodeAsmJs::CmGe_Db },
+        /*BCO_LT*/{ OpCodeAsmJs::CmLt_Int, OpCodeAsmJs::CmLt_UInt, OpCodeAsmJs::CmLt_Flt, OpCodeAsmJs::CmLt_Db },
+        /*BCO_LE*/{ OpCodeAsmJs::CmLe_Int, OpCodeAsmJs::CmLe_UInt, OpCodeAsmJs::CmLe_Flt, OpCodeAsmJs::CmLe_Db },
+        /*BCO_GT*/{ OpCodeAsmJs::CmGt_Int, OpCodeAsmJs::CmGt_UInt, OpCodeAsmJs::CmGt_Flt, OpCodeAsmJs::CmGt_Db },
+        /*BCO_GE*/{ OpCodeAsmJs::CmGe_Int, OpCodeAsmJs::CmGe_UInt, OpCodeAsmJs::CmGe_Flt, OpCodeAsmJs::CmGe_Db },
         /*BCO_EQ*/{ OpCodeAsmJs::CmEq_Int, OpCodeAsmJs::CmEq_Int, OpCodeAsmJs::CmEq_Flt, OpCodeAsmJs::CmEq_Db },
         /*BCO_NE*/{ OpCodeAsmJs::CmNe_Int, OpCodeAsmJs::CmNe_Int, OpCodeAsmJs::CmNe_Flt, OpCodeAsmJs::CmNe_Db },
     };
@@ -549,7 +549,7 @@ namespace Js
         case knopRsh:
             return EmitBinaryInt( pnode, OpCodeAsmJs::Shr_Int );
         case knopRs2:
-            return EmitBinaryInt( pnode, OpCodeAsmJs::ShrU_Int );
+            return EmitBinaryInt( pnode, OpCodeAsmJs::Shr_UInt );
         case knopMod:
             return EmitBinaryMultiType( pnode, BMO_REM );
         case knopDiv:
@@ -766,7 +766,7 @@ namespace Js
         CheckNodeLocation( rhsEmit, int );
         StartStatement(pnode);
         EmitExpressionInfo emitInfo( AsmJsType::Signed );
-        if( op == OpCodeAsmJs::ShrU_Int )
+        if( op == OpCodeAsmJs::Shr_UInt )
         {
             emitInfo.type = AsmJsType::Unsigned;
         }

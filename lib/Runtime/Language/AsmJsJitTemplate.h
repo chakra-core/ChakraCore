@@ -76,7 +76,7 @@ namespace Js
         CreateTemplate( Xor_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Shl_Int , int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Shr_Int , int targetOffset, int leftOffset, int rightOffset );
-        CreateTemplate( ShrU_Int, int targetOffset, int leftOffset, int rightOffset );
+        CreateTemplate( Shr_UInt, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Add_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Sub_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Mul_Int, int targetOffset, int leftOffset, int rightOffset );

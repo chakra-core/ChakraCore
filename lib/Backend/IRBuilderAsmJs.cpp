@@ -2660,7 +2660,7 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::Shr_Int:
         instr = IR::Instr::New(Js::OpCode::Shr_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::ShrU_Int:
+    case Js::OpCodeAsmJs::Shr_UInt:
         instr = IR::Instr::New(Js::OpCode::ShrU_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::CmLt_Int:
@@ -2681,16 +2681,16 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::CmNe_Int:
         instr = IR::Instr::New(Js::OpCode::CmNeq_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::CmLt_UnInt:
+    case Js::OpCodeAsmJs::CmLt_UInt:
         instr = IR::Instr::New(Js::OpCode::CmUnLt_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::CmLe_UnInt:
+    case Js::OpCodeAsmJs::CmLe_UInt:
         instr = IR::Instr::New(Js::OpCode::CmUnLe_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::CmGt_UnInt:
+    case Js::OpCodeAsmJs::CmGt_UInt:
         instr = IR::Instr::New(Js::OpCode::CmUnGt_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::CmGe_UnInt:
+    case Js::OpCodeAsmJs::CmGe_UInt:
         instr = IR::Instr::New(Js::OpCode::CmUnGe_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Min_Int:
