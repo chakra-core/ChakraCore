@@ -23,7 +23,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS 
+#ifndef TEMP_DISABLE_ASMJS
 #include "ByteCode/ByteCodeWriter.h"
 #include "ByteCode/AsmJsByteCodeWriter.h"
 #include "Language/AsmJsByteCodeGenerator.h"
@@ -65,7 +65,7 @@ namespace Js
 
     bool AsmJsType::isSIMDType() const
     {
-        return isSIMDInt32x4()  || isSIMDInt16x8()   || isSIMDInt8x16()   || 
+        return isSIMDInt32x4()  || isSIMDInt16x8()   || isSIMDInt8x16()   ||
                isSIMDBool32x4() || isSIMDBool16x8()  || isSIMDBool8x16()  ||
                isSIMDUint32x4() || isSIMDUint16x8()  || isSIMDUint8x16()  ||
                isSIMDFloat32x4()|| isSIMDFloat64x2();
@@ -597,7 +597,7 @@ namespace Js
                GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
         if (mReturnTypeKnown)
         {
-            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) || 
+            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) ||
                    GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
                    GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
             return mReturnType.toType().isSubType(val.toType());
@@ -990,7 +990,7 @@ namespace Js
         mSimdByteOffset = mDoubleByteOffset + totalDoubleCount * sizeof(double);
         // Alignment
         mSimdByteOffset = ::Math::Align<int>((int)mSimdByteOffset, sizeof(AsmJsSIMDValue));
-        
+
 
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
@@ -1020,7 +1020,7 @@ namespace Js
         // SIMD values are aligned
         Assert(mSimdByteOffset % sizeof(AsmJsSIMDValue) == 0);
         size = mSimdByteOffset + GetSimdAllCount()* sizeof(AsmJsSIMDValue);
-        
+
         return size;
     }
 
@@ -1030,27 +1030,37 @@ namespace Js
         Assert(mArgCount != Constants::InvalidArgSlot);
         AnalysisAssert(index < mArgCount);
 
-        Assert(type.which() == AsmJsVarType::Int || type.which() == AsmJsVarType::Float || type.which() == AsmJsVarType::Double || type.isSIMD());
+        Assert(
+            type.isInt() ||
+            type.isInt64() ||
+            type.isFloat() ||
+            type.isDouble() ||
+            type.isSIMD()
+        );
 
         mArgType[index] = type.which();
-        mArgSizes[index] = 0;
+        ArgSlot argSize = 0;
 
-        // add 4 if int, 8 if double
         if (type.isDouble())
         {
-            mArgByteSize = UInt16Math::Add(mArgByteSize, sizeof(double));
-            mArgSizes[index] = sizeof(double);
+            argSize = sizeof(double);
         }
         else if (type.isSIMD())
         {
-            mArgByteSize = UInt16Math::Add(mArgByteSize, sizeof(AsmJsSIMDValue));
-            mArgSizes[index] = sizeof(AsmJsSIMDValue);
+            argSize = sizeof(AsmJsSIMDValue);
+        }
+        else if (type.isInt64())
+        {
+            argSize = sizeof(int64);
         }
         else
         {
-            mArgByteSize = UInt16Math::Add(mArgByteSize, sizeof(Var));
-            mArgSizes[index] = MachPtr;
+            // int and float are Js::Var
+            argSize = (ArgSlot)MachPtr;
         }
+
+        mArgByteSize = UInt16Math::Add(mArgByteSize, argSize);
+        mArgSizes[index] = argSize;
     }
 
     Js::AsmJsType AsmJsArrayView::GetType() const
@@ -1203,16 +1213,16 @@ namespace Js
 
     bool AsmJsSIMDFunction::IsTypeCheck()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check || 
-               mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || 
+        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_float32x4_check ||
                mBuiltIn == AsmJsSIMDBuiltin_float64x2_check ||
-               mBuiltIn == AsmJsSIMDBuiltin_int16x8_check || 
-               mBuiltIn == AsmJsSIMDBuiltin_int8x16_check ||                
-               mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check || 
-               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check || 
-               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_int16x8_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_int8x16_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check ||
                mBuiltIn == AsmJsSIMDBuiltin_bool32x4_check ||
-               mBuiltIn == AsmJsSIMDBuiltin_bool16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_bool16x8_check ||
                mBuiltIn == AsmJsSIMDBuiltin_bool8x16_check;
     }
 
@@ -1230,13 +1240,13 @@ namespace Js
     }
     bool AsmJsSIMDFunction::IsConstructor()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 || 
+        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 ||
             mBuiltIn == AsmJsSIMDBuiltin_Float32x4 ||
             mBuiltIn == AsmJsSIMDBuiltin_Float64x2 ||
-            mBuiltIn == AsmJsSIMDBuiltin_Int16x8 || 
-            mBuiltIn == AsmJsSIMDBuiltin_Int8x16 || 
-            mBuiltIn == AsmJsSIMDBuiltin_Uint32x4 || 
-            mBuiltIn == AsmJsSIMDBuiltin_Uint16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Int16x8 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Int8x16 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Uint32x4 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Uint16x8 ||
             mBuiltIn == AsmJsSIMDBuiltin_Uint8x16 ||
             mBuiltIn == AsmJsSIMDBuiltin_Bool32x4 ||
             mBuiltIn == AsmJsSIMDBuiltin_Bool16x8 ||

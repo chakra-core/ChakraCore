@@ -39,16 +39,11 @@ WasmToAsmJs::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
 {
     switch (wasmType)
     {
-    case WasmTypes::F32:
-        return Js::AsmJsRetType::Float;
-    case WasmTypes::F64:
-        return Js::AsmJsRetType::Double;
-    case WasmTypes::I32:
-        return Js::AsmJsRetType::Signed;
-    case WasmTypes::Void:
-        return Js::AsmJsRetType::Void;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return Js::AsmJsRetType::Signed;
+    case WasmTypes::I64: return Js::AsmJsRetType::Int64;
+    case WasmTypes::F32: return Js::AsmJsRetType::Float;
+    case WasmTypes::F64: return Js::AsmJsRetType::Double;
+    case WasmTypes::Void: return Js::AsmJsRetType::Void;
     default:
         throw WasmCompilationException(_u("Unknown return type %u"), wasmType);
     }
@@ -61,14 +56,10 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     Js::AsmJsVarType asmType = Js::AsmJsVarType::Int;
     switch (wasmType)
     {
-    case WasmTypes::F32:
-        return Js::AsmJsVarType::Float;
-    case WasmTypes::F64:
-        return Js::AsmJsVarType::Double;
-    case WasmTypes::I32:
-        return Js::AsmJsVarType::Int;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return Js::AsmJsVarType::Int;
+    case WasmTypes::I64: return Js::AsmJsVarType::Int64;
+    case WasmTypes::F32: return Js::AsmJsVarType::Float;
+    case WasmTypes::F64: return Js::AsmJsVarType::Double;
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
@@ -303,6 +294,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_evalStack(&m_alloc),
     m_i32RegSlots(ReservedRegisterCount),
+    m_i64RegSlots(ReservedRegisterCount),
     m_f32RegSlots(ReservedRegisterCount),
     m_f64RegSlots(ReservedRegisterCount),
     m_blockInfos(&m_alloc)
@@ -1418,14 +1410,10 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)
 {
     switch (type)
     {
-    case WasmTypes::F32:
-        return &m_f32RegSlots;
-    case WasmTypes::F64:
-        return &m_f64RegSlots;
-    case WasmTypes::I32:
-        return &m_i32RegSlots;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return &m_i32RegSlots;
+    case WasmTypes::I64: return &m_i64RegSlots;
+    case WasmTypes::F32: return &m_f32RegSlots;
+    case WasmTypes::F64: return &m_f64RegSlots;
     default:
         return nullptr;
     }
