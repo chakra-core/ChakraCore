@@ -559,7 +559,7 @@
 #endif
 
 #if defined(ASMJS_PLAT) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-// Enable WebAssembly only in debug and test build for the time begin
+// Enable WebAssembly only in debug and test build for the time being
 #define ENABLE_WASM
 #endif
 

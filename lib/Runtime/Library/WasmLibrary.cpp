@@ -79,9 +79,9 @@ namespace Js
                 ffi,
                 &start
             );
-        END_LEAVE_SCRIPT_INTERNAL(scriptContext)
+        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
 
-            HRESULT hr = se.ei.scode;
+        HRESULT hr = se.ei.scode;
         if (FAILED(hr))
         {
             if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
@@ -487,11 +487,11 @@ namespace Js
 #elif defined(_M_X64)
     // Do nothing: the implementation of WasmLibrary::WasmDeferredParseExternalThunk is declared (appropriately decorated) in
     // Language\amd64\amd64_Thunks.asm.
-#endif
+#endif // _M_IX86
 
 }
 
-#endif
+#endif // ENABLE_WASM
 
 Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScriptFunction** funcPtr, int internalCall)
 {
