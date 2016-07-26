@@ -79,14 +79,27 @@ MACRO_WMS       ( Case_IntConst              , BrInt1Const1    , None           
 // Type conversion
 MACRO_WMS       ( Reinterpret_ITF            , Float1Int1      , None            ) // reinterpret bits of int to float
 MACRO_WMS       ( Reinterpret_FTI            , Int1Float1      , None            ) // reinterpret bits of float to int
+MACRO_WMS       ( Reinterpret_LTD            , Double1Long1    , None            ) // reinterpret bits of int64 to double
+MACRO_WMS       ( Reinterpret_DTL            , Long1Double1    , None            ) // reinterpret bits of double to int64
+MACRO_WMS       ( Conv_LTI                   , Int1Long1       , None            ) // convert int64 to int
 MACRO_WMS       ( Conv_DTI                   , Int1Double1     , None            ) // convert double to int
 MACRO_WMS       ( Conv_FTI                   , Int1Float1      , None            ) // convert float to int
 MACRO_WMS       ( Conv_DTU                   , Int1Double1     , None            ) // convert double to unsigned int
 MACRO_WMS       ( Conv_FTU                   , Int1Float1      , None            ) // convert float to unsigned int
+MACRO_WMS       ( Conv_ITL                   , Long1Int1       , None            ) // convert int to int64
+MACRO_WMS       ( Conv_UTL                   , Long1Int1       , None            ) // convert unsigned int to int64
+MACRO_WMS       ( Conv_FTL                   , Long1Float1     , None            ) // convert float to int64
+MACRO_WMS       ( Conv_DTL                   , Long1Float1     , None            ) // convert double to int64
+MACRO_WMS       ( Conv_FTUL                  , Long1Float1     , None            ) // convert float to unsigned int64
+MACRO_WMS       ( Conv_DTUL                  , Long1Float1     , None            ) // convert double to unsigned int64
 MACRO_WMS       ( Conv_ITD                   , Double1Int1     , None            ) // convert int to double
+MACRO_WMS       ( Conv_LTD                   , Double1Long1    , None            ) // convert int64 to double
 MACRO_WMS       ( Conv_FTD                   , Double1Float1   , None            ) // convert float to double
 MACRO_WMS       ( Conv_UTD                   , Double1Int1     , None            ) // convert unsigned int to double
 MACRO_WMS       ( Conv_UTF                   , Float1Int1      , None            ) // convert unsigned int to float
+MACRO_WMS       ( Conv_ULTD                  , Double1Long1    , None            ) // convert unsigned int64 to double
+MACRO_WMS       ( Conv_ULTF                  , Float1Long1     , None            ) // convert unsigned int64 to float
+MACRO_WMS       ( Return_Long                , Long2           , None            ) // convert int64 to var
 MACRO_WMS       ( Return_Db                  , Double2         , None            ) // convert double to var
 MACRO_WMS       ( Return_Flt                 , Float2          , None            ) // convert float to var
 MACRO_WMS       ( Return_Int                 , Int2            , None            ) // convert int to var
@@ -129,11 +142,34 @@ MACRO_WMS       ( Shr_Int                    , Int3            , None           
 MACRO_WMS       ( Shr_UInt                   , Int3            , None            ) // int32 Shift '>>>'(unsigned, truncate)
 MACRO_WMS       ( Rol_Int                    , Int3            , None            ) // int32 Rotate left
 MACRO_WMS       ( Ror_Int                    , Int3            , None            ) // int32 Rotate right
+MACRO_WMS       ( PopCnt_Int                 , Int2            , None            )
 
 // Unsigned int math
 MACRO_WMS       ( Mul_UInt                   , Int3            , None            ) // uint32 Arithmetic '*'
 MACRO_WMS       ( Div_UInt                   , Int3            , None            ) // uint32 Arithmetic '/'
 MACRO_WMS       ( Rem_UInt                   , Int3            , None            ) // uint32 Arithmetic '%'
+
+// Int64 Math
+MACRO_WMS       ( Ld_LongConst               , Long1Const1      , None            ) // Sets an int64 register from a const int64
+MACRO_WMS       ( Ld_Long                    , Long2            , None            ) // Sets an int64 from another int64 register
+MACRO_WMS       ( Add_Long                   , Long3            , None            ) // int64 Arithmetic '+'
+MACRO_WMS       ( Sub_Long                   , Long3            , None            ) // int64 Arithmetic '-' (subtract)
+MACRO_WMS       ( Mul_Long                   , Long3            , None            ) // int64 Arithmetic '*'
+MACRO_WMS       ( Div_Long                   , Long3            , None            ) // int64 Arithmetic '/'
+MACRO_WMS       ( Div_ULong                  , Long3            , None            ) // uint64 Arithmetic '/'
+MACRO_WMS       ( Rem_Long                   , Long3            , None            ) // int64 Arithmetic '%'
+MACRO_WMS       ( Rem_ULong                  , Long3            , None            ) // uint64 Arithmetic '%'
+MACRO_WMS       ( And_Long                   , Long3            , None            ) // int64 Bitwise '&'
+MACRO_WMS       ( Or_Long                    , Long3            , None            ) // int64 Bitwise '|'
+MACRO_WMS       ( Xor_Long                   , Long3            , None            ) // int64 Bitwise '^'
+MACRO_WMS       ( Shl_Long                   , Long3            , None            ) // int64 Shift '<<' (signed, truncate)
+MACRO_WMS       ( Shr_ULong                  , Long3            , None            ) // int64 Shift '>>>'(unsigned, truncate)
+MACRO_WMS       ( Shr_Long                   , Long3            , None            ) // int64 Shift '>>' (signed, truncate)
+MACRO_WMS       ( Rol_Long                   , Long3            , None            ) // int64 Rotate left
+MACRO_WMS       ( Ror_Long                   , Long3            , None            ) // int64 Rotate right
+MACRO_WMS       ( Clz_Long                   , Long2            , None            )
+MACRO_WMS       ( Ctz_Long                   , Long2            , None            )
+MACRO_WMS       ( PopCnt_Long                , Long2            , None            )
 
 // Double math
 MACRO_WMS       ( Ld_DbConst                 , Double1Const1   , None            ) // Sets a double register from a const double
@@ -167,6 +203,19 @@ MACRO_WMS       ( CmLt_UInt                  , Int3            , None           
 MACRO_WMS       ( CmLe_UInt                  , Int3            , None            ) // uint32 Comparison <=
 MACRO_WMS       ( CmGt_UInt                  , Int3            , None            ) // uint32 Comparison >
 MACRO_WMS       ( CmGe_UInt                  , Int3            , None            ) // uint32 Comparison >=
+
+// Int64 comparisons
+MACRO_WMS       ( CmEq_Long                  , Int1Long2       , None            ) // int64 Comparison ==
+MACRO_WMS       ( CmNe_Long                  , Int1Long2       , None            ) // int64 Comparison !=
+MACRO_WMS       ( CmLt_Long                  , Int1Long2       , None            ) // int64 Comparison <
+MACRO_WMS       ( CmLe_Long                  , Int1Long2       , None            ) // int64 Comparison <=
+MACRO_WMS       ( CmLt_ULong                 , Int1Long2       , None            ) // uint64 Comparison <
+MACRO_WMS       ( CmLe_ULong                 , Int1Long2       , None            ) // uint64 Comparison <=
+MACRO_WMS       ( CmGt_Long                  , Int1Long2       , None            ) // int64 Comparison >
+MACRO_WMS       ( CmGe_Long                  , Int1Long2       , None            ) // int64 Comparison >=
+MACRO_WMS       ( CmGt_ULong                 , Int1Long2       , None            ) // uint64 Comparison >
+MACRO_WMS       ( CmGe_ULong                 , Int1Long2       , None            ) // uint64 Comparison >=
+MACRO_WMS       ( Eqz_Long                   , Int1Long1       , None            ) // int64 Comparison with 0
 
 // Double comparisons
 MACRO_WMS       ( CmLt_Db                    , Int1Double2     , None            ) // double Comparison <
@@ -220,6 +269,7 @@ MACRO_WMS       ( Max_Flt                    , Float3          , None           
 MACRO_WMS       ( Fround_Flt                 , Float2          , None            )
 MACRO_WMS       ( Fround_Db                  , Float1Double1   , None            )
 MACRO_WMS       ( Fround_Int                 , Float1Int1      , None            )
+MACRO_WMS       ( Fround_Long                , Float1Long1     , None            )
 
 MACRO_EXTEND_WMS( Copysign_Db                , Double3         , None            )
 MACRO_EXTEND_WMS( Copysign_Flt               , Float3          , None            )
