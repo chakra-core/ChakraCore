@@ -1581,6 +1581,11 @@ LError:
         double dblT;
         uint ivar;
 
+        if (args.Info.Count <= 2)
+        {
+            return JavascriptNumber::NaN;
+        }
+
         for (ivar = 0; (ivar < (args.Info.Count-1)) && ivar < kcvarMax; ++ivar)
         {
             rgdbl[ivar] = JavascriptConversion::ToNumber(args[ivar+1],scriptContext);

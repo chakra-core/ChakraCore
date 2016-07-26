@@ -829,11 +829,10 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        double dblRetVal = DateImplementation::DateFncUTC(scriptContext,args);
-        return JavascriptNumber::ToVarNoCheck(dblRetVal,scriptContext);
+        double dblRetVal = DateImplementation::DateFncUTC(scriptContext, args);
+        return JavascriptNumber::ToVarNoCheck(dblRetVal, scriptContext);
     }
 
     double JavascriptDate::ParseHelper(ScriptContext *scriptContext, JavascriptString *str)
