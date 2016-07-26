@@ -5176,9 +5176,16 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     {
         GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
         globOptData->changedSyms->ClearAll();
-        globOptData->changedSyms->Or(this->changedSymsAfterIncBailoutCandidate);
 
-        this->changedSymsAfterIncBailoutCandidate->ClearAll();
+        if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
+        {
+            // swap changedSyms and changedSymsAfterIncBailoutCandidate
+            // because both are from this->alloc
+            BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
+            globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
+            this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
+        }
+
         globOptData->capturedValues = globOptData->capturedValuesCandidate;
 
         // null out capturedValuesCandicate to stop tracking symbols change for it
