@@ -532,7 +532,7 @@ GlobOpt::ForwardPass()
     // Make sure we free most of them.
     Assert(freedCount >= spilledCount);
 
-    JitAdelete(alloc, this->changedSymsAfterIncBailoutCandidate);
+    // this->alloc will be freed right after return, no need to free it here
     this->changedSymsAfterIncBailoutCandidate = nullptr;
 
     END_CODEGEN_PHASE(this->func, Js::ForwardPhase);
@@ -5179,6 +5179,13 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
         if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
         {
+            //
+            // some symbols are changed after the values for current bailout have been
+            // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
+            // for following incremental bailout construction, or we will miss capturing
+            // values for later bailout
+            //
+
             // swap changedSyms and changedSymsAfterIncBailoutCandidate
             // because both are from this->alloc
             BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
