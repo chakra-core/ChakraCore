@@ -801,244 +801,31 @@ public:
             switch (layoutType)
             {
 
-#define DEFAULT_LAYOUT(op) \
-    case OpLayoutTypeAsmJs::##op: { \
+#define LAYOUT_TYPE(layout) \
+    case OpLayoutTypeAsmJs::##layout: { \
         Assert(layoutSize == SmallLayout); \
-        reader.##op(); \
+        reader.##layout(); \
         saveBlock(); \
         break; }
-#define DEFAULT_LAYOUT_WITH_ONEBYTE(op) \
-    case OpLayoutTypeAsmJs::##op: { \
+#define LAYOUT_TYPE_WMS(layout) \
+    case OpLayoutTypeAsmJs::##layout: { \
         switch (layoutSize) \
         { \
         case SmallLayout: \
-            reader.##op##_Small(); \
+            reader.##layout##_Small(); \
             break; \
         case MediumLayout: \
-            reader.##op##_Medium(); \
+            reader.##layout##_Medium(); \
             break; \
         case LargeLayout: \
-            reader.##op##_Large(); \
+            reader.##layout##_Large(); \
             break; \
         default: \
             Assume(UNREACHED); \
         } \
        saveBlock(); \
        break;     }
-
-                DEFAULT_LAYOUT(Empty);
-                DEFAULT_LAYOUT(StartCall);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(ElementSlot);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmTypedArr);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmCall);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg5);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg6);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg7);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Double1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Double1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Double1Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Double1Reg1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Reg1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Reg1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Double1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Double2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Const1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Double2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Double1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Double3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmUnsigned1);
-                DEFAULT_LAYOUT(AsmBr);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt1Const1);
-                //Float32x4
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Float32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Bool32x4_1Float32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Float1);
-                //DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float64x2_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float32x4_1);
-                //Int32x4
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Int32x4_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Bool32x4_1Int32x4_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_3Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int32x4_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Int1Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Float32x4_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int32x4_1);
-                //DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float64x2_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float32x4_1);
-                // Float64x2
-#if 0
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Double2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Double1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_2Double1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_2Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_3Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Float32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Int32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Int32x4_1Float64x2_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float64x2_1);
-#endif // 0
-
-                // Int16x8
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int16x8_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_2Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_3Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_2Int2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_3)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Int16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Bool16x8_1Int16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_2Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Float32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Int32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Int8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint8x16_1)
-                // In8x16
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_3)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_3Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Bool8x16_1Int8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Float32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int8x16_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int2)
-                // Uint32x4
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int4)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Uint32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Uint32x4_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_2Int4)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_3Int4)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_2Int2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_3)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Uint32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Bool32x4_1Uint32x4_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_2Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Float32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Uint16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Uint8x16_1)
-                // Uint16x8
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Uint16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Uint16x8_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_2Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_3Int8)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_2Int2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_3)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Uint16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Bool16x8_1Uint16x8_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_2Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Float32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Int32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Int16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Int8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Uint32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint16x8_1Uint8x16_1)
-                // Uint8x16
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Uint8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Uint8x16_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_2Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_3Int16)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_2Int2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_3)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Uint8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Bool8x16_1Uint8x16_2)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_2Int1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Float32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Int32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Int16x8_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Int8x16_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Uint32x4_1)
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Uint16x8_1)
-                // Bool32x4
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Int4);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool32x4_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_2Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool32x4_1);
-                // Bool16x8
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Int8);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool16x8_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool16x8_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_2Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool16x8_1);
-                // Bool8x16
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int16);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool8x16_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool8x16_1Int1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2Int2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_3);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool8x16_1);
-
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmSimdTypedArr);
-
-
-#undef DEFAULT_LAYOUT
-#undef DEFAULT_LAYOUT_WITH_ONEBYTE
+#include "LayoutTypesAsmJs.h"
             default:
                 AssertMsg(false, "Unknown OpLayout");
                 cantGenerate = true;
