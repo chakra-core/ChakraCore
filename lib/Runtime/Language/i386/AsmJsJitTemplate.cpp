@@ -1929,7 +1929,7 @@ namespace Js
             return size;
         }
 
-        int ShrU_Int::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
+        int Shr_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
         {
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
