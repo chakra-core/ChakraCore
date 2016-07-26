@@ -308,12 +308,7 @@ GlobOpt::Optimize()
         // Keep track of the last symbol for which we're guaranteed to have data.
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
         this->BackwardPass(Js::BackwardPhase);
-
-        // changedSymsAfterIncBailoutCandidate helps track building incremental bailout in ForwardPass
-        this->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
         this->ForwardPass();
-        JitAdelete(alloc, this->changedSymsAfterIncBailoutCandidate);
-        this->changedSymsAfterIncBailoutCandidate = nullptr;
     }
     this->BackwardPass(Js::DeadStorePhase);
     this->TailDupPass();
@@ -457,6 +452,10 @@ GlobOpt::ForwardPass()
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->byteCodeUses = nullptr;
     this->propertySymUse = nullptr;
+
+    // changedSymsAfterIncBailoutCandidate helps track building incremental bailout in ForwardPass
+    this->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+
 #if DBG
     this->byteCodeUsesBeforeOpt = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) && this->DoFunctionFieldCopyProp())
@@ -532,6 +531,9 @@ GlobOpt::ForwardPass()
 
     // Make sure we free most of them.
     Assert(freedCount >= spilledCount);
+
+    JitAdelete(alloc, this->changedSymsAfterIncBailoutCandidate);
+    this->changedSymsAfterIncBailoutCandidate = nullptr;
 
     END_CODEGEN_PHASE(this->func, Js::ForwardPhase);
 }
