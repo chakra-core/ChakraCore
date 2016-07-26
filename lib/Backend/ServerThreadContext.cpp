@@ -12,7 +12,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount),
-    m_preReservedVirtualAllocator(),
+    m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")), // TODO: OOP JIT, don't hardcode name
@@ -29,6 +29,12 @@ ServerThreadContext::~ServerThreadContext()
         HeapDelete(m_propertyMap);
         this->m_propertyMap = nullptr;
     }
+}
+
+PreReservedVirtualAllocWrapper *
+ServerThreadContext::GetPreReservedVirtualAllocator()
+{
+    return &m_preReservedVirtualAllocator;
 }
 
 intptr_t

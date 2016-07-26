@@ -34,6 +34,7 @@ public:
     virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) override;
+    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() override;
 
     CodeGenAllocators * GetCodeGenAllocators();
     AllocationPolicyManager * GetAllocationPolicyManager();

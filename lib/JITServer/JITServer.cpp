@@ -194,9 +194,22 @@ ServerIsNativeAddr(
     /* [out] */ boolean * result)
 {
     ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
-    // TODO: OOP JIT, prereserved segment
-    CustomHeap::CodePageAllocators::AutoLock autoLock(context->GetCodePageAllocators());
-    *result = context->GetCodePageAllocators()->IsInNonPreReservedPageAllocator((void*)address);
+
+    PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = context->GetPreReservedVirtualAllocator();
+    if (preReservedVirtualAllocWrapper->IsInRange((void*)address))
+    {
+        *result = true;
+    }
+    else if (!context->IsAllJITCodeInPreReservedRegion())
+    {
+        CustomHeap::CodePageAllocators::AutoLock autoLock(context->GetCodePageAllocators());
+        *result = context->GetCodePageAllocators()->IsInNonPreReservedPageAllocator((void*)address);
+    }
+    else
+    {
+        *result = false;
+    }
+
     return S_OK;
 }
 

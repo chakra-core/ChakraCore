@@ -44,28 +44,13 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
         {
             allocProtectFlags = PAGE_EXECUTE_READWRITE;
         }
-        if (process)
-        {
-            address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, allocProtectFlags);
-            VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
-        }
-        else
-        {
-            address = VirtualAlloc(lpAddress, dwSize, allocationType, allocProtectFlags);
-            VirtualProtect(address, dwSize, protectFlags, &oldProtectFlags);
-        }
+        address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, allocProtectFlags);
+        VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
     }
     else
 #endif
     {
-        if (process)
-        {
-            address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
-        }
-        else
-        {
-            address = VirtualAlloc(lpAddress, dwSize, allocationType, protectFlags);
-        }
+        address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
     }
 
     return address;
@@ -76,14 +61,7 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     Assert(this == nullptr);
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
     size_t bytes = (dwFreeType == MEM_RELEASE)? 0 : dwSize;
-    if (process)
-    {
-        return VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
-    }
-    else
-    {
-        return VirtualFree(lpAddress, bytes, dwFreeType);
-    }
+    return VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
 }
 
 /*
@@ -93,9 +71,10 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
 uint PreReservedVirtualAllocWrapper::numPreReservedSegment = 0;
 #endif
 
-PreReservedVirtualAllocWrapper::PreReservedVirtualAllocWrapper() :
+PreReservedVirtualAllocWrapper::PreReservedVirtualAllocWrapper(HANDLE process) :
     preReservedStartAddress(nullptr),
-    cs(4000)
+    cs(4000),
+    processHandle(process)
 {
     freeSegments.SetAll();
 }
@@ -105,7 +84,7 @@ PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
     Assert(this);
     if (IsPreReservedRegionPresent())
     {
-        BOOL success = VirtualFree(preReservedStartAddress, 0, MEM_RELEASE);
+        BOOL success = VirtualFreeEx(processHandle, preReservedStartAddress, 0, MEM_RELEASE);
         PreReservedHeapTrace(_u("MEM_RELEASE the PreReservedSegment. Start Address: 0x%p, Size: 0x%x * 0x%x bytes"), preReservedStartAddress, PreReservedAllocationSegmentCount,
             AutoSystemInfo::Data.GetAllocationGranularityPageSize());
         if (!success)
@@ -140,7 +119,7 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
 #if DBG
         //Check if the region is in MEM_COMMIT state.
         MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t bytes = VirtualQuery(address, &memBasicInfo, sizeof(memBasicInfo));
+        size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
         if (bytes == 0 || memBasicInfo.State != MEM_COMMIT)
         {
             AssertMsg(false, "Memory not committed? Checking for uncommitted address region?");
@@ -193,7 +172,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
     if (PHASE_FORCE1(Js::PreReservedHeapAllocPhase))
     {
         //This code is used where CFG is not available, but still PreReserve optimization for CFG can be tested
-        startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
+        startAddress = VirtualAllocEx(processHandle, NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Non-Enabled). Address: 0x%p\n"), preReservedStartAddress);
         preReservedStartAddress = startAddress;
         return startAddress;
@@ -220,7 +199,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 
     if (AutoSystemInfo::Data.IsCFGEnabled())
     {
-        startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
+        startAddress = VirtualAllocEx(processHandle, NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), preReservedStartAddress);
         preReservedStartAddress = startAddress;
 
@@ -246,7 +225,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 
 LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process)
 {
-    UNREFERENCED_PARAMETER(process);
+    Assert(process == this->processHandle);
     Assert(this);
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
     AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
@@ -289,7 +268,7 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
-            size_t bytes = VirtualQuery(addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
+            size_t bytes = VirtualQueryEx(processHandle, addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
             if (bytes == 0
                 || memBasicInfo.RegionSize < requestedNumOfSegments * AutoSystemInfo::Data.GetAllocationGranularityPageSize()
                 || memBasicInfo.State == MEM_COMMIT
@@ -340,18 +319,18 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
                     allocProtectFlags = PAGE_EXECUTE_READWRITE;
                 }
 
-                allocatedAddress = (char *)VirtualAlloc(addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
+                allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
 
                 if (allocatedAddress != nullptr)
                 {
-                    VirtualProtect(allocatedAddress, dwSize, protectFlags, &oldProtect);
+                    VirtualProtectEx(processHandle, allocatedAddress, dwSize, protectFlags, &oldProtect);
                     AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
                 }
             }
             else
 #endif
             {
-                allocatedAddress = (char *)VirtualAlloc(addressToReserve, dwSize, MEM_COMMIT, protectFlags);
+                allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, protectFlags);
             }
         }
         else
@@ -383,7 +362,7 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 BOOL
 PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process)
 {
-    UNREFERENCED_PARAMETER(process);
+    Assert(process == this->processHandle);
     Assert(this);
     {
         AutoCriticalSection autocs(&this->cs);
@@ -402,7 +381,7 @@ PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
 
         Assert(dwSize % AutoSystemInfo::PageSize == 0);
 #pragma warning(suppress: 6250)
-        BOOL success = VirtualFree(lpAddress, dwSize, MEM_DECOMMIT);
+        BOOL success = VirtualFreeEx(processHandle, lpAddress, dwSize, MEM_DECOMMIT);
         size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
         Assert(requestedNumOfSegments <= MAXUINT32);
 

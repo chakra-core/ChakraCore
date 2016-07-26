@@ -85,6 +85,7 @@ public:
 
     virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
     virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
+    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
 
