@@ -67,8 +67,6 @@ if(STATIC_LIBRARY)
       ${ICULIB}
       "-framework CoreFoundation"
       "-framework Security"
-      # set stack size to 64Mb for stack tests
-      -Wl,-stack_size,0x04000000
       )
   endif() # Linux ?
 else() # // !from shared library
