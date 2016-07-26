@@ -3,22 +3,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information. 
 //
 
-/*++
-
-
-
-Module Name:
-
-    thread.cpp
-
-Abstract:
-
-    Thread object and core APIs
-
-
-
---*/
-
 #include "pal/corunix.hpp"
 #include "pal/context.h"
 #include "pal/thread.hpp"
@@ -61,6 +45,34 @@ extern "C" int _lwp_self ();
 
 using namespace CorUnix;
 
+#ifdef __APPLE__
+#define EXPECTED_ALIGNMENT 16 * 1024
+static void GetInternalStackLimit(pthread_t thread, ULONG_PTR *highLimit, ULONG_PTR *lowLimit)
+{
+    size_t stack = pthread_get_stacksize_np(thread);
+
+    // osx 10.9(+ ?) pthread_get_stacksize_np bug
+    if (pthread_main_np())
+    {
+#ifndef __IOS__
+        // https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/Multithreading/CreatingThreads/CreatingThreads.html
+        stack = max(8 * 1024 * 1024, stack);
+#else
+        pthread_attr_t pat;
+        pthread_attr_init(&pat);
+        size_t gs = 0;
+        pthread_attr_getguardsize(&pat, &gs);
+        stack = max((1024 * 1024) - gs, stack);
+#endif
+    }
+
+    *highLimit = (ULONG_PTR)pthread_get_stackaddr_np(thread);
+    stack = *highLimit - stack;
+
+    *lowLimit = ((stack + (EXPECTED_ALIGNMENT - 1)) & ~(EXPECTED_ALIGNMENT - 1));
+}
+#undef EXPECTED_ALIGNMENT
+#endif
 
 /* ------------------- Definitions ------------------------------*/
 SET_DEFAULT_DEBUG_CHANNEL(THREAD);
@@ -2607,16 +2619,16 @@ CPalThread::GetStackLimit()
 
     if (m_stackLimit == NULL)
     {
+        pthread_t thread = pthread_self();
+
 #ifdef __APPLE__
-        // This is a Mac specific method
-        m_stackLimit = ((BYTE *)pthread_get_stackaddr_np(pthread_self()) -
-                       pthread_get_stacksize_np(pthread_self()));
+        ULONG_PTR _, low;
+        GetInternalStackLimit(thread, &_, &low);
+        m_stackLimit = (BYTE *) low;
 #else
         pthread_attr_t attr;
         size_t stackSize;
         int status;
-
-        pthread_t thread = pthread_self();
 
         status = pthread_attr_init(&attr);
         _ASSERT_MSG(status == 0, "pthread_attr_init call failed");
@@ -2836,13 +2848,11 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 {
-#ifdef __APPLE__
-    // This is a Mac specific method
-    *highLimit = (ULONG_PTR)pthread_get_stackaddr_np(pthread_self());
-    *lowLimit = (ULONG_PTR)(highLimit - pthread_get_stacksize_np(pthread_self()));
-#else
     pthread_t currentThreadHandle = pthread_self();
 
+#ifdef __APPLE__
+    GetInternalStackLimit(currentThreadHandle, highLimit, lowLimit);
+#else
     pthread_attr_t attr;
     size_t stacksize;
     void* stackend;
