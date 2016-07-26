@@ -8,7 +8,7 @@
 #include "Common.h"
 
 #include "Runtime.h"
-#include "Language/WasmAsmJsCommon.h"
+#include "Language/WAsmjsUtils.h"
 #ifdef ENABLE_WASM
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 #define TRACE_WASM(condition, ...) \

@@ -22,7 +22,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-#include "Language/WasmAsmJsCommon.h"
+#include "Language/WAsmjsUtils.h"
 
 #ifndef TEMP_DISABLE_ASMJS
 namespace Wasm

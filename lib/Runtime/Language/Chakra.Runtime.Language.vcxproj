@@ -185,7 +185,6 @@
     <ClInclude Include="AsmJs.h" />
     <ClInclude Include="AsmJsByteCodeGenerator.h" />
     <ClInclude Include="AsmJsCodeGenerator.h" />
-    <ClInclude Include="WasmAsmJsCommon.h" />
     <ClInclude Include="AsmJsEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
