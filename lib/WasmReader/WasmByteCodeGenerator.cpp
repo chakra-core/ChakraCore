@@ -395,21 +395,36 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetFloatConstCount(ReservedRegisterCount);
     info->SetDoubleConstCount(ReservedRegisterCount);
 
-    int nbConst =
-        ((info->GetDoubleConstCount() + 1) * sizeof(double)) // space required
-        + (int)((info->GetFloatConstCount() + 1) * sizeof(float) + 0.5 /*ceil*/)
-        + (int)((info->GetIntConstCount() + 1) * sizeof(int) + 0.5/*ceil*/) //
+    const uint32 nbConst = 
+        ((info->GetDoubleConstCount() + 1) * WAsmJs::DOUBLE_SLOTS_SPACE)
+        + (uint32)((info->GetFloatConstCount() + 1) * WAsmJs::FLOAT_SLOTS_SPACE + 0.5 /*ceil*/)
+        + (uint32)((info->GetIntConstCount() + 1) * WAsmJs::INT_SLOTS_SPACE + 0.5/*ceil*/)
         + Js::AsmJsFunctionMemory::RequiredVarConstants;
 
+    // This is constant, 29 for 32bits and 17 for 64bits systems
+    Assert(nbConst == 29 || nbConst == 17);
     GetFunctionBody()->CheckAndSetConstantCount(nbConst);
 
-    // REVIEW: overflow checks?
-    info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
-    info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots.GetRegisterCount() * sizeof(int32));
-    info->SetDoubleByteOffset(Math::Align<int>(info->GetFloatByteOffset() + m_f32RegSlots.GetRegisterCount() * sizeof(float), sizeof(double)));
+    info->SetReturnType(WasmToAsmJs::GetAsmJsReturnType(m_funcInfo->GetResultType()));
+
+    uint32 byteOffset = ReservedRegisterCount * sizeof(Js::Var);
+    info->SetIntByteOffset(byteOffset);
+    byteOffset = UInt32Math::Add(byteOffset, UInt32Math::Mul(m_i32RegSlots.GetRegisterCount(), sizeof(int32)));
+    info->SetFloatByteOffset(byteOffset);
+    byteOffset = UInt32Math::Add(info->GetFloatByteOffset(), UInt32Math::Mul(m_f32RegSlots.GetRegisterCount(), sizeof(float)));
+    // The offsets are stored as int, since we do uint32 math, make sure we haven't overflowed INT_MAX
+    if (byteOffset >= INT_MAX)
+    {
+        Js::Throw::OutOfMemory();
+    }
+    byteOffset = Math::AlignOverflowCheck<int>(byteOffset, sizeof(double));
+    info->SetDoubleByteOffset(byteOffset);
 
     GetFunctionBody()->SetOutParamMaxDepth(m_maxArgOutDepth);
-    GetFunctionBody()->SetVarCount(m_f32RegSlots.GetRegisterCount() + m_f64RegSlots.GetRegisterCount() + m_i32RegSlots.GetRegisterCount());
+    GetFunctionBody()->SetVarCount(UInt32Math::Add(
+        UInt32Math::Add(m_f32RegSlots.GetRegisterCount(), m_f64RegSlots.GetRegisterCount()),
+        m_i32RegSlots.GetRegisterCount()
+    ));
 }
 
 void

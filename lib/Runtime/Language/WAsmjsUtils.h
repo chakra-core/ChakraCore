@@ -9,6 +9,11 @@
 
 namespace WAsmJs 
 {
+    static const int DOUBLE_SLOTS_SPACE = (sizeof(double) / sizeof(Js::Var)); // 2 in x86 and 1 in x64
+    static const double FLOAT_SLOTS_SPACE = (sizeof(float) / (double)sizeof(Js::Var)); // 1 in x86 and 0.5 in x64
+    static const double INT_SLOTS_SPACE = (sizeof(int) / (double)sizeof(Js::Var)); // 1 in x86 and 0.5 in x64
+    static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Js::Var)); // 4 in x86 and 2 in x64
+
     typedef Js::RegSlot RegSlot;
 
     struct EmitInfoBase

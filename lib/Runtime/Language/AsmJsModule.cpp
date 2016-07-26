@@ -87,14 +87,14 @@ namespace Js
             asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
             int varCount = 0;
-            varCount += (int)((intRegisterSpace.GetTotalVarCount() * INT_SLOTS_SPACE) + 0.5);
-            varCount += (int)(floatRegisterSpace.GetTotalVarCount() * FLOAT_SLOTS_SPACE + 0.5);
-            varCount += doubleRegisterSpace.GetTotalVarCount() * DOUBLE_SLOTS_SPACE;
+            varCount += (int)((intRegisterSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE) + 0.5);
+            varCount += (int)(floatRegisterSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
+            varCount += doubleRegisterSpace.GetTotalVarCount() * WAsmJs::DOUBLE_SLOTS_SPACE;
 
             if (IsSimdjsEnabled())
             {
                 const auto& simdRegisterSpace = func->GetRegisterSpace<AsmJsSIMDValue>();
-                varCount += (int)((simdRegisterSpace.GetTotalVarCount() + 1) * SIMD_SLOTS_SPACE); /* + 1 to make room for possible alignment of SIMD values*/
+                varCount += (int)((simdRegisterSpace.GetTotalVarCount() + 1) * WAsmJs::SIMD_SLOTS_SPACE); /* + 1 to make room for possible alignment of SIMD values*/
                 // Aligned SIMD values.
                 Assert(asmInfo->GetSimdByteOffset() % sizeof(AsmJsSIMDValue) == 0);
             }
@@ -2404,21 +2404,21 @@ namespace Js
         mModuleMemory.mArrayBufferOffset = AsmJsModuleMemory::MemoryTableBeginOffset;
         mModuleMemory.mStdLibOffset = mModuleMemory.mArrayBufferOffset + 1;
         mModuleMemory.mDoubleOffset = mModuleMemory.mStdLibOffset + 1;
-        mModuleMemory.mFuncOffset = mModuleMemory.mDoubleOffset + (mDoubleVarSpace.GetTotalVarCount() * DOUBLE_SLOTS_SPACE);
+        mModuleMemory.mFuncOffset = mModuleMemory.mDoubleOffset + (mDoubleVarSpace.GetTotalVarCount() * WAsmJs::DOUBLE_SLOTS_SPACE);
         mModuleMemory.mFFIOffset = mModuleMemory.mFuncOffset + mFunctionArray.Count();
         mModuleMemory.mFuncPtrOffset = mModuleMemory.mFFIOffset + mImportFunctions.GetTotalVarCount();
         mModuleMemory.mFloatOffset = mModuleMemory.mFuncPtrOffset + GetFuncPtrTableCount();
-        mModuleMemory.mIntOffset = mModuleMemory.mFloatOffset + (int32)(mFloatVarSpace.GetTotalVarCount() * FLOAT_SLOTS_SPACE + 0.5);
-        mModuleMemory.mMemorySize    = mModuleMemory.mIntOffset + (int32)(mIntVarSpace.GetTotalVarCount() * INT_SLOTS_SPACE + 0.5);
+        mModuleMemory.mIntOffset = mModuleMemory.mFloatOffset + (int32)(mFloatVarSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
+        mModuleMemory.mMemorySize    = mModuleMemory.mIntOffset + (int32)(mIntVarSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE + 0.5);
 
         if (IsSimdjsEnabled())
         {
             // mSimdOffset is in SIMDValues, hence aligned
             // mMemorySize is in Vars
-            mModuleMemory.mSimdOffset = (int) ::ceil(mModuleMemory.mMemorySize / SIMD_SLOTS_SPACE);
+            mModuleMemory.mSimdOffset = (int) ::ceil(mModuleMemory.mMemorySize / WAsmJs::SIMD_SLOTS_SPACE);
             if (mSimdVarSpace.GetTotalVarCount())
             {
-                mModuleMemory.mMemorySize = (int)((mModuleMemory.mSimdOffset + mSimdVarSpace.GetTotalVarCount()) * SIMD_SLOTS_SPACE);
+                mModuleMemory.mMemorySize = (int)((mModuleMemory.mSimdOffset + mSimdVarSpace.GetTotalVarCount()) * WAsmJs::SIMD_SLOTS_SPACE);
             }
             
         }
