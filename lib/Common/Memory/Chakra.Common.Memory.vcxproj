@@ -79,10 +79,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SmallNormalHeapBucket.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StressTest.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VirtualAllocWrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)MemUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonMemoryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="MemUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />

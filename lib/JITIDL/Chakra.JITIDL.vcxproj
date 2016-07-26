@@ -21,7 +21,7 @@
   <ItemGroup>
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
-      <AdditionalOptions>%(AdditionalOptions) /target NT60 /prefix client "Client" server "Server"</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /prefix client "Client" server "Server"</AdditionalOptions>
     </Midl>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
