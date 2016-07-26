@@ -46,7 +46,6 @@ namespace WAsmJs
             , mNextLocation( reservedSlotsCount )
             , mNbConst( reservedSlotsCount )
         {
-            Assert( reservedSlotsCount >= 0 );
         }
         // Get the number of const allocated
         RegSlot GetConstCount() const      { return mNbConst; }
@@ -131,7 +130,7 @@ namespace WAsmJs
             // a register is a var if it is between the last const and the end
             // equivalent to  reg>=mNbConst && reg<mRegisterCount
             // forcing unsigned, if reg < mNbConst then reg-mNbConst = 0xFFFFF..
-            return (uint32_t)( reg - mNbConst ) < (uint32_t)( mRegisterCount - mNbConst );
+            return (uint32)( reg - mNbConst ) < (uint32)( mRegisterCount - mNbConst );
         }
 
         // Releases a location if its a temporary, safe to call with any expression
