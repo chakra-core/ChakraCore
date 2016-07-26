@@ -263,6 +263,10 @@ namespace Js
     {
         Output::Print(_u(" int:%d "), value);
     }
+    void ByteCodeDumper::DumpI8(int64 value)
+    {
+        Output::Print(_u(" int64:%lld "), value);
+    }
     void ByteCodeDumper::DumpU2(ushort value)
     {
         Output::Print(_u(" ushort:%d "), value);
@@ -1530,6 +1534,5 @@ namespace Js
             dumpFunction->GetReferencedPropertyId(data->PropertyIdIndex));
         Output::Print(_u("[%d].%s"), data->SlotIndex, pPropertyName->GetBuffer());
     }
-
 } // namespace Js
 #endif

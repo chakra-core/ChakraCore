@@ -362,6 +362,12 @@ namespace Js
     {
         Output::Print(_u(" I%d "), (int)reg);
     }
+
+    void AsmJsByteCodeDumper::DumpLongReg(RegSlot reg)
+    {
+        Output::Print(_u(" L%d "), (int)reg);
+    }
+
     void AsmJsByteCodeDumper::DumpDoubleReg(RegSlot reg)
     {
         Output::Print(_u(" D%d "), (int)reg);

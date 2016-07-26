@@ -18,6 +18,7 @@ namespace Js {
         static void DumpOp(OpCodeAsmJs op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction);
 
         static void DumpIntReg(RegSlot reg);
+        static void DumpLongReg(RegSlot reg);
         static void DumpDoubleReg(RegSlot reg);
         static void DumpFloatReg(RegSlot reg);
         static void DumpR8Float(float value);
@@ -37,6 +38,7 @@ namespace Js {
 
         static void DumpRegReg(RegSlot reg) { DumpReg(reg); }
         static void DumpIntConstReg(int val) { DumpI4(val); }
+        static void DumpLongConstReg(int64 val) { DumpI8(val); }
         static void DumpFloatConstReg(float val) { DumpR4(val); }
         static void DumpDoubleConstReg(double val) { DumpR8(val); }
 

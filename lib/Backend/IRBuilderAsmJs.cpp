@@ -166,6 +166,7 @@ IRBuilderAsmJs::Build()
 
         default:
             AssertMsg(UNREACHED, "Unimplemented layout");
+            Js::Throw::InternalError();
             break;
         }
         offset = m_jnReader.GetCurrentOffset();
