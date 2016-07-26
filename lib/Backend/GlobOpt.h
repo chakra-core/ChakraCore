@@ -955,6 +955,7 @@ public:
         capturedValuesCandidate(nullptr),
         capturedValues(nullptr),
         changedSyms(nullptr),
+        changedSymsAfterIncBailoutCandidate(nullptr),
         hasCSECandidates(false),
         curFunc(func),
         hasDataRef(nullptr),
@@ -1008,6 +1009,7 @@ public:
     CapturedValues *                        capturedValuesCandidate;
     CapturedValues *                        capturedValues;
     BVSparse<JitArenaAllocator> *           changedSyms;
+    BVSparse<JitArenaAllocator> *           changedSymsAfterIncBailoutCandidate;
 
     uint                                    inlinedArgOutCount;
 
@@ -1384,6 +1386,7 @@ private:
     StackSym *              GetOrCreateTaggedIntConstantStackSym(const int32 intConstantValue) const;
     Sym *                   SetSymStore(ValueInfo *valueInfo, Sym *sym);
     void                    SetSymStoreDirect(ValueInfo *valueInfo, Sym *sym);
+    void                    SetChangedSym(SymID symId);
     Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
     Value *                 InsertNewValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
     Value *                 SetValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
