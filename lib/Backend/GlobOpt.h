@@ -955,7 +955,6 @@ public:
         capturedValuesCandidate(nullptr),
         capturedValues(nullptr),
         changedSyms(nullptr),
-        changedSymsAfterIncBailoutCandidate(nullptr),
         hasCSECandidates(false),
         curFunc(func),
         hasDataRef(nullptr),
@@ -1009,7 +1008,6 @@ public:
     CapturedValues *                        capturedValuesCandidate;
     CapturedValues *                        capturedValues;
     BVSparse<JitArenaAllocator> *           changedSyms;
-    BVSparse<JitArenaAllocator> *           changedSymsAfterIncBailoutCandidate;
 
     uint                                    inlinedArgOutCount;
 
@@ -1213,6 +1211,8 @@ private:
     BVSparse<JitArenaAllocator> *  callerEquivBv;
 
     GlobOptBlockData            blockData;
+
+    BVSparse<JitArenaAllocator> *   changedSymsAfterIncBailoutCandidate;
 
     JitArenaAllocator *             alloc;
     JitArenaAllocator *             tempAlloc;

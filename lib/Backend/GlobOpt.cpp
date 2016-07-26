@@ -199,6 +199,7 @@ GlobOpt::GlobOpt(Func * func)
     updateInductionVariableValueNumber(false),
     isPerformingLoopBackEdgeCompensation(false),
     currentRegion(nullptr),
+    changedSymsAfterIncBailoutCandidate(nullptr),
     doTypeSpec(
         !IsTypeSpecPhaseOff(func)),
     doAggressiveIntTypeSpec(
@@ -307,7 +308,12 @@ GlobOpt::Optimize()
         // Keep track of the last symbol for which we're guaranteed to have data.
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
         this->BackwardPass(Js::BackwardPhase);
+
+        // changedSymsAfterIncBailoutCandidate helps track building incremental bailout in ForwardPass
+        this->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
         this->ForwardPass();
+        JitAdelete(alloc, this->changedSymsAfterIncBailoutCandidate);
+        this->changedSymsAfterIncBailoutCandidate = nullptr;
     }
     this->BackwardPass(Js::DeadStorePhase);
     this->TailDupPass();
@@ -1511,7 +1517,6 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 
     data->capturedValues = nullptr;
     data->changedSyms = nullptr;
-    data->changedSymsAfterIncBailoutCandidate = nullptr;
 
     data->OnDataUnreferenced();
 }
@@ -1560,7 +1565,6 @@ GlobOpt::InitBlockData()
     data->stackLiteralInitFldDataMap = nullptr;
 
     data->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    data->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
 
     data->OnDataInitialized(alloc);
 }
@@ -1611,9 +1615,7 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
     toData->changedSyms = fromData->changedSyms;
-    toData->changedSymsAfterIncBailoutCandidate = fromData->changedSymsAfterIncBailoutCandidate;
     toData->changedSyms->ClearAll();
-    toData->changedSymsAfterIncBailoutCandidate->ClearAll();
 
     toData->OnDataReused(fromData);
 }
@@ -1652,7 +1654,6 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
     toData->changedSyms = fromData->changedSyms;
-    toData->changedSymsAfterIncBailoutCandidate = fromData->changedSymsAfterIncBailoutCandidate;
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     toData->OnDataReused(fromData);
@@ -1768,9 +1769,7 @@ void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const 
     }
 
     toData->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     toData->changedSyms->Copy(fromData->changedSyms);
-    toData->changedSymsAfterIncBailoutCandidate->Copy(fromData->changedSymsAfterIncBailoutCandidate);
 
     Assert(fromData->HasData());
     toData->OnDataInitialized(alloc);
@@ -2361,8 +2360,6 @@ GlobOpt::DeleteBlockData(GlobOptBlockData *data)
 
     JitAdelete(alloc, data->changedSyms);
     data->changedSyms = nullptr;
-    JitAdelete(alloc, data->changedSymsAfterIncBailoutCandidate);
-    data->changedSymsAfterIncBailoutCandidate = nullptr;
 
     data->OnDataDeleted();
 }
@@ -5177,9 +5174,9 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     {
         GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
         globOptData->changedSyms->ClearAll();
-        globOptData->changedSyms->Or(globOptData->changedSymsAfterIncBailoutCandidate);
+        globOptData->changedSyms->Or(this->changedSymsAfterIncBailoutCandidate);
 
-        globOptData->changedSymsAfterIncBailoutCandidate->ClearAll();
+        this->changedSymsAfterIncBailoutCandidate->ClearAll();
         globOptData->capturedValues = globOptData->capturedValuesCandidate;
 
         // null out capturedValuesCandicate to stop tracking symbols change for it
@@ -7224,7 +7221,7 @@ GlobOpt::SetChangedSym(SymID symId)
     globOptData->changedSyms->Set(symId);
     if (globOptData->capturedValuesCandidate != nullptr)
     {
-        globOptData->changedSymsAfterIncBailoutCandidate->Set(symId);
+        this->changedSymsAfterIncBailoutCandidate->Set(symId);
     }
 }
 

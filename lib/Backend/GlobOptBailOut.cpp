@@ -253,7 +253,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
         block->globOptData.capturedValuesCandidate = &bailOutInfo->capturedValues;
 
         // reset changed syms to track symbols change after the above captured values candidate
-        block->globOptData.changedSymsAfterIncBailoutCandidate->ClearAll();
+        this->changedSymsAfterIncBailoutCandidate->ClearAll();
     }
 }
 
