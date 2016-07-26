@@ -73,7 +73,7 @@
   <test>
     <default>
       <files>toPrimitive.js</files>
-      <compile-flags>-es6toprimitive -es6functionname -args summary -endargs</compile-flags>
+      <compile-flags>-es6regexsymbols -es6toprimitive -es6hasInstance -es6isconcatspreadable -es6tostringtag -es6functionname -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
