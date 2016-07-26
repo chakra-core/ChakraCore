@@ -1511,6 +1511,7 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 
     data->capturedValues = nullptr;
     data->changedSyms = nullptr;
+    data->changedSymsAfterIncBailoutCandidate = nullptr;
 
     data->OnDataUnreferenced();
 }
@@ -1559,6 +1560,7 @@ GlobOpt::InitBlockData()
     data->stackLiteralInitFldDataMap = nullptr;
 
     data->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    data->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
 
     data->OnDataInitialized(alloc);
 }
@@ -1609,7 +1611,9 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
     toData->changedSyms = fromData->changedSyms;
+    toData->changedSymsAfterIncBailoutCandidate = fromData->changedSymsAfterIncBailoutCandidate;
     toData->changedSyms->ClearAll();
+    toData->changedSymsAfterIncBailoutCandidate->ClearAll();
 
     toData->OnDataReused(fromData);
 }
@@ -1648,7 +1652,7 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
     toData->changedSyms = fromData->changedSyms;
-    toData->changedSyms->ClearAll();
+    toData->changedSymsAfterIncBailoutCandidate = fromData->changedSymsAfterIncBailoutCandidate;
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     toData->OnDataReused(fromData);
@@ -1764,7 +1768,9 @@ void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const 
     }
 
     toData->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    toData->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     toData->changedSyms->Copy(fromData->changedSyms);
+    toData->changedSymsAfterIncBailoutCandidate->Copy(fromData->changedSymsAfterIncBailoutCandidate);
 
     Assert(fromData->HasData());
     toData->OnDataInitialized(alloc);
@@ -2354,6 +2360,9 @@ GlobOpt::DeleteBlockData(GlobOptBlockData *data)
     }
 
     JitAdelete(alloc, data->changedSyms);
+    data->changedSyms = nullptr;
+    JitAdelete(alloc, data->changedSymsAfterIncBailoutCandidate);
+    data->changedSymsAfterIncBailoutCandidate = nullptr;
 
     data->OnDataDeleted();
 }
@@ -5166,9 +5175,15 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
-        this->currentBlock->globOptData.changedSyms->ClearAll();
-        this->currentBlock->globOptData.capturedValues = 
-            this->currentBlock->globOptData.capturedValuesCandidate;
+        GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
+        globOptData->changedSyms->ClearAll();
+        globOptData->changedSyms->Or(globOptData->changedSymsAfterIncBailoutCandidate);
+
+        globOptData->changedSymsAfterIncBailoutCandidate->ClearAll();
+        globOptData->capturedValues = globOptData->capturedValuesCandidate;
+
+        // null out capturedValuesCandicate to stop tracking symbols change for it
+        globOptData->capturedValuesCandidate = nullptr;
     }
 
     return instrNext;
@@ -7184,10 +7199,33 @@ GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
     if (prevSymStore && prevSymStore->IsStackSym() &&
         prevSymStore->AsStackSym()->HasByteCodeRegSlot())
     {
-        Assert(this->blockData.changedSyms != nullptr);
-        this->blockData.changedSyms->Set(prevSymStore->m_id);
+        this->SetChangedSym(prevSymStore->m_id);
     }
     valueInfo->SetSymStore(sym);
+}
+
+void
+GlobOpt::SetChangedSym(SymID symId)
+{
+    GlobOptBlockData * globOptData = nullptr;
+    if (this->currentBlock->globOptData.changedSyms)
+    {
+        globOptData = &this->currentBlock->globOptData;
+    }
+    else
+    {
+        Assert(this->blockData.changedSyms != nullptr);
+
+        // blockData has not been copied to globOptData yet, use blockData
+        // to store the changed syms which will be copied to globOptData later
+        globOptData = &this->blockData;
+    }
+
+    globOptData->changedSyms->Set(symId);
+    if (globOptData->capturedValuesCandidate != nullptr)
+    {
+        globOptData->changedSymsAfterIncBailoutCandidate->Set(symId);
+    }
 }
 
 void
@@ -7209,8 +7247,7 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
         SetValueToHashTable(blockData->symToValueMap, val, sym);
         if (isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
         {
-            Assert(blockData->changedSyms != nullptr);
-            blockData->changedSyms->Set(sym->m_id);
+            this->SetChangedSym(sym->m_id);
         }
     }
 }
