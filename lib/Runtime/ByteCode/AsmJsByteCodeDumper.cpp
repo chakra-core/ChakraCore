@@ -760,167 +760,23 @@ namespace Js
         DumpReg(data->R17);
         DumpReg(data->R18);
     }
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Double1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpDoubleReg(data->D1);
+#define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) \
+    template <class T> \
+    void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
+    {\
+        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
+        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
     }
+#define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) \
+    template <class T> \
+    void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
+    {\
+        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
+        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
+        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
+    }
+#include "LayoutTypesAsmJs.h"
 
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Float1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpFloatReg(data->F1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpIntReg(data->I1);
-    }
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble1Float1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpFloatReg(data->F1);
-    }
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble1Reg1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpReg(data->R1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat1Reg1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpReg(data->R1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Reg1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpReg(data->R1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpReg1Double1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->R0);
-        DumpDoubleReg(data->D1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpReg1Float1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->R0);
-        DumpFloatReg(data->F1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Double2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpDoubleReg(data->D1);
-        DumpDoubleReg(data->D2);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Float2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpFloatReg(data->F1);
-        DumpFloatReg(data->F2);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpReg1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->R0);
-        DumpIntReg(data->I1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpIntReg(data->I1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpI4(data->C1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpR4(data->C1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpR8(data->C1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt3(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpIntReg(data->I1);
-        DumpIntReg(data->I2);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpDoubleReg(data->D1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpFloatReg(data->F1);
-    }
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat3(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpFloatReg(data->F1);
-        DumpFloatReg(data->F2);
-    }
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat1Double1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpDoubleReg(data->D1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloatReg(data->F0);
-        DumpIntReg(data->I1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpDouble3(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpDoubleReg(data->D0);
-        DumpDoubleReg(data->D1);
-        DumpDoubleReg(data->D2);
-    }
 
     template <class T>
     void AsmJsByteCodeDumper::DumpBrInt1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
