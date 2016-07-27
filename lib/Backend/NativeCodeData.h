@@ -193,16 +193,16 @@ public:
     ~NativeCodeData();
 };
 
-char DataDesc_None[]                                        = "";
-char DataDesc_InlineeFrameRecord_ArgOffsets[]               = "";
-char DataDesc_InlineeFrameRecord_Constants[]                = "";
-char DataDesc_BailoutInfo_CotalOutParamCount[]              = "";
-char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[]    = "";
-char DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts[] = "";
-char DataDesc_LowererMD_LoadFloatValue_Float[]              = "";
-char DataDesc_LowererMD_LoadFloatValue_Double[]             = "";
-char DataDesc_LowererMD_EmitLoadFloatCommon_Double[] = "";
-char DataDesc_LowererMD_Simd128LoadConst[]        = "";
+char DataDesc_None[];
+char DataDesc_InlineeFrameRecord_ArgOffsets[];
+char DataDesc_InlineeFrameRecord_Constants[];
+char DataDesc_BailoutInfo_CotalOutParamCount[];
+char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[];
+char DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts[];
+char DataDesc_LowererMD_LoadFloatValue_Float[];
+char DataDesc_LowererMD_LoadFloatValue_Double[];
+char DataDesc_LowererMD_EmitLoadFloatCommon_Double[];
+char DataDesc_LowererMD_Simd128LoadConst[];
 
 template<char const *desc = DataDesc_None>
 struct IntType 
