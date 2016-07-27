@@ -1006,7 +1006,10 @@ namespace Js
             JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
 
             Var newDescriptor = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propKey, scriptContext);
-            resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+            if (!JavascriptOperators::IsUndefined(newDescriptor))
+            {
+                resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+            }
         }
 
         return resultObj;
