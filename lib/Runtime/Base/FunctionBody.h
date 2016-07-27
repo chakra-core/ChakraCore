@@ -1925,11 +1925,12 @@ namespace Js
         bool m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
                                                    // Set by bgjit in OutOfMemory scenario during codegen.
 #endif
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+
+//#if ENABLE_DEBUG_CONFIG_OPTIONS //TODO: need this?
         NoWriteBarrierField<uint> regAllocStoreCount;
         NoWriteBarrierField<uint> regAllocLoadCount;
         NoWriteBarrierField<uint> callCountStats;
-#endif
+//#endif
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
         //

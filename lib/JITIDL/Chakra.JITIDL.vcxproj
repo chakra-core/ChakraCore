@@ -18,11 +18,16 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(BuildingInsideVisualStudio)'=='true'">
+    <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <AdditionalOptions>%(AdditionalOptions) /target NT60 /prefix client "Client" server "Server"</AdditionalOptions>
+    </Midl>
+  </ItemGroup>
+  <ItemGroup Condition="'$(BuildingWithBuildExe)'=='true'">
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /prefix client "Client" server "Server"</AdditionalOptions>
-      <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /target NT60 </AdditionalOptions>
     </Midl>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
