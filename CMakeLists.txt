@@ -219,6 +219,12 @@ include_directories(
     ${ICU_INCLUDE_PATH}
     )
 
+if(ICU_INCLUDE_PATH)
+    if(NOT HAVE_LIBICU_UCHAR_H)
+        set(HAVE_LIBICU_UCHAR_H "1")
+    endif()
+endif()
+
 add_subdirectory (pal)
 
 # build the rest with NO_PAL_MINMAX and PAL_STDCPP_COMPAT
