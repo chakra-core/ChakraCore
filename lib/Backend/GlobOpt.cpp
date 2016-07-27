@@ -7220,6 +7220,9 @@ GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
 void
 GlobOpt::SetChangedSym(SymID symId)
 {
+    // this->currentBlock might not be the one which contain the changing symId,
+    // like hoisting invariant, but more changed symId is overly conservative and safe.
+    // symId in the hoisted to block is marked as JITOptimizedReg so it does't affect bailout.
     GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
     if (globOptData->changedSyms)
     {
