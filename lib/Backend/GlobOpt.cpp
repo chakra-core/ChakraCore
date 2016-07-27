@@ -7220,25 +7220,18 @@ GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
 void
 GlobOpt::SetChangedSym(SymID symId)
 {
-    GlobOptBlockData * globOptData = nullptr;
-    if (this->currentBlock->globOptData.changedSyms)
+    GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
+    if (globOptData->changedSyms)
     {
         globOptData = &this->currentBlock->globOptData;
-    }
-    else
-    {
-        Assert(this->blockData.changedSyms != nullptr);
 
-        // blockData has not been copied to globOptData yet, use blockData
-        // to store the changed syms which will be copied to globOptData later
-        globOptData = &this->blockData;
+        globOptData->changedSyms->Set(symId);
+        if (globOptData->capturedValuesCandidate != nullptr)
+        {
+            this->changedSymsAfterIncBailoutCandidate->Set(symId);
+        }
     }
-
-    globOptData->changedSyms->Set(symId);
-    if (globOptData->capturedValuesCandidate != nullptr)
-    {
-        this->changedSymsAfterIncBailoutCandidate->Set(symId);
-    }
+    // else could be hit only in MergeValues and it is handled by MergeCapturedValues
 }
 
 void
