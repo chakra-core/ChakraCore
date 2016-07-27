@@ -184,19 +184,7 @@ namespace Js
 
     void AsmJSByteCodeGenerator::FinalizeRegisters( FunctionBody* byteCodeFunction )
     {
-        // this value is the number of Var slots needed to allocate all the const
-        int nbConst =
-            ((mFunction->GetRegisterSpace<double>().GetConstCount() + 1) * WAsmJs::DOUBLE_SLOTS_SPACE) // space required for all double constants + 1 return register reserved
-            + (int)((mFunction->GetRegisterSpace<float>().GetConstCount() + 1) * WAsmJs::FLOAT_SLOTS_SPACE + 0.5 /*ceil*/) // space required for all float constants + 1 return register reserved
-            + (int)((mFunction->GetRegisterSpace<int>().GetConstCount() + 1) * WAsmJs::INT_SLOTS_SPACE + 0.5/*ceil*/) // space required for all int constants + 1 return register reserved
-            + AsmJsFunctionMemory::RequiredVarConstants;
-
-        if (IsSimdjsEnabled())
-        {
-            nbConst += (int)((mFunction->GetRegisterSpace<AsmJsSIMDValue>().GetConstCount() + 1) * WAsmJs::SIMD_SLOTS_SPACE); // Return register is already reserved in the register space.
-        }
-
-        byteCodeFunction->CheckAndSetConstantCount(nbConst);
+        mFunction->CommitToFunctionBody(byteCodeFunction);
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;
