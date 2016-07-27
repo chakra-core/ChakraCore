@@ -12,8 +12,8 @@
 //         (        V         ,     V       ,              V               ,      V      ,   V   )
 
   DEF2    (NOPASMJS          , Nop          , Empty                                              )
+EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                                              )
   DEF2    (NOPASMJS          , Label        , Empty                                              )
-EXDEF2    (NOPASMJS          , NopEx        , Empty                                              )
   DEF2    (BR_ASM            , AsmBr        , OP_Br                                              )
 
   DEF2_WMS(FALLTHROUGH_ASM   , LdSlotArr    , /* Common case with LdSlot */                      )

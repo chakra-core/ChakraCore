@@ -31,8 +31,17 @@ public:
     static bool IsValidByteCodeOpcode(OpCode op);
     static bool IsValidOpcode(OpCode op);
     static bool IsPrefixOpcode(OpCode op);
-    static bool IsSmallEncodedOpcode(OpCode op);
-    static uint EncodedSize(OpCode op, LayoutSize layoutSize);
+    static const bool IsSmallEncodedOpcode(OpCode op)
+    {
+        return op <= Js::OpCode::MaxByteSizedOpcodes;
+    }
+    static const uint EncodedSize(OpCode op, LayoutSize layoutSize)
+    {
+        // Simple case, only 1 byte
+        // Small OpCode with Medium or Large layout: 1 extra byte for the prefix
+        // Extended OpCode: Prefix + 2 bytes for the opcode
+        return IsSmallEncodedOpcode(op) ? layoutSize == SmallLayout ? 1 : 2 : 3;
+    }
 
     static OpLayoutType GetOpCodeLayout(OpCode op);
 private:

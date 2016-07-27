@@ -33,15 +33,8 @@ MACRO       ( LargeLayoutPrefix         , Empty        , None            )
 MACRO       ( ExtendedLargeLayoutPrefix , Empty        , None            )
 
 MACRO       ( Nop                       , Empty        , None            ) // No operation (Default value = 0)
-MACRO_EXTEND( NopEx                     , Empty        , None            ) // No operation (Default value = 0)
+MACRO_EXTEND( InvalidOpCode             , Empty        , None            ) // No operation (Default value = 0)
 MACRO       ( Label                     , Empty        , None            ) // No operation (Default value = 0)
-
-// These need to exist for the interpreterLoop.inl to compile
-MACRO       ( Yield                     , Empty        , None            )
-MACRO       ( Leave                     , Empty        , None            )
-MACRO       ( LeaveNull                 , Empty        , None            )
-MACRO       ( FinallyEnd                , Empty        , None            )
-MACRO       ( Break                     , Empty        , None            )
 MACRO       ( Ret                       , Empty        , None            )
 
 // External Function calls

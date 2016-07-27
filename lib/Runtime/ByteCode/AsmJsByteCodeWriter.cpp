@@ -10,61 +10,27 @@
 
 namespace Js
 {
-    template <>
-    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
+    template <LayoutSize layoutSize>
+    inline void ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
+        Assert(OpCodeUtilAsmJs::IsValidByteCodeOpcode(op));
 
-        uint offset;
-        if (op <= Js::OpCode::MaxByteSizedOpcodes)
-        {
-            byte byteop = (byte)op;
-            offset = Write(&byteop, sizeof(byte));
-        }
-        else
-        {
-            byte byteop = (byte)Js::OpCodeAsmJs::ExtendedOpcodePrefix;
-            offset = Write(&byteop, sizeof(byte));
-            byteop = (byte)op;
-            Write(&byteop, sizeof(byte));
-        }
+        Assert(layoutSize == SmallLayout || OpCodeAttrAsmJs::HasMultiSizeLayout(op));
+        EncodeOpCode<layoutSize>((ushort)op, writer);
 
         if (!isPatching)
         {
             writer->IncreaseByteCodeCount();
         }
-        return offset;
     }
 
     template <LayoutSize layoutSize>
-    inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
-    {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
-
-        CompileAssert(layoutSize != SmallLayout);
-        const byte exop = (byte)((op <= Js::OpCodeAsmJs::MaxByteSizedOpcodes) ?
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::LargeLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix) :
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix));
-
-        uint offset = Write(&exop, sizeof(byte));
-        byte byteop = (byte)op;
-        Write(&byteop, sizeof(byte));
-
-        if (!isPatching)
-        {
-            writer->IncreaseByteCodeCount();
-        }
-        return offset;
-    }
-
-    template <LayoutSize layoutSize>
-    inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, const void* rawData, int byteSize, ByteCodeWriter* writer, bool isPatching)
+    inline void ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, const void* rawData, int byteSize, ByteCodeWriter* writer, bool isPatching)
     {
         AssertMsg((rawData != nullptr) && (byteSize < 100), "Ensure valid data for opcode");
 
-        uint offset = EncodeT<layoutSize>(op, writer, isPatching);
+        EncodeT<layoutSize>(op, writer, isPatching);
         Write(rawData, byteSize);
-        return offset;
     }
 
     void AsmJsByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
