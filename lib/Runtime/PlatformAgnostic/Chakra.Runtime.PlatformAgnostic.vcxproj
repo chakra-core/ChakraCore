@@ -38,17 +38,17 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="RuntimePlatformAgnosticPch.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)RuntimePlatformAgnosticPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Platform\Windows\DateTime.cpp" />
-    <ClCompile Include="Platform\Windows\DaylightHelper.cpp" />
-    <ClCompile Include="Platform\Windows\HiResTimer.cpp" />
-    <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
-    <ClCompile Include="Platform\Windows\NumbersUtility.cpp" />
-    <ClCompile Include="Platform\Windows\SystemInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DateTime.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DaylightHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\HiResTimer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\SystemInfo.cpp" />
 
-    <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />

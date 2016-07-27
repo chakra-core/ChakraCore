@@ -33,10 +33,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITClientPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="JITClientStub.c">
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITClientStub.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="JITManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JITClient.h" />

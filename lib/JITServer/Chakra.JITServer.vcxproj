@@ -19,13 +19,13 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="JITServerStub.c">
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServerStub.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="JITServerPch.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServerPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="JITServer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JITServerPch.h" />
