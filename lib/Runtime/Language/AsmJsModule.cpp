@@ -92,6 +92,13 @@ namespace Js
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
             ((EntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->SetIsAsmJSFunction(true);
+
+#if DBG_DUMP
+            if(PHASE_DUMP(ByteCodePhase, functionBody))
+            {
+                AsmJsByteCodeDumper::Dump(functionBody, nullptr, func);
+            }
+#endif
 #if _M_IX86
             if (PHASE_ON1(AsmJsJITTemplatePhase) && !Configuration::Global.flags.NoNative)
             {

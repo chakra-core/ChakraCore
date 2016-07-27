@@ -12,7 +12,7 @@
 
 namespace Js
 {
-    void AsmJsByteCodeDumper::Dump(AsmJsFunc* func, FunctionBody* body)
+    void AsmJsByteCodeDumper::Dump(FunctionBody* body, const WAsmJs::TypedRegisterAllocator* typedRegister, AsmJsFunc* asmFunc)
     {
         ByteCodeReader reader;
         reader.Create(body);
@@ -20,10 +20,11 @@ namespace Js
         statementReader.Create(body);
         body->DumpFullFunctionName();
         Output::Print(_u(" Asm.js ("));
-        const ArgSlot argCount = func->GetArgCount();
+        AsmJsFunctionInfo* funcInfo = body->GetAsmJsFunctionInfo();
+        const ArgSlot argCount = funcInfo->GetArgCount();
         for (ArgSlot i = 0; i < argCount; i++)
         {
-            AsmJsType var = func->GetArgType(i);
+            AsmJsVarType var = funcInfo->GetArgType(i);
             if (i > 0)
             {
                 Output::Print(_u(", "));
@@ -40,9 +41,13 @@ namespace Js
             {
                 Output::Print(_u("In%hu|0"), i);
             }
-            else if (var.isSIMDType())
+            else if (var.isInt64())
             {
-                switch (var.GetWhich())
+                Output::Print(_u("int64(In%hu)"), i);
+            }
+            else if (var.isSIMD())
+            {
+                switch (var.which())
                 {
                 case AsmJsType::Int32x4:
                     Output::Print(_u("I4(In%hu)"), i);
@@ -66,71 +71,70 @@ namespace Js
 
         Output::Print(_u(") "));
         Output::Print(_u("(size: %d [%d])\n"), body->GetByteCodeCount(), body->GetByteCodeWithoutLDACount());
-        const auto& intRegisters = func->GetRegisterSpace<int>();
-        const auto& doubleRegisters = func->GetRegisterSpace<double>();
-        const auto& floatRegisters = func->GetRegisterSpace<float>();
-        Output::Print(
-            _u("      Integer : %u locals (%u temps from I%u)\n"),
-            intRegisters.GetVarCount(),
-            intRegisters.GetTmpCount(),
-            intRegisters.GetFirstTmpRegister());
-        Output::Print(
-            _u("      Doubles : %u locals (%u temps from D%u)\n"),
-            doubleRegisters.GetVarCount(),
-            doubleRegisters.GetTmpCount(),
-            doubleRegisters.GetFirstTmpRegister());
 
-        Output::Print(
-            _u("      Floats : %u locals (%u temps from F%u)\n"),
-            floatRegisters.GetVarCount(),
-            floatRegisters.GetTmpCount(),
-            floatRegisters.GetFirstTmpRegister());
-
-        const auto& simdRegisters = func->GetRegisterSpace<AsmJsSIMDValue>();
-        Output::Print(
-            _u("      SIMDs : %u locals (%u temps from SIMD%u)\n"),
-            simdRegisters.GetVarCount(),
-            simdRegisters.GetTmpCount(),
-            simdRegisters.GetFirstTmpRegister());
-
-        uint32 statementIndex = 0;
-        DumpConstants(func, body);
-
-        Output::Print(_u("    Implicit Arg Ins:\n    ======== =====\n    "));
-        int iArg = intRegisters.GetConstCount(), dArg = doubleRegisters.GetConstCount(), fArg = floatRegisters.GetConstCount();
-        int simdArg = simdRegisters.GetConstCount();
-        for (ArgSlot i = 0; i < argCount; i++)
+        if (!typedRegister && asmFunc)
         {
-            const AsmJsType& var = func->GetArgType(i);
-            if (var.isDouble())
-            {
-                Output::Print(_u(" D%d  In%d"), dArg++, i);
-            }
-            else if (var.isFloat())
-            {
-                Output::Print(_u(" F%d  In%d"), fArg++, i);
-            }
-            else if (var.isInt())
-            {
-                Output::Print(_u(" I%d  In%d"), iArg++, i);
-            }
-            else if (var.isSIMDType())
-            {
-                Output::Print(_u(" SIMD%d  In%d"), simdArg++, i);
-            }
-            else
-            {
-                Assert(UNREACHED);
-            }
-            Output::Print(_u("\n    "));
+            typedRegister = &asmFunc->GetTypedRegisterAllocator();
         }
-        Output::Print(_u("\n"));
 
-        if (func->GetReturnType() == AsmJsRetType::Void)
+        if (typedRegister)
+        {
+            typedRegister->DumpLocalsInfo();
+        }
+
+        if (asmFunc)
+        {
+            DumpConstants(asmFunc, body);
+        }
+
+        if (typedRegister)
+        {
+            Output::Print(_u("    Implicit Arg Ins:\n    ======== =====\n    "));
+            uint32 iArgs[WAsmJs::LIMIT];
+            typedRegister->GetArgumentStartIndex(iArgs);
+            uint32 iArg = iArgs[WAsmJs::INT32];
+            uint32 lArg = iArgs[WAsmJs::INT64];
+            uint32 dArg = iArgs[WAsmJs::FLOAT64];
+            uint32 fArg = iArgs[WAsmJs::FLOAT32];
+            uint32 simdArg = iArgs[WAsmJs::SIMD];
+            for (ArgSlot i = 0; i < argCount; i++)
+            {
+                AsmJsVarType var = funcInfo->GetArgType(i);
+                if (var.isDouble())
+                {
+                    Output::Print(_u(" D%d  In%d"), dArg++, i);
+                }
+                else if (var.isFloat())
+                {
+                    Output::Print(_u(" F%d  In%d"), fArg++, i);
+                }
+                else if (var.isInt())
+                {
+                    Output::Print(_u(" I%d  In%d"), iArg++, i);
+                }
+                else if (var.isInt64())
+                {
+                    Output::Print(_u(" L%d  In%d"), lArg++, i);
+                }
+                else if (var.isSIMD())
+                {
+                    Output::Print(_u(" SIMD%d  In%d"), simdArg++, i);
+                }
+                else
+                {
+                    Assert(UNREACHED);
+                }
+                Output::Print(_u("\n    "));
+            }
+            Output::Print(_u("\n"));
+        }
+
+        if (funcInfo->GetReturnType() == AsmJsRetType::Void)
         {
             Output::Print(_u("    0000   %-20s R0\n"), OpCodeUtilAsmJs::GetOpCodeName(OpCodeAsmJs::LdUndef));
         }
 
+        uint32 statementIndex = 0;
         while (true)
         {
             while (statementReader.AtStatementBoundary(&reader))
@@ -191,67 +195,6 @@ namespace Js
         {
             body->PrintStatementSourceLine(statementIndex);
             statementIndex = statementReader.MoveNextStatementBoundary();
-        }
-        Output::Print(_u("\n"));
-        Output::Flush();
-    }
-
-    void AsmJsByteCodeDumper::DumpBasic(FunctionBody* body)
-    {
-        ByteCodeReader reader;
-        reader.Create(body);
-        body->DumpFullFunctionName();
-        Output::Print(_u("\n"));
-        while (true)
-        {
-            int byteOffset = reader.GetCurrentOffset();
-            LayoutSize layoutSize;
-            OpCodeAsmJs op = (OpCodeAsmJs)reader.ReadOp(layoutSize);
-            if (op == OpCodeAsmJs::EndOfBlock)
-            {
-                Assert(reader.GetCurrentOffset() == body->GetByteCode()->GetLength());
-                break;
-            }
-            Output::Print(_u("    %04x %2s"), byteOffset, layoutSize == LargeLayout ? _u("L-") : layoutSize == MediumLayout ? _u("M-") : _u(""));
-            DumpOp(op, layoutSize, reader, body);
-            if (Js::Configuration::Global.flags.Verbose)
-            {
-                int layoutStart = byteOffset + 2;       // Account fo the prefix op
-                int endByteOffset = reader.GetCurrentOffset();
-                Output::SkipToColumn(70);
-                if (layoutSize == LargeLayout)
-                {
-                    Output::Print(_u("%02X "),
-                        op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
-                        Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::LargeLayoutPrefix);
-                }
-                else if (layoutSize == MediumLayout)
-                {
-                    Output::Print(_u("%02X "),
-                        op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
-                        Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix);
-                }
-                else
-                {
-                    Assert(layoutSize == SmallLayout);
-                    if (op > Js::OpCodeAsmJs::MaxByteSizedOpcodes)
-                    {
-                        Output::Print(_u("%02X "), Js::OpCodeAsmJs::ExtendedOpcodePrefix);
-                    }
-                    else
-                    {
-                        Output::Print(_u("   "));
-                        layoutStart--;          // don't have a prefix
-                    }
-                }
-
-                Output::Print(_u("%02x"), (byte)op);
-                for (int i = layoutStart; i < endByteOffset; i++)
-                {
-                    Output::Print(_u(" %02x"), reader.GetRawByte(i));
-                }
-            }
-            Output::Print(_u("\n"));
         }
         Output::Print(_u("\n"));
         Output::Flush();

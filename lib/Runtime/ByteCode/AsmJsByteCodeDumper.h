@@ -12,8 +12,7 @@ namespace Js {
     class AsmJsByteCodeDumper : public ByteCodeDumper
     {
     public:
-        static void Dump(AsmJsFunc* func, FunctionBody* body);
-        static void DumpBasic(FunctionBody* body);
+        static void Dump(FunctionBody* body, const WAsmJs::TypedRegisterAllocator* typedRegister, AsmJsFunc* asmFunc);
         static void DumpConstants(AsmJsFunc* func, FunctionBody* body);
         static void DumpOp(OpCodeAsmJs op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction);
 

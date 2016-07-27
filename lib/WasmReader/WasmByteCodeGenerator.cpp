@@ -373,7 +373,7 @@ WasmBytecodeGenerator::GenerateFunction()
 #if DBG_DUMP
     if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()))
     {
-        Js::AsmJsByteCodeDumper::DumpBasic(GetFunctionBody());
+        Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
     }
 #endif
 
