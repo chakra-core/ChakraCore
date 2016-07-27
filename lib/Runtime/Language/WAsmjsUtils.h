@@ -257,17 +257,6 @@ namespace WAsmJs
     public:
         TypedRegisterAllocator(ArenaAllocator* allocator, AllocateRegisterSpaceFunc allocateFunc, uint32 excludedMask = 0);
 
-        // Register Space manipulations
-        RegSlot AcquireRegister       (Types type)                            {return GetRegisterSpace(type)->AcquireRegister();}
-        RegSlot AcquireConstRegister  (Types type)                            {return GetRegisterSpace(type)->AcquireConstRegister();}
-        RegSlot AcquireTmpRegister    (Types type)                            {return GetRegisterSpace(type)->AcquireTmpRegister();}
-        void ReleaseTmpRegister       (Types type, RegSlot tmpReg)            {GetRegisterSpace(type)->ReleaseTmpRegister(tmpReg);}
-        void ReleaseLocation          (Types type, const EmitInfoBase* pnode) {GetRegisterSpace(type)->ReleaseLocation(pnode); }
-        bool IsTmpLocation            (Types type, const EmitInfoBase* pnode) {return GetRegisterSpace(type)->IsTmpLocation(pnode);}
-        bool IsConstLocation          (Types type, const EmitInfoBase* pnode) {return GetRegisterSpace(type)->IsConstLocation(pnode);}
-        bool IsVarLocation            (Types type, const EmitInfoBase* pnode) {return GetRegisterSpace(type)->IsVarLocation(pnode);}
-        bool IsValidLocation          (Types type, const EmitInfoBase* pnode) {return GetRegisterSpace(type)->IsValidLocation(pnode);}
-
         uint32 GetJsVarCount(Types type, bool constOnly /*= false*/) const;
         uint32 GetTotalJsVarCount(bool constOnly = false) const;
         void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const;
@@ -278,17 +267,6 @@ namespace WAsmJs
         // indexes' array size must be WAsmJs::RegisterSpace::LIMIT
         void GetArgumentStartIndex(uint32* indexes) const;
 #endif
-
-        // Template version for ease of use with current code
-        template<typename T>RegSlot AcquireRegister     ()                          {return AcquireRegister(RegisterSpace::GetRegisterSpaceType<T>());}
-        template<typename T>RegSlot AcquireConstRegister()                          {return AcquireConstRegister(RegisterSpace::GetRegisterSpaceType<T>());}
-        template<typename T>RegSlot AcquireTmpRegister  ()                          {return AcquireTmpRegister(RegisterSpace::GetRegisterSpaceType<T>());}
-        template<typename T>void ReleaseTmpRegister     (RegSlot tmpReg)            {ReleaseTmpRegister(RegisterSpace::GetRegisterSpaceType<T>(), tmpReg);}
-        template<typename T>void ReleaseLocation        (const EmitInfoBase* pnode) {ReleaseLocation(RegisterSpace::GetRegisterSpaceType<T>(), pnode); }
-        template<typename T>bool IsTmpLocation          (const EmitInfoBase* pnode) {return IsTmpLocation(RegisterSpace::GetRegisterSpaceType<T>(), pnode);}
-        template<typename T>bool IsConstLocation        (const EmitInfoBase* pnode) {return IsConstLocation(RegisterSpace::GetRegisterSpaceType<T>(), pnode);}
-        template<typename T>bool IsVarLocation          (const EmitInfoBase* pnode) {return IsVarLocation(RegisterSpace::GetRegisterSpaceType<T>(), pnode);}
-        template<typename T>bool IsValidLocation        (const EmitInfoBase* pnode) {return IsValidLocation(RegisterSpace::GetRegisterSpaceType<T>(), pnode);}
 
         RegisterSpace* GetRegisterSpace(Types type) const;
     private:

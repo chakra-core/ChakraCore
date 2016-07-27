@@ -261,17 +261,6 @@ namespace Js
             autoCleanup.FinishCompilation();
 
             functionBody->SetInitialDefaultEntryPoint();
-
-#if DBG_DUMP
-            if( PHASE_DUMP( ByteCodePhase, mInfo->byteCodeFunction ) && Configuration::Global.flags.Verbose )
-            {
-                pnode->Dump();
-            }
-            if( byteCodeGen->Trace() || PHASE_DUMP( ByteCodePhase, mInfo->byteCodeFunction ) )
-            {
-                AsmJsByteCodeDumper::Dump( mFunction, functionBody );
-            }
-#endif
         }
         catch( AsmJsCompilationException& e )
         {

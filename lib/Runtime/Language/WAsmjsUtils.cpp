@@ -35,10 +35,10 @@ namespace WAsmJs
 
         switch (type)
         {
-        case INT32: wcscpy_s(buf, bufsize  , shortName ? _u("I32"): _u("INT32")); break;
-        case INT64: wcscpy_s(buf, bufsize  , shortName ? _u("I64"): _u("INT64")); break;
-        case FLOAT32: wcscpy_s(buf, bufsize, shortName ? _u("F32"): _u("FLOAT32")); break;
-        case FLOAT64: wcscpy_s(buf, bufsize, shortName ? _u("F64"): _u("FLOAT64")); break;
+        case INT32: wcscpy_s(buf, bufsize  , shortName ? _u("I"): _u("INT32")); break;
+        case INT64: wcscpy_s(buf, bufsize  , shortName ? _u("L"): _u("INT64")); break;
+        case FLOAT32: wcscpy_s(buf, bufsize, shortName ? _u("F"): _u("FLOAT32")); break;
+        case FLOAT64: wcscpy_s(buf, bufsize, shortName ? _u("D"): _u("FLOAT64")); break;
         case SIMD: wcscpy_s(buf, bufsize   , _u("SIMD")); break;
         default: wcscpy_s(buf, bufsize     , _u("UNKNOWN")); break;
         }
@@ -174,7 +174,7 @@ namespace WAsmJs
 
     bool TypedRegisterAllocator::IsTypeExcluded(Types type) const
     {
-        return (mExcludedMask & (1 << type)) != 0;
+        return !IsValidType(type) || (mExcludedMask & (1 << type)) != 0;
     }
 
 #if DBG_DUMP
@@ -191,7 +191,7 @@ namespace WAsmJs
                 RegisterSpace::GetTypeDebugName(type, shortTypeName, 16, true);
                 RegisterSpace* registerSpace = GetRegisterSpace(type);
                 Output::Print(
-                    _u("     %-10s : %u locals (%u temps from %s %u)\n"),
+                    _u("     %-10s : %u locals (%u temps from %s%u)\n"),
                     typeName,
                     registerSpace->GetVarCount(),
                     registerSpace->GetTmpCount(),
@@ -206,8 +206,11 @@ namespace WAsmJs
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
             Types type = (Types)i;
-            // Arguments starts right after the consts
-            indexes[i] = GetRegisterSpace(type)->GetConstCount();
+            if (!IsTypeExcluded(type))
+            {
+                // Arguments starts right after the consts
+                indexes[i] = GetRegisterSpace(type)->GetConstCount();
+            }
         }
     }
 #endif
@@ -219,6 +222,7 @@ namespace WAsmJs
             Assert("Invalid type for RegisterSpace in TypedMemoryStructure");
             Js::Throw::InternalError();
         }
+        Assert(!IsTypeExcluded(type));
         return mTypeSpaces[type];
     }
 };
