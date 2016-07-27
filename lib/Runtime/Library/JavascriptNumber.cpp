@@ -220,7 +220,8 @@ namespace Js
             }
         }
 
-        return ::pow(x, y);
+        // always call pow(double, double) in C runtime which has a bug to process pow(double, int).
+        return ::pow(x, static_cast<double>(y));
     }
 
 #if _M_IX86
