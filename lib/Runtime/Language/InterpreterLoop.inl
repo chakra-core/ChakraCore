@@ -10,9 +10,14 @@
 // check a bit without concern for impacting the nondebug mode.)
 #if defined(INTERPRETER_ASMJS) && !defined(TEMP_DISABLE_ASMJS)
 #define INTERPRETER_OPCODE OpCodeAsmJs
+#define TRACING_FUNC &InterpreterStackFrame::TraceAsmJsOpCode
 #else
 #define INTERPRETER_OPCODE OpCode
+#define TRACING_FUNC &InterpreterStackFrame::TraceOpCode
 #endif
+#define READ_OP ReadOp<INTERPRETER_OPCODE, ByteCodeReader::ReadByteOp, TRACING_FUNC>
+#define READ_EXT_OP ReadOp<INTERPRETER_OPCODE, ByteCodeReader::ReadExtOp, TRACING_FUNC>
+
 #ifdef PROVIDE_DEBUGGING
 #define DEBUGGING_LOOP 1
 #else
@@ -29,14 +34,11 @@
 //two layers of macros are necessary to get arguments to the invocation of the top level macro expanded.
 #define CONCAT_TOKENS_AGAIN(loopName, fnSuffix) loopName ## fnSuffix
 #define CONCAT_TOKENS(loopName, fnSuffix) CONCAT_TOKENS_AGAIN(loopName, fnSuffix)
+#define PROCESS_OPCODE_FN_NAME(fnSuffix) CONCAT_TOKENS(INTERPRETERLOOPNAME, fnSuffix)
 
-const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedOpCodePrefix)(const byte* ip)
+const byte* Js::InterpreterStackFrame::PROCESS_OPCODE_FN_NAME(ExtendedOpcodePrefix)(const byte* ip)
 {
-        INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-        , true
-#endif
-            ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    INTERPRETER_OPCODE op = READ_EXT_OP(ip);
     switch (op)
     {
 #define EXDEF2(x, op, func) PROCESS_##x(op, func)
@@ -54,15 +56,17 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Extend
     return ip;
 }
 
-const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, MediumLayoutPrefix)(const byte* ip, Var& yieldValue)
+const byte* Js::InterpreterStackFrame::PROCESS_OPCODE_FN_NAME(MediumLayoutPrefix)(const byte* ip, Var& yieldValue)
 {
-        INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+    INTERPRETER_OPCODE op = READ_OP(ip);
     switch (op)
     {
+#ifndef INTERPRETER_ASMJS
     case INTERPRETER_OPCODE::Yield:
         m_reader.Reg2_Medium(ip);
         yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
         break;
+#endif
 
 #define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
 #define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
@@ -77,13 +81,9 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Medium
     return ip;
 }
 
-const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedMediumLayoutPrefix)(const byte* ip)
+const byte* Js::InterpreterStackFrame::PROCESS_OPCODE_FN_NAME(ExtendedMediumLayoutPrefix)(const byte* ip)
 {
-    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-        , true
-#endif
-        ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    INTERPRETER_OPCODE op = READ_EXT_OP(ip);
     switch (op)
     {
 #define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
@@ -99,15 +99,17 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Extend
     return ip;
 }
 
-const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeLayoutPrefix)(const byte* ip, Var& yieldValue)
+const byte* Js::InterpreterStackFrame::PROCESS_OPCODE_FN_NAME(LargeLayoutPrefix)(const byte* ip, Var& yieldValue)
 {
-    INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+    INTERPRETER_OPCODE op = READ_OP(ip);
     switch (op)
     {
+#ifndef INTERPRETER_ASMJS
     case INTERPRETER_OPCODE::Yield:
         m_reader.Reg2_Large(ip);
         yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
         break;
+#endif
 
 #define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
 #define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
@@ -122,13 +124,9 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeL
     return ip;
 }
 
-const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedLargeLayoutPrefix)(const byte* ip)
+const byte* Js::InterpreterStackFrame::PROCESS_OPCODE_FN_NAME(ExtendedLargeLayoutPrefix)(const byte* ip)
 {
-    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
-#if DBG_DUMP
-        , true
-#endif
-        ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+    INTERPRETER_OPCODE op = READ_EXT_OP(ip);
     switch (op)
     {
 #define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
@@ -153,7 +151,7 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Extend
 // So, for DBG turn on optimizations to prevent this huge loss of stack.
 #pragma optimize("g", on)
 #endif
-Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
+Js::Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
 {
     PROBE_STACK(scriptContext, Js::Constants::MinStackInterpreter);
 
@@ -181,7 +179,7 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
     const byte* ip = m_reader.GetIP();
     while (true)
     {
-        INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+        INTERPRETER_OPCODE op = READ_OP(ip);
 
 #ifdef ENABLE_BASIC_TELEMETRY
         if( TELEMETRY_OPCODE_OFFSET_ENABLED )
@@ -286,11 +284,13 @@ SWAP_BP_FOR_OPCODE:
                 return GetReg((RegSlot)0);
             }
 
+#ifndef INTERPRETER_ASMJS
         case INTERPRETER_OPCODE::Yield:
             {
                 m_reader.Reg2_Small(ip);
                 return GetReg(GetFunctionBody()->GetYieldRegister());
             }
+#endif
 
 #define DEF2(x, op, func) PROCESS_##x(op, func)
 #define DEF3(x, op, func, y) PROCESS_##x(op, func, y)
@@ -300,6 +300,7 @@ SWAP_BP_FOR_OPCODE:
 
 #include "InterpreterHandler.inl"
 
+#ifndef INTERPRETER_ASMJS
             case INTERPRETER_OPCODE::Leave:
                 // Return the continuation address to the helper.
                 // This tells the helper that control left the scope without completing the try/handler,
@@ -312,82 +313,45 @@ SWAP_BP_FOR_OPCODE:
                 // should continue.
                 m_reader.Empty(ip);
                 return nullptr;
-
-            case INTERPRETER_OPCODE::ExtendedOpcodePrefix:
-            {
-                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedOpCodePrefix)(ip);
-
-#if ENABLE_PROFILE_INFO
-                if (switchProfileMode)
-                {
-                    // Aborting the current interpreter loop to switch the profile mode
-                    return nullptr;
-                }
 #endif
+
+#if ENABLE_PROFILE_INFO && !defined(INTERPRETER_ASMJS)
+// Aborting the current interpreter loop to switch the profile mode
+#define CHECK_SWITCH_PROFILE_MODE() if (switchProfileMode) return nullptr;
+#else
+#define CHECK_SWITCH_PROFILE_MODE()
+#endif
+
+#ifndef INTERPRETER_ASMJS
+#define CHECK_YIELD_VALUE() if (yieldValue != nullptr) return yieldValue;
+#else
+#define CHECK_YIELD_VALUE() Unused(yieldValue);
+#endif
+
+#define ExtendedCase(opcode) \
+            case INTERPRETER_OPCODE::opcode: \
+                ip = PROCESS_OPCODE_FN_NAME(opcode)(ip); \
+                CHECK_SWITCH_PROFILE_MODE(); \
                 break;
-            }
+            ExtendedCase(ExtendedOpcodePrefix)
+            ExtendedCase(ExtendedMediumLayoutPrefix)
+            ExtendedCase(ExtendedLargeLayoutPrefix)
+
             case INTERPRETER_OPCODE::MediumLayoutPrefix:
             {
                 Var yieldValue = nullptr;
-                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, MediumLayoutPrefix)(ip, yieldValue);
-
-                if (yieldValue != nullptr)
-                {
-                    return yieldValue;
-                }
-
-#if ENABLE_PROFILE_INFO
-                if (switchProfileMode)
-                {
-                    // Aborting the current interpreter loop to switch the profile mode
-                    return nullptr;
-                }
-#endif
+                ip = PROCESS_OPCODE_FN_NAME(MediumLayoutPrefix)(ip, yieldValue);
+                CHECK_YIELD_VALUE();
+                CHECK_SWITCH_PROFILE_MODE();
                 break;
             }
-            case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
-            {
-                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedMediumLayoutPrefix)(ip);
 
-#if ENABLE_PROFILE_INFO
-                if (switchProfileMode)
-                {
-                    // Aborting the current interpreter loop to switch the profile mode
-                    return nullptr;
-                }
-#endif
-                break;
-            }
             case INTERPRETER_OPCODE::LargeLayoutPrefix:
             {
                 Var yieldValue = nullptr;
-                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeLayoutPrefix)(ip, yieldValue);
-
-                if (yieldValue != nullptr)
-                {
-                    return yieldValue;
-                }
-
-#if ENABLE_PROFILE_INFO
-                if(switchProfileMode)
-                {
-                    // Aborting the current interpreter loop to switch the profile mode
-                    return nullptr;
-                }
-#endif
-                break;
-            }
-            case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
-            {
-                ip = CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedLargeLayoutPrefix)(ip);
-
-#if ENABLE_PROFILE_INFO
-                if(switchProfileMode)
-                {
-                    // Aborting the current interpreter loop to switch the profile mode
-                    return nullptr;
-                }
-#endif
+                ip = PROCESS_OPCODE_FN_NAME(LargeLayoutPrefix)(ip, yieldValue);
+                CHECK_YIELD_VALUE();
+                CHECK_SWITCH_PROFILE_MODE();
                 break;
             }
 
@@ -416,6 +380,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
             }
 
+#ifndef INTERPRETER_ASMJS
             case INTERPRETER_OPCODE::Break:
             {
 #if DEBUGGING_LOOP
@@ -495,6 +460,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
                 break;
             }
+#endif
             default:
                 // Help the C++ optimizer by declaring that the cases we
                 // have above are sufficient
@@ -507,7 +473,12 @@ SWAP_BP_FOR_OPCODE:
 // Restore optimizations to what's specified by the /O switch.
 #pragma optimize("", on)
 #endif
+#undef READ_OP
+#undef READ_EXT_OP
+#undef TRACING_FUNC
 #undef DEBUGGING_LOOP
 #undef INTERPRETERPROFILE
 #undef PROFILEDOP
 #undef INTERPRETER_OPCODE
+#undef CHECK_SWITCH_PROFILE_MODE
+#undef CHECK_YIELD_VALUE
