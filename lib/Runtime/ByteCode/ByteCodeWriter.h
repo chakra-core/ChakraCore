@@ -100,14 +100,14 @@ namespace Js
             }
             uint Encode(const void * rawData, int byteSize);
 
+            template <LayoutSize layoutSize> uint EncodeOpCode(uint16 op, ByteCodeWriter* writer);
+            template <> uint EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, ByteCodeWriter* writer);
-            template <> uint EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer);
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
             // asm.js encoding
             uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
             uint Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
-            template <> uint EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
 
             void Reset();

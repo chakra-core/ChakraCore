@@ -3199,18 +3199,10 @@ StoreCommon:
     }
 
     template <>
-    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer)
     {
-#ifdef BYTECODE_BRANCH_ISLAND
-        if (writer->useBranchIsland)
-        {
-            writer->EnsureLongBranch(op);
-        }
-#endif
-        Assert(op < Js::OpCode::ByteCodeLast);
-        Assert(!OpCodeAttr::BackEndOnly(op));
         uint offset;
-        if (op <= Js::OpCode::MaxByteSizedOpcodes)
+        if (op <= (uint16)Js::OpCode::MaxByteSizedOpcodes)
         {
             byte byteop = (byte)op;
             offset = Write(&byteop, sizeof(byte));
@@ -3219,15 +3211,30 @@ StoreCommon:
         {
             byte byteop = (byte)Js::OpCode::ExtendedOpcodePrefix;
             offset = Write(&byteop, sizeof(byte));
-            byteop = (byte)op;
-            Write(&byteop, sizeof(byte));
+            Write(&op, sizeof(uint16));
         }
-        if (op != Js::OpCode::Ld_A)
-        {
-            writer->m_byteCodeWithoutLDACount++;
-        }
+        return offset;
+    }
 
-        writer->IncreaseByteCodeCount();
+    template <LayoutSize layoutSize>
+    inline uint ByteCodeWriter::Data::EncodeOpCode(uint16 op, ByteCodeWriter* writer)
+    {
+        CompileAssert(layoutSize != SmallLayout);
+
+        uint offset;
+        if (op <= (uint16)Js::OpCode::MaxByteSizedOpcodes)
+        {
+            const byte exop = (byte)(layoutSize == LargeLayout ? Js::OpCode::LargeLayoutPrefix : Js::OpCode::MediumLayoutPrefix);
+            offset = Write(&exop, sizeof(byte));
+            byte byteop = (byte)op;
+            offset = Write(&byteop, sizeof(byte));
+        }
+        else
+        {
+            const byte exop = (byte)(layoutSize == LargeLayout ? Js::OpCode::ExtendedLargeLayoutPrefix : Js::OpCode::ExtendedMediumLayoutPrefix);
+            offset = Write(&exop, sizeof(byte));
+            Write(&op, sizeof(uint16));
+        }
         return offset;
     }
 
@@ -3243,14 +3250,8 @@ StoreCommon:
 
         Assert(op < Js::OpCode::ByteCodeLast);
         Assert(!OpCodeAttr::BackEndOnly(op));
-        Assert(OpCodeAttr::HasMultiSizeLayout(op));
-        CompileAssert(layoutSize != SmallLayout);
-        const byte exop = (byte)((op <= Js::OpCode::MaxByteSizedOpcodes) ?
-            (layoutSize == LargeLayout ? Js::OpCode::LargeLayoutPrefix : Js::OpCode::MediumLayoutPrefix) :
-            (layoutSize == LargeLayout ? Js::OpCode::ExtendedLargeLayoutPrefix : Js::OpCode::ExtendedMediumLayoutPrefix));
-
-        uint offset = Write(&exop, sizeof(byte));
-        Write(&op, sizeof(byte));
+        Assert(layoutSize == SmallLayout || OpCodeAttr::HasMultiSizeLayout(op));
+        uint offset = EncodeOpCode<layoutSize>((uint16)op, writer);
 
         if (op != Js::OpCode::Ld_A)
         {

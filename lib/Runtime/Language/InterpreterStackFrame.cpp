@@ -2319,12 +2319,8 @@ namespace Js
         }
     }
 
-    template<>
-    OpCode InterpreterStackFrame::ReadByteOp<OpCode>(const byte *& ip
-#if DBG_DUMP
-        , bool isExtended /*= false*/
-#endif
-        )
+    template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+    OpCodeType InterpreterStackFrame::ReadOp(const byte *& ip)
     {
 #if DBG || DBG_DUMP
         //
@@ -2342,54 +2338,54 @@ namespace Js
         }
 #endif
 
-        OpCode op = ByteCodeReader::ReadByteOp(ip);
+        OpCodeType op = (OpCodeType)ReadOpFunc(ip);
 
 #if DBG_DUMP
-
-        this->scriptContext->byteCodeHistogram[(int)op]++;
-        if (PHASE_TRACE(Js::InterpreterPhase, this->m_functionBody))
-        {
-            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName((Js::OpCode)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
-        }
+        TracingFunc(this, op);
 #endif
         return op;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
-    template<>
-    OpCodeAsmJs InterpreterStackFrame::ReadByteOp<OpCodeAsmJs>(const byte *& ip
-#if DBG_DUMP
-        , bool isExtended /*= false*/
-#endif
-        )
+    Js::OpCode InterpreterStackFrame::ReadJsOpCode(const byte *& ip)
     {
-#if DBG || DBG_DUMP
-        //
-        // For debugging byte-code, store the current offset before the instruction is read:
-        // - We convert this to "void *" to encourage the debugger to always display in hex,
-        //   which matches the displayed offsets used by ByteCodeDumper.
-        //
-        this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
-#endif
-
-#if ENABLE_TTD_STACK_STMTS
-        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
-        {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-        }
-#endif
-
-        OpCodeAsmJs op = (OpCodeAsmJs)ByteCodeReader::ReadByteOp(ip);
-
-#if DBG_DUMP
-        if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
-        {
-            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName((Js::OpCodeAsmJs)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
-        }
-#endif
-        return op;
+        return ReadOp<Js::OpCode, ByteCodeReader::ReadSmallOp, &InterpreterStackFrame::TraceJsOpCode>(ip);
     }
+
+    Js::OpCode InterpreterStackFrame::ReadExtendedJsOpCode(const byte *& ip)
+    {
+        return ReadOp<Js::OpCode, ByteCodeReader::ReadExtendedOp, &InterpreterStackFrame::TraceJsOpCode>(ip);
+    }
+
+    Js::OpCodeAsmJs InterpreterStackFrame::ReadJsOpCodeAsmJs(const byte *& ip)
+    {
+        return ReadOp<Js::OpCodeAsmJs, ByteCodeReader::ReadSmallOp, &InterpreterStackFrame::TraceAsmJsOpCode>(ip);
+    }
+
+    Js::OpCodeAsmJs InterpreterStackFrame::ReadExtendedJsOpCodeAsmJs(const byte *& ip)
+    {
+        return ReadOp<Js::OpCodeAsmJs, ByteCodeReader::ReadExtendedOp, &InterpreterStackFrame::TraceAsmJsOpCode>(ip);
+    }
+
+    void InterpreterStackFrame::TraceJsOpCode(InterpreterStackFrame* that, Js::OpCode op)
+    {
+#if DBG_DUMP
+        that->scriptContext->byteCodeHistogram[(int)op]++;
+        if (PHASE_TRACE(Js::InterpreterPhase, that->m_functionBody))
+        {
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName(op), that->DEBUG_currentByteOffset);
+        }
 #endif
+    }
+
+    void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
+    {
+#if DBG_DUMP
+        if (PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
+        {
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
+        }
+#endif
+    }
 
     _NOINLINE
     Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)

@@ -95,15 +95,15 @@ namespace Js
     OpCode ByteCodeReader::ReadPrefixedOp(const byte *&ip, LayoutSize& layoutSize, OpCode prefix) const
     {
         Assert(ip < m_endLocation);
-        OpCode op = (OpCode)*ip++;
+
         switch (prefix)
         {
         case Js::OpCode::MediumLayoutPrefix:
             layoutSize = MediumLayout;
-            return op;
+            return ReadSmallOp(ip);
         case Js::OpCode::LargeLayoutPrefix:
             layoutSize = LargeLayout;
-            return op;
+            return ReadSmallOp(ip);
         case Js::OpCode::ExtendedOpcodePrefix:
             layoutSize = SmallLayout;
             break;
@@ -115,7 +115,7 @@ namespace Js
             layoutSize = LargeLayout;
         }
 
-        return (OpCode)(op + (Js::OpCode::ExtendedOpcodePrefix << 8));
+        return ReadExtendedOp(ip);
     }
 
     OpCode ByteCodeReader::ReadOp(LayoutSize& layoutSize)
@@ -150,14 +150,26 @@ namespace Js
         return ReadOp(ip, layoutSize);
     }
 
-    OpCode ByteCodeReader::ReadByteOp(const byte*& ip)
+    OpCode ByteCodeReader::ReadSmallOp(const byte*& ip)
     {
         return (OpCode)*ip++;
     }
 
-    OpCode ByteCodeReader::PeekByteOp(const byte * ip)
+    OpCode ByteCodeReader::PeekSmallOp(const byte * ip)
     {
         return (OpCode)*ip;
+    }
+
+    OpCode ByteCodeReader::ReadExtendedOp(const byte*& ip)
+    {
+        uint16*& extIp = (uint16*&)ip;
+        return (OpCode)*extIp++;
+    }
+
+    OpCode ByteCodeReader::PeekExtendedOp(const byte * ip)
+    {
+        uint16* extIp = (uint16*)ip;
+        return (OpCode)*extIp;
     }
 
     const byte* ByteCodeReader::GetIP()

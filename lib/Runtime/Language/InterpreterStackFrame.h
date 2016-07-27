@@ -259,7 +259,7 @@ namespace Js
         static bool IsBrLong(OpCode op, const byte * ip)
         {
 #ifdef BYTECODE_BRANCH_ISLAND
-            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekByteOp(ip) + (OpCode::ExtendedOpcodePrefix << 8)) == OpCode::BrLong);
+            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekExtendedOp(ip)) == OpCode::BrLong);
 #else
             return false;
 #endif
@@ -302,12 +302,16 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
 #endif
-        template<typename T>
-        T ReadByteOp( const byte *& ip
-#if DBG_DUMP
-                           , bool isExtended = false
-#endif
-                           );
+        template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+        OpCodeType ReadOp(const byte *& ip);
+
+        Js::OpCode ReadJsOpCode(const byte *& ip);
+        Js::OpCode ReadExtendedJsOpCode(const byte *& ip);
+        Js::OpCodeAsmJs ReadJsOpCodeAsmJs(const byte *& ip);
+        Js::OpCodeAsmJs ReadExtendedJsOpCodeAsmJs(const byte *& ip);
+
+        static void TraceJsOpCode(InterpreterStackFrame* that, Js::OpCode op);
+        static void TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op);
 
         void* __cdecl operator new(size_t byteSize, void* previousAllocation) throw();
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();

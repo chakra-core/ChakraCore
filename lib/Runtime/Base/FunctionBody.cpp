@@ -3405,7 +3405,7 @@ namespace Js
         }
         byte* pbyteCodeBlockBuffer = byteCodeBlock->GetBuffer();
 
-        Js::OpCode originalOpCode = ByteCodeReader::PeekByteOp(GetProbeBackingBlock()->GetBuffer() + offset);
+        Js::OpCode originalOpCode = ByteCodeReader::PeekSmallOp(GetProbeBackingBlock()->GetBuffer() + offset);
         *(pbyteCodeBlockBuffer + offset) = (byte)originalOpCode;
 
         --m_sourceInfo.m_probeCount;
@@ -3427,8 +3427,8 @@ namespace Js
             return false;
         }
 
-        Js::OpCode runningOpCode = ByteCodeReader::PeekByteOp(this->byteCodeBlock->GetBuffer() + offset);
-        Js::OpCode originalOpcode = ByteCodeReader::PeekByteOp(GetProbeBackingBlock()->GetBuffer() + offset);
+        Js::OpCode runningOpCode = ByteCodeReader::PeekSmallOp(this->byteCodeBlock->GetBuffer() + offset);
+        Js::OpCode originalOpcode = ByteCodeReader::PeekSmallOp(GetProbeBackingBlock()->GetBuffer() + offset);
 
         if ( runningOpCode != originalOpcode)
         {
