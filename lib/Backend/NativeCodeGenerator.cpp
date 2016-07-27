@@ -3014,9 +3014,12 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
     if(this->backgroundAllocators)
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
-        // TODO: OOP JIT, add following condition back in case we are in-proc
-        // this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+            // TODO: OOP JIT, add following condition back in case we are in-proc
+            // this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        }
     }
 }
 
