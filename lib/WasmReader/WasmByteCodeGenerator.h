@@ -177,10 +177,7 @@ namespace Wasm
         Js::AsmJsByteCodeWriter m_writer;
         Js::ScriptContext* m_scriptContext;
 
-        WasmRegisterSpace m_i32RegSlots;
-        WasmRegisterSpace m_i64RegSlots;
-        WasmRegisterSpace m_f32RegSlots;
-        WasmRegisterSpace m_f64RegSlots;
+        WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
         JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
