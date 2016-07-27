@@ -27,6 +27,7 @@
 #ifdef ENABLE_TEST_HOOKS
 #ifndef ENABLE_DEBUG_CONFIG_OPTIONS
 #define ENABLE_DEBUG_CONFIG_OPTIONS 1
+#define DEBUG_CONFIG_OPTIONS_WERE_DISABLED
 #endif
 #endif
 
@@ -312,9 +313,10 @@
 #define ENABLE_TEST_HOOKS
 #endif
 
-////////
+#if !defined(DEBUG_CONFIG_OPTIONS_WERE_DISABLED) || defined(DEBUG)
 //Time Travel flags
 #define ENABLE_TTD 1
+#endif
 
 #if ENABLE_TTD
 //Enable debugging specific aspects of TTD
