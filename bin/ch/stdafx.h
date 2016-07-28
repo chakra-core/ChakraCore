@@ -23,7 +23,6 @@
 
 #define WIN32_LEAN_AND_MEAN 1
 
-#define ENABLE_TEST_HOOKS 1
 #include "CommonDefines.h"
 #include <map>
 #include <string>
@@ -137,6 +136,9 @@ do { \
     } \
 } while (0)
 
+#ifndef ENABLE_TEST_HOOKS
+#define ENABLE_TEST_HOOKS
+#endif
 #include "TestHooks.h"
 #include "ChakraRtInterface.h"
 #include "HostConfigFlags.h"
