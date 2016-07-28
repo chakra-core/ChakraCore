@@ -1338,16 +1338,9 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 Assert(sym && !sym->GetIsCatch() && !sym->GetIsBlockVar());
             }
 
-            if (sym->GetSymbolType() == STVariable)
+            if (sym->GetSymbolType() == STVariable && !sym->GetIsModuleExportStorage())
             {
-                if (sym->GetIsModuleExportStorage())
-                {
-                    Js::RegSlot reg = funcInfo->AcquireTmpRegister();
-                    this->m_writer.Reg1(Js::OpCode::LdUndef, reg);
-                    EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, reg, funcInfo);
-                    funcInfo->ReleaseTmpRegister(reg);
-                }
-                else if (fGlobal)
+                if (fGlobal)
                 {
                     Js::PropertyId propertyId = sym->EnsurePosition(this);
                     // We do need to initialize some globals to avoid JS errors on loading undefined variables.
