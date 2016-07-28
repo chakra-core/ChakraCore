@@ -4808,7 +4808,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             // Assume it will be called as part of this expression.
              && (!isLikelyModulePattern || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId))
              && !m_InAsmMode
-                );
+            // Don't defer a module function wrapper because we need to do export resolution at parse time
+             && !fModule
+            );
 
         if (!fLambda &&
             !isDeferredFnc &&
@@ -5134,7 +5136,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             FinishParseBlock(pnodeInnerBlock, *pNeedScanRCurly);
         }
 
-        if (m_token.tk == tkLCurly || !fLambda)
+        if (!fModule && (m_token.tk == tkLCurly || !fLambda))
         {
             this->AddArgumentsNodeToVars(pnodeFnc);
         }
@@ -6237,8 +6239,6 @@ ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
     ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(fFncModule, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
-
-    callNode->grfpn |= PNodeFlags::fpnSyntheticNode;
 
     return callNode;
 }
@@ -10925,7 +10925,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         }
     }
 
-    if ((grfscr & fscrIsModuleCode) != 0)
+    if (isModuleSource && !isDeferred)
     {
         ParseNodePtr moduleFunction = GenerateModuleFunctionWrapper<true>();
         pnodeProg->sxFnc.pnodeBody = nullptr;
