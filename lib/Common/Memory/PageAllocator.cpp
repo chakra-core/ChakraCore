@@ -936,12 +936,7 @@ PageAllocatorBase<T>::FillFreePages(__in void * address, uint pageCount)
 #if defined(_M_IX86) || defined(_M_X64)
         if (CONFIG_FLAG(ZeroMemoryWithNonTemporalStore))
         {
-            size_t writeBytes = 0;
-            __m128i simdZero = _mm_setzero_si128();
-            for (__m128i * p = (__m128i *)address; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
-            {
-                _mm_stream_si128(p, simdZero);
-            }
+            js_memset_zero_nontemporal(address, AutoSystemInfo::PageSize * pageCount);
         }
         else
 #endif
@@ -1580,12 +1575,7 @@ PageAllocatorBase<T>::ZeroQueuedPages()
 #if defined(_M_IX86) || defined(_M_X64)
         if (CONFIG_FLAG(ZeroMemoryWithNonTemporalStore))
         {
-            size_t writeBytes = 0;
-            __m128i simdZero = _mm_setzero_si128();
-            for (__m128i * p = (__m128i *)freePageEntry; writeBytes < pageCount * AutoSystemInfo::PageSize; p += 1, writeBytes += sizeof(__m128i))
-            {
-                _mm_stream_si128(p, simdZero);
-            }
+            js_memset_zero_nontemporal(freePageEntry, AutoSystemInfo::PageSize * pageCount);
         }
         else
 #endif
