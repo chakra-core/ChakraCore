@@ -59,10 +59,12 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Medium
     INTERPRETER_OPCODE op = READ_OP(ip);
     switch (op)
     {
+#ifndef INTERPRETER_ASMJS
     case INTERPRETER_OPCODE::Yield:
         m_reader.Reg2_Medium(ip);
         yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
         break;
+#endif
 
 #define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
 #define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Medium)
@@ -100,10 +102,12 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeL
     INTERPRETER_OPCODE op = READ_OP(ip);
     switch (op)
     {
+#ifndef INTERPRETER_ASMJS
     case INTERPRETER_OPCODE::Yield:
         m_reader.Reg2_Large(ip);
         yieldValue = GetReg(GetFunctionBody()->GetYieldRegister());
         break;
+#endif
 
 #define DEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Large)
 #define DEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Large)
@@ -278,11 +282,13 @@ SWAP_BP_FOR_OPCODE:
                 return GetReg((RegSlot)0);
             }
 
+#ifndef INTERPRETER_ASMJS
         case INTERPRETER_OPCODE::Yield:
             {
                 m_reader.Reg2_Small(ip);
                 return GetReg(GetFunctionBody()->GetYieldRegister());
             }
+#endif
 
 #define DEF2(x, op, func) PROCESS_##x(op, func)
 #define DEF3(x, op, func, y) PROCESS_##x(op, func, y)
@@ -292,6 +298,7 @@ SWAP_BP_FOR_OPCODE:
 
 #include "InterpreterHandler.inl"
 
+#ifndef INTERPRETER_ASMJS
             case INTERPRETER_OPCODE::Leave:
                 // Return the continuation address to the helper.
                 // This tells the helper that control left the scope without completing the try/handler,
@@ -304,6 +311,7 @@ SWAP_BP_FOR_OPCODE:
                 // should continue.
                 m_reader.Empty(ip);
                 return nullptr;
+#endif
 
             case INTERPRETER_OPCODE::ExtendedOpcodePrefix:
             {
@@ -408,6 +416,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
             }
 
+#ifndef INTERPRETER_ASMJS
             case INTERPRETER_OPCODE::Break:
             {
 #if DEBUGGING_LOOP
@@ -487,6 +496,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
                 break;
             }
+#endif
             default:
                 // Help the C++ optimizer by declaring that the cases we
                 // have above are sufficient
