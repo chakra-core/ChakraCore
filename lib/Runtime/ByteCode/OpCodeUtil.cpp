@@ -17,7 +17,18 @@ namespace Js
     }
     uint OpCodeUtil::EncodedSize(OpCode op, LayoutSize layoutSize)
     {
-        return (layoutSize == SmallLayout && IsSmallEncodedOpcode(op)) ? sizeof(BYTE) : sizeof(OpCode);
+        if (IsSmallEncodedOpcode(op))
+        {
+            if (layoutSize == SmallLayout)
+            {
+                // Simple case, only 1 byte encoded
+                return 1;
+            }
+            // 1 extra byte for the prefix
+            return 2;
+        }
+        // Prefix + 2 bytes for the opcode
+        return 3;
     }
 
     void OpCodeUtil::ConvertOpToNonProfiled(OpCode& op)

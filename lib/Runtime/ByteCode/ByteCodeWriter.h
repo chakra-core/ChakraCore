@@ -73,7 +73,7 @@ namespace Js
             uint currentOffset;  // The global offset of last byte written to in the linked data structure
             bool fixedGrowthPolicy;
 
-            inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            inline void Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
             _NOINLINE void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 
@@ -90,25 +90,19 @@ namespace Js
             inline DataChunk * GetCurrentChunk() const { return &(*current); }
             void SetCurrent(uint offset, DataChunk* currChunk);
             void Copy(Recycler* alloc, ByteBlock ** finalBlock);
-            uint Encode(OpCode op, ByteCodeWriter* writer)
-            {
-                return EncodeT<Js::SmallLayout>(op, writer);
-            }
-            uint Encode(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer)
-            {
-                return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer);
-            }
-            uint Encode(const void * rawData, int byteSize);
+            void Encode(OpCode op, ByteCodeWriter* writer) { EncodeT<Js::SmallLayout>(op, writer); }
+            void Encode(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer) { EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer); }
+            void Encode(const void * rawData, int byteSize);
 
-            template <LayoutSize layoutSize> uint EncodeOpCode(uint16 op, ByteCodeWriter* writer);
-            template <> uint EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
-            template <LayoutSize layoutSize> uint EncodeT(OpCode op, ByteCodeWriter* writer);
-            template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
+            template <LayoutSize layoutSize> void EncodeOpCode(uint16 op, ByteCodeWriter* writer);
+            template <> void EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
+            template <LayoutSize layoutSize> void EncodeT(OpCode op, ByteCodeWriter* writer);
+            template <LayoutSize layoutSize> void EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
             // asm.js encoding
-            uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
-            uint Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
-            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
-            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
+            void Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
+            void Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
+            template <LayoutSize layoutSize> void EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
+            template <LayoutSize layoutSize> void EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
 
             void Reset();
         };
