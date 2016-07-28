@@ -128,12 +128,12 @@ namespace Js
         bool inEnsureLongBranch;
         uint firstUnknownJumpInfo;
         int nextBranchIslandOffset;
-
         // Size of emitting a jump around byte code instruction
-        static size_t const JumpAroundSize = sizeof(byte) + sizeof(OpLayoutBr);
+        CompileAssert(!OpCodeInfo<Js::OpCode::Br>::HasMultiSizeLayout);
+        static const size_t JumpAroundSize = OpCodeUtil::EncodedSize(Js::OpCode::Br, SmallLayout) + sizeof(OpLayoutBr);
         // Size of emitting a long jump byte code instruction
-        CompileAssert(OpCodeInfo<Js::OpCode::BrLong>::IsExtendedOpcode);    // extended opcode, opcode size is always sizeof(OpCode)
-        static size_t const LongBranchSize = sizeof(OpCode) + sizeof(OpLayoutBrLong);
+        CompileAssert(!OpCodeInfo<Js::OpCode::BrLong>::HasMultiSizeLayout);
+        static const size_t LongBranchSize = OpCodeUtil::EncodedSize(Js::OpCode::BrLong, SmallLayout) + sizeof(OpLayoutBrLong);
 #endif
         JsUtil::List<JumpInfo, ArenaAllocator> * m_jumpOffsets;             // Offsets to replace "ByteCodeLabel" with actual destination
         JsUtil::List<LoopHeaderData, ArenaAllocator> * m_loopHeaders;       // Start/End offsets for loops
