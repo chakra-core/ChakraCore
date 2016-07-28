@@ -114,6 +114,10 @@ ServerCleanupThreadContext(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+    if (threadContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     while (threadContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(threadContextInfo);
@@ -130,6 +134,12 @@ ServerAddPropertyRecord(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+
+    if (threadContextInfo == nullptr) 
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecord);
 
     return S_OK;
@@ -145,6 +155,12 @@ ServerAddDOMFastPathHelper(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
 
     return S_OK;
@@ -169,6 +185,12 @@ ServerCleanupScriptContext(
     /* [in] */ __int3264 scriptContextRoot)
 {
     ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     while (scriptContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(scriptContextInfo);
     return S_OK;
@@ -182,6 +204,12 @@ ServerFreeAllocation(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+
+    if (context == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
     return succeeded ? S_OK : E_FAIL;
 }
@@ -194,6 +222,11 @@ ServerIsNativeAddr(
     /* [out] */ boolean * result)
 {
     ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+
+    if (context == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = context->GetPreReservedVirtualAllocator();
     if (preReservedVirtualAllocWrapper->IsInRange((void*)address))
@@ -225,15 +258,19 @@ ServerRemoteCodeGen(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextInfoAddress);
+    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
 
+    if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     PageAllocator backgroundPageAllocator(threadContextInfo->GetAllocationPolicyManager(), Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         (AutoSystemInfo::Data.IsLowMemoryProcess() ?
             PageAllocator::DefaultLowMaxFreePageCount :
             PageAllocator::DefaultMaxFreePageCount));
 
-    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
-    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
+    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);    
 
     scriptContextInfo->BeginJIT(); // TODO: OOP JIT, improve how we do this
     threadContextInfo->BeginJIT();
