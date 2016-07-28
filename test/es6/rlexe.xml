@@ -420,14 +420,14 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags> -ES6 -ES6TypedArrayExtensions -es6tostringtag -ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags> -es6tostringtag -ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6ArrayAPI.js</files>
-      <compile-flags>-ES6 -ES6ObjectLiterals -ES6TypedArrayExtensions -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
