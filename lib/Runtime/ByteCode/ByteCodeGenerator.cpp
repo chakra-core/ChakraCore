@@ -1264,6 +1264,10 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         {
             attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew);
         }
+        if (pnode->sxFnc.IsModule())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Module);
+        }
 
         if (createFunctionBody)
         {
@@ -1568,7 +1572,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
     }
 #endif
 
-    if (!(sym->GetIsGlobal()))
+    if (!sym->GetIsGlobal() && !sym->GetIsModuleExportStorage())
     {
         FuncInfo *top = funcInfoStack->Top();
 
@@ -1700,7 +1704,7 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     Assert(!funcInfo->IsGlobalFunction());
-    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator();
+    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator() && !funcInfo->byteCodeFunction->IsModule();
     if (!doStackNestedFunc)
     {
         return false;
@@ -2539,7 +2543,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             auto fnProcess = 
                 [byteCodeGenerator, top](Symbol *const sym)
                 {
-                    if (sym->GetHasNonLocalReference())
+                    if (sym->GetHasNonLocalReference() && !sym->GetIsModuleExportStorage())
                     {
                         byteCodeGenerator->ProcessCapturedSym(sym);
                     }
@@ -2704,7 +2708,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         }
         else
         {
-            Assert(top->IsGlobalFunction());
+            Assert(top->IsGlobalFunction() || pnode->sxFnc.IsModule());
             // eval is called in strict mode
             bool newScopeForEval = (top->byteCodeFunction->GetIsStrictMode() && (byteCodeGenerator->GetFlags() & fscrEval));
 
