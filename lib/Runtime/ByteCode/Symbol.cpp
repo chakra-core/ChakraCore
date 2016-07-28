@@ -93,6 +93,10 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 
 bool Symbol::GetIsCommittedToSlot() const
 {
+    if (!PHASE_ON1(Js::DelayCapturePhase))
+    {
+        return true;
+    }
     return isCommittedToSlot || this->scope->GetFunc()->GetCallsEval() || this->scope->GetFunc()->GetChildCallsEval();
 }
 
