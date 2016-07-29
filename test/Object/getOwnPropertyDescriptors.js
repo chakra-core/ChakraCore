@@ -153,7 +153,29 @@ var tests = [
 
             verifyObjectDescriptors(desc, allTrueSymbol, allFalseSymbol);
         }
-    }
+    },
+    {
+        name:"For any property, if getOwnPropertyDescriptor(property) is undefined, that property should not be present on the result.",
+        body: function() {
+            // Adapted from: https://github.com/ljharb/test262/blob/c2eaa30b08fb1e041b7297e415b6bad8461f50dc/test/built-ins/Object/getOwnPropertyDescriptors/proxy-undefined-descriptor.js
+            var proxyHandler = {
+              getOwnPropertyDescriptor: function () {},
+            };
+
+            var key = "a";
+            var obj = {};
+            obj[key] = "value";
+
+            var proxy = new Proxy(obj, proxyHandler);
+
+            var descriptor = Object.getOwnPropertyDescriptor(proxy, key);
+            assert.areEqual(undefined, descriptor, "Descriptor matches result of [[GetOwnPropertyDescriptor]] trap");
+
+            var result = Object.getOwnPropertyDescriptors(proxy);
+            assert.isFalse(result.hasOwnProperty(key), "key should not be present in result");
+
+        }
+    },
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
