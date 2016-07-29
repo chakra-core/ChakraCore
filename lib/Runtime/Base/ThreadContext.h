@@ -534,7 +534,7 @@ private:
     intptr_t m_remoteThreadContextInfo;
 
 public:
-    void SetJITConnectionInfo(DWORD processId, UUID connectionId);
+    void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
 
     intptr_t GetRemoteThreadContextAddr() const
     {

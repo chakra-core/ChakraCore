@@ -1910,7 +1910,7 @@ ThreadContext::IsInAsyncHostOperation() const
 #endif
 
 void
-ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
+ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (m_remoteThreadContextInfo)
@@ -1919,7 +1919,7 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     }
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processId, connectionId);
+        HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
         if (FAILED(hr))
         {
             // TODO: michhol OOP JIT is this correct?

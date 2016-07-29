@@ -7,7 +7,9 @@
 
 __declspec(dllexport)
 HRESULT JsInitializeRpcServer(
-    __in UUID* connectionUuid)
+    __in UUID* connectionUuid,
+    __in_opt void* securityDescriptor,
+    __in_opt void* alpcSecurityDescriptor)
 {
     RPC_STATUS status;
     RPC_BINDING_VECTOR* bindingVector = NULL;
@@ -20,12 +22,13 @@ HRESULT JsInitializeRpcServer(
         L"ncalrpc",
         RPC_C_PROTSEQ_MAX_REQS_DEFAULT,
         NULL,
-        NULL);
+        alpcSecurityDescriptor);
     if (status != RPC_S_OK)
     {
         return status;
     }
 
+#ifndef NTBUILD
     status = RpcServerRegisterIf2(
         ServerIChakraJIT_v0_0_s_ifspec,
         NULL,
@@ -34,7 +37,17 @@ HRESULT JsInitializeRpcServer(
         RPC_C_LISTEN_MAX_CALLS_DEFAULT,
         (ULONG)-1,
         NULL);
-
+#else
+    status = RpcServerRegisterIf3(
+        ServerIChakraJIT_v0_0_s_ifspec,
+        NULL,
+        NULL,
+        RPC_IF_AUTOLISTEN,
+        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+        (ULONG)-1,
+        NULL,
+        securityDescriptor);
+#endif
     if (status != RPC_S_OK)
     {
         return status;

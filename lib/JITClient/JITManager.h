@@ -8,7 +8,7 @@
 class JITManager
 {
 public:
-    HRESULT ConnectRpcServer(__in DWORD processId, __in UUID connectionUuid);
+    HRESULT ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid);
 
     bool IsConnected() const;
     bool IsOOPJITEnabled() const;
@@ -66,13 +66,13 @@ private:
 
     HRESULT JITManager::CreateBinding(
         __in HANDLE serverProcessHandle,
+        __in void* serverSecurityDescriptor,
         __in UUID* connectionUuid,
         __out RPC_BINDING_HANDLE* bindingHandle);
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     HANDLE m_rpcServerProcessHandle;
     HANDLE m_targetHandle;
-    DWORD m_jitProcessId;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
 
