@@ -6605,7 +6605,7 @@ CommonNumber:
         Assert(moduleRecord != nullptr);
 
         // Require caller to also provide the intended access slot so we can do bounds check now.
-        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        if (moduleRecord->GetLocalExportCount() + 1 <= slotIndex)
         {
             Js::Throw::FatalInternalError();
         }

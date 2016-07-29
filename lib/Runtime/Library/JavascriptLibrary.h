@@ -31,6 +31,7 @@ namespace Js
     class MissingPropertyTypeHandler;
     class SourceTextModuleRecord;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
+    typedef JsUtil::List<Var, Recycler> ListForListIterator;
 
     class UndeclaredBlockVariable : public RecyclableObject
     {
@@ -221,6 +222,7 @@ namespace Js
         DynamicType * stringIteratorType;
         DynamicType * promiseType;
         DynamicType * javascriptEnumeratorIteratorType;
+        DynamicType * listIteratorType;
 
         JavascriptFunction* builtinFunctions[BuiltinFunction::Count];
 
@@ -300,6 +302,7 @@ namespace Js
         DynamicType * proxyType;
         StaticType  * withType;
         DynamicType * SpreadArgumentType;
+        DynamicType * moduleNamespaceType;
         PropertyDescriptor defaultPropertyDescriptor;
 
         JavascriptString* nullString;
@@ -328,6 +331,7 @@ namespace Js
         JavascriptString* functionTypeDisplayString;
         JavascriptString* booleanTypeDisplayString;
         JavascriptString* numberTypeDisplayString;
+        JavascriptString* moduleTypeDisplayString;
 
         // SIMD_JS
         JavascriptString* simdFloat32x4DisplayString;
@@ -479,12 +483,14 @@ namespace Js
         static SimpleTypeHandler<1> SharedFunctionWithLengthTypeHandler;
         static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
         static SimpleTypeHandler<1> SharedIdMappedFunctionWithPrototypeTypeHandler;
+        static SimpleTypeHandler<2> SharedNamespaceSymbolTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
+        static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[2];
 
     public:
 
@@ -579,6 +585,7 @@ namespace Js
         JavascriptString* GetFunctionTypeDisplayString() const { return functionTypeDisplayString; }
         JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
         JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
+        JavascriptString* GetModuleTypeDisplayString() const { return moduleTypeDisplayString; }
 
         // SIMD_JS
         JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }
@@ -743,6 +750,7 @@ namespace Js
         DynamicType * GetJavascriptEnumeratorIteratorType() const { return javascriptEnumeratorIteratorType; }
         DynamicType * GetHeapArgumentsObjectType() const { return heapArgumentsType; }
         DynamicType * GetActivationObjectType() const { return activationObjectType; }
+        DynamicType * GetModuleNamespaceType() const { return moduleNamespaceType; }
         DynamicType * GetArrayType() const { return arrayType; }
         DynamicType * GetNativeIntArrayType() const { return nativeIntArrayType; }
 #if ENABLE_COPYONACCESS_ARRAY
@@ -766,6 +774,7 @@ namespace Js
         DynamicType * GetMapIteratorType() const { return mapIteratorType; }
         DynamicType * GetSetIteratorType() const { return setIteratorType; }
         DynamicType * GetStringIteratorType() const { return stringIteratorType; }
+        DynamicType * GetListIteratorType() const { return listIteratorType; }
         JavascriptFunction* GetDefaultAccessorFunction() const { return defaultAccessorFunction; }
         JavascriptFunction* GetStackTraceAccessorFunction() const { return stackTraceAccessorFunction; }
         JavascriptFunction* GetThrowTypeErrorAccessorFunction() const { return throwTypeErrorAccessorFunction; }
@@ -1003,6 +1012,8 @@ namespace Js
         JavascriptMapIterator* CreateMapIterator(JavascriptMap* map, JavascriptMapIteratorKind kind);
         JavascriptSetIterator* CreateSetIterator(JavascriptSet* set, JavascriptSetIteratorKind kind);
         JavascriptStringIterator* CreateStringIterator(JavascriptString* string);
+        JavascriptListIterator* CreateListIterator(ListForListIterator* list);
+
         JavascriptRegExp* CreateRegExp(UnifiedRegex::RegexPattern* pattern);
 
         DynamicObject* CreateIteratorResultObject(Var value, Var done);

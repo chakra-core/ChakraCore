@@ -172,6 +172,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
+    <ClCompile Include="ModuleNamespaceEnumerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd64\StackFrame.h">
@@ -217,6 +218,7 @@
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="ModuleNamespace.h" />
+    <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="ProfilingHelpers.h" />
     <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
