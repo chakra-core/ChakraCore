@@ -10925,7 +10925,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         }
     }
 
-    if (isModuleSource && !isDeferred)
+    // It's possible for the module global to be defer-parsed in debug scenarios.
+    if (isModuleSource && (!isDeferred || (isDeferred && grfscr & fscrGlobalCode)))
     {
         ParseNodePtr moduleFunction = GenerateModuleFunctionWrapper<true>();
         pnodeProg->sxFnc.pnodeBody = nullptr;

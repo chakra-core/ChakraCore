@@ -621,7 +621,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
                 Js::OpCode op = (sym->GetDecl()->nop == knopConstDecl) ? Js::OpCode::InitUndeclConsoleConstFld : Js::OpCode::InitUndeclConsoleLetFld;
                 this->m_writer.ElementScopedU(op, funcInfo->FindOrAddReferencedPropertyId(propertyId));
             }
-            else if (!sym->GetIsModuleExportStorage())
+            else
             {
                 Js::OpCode op = (sym->GetDecl()->nop == knopConstDecl) ?
                     Js::OpCode::InitUndeclRootConstFld : Js::OpCode::InitUndeclRootLetFld;
@@ -668,7 +668,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
                 TrackSlotArrayPropertyForDebugger(debuggerScope, sym, sym->EnsurePosition(this), pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
         }
-        else
+        else if (!sym->GetIsModuleExportStorage())
         {
             if (sym->GetDecl()->sxVar.isSwitchStmtDecl)
             {
@@ -682,7 +682,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
             {
                 TrackSlotArrayPropertyForDebugger(debuggerScope, sym, sym->EnsurePosition(this), pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
-            else
+            else 
             {
                 TrackRegisterPropertyForDebugger(debuggerScope, sym, funcInfo, pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
