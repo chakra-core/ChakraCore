@@ -107,7 +107,7 @@ ServerInitializeThreadContext(
 
     ServerThreadContext * contextInfo = HeapNew(ServerThreadContext, threadContextData);
 
-    *threadContextRoot = (intptr_t)contextInfo;
+    *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
     *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
     return S_OK;
 }
@@ -128,7 +128,7 @@ ServerCleanupThreadContext(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
     if (threadContextInfo == nullptr)
     {
         return RPC_S_INVALID_ARG;
@@ -148,7 +148,7 @@ ServerAddPropertyRecord(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
 
     if (threadContextInfo == nullptr) 
     {
@@ -169,7 +169,7 @@ ServerAddDOMFastPathHelper(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
 
     if (scriptContextInfo == nullptr)
     {
@@ -190,7 +190,7 @@ ServerAddModuleRecordInfo(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerScriptContext * serverScriptContext = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
+    ServerScriptContext * serverScriptContext = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
     if (serverScriptContext == nullptr)
     {
         return RPC_S_INVALID_ARG;
@@ -207,7 +207,7 @@ ServerSetWellKnownHostTypeId(
     /* [in] */ __int3264 threadContextRoot,
     /* [in] */ int typeId)
 {
-    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
 
     if (threadContextInfo == nullptr)
     {
@@ -227,7 +227,7 @@ ServerInitializeScriptContext(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData);
-    *scriptContextInfoAddress = (intptr_t)contextInfo;
+    *scriptContextInfoAddress = (intptr_t)EncodePointer(contextInfo);
     return S_OK;
 }
 
@@ -236,7 +236,7 @@ ServerCleanupScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 scriptContextRoot)
 {
-    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
 
     if (scriptContextInfo == nullptr)
     {
@@ -263,7 +263,7 @@ ServerFreeAllocation(
     /* [in] */ __int3264 address)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-    ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+    ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
 
     if (context == nullptr)
     {
@@ -281,7 +281,7 @@ ServerIsNativeAddr(
     /* [in] */ __int3264 address,
     /* [out] */ boolean * result)
 {
-    ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+    ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
 
     if (context == nullptr)
     {
@@ -322,8 +322,8 @@ ServerRemoteCodeGen(
     {
         QueryPerformanceCounter(&start_time);
     }
-    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextInfoAddress);
-    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
 
     if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
     {

@@ -1091,7 +1091,8 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // Add to the map
     m_propertyMap->Add(propertyRecord);
 
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    // add to OOP JIT process if the context has already been initialized
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
     {
         JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
     }
