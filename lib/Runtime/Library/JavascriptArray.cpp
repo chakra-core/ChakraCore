@@ -3956,6 +3956,62 @@ namespace Js
         return -1;
     }
 
+    template<typename T>
+    bool AreAllBytesEqual(T value)
+    {
+        byte* bValue = (byte*)&value;
+        byte firstByte = *bValue++;
+        for (int i = 1; i < sizeof(T); ++i)
+        {
+            if (*bValue++ != firstByte)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(double* buffer, uint32 length, double value)
+    {
+        if (JavascriptNumber::IsZero(value) && !JavascriptNumber::IsNegZero(value))
+        {
+            memset(buffer, 0, sizeof(double) * length);
+        }
+        else
+        {
+            for (uint32 i = 0; i < length; i++)
+            {
+                buffer[i] = value;
+            }
+        }
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(int32* buffer, uint32 length, int32 value)
+    {
+        if (value == 0 || AreAllBytesEqual(value))
+        {
+            memset(buffer, *(byte*)&value, sizeof(int32)* length);
+        }
+        else
+        {
+            for (uint32 i = 0; i < length; i++)
+            {
+                buffer[i] = value;
+            }
+        }
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Js::Var* buffer, uint32 length, Js::Var value)
+    {
+        for (uint32 i = 0; i < length; i++)
+        {
+            buffer[i] = value;
+        }
+    }
+
     int32 JavascriptNativeIntArray::HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm,  ScriptContext * scriptContext)
     {
         // We proceed largely in the same manner as in JavascriptArray's version of this method (see comments there for more information),
