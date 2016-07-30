@@ -1116,15 +1116,22 @@ SECOND_PASS:
         {
             return false;
         }
-        if (newValue == (T)0 || newValue == (T)(-1))
+        Assert(current->left + current->length >= startIndex + length);
+        T* segmentCopyStart = current->elements + (startIndex - current->left);
+        auto areAllBytesSame = [](uint64* value) {
+            byte tmp[sizeof(T)];
+            memset(tmp, *(byte*)value, sizeof(T));
+            return *(T*)value == *(T*)tmp;
+        };
+        if (newValue == (T)0 || areAllBytesSame((uint64*)&newValue))
         {
-            memset((((Js::SparseArraySegment<T>*)current)->elements + (startIndex - current->left)), ((int)(intptr_t)newValue), sizeof(T)* length);
+            memset(segmentCopyStart, *(byte*)&newValue, sizeof(T)* length);
         }
         else
         {
             for (uint32 i = 0; i < length; i++)
             {
-                ((Js::SparseArraySegment<T>*)current)->elements[startIndex - current->left + i] = newValue;
+                segmentCopyStart[i] = newValue;
             }
         }
         this->SetLastUsedSegment(current);
