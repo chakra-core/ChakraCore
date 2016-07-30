@@ -20684,14 +20684,13 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     IR::IndirOpnd * dstLength = IR::IndirOpnd::New(concatStrOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func);
     IR::Opnd * srcLength;
 
-#if 0 // TODO: OOP JIT, string constants
-    if (srcOpnd->m_sym->m_isStrConst)
+    // TODO: OOP JIT, String Length
+    if (!func->IsOOPJIT() && srcOpnd->m_sym->m_isStrConst)
     {
         srcLength = IR::IntConstOpnd::New(Js::JavascriptString::FromVar(srcOpnd->m_sym->GetConstAddress())->GetLength(),
             TyUint32, func);
     }
     else
-#endif
     {
         srcLength = IR::RegOpnd::New(TyUint32, func);
         InsertMove(srcLength, IR::IndirOpnd::New(srcOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func), instr);

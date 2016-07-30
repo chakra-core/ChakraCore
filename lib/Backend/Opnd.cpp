@@ -3124,7 +3124,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 #endif
             WriteToBuffer(&buffer, &n, format, address);
         }
-            break;
+        break;
         case IR::AddrOpndKindDynamicVar:
             if (Js::TaggedInt::Is(address))
             {
@@ -3142,40 +3142,44 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             else
             {
                 DumpAddress(address, printToConsole, skipMaskedAddress);
-#if 0 // TODO: michhol OOP JIT, fix these
-                switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                // TODO: michhol OOP JIT, fix dumping these
+                if (func->IsOOPJIT())
                 {
-                case Js::TypeIds_Boolean:
-                    WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
-                    break;
-                case Js::TypeIds_String:
-                    WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
-                    break;
-                case Js::TypeIds_Number:
-                    WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
-                    break;
-                case Js::TypeIds_Undefined:
-                    WriteToBuffer(&buffer, &n, _u(" (undefined)"));
-                    break;
-                case Js::TypeIds_Null:
-                    WriteToBuffer(&buffer, &n, _u(" (null)"));
-                    break;
-                case Js::TypeIds_GlobalObject:
-                    WriteToBuffer(&buffer, &n, _u(" (GlobalObject)"));
-                    break;
-                case Js::TypeIds_UndeclBlockVar:
-                    WriteToBuffer(&buffer, &n, _u(" (UndeclBlockVar)"));
-                    break;
-                case Js::TypeIds_Function:
-                    DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, _u("FunctionObject"));
-                    break;
-                default:
-                    WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
-                    break;
+                    WriteToBuffer(&buffer, &n, _u(" (unknown)"));
                 }
-#else
-                WriteToBuffer(&buffer, &n, _u(" (unknown)"));
-#endif
+                else
+                {
+                    switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                    {
+                    case Js::TypeIds_Boolean:
+                        WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
+                        break;
+                    case Js::TypeIds_String:
+                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
+                        break;
+                    case Js::TypeIds_Number:
+                        WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
+                        break;
+                    case Js::TypeIds_Undefined:
+                        WriteToBuffer(&buffer, &n, _u(" (undefined)"));
+                        break;
+                    case Js::TypeIds_Null:
+                        WriteToBuffer(&buffer, &n, _u(" (null)"));
+                        break;
+                    case Js::TypeIds_GlobalObject:
+                        WriteToBuffer(&buffer, &n, _u(" (GlobalObject)"));
+                        break;
+                    case Js::TypeIds_UndeclBlockVar:
+                        WriteToBuffer(&buffer, &n, _u(" (UndeclBlockVar)"));
+                        break;
+                    case Js::TypeIds_Function:
+                        DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, _u("FunctionObject"));
+                        break;
+                    default:
+                        WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
+                        break;
+                    }
+                }
             }
             break;
         case IR::AddrOpndKindConstantVar:
@@ -3284,22 +3288,29 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 
         case IR::AddrOpndKindDynamicFunctionBody:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            // TODO: OOP JIT, allow this when in proc
-#if 0
-            DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
-#else
-            WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
-#endif
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+            }
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            // TODO: OOP JIT
-#if 0
-            DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
-#else
-            WriteToBuffer(&buffer, &n, _u(" (FunctionBodyWeakRef)"));
-#endif
+
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionBodyWeakRef)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+            }
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:
@@ -3327,16 +3338,15 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         case IR::AddrOpndKindDynamicObjectTypeRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
-#if 0 // TODO: OOP JIT, fix this
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
-                if (Js::JavascriptFunction::Is(dynamicObject))
+                if (!func->IsOOPJIT() && Js::JavascriptFunction::Is(dynamicObject))
                 {
                     DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else
-#endif
                 {
+                    // TODO: OOP JIT, dump more info
                     WriteToBuffer(&buffer, &n, _u(" (ObjectTypeRef)"));
                 }
             }
@@ -3344,7 +3354,8 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 
         case IR::AddrOpndKindDynamicType:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-#if 0 // TODO: OOP JIT, fix this
+            // TODO: OOP JIT, dump more info
+            if(!func->IsOOPJIT())
             {
                 Js::TypeId typeId = ((Js::Type*)address)->GetTypeId();
                 switch (typeId)
@@ -3375,7 +3386,6 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                     break;
                 }
             }
-#endif
             break;
 
         case AddrOpndKindDynamicFrameDisplay:
@@ -3410,6 +3420,18 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             {
                 WriteToBuffer(&buffer, &n, _u(" (StrictNullFrameDisplay)"));
             }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetNumberAllocatorAddr())
+            {
+                WriteToBuffer(&buffer, &n, _u(" (NumberAllocator)"));
+            }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetRecyclerAddr())
+            {
+                WriteToBuffer(&buffer, &n, _u(" (Recycler)"));
+            }
+            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
+            {
+                WriteToBuffer(&buffer, &n, _u(" (&CallCount)"));
+            }
             else if ((intptr_t)address == func->GetThreadContextInfo()->GetImplicitCallFlagsAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&ImplicitCallFlags)"));
@@ -3422,9 +3444,10 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             {
                 WriteToBuffer(&buffer, &n, _u(" (&StackLimit)"));
             }
-            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
+            else if (func->CanAllocInPreReservedHeapPageSegment() &&
+                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
             {
-                WriteToBuffer(&buffer, &n, _u(" (&CallCount)"));
+                WriteToBuffer(&buffer, &n, _u(" (PreReservedCodeSegmentEnd)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetSideEffectsAddr())
             {
@@ -3442,22 +3465,6 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             {
                 WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)"));
             }
-            else if ((intptr_t)address == func->GetScriptContextInfo()->GetNumberAllocatorAddr())
-            {
-                WriteToBuffer(&buffer, &n, _u(" (NumberAllocator)"));
-            }
-            else if ((intptr_t)address == func->GetScriptContextInfo()->GetRecyclerAddr())
-            {
-                WriteToBuffer(&buffer, &n, _u(" (Recycler)"));
-            }
-#if 0 // TODO: michhol reenable dump of addresses
-            else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
-                address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())
-            {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
-            }
-#endif
             else
             {
                 WriteToBuffer(&buffer, &n, _u(" (Unknown)"));

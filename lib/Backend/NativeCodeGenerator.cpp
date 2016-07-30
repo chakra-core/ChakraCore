@@ -1241,7 +1241,7 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
             }
         }
     }
-    // TODO (michhol): OOP JIT: move to separate method
+
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
     {
@@ -3017,8 +3017,10 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
-            // TODO: OOP JIT, add following condition back in case we are in-proc
-            // this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        }
+        else
+        {
+            this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
         }
     }
 }
@@ -3038,11 +3040,21 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
 
     // The foreground allocators may have been used
     ThreadContext * context = this->scriptContext->GetThreadContext();
-    if(this->foregroundAllocators && JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address) != S_OK)
+    if(this->foregroundAllocators)
     {
-        // TODO: OOP JIT, add following condition back in case we are in-proc
-        //if(this->foregroundAllocators->emitBufferManager.FreeAllocation(address)
-        return;
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            // TODO: OOP JIT, should we always just queue this in background?
+            JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+            return;
+        }
+        else
+        {
+            if (this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
+            {
+                return;
+            }
+        }
     }
 
     // The background allocators were used. Queue a job to free the allocation from the background thread.

@@ -4510,13 +4510,12 @@ Inline::MapFormals(Func *inlinee,
                         {
                             fUsesSafeThis = true;
                         }
-#if 0 // TODO: OOP JIT, const this
-                        else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
+                        // TODO: OOP JIT, const this
+                        else if (!topFunc->IsOOPJIT() && symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
                             thisConstVar = symSrc->GetConstAddress();
                             fUsesConstThis = true;
                         }
-#endif
                         else if(fixedFunctionSafeThis)
                         {
                             // Note this need to come after we determined that this pointer is not const (undefined/null)

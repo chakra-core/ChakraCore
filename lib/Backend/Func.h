@@ -143,7 +143,7 @@ public:
 #endif
     }
 
-    bool IsOOPJIT() { return true; }
+    bool IsOOPJIT() { return JITManager::GetJITManager()->IsOOPJITEnabled(); }
 
     void InitLocalClosureSyms();
 
