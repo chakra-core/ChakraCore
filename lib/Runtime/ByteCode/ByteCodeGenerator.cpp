@@ -3070,7 +3070,8 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
     // All the attributes we need to propagate downward should already be recorded by the parser.
     // - call to "eval()"
     // - nested in "with"
-    Js::ParseableFunctionInfo* parentFunc = pnodeParent->sxFnc.funcInfo->byteCodeFunction;
+    FuncInfo * parentFuncInfo = pnodeParent->sxFnc.funcInfo;
+    Js::ParseableFunctionInfo* parentFunc = parentFuncInfo->byteCodeFunction;
     ParseNode* pnodeScope;
     uint i = 0;
 
@@ -3123,7 +3124,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             PreVisitFunction(pnodeScope, byteCodeGenerator);
             FuncInfo *funcInfo = pnodeScope->sxFnc.funcInfo;
 
-            pnodeParent->sxFnc.funcInfo->OnStartVisitFunction(pnodeScope);
+            parentFuncInfo->OnStartVisitFunction(pnodeScope);
 
             if (pnodeScope->sxFnc.pnodeBody)
             {
@@ -3224,12 +3225,15 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 byteCodeGenerator->PushScope(funcInfo->GetBodyScope());
             }
 
-            pnodeScope->sxFnc.nestedIndex = *pIndex;
-            parentFunc->SetNestedFunc(funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());
+            if (!parentFuncInfo->IsFakeGlobalFunction(byteCodeGenerator->GetFlags()))
+            {
+                pnodeScope->sxFnc.nestedIndex = *pIndex;
+                parentFunc->SetNestedFunc(funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());
+            }
 
             Assert(parentFunc);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitFunction(pnodeScope);
+            parentFuncInfo->OnEndVisitFunction(pnodeScope);
 
             PostVisitFunction(pnodeScope, byteCodeGenerator);
 
@@ -3243,9 +3247,9 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitBlock(pnodeScope, byteCodeGenerator);
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxBlock.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
             PostVisitBlock(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxBlock.pnodeNext;
@@ -3275,10 +3279,10 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             }
 
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
             PostVisitCatch(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxCatch.pnodeNext;
@@ -3289,9 +3293,9 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitWith(pnodeScope, byteCodeGenerator);
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxWith.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
             PostVisitWith(pnodeScope, byteCodeGenerator);
             pnodeScope = pnodeScope->sxWith.pnodeNext;
             break;
