@@ -82,28 +82,7 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
 WasmModule*
 WasmModuleGenerator::GenerateModule()
 {
-    m_module->SetHeapOffset(0);
-    m_module->SetImportFuncOffset(m_module->GetHeapOffset() + 1);
-    m_module->SetFuncOffset(m_module->GetHeapOffset() + 1);
-
     BVStatic<bSectLimit + 1> visitedSections;
-
-    // Will callback regardless if the section is present or not
-    AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
-
-    afterSectionCallback[bSectFunctionSignatures] = [](WasmModuleGenerator* gen) {
-        gen->m_module->SetFuncOffset(gen->m_module->GetImportFuncOffset() + gen->m_module->GetImportCount());
-    };
-    afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
-        gen->m_module->SetIndirFuncTableOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetFunctionCount());
-    };
-    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
-        uint32 funcCount = gen->m_module->GetFunctionCount();
-        for (uint32 i = 0; i < funcCount; ++i)
-        {
-            gen->GenerateFunctionHeader(i);
-        }
-    };
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
     {
@@ -123,11 +102,12 @@ WasmModuleGenerator::GenerateModule()
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
         }
+    }
 
-        if (afterSectionCallback[sectionCode])
-        {
-            afterSectionCallback[sectionCode](this);
-        }
+    uint32 funcCount = m_module->GetFunctionCount();
+    for (uint32 i = 0; i < funcCount; ++i)
+    {
+        GenerateFunctionHeader(i);
     }
 
 #if DBG_DUMP
@@ -460,6 +440,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wbI32Const:
         info = EmitConst<WasmTypes::I32>();
         break;
+    case wbI64Const:
+        info = EmitConst<WasmTypes::I64>();
+        break;
     case wbBlock:
         info = EmitBlock();
         break;
@@ -592,6 +575,9 @@ WasmBytecodeGenerator::EmitConst()
         break;
     case WasmTypes::I32:
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tmpReg, GetReader()->m_currentNode.cnst.i32);
+        break;
+    case WasmTypes::I64:
+        m_writer.AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, tmpReg, GetReader()->m_currentNode.cnst.i64);
         break;
     default:
         throw WasmCompilationException(_u("Unknown type %u"), type);
@@ -754,6 +740,13 @@ WasmBytecodeGenerator::EmitCall()
         case WasmTypes::I32:
             argOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
+        case WasmTypes::I64:
+            if (wasmOp == wbCallImport)
+            {
+                throw WasmCompilationException(_u("External calls with int64 argument NYI"));
+            }
+            argOp = Js::OpCodeAsmJs::I_ArgOut_Long;
+            break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
@@ -827,7 +820,8 @@ WasmBytecodeGenerator::EmitCall()
             convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
-            throw WasmCompilationException(_u("I64 return type NYI"));
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::I_Conv_VTL;
+            break;
         default:
             throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
         }

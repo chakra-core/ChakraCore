@@ -18,6 +18,7 @@ namespace Js
         void EmptyAsm        ( OpCodeAsmJs op );
         void Conv            ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmInt1Const1   ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        void AsmLong1Const1  ( OpCodeAsmJs op, RegSlot R0, int64 C1 );
         void AsmFloat1Const1 ( OpCodeAsmJs op, RegSlot R0, float C1 );
         void AsmDouble1Const1( OpCodeAsmJs op, RegSlot R0, double C1 );
         void AsmReg1         ( OpCodeAsmJs op, RegSlot R0 );
@@ -71,6 +72,7 @@ namespace Js
                                                                                      RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
 
         template <typename SizePolicy> bool TryWriteInt1Const1      ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        template <typename SizePolicy> bool TryWriteLong1Const1     ( OpCodeAsmJs op, RegSlot R0, int64 C1 );
         template <typename SizePolicy> bool TryWriteFloat1Const1    ( OpCodeAsmJs op, RegSlot R0, float C1 );
         template <typename SizePolicy> bool TryWriteDouble1Const1   ( OpCodeAsmJs op, RegSlot R0, double C1 );
         template <typename SizePolicy> bool TryWriteAsmBrReg1       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1 );

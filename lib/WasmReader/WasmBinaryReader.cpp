@@ -542,7 +542,7 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::I64:
-        m_currentNode.cnst.i32 = SLEB128(len);
+        m_currentNode.cnst.i64 = SLEB128<INT64>(len);
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
@@ -789,22 +789,25 @@ WasmBinaryReader::ReadStartFunction()
     // 2. Function should be void and nullary
 }
 
-UINT
+template<typename MaxAllowedType>
+MaxAllowedType
 WasmBinaryReader::LEB128(UINT &length, bool sgn)
 {
-    UINT result = 0;
-    UINT shamt = 0;
-    byte b;
+    MaxAllowedType result = 0;
+    uint shamt = 0;
+    byte b = 0;
     length = 1;
+    uint maxReads = sizeof(MaxAllowedType) == 4 ? 5 : 10;
+    CompileAssert(sizeof(MaxAllowedType) == 4 || sizeof(MaxAllowedType) == 8);
 
     // LEB128 needs at least one byte
     CheckBytesLeft(1);
 
-    for (UINT i = 0; i < 5; i++, length++)
+    for (uint i = 0; i < maxReads; i++, length++)
     {
         // 5 bytes at most
         b = *m_pc++;
-        result = result | ((b & 0x7f) << shamt);
+        result = result | ((MaxAllowedType)(b & 0x7f) << shamt);
         if (sgn)
         {
             shamt += 7;
@@ -824,26 +827,51 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
         ThrowDecodingError(_u("Invalid LEB128 format"));
     }
 
-    if (sgn && (shamt < sizeof(INT) * 8) && (0x40 & b))
+    if (sgn && (shamt < sizeof(MaxAllowedType) * 8) && (0x40 & b))
     {
-        result |= -(1 << shamt);
+        if (sizeof(MaxAllowedType) == 4)
+        {
+            result |= -(1 << shamt);
+        }
+        else if (sizeof(MaxAllowedType) == 8)
+        {
+            result |= -((int64)1 << shamt);
+        }
     }
 
     if (!sgn)
     {
-        TRACE_WASM_LEB128(_u("Binary decoder: LEB128 value = %u, length = %u"), result, length);
+        if (sizeof(MaxAllowedType) == 4)
+        {
+            TRACE_WASM_LEB128(_u("Binary decoder: LEB128 length = %u, value = %u (0x%x)"), length, result, result);
+        }
+        else if (sizeof(MaxAllowedType) == 8)
+        {
+            TRACE_WASM_LEB128(_u("Binary decoder: LEB128 length = %u, value = %llu (0x%llx)"), length, result, result);
+        }
     }
 
     return result;
 }
 
 // Signed LEB128
+template<>
 INT
 WasmBinaryReader::SLEB128(UINT &length)
 {
-    INT result = LEB128(length, true);
+    INT result = LEB128<UINT>(length, true);
 
-    TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 value = %d, length = %u"), result, length);
+    TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 length = %u, value = %d (0x%x)"), length, result, result);
+    return result;
+}
+
+template<>
+INT64
+WasmBinaryReader::SLEB128(UINT &length)
+{
+    INT64 result = LEB128<UINT64>(length, true);
+
+    TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 length = %u, value = %lld (0x%llx)"), length, result, result);
     return result;
 }
 

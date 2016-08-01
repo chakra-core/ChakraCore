@@ -78,8 +78,10 @@ namespace Wasm
         template <typename T> T ReadConst();
         char16* ReadInlineName(uint32& length, uint32& nameLength);
         char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
-        UINT LEB128(UINT &length, bool sgn = false);
-        INT SLEB128(UINT &length);
+        template<typename MaxAllowedType = UINT>
+        MaxAllowedType LEB128(UINT &length, bool sgn = false);
+        template<typename MaxAllowedType = INT>
+        MaxAllowedType SLEB128(UINT &length);
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();
