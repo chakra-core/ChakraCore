@@ -3244,24 +3244,38 @@ bool Instr::HasAnyImplicitCalls() const
     }
     if (OpCodeAttr::OpndHasImplicitCall(this->m_opcode))
     {
-        if (this->m_dst && (this->m_dst->IsSymOpnd() || this->m_dst->IsIndirOpnd()))
+        if (this->m_dst && 
+            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) || 
+             this->m_dst->IsIndirOpnd()))
         {
             return true;
         }
 
         IR::Opnd *src1 = this->GetSrc1();
-
         if (src1)
         {
+            if ((src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsPropertySym()) || src1->IsIndirOpnd())
+            {
+                return true;
+            }
+
             if (!src1->GetValueType().IsPrimitive())
             {
                 return true;
             }
 
             IR::Opnd *src2 = this->GetSrc2();
-            if(src2 && !src2->GetValueType().IsPrimitive())
+            if (src2)
             {
-                return true;
+                if ((src2->IsSymOpnd() && src2->AsSymOpnd()->m_sym->IsPropertySym()) || src2->IsIndirOpnd())
+                {
+                    return true;
+                }
+
+                if (!src2->GetValueType().IsPrimitive())
+                {
+                    return true;
+                }
             }
         }
     }
