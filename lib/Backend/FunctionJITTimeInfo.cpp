@@ -59,7 +59,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             {
                 const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
                 const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
-                if (inlineeJITData != nullptr)
+                if (inlineeJITData != nullptr && inlineeJITData != codeGenData)
                 {
                     jitData->inlinees[i] = BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData);
                 }
