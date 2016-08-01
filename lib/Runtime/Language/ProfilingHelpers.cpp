@@ -1105,11 +1105,11 @@ namespace Js
                 // Setting to __proto__ property invokes a setter and changes the prototype.So, although PatchPut* populates the cache,
                 // the setter invalidates it (since it changes the prototype). PretendTrySetProperty looks at the inline cache type to
                 // update the cacheType on PropertyOperationInfo, which is used in populating the field info flags for this operation on
-                // the profile. Since the cache was invalidated, we dont get a match with either the type of the object with property or
+                // the profile. Since the cache was invalidated, we don't get a match with either the type of the object with property or
                 // without it and the cacheType defaults to CacheType_None. This leads the profile info to say that this operation doesn't
-                // cause an accessor implicit call and JIT then doesn't kill live fields accross it and ends up putting a BailOutOnImplicitCalls
+                // cause an accessor implicit call and JIT then doesn't kill live fields across it and ends up putting a BailOutOnImplicitCalls
                 // if there were live fields. This bailout always bails out.
-                    Js::ImplicitCallFlags accessorCallFlag = (Js::ImplicitCallFlags)(Js::ImplicitCall_Accessor & ~Js::ImplicitCall_None);
+                Js::ImplicitCallFlags accessorCallFlag = (Js::ImplicitCallFlags)(Js::ImplicitCall_Accessor & ~Js::ImplicitCall_None);
                 if ((threadContext->GetImplicitCallFlags() & accessorCallFlag) != 0)
                 {
                     operationInfo.cacheType = CacheType_Setter;
