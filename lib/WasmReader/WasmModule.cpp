@@ -23,11 +23,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_datasegCount(0),
     m_signatures(nullptr),
     m_signaturesCount(0),
-    m_startFuncIndex(Js::Constants::UninitializedValue),
-    indirFuncTableOffset(0),
-    heapOffset(0),
-    funcOffset(0),
-    importFuncOffset(0)
+    m_startFuncIndex(Js::Constants::UninitializedValue)
 {
     m_reader = Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
     m_reader->InitializeReader();
