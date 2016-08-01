@@ -193,8 +193,6 @@ public:
 #endif
 
             void            GenerateCopysign(IR::Instr * instr);
-            void            GenerateTrunc(IR::Instr * instr);
-            void            GenerateNearest(IR::Instr * instr);
 
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
             static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);

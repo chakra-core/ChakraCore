@@ -524,6 +524,11 @@ HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
 HELPERCALL(DirectMath_CeilDb, nullptr, 0)
 HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 
+HELPERCALL(DirectMath_TruncDb, nullptr, 0)
+HELPERCALL(DirectMath_TruncFlt, nullptr, 0)
+HELPERCALL(DirectMath_NearestDb, nullptr, 0)
+HELPERCALL(DirectMath_NearestFlt, nullptr, 0)
+
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
 HELPERCALL(DirectMath_Asin, nullptr, 0)

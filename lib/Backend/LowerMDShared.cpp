@@ -6131,18 +6131,6 @@ LowererMD::GenerateCopysign(IR::Instr * instr)
     instr->m_opcode = Js::OpCode::ORPS;
     Legalize(instr);
 };
-
-void
-LowererMD::GenerateTrunc(IR::Instr * instr)
-{
-    Assert(UNREACHED);
-}
-
-void
-LowererMD::GenerateNearest(IR::Instr * instr)
-{
-    Assert(UNREACHED);
-}
 #endif //ENABLE_WASM
 
 void
@@ -8800,7 +8788,7 @@ LowererMD::LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNan)
 }
 void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble)
 {
-    Assert(instr->m_opcode == Js::OpCode::InlineMathFloor || instr->m_opcode == Js::OpCode::InlineMathCeil);
+    Assert(instr->m_opcode == Js::OpCode::InlineMathFloor || instr->m_opcode == Js::OpCode::InlineMathCeil || instr->m_opcode == Js::OpCode::Trunc_A || instr->m_opcode == Js::OpCode::Nearest_A);
     AssertMsg(instr->GetDst()->IsFloat(), "dst must be float.");
     Assert(instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
     Assert(!instr->GetSrc2());
@@ -8930,6 +8918,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
     case Js::OpCode::InlineMathFloor:
     case Js::OpCode::InlineMathCeil:
     case Js::OpCode::InlineMathRound:
+#ifdef ENABLE_WASM
+    case Js::OpCode::Trunc_A:
+    case Js::OpCode::Nearest_A:
+#endif //ENABLE_WASM
         {
             Assert(AutoSystemInfo::Data.SSE4_1Available());
             Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsFloat());
@@ -9161,19 +9153,27 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             }
 
             // ROUNDSD srcCopy, srcCopy, round_mode
-            IR::Opnd * roundMode;
-            if(isNotCeil)
+            IR::Opnd * roundMode = nullptr;
+
+            switch (instr->m_opcode)
             {
-                roundMode = IR::IntConstOpnd::New(0x01, TyInt32, this->m_func);
-            }
-            else if (instr->GetDst()->IsInt32() || instr->m_opcode != Js::OpCode::InlineMathFloor)
-            {
-                roundMode = IR::IntConstOpnd::New(0x02, TyInt32, this->m_func);
-            }
-            else
-            {
+#ifdef ENABLE_WASM
+            case Js::OpCode::Trunc_A:
                 roundMode = IR::IntConstOpnd::New(0x03, TyInt32, this->m_func);
+                break;
+            case Js::OpCode::Nearest_A:
+                roundMode = IR::IntConstOpnd::New(0x00, TyInt32, this->m_func);
+                break;
+#endif //ENABLE_WASM
+            case Js::OpCode::InlineMathRound:
+            case Js::OpCode::InlineMathFloor:
+                roundMode = IR::IntConstOpnd::New(0x01, TyInt32, this->m_func);
+                break;
+            case Js::OpCode::InlineMathCeil:
+                roundMode = IR::IntConstOpnd::New(0x02, TyInt32, this->m_func);
+                break;
             }
+
             IR::Instr* roundInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloat, roundedFloat, roundMode, this->m_func);
 
             instr->InsertBefore(roundInstr);

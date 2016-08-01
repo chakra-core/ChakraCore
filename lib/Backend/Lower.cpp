@@ -2986,11 +2986,23 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Trunc_A:
-            m_lowererMD.GenerateTrunc(instr);
+            if (!AutoSystemInfo::Data.SSE4_1Available())
+            {
+                m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_TruncFlt, IR::HelperDirectMath_TruncDb);
+                break;
+            }
+
+            m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
         case Js::OpCode::Nearest_A:
-            m_lowererMD.GenerateNearest(instr);
+            if (!AutoSystemInfo::Data.SSE4_1Available())
+            {
+                m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_NearestFlt, IR::HelperDirectMath_NearestDb);
+                break;
+            }
+
+            m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 #endif //ENABLE_WASM
 

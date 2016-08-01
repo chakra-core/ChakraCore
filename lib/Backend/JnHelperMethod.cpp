@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -219,6 +219,18 @@ DECLSPEC_GUARDIGNORE _NOINLINE void * const GetNonTableMethodAddress(JnHelperMet
 
     case HelperDirectMath_CeilFlt:
         return (float(*)(float))ceil;
+
+    case HelperDirectMath_TruncDb:
+        return (double(*)(double))trunc;
+
+    case HelperDirectMath_TruncFlt:
+        return (float(*)(float))trunc;
+
+    case HelperDirectMath_NearestDb:
+        return (double(*)(double))round;
+
+    case HelperDirectMath_NearestFlt:
+        return (float(*)(float))round;
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
