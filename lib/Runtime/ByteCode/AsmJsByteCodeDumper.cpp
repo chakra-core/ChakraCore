@@ -389,51 +389,72 @@ namespace Js
     template <class T>
     void AsmJsByteCodeDumper::DumpElementSlot(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
+        auto asmInfo = dumpFunction->GetAsmJsFunctionInfo();
+        auto wasmInfo = asmInfo->GetWasmReaderInfo();
+
         switch (op)
         {
         case OpCodeAsmJs::LdSlot:
         case OpCodeAsmJs::LdSlotArr:
-            Output::Print(_u(" R%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            if (wasmInfo)
+            {
+                uint index = (uint)data->SlotIndex;
+                if (index - wasmInfo->m_module->GetImportFuncOffset() < wasmInfo->m_module->GetImportCount())
+                {
+                    uint importIndex = data->SlotIndex - wasmInfo->m_module->GetImportFuncOffset();
+                    auto loadedImport = wasmInfo->m_module->GetFunctionImport(importIndex);
+                    Output::Print(_u(" R%d = %s.%s[%u]"), data->Value, loadedImport->modName, loadedImport->fnName, importIndex);
+                    break;
+                }
+                else if (index - wasmInfo->m_module->GetFuncOffset() < wasmInfo->m_module->GetFunctionCount())
+                {
+                    uint funcIndex = data->SlotIndex - wasmInfo->m_module->GetFuncOffset();
+                    auto loadedFunc = wasmInfo->m_module->GetFunctionInfo(funcIndex);
+                    Output::Print(_u(" R%d = %s"), data->Value, loadedFunc->GetBody()->GetDisplayName());
+                    break;
+                }
+            }
+            Output::Print(_u(" R%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::LdArr_Func:
-            Output::Print(_u(" R%d = R%d[I%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" R%d = R%d[I%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::StSlot_Int:
-            Output::Print(_u(" R%d[%d] = I%d "), data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d] = I%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::StSlot_Flt:
-            Output::Print(_u(" R%d[%d] = F%d "), data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d] = F%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::StSlot_Db:
-            Output::Print(_u(" R%d[%d] = D%d "), data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d] = D%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::LdSlot_Int:
-            Output::Print(_u(" I%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" I%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::LdSlot_Flt:
-            Output::Print(_u(" F%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" F%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::LdSlot_Db:
-            Output::Print(_u(" D%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" D%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_F4:
-            Output::Print(_u(" F4_%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" F4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_I4:
-            Output::Print(_u(" I4_%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" I4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B4:
-            Output::Print(L" B4_%d = R%d[%d] ", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(L" B4_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B8:
-            Output::Print(L" B8_%d = R%d[%d] ", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(L" B8_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B16:
-            Output::Print(L" B16_%d = R%d[%d] ", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(L" B16_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
             break;
 #if 0
         case OpCodeAsmJs::Simd128_LdSlot_D2:
-            Output::Print(_u(" D2_%d = R%d[%d] "), data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" D2_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
 
 #endif // 0

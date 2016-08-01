@@ -49,18 +49,21 @@ MACRO           ( StartCall                  , StartCall       , None           
 MACRO_WMS       ( Call                       , AsmCall         , None            ) // Execute call and place return value in register
 MACRO_WMS       ( ArgOut_Db                  , Reg1Double1     , None            ) // convert double to var and place it for function call
 MACRO_WMS       ( ArgOut_Int                 , Reg1Int1        , None            ) // convert int to var and place it for function call
-MACRO_WMS       ( Conv_VTD                   , Double1Reg1     , None            ) // convert var to double
 MACRO_WMS       ( Conv_VTI                   , Int1Reg1        , None            ) // convert var to int
+MACRO_WMS       ( Conv_VTL                   , Long1Reg1       , None            ) // convert var to int64
 MACRO_WMS       ( Conv_VTF                   , Float1Reg1      , None            ) // convert var to float
+MACRO_WMS       ( Conv_VTD                   , Double1Reg1     , None            ) // convert var to double
 // Internal calls
 MACRO           ( I_StartCall                , StartCall       , None            )    // Initialize memory for a call
 MACRO_WMS       ( I_Call                     , AsmCall         , None            )    // Execute call and place return value in register
-MACRO_WMS       ( I_ArgOut_Db                , Reg1Double1     , None            )    // convert double to var and place it for function call
-MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None            )    // convert int to var and place it for function call
-MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            )    // convert float to var and place it for function call
-MACRO_WMS       ( I_Conv_VTD                 , Double2         , None            )    // convert var to double
+MACRO_WMS       ( I_ArgOut_Db                , Reg1Double1     , None            )    // place double arg for function call
+MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None            )    // place int arg for function call
+MACRO_WMS       ( I_ArgOut_Long              , Reg1Long1       , None            )    // place int64 arg for function call
+MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            )    // place float arg for function call
 MACRO_WMS       ( I_Conv_VTI                 , Int2            , None            )    // convert var to int
+MACRO_WMS       ( I_Conv_VTL                 , Long2           , None            )    // convert var to int64
 MACRO_WMS       ( I_Conv_VTF                 , Float2          , None            )    // convert var to float
+MACRO_WMS       ( I_Conv_VTD                 , Double2         , None            )    // convert var to double
 
 // loop
 MACRO_WMS       ( AsmJsLoopBodyStart         , AsmUnsigned1    , None            )    // Marks the start of a loop body

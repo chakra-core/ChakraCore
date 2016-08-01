@@ -270,6 +270,18 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteLong1Const1(OpCodeAsmJs op, RegSlot R0, int64 C1)
+    {
+        OpLayoutT_Long1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.L0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
     {
         OpLayoutT_Float1Const1<SizePolicy> layout;
@@ -403,6 +415,11 @@ namespace Js
     void AsmJsByteCodeWriter::AsmInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
         MULTISIZE_LAYOUT_WRITE(Int1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmLong1Const1(OpCodeAsmJs op, RegSlot R0, int64 C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Long1Const1, op, R0, C1);
     }
 
     void AsmJsByteCodeWriter::AsmFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
