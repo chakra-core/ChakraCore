@@ -21,6 +21,12 @@ print(a.trunc(NaN)); // == NaN
 print(a.trunc(-NaN)); // == NaN
 print(a.trunc(Infinity)); // == Infinity
 print(a.trunc(-Infinity)); // == -Infinity
+print(a.f64trunc(0.5)); // == 0
+print(a.f64trunc(-1.5)); // == -1
+print(a.f64trunc(NaN)); // == NaN
+print(a.f64trunc(-NaN)); // == NaN
+print(a.f64trunc(Infinity)); // == Infinity
+print(a.f64trunc(-Infinity)); // == -Infinity
 print(a.ifeqz(0)); // == 1
 print(a.ifeqz(-1)); // == 0
 print(a.nearest(-0.1)); // == 0
@@ -30,4 +36,11 @@ print(a.nearest(NaN)); // == NaN
 print(a.nearest(-NaN)); // == NaN
 print(a.nearest(Infinity)); // == Infinity
 print(a.nearest(-Infinity)); // == -Infinity
+print(a.f64nearest(-0.1)); // == 0
+print(a.f64nearest(-0.7)); // == -1
+print(a.f64nearest(-1.5)); // == -2
+print(a.f64nearest(NaN)); // == NaN
+print(a.f64nearest(-NaN)); // == NaN
+print(a.f64nearest(Infinity)); // == Infinity
+print(a.f64nearest(-Infinity)); // == -Infinity
 //print(a.f64copysign(255.0,-1.0)); // == -255.0
