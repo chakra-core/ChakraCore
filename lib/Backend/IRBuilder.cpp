@@ -27,25 +27,30 @@ IRBuilder::AddStatementBoundary(uint statementIndex, uint offset)
     }
 
 #ifdef BAILOUT_INJECTION
-    // Don't inject bailout if the function have trys
-    if (!this->m_func->GetTopFunc()->HasTry() && (statementIndex != Js::Constants::NoStatementIndex))
+    if (!this->m_func->IsOOPJIT())
     {
-        if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutFlag) && !this->m_func->GetJITFunctionBody()->IsLibraryCode())
+        // Don't inject bailout if the function have trys
+        if (!this->m_func->GetTopFunc()->HasTry() && (statementIndex != Js::Constants::NoStatementIndex))
         {
-            ULONG line;
-            LONG col;
-
-            // Since we're on a separate thread, don't allow the line cache to be allocated in the Recycler.
-            if (this->m_func->GetJnFunction()->GetLineCharOffset(this->m_jnReader.GetCurrentOffset(), &line, &col, false /*canAllocateLineCache*/))
+            if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutFlag) && !this->m_func->GetJITFunctionBody()->IsLibraryCode())
             {
-                line++;
-                if (Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)col) || Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)-1))
+                ULONG line;
+                LONG col;
+
+                // Since we're on a separate thread, don't allow the line cache to be allocated in the Recycler.
+                if (this->m_func->GetJnFunction()->GetLineCharOffset(this->m_jnReader.GetCurrentOffset(), &line, &col, false /*canAllocateLineCache*/))
                 {
-                    this->InjectBailOut(offset);
+                    line++;
+                    if (Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)col) || Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)-1))
+                    {
+                        this->InjectBailOut(offset);
+                    }
                 }
             }
-        } else if(Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryLineFlag)) {
-            this->InjectBailOut(offset);
+            else if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryLineFlag)) 
+            {
+                this->InjectBailOut(offset);
+            }
         }
     }
 #endif
@@ -684,23 +689,26 @@ IRBuilder::Build()
 #endif
             )
         {
-            if (!seenLdStackArgPtr && !seenProfiledBeginSwitch)
+            if (!this->m_func->IsOOPJIT())
             {
-                if(Js::Configuration::Global.flags.IsEnabled(Js::BailOutByteCodeFlag))
+                if (!seenLdStackArgPtr && !seenProfiledBeginSwitch)
                 {
-                    ThreadContext * threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-                    if (Js::Configuration::Global.flags.BailOutByteCode.Contains(threadContext->bailOutByteCodeLocationCount))
+                    if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutByteCodeFlag))
+                    {
+                        ThreadContext * threadContext = this->m_func->GetScriptContext()->GetThreadContext();
+                        if (Js::Configuration::Global.flags.BailOutByteCode.Contains(threadContext->bailOutByteCodeLocationCount))
+                        {
+                            this->InjectBailOut(offset);
+                        }
+                    }
+                    else if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryByteCodeFlag))
                     {
                         this->InjectBailOut(offset);
                     }
                 }
-                else if(Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryByteCodeFlag))
-                {
-                    this->InjectBailOut(offset);
-                }
-            }
 
-            CheckBailOutInjection(newOpcode);
+                CheckBailOutInjection(newOpcode);
+            }
         }
 #endif
         AssertMsg(Js::OpCodeUtil::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
@@ -731,20 +739,23 @@ IRBuilder::Build()
         }
 
 #ifdef BAILOUT_INJECTION
-        if (!this->m_func->GetTopFunc()->HasTry() && Js::Configuration::Global.flags.IsEnabled(Js::BailOutByteCodeFlag))
+        if (!this->m_func->IsOOPJIT())
         {
-            ThreadContext * threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-            if (lastInstr != m_lastInstr)
+            if (!this->m_func->GetTopFunc()->HasTry() && Js::Configuration::Global.flags.IsEnabled(Js::BailOutByteCodeFlag))
             {
-                lastInstr = lastInstr->GetNextRealInstr();
-                if (lastInstr->HasBailOutInfo())
+                ThreadContext * threadContext = this->m_func->GetScriptContext()->GetThreadContext();
+                if (lastInstr != m_lastInstr)
                 {
-                    lastInstr = lastInstr->m_next;
+                    lastInstr = lastInstr->GetNextRealInstr();
+                    if (lastInstr->HasBailOutInfo())
+                    {
+                        lastInstr = lastInstr->m_next;
+                    }
+                    lastInstr->bailOutByteCodeLocation = threadContext->bailOutByteCodeLocationCount;
+                    lastInstr = m_lastInstr;
                 }
-                lastInstr->bailOutByteCodeLocation = threadContext->bailOutByteCodeLocationCount;
-                lastInstr = m_lastInstr;
+                threadContext->bailOutByteCodeLocationCount++;
             }
-            threadContext->bailOutByteCodeLocationCount++;
         }
 #endif
         if (IsLoopBodyInTry() && m_lastInstr->GetDst() && m_lastInstr->GetDst()->IsRegOpnd() && m_lastInstr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
