@@ -119,7 +119,7 @@ JITManager::CreateBinding(
 
             // The server process died for some reason. No need to reattempt.
             // We use -1 as the exit code if GetExitCodeProcess fails.
-            NT_VERIFY(GetExitCodeProcess(serverProcessHandle, &exitCode));
+            Assert(GetExitCodeProcess(serverProcessHandle, &exitCode));
             status = RPC_S_SERVER_UNAVAILABLE;
             break;
         }
@@ -130,7 +130,7 @@ JITManager::CreateBinding(
         else
         {
             // wait operation failed for an unknown reason.
-            NT_ASSERT(false);
+            Assert(false);
             status = HRESULT_FROM_WIN32(waitStatus);
             break;
         }
@@ -197,7 +197,7 @@ JITManager::ConnectRpcServer(DWORD proccessId, UUID connectionUuid)
         return E_FAIL;
     }
 
-    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, &connectionUuidString));
+    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, (RPC_WSTR*)&connectionUuidString));
     if (FAILED(hr))
     {
         return hr;

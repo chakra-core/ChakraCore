@@ -33,6 +33,8 @@
       </AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(BuildJIT)'!='false'">
         $(ChakraCoreRootDirectory)Lib\Backend;
+        $(ChakraJITIDLIntDir);
+        $(MSBuildThisFileDirectory)..\..\lib\JITClient;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
     </ClCompile>
@@ -46,6 +48,7 @@
         user32.lib;
         advapi32.lib;
         ole32.lib;
+        Rpcrt4.lib;
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs);oleaut32.dll</DelayLoadDLLs>

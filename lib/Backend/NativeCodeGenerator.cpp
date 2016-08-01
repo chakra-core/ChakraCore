@@ -859,8 +859,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-#ifdef ENABLE_BASIC_TELEMETRY
     ThreadContext *threadContext = scriptContext->GetThreadContext();
+#ifdef ENABLE_BASIC_TELEMETRY
     double startTime = threadContext->JITTelemetry.Now();
 #endif
 

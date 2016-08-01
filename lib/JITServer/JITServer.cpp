@@ -17,7 +17,7 @@ HRESULT JsInitializeRpcServer(
     uuidVector.Uuid[0] = connectionUuid;
 
     status = RpcServerUseProtseqEpW(
-        L"ncalrpc",
+        (RPC_WSTR)L"ncalrpc",
         RPC_C_PROTSEQ_MAX_REQS_DEFAULT,
         NULL,
         NULL);
