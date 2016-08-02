@@ -194,13 +194,3 @@ endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 
 # Install the static PAL library for VS
 install (TARGETS Chakra.Pal DESTINATION lib)
-
-if(NOT CC_XCODE_PROJECT)
-  if (STATIC_LIBRARY)
-    add_custom_command(TARGET Chakra.Pal POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "${CHAKRACORE_BINARY_DIR}/pal/src/libChakra.Pal.a"
-      "${CHAKRACORE_BINARY_DIR}/../bin/"
-      )
-  endif()
-endif()

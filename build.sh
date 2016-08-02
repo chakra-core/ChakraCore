@@ -23,7 +23,7 @@ PRINT_USAGE() {
     echo "options:"
     echo "      --cxx=PATH       Path to Clang++ (see example below)"
     echo "      --cc=PATH        Path to Clang   (see example below)"
-    echo "  -d, --debug          Debug build (by default Release build)"
+    echo "  -d, --debug-build    Debug build (by default Release build)"
     echo "  -h, --help           Show help"
     echo "      --icu=PATH       Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
@@ -79,7 +79,7 @@ while [[ $# -gt 0 ]]; do
         _VERBOSE="verbose"
         ;;
 
-    -d | --debug)
+    -d | --debug-build)
         BUILD_TYPE="debug"
         ;;
 
@@ -216,7 +216,7 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-root_build_directory="$CHAKRACORE_DIR/Build/clang_build/${BUILD_ARCH}_${BUILD_TYPE:0}"
+root_build_directory="$CHAKRACORE_DIR/Build/clang_build/${BUILD_ARCH}_${BUILD_TYPE}"
 if [ ! -d "$root_build_directory" ]; then
     SAFE_RUN `mkdir -p $root_build_directory`
 fi
@@ -234,7 +234,8 @@ fi
 pushd $build_directory > /dev/null
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=${BUILD_TYPE^} $WITHOUT_FEATURES ../../../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY \
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE^} $WITHOUT_FEATURES ../../../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
