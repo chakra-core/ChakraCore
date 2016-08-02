@@ -135,7 +135,7 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
                     def jobName = Utilities.getFullJobName(project, config, isPR)
 
                     def infoScript = "bash jenkins/get_system_info.sh --${platform}"
-                    def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
+                    def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug-build" : "--test-build")
                     def staticFlag = staticBuild ? "--static" : ""
                     def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
                     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
