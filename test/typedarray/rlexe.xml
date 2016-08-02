@@ -9,25 +9,16 @@
   </test>
   <test>
     <default>
-      <files>arraybufferType_v5.js</files>
-      <baseline>arraybufferType_v5.baseline</baseline>
-      <tags>typedarray</tags>
-      <compile-flags>-ES6- </compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>arraybufferType.js</files>
       <baseline>arraybufferType.baseline</baseline>
       <tags>typedarray</tags>
-      <compile-flags>-ES6TypedArrayExtensions</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>TypedArrayBuiltins.js</files>
       <tags>typedarray</tags>
-      <compile-flags>-ES6TypedArrayExtensions -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

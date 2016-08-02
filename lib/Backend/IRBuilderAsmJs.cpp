@@ -3186,6 +3186,7 @@ IRBuilderAsmJs::GenerateLoopBodySlotAccesses(uint offset)
     StackSym *symSrc = StackSym::NewParamSlotSym(argument + 1, m_func);
     symSrc->m_offset = (argument + LowererMD::GetFormalParamOffset()) * MachPtr;
     symSrc->m_allocated = true;
+    m_func->SetHasImplicitParamLoad();
     IR::SymOpnd *srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, m_func);
 
     StackSym *loopParamSym = m_func->EnsureLoopParamSym();

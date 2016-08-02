@@ -15,6 +15,7 @@ namespace Js {
         {
             ByteCodeGenerator* byteCodeGenerator;
             FuncInfo* func;
+            int nonScopeSymbolCount;
         };
 
         struct SymbolInfo
@@ -28,6 +29,8 @@ namespace Js {
             bool hasFuncAssignment;
             bool isBlockVariable;
             bool isFuncExpr;
+            bool isModuleExportStorage;
+            bool isModuleImport;
         };
 
     private:
@@ -100,6 +103,20 @@ namespace Js {
             symbols[i].isFuncExpr = is;
         }
 
+        void SetIsModuleExportStorage(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isModuleExportStorage = is;
+        }
+
+        void SetIsModuleImport(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isModuleImport = is;
+        }
+
         void SetPropertyName(int i, PropertyRecord const* name)
         {
             Assert(!areNamesCached);
@@ -124,6 +141,18 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].hasFuncAssignment;
+        }
+
+        bool GetIsModuleExportStorage(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isModuleExportStorage;
+        }
+
+        bool GetIsModuleImport(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isModuleImport;
         }
 
         bool GetIsBlockVariable(int i)
