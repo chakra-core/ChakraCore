@@ -200,76 +200,60 @@ namespace Js
         Output::Flush();
     }
 
+    template<typename T, typename Func>
+    void PrintTypedConstants(byte* table, WAsmJs::Types type, uint nConsts, Func printValFunc)
+    {
+        T* constTable = (T*)table;
+        if (nConsts > 0)
+        {
+            char16 buf[32];
+            WAsmJs::RegisterSpace::GetTypeDebugName(type, buf, 32);
+            Output::Print(_u("    Constant %s:\n    ======== =======\n    "), buf);
+            WAsmJs::RegisterSpace::GetTypeDebugName(type, buf, 32, true);
+            for (uint i = 0; i < nConsts; i++)
+            {
+                Output::Print(_u(" %s%d  "), buf, i);
+                printValFunc(*constTable);
+                Output::Print(_u("\n    "));
+                ++constTable;
+            }
+        }
+    }
+
     void AsmJsByteCodeDumper::DumpConstants(AsmJsFunc* func, FunctionBody* body)
     {
-        const auto& intRegisters = func->GetRegisterSpace<int>();
-        const auto& doubleRegisters = func->GetRegisterSpace<double>();
-        const auto& floatRegisters = func->GetRegisterSpace<float>();
-
-        int nbIntConst = intRegisters.GetConstCount();
-        int nbDoubleConst = doubleRegisters.GetConstCount();
-        int nbFloatConst = floatRegisters.GetConstCount();
-
-        int* constTable = (int*)((Var*)body->GetConstTable() + (AsmJsFunctionMemory::RequiredVarConstants - 1));
-        if (nbIntConst > 0)
+        byte* table = (byte*)((Var*)body->GetConstTable());
+        auto constSrcInfos = func->GetTypedRegisterAllocator().GetConstSourceInfos();
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            Output::Print(_u("    Constant Integer:\n    ======== =======\n    "));
-            for (int i = 0; i < nbIntConst; i++)
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            uint offset = constSrcInfos.srcByteOffsets[i];
+            if (offset > 0)
             {
-                Output::Print(_u(" I%d  %d\n    "), i, *constTable);
-                ++constTable;
+                byte* tableOffseted = table + offset;
+                uint constCount = func->GetTypedRegisterAllocator().GetRegisterSpace(type)->GetConstCount();
+                switch (type)
+                {
+                case WAsmJs::INT32:   PrintTypedConstants<int>(tableOffseted, type, constCount, [](int v) {Output::Print(_u("%d"), v);}); break;
+                case WAsmJs::INT64:   PrintTypedConstants<int64>(tableOffseted, type, constCount, [](int64 v) {Output::Print(_u("%lld"), v);}); break;
+                case WAsmJs::FLOAT32: PrintTypedConstants<float>(tableOffseted, type, constCount, [](float v) {Output::Print(_u("%.4f"), v);}); break;
+                case WAsmJs::FLOAT64: PrintTypedConstants<double>(tableOffseted, type, constCount, [](double v) {Output::Print(_u("%.4f"), v);}); break;
+                case WAsmJs::SIMD:    PrintTypedConstants<AsmJsSIMDValue>(tableOffseted, type, constCount, [](AsmJsSIMDValue v) {
+                    Output::Print(_u("\tI4(%d, %d, %d, %d),"), v.i32[SIMD_X], v.i32[SIMD_Y], v.i32[SIMD_Z], v.i32[SIMD_W]);
+                    Output::Print(_u("\tF4(%.4f, %.4f, %.4f, %.4f),"), v.f32[SIMD_X], v.f32[SIMD_Y], v.f32[SIMD_Z], v.f32[SIMD_W]);
+                    Output::Print(_u("\tD2(%.4f, %.4f)\n    "), v.f64[SIMD_X], v.f64[SIMD_Y]);
+                    Output::Print(_u("\tI8(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d )\n    "),
+                                  v.i8[0], v.i8[1], v.i8[2], v.i8[3], v.i8[4], v.i8[5], v.i8[6], v.i8[7],
+                                  v.i8[8], v.i8[9], v.i8[10], v.i8[11], v.i8[12], v.i8[13], v.i8[14], v.i8[15]);
+                    });
+                    break;
+                default:
+                    Assert(false);
+                    break;
+                }
             }
+            Output::Print(_u("\n"));
         }
-
-        float* floatTable = (float*)constTable;
-        Output::Print(_u("\n"));
-        if (nbFloatConst > 0)
-        {
-
-            Output::Print(_u("    Constant Floats:\n    ======== ======\n    "));
-            for (int i = 0; i < nbFloatConst; i++)
-            {
-                Output::Print(_u(" F%d  %.4f\n    "), i, *floatTable);
-                ++floatTable;
-                ++constTable;
-            }
-        }
-
-        double* doubleTable = (double*)constTable;
-        Output::Print(_u("\n"));
-        if (nbDoubleConst > 0)
-        {
-
-            Output::Print(_u("    Constant Doubles:\n    ======== ======\n    "));
-            for (int i = 0; i < nbDoubleConst; i++)
-            {
-                Output::Print(_u(" D%d  %.4f\n    "), i, *doubleTable);
-                ++doubleTable;
-            }
-        }
-        // SIMD reg space is un-typed.
-        // We print each register in its 3 possible types to ease debugging.
-        const auto& simdRegisters = func->GetRegisterSpace<AsmJsSIMDValue>();
-        int nbSimdConst = simdRegisters.GetConstCount();
-
-        Output::Print(_u("\n"));
-        if (nbSimdConst > 0)
-        {
-            AsmJsSIMDValue* simdTable = (AsmJsSIMDValue*)doubleTable;
-            Output::Print(_u("    Constant SIMD values:\n    ======== ======\n    "));
-            for (int i = 0; i < nbSimdConst; i++)
-            {
-                Output::Print(_u("SIMD%d "), i);
-                Output::Print(_u("\tI4(%d, %d, %d, %d),"), simdTable->i32[SIMD_X], simdTable->i32[SIMD_Y], simdTable->i32[SIMD_Z], simdTable->i32[SIMD_W]);
-                Output::Print(_u("\tF4(%.4f, %.4f, %.4f, %.4f),"), simdTable->f32[SIMD_X], simdTable->f32[SIMD_Y], simdTable->f32[SIMD_Z], simdTable->f32[SIMD_W]);
-                Output::Print(_u("\tD2(%.4f, %.4f)\n    "), simdTable->f64[SIMD_X], simdTable->f64[SIMD_Y]);
-                Output::Print(_u("\tI8(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d )\n    "), 
-                    simdTable->i8[0], simdTable->i8[1], simdTable->i8[2], simdTable->i8[3], simdTable->i8[4], simdTable->i8[5], simdTable->i8[6], simdTable->i8[7],
-                    simdTable->i8[8], simdTable->i8[9], simdTable->i8[10], simdTable->i8[11], simdTable->i8[12], simdTable->i8[13], simdTable->i8[14], simdTable->i8[15]);
-                ++simdTable;
-            }
-        }
-        Output::Print(_u("\n"));
     }
 
     void AsmJsByteCodeDumper::DumpOp(OpCodeAsmJs op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction)

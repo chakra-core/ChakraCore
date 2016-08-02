@@ -61,6 +61,7 @@ namespace WAsmJs
         SIMD,
         LIMIT
     };
+    uint32 GetTypeByteSize(Types type);
 
     /// Register space for const, parameters, variables and tmp values
     ///     --------------------------------------------------------
@@ -232,7 +233,6 @@ namespace WAsmJs
         template<> static Types GetRegisterSpaceType<float>(){return WAsmJs::FLOAT32;}
         template<> static Types GetRegisterSpaceType<double>(){return WAsmJs::FLOAT64;}
         template<> static Types GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
-        static uint32 GetTypeByteSize(Types type);
 #if DBG_DUMP
         // Used for debugging
         Types mType;
@@ -241,12 +241,21 @@ namespace WAsmJs
 #endif
     };
 
+    struct TypedConstSourcesInfo
+    {
+        uint32 srcByteOffsets[WAsmJs::LIMIT];
+    };
+
     struct TypedSlotInfo
     {
         uint32 constCount;
         uint32 varCount;
         uint32 tmpCount;
+        // Offset in bytes from the start of InterpreterStack::m_localSlot
         uint32 byteOffset;
+        // Offset in bytes from the start of the const table before shuffling (InterpreterStackFrame::AlignMemoryForAsmJs())
+        uint32 constSrcByteOffset;
+        bool isValidType;
     };
 
     typedef RegisterSpace*(*AllocateRegisterSpaceFunc)(ArenaAllocator*, WAsmJs::Types);
@@ -261,6 +270,8 @@ namespace WAsmJs
         uint32 GetTotalJsVarCount(bool constOnly = false) const;
         void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const;
         void CommitToFunctionBody(Js::FunctionBody* body);
+        TypedConstSourcesInfo GetConstSourceInfos() const;
+
         bool IsTypeExcluded(Types type) const;
 #if DBG_DUMP
         void DumpLocalsInfo() const;
