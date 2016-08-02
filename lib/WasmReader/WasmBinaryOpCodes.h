@@ -249,8 +249,8 @@ WASM_UNARY__OPCODE(I32ReinterpretF32, 0xb4, I_F , Reinterpret_FTI, false)
 WASM_UNARY__OPCODE(I64ReinterpretF64, 0xb5, L_D , Reinterpret_DTL, true)
 WASM_BINARY_OPCODE(I32Ror,            0xb6, I_II, Ror_Int        , false)
 WASM_BINARY_OPCODE(I32Rol,            0xb7, I_II, Rol_Int        , false)
-WASM_BINARY_OPCODE(I64Rol,            0xb8, L_LL, Rol_Long       , !Js::Configuration::Global.flags.NoNative)
-WASM_BINARY_OPCODE(I64Ror,            0xb9, L_LL, Ror_Long       , !Js::Configuration::Global.flags.NoNative)
+WASM_BINARY_OPCODE(I64Ror,            0xb8, L_LL, Ror_Long       , !Js::Configuration::Global.flags.NoNative)
+WASM_BINARY_OPCODE(I64Rol,            0xb9, L_LL, Rol_Long       , !Js::Configuration::Global.flags.NoNative)
 WASM_UNARY__OPCODE(I64Eqz,            0xba, I_L , Eqz_Long       , !Js::Configuration::Global.flags.NoNative)
 
 #undef WASM_OPCODE

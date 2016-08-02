@@ -17,12 +17,12 @@ namespace Js
         template<typename T> static T Min( T aLeft, T aRight );
         template<typename T> static T Max( T aLeft, T aRight );
 
-        static int And( int aLeft, int aRight );
-        static int Or( int aLeft, int aRight );
-        static int Xor( int aLeft, int aRight );
-        static int Shl( int aLeft, int aRight );
-        static int Shr( int aLeft, int aRight );
-        static int ShrU( int aLeft, int aRight );
+        template<typename T = int> static T And( T aLeft, T aRight );
+        template<typename T = int> static T Or( T aLeft, T aRight );
+        template<typename T = int> static T Xor( T aLeft, T aRight );
+        template<typename T = int> static T Shl( T aLeft, T aRight );
+        template<typename T = int> static T Shr( T aLeft, T aRight );
+        template<typename T = int> static T ShrU( T aLeft, T aRight );
         template<typename T> static T Neg( T aLeft);
         static int Not( int aLeft);
         static int LogNot( int aLeft);

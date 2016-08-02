@@ -61,7 +61,6 @@ MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None           
 MACRO_WMS       ( I_ArgOut_Long              , Reg1Long1       , None            )    // place int64 arg for function call
 MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            )    // place float arg for function call
 MACRO_WMS       ( I_Conv_VTI                 , Int2            , None            )    // convert var to int
-MACRO_WMS       ( I_Conv_VTL                 , Long2           , None            )    // convert var to int64
 MACRO_WMS       ( I_Conv_VTF                 , Float2          , None            )    // convert var to float
 MACRO_WMS       ( I_Conv_VTD                 , Double2         , None            )    // convert var to double
 
@@ -282,7 +281,6 @@ MACRO_EXTEND_WMS( Trunc_Db                   , Double2         , None           
 MACRO_EXTEND_WMS( Trunc_Flt                  , Float2          , None            )
 MACRO_EXTEND_WMS( Nearest_Db                 , Double2         , None            )
 MACRO_EXTEND_WMS( Nearest_Flt                , Float2          , None            )
-MACRO_EXTEND_WMS( PopCnt_Int                 , Int2            , None            ) 
 MACRO_EXTEND_WMS( CurrentMemory_Int          , AsmReg1         , None            )
 
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
