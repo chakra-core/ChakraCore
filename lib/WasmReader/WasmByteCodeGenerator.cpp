@@ -820,7 +820,7 @@ WasmBytecodeGenerator::EmitCall()
             convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
-            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::I_Conv_VTL;
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
             break;
         default:
             throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);

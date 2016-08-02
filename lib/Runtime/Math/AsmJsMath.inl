@@ -110,34 +110,40 @@ namespace Js
         return NumberUtilities::Modulus( aLeft, aRight );
     }
 
-    inline int AsmJsMath::And( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::And( T aLeft, T aRight )
     {
         return aLeft & aRight;
     }
 
-    inline int AsmJsMath::Or( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Or( T aLeft, T aRight )
     {
         return aLeft | aRight;
     }
 
-    inline int AsmJsMath::Xor( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Xor( T aLeft, T aRight )
     {
         return aLeft ^ aRight;
     }
 
-    inline int AsmJsMath::Shl( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Shl( T aLeft, T aRight )
     {
         return aLeft << aRight;
     }
 
-    inline int AsmJsMath::Shr( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Shr( T aLeft, T aRight )
     {
         return aLeft >> aRight;
     }
 
-    inline int AsmJsMath::ShrU( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::ShrU( T aLeft, T aRight )
     {
-        return (unsigned int)aLeft >> (unsigned int)aRight;
+        return aLeft >> aRight;
     }
 
     template<typename T>

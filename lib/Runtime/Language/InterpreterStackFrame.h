@@ -162,6 +162,7 @@ namespace Js
         void OP_I_SetOutAsmInt(RegSlot outRegisterID, int val);
         void OP_I_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val);
+        void OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val);
 
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
 
@@ -270,6 +271,8 @@ namespace Js
         DWORD_PTR GetStackAddress() const;
         void* GetAddressOfReturnAddress() const;
 
+        template <typename T>
+        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 #if _M_IX86
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
@@ -280,8 +283,6 @@ namespace Js
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
         static void * GetAsmJsInterpreterEntryPoint(AsmJsCallStackLayout* stack);
-        template <typename T>
-        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 
         static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
