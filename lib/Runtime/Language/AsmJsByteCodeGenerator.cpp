@@ -112,72 +112,54 @@ namespace Js
         return pnodeBlock->sxBlock.scope != nullptr && ( !( pnodeBlock->grfpn & fpnSyntheticNode ) );
     }
 
-    // copy all constants from reg spaces to function body.
-    void AsmJSByteCodeGenerator::LoadAllConstants()
+    template<typename T> void AsmJSByteCodeGenerator::SetConstsToTable(byte* byteTable, T zeroValue)
     {
+        T* typedTable = (T*)byteTable;
+        // Return Register
+        *typedTable = zeroValue;
+        typedTable++;
 
-        FunctionBody *funcBody = mFunction->GetFuncBody();
-        funcBody->CreateConstantTable();
-        Var* table = funcBody->GetConstTable();
-        table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is zero-based calculation
-
-        int* intTable = (int*)table;
-        // int Return Register
-        *intTable = 0;
-        intTable++;
-
-        JsUtil::BaseDictionary<int, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> intMap = mFunction->GetRegisterSpace<int>().GetConstMap();
+        JsUtil::BaseDictionary<T, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> intMap = mFunction->GetRegisterSpace<T>().GetConstMap();
 
         for (auto it = intMap.GetIterator(); it.IsValid(); it.MoveNext())
         {
-            JsUtil::BaseDictionary<int, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
-            *intTable = entry.Key();
-            intTable++;
+            JsUtil::BaseDictionary<T, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
+            *typedTable = entry.Key();
+            typedTable++;
         }
+    }
 
-        float* floatTable = (float*)intTable;
-        // float Return Register
-        *floatTable = 0;
-        floatTable++;
+    // copy all constants from reg spaces to function body.
+    void AsmJSByteCodeGenerator::LoadAllConstants()
+    {
+        FunctionBody *funcBody = mFunction->GetFuncBody();
+        funcBody->CreateConstantTable();
+        Var* table = funcBody->GetConstTable();
 
-        JsUtil::BaseDictionary<float, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> floatMap = mFunction->GetRegisterSpace<float>().GetConstMap();
-
-        for (auto it = floatMap.GetIterator(); it.IsValid(); it.MoveNext())
+        WAsmJs::TypedConstSourcesInfo constSourcesInfo = mFunction->GetTypedRegisterAllocator().GetConstSourceInfos();
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            JsUtil::BaseDictionary<float, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
-            *floatTable = entry.Key();
-            floatTable++;
-        }
-
-        double* doubleTable = (double*)floatTable;
-        // double Return Register
-        *doubleTable = 0;
-        doubleTable++;
-
-        JsUtil::BaseDictionary<double, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> doubleMap = mFunction->GetRegisterSpace<double>().GetConstMap();
-
-        for (auto it = doubleMap.GetIterator(); it.IsValid(); it.MoveNext())
-        {
-            JsUtil::BaseDictionary<double, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
-            *doubleTable = entry.Key();
-            doubleTable++;
-        }
-
-        // SIMD_JS
-        if (IsSimdjsEnabled())
-        {
-            AsmJsSIMDValue* simdTable = (AsmJsSIMDValue*)doubleTable;
-            // SIMD return register
-            simdTable->f64[0] = 0; simdTable->f64[1] = 0;
-
-            JsUtil::BaseDictionary<AsmJsSIMDValue, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer> simdMap = mFunction->GetRegisterSpace<AsmJsSIMDValue>().GetConstMap();
-            for (auto it = simdMap.GetIterator(); it.IsValid(); it.MoveNext())
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            uint32 srcByteOffset = constSourcesInfo.srcByteOffsets[i];
+            byte* byteTable = ((byte*)table) + srcByteOffset;
+            if (srcByteOffset > 0)
             {
-                JsUtil::BaseDictionary<AsmJsSIMDValue, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
-                RegSlot regSlot = entry.Value();
-                Assert((Var*)simdTable + regSlot < funcBody->GetConstTable() + funcBody->GetConstantCount());
-                // we cannot do sequential copy since registers are assigned to constants in the order they appear in the code, not per dictionary order.
-                simdTable[entry.Value()] = entry.Key();
+                switch (type)
+                {
+                case WAsmJs::INT32: SetConstsToTable<int>(byteTable, 0); break;
+                case WAsmJs::FLOAT32: SetConstsToTable<float>(byteTable, 0); break;
+                case WAsmJs::FLOAT64: SetConstsToTable<double>(byteTable, 0); break;
+                case WAsmJs::SIMD:
+                {
+                    AsmJsSIMDValue zeroValue;
+                    zeroValue.f64[0] = 0; zeroValue.f64[1] = 0;
+                    SetConstsToTable<AsmJsSIMDValue>(byteTable, zeroValue);
+                    break;
+                }
+                default:
+                    Assert(false);
+                    break;
+                }
             }
         }
     }
