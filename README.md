@@ -75,6 +75,7 @@ You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 o
 * Open `Build\Chakra.Core.sln` in Visual Studio
 * Build Solution
 
+You can also build ChakraCore on other platforms with clang.
 More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
 
 ## Using ChakraCore
