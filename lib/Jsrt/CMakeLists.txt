@@ -44,13 +44,3 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
-
-if(NOT CC_XCODE_PROJECT)
-  if (STATIC_LIBRARY)
-    add_custom_command(TARGET Chakra.Jsrt POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "${CHAKRACORE_BINARY_DIR}/lib/Jsrt/libChakra.Jsrt.a"
-      "${CHAKRACORE_BINARY_DIR}/../bin/"
-      )
-  endif()
-endif()

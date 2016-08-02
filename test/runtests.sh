@@ -7,39 +7,39 @@
 
 test_path=`dirname "$0"`
 
-build_type=$1
-# Accept -d or -t. If none was given (i.e. current CI), 
-# search for the known paths
-if [[ $build_type != "-d" && $build_type != "-t" ]]; then
-    echo "Warning: You haven't provide either '-d' (debug) or '-t' (test)."
-    echo "Warning: Searching for ch.."
-    if [[ -f "$test_path/../Build/clang_build/x64_debug/bin/ch" ]]; then
-        echo "Warning: Debug build was found"
-        build_type="-d"
-    elif [[ -f "$test_path/../Build/clang_build/x64_test/bin/ch" ]]; then
-        echo "Warning: Test build was found"
-        build_type="-t"
-    elif [[ -f "$test_path/../BuildLinux/Release/ch" ]]; then
-        # TEST flags are not enabled for release build
-        # however we would like to test if the compiled binary
-        # works or not
-        CH="$test_path/../BuildLinux/Release/ch"
-        echo "Warning: Release build was found"
-        RES=$(${CH} $test_path/test/basics/hello.js)
-        if [[ $RES =~ "Error :" ]]; then
-            echo "FAILED"
-            exit 1
-        else
-            echo "PASS"
-            exit 0
-        fi
-    else
-        echo 'Error: ch not found- exiting'
+build_arch="x64"
+build_type="debug"
+
+if [[ $# -gt 0 ]]; then
+    build_arch=$1
+fi
+
+if [[ $# -gt 1 ]]; then
+    build_type=$2
+fi
+
+if [[ $build_type == "debug" ]]; then
+    test_flags="-d"
+elif [[ $build_type == "test" ]]; then
+    test_flags="-t"
+elif [[ $build_type == "release" ]]; then
+    # however we would like to test if the compiled binary
+    # works or not
+    CH="$test_path/../Build/clang_build/${build_arch}_${build_type}/ch"
+    echo "Warning: Release build was found"
+    RES=$(${CH} $test_path/test/basics/hello.js)
+    if [[ $RES =~ "Error :" ]]; then
+        echo "FAILED"
         exit 1
+    else
+        echo "PASS"
+        exit 0
     fi
 fi
 
-"$test_path/runtests.py" $build_type --not-tag exclude_jenkins
+echo "Invoking runtests.py with parameter $test_flags ($build_arch $build_type)"
+
+"$test_path/runtests.py" $test_flags --not-tag exclude_jenkins
 if [[ $? != 0 ]]; then
     exit 1
 fi

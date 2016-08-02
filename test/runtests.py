@@ -87,7 +87,7 @@ if binary == None:
         binary = 'Build/clang_build/{}_{}/bin/ch'.format(arch, flavor.lower())
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
-    print('{} not found. Did you run ./build.sh already?'.format(binary))
+    print('{} not found. Please ensure you have run ./build.sh already.'.format(binary))
     sys.exit(1)
 
 # global tags/not_tags

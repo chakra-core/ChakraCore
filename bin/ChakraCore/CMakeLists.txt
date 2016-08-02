@@ -58,7 +58,7 @@ target_link_libraries (ChakraCore ${lib_target})
 
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")
-  # Post build step to copy the built shared library
+  # Post build step to copy the built shared library to
   # Build/clang_build's flavor specific build
   # directory for convenience (or whatever CMakeBuildDir is)
   if(CMAKE_SYSTEM_NAME STREQUAL Darwin)

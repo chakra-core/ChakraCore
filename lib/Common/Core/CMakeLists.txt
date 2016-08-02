@@ -21,13 +21,3 @@ add_library (Chakra.Common.Core STATIC
 
 target_include_directories (
     Chakra.Common.Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-if(NOT CC_XCODE_PROJECT)
-  if (STATIC_LIBRARY)
-    add_custom_command(TARGET Chakra.Common.Core POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "${CHAKRACORE_BINARY_DIR}/lib/Common/Core/libChakra.Common.Core.a"
-      "${CHAKRACORE_BINARY_DIR}/../bin/"
-      )
-  endif()
-endif()
