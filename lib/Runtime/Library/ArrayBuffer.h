@@ -11,9 +11,6 @@ namespace Js
     class ArrayBufferParent;
     class ArrayBuffer : public DynamicObject
     {
-    private:
-        static PropertyId const specialPropertyIds[];
-
     public:
         // we need to install cross-site thunk on the nested array buffer when marshaling
         // typed array.
@@ -21,7 +18,6 @@ namespace Js
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         void ClearParentsLength(ArrayBufferParent* parent);
         static uint32 GetByteLengthFromVar(ScriptContext* scriptContext, Var length);
     public:
@@ -83,28 +79,6 @@ namespace Js
         static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
         static ArrayBuffer* FromVar(Var aValue);
-        virtual BOOL HasProperty(Js::PropertyId propertyId) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
-        virtual BOOL SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
-        virtual BOOL DeleteProperty(Js::PropertyId propertyId, Js::PropertyOperationFlags flags) override;
-
-        virtual BOOL IsEnumerable(PropertyId propertyId)  override;
-        virtual BOOL IsConfigurable(PropertyId propertyId)  override;
-        virtual BOOL IsWritable(PropertyId propertyId)  override;
-        virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetWritable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
-        virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags) override;
-
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
-        virtual uint GetSpecialPropertyCount() const override;
-        virtual PropertyId const * GetSpecialPropertyIds() const override;
-        virtual BOOL InitProperty(Js::PropertyId propertyId, Js::Var value, PropertyOperationFlags flags = PropertyOperation_None, Js::PropertyValueInfo* info = NULL) override;
-        virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None , SideEffects possibleSideEffects = SideEffects_Any) override;
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -135,7 +109,6 @@ namespace Js
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) = 0;
         virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) = 0;
 
-        inline BOOL IsBuiltinProperty(PropertyId);
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
 
         //In most cases, the ArrayBuffer will only have one parent

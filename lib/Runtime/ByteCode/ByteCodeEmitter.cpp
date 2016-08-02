@@ -621,7 +621,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
                 Js::OpCode op = (sym->GetDecl()->nop == knopConstDecl) ? Js::OpCode::InitUndeclConsoleConstFld : Js::OpCode::InitUndeclConsoleLetFld;
                 this->m_writer.ElementScopedU(op, funcInfo->FindOrAddReferencedPropertyId(propertyId));
             }
-            else if (!sym->GetIsModuleExportStorage())
+            else
             {
                 Js::OpCode op = (sym->GetDecl()->nop == knopConstDecl) ?
                     Js::OpCode::InitUndeclRootConstFld : Js::OpCode::InitUndeclRootLetFld;
@@ -668,7 +668,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
                 TrackSlotArrayPropertyForDebugger(debuggerScope, sym, sym->EnsurePosition(this), pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
         }
-        else
+        else if (!sym->GetIsModuleExportStorage())
         {
             if (sym->GetDecl()->sxVar.isSwitchStmtDecl)
             {
@@ -682,7 +682,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
             {
                 TrackSlotArrayPropertyForDebugger(debuggerScope, sym, sym->EnsurePosition(this), pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
-            else
+            else 
             {
                 TrackRegisterPropertyForDebugger(debuggerScope, sym, funcInfo, pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
@@ -1338,7 +1338,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 Assert(sym && !sym->GetIsCatch() && !sym->GetIsBlockVar());
             }
 
-            if (sym->GetSymbolType() == STVariable)
+            if (sym->GetSymbolType() == STVariable && !sym->GetIsModuleExportStorage())
             {
                 if (fGlobal)
                 {
@@ -1361,13 +1361,6 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                                 Js::OpCode::LdElemUndefScoped, funcInfo->FindOrAddReferencedPropertyId(propertyId));
                         }
                     }
-                    else if (sym->GetIsModuleExportStorage())
-                    {
-                        Js::RegSlot reg = funcInfo->AcquireTmpRegister();
-                        this->m_writer.Reg1(Js::OpCode::LdUndef, reg);
-                        EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, reg, funcInfo);
-                        funcInfo->ReleaseTmpRegister(reg);
-                    }
                     else
                     {
                         this->m_writer.ElementU(Js::OpCode::LdElemUndef, ByteCodeGenerator::RootObjectRegister,
@@ -1389,7 +1382,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
 
                     // Undef-initialize the home location if it is a register (not closure-captured, or else capture
                     // is delayed) or a property of an object.
-                    if ((!sym->GetHasInit() && (!sym->NeedsSlotAlloc(funcInfo) || sym->GetHasNonCommittedReference())) ||
+                    if ((!sym->GetHasInit() && !sym->IsInSlot(funcInfo)) ||
                         (funcInfo->bodyScope->GetIsObject() && !funcInfo->GetHasCachedScope()))
                     {
                         Js::RegSlot reg = sym->GetLocation();
@@ -1484,7 +1477,7 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
                 auto fnInit = [this, funcInfo](ParseNode *pnode)
                 {
                     Symbol *sym = pnode->sxVar.sym;
-                    if (!sym->IsInSlot(funcInfo) && !sym->GetIsGlobal())
+                    if (!sym->IsInSlot(funcInfo) && !sym->GetIsGlobal() && !sym->GetIsModuleImport())
                     {
                         this->m_writer.Reg1(Js::OpCode::InitUndecl, pnode->sxVar.sym->GetLocation());
                     }
@@ -4418,6 +4411,12 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
     Scope *symScope = sym ? sym->GetScope() : this->globalScope;
     Assert(symScope);
 
+    if (sym != nullptr && sym->GetIsModuleExportStorage())
+    {
+        *pInstLocation = Js::Constants::NoRegister;
+        return;
+    }
+
     for (;;)
     {
         scope = this->FindScopeForSym(symScope, scope, &envIndex, funcInfo);
@@ -4516,11 +4515,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         this->m_writer.MarkLabel(nextLabel);
     }
 
-    if (sym != nullptr && sym->GetIsModuleExportStorage())
-    {
-        instLocation = Js::Constants::NoRegister;
-    }
-    else if (sym == nullptr || sym->GetIsGlobal())
+    if (sym == nullptr || sym->GetIsGlobal())
     {
         if (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
         {

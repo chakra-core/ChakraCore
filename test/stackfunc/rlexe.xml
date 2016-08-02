@@ -697,4 +697,10 @@
       <compile-flags>-lic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>box_inlineeFrameInLoopBody.js</files>
+      <compile-flags>-forcedeferparse -forcejitloopbody -force:rejit -force:inline</compile-flags>
+    </default>
+  </test>
 </regress-exe>

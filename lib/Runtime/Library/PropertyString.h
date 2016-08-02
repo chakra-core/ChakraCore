@@ -54,7 +54,7 @@ namespace Js
 
         virtual void const * GetOriginalStringReference() override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-        virtual bool IsAreanaAllocPropertyString() { return false; }
+        virtual bool IsArenaAllocPropertyString() { return false; }
 
         static uint32 GetOffsetOfPropertyCache() { return offsetof(PropertyString, propCache); }
 
@@ -64,12 +64,12 @@ namespace Js
 #endif
     };
 
-    class AreanaAllocPropertyString sealed : public PropertyString
+    class ArenaAllocPropertyString sealed : public PropertyString
     {
         friend PropertyString;
     protected:
-        AreanaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
+        ArenaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
     public:
-        virtual bool IsAreanaAllocPropertyString() override { return true; }
+        virtual bool IsArenaAllocPropertyString() override { return true; }
     };
 }
