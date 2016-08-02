@@ -2204,11 +2204,11 @@ LHexError:
         return TRUE;
     }
 
-    BOOL GlobalObject::StrictEquals(Js::Var other, BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::StrictEquals(__in Js::Var other, __out BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {
-            *value = true;
+            *value = TRUE;
             return TRUE;
         }
         else if (this->directHostObject)
@@ -2219,14 +2219,15 @@ LHexError:
         {
             return this->hostObject->StrictEquals(other, value, requestContext);
         }
+        *value = FALSE;
         return FALSE;
     }
 
-    BOOL GlobalObject::Equals(Js::Var other, BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::Equals(__in Js::Var other, __out BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {
-            *value = true;
+            *value = TRUE;
             return TRUE;
         }
         else if (this->directHostObject)
@@ -2238,7 +2239,7 @@ LHexError:
             return this->hostObject->Equals(other, value, requestContext);
         }
 
-        *value = false;
+        *value = FALSE;
         return TRUE;
     }
 
