@@ -533,7 +533,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_ES6ToPrimitive          (false)
 #define DEFAULT_CONFIG_ES6ToLength             (false)
-#define DEFAULT_CONFIG_ES6ToStringTag          (false)
+#define DEFAULT_CONFIG_ES6ToStringTag          (true)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
 #define DEFAULT_CONFIG_ES6Unscopables          (true)

@@ -457,8 +457,24 @@ namespace Js
 
             // 14. Else, let builtinTag be "Object".
         default:
-            builtInTag = library->GetObjectDisplayString(); // [object Object]
+        {
+            if (thisArgAsObject->IsExternal())
+            {
+                CompoundString::Builder<32> stringBuilder(scriptContext);
+
+                stringBuilder.AppendChars(_u("[object "));
+
+                stringBuilder.AppendChars(thisArgAsObject->GetClassName(scriptContext));
+                stringBuilder.AppendChars(_u(']'));
+
+                return stringBuilder.ToString();
+            }
+            else
+            {
+                builtInTag = library->GetObjectDisplayString(); // [object Object]
+            }
             break;
+        }
         }
 
         Assert(builtInTag != nullptr);
