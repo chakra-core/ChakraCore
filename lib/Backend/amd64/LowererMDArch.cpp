@@ -811,6 +811,9 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
 
+    // This is required here due to calls create during lowering
+    callInstr->m_func->SetHasCalls();
+
     if (callInstr->GetDst())
     {
         IR::Opnd *       dstOpnd;
@@ -1378,9 +1381,16 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // should always be 16 byte aligned.
     //
     uint32 argSlotsForFunctionsCalled = this->m_func->m_argSlotsForFunctionsCalled;
-    // Stack is always reserved for at least 4 parameters.
-    if (argSlotsForFunctionsCalled < 4)
-        argSlotsForFunctionsCalled = 4;
+
+    if (Lowerer::IsArgSaveRequired(this->m_func))
+    {
+        if (argSlotsForFunctionsCalled < 4)
+            argSlotsForFunctionsCalled = 4;
+    }
+    else
+    {
+        argSlotsForFunctionsCalled = 0;
+    }
 
     uint32 stackArgsSize    = MachPtr * (argSlotsForFunctionsCalled + 1);
 
@@ -1459,7 +1469,11 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // Zero-initialize dedicated arguments slot.
     IR::Instr *movRax0 = nullptr;
     IR::Opnd *raxOpnd = nullptr;
-    if (this->m_func->HasArgumentSlot())
+
+    if (this->m_func->HasArgumentSlot() && (this->m_func->IsStackArgsEnabled() ||
+        this->m_func->IsJitInDebugMode() ||
+        // disabling apply inlining leads to explicit load from the zero-inited slot
+        this->m_func->GetJnFunction()->IsInlineApplyDisabled()))
     {
         // TODO: Support mov [rbp - n], IMM64
         raxOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyUint32, this->m_func);
@@ -1514,11 +1528,11 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //
     // Now store all the arguments in the register in the stack slots
     //
-    this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
     Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
     if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
     {
         uint16 offset = 2;
+        this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
         for (uint16 i = 0; i < asmJsFuncInfo->GetArgCount() && i < 3; i++)
         {
             switch (asmJsFuncInfo->GetArgType(i).which())
@@ -1585,8 +1599,9 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
             }
         }
     }
-    else
+    else if (argSlotsForFunctionsCalled)
     {
+        this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
         this->MovArgFromReg2Stack(entryInstr, RegRDX, 2);
         this->MovArgFromReg2Stack(entryInstr, RegR8, 3);
         this->MovArgFromReg2Stack(entryInstr, RegR9, 4);
@@ -1642,6 +1657,13 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     //    JMP  rax
     // $done:
     //
+
+    // Do not insert stack probe for leaf functions which have low stack footprint
+    if (this->m_func->IsTrueLeaf() &&
+        frameSize - Js::Constants::MinStackJIT < Js::Constants::MaxStackSizeForNoProbe)
+    {
+        return;
+    }
 
     IR::LabelInstr *helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     IR::Instr *insertInstr = entryInstr->m_next;

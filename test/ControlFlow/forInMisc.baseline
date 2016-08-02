@@ -1,3 +1,5 @@
+testForInInitializer strict: success: e = SyntaxError: for-in loop head declarations cannot have an initializer
+testForInInitializer non-strict: success: i = 0
 enumerated index: 0
 enumerated index: 1
 enumerated index: 2

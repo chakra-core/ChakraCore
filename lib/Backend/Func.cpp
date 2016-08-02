@@ -79,6 +79,8 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasImplicitParamLoad(false),
+    hasThrow(false),
     hasNonSimpleParams(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),

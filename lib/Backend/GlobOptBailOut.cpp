@@ -251,6 +251,9 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
     {
         // cache the pointer of current bailout as potential baseline for later bailout in this block
         block->globOptData.capturedValuesCandidate = &bailOutInfo->capturedValues;
+
+        // reset changed syms to track symbols change after the above captured values candidate
+        this->changedSymsAfterIncBailoutCandidate->ClearAll();
     }
 }
 
@@ -958,7 +961,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                     sym = opnd->GetStackSym();
                     Assert(FindValue(sym));
                     // StackSym args need to be re-captured
-                    this->blockData.changedSyms->Set(sym->m_id);
+                    this->SetChangedSym(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
