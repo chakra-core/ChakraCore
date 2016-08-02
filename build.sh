@@ -29,13 +29,15 @@ PRINT_USAGE() {
     echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
     echo "  -n, --ninja          Build with ninja instead of make"
     echo "      --xcode          Generate XCode project"
-    echo "  -t, --test-build     Test build (by default Release build)"
+    echo "  -t, --test-build     Test build"
+    echo "  -r, --release-build  Release build (default option)"
     echo "      --static         Build as static library (by default shared library)"
     echo "  -v, --verbose        Display verbose output including all options"
     echo "      --create-deb=V   Create .deb package with given V version"
     echo "      --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
     echo "                       features."
+    echo "      --arch=ARCH      Specify build architecture (only x64 supported today)"
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -87,6 +89,10 @@ while [[ $# -gt 0 ]]; do
         BUILD_TYPE="test"
         ;;
 
+    -r | --release-build)
+        BUILD_TYPE="release"
+        ;;
+    
     -j | --jobs)
         if [[ "$1" == "-j" && "$2" =~ ^[^-] ]]; then
             MULTICORE_BUILD="-j $2"
@@ -143,6 +149,11 @@ while [[ $# -gt 0 ]]; do
         done
         ;;
 
+    --arch=*)
+        BUILD_ARCH=$1
+        BUILD_ARCH=${BUILD_ARCH:7}
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -152,6 +163,13 @@ while [[ $# -gt 0 ]]; do
 
     shift
 done
+
+if [[ $BUILD_ARCH != "x64" ]]; then
+    echo "Error: Arch '$BUILD_ARCH' is not supported"
+    echo ""
+    PRINT_USAGE
+    exit 1
+fi
 
 if [[ ${#_VERBOSE} > 0 ]]; then
     # echo options back to the user
@@ -233,9 +251,11 @@ fi
 
 pushd $build_directory > /dev/null
 
-echo Generating $BUILD_TYPE makefiles
+# Capitalize the first letter of the build type (debug => Debug)
+BUILD_TYPE_CASED="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
+echo Generating $BUILD_TYPE_CASED makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY \
-      -DCMAKE_BUILD_TYPE=${BUILD_TYPE^} $WITHOUT_FEATURES ../../../..
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE_CASED} $WITHOUT_FEATURES ../../../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
