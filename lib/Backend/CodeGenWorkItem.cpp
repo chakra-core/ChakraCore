@@ -210,15 +210,6 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
     }
 }
 
-void CodeGenWorkItem::FinalizeNativeCode(Func *func)
-{
-    NativeCodeData * data = func->GetNativeCodeDataAllocator()->Finalize();
-    NativeCodeData * transferData = func->GetTransferDataAllocator()->Finalize();
-    CodeGenNumberChunk * numberChunks = func->GetNumberAllocator()->Finalize();
-    this->functionBody->RecordNativeBaseAddress((BYTE *)GetCodeAddress(), GetCodeSize(), data, transferData, numberChunks, GetEntryPoint(), GetLoopNumber());
-    func->GetEmitBufferManager()->CompletePreviousAllocation(this->GetAllocation());
-}
-
 QueuedFullJitWorkItem *CodeGenWorkItem::GetQueuedFullJitWorkItem() const
 {
     return queuedFullJitWorkItem;

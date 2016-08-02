@@ -1797,7 +1797,7 @@ AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dont
 
     // TODO (michhol): OOP JIT, use intptr_t instead of Js::Var by default so people don't try to dereference
     addrOpnd->m_address = (Js::Var)address;
-    addrOpnd->m_localAddress = (Js::Var)varLocal;
+    addrOpnd->m_localAddress = func->IsOOPJIT() ? varLocal : (Js::Var)address;
     addrOpnd->addrOpndKind = addrOpndKind;
     addrOpnd->m_type = addrOpnd->IsVar() ? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;
@@ -1841,7 +1841,7 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
     addrOpnd = JitAnew(func->m_alloc, IR::AddrOpnd);
 
     addrOpnd->m_address = address;
-    addrOpnd->m_localAddress = (Js::Var)varLocal;
+    addrOpnd->m_localAddress = func->IsOOPJIT() ? varLocal : address;
     addrOpnd->addrOpndKind = addrOpndKind;
     addrOpnd->m_type = addrOpnd->IsVar()? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;

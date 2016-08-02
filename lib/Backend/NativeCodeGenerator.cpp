@@ -928,7 +928,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
-            scriptContext, &jitWriteData, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
+            scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
             allocators, nullptr, nullptr, !foreground);
     }
 
@@ -955,50 +955,63 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
     }
 
-    if (jitWriteData.nativeDataFixupTable)
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
+        if (jitWriteData.nativeDataFixupTable)
         {
-            auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
-            auto updateList = record.updateList;
-
-            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
             {
-                Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
-                    record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
-            }
-
-            while (updateList)
-            {
-                void* addrToFixup = jitWriteData.buffer->data + record.startOffset + updateList->addrOffset;
-                void* targetAddr = jitWriteData.buffer->data + updateList->targetTotalOffset;
+                auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
+                auto updateList = record.updateList;
 
                 if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                 {
-                    Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
+                    Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
+                        record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
                 }
 
-                *(void**)(addrToFixup) = targetAddr;
-                auto current = updateList;
-                updateList = updateList->next;
-                midl_user_free(current);
-            }
-        }
-        midl_user_free(jitWriteData.nativeDataFixupTable);
-        jitWriteData.nativeDataFixupTable = nullptr;
+                while (updateList)
+                {
+                    void* addrToFixup = jitWriteData.buffer->data + record.startOffset + updateList->addrOffset;
+                    void* targetAddr = jitWriteData.buffer->data + updateList->targetTotalOffset;
 
-        // change the address with the fixup information
-        *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+                    if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                    {
+                        Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
+                    }
+
+                    *(void**)(addrToFixup) = targetAddr;
+                    auto current = updateList;
+                    updateList = updateList->next;
+                    midl_user_free(current);
+                }
+            }
+            midl_user_free(jitWriteData.nativeDataFixupTable);
+            jitWriteData.nativeDataFixupTable = nullptr;
+
+            // change the address with the fixup information
+            *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
 
 #if DBG
-        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-        {
-            Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
-        }
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
+            }
 #endif
-    }
+        }
 
-    epInfo->GetJitTransferData()->SetRuntimeTypeRefs(jitWriteData.pinnedTypeRefs);
+        epInfo->GetJitTransferData()->SetRuntimeTypeRefs(jitWriteData.pinnedTypeRefs);
+
+        if (jitWriteData.throwMapCount > 0)
+        {
+            Js::ThrowMapEntry * throwMap = (Js::ThrowMapEntry *)(jitWriteData.buffer->data + jitWriteData.throwMapOffset);
+            Js::SmallSpanSequenceIter iter;
+            for (uint i = 0; i < jitWriteData.throwMapCount; ++i)
+            {
+                workItem->RecordNativeThrowMap(iter, throwMap[i].nativeBufferOffset, throwMap[i].statementIndex);
+            }
+        }
+    }
 
     if (workItem->GetJitMode() != ExecutionMode::SimpleJit)
     {
@@ -1008,16 +1021,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
 
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
-    }
-
-    if (jitWriteData.throwMapCount > 0)
-    {
-        Js::ThrowMapEntry * throwMap = (Js::ThrowMapEntry * )(jitWriteData.buffer->data + jitWriteData.throwMapOffset);
-        Js::SmallSpanSequenceIter iter;
-        for (uint i = 0; i < jitWriteData.throwMapCount; ++i)
-        {
-            workItem->RecordNativeThrowMap(iter, throwMap[i].nativeBufferOffset, throwMap[i].statementIndex);
-        }
     }
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)

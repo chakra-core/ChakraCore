@@ -143,6 +143,11 @@ void
 JITOutput::FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc)
 {
     func->GetEmitBufferManager()->CompletePreviousAllocation(alloc);
+    if (!func->IsOOPJIT())
+    {
+        func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(func->GetNativeCodeDataAllocator()->Finalize());
+        func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(func->GetTransferDataAllocator()->Finalize());
+    }
 }
 
 JITOutputIDL *

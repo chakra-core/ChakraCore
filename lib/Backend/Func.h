@@ -101,6 +101,7 @@ public:
         ThreadContextInfo * threadContextInfo,
         ScriptContextInfo * scriptContextInfo,
         JITOutputIDL * outputData,
+        Js::EntryPointInfo* epInfo,
         const FunctionJITRuntimeInfo *const runtimeInfo,
         JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
@@ -143,7 +144,7 @@ public:
 #endif
     }
 
-    bool IsOOPJIT() { return JITManager::GetJITManager()->IsOOPJITEnabled(); }
+    bool IsOOPJIT() const { return JITManager::GetJITManager()->IsOOPJITEnabled(); }
 
     void InitLocalClosureSyms();
 
@@ -223,6 +224,12 @@ public:
         return m_workItem->GetJITFunctionBody();
     }
 
+    Js::EntryPointInfo* GetInProcJITEntryPointInfo() const
+    {
+        Assert(!IsOOPJIT());
+        return m_entryPointInfo;
+    }
+
     wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
     {
         return m_workItem->GetJITTimeInfo()->GetDebugNumberSet(bufferToWriteTo);
@@ -234,6 +241,7 @@ public:
         ThreadContextInfo * threadContextInfo,
         ScriptContextInfo * scriptContextInfo,
         JITOutputIDL * outputData,
+        Js::EntryPointInfo* epInfo, // for in-proc jit only
         const FunctionJITRuntimeInfo *const runtimeInfo,
         JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
@@ -299,10 +307,9 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const
     {
-        // TODO (michhol): remove this
-        //Assert(UNREACHED);
+        Assert(!IsOOPJIT());
 
-        return nullptr;
+        return static_cast<Js::ScriptContext*>(this->GetScriptContextInfo());
     }
     void NumberInstrs();
     bool IsTopFunc() const { return this->parentFunc == nullptr; }
@@ -890,6 +897,9 @@ public:
     IR::LabelInstr *    m_bailOutNoSaveLabel;
 
 private:
+
+    Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only
+
     JITOutput m_output;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler *const m_codeGenProfiler;

@@ -1182,6 +1182,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
                             this->topFunc->GetThreadContextInfo(),
                             this->topFunc->GetScriptContextInfo(),
                             this->topFunc->GetJITOutput()->GetOutputData(),
+                            nullptr,
                             inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo,
                             this->topFunc->GetCodeGenAllocators(),
@@ -2626,6 +2627,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
@@ -3315,7 +3317,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
     {
-        PROBE_STACK(static_cast<Js::ScriptContext*>(this->topFunc->GetScriptContextInfo()), Js::Constants::MinStackDefault);
+        PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     IR::Instr *instrNext = accessorInstr->m_next;
@@ -3365,6 +3367,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         accessorInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
@@ -3576,7 +3579,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
     {
-        PROBE_STACK(static_cast<Js::ScriptContext*>(this->topFunc->GetScriptContextInfo()), Js::Constants::MinStackDefault);
+        PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     IR::Instr *instrNext = callInstr->m_next;
@@ -3679,6 +3682,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),

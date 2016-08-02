@@ -247,14 +247,28 @@ Encoder::Encode()
 
     if (m_pragmaInstrToRecordMap->Count() > 0)
     {
-        Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
-        for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+        if (m_func->IsOOPJIT())
         {
-            IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
-            throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
-            throwMap[i].statementIndex = inst->m_statementIndex;
+            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
+            for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+            {
+                IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
+                throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
+                throwMap[i].statementIndex = inst->m_statementIndex;
+            }
+            m_func->GetJITOutput()->RecordThrowMap(throwMap, m_pragmaInstrToRecordMap->Count());
         }
-        m_func->GetJITOutput()->RecordThrowMap(throwMap, m_pragmaInstrToRecordMap->Count());
+        else
+        {
+            auto entryPointInfo = m_func->GetInProcJITEntryPointInfo();
+            auto functionBody = entryPointInfo->GetFunctionBody();
+            for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+            {
+                IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
+                Js::SmallSpanSequenceIter iter;
+                functionBody->RecordNativeThrowMap(iter, inst->m_offsetInBuffer, inst->m_statementIndex, entryPointInfo, Js::LoopHeader::NoLoop);
+            }
+        }
     }
 
     JITTimeWorkItem * workItem = m_func->GetWorkItem();
@@ -314,17 +328,15 @@ Encoder::Encode()
     workItem->SetCodeAddress(workItem->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
 
-    Js::EntryPointInfo* entryPointInfo = nullptr;
     const bool isSimpleJit = m_func->IsSimpleJit();
 
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-
         // TODO: OOP JIT, inlinee frame map
         if (!m_func->IsOOPJIT()) // in-proc JIT
         {
-            entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
+            m_func->GetInProcJITEntryPointInfo()->RecordInlineeFrameMap(m_inlineeFrameMap);
         }
         else // OOP JIT
         {
@@ -349,7 +361,7 @@ Encoder::Encode()
 
     if (this->m_bailoutRecordMap->Count() > 0)
     {
-        entryPointInfo->RecordBailOutMap(m_bailoutRecordMap);
+        m_func->GetInProcJITEntryPointInfo()->RecordBailOutMap(m_bailoutRecordMap);
     }
 
     if (this->m_func->pinnedTypeRefs != nullptr)
@@ -388,7 +400,7 @@ Encoder::Encode()
 
         if (!this->m_func->IsOOPJIT())
         {
-            entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(pinnedTypeRefs);
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRuntimeTypeRefs(pinnedTypeRefs);
         }
     }
 
@@ -433,7 +445,7 @@ Encoder::Encode()
             {
                 *dstGuard++ = srcGuard;
             });
-            entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardsCount);
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardsCount);
         }
     }
 
@@ -446,7 +458,7 @@ Encoder::Encode()
         {
             *dstProperties++ = propertyId;
         });
-        entryPointInfo->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
+        m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
     }
 
     // Save all property guards on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
@@ -485,7 +497,7 @@ Encoder::Encode()
 
             // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
             // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-            Js::TypeGuardTransferEntry* typeGuardTransferRecord = NativeCodeDataNewPlusZNoFixup(typeGuardTransferSize, m_func->GetNativeCodeDataAllocator(), Js::TypeGuardTransferEntry);
+            Js::TypeGuardTransferEntry* typeGuardTransferRecord = HeapNewPlusZ(typeGuardTransferSize, Js::TypeGuardTransferEntry);
 
             Func* func = this->m_func;
 
@@ -509,7 +521,7 @@ Encoder::Encode()
 
             Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
 
-            entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+            m_func->GetInProcJITEntryPointInfo()->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
         }
         else
         {
@@ -551,7 +563,7 @@ Encoder::Encode()
         Assert(propertyCount > 0);
 
 #if DBG
-        int cacheCount = entryPointInfo->GetConstructorCacheCount();
+        int cacheCount = m_func->GetInProcJITEntryPointInfo()->GetConstructorCacheCount();
         Assert(cacheCount > 0);
 #endif
 
@@ -592,7 +604,7 @@ Encoder::Encode()
 
         Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
 
-        entryPointInfo->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+        m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
     }
     m_func->GetJITOutput()->FinalizeNativeCode(m_func, alloc);
 
