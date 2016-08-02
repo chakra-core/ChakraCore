@@ -11,7 +11,7 @@
 
 namespace WAsmJs
 {
-    uint32 RegisterSpace::GetTypeByteSize(Types type)
+    uint32 GetTypeByteSize(Types type)
     {
         // Since this needs to be done manually for each type, this assert will make sure to not forget to update this if a new type is added
         CompileAssert(WAsmJs::LIMIT == 5);
@@ -80,7 +80,7 @@ namespace WAsmJs
         if (!IsTypeExcluded(type))
         {
             RegisterSpace* registerSpace = GetRegisterSpace(type);
-            uint32 typeSize = RegisterSpace::GetTypeByteSize(type);
+            uint32 typeSize = GetTypeByteSize(type);
             uint32 count = constOnly ? registerSpace->GetConstCount() : registerSpace->GetTotalVarCount();
             return ConvertOffset<Js::Var>(count, typeSize);
         }
@@ -101,6 +101,8 @@ namespace WAsmJs
     void TypedRegisterAllocator::CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const
     {
         uint32 offset = Js::AsmJsFunctionMemory::RequiredVarConstants * sizeof(Js::Var);
+        WAsmJs::TypedConstSourcesInfo constSourcesInfo = GetConstSourceInfos();
+
 #if DBG_DUMP
         if (PHASE_TRACE1(Js::AsmjsInterpreterStackPhase))
         {
@@ -119,10 +121,13 @@ namespace WAsmJs
             if (!IsTypeExcluded(type))
             {
                 RegisterSpace* registerSpace = GetRegisterSpace(type);
+                slotInfo->isValidType = true;
                 slotInfo->constCount = registerSpace->GetConstCount();
                 slotInfo->varCount = registerSpace->GetVarCount();
                 slotInfo->tmpCount = registerSpace->GetTmpCount();
-                offset = Math::AlignOverflowCheck(offset, RegisterSpace::GetTypeByteSize(type));
+                slotInfo->constSrcByteOffset = constSourcesInfo.srcByteOffsets[i];
+
+                offset = Math::AlignOverflowCheck(offset, GetTypeByteSize(type));
                 slotInfo->byteOffset = offset;
 
 #if DBG_DUMP
@@ -145,11 +150,12 @@ namespace WAsmJs
                 totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo->varCount);
                 totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo->tmpCount);
 
-                offset = UInt32Math::Add(offset, UInt32Math::Mul(totalTypeCount, RegisterSpace::GetTypeByteSize(type)));
+                offset = UInt32Math::Add(offset, UInt32Math::Mul(totalTypeCount, GetTypeByteSize(type)));
             }
             else
             {
                 memset(slotInfo, 0, sizeof(TypedSlotInfo));
+                slotInfo->isValidType = false;
             }
         }
 #if DBG_DUMP
@@ -165,6 +171,28 @@ namespace WAsmJs
         // this value is the number of Var slots needed to allocate all the const
         const uint32 nbConst = UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, GetTotalJsVarCount(true));
         body->CheckAndSetConstantCount(nbConst);
+    }
+
+    WAsmJs::TypedConstSourcesInfo TypedRegisterAllocator::GetConstSourceInfos() const
+    {
+        WAsmJs::TypedConstSourcesInfo infos;
+        // The const table doesn't contain the first reg slots (aka return register)
+        uint32 offset = ConvertOffset<Js::Var, byte>(Js::AsmJsFunctionMemory::RequiredVarConstants - Js::FunctionBody::FirstRegSlot);
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
+        {
+            Types type = (Types)i;
+            if (!IsTypeExcluded(type))
+            {
+                infos.srcByteOffsets[i] = offset;
+                uint32 typeBytesUsage = ConvertOffset<byte>(GetRegisterSpace(type)->GetConstCount(), GetTypeByteSize(type));
+                offset = UInt32Math::Add(offset, typeBytesUsage);
+            }
+            else
+            {
+                infos.srcByteOffsets[i] = 0;
+            }
+        }
+        return infos;
     }
 
     bool TypedRegisterAllocator::IsValidType(Types type) const

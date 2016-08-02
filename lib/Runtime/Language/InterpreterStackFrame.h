@@ -133,6 +133,7 @@ namespace Js
 
         // Asm.js stack pointer
         int* m_localIntSlots;
+        int64* m_localInt64Slots;
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
 
@@ -184,6 +185,8 @@ namespace Js
         template <typename RegSlotType> void SetRegAllowStackVar(RegSlotType localRegisterID, Var bValue);
         template <typename RegSlotType> int GetRegRawInt( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt( RegSlotType localRegisterID, int bValue );
+        template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
+        template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
         template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
         template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
@@ -248,7 +251,6 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
-        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -570,7 +572,6 @@ namespace Js
         template <class T> inline void OP_InitClassMemberSet(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberGetComputedName(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberSetComputedName(const unaligned T * playout);
-        template<typename T> uint32 LogSizeOf();
         template <typename T2> inline void OP_LdArr(  uint32 index, RegSlot value  );
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
         template <class T> inline void OP_ReturnDb(const unaligned T* playout);
