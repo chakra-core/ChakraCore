@@ -1035,7 +1035,7 @@ ParseNodePtr Parser::StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1,
 
 ParseNodePtr Parser::CreateNode(OpCode nop, charcount_t ichMin)
 {
-    bool nodeAllowed = IsNodeAllowedForDeferParse(nop);
+    bool nodeAllowed = IsNodeAllowedInCurrentDeferralState(nop);
     Assert(nodeAllowed);
 
     Assert(nop >= 0 && nop < knopLim);
@@ -1818,7 +1818,7 @@ ParseNode *Parser::GetCurrentFunctionNode()
     }
 }
 
-ParseNode *Parser::GetCurrentNonLamdaFunctionNode()
+ParseNode *Parser::GetCurrentNonLambdaFunctionNode()
 {
     if (m_currentNodeNonLambdaDeferredFunc != nullptr)
     {
@@ -2023,7 +2023,7 @@ void Parser::ThrowNewTargetSyntaxErrForGlobalScope()
     //TODO: (falotfi) we need reliably distinguish eval in global scope vs in a function
     // The rule for this syntax error is any time new.target is called at global scope
     // we are excluding new.target in eval at global scope for now.
-    if(GetCurrentNonLamdaFunctionNode() == nullptr && (this->m_grfscr & fscrEvalCode) == 0)
+    if(GetCurrentNonLambdaFunctionNode() == nullptr && (this->m_grfscr & fscrEvalCode) == 0)
     {
         Error(ERRInvalidNewTarget);
     }
@@ -9057,29 +9057,30 @@ ParseNodePtr Parser::ParseCatch()
                 }
             }
 
+            pidCatch = m_token.GetIdentifier(m_phtbl);
+            PidRefStack *ref = this->PushPidRef(pidCatch);
+
+            ParseNodePtr pnodeParam = CreateNameNode(pidCatch);
+            pnodeParam->sxPid.symRef = ref->GetSymRef();
+
+            const char16 *name = reinterpret_cast<const char16*>(pidCatch->Psz());
+            int nameLength = pidCatch->Cch();
+            SymbolName const symName(name, nameLength);
+            Symbol *sym = Anew(&m_nodeAllocator, Symbol, symName, pnodeParam, STVariable);
+            sym->SetPid(pidCatch);
+            if (sym == nullptr)
+            {
+                Error(ERRnoMemory);
+            }
+            Assert(ref->GetSym() == nullptr);
+            ref->SetSym(sym);
+
+            Scope *scope = pnodeCatchScope->sxBlock.scope;
+            scope->AddNewSymbol(sym);
+
             if (buildAST)
             {
-                pidCatch = m_token.GetIdentifier(m_phtbl);
-                PidRefStack *ref = this->PushPidRef(pidCatch);
-
-                ParseNodePtr pnodeParam = CreateNameNode(pidCatch);
-                pnodeParam->sxPid.symRef = ref->GetSymRef();
                 pnode->sxCatch.pnodeParam = pnodeParam;
-
-                const char16 *name = reinterpret_cast<const char16*>(pidCatch->Psz());
-                int nameLength = pidCatch->Cch();
-                SymbolName const symName(name, nameLength);
-                Symbol *sym = Anew(&m_nodeAllocator, Symbol, symName, pnodeParam, STVariable);
-                sym->SetPid(pidCatch);
-                if (sym == nullptr)
-                {
-                    Error(ERRnoMemory);
-                }
-                Assert(ref->GetSym() == nullptr);
-                ref->SetSym(sym);
-
-                Scope *scope = pnodeCatchScope->sxBlock.scope;
-                scope->AddNewSymbol(sym);
                 pnode->sxCatch.scope = scope;
             }
 
