@@ -226,7 +226,8 @@ namespace Js
                     {
                         Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
                             currentScope->GetEnclosingScope()->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
+                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? 
+                             parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
                 }
                 else
