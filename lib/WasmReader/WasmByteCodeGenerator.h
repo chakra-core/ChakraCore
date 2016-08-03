@@ -45,19 +45,8 @@ namespace Wasm
         void FormatError(const char16* _msg, va_list arglist);
         char16* errorMsg;
     public:
-        ~WasmCompilationException();
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
-
-        void SetErrorMessage(char16* _errorMsg)
-        {
-            errorMsg = _errorMsg;
-        }
-
-        const char16* GetErrorMessage() const
-        {
-            return errorMsg;
-        }
 
         char16* ReleaseErrorMessage()
         {
