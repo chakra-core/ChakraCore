@@ -41,6 +41,7 @@ public:
     CustomHeap::CodePageAllocators * GetCodePageAllocators();
 
     void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
+    void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;

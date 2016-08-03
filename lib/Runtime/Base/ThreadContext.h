@@ -679,7 +679,6 @@ private:
 
     Js::TypeId nextTypeId;
     uint32 polymorphicCacheState;
-    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
 #ifdef ENABLE_PROJECTION
     SListBase<ExternalWeakReferenceCache *> externalWeakReferenceCacheList;
@@ -1661,7 +1660,6 @@ public:
     void* GetJSRTRuntime() const { return jsrtRuntime; }
     void SetJSRTRuntime(void* runtime);
 
-    bool CanBeFalsy(Js::TypeId typeId);
 private:
     BOOL ExecuteRecyclerCollectionFunctionCommon(Recycler * recycler, CollectionFunction function, CollectionFlags flags);
 

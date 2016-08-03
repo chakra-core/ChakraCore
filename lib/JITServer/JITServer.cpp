@@ -166,6 +166,23 @@ ServerAddDOMFastPathHelper(
     return S_OK;
 }
 
+HRESULT 
+ServerSetWellKnownHostTypeId(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 threadContextRoot,
+    /* [in] */ int typeId)
+{
+    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+
+    if (threadContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+    threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
+
+    return S_OK;
+}
+
 HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,

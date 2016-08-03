@@ -710,6 +710,11 @@ interface IChakraJIT
         [in] CHAKRA_PTR funcInfoAddr,
         [in] int helper);
 
+    HRESULT SetWellKnownHostTypeId(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] int typeId);
+
     HRESULT InitializeScriptContext(
         [in] handle_t binding,
         [in] ScriptContextDataIDL * scriptContextData,

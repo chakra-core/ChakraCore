@@ -7,6 +7,7 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
+    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_activeJITCount(0)
 {
 }

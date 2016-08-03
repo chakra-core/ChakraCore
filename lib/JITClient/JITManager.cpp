@@ -369,6 +369,29 @@ JITManager::AddDOMFastPathHelper(
 }
 
 HRESULT
+JITManager::SetWellKnownHostTypeId(
+    __in  intptr_t threadContextRoot,
+    __in  int typeId)
+{
+
+    Assert(JITManager::IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientSetWellKnownHostTypeId(m_rpcBindingHandle, threadContextRoot, typeId);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+
+}
+
+HRESULT
 JITManager::AddPropertyRecord(
     __in intptr_t threadContextInfoAddress,
     __in PropertyRecordIDL * propertyRecord)

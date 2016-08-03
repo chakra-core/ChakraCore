@@ -10365,9 +10365,9 @@ bool Lowerer::IsConstRegOpnd(IR::RegOpnd *opnd) const
     {
         return false;
     }
-    Js::Var var = sym->GetConstAddress();
-    Js::TypeId typeId = Js::RecyclableObject::FromVar(var)->GetTypeId();
-    return typeId == Js::TypeIds_Null || typeId == Js::TypeIds_Undefined || typeId == Js::TypeIds_Boolean;
+
+    const auto& vt = sym->m_instrDef->GetSrc1()->GetValueType();
+    return vt.IsUndefined() || vt.IsNull() || vt.IsBoolean();
 }
 
 bool
@@ -19754,7 +19754,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *p
                 Assert(instrSrc2->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
 
                 // We can't optimize non-javascript type strings.
-                Js::JavascriptString *typeNameJsString = Js::JavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address);
+                Js::JavascriptString *typeNameJsString = Js::JavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
                 const char16        *typeName         = typeNameJsString->GetString();
 
                 Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
@@ -19830,7 +19830,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *p
 void
 Lowerer::GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *TypeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp)
 {
-    if (!this->m_func->GetScriptContext()->GetThreadContext()->CanBeFalsy(typeIdToCheck) && typeIdToCheck != Js::TypeIds_Undefined)
+    if (!this->m_func->GetThreadContextInfo()->CanBeFalsy(typeIdToCheck) && typeIdToCheck != Js::TypeIds_Undefined)
     {
         // Don't need the check for falsy, the typeId we are looking for doesn't care
         return;
