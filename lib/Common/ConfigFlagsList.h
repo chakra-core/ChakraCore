@@ -810,7 +810,7 @@ FLAGNR(Boolean, ValidateInlineStack, "Does a stack walk on helper calls to valid
 FLAGNR(Boolean, AsmDiff               , "Dump the IR without memory locations and varying parameters.", false)
 FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file without memory locations and varying parameters\n\t\t\t\t\tThe 'filename' is the file where the assembly will be dumped. Dump to console if no file is specified", nullptr)
 FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
-FLAGNR(Boolean, AsmJsChangeHeap       , "Enable asm.js change heap support.", DEFAULT_CONFIG_AsmJsChangeHeap)
+FLAGR (Boolean, AsmJsChangeHeap       , "Enable asm.js change heap support.", DEFAULT_CONFIG_AsmJsChangeHeap)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
 
