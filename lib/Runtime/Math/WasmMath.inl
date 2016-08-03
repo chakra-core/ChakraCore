@@ -30,6 +30,89 @@ inline uint64 WasmMath::Rem( uint64 aLeft, uint64 aRight )
     return (aLeft == specialDivLeftValue && aRight == -1) ? specialDivLeftValue : aLeft % aRight;
 }
 
+
+template<typename T> 
+inline T WasmMath::Shl( T aLeft, T aRight )
+{
+    return aLeft << aRight;
+}
+template<typename T> 
+inline T WasmMath::Shr( T aLeft, T aRight )
+{
+    return aLeft >> aRight;
+}
+
+template<typename T> 
+inline T WasmMath::ShrU( T aLeft, T aRight )
+{
+    return aLeft >> aRight;
+}
+
+#ifdef _M_IX86
+template<>
+inline int64 WasmMath::Shl( int64 aLeft, int64 aRight )
+{
+    // on x86 the compiler uses _allshl which returns 0 if aRight >= 64
+    __asm {
+        mov ecx, [ebp + 16]; // mov ecx, (int)aRight
+        and cl, 63; // cl = cl % 64
+        cmp cl, 32;
+        jae MORE32;
+        shld edx, eax, cl;
+        shl eax, cl;
+        jmp end;
+MORE32:
+        mov edx, eax;
+        xor eax, eax;
+        and cl, 31;
+        shl edx, cl;
+end:
+    };
+}
+
+template<>
+inline int64 WasmMath::Shr( int64 aLeft, int64 aRight )
+{
+    // on x86 the compiler uses _allshr which returns 0/-1 if aRight >= 64
+    __asm {
+        mov ecx, [ebp + 16]; // mov ecx, (int)aRight
+        and cl, 63; // cl = cl % 64
+        cmp cl, 32;
+        jae MORE32;
+        shrd eax, edx, cl;
+        sar edx, cl;
+        jmp end;
+MORE32:
+        mov eax, edx;
+        sar edx, 31;
+        and cl, 31;
+        sar eax, cl;
+end:
+    };
+}
+
+template<>
+inline uint64 WasmMath::ShrU( uint64 aLeft, uint64 aRight )
+{
+    // on x86 the compiler uses _aullshr which returns 0 if aRight >= 64
+    __asm {
+        mov ecx, [ebp + 16]; // mov ecx, (int)aRight
+        and cl, 63; // cl = cl % 64
+        cmp cl, 32;
+        jae MORE32;
+        shrd eax, edx, cl;
+        shr edx, cl;
+        jmp end;
+MORE32:
+        mov eax, edx;
+        xor edx, edx;
+        and cl, 31;
+        shr eax, cl;
+end:
+    };
+}
+#endif
+
 template<> 
 inline int WasmMath::Ctz(int value)
 {
@@ -88,16 +171,24 @@ inline int64 WasmMath::Clz(int64 value)
 template<> 
 inline int WasmMath::PopCnt(int value)
 {
+#if defined(_M_IX86) || defined(_M_X64)
     return __popcnt(value);
+#else
+    AssertMsg(false, "WasmMath::PopCnt<int> not implemented for this architecture");
+    return 0;
+#endif
 }
 
 template<> 
 inline int64 WasmMath::PopCnt(int64 value)
 {
-#if TARGET_64
+#if _M_X64
     return __popcnt64(value);
-#else
+#elif _M_IX86
     return int64(__popcnt((uint)value) + __popcnt((uint)(value >> 32)));
+#else
+    AssertMsg(false, "WasmMath::PopCnt<int64> not implemented for this architecture");
+    return 0;
 #endif
 }
 
