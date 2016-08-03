@@ -21,7 +21,6 @@ namespace Js
 
         JavascriptArrayEnumeratorBase(JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols = false);
         virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentValue() override;
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual uint32 GetCurrentItemIndex()  override { return index; }
         virtual bool GetCurrentPropertyId(PropertyId *propertyId) override;

@@ -144,11 +144,6 @@ namespace Js
         return currentEnumerator->GetCurrentIndex();
     }
 
-    Var ForInObjectEnumerator::GetCurrentValue()
-    {
-        return currentEnumerator->GetCurrentValue();
-    }
-
     BOOL ForInObjectEnumerator::TestAndSetEnumerated(PropertyId propertyId)
     {
         Assert(propertyIds != nullptr);
@@ -271,89 +266,6 @@ namespace Js
                 }
                 while (true);
             }
-        }
-    }
-
-    Var ForInObjectEnumerator::GetCurrentBothAndMoveNext(PropertyId& propertyId,Var *currentValueRef)
-    {
-        PropertyRecord const * propRecord;
-
-        JavascriptEnumerator *pEnumerator = currentEnumerator;
-        while (true)
-        {
-            propertyId = Constants::NoProperty;
-            currentIndex = pEnumerator->GetCurrentBothAndMoveNext(propertyId,currentValueRef);
-            if (currentIndex)
-            {
-                if (firstPrototype == nullptr)
-                {
-                    // There are no prototype that has enumerable properties,
-                    // don't need to keep track of the propertyIds we visited.
-                    return currentIndex;
-                }
-
-                // Property Id does not exist.
-                if (propertyId == Constants::NoProperty)
-                {
-                    if ( !JavascriptString::Is(currentIndex) ) //This can be undefined
-                    {
-                        continue;
-                    }
-
-                    JavascriptString *pString = JavascriptString::FromVar(currentIndex);
-                    if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(pString))
-                    {
-                        // If we have a property string, it is assumed that the propertyId is being
-                        // kept alive with the object
-                        PropertyString * propertyString = (PropertyString *)pString;
-                        propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
-                    }
-                    else
-                    {
-                        ScriptContext* scriptContext = pString->GetScriptContext();
-                        scriptContext->GetOrAddPropertyRecord(pString->GetString(), pString->GetLength(), &propRecord);
-                        propertyId = propRecord->GetPropertyId();
-
-                        // We keep the track of what is enumerated using a bit vector of propertyID.
-                        // so the propertyId can't be collected until the end of the for in enumerator
-                        // Keep a list of the property string.
-                        newPropertyStrings.Prepend(GetScriptContext()->GetRecycler(), propRecord);
-                    }
-                }
-
-                //check for shadowed property
-                if(TestAndSetEnumerated(propertyId)) //checks if the property is already enumerated or not
-                {
-                    return currentIndex;
-                }
-            }
-            else
-            {
-                if (object == baseObject)
-                {
-                    if (firstPrototype == nullptr)
-                    {
-                        return NULL;
-                    }
-                    object = firstPrototype;
-                }
-                else
-                {
-                    //walk the prototype chain
-                    object = object->GetPrototype();
-                    if (JavascriptOperators::GetTypeId(object) == TypeIds_Null)
-                    {
-                        return NULL;
-                    }
-                }
-
-                if (!GetCurrentEnumerator())
-                {
-                    return nullptr;
-                }
-                pEnumerator = (JavascriptEnumerator *)currentEnumerator;
-            }
-
         }
     }
 

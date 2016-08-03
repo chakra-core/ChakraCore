@@ -31,30 +31,6 @@ namespace Js
         }
     }
 
-    Var JavascriptArrayEnumeratorBase::GetCurrentValue()
-    {
-        if (index != JavascriptArray::InvalidIndex && !doneArray)
-        {
-            Var element;
-            if (arrayObject->DirectGetItemAtFull(index, &element))
-            {
-                return element;
-            }
-            else
-            {
-                return arrayObject->GetLibrary()->GetUndefined();
-            }
-        }
-        else if (!doneObject)
-        {
-            return objectEnumerator->GetCurrentValue();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
     BOOL JavascriptArrayEnumeratorBase::MoveNext(PropertyAttributes* attributes)
     {
         PropertyId propId;

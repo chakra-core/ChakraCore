@@ -24,17 +24,6 @@ namespace Js
         return objectEnumerator->GetCurrentIndex();
     }
 
-    Var ArgumentsObjectEnumerator::GetCurrentValue()
-    {
-        if (!doneFormalArgs)
-        {
-            Var value = nullptr;
-            argumentsObject->GetItem(argumentsObject, formalArgIndex, &value, argumentsObject->GetScriptContext());
-            return value;
-        }
-        return objectEnumerator->GetCurrentValue();
-    }
-
     BOOL ArgumentsObjectEnumerator::MoveNext(PropertyAttributes* attributes)
     {
         if (!doneFormalArgs)

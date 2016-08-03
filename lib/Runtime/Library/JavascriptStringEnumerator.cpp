@@ -27,22 +27,6 @@ namespace Js
         }
     }
 
-    Var JavascriptStringEnumerator::GetCurrentValue()
-    {
-        ScriptContext* scriptContext = stringObject->GetScriptContext();
-
-        if (index >= 0 && index < stringObject->GetLengthAsSignedInt())
-        {
-            Var item;
-            if (stringObject->GetItemAt(index, &item))
-            {
-                return item;
-            }
-        }
-
-        return scriptContext->GetLibrary()->GetUndefined();
-    }
-
     BOOL JavascriptStringEnumerator::MoveNext(PropertyAttributes* attributes)
     {
         if (++index < stringObject->GetLengthAsSignedInt())
@@ -107,22 +91,6 @@ namespace Js
         else if (objectEnumerator != nullptr)
         {
             return objectEnumerator->GetCurrentIndex();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
-    Var JavascriptStringObjectEnumerator::GetCurrentValue()
-    {
-        if (stringEnumerator != nullptr)
-        {
-            return stringEnumerator->GetCurrentValue();
-        }
-        else if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentValue();
         }
         else
         {
