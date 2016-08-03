@@ -27,12 +27,12 @@ ULONG CaseInsensitiveComputeHash(LPCOLESTR posz);
 
 enum
 {
-    fidNil        =     0x0000,
-    fidKwdRsvd    = 0x0001,     // the keyword is a reserved word
-    fidKwdFutRsvd = 0x0002,     // a future reserved word, but only in strict mode
+    fidNil          = 0x0000,
+    fidKwdRsvd      = 0x0001,     // the keyword is a reserved word
+    fidKwdFutRsvd   = 0x0002,     // a future reserved word, but only in strict mode
 
     // Flags to identify tracked aliases of "eval"
-    fidEval       =    0x0008,
+    fidEval         = 0x0008,
     // Flags to identify tracked aliases of "let"
     fidLetOrConst   = 0x0010,     // ID has previously been used in a block-scoped declaration
 
@@ -40,10 +40,11 @@ enum
     // CountDcls sets the bit as it walks through the var decls so that
     // it can skip duplicates. FillDcls clears the bit as it walks through
     // again to skip duplicates.
-    fidGlobalDcl  =    0x2000,
+    fidGlobalDcl    = 0x2000,
 
-    fidUsed       =    0x4000  // name referenced by source code
+    fidUsed         = 0x4000,  // name referenced by source code
 
+    fidModuleExport = 0x8000    // name is module export
 };
 
 struct BlockIdsStack
@@ -84,8 +85,6 @@ struct PidRefStack
     bool IsAssignment() const { return isAsg; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
-    bool IsModuleExport() const { return isModuleExport; }
-    void SetModuleExport()    { isModuleExport = true; }
 
     Symbol **GetSymRef()
     {
@@ -283,6 +282,9 @@ public:
 
     void SetIsLetOrConst() { m_grfid |= fidLetOrConst; }
     BOOL GetIsLetOrConst() const { return m_grfid & fidLetOrConst; }
+
+    void SetIsModuleExport() { m_grfid |= fidModuleExport; }
+    BOOL GetIsModuleExport() const { return m_grfid & fidModuleExport; }
 };
 
 
