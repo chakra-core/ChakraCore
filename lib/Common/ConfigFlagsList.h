@@ -702,6 +702,10 @@ PHASE(All)
 #define DEFAULT_CONFIG_LoopAlignNopLimit (6)
 #endif
 
+#if defined(_M_IX86) || defined(_M_X64)
+#define DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore (true)
+#endif
+
 #define TraceLevel_Error        (1)
 #define TraceLevel_Warning      (2)
 #define TraceLevel_Info         (3)
@@ -1416,6 +1420,10 @@ FLAGNR(NumberSet, RejitTraceFilter, "Filter the rejit trace messages to specific
 FLAGNR(Number,  MaxBackgroundFinishMarkCount, "Maximum number of background finish mark", 1)
 FLAGNR(Number,  BackgroundFinishMarkWaitTime, "Millisecond to wait for background finish mark", 15)
 FLAGNR(Number,  MinBackgroundRepeatMarkRescanBytes, "Minimum number of bytes rescan to trigger background finish mark",  -1)
+
+#if defined(_M_IX86) || defined(_M_X64)
+FLAGNR(Boolean, ZeroMemoryWithNonTemporalStore, "Zero free memory with non-temporal stores to avoid evicting other content from processor cache", DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore)
+#endif
 
 // recycler memory restrict test flags
 FLAGNR(Number,  MaxMarkStackPageCount , "Restrict recycler mark stack size (in pages)", -1)
