@@ -1726,7 +1726,7 @@ if (!sourceList)
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
                 pse->Clear();
-                
+
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
             }
@@ -4380,6 +4380,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::SaveStartupProfileAndRelease(bool isSaveOnClose)
     {
+        // No need to save profiler info in JSRT scenario at this time.
+        if (GetThreadContext()->IsJSRT())
+        {
+            return;
+        }
         if (!startupComplete && this->cache->sourceContextInfoMap)
         {
 #if ENABLE_PROFILE_INFO
@@ -4394,7 +4399,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 }
             });
 #endif
-    }
+        }
         startupComplete = true;
     }
 

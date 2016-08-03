@@ -64,7 +64,7 @@ namespace JsUtil
         }
 
         template<class TAllocator>
-        static ReadOnlyList * New(TAllocator* alloc, __in_ecount(count) T* buffer, int count)
+        static ReadOnlyList * New(TAllocator* alloc, __in_ecount(count) T* buffer, __declspec(guard(overflow)) int count)
         {
             return AllocatorNew(TAllocator, alloc, ReadOnlyList, buffer, count, alloc);
         }
@@ -213,9 +213,9 @@ namespace JsUtil
         int increment;
         TRemovePolicyType removePolicy;
 
-        template <bool isLeaf> T * AllocArray(int size);
-        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, alloc, T, size); }
-        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, alloc, T, size); }
+        template <bool isLeaf> T * AllocArray(__declspec(guard(overflow)) int size);
+        template <> T * AllocArray<true>(__declspec(guard(overflow)) int size) { return AllocatorNewArrayLeaf(TAllocator, alloc, T, size); }
+        template <> T * AllocArray<false>(__declspec(guard(overflow)) int size) { return AllocatorNewArray(TAllocator, alloc, T, size); }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -235,7 +235,7 @@ namespace JsUtil
             EnsureArray(0);
         }
 
-        void EnsureArray(int32 requiredCapacity)
+        void EnsureArray(__declspec(guard(overflow)) int32 requiredCapacity)
         {
             if (buffer == nullptr)
             {

@@ -1339,7 +1339,7 @@ namespace Js
         Var getPrototypeOfResult;
         if (nullptr == getPrototypeOfMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
-            return target->GetPrototype();
+            return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(target, scriptContext));
         }
         CallInfo callInfo(CallFlags_Value, 2);
         Var varArgs[2];

@@ -259,7 +259,7 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
 #define ZERO_LENGTH_ARRAY (void *)sizeof(void *)
 template <typename TAllocator, typename T, bool nothrow>
 _When_(nothrow, _Ret_writes_to_maybenull_(count, 0)) _When_(!nothrow, _Ret_writes_to_(count, 0))
-__inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)(size_t), size_t count)
+__inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)(size_t), __declspec(guard(overflow)) size_t count)
 {
     if (count == 0 && TAllocator::FakeZeroLengthArray)
     {
@@ -338,7 +338,7 @@ void AssertValue(void * mem, T value, uint byteCount)
 _Ret_notnull_
 __inline void * __cdecl
 operator new(
-size_t byteSize,
+__declspec(guard(overflow)) size_t byteSize,
 _In_ void * previousAllocation) throw()
 {
     return previousAllocation;
@@ -361,7 +361,7 @@ void * previousAllocation               // Previously allocated memory
 //----------------------------------------
 template <typename TAllocator>
 _Ret_notnull_ void * __cdecl
-operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
+operator new(__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);
@@ -372,7 +372,7 @@ operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc
 
 template <typename TAllocator>
 _Ret_notnull_ __inline void * __cdecl
-operator new[](size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
+operator new[](__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0 || !TAllocator::FakeZeroLengthArray);
@@ -383,7 +383,7 @@ operator new[](size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFu
 
 template <typename TAllocator>
 _Ret_notnull_ __inline void * __cdecl
-operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize)
+operator new(__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t), __declspec(guard(overflow)) size_t plusSize)
 {
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);
@@ -400,7 +400,7 @@ operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc
 //----------------------------------------
 template <typename TAllocator>
 _Ret_maybenull_ __inline void * __cdecl
-operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
+operator new(__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
     Assert(byteSize != 0);
@@ -411,7 +411,7 @@ operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocat
 
 template <typename TAllocator>
 _Ret_maybenull_ __inline void * __cdecl
-operator new[](size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
+operator new[](__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
     Assert(byteSize != 0 || !TAllocator::FakeZeroLengthArray);
@@ -422,7 +422,7 @@ operator new[](size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAlloc
 
 template <typename TAllocator>
 _Ret_maybenull_ __inline void * __cdecl
-operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize)
+operator new(__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), __declspec(guard(overflow)) size_t plusSize)
 {
     Assert(nothrow);
     Assert(byteSize != 0);
@@ -436,7 +436,7 @@ operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocat
 
 template <typename TAllocator>
 _Ret_maybenull_ __inline void * __cdecl
-operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize, bool prefix)
+operator new(__declspec(guard(overflow)) size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), __declspec(guard(overflow)) size_t plusSize, bool prefix)
 {
     Assert(nothrow);
     Assert(prefix);

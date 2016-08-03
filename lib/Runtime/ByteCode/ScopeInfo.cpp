@@ -14,7 +14,8 @@ namespace Js
         // We don't need to create slot for or save "arguments"
         if (!sym->GetIsArguments()
             // Function expression may not have nonLocalReference, exclude them.
-            && (!sym->GetFuncExpr() || sym->GetHasNonLocalReference()))
+            && (!sym->GetFuncExpr() || sym->GetHasNonLocalReference())
+            && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments()))
         {
             // Any symbol may have non-local ref from deferred child. Allocate slot for it.
             Assert(sym->GetHasNonLocalReference());

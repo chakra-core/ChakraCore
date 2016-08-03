@@ -909,8 +909,12 @@ namespace Js
     }
 #endif
 
-    bool EquivalentTypeSet::Contains(const Js::Type * type, uint16* pIndex) const
+    bool EquivalentTypeSet::Contains(const Js::Type * type, uint16* pIndex)
     {
+        if (!this->GetSortedAndDuplicatesRemoved())
+        {
+            this->SortAndRemoveDuplicates();
+        }
         for (uint16 ti = 0; ti < this->count; ti++)
         {
             if (this->types[ti] == type)
@@ -1013,6 +1017,7 @@ namespace Js
                 Type* tmp = this->types[j];
                 this->types[j] = this->types[j - 1];
                 this->types[j - 1] = tmp;
+                j--;
             }
         }
 

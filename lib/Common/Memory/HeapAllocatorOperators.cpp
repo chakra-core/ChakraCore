@@ -9,13 +9,13 @@
 //----------------------------------------
 
 _Ret_maybenull_ void * __cdecl
-operator new(size_t byteSize)
+operator new(__declspec(guard(overflow)) size_t byteSize)
 {
     return HeapNewNoThrowArray(char, byteSize);
 }
 
 _Ret_maybenull_ void * __cdecl
-operator new[](size_t byteSize)
+operator new[](__declspec(guard(overflow)) size_t byteSize)
 {
     return HeapNewNoThrowArray(char, byteSize);
 }

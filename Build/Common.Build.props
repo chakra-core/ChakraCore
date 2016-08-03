@@ -17,6 +17,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <!-- /Zi -->
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat Condition="'$(MultiProcessorCompilation)' == 'true'">OldStyle</DebugInformationFormat>
       <!-- /EHsc- -->
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
       <!-- /Gz -->

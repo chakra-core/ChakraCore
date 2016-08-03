@@ -2305,8 +2305,17 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
             vars->sxVar.sym = sym;
             if (sym->GetIsArguments())
             {
-                byteCodeGenerator->TopFuncInfo()->SetArgumentsSymbol(sym);
+                FuncInfo* funcInfo = byteCodeGenerator->TopFuncInfo();
+                funcInfo->SetArgumentsSymbol(sym);
+
+                if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                {
+                    Symbol* innerArgSym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                    funcInfo->SetInnerArgumentsSymbol(innerArgSym);
+                    byteCodeGenerator->AssignRegister(innerArgSym);
+                }
             }
+
         }
         else
         {

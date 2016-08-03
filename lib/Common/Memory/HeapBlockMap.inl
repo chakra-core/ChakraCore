@@ -149,7 +149,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     }
 }
 
-template <bool interlocked, bool updateChunk>
+template <bool interlocked, bool largeBlockType>
 __inline
 bool
 HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& chunk, void * originalCandidate, void * realCandidate)
@@ -166,8 +166,15 @@ HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& ch
         return true;
     }
 
-    if (updateChunk)
+    if (largeBlockType)
     {
+
+#if defined(_M_IX86_OR_ARM32)
+        // we only check the first MaxLargeObjectMarkOffset byte for marking purpuse. 
+        if ( (size_t)originalCandidate - (size_t)realCandidate > HeapConstants::MaxLargeObjectMarkOffset )
+            return true;
+#endif    
+
 #if defined(_M_X64_OR_ARM64)
         if (HeapBlockMap64::GetNodeIndex(originalCandidate) != HeapBlockMap64::GetNodeIndex(realCandidate))
         {

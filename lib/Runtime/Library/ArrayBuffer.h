@@ -58,9 +58,9 @@ namespace Js
         };
 
         template <typename Allocator>
-        ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator);
+        ArrayBuffer(__declspec(guard(overflow)) uint32 length, DynamicType * type, Allocator allocator);
 
-        ArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
+        ArrayBuffer(byte* buffer, __declspec(guard(overflow)) uint32 length, DynamicType * type);
 
         class EntryInfo
         {
@@ -132,8 +132,8 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) { return false; }
     protected:
         typedef void __cdecl FreeFn(void* ptr);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) = 0;
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) = 0;
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, __declspec(guard(overflow)) uint32 bufferLength) = 0;
+        virtual ArrayBuffer * TransferInternal(__declspec(guard(overflow)) uint32 newBufferLength) = 0;
 
         inline BOOL IsBuiltinProperty(PropertyId);
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
@@ -206,11 +206,11 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArrayBuffer);
 
     public:
-        static JavascriptArrayBuffer* Create(uint32 length, DynamicType * type);
-        static JavascriptArrayBuffer* Create(byte* buffer, uint32 length, DynamicType * type);
+        static JavascriptArrayBuffer* Create(__declspec(guard(overflow)) uint32 length, DynamicType * type);
+        static JavascriptArrayBuffer* Create(byte* buffer, __declspec(guard(overflow)) uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
-        static void*__cdecl  AllocWrapper(size_t length)
+        static void*__cdecl  AllocWrapper(__declspec(guard(overflow)) size_t length)
         {
 #if _WIN64
             LPVOID address = VirtualAlloc(nullptr, MAX_ASMJS_ARRAYBUFFER_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
@@ -244,8 +244,8 @@ namespace Js
 
     protected:
         JavascriptArrayBuffer(DynamicType * type);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override;
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override;
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, __declspec(guard(overflow)) uint32 bufferLength) override;
+        virtual ArrayBuffer * TransferInternal(__declspec(guard(overflow)) uint32 newBufferLength) override;
     private:
         JavascriptArrayBuffer(uint32 length, DynamicType * type);
         JavascriptArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
@@ -258,17 +258,17 @@ namespace Js
         DEFINE_VTABLE_CTOR(ProjectionArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ProjectionArrayBuffer);
         typedef void __stdcall FreeFn(LPVOID ptr);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, __declspec(guard(overflow)) uint32 bufferLength) override
         {
             return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, CoTaskMemFree, ArrayBufferAllocationType::CoTask);
         }
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override;
+        virtual ArrayBuffer * TransferInternal(__declspec(guard(overflow)) uint32 newBufferLength) override;
 
     public:
         // Create constructor. script engine creates a buffer allocated via CoTaskMemAlloc.
-        static ProjectionArrayBuffer* Create(uint32 length, DynamicType * type);
+        static ProjectionArrayBuffer* Create(__declspec(guard(overflow)) uint32 length, DynamicType * type);
         // take over ownership. a CoTaskMemAlloc'ed buffer passed in via projection.
-        static ProjectionArrayBuffer* Create(byte* buffer, uint32 length, DynamicType * type);
+        static ProjectionArrayBuffer* Create(byte* buffer, __declspec(guard(overflow)) uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override {};
     private:
@@ -283,10 +283,10 @@ namespace Js
         DEFINE_VTABLE_CTOR(ExternalArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ExternalArrayBuffer);
     public:
-        ExternalArrayBuffer(byte *buffer, uint32 length, DynamicType *type);
+        ExternalArrayBuffer(byte *buffer, __declspec(guard(overflow)) uint32 length, DynamicType *type);
     protected:
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, __declspec(guard(overflow)) uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
+        virtual ArrayBuffer * TransferInternal(__declspec(guard(overflow)) uint32 newBufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
     };
 }
 

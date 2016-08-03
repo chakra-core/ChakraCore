@@ -790,6 +790,7 @@ private:
     bool HasPendingTrackObjects() const { return markContext.HasPendingTrackObjects() || parallelMarkContext1.HasPendingTrackObjects() || parallelMarkContext2.HasPendingTrackObjects() || parallelMarkContext3.HasPendingTrackObjects(); }
 
     RecyclerCollectionWrapper * collectionWrapper;
+
     HANDLE mainThreadHandle;
     void * stackBase;
     class SavedRegisterState
@@ -909,7 +910,6 @@ private:
     HANDLE concurrentWorkReadyEvent; // main thread uses this event to tell concurrent threads that the work is ready
     HANDLE concurrentWorkDoneEvent; // concurrent threads use this event to tell main thread that the work allocated is done
     HANDLE concurrentThread;
-
 
     template <uint parallelId>
     void ParallelWorkFunc();
@@ -1056,7 +1056,7 @@ public:
 
     void LogMemProtectHeapSize(bool fromGC);
 
-    char* Realloc(void* buffer, size_t existingBytes, size_t requestedBytes, bool truncate = true);
+    char* Realloc(void* buffer, __declspec(guard(overflow)) size_t existingBytes, __declspec(guard(overflow)) size_t requestedBytes, bool truncate = true);
     void SetTelemetryBlock(RecyclerWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
 
     void Prime();
@@ -1258,22 +1258,22 @@ public:
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributeFunc, attributes)
 #endif
 #define DEFINE_RECYCLER_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * AllocFunc(size_t size) \
+    __inline char * AllocFunc(__declspec(guard(overflow)) size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ false>(size); \
     } \
-    __forceinline char * AllocFunc##Inlined(size_t size) \
+    __forceinline char * AllocFunc##Inlined(__declspec(guard(overflow)) size_t size) \
     { \
         return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ false>(size);  \
     } \
     DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes);
 
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * NoThrow##AllocFunc(size_t size) \
+    __inline char * NoThrow##AllocFunc(__declspec(guard(overflow)) size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ true>(size); \
     } \
-    __inline char * NoThrow##AllocFunc##Inlined(size_t size) \
+    __inline char * NoThrow##AllocFunc##Inlined(__declspec(guard(overflow)) size_t size) \
     { \
         return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ true>(size);  \
     } \
@@ -1309,7 +1309,7 @@ public:
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRoot, ImplicitRootBit);
 
     template <ObjectInfoBits enumClass>
-    char * AllocEnumClass(size_t size)
+    char * AllocEnumClass(__declspec(guard(overflow)) size_t size)
     {
         Assert((enumClass & EnumClassMask) != 0);
         Assert((enumClass & ~EnumClassMask) == 0);
@@ -1317,7 +1317,7 @@ public:
     }
 
     template <ObjectInfoBits infoBits>
-    char * AllocWithInfoBits(size_t size)
+    char * AllocWithInfoBits(__declspec(guard(overflow)) size_t size)
     {
         return AllocWithAttributes<infoBits, /* nothrow = */ false>(size);
     }
@@ -1376,7 +1376,7 @@ public:
     template <typename TBlockAttributes>
     void SetExplicitFreeBitOnSmallBlock(HeapBlock* heapBlock, size_t sizeCat, void* buffer, ObjectInfoBits attributes);
 
-    char* HeapAllocR(HeapInfo* eHeap, size_t size)
+    char* HeapAllocR(HeapInfo* eHeap, __declspec(guard(overflow)) size_t size)
     {
         return RealAlloc<LeafBit, /* nothrow = */ false>(eHeap, size);
     }
@@ -1389,10 +1389,10 @@ public:
     void RootRelease(void* obj, uint *count = nullptr);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* RealAlloc(HeapInfo* heap, size_t size);
+    __inline char* RealAlloc(HeapInfo* heap, __declspec(guard(overflow)) size_t size);
 
     template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
-    __inline char* RealAllocFromBucket(HeapInfo* heap, size_t size);
+    __inline char* RealAllocFromBucket(HeapInfo* heap, __declspec(guard(overflow)) size_t size);
 
     void EnterIdleDecommit();
     void LeaveIdleDecommit();
@@ -1508,23 +1508,23 @@ private:
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * AllocWithAttributesInlined(size_t size);
+    __inline char * AllocWithAttributesInlined(__declspec(guard(overflow)) size_t size);
     template <ObjectInfoBits attributes, bool nothrow>
-    char * AllocWithAttributes(size_t size)
+    char * AllocWithAttributes(__declspec(guard(overflow)) size_t size)
     {
         return AllocWithAttributesInlined<attributes, nothrow>(size);
     }
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* AllocZeroWithAttributesInlined(size_t size);
+    __inline char* AllocZeroWithAttributesInlined(__declspec(guard(overflow)) size_t size);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    char* AllocZeroWithAttributes(size_t size)
+    char* AllocZeroWithAttributes(__declspec(guard(overflow)) size_t size)
     {
         return AllocZeroWithAttributesInlined<attributes, nothrow>(size);
     }
 
-    char* AllocWeakReferenceEntry(size_t size)
+    char* AllocWeakReferenceEntry(__declspec(guard(overflow)) size_t size)
     {
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
@@ -1539,10 +1539,10 @@ private:
         return (ticks > tickCountNextDispose && this->hasDisposableObject);
     }
 
-    char* TryLargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes, bool nothrow);
+    char* TryLargeAlloc(HeapInfo* heap, __declspec(guard(overflow)) size_t size, ObjectInfoBits attributes, bool nothrow);
 
     template <bool nothrow>
-    char* LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes);
+    char* LargeAlloc(HeapInfo* heap, __declspec(guard(overflow)) size_t size, ObjectInfoBits attributes);
     void OutOfMemory();
 
     // Collection
@@ -1652,6 +1652,7 @@ private:
 #if ENABLE_CONCURRENT_GC
     void BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep);
 #endif
+
 #endif
 
     size_t RescanMark(DWORD waitTime);
@@ -2219,7 +2220,7 @@ Recycler::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t s
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
-Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size)
+Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, __declspec(guard(overflow)) size_t sizeCat, size_t size)
 {
     return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
 }
@@ -2398,7 +2399,7 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
 }
 
 _Ret_notnull_ inline void * __cdecl
-operator new(size_t byteSize, Recycler * alloc, HeapInfo * heapInfo)
+operator new(__declspec(guard(overflow)) size_t byteSize, Recycler * alloc, HeapInfo * heapInfo)
 {
     return alloc->HeapAllocR(heapInfo, byteSize);
 }
@@ -2410,7 +2411,7 @@ operator delete(void * obj, Recycler * alloc, HeapInfo * heapInfo)
 }
 
 _Ret_notnull_ inline void * __cdecl
-operator new(size_t byteSize, Recycler * recycler, ObjectInfoBits enumClassBits)
+operator new(__declspec(guard(overflow)) size_t byteSize, Recycler * recycler, ObjectInfoBits enumClassBits)
 {
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);
@@ -2423,7 +2424,7 @@ operator new(size_t byteSize, Recycler * recycler, ObjectInfoBits enumClassBits)
 
 template<ObjectInfoBits infoBits>
 _Ret_notnull_ inline void * __cdecl
-operator new(size_t byteSize, Recycler * recycler, const InfoBitsWrapper<infoBits>&)
+operator new(__declspec(guard(overflow)) size_t byteSize, Recycler * recycler, const InfoBitsWrapper<infoBits>&)
 {
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);

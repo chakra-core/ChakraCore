@@ -95,6 +95,13 @@ void Scope::SetIsObject()
             return false;
         });
     }
+
+    if (this->GetScopeType() == ScopeType_FunctionBody && funcInfo && funcInfo->paramScope
+        && !funcInfo->paramScope->GetIsObject() && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+    {
+        // If this is split scope then mark the param scope also as an object
+        funcInfo->paramScope->SetIsObject();
+    }
 }
 
 void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *byteCodeGenerator)

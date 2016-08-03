@@ -26,9 +26,9 @@
 /// - X: Nothing
 ///
 /// Examples:
-/// - "A2toA1" reads two registers, each storing a Var, and writes a single
+/// - "A2toA1" reads two registers, each storing an Var, and writes a single
 ///   register with a new Var.
-/// - "A1I1toA2" reads two registers, first a Var and second an Int32, then
+/// - "A1I1toA2" reads two registers, first an Var and second an Int32, then
 ///   writes two Var registers.
 ///
 /// Although these could use lookup tables to standard OpLayout types, this
@@ -1180,6 +1180,7 @@ namespace Js
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
+                    ScopeSlots((Var*)nextAllocBytes).SetCount(scopeSlots);
                     newInstance->localClosure = nextAllocBytes;
                     nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
@@ -2145,7 +2146,7 @@ namespace Js
 
     inline void InterpreterStackFrame::OP_SetOutAsmDb( RegSlot outRegisterID, double val )
     {
-        Assert( m_outParams + outRegisterID < m_outSp );
+        Assert(m_outParams + outRegisterID < m_outSp);
         m_outParams[outRegisterID] = JavascriptNumber::NewWithCheck( val, scriptContext );
     }
 
@@ -7565,7 +7566,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         SetRegRawSimd(playout->I4_0, result);
     }
-
     // handler for SIMD.Uint32x4.FromFloat32x4
     template <class T>
     void InterpreterStackFrame::OP_SimdUint32x4FromFloat32x4(const unaligned T* playout)

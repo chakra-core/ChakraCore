@@ -815,7 +815,8 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         && pnode->nop == knopVarDecl
         && blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Function
         && blockInfo->pBlockInfoOuter != nullptr
-        && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
+        && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
+        && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope())
     {
         blockInfo = blockInfo->pBlockInfoOuter;
     }
@@ -1949,7 +1950,7 @@ void Parser::CheckArgumentsUse(IdentPtr pid, ParseNodePtr pnodeFnc)
 {
     if (pid == wellKnownPropertyPids.arguments)
     {
-        if (pnodeFnc != nullptr)
+        if (pnodeFnc != nullptr && pnodeFnc != m_currentNodeProg)
         {
             pnodeFnc->sxFnc.SetUsesArguments(TRUE);
         }
@@ -2852,7 +2853,6 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             pnode->ichMin = ichMin;
             pnode->ichLim = ichLim;
             pnode->sxPid.SetSymRef(ref);
-            CheckArgumentsUse(pid, m_currentNodeFunc);
         }
         else
         {
@@ -2862,6 +2862,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             term.ichMin = static_cast<charcount_t>(iecpMin);
             term.ichLim = static_cast<charcount_t>(iecpLim);
         }
+        CheckArgumentsUse(pid, GetCurrentFunctionNode());
         break;
     }
 
@@ -4562,11 +4563,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             m_currentNodeNonLambdaDeferredFunc = pnodeFncSaveNonLambda;
         }
         m_currentNodeDeferredFunc = pnodeFncSave;
-        if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
-        {
-            GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
-        }
     }
+
+    if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
+    {
+        GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
+    }
+
     if (m_currentNodeFunc && (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval()))
     {
         GetCurrentFunctionNode()->sxFnc.SetChildCallsEval(true);
@@ -5030,6 +5033,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             }
         }
 
+        if (!fLambda && paramScope != nullptr && !paramScope->GetCanMergeWithBodyScope()
+            && (pnodeFnc->sxFnc.UsesArguments() || pnodeFnc->grfpn & fpnArguments_overriddenByDecl))
+        {
+            Error(ERRNonSimpleParamListArgumentsUse);
+        }
+
         // If the param scope is merged with the body scope we want to use the param scope symbols in the body scope.
         // So add a pid ref for the body using the param scope symbol. Note that in this case the same symbol will occur twice
         // in the same pid ref stack.
@@ -5094,6 +5103,15 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                     Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
                     paramNode->sxVar.sym->SetHasInit(true);
                 });
+
+                if (!fLambda)
+                {
+                    // In split scope case ideally the arguments object should be in the param scope.
+                    // Right now referring to arguments in the param scope is a SyntaxError, so we have to
+                    // add a duplicate symbol in the body scope and copy over the value in BeginBodySope.
+                    ParseNodePtr argumentsNode = this->CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, nullptr, false);
+                    Assert(argumentsNode && argumentsNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
+                }
             }
 
             // Keep nested function declarations and expressions in the same list at function scope.

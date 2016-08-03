@@ -10,10 +10,10 @@ NoReleaseAllocator - allocator that never releases until it is destroyed
 class NoReleaseAllocator
 {
 public:
-    NoReleaseAllocator(long cbFirst = 256, long cbMax = 0x4000 /*16K*/);
+    NoReleaseAllocator(__declspec(guard(overflow)) long cbFirst = 256, __declspec(guard(overflow)) long cbMax = 0x4000 /*16K*/);
     ~NoReleaseAllocator(void) { FreeAll(); }
 
-    void *Alloc(long cb);
+    void *Alloc(__declspec(guard(overflow)) long cb);
     void FreeAll();
     void Clear() { FreeAll(); }
 

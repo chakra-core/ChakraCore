@@ -1204,7 +1204,20 @@ LowererMDArch::LoadDynamicArgumentUsingLength(IR::Instr *instr)
 IR::Instr *
 LowererMDArch::LoadDoubleHelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
 {
-    Assert(opndArg->IsFloat64());
+    IR::Opnd * float64Opnd;
+    if (opndArg->GetType() == TyFloat32)
+    {
+        float64Opnd = IR::RegOpnd::New(TyFloat64, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, opndArg, this->m_func);
+        instrInsert->InsertBefore(instr);
+    }
+    else
+    {
+        float64Opnd = opndArg;
+    }
+
+    Assert(opndArg->IsFloat());
+
     return LoadHelperArgument(instrInsert, opndArg);
 }
 

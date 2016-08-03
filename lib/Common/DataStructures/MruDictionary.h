@@ -111,7 +111,7 @@ namespace JsUtil
             Assert(mruListCapacity > 0);
         }
 
-        static MruDictionary *New(TAllocator *const allocator, const int mruListCapacity)
+        static MruDictionary *New(TAllocator *const allocator, __declspec(guard(overflow)) const int mruListCapacity)
         {
             return AllocatorNew(TAllocator, allocator, MruDictionary, allocator, mruListCapacity);
         }

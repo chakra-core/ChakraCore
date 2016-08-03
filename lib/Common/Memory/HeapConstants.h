@@ -17,6 +17,12 @@ public:
     static const uint MaxMediumObjectSize = 9216;
 #endif
 
+#if defined(_M_IX86_OR_ARM32)
+    // Only if a pointer points to first 8k region of a large object, it will set the mark bit in the chunk->MarkBits
+    // If the pointer points outside of that region, no mark bit will be set
+    static const uint MaxLargeObjectMarkOffset = 8 * 1024; 
+#endif
+
     static const uint ObjectAllocationShift = 4;        // 16
     static const uint ObjectGranularity = 1 << ObjectAllocationShift;
     static const uint BucketCount = (MaxSmallObjectSize >> ObjectAllocationShift);

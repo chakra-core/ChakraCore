@@ -63,7 +63,7 @@ public:
         memoryLimit = newLimit;
     }
 
-    bool RequestAlloc(size_t byteCount)
+    bool RequestAlloc(__declspec(guard(overflow)) size_t byteCount)
     {
         if (supportConcurrency)
         {

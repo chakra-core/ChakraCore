@@ -179,6 +179,7 @@ public:
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
+    void InitSpecialScopeSlots(FuncInfo* funcInfo);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);

@@ -37,7 +37,7 @@ public:
     }
 
     Recycler * GetRecycler() { return recycler; }
-    char * Alloc(size_t size)
+    char * Alloc(__declspec(guard(overflow)) size_t size)
     {
         Assert(recycler != nullptr);
         Assert(!recycler->IsHeapEnumInProgress() || recycler->AllowAllocationDuringHeapEnum());
@@ -73,10 +73,7 @@ public:
         recycler->FillCheckPad(memBlock, sizeof(T), sizeCat);
 #endif
 #if DBG
-        if (recycler->IsPageHeapEnabled())
-        {
-            recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
-        }
+        recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
 #endif
         return memBlock;
     };
