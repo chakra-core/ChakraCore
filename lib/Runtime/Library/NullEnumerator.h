@@ -12,7 +12,6 @@ namespace Js
     {
     private:
         virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentValue() override;
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
         virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;

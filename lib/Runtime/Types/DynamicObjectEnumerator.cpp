@@ -46,17 +46,6 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentValue()
-    {
-        if (arrayEnumerator)
-        {
-            return arrayEnumerator->GetCurrentValue();
-        }
-
-        return object->GetNextProperty(objectIndex, GetTypeToEnumerate(), !enumNonEnumerable, enumSymbols);
-    }
-
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
     BOOL DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::MoveNext(PropertyAttributes* attributes)
     {
         PropertyId propId;

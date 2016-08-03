@@ -29,7 +29,6 @@ namespace Js
 
     public:
         virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentValue() override;
         virtual void Reset() override;
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
@@ -44,17 +43,6 @@ namespace Js
     Var CrossSiteEnumerator<T>::GetCurrentIndex()
     {
         Var result = __super::GetCurrentIndex();
-        if (result)
-        {
-            result = CrossSite::MarshalVar(this->GetScriptContext(), result);
-        }
-        return result;
-    }
-
-    template <typename T>
-    Var CrossSiteEnumerator<T>::GetCurrentValue()
-    {
-        Var result = __super::GetCurrentValue();
         if (result)
         {
             result = CrossSite::MarshalVar(this->GetScriptContext(), result);

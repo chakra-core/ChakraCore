@@ -16,12 +16,6 @@ namespace Js
         return this->GetLibrary()->GetUndefined();
     }
 
-    Var NullEnumerator::GetCurrentValue()
-    {
-        Assert(false);
-        return this->GetLibrary()->GetUndefined();
-    }
-
     BOOL NullEnumerator::MoveNext(PropertyAttributes* attributes)
     {
         return FALSE;
