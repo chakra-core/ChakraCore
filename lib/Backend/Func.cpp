@@ -1765,7 +1765,7 @@ Func::AllocateNumber(double value)
 {
     Js::Var number = nullptr;
 #if FLOATVAR
-    number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, GetScriptContext());
+    number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, nullptr);
 #else
     if (!IsOOPJIT()) // in-proc jit
     {

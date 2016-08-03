@@ -3445,7 +3445,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                 WriteToBuffer(&buffer, &n, _u(" (&StackLimit)"));
             }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
+                func->GetThreadContextInfo()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
             {
                 WriteToBuffer(&buffer, &n, _u(" (PreReservedCodeSegmentEnd)"));
             }

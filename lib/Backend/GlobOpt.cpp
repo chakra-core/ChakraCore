@@ -21356,7 +21356,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         }
         else
         {
-            src1 = IR::AddrOpnd::New(candidate->constant.ToVar(localFunc, func->GetScriptContext()), IR::AddrOpndKindConstant, localFunc);
+            src1 = IR::AddrOpnd::New(candidate->constant.ToVar(localFunc), IR::AddrOpndKindConstant, localFunc);
         }
     }
     else

@@ -347,7 +347,10 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     intptr_t GetWeakFuncRef() const;
     // TODO: OOP JIT, remove this
-    Js::FunctionBody * GetJnFunction() const { Assert(UNREACHED);  return m_jnFunction; }
+    Js::FunctionBody * GetJnFunction() const 
+    {
+        return GetInProcJITEntryPointInfo()->GetFunctionBody(); 
+    }
 
     const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }
 

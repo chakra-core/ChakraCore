@@ -1420,7 +1420,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         Assert(!byteCodeUpwardExposedUsed->Test(stackSym->m_id));
 
         BailoutConstantValue constValue = value.Value();
-        Js::Var varValue = constValue.ToVar(this->func, stackSymFunc->GetScriptContext());
+        Js::Var varValue = constValue.ToVar(this->func);
 
         state.constantList.Prepend(varValue);
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
@@ -1818,7 +1818,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     {
                         if (constantValue.Key()->m_id == sym->m_id)
                         {
-                            Js::Var varValue = constantValue.Value().ToVar(func, currentStartCallFunc->GetScriptContext());
+                            Js::Var varValue = constantValue.Value().ToVar(func);
                             state.constantList.Prepend(varValue);
                             outParamOffsets[outParamOffsetIndex] = state.constantList.Count() + GetBailOutRegisterSaveSlotCount() + GetBailOutReserveSlotCount();
 
