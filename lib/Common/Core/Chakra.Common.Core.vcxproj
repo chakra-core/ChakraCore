@@ -29,6 +29,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Api.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BinaryFeatureControl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CmdParser.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CodexAssert.cpp" />
