@@ -2800,7 +2800,9 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
             parentFunc->SetChildHasWith();
 
-            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure())
+            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure() ||
+                (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
+                 parentFunc->GetParamScope()->GetCanMergeWithBodyScope()))
             {
                 parentFunc->GetBodyScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
