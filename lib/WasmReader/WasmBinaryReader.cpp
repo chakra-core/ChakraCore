@@ -482,11 +482,11 @@ WasmBinaryReader::BrTableNode()
 
     for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
-        m_currentNode.brTable.targetTable[i] = ReadConst<uint32>();
-        m_funcState.count += sizeof(uint32);
+        m_currentNode.brTable.targetTable[i] = LEB128(len);
+        m_funcState.count += len;
     }
-    m_currentNode.brTable.defaultTarget = ReadConst<uint32>();
-    m_funcState.count += sizeof(uint32);
+    m_currentNode.brTable.defaultTarget = LEB128(len);
+    m_funcState.count += len;
 }
 
 WasmOp
