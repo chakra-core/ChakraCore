@@ -11470,6 +11470,9 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->Writer()->Br(Js::OpCode::TryFinally, finallyLabel);
         }
 
+        // Increasing the stack as we will be storing the additional values when we enter try..finally.
+        funcInfo->StartRecordingOutArgs(1);
+
         Emit(pnodeTry->sxTry.pnodeBody, byteCodeGenerator, funcInfo, fReturnValue);
         funcInfo->ReleaseLoc(pnodeTry->sxTry.pnodeBody);
 
@@ -11504,6 +11507,8 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             funcInfo->ReleaseTmpRegister(regOffset);
             funcInfo->ReleaseTmpRegister(regException);
         }
+
+        funcInfo->EndRecordingOutArgs(1);
 
         byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(false);
 
