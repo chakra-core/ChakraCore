@@ -172,7 +172,6 @@ namespace Wasm
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack();
-        EmitInfo PeekEvalStack();
         void PushEvalStack(EmitInfo);
         void EnterEvalStackScope();
         void ExitEvalStackScope();

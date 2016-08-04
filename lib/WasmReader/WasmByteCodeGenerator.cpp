@@ -1445,20 +1445,6 @@ WasmBytecodeGenerator::PopEvalStack()
     return info;
 }
 
-EmitInfo
-WasmBytecodeGenerator::PeekEvalStack()
-{
-    // The scope marker should at least be there
-    Assert(!m_evalStack.Empty());
-    EmitInfo info = m_evalStack.Top();
-    if (info.type == WasmTypes::Limit)
-    {
-        throw WasmCompilationException(_u("Missing operand"));
-    }
-    return info;
-}
-
-
 void
 WasmBytecodeGenerator::PushEvalStack(EmitInfo info)
 {

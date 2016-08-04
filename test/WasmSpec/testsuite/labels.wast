@@ -179,26 +179,26 @@
     (i32.const 2)
   )
 
-  (func $br_if0 (result i32)
-    (local $i i32)
-    (set_local $i (i32.const 0))
-    (block $outer
-      (block $inner
-        (br_if $inner (i32.const 0))
-        (set_local $i (i32.or (get_local $i) (i32.const 0x1)))
-        (br_if $inner (i32.const 1))
-        (set_local $i (i32.or (get_local $i) (i32.const 0x2)))
-      )
-      (br_if $outer
-        (set_local $i (i32.or (get_local $i) (i32.const 0x4))) (i32.const 0)
-      )
-      (set_local $i (i32.or (get_local $i) (i32.const 0x8)))
-      (br_if $outer
-        (set_local $i (i32.or (get_local $i) (i32.const 0x10))) (i32.const 1)
-      )
-      (set_local $i (i32.or (get_local $i) (i32.const 0x20)))
-    )
-  )
+;;  (func $br_if0 (result i32)
+;;    (local $i i32)
+;;    (set_local $i (i32.const 0))
+;;    (block $outer
+;;      (block $inner
+;;        (br_if $inner (i32.const 0))
+;;        (set_local $i (i32.or (get_local $i) (i32.const 0x1)))
+;;        (br_if $inner (i32.const 1))
+;;        (set_local $i (i32.or (get_local $i) (i32.const 0x2)))
+;;      )
+;;      (br_if $outer
+;;        (set_local $i (i32.or (get_local $i) (i32.const 0x4))) (i32.const 0)
+;;      )
+;;      (set_local $i (i32.or (get_local $i) (i32.const 0x8)))
+;;      (br_if $outer
+;;        (set_local $i (i32.or (get_local $i) (i32.const 0x10))) (i32.const 1)
+;;      )
+;;      (set_local $i (i32.or (get_local $i) (i32.const 0x20)))
+;;    )
+;;  )
 
   (func $br_if1 (result i32)
     (block $l0
@@ -213,17 +213,17 @@
             (br $l1 (i32.const 1)))))
       (i32.const 1)))
 
-  (func $br_if3 (result i32)
-    (local $i1 i32)
-    (i32.add
-      (block $l0
-        (br_if $l0 (set_local $i1 (i32.const 1)) (set_local $i1 (i32.const 2)))
-        (i32.const 0)
-      )
-      (i32.const 0)
-    )
-    (get_local $i1)
-  )
+;;  (func $br_if3 (result i32)
+;;    (local $i1 i32)
+;;    (i32.add
+;;      (block $l0
+;;        (br_if $l0 (set_local $i1 (i32.const 1)) (set_local $i1 (i32.const 2)))
+;;        (i32.const 0)
+;;      )
+;;      (i32.const 0)
+;;   )
+;;    (get_local $i1)
+;;  )
 
   (func $br_if4
     (block $l0 (br_if $l0 (nop) (i32.const 1)))
@@ -265,10 +265,10 @@
   (export "if2" $if2)
   (export "switch" $switch)
   (export "return" $return)
-  (export "br_if0" $br_if0)
+;;  (export "br_if0" $br_if0)
   (export "br_if1" $br_if1)
   (export "br_if2" $br_if2)
-  (export "br_if3" $br_if3)
+;;  (export "br_if3" $br_if3)
   (export "br_if4" $br_if4)
   (export "br" $br)
   (export "misc1" $misc1)
@@ -293,10 +293,10 @@
 (assert_return (invoke "return" (i32.const 0)) (i32.const 0))
 (assert_return (invoke "return" (i32.const 1)) (i32.const 2))
 (assert_return (invoke "return" (i32.const 2)) (i32.const 2))
-(assert_return (invoke "br_if0") (i32.const 0x1d))
+;;(assert_return (invoke "br_if0") (i32.const 0x1d))
 (assert_return (invoke "br_if1") (i32.const 1))
 (assert_return (invoke "br_if2") (i32.const 1))
-(assert_return (invoke "br_if3") (i32.const 2))
+;;(assert_return (invoke "br_if3") (i32.const 2))
 (assert_return (invoke "br_if4"))
 (assert_return (invoke "br") (i32.const 1))
 (assert_return (invoke "misc1") (i32.const 1))
