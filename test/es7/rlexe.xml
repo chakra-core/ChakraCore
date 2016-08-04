@@ -35,7 +35,7 @@
   <test>
     <default>
       <files>asyncawait-apis.js</files>
-      <compile-flags>-es7asyncawait -es6tostringtag -args summary -endargs</compile-flags>
+      <compile-flags>-es7asyncawait -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
