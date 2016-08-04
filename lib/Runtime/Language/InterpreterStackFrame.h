@@ -78,6 +78,7 @@ namespace Js
         Var* m_inParams;                // Range of 'in' parameters
         Var* m_outParams;               // Range of 'out' parameters (offset in m_localSlots)
         Var* m_outSp;                   // Stack pointer for next outparam
+        Var* m_outSpCached;             // Stack pointer for caching previos SP (in order to assist in try..finally)
         Var  m_arguments;               // Dedicated location for this frame's arguments object
         StackScriptFunction * stackNestedFunctions;
         FrameDisplay * localFrameDisplay;
@@ -167,6 +168,8 @@ namespace Js
         void SetOut(ArgSlot_OneByte outRegisterID, Var bValue);
         void PushOut(Var aValue);
         void PopOut(ArgSlot argCount);
+        void CacheSp();
+        void RestoreSp();
 
         FrameDisplay * GetLocalFrameDisplay() const;
         FrameDisplay * GetFrameDisplayForNestedFunc() const;

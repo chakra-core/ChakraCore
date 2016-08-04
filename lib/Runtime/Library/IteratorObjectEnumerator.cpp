@@ -38,12 +38,6 @@ namespace Js
         return value;
     }
 
-    Var IteratorObjectEnumerator::GetCurrentValue()
-    {
-        Assert(FALSE);
-        return GetScriptContext()->GetLibrary()->GetUndefined();
-    }
-
     BOOL IteratorObjectEnumerator::MoveNext(PropertyAttributes* attributes)
     {
         ScriptContext* scriptContext = GetScriptContext();

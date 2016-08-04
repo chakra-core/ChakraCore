@@ -31,25 +31,6 @@ namespace Js
         return GetLibrary()->GetUndefined();
     }
 
-    Var ES5ArrayEnumerator::GetCurrentValue()
-    {
-        if (!doneArray && index != JavascriptArray::InvalidIndex)
-        {
-            Var element;
-            if (arrayObject->GetItem(originalInstance, index, &element, GetScriptContext()))
-            {
-                return element;
-            }
-            return GetLibrary()->GetUndefined();
-        }
-        else if (!doneObject)
-        {
-            return objectEnumerator->GetCurrentValue();
-        }
-
-        return GetLibrary()->GetUndefined();
-    }
-
     Var ES5ArrayEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;

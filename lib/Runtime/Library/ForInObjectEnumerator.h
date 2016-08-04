@@ -36,11 +36,9 @@ namespace Js
         BOOL CanBeReused();
         void Initialize(RecyclableObject* currentObject, ScriptContext * scriptContext);
         void Clear();
-        Var GetCurrentIndex();
-        Var GetCurrentValue();
+        Var GetCurrentIndex();        
         BOOL MoveNext();
         void Reset();
-        Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var *currentValueRef);
         Var GetCurrentAndMoveNext(PropertyId& propertyId);
 
         static uint32 GetOffsetOfCurrentEnumerator() { return offsetof(ForInObjectEnumerator, currentEnumerator); }
@@ -59,13 +57,8 @@ namespace Js
         }
 
         virtual Var GetCurrentIndex() override { return forInObjectEnumerator.GetCurrentIndex(); }
-        virtual Var GetCurrentValue() override { return forInObjectEnumerator.GetCurrentValue(); }
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override { return forInObjectEnumerator.MoveNext(); }
         virtual void Reset() override { forInObjectEnumerator.Reset(); }
-        virtual Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var *currentValueRef) override
-        {
-            return forInObjectEnumerator.GetCurrentBothAndMoveNext(propertyId, currentValueRef);
-        }
         virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
         {
             return forInObjectEnumerator.GetCurrentAndMoveNext(propertyId);

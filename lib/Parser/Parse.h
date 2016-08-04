@@ -442,9 +442,29 @@ private:
     BlockInfoStack* GetCurrentBlockInfo();
     BlockInfoStack* GetCurrentFunctionBlockInfo();
     ParseNode *GetCurrentFunctionNode();
-    ParseNode *GetCurrentNonLamdaFunctionNode();
-    bool IsNodeAllowedForDeferParse(OpCode op) {return !this->m_deferringAST ||
-        (op == knopBlock || op == knopVarDecl || op == knopConstDecl || op == knopLetDecl || op == knopFncDecl); }
+    ParseNode *GetCurrentNonLambdaFunctionNode();
+
+    bool IsNodeAllowedInCurrentDeferralState(OpCode op) 
+    {
+        if (!this->m_deferringAST)
+        {
+            return true;
+        }
+        switch(op)
+        {
+            case knopBlock:
+            case knopVarDecl:
+            case knopConstDecl:
+            case knopLetDecl:
+            case knopFncDecl:
+            case knopName:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     bool NextTokenConfirmsLetDecl() const { return m_token.tk == tkID || m_token.tk == tkLBrack || m_token.tk == tkLCurly || m_token.IsReservedWord(); }
     bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
