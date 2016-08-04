@@ -22,16 +22,26 @@ namespace DateTime
     // mktime etc. broken-out time bases 1900
     static inline int NormalizeYMDYear(const int base_year)
     {
+        int retval = base_year;
+
         if (base_year < -2100)
         {
-            return 2100;
+            retval = 2100;
         }
         else if (base_year < -1900)
         {
-            return base_year * -1;
+            retval = base_year * -1;
+        }
+        else if (base_year >= 0 && base_year < 100)
+        {
+            retval = 1900 + base_year;
+        }
+        else if (base_year < 0)
+        {
+            retval = NormalizeYMDYear(-1 * base_year);
         }
 
-        return base_year;
+        return retval;
     }
 
     static inline int UpdateToYMDYear(const int base_year, const struct tm *time)
@@ -47,6 +57,15 @@ namespace DateTime
         if (base_year < -1900)
         {
             year *= -1;
+        }
+        else if (base_year >= 0 && base_year < 100)
+        {
+            year -= 1900;
+        }
+        else if (base_year < 0)
+        {
+            const int org_base_year = NormalizeYMDYear(-1 * base_year);
+            year = base_year - (org_base_year - year);
         }
 
         return year;
@@ -107,14 +126,16 @@ namespace DateTime
     {
         *length = strlen(tm_zone);
 
-        for(int i = 0; i < *length; i++) {
+        for(int i = 0; i < *length; i++)
+        {
             wstr[i] = (WCHAR)tm_zone[i];
         }
 
         wstr[*length] = (WCHAR)0;
     }
 
-    const WCHAR *Utility::GetStandardName(size_t *nameLength, const DateTime::YMD *ymd) {
+    const WCHAR *Utility::GetStandardName(size_t *nameLength, const DateTime::YMD *ymd)
+    {
         AssertMsg(ymd != NULL, "xplat needs DateTime::YMD is defined for this call");
         struct tm time_tm;
         bool leap_added;
@@ -125,7 +146,8 @@ namespace DateTime
         return data.standardName;
     }
 
-    const WCHAR *Utility::GetDaylightName(size_t *nameLength, const DateTime::YMD *ymd) {
+    const WCHAR *Utility::GetDaylightName(size_t *nameLength, const DateTime::YMD *ymd)
+    {
         // xplat only gets the actual zone name for the given date
         return GetStandardName(nameLength, ymd);
     }
@@ -142,11 +164,9 @@ namespace DateTime
         tzset();
         time_t utime = timegm(&local_tm);
 
-        // mktime min year is 1900
-        if (local_tm.tm_year < 1900)
-        {
-            local_tm.tm_year = 1900;
-        }
+        // we alter the original date
+        // and mktime doesn't know that
+        // so calculate gmtoff manually and keep dst from being included
         mktime(&local_tm);
         utime -= local_tm.tm_gmtoff;
 

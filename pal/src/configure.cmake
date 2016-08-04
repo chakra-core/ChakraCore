@@ -30,9 +30,7 @@ check_include_files(pthread_np.h HAVE_PTHREAD_NP_H)
 check_include_files(sys/lwp.h HAVE_SYS_LWP_H)
 check_include_files(libunwind.h HAVE_LIBUNWIND_H)
 check_include_files(runetype.h HAVE_RUNETYPE_H)
-check_include_files(lttng/tracepoint.h HAVE_LTTNG_TRACEPOINT_H)
-check_include_files(uuid/uuid.h HAVE_LIBUUID_H)
-check_include_files(uuid.h HAVE_BSD_UUID_H)
+check_include_files(unicode/uchar.h HAVE_LIBICU_UCHAR_H)
 
 check_function_exists(kqueue HAVE_KQUEUE)
 check_function_exists(getpwuid_r HAVE_GETPWUID_R)
@@ -101,6 +99,21 @@ check_cxx_symbol_exists(_DEBUG sys/user.h USER_H_DEFINES_DEBUG)
 check_cxx_symbol_exists(_SC_PHYS_PAGES unistd.h HAVE__SC_PHYS_PAGES)
 check_cxx_symbol_exists(_SC_AVPHYS_PAGES unistd.h HAVE__SC_AVPHYS_PAGES)
 
+check_cxx_source_runs("
+#include <stdlib.h>
+#include <stdio.h>
+
+extern \"C++\" {
+  inline long long abs(long long _X) {
+    return llabs(_X);
+  }
+}
+
+int main(int argc, char **argv) {
+  long long X = 123456789 + argc;
+  printf(\"%lld\", abs(X));
+  exit(0);
+}" PLATFORM_ACCEPTS_ABS_OVERLOAD)
 check_cxx_source_runs("
 #include <sys/param.h>
 #include <stdlib.h>
@@ -856,9 +869,9 @@ int main(int argc, char **argv)
 }" UNWIND_CONTEXT_IS_UCONTEXT_T)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  if(NOT HAVE_LIBUUID_H)
-    unset(HAVE_LIBUUID_H CACHE)
-    message(FATAL_ERROR "Cannot find libuuid. Try installing uuid-dev or the appropriate packages for your platform")
+  if(NOT HAVE_LIBICU_UCHAR_H)
+    unset(HAVE_LIBICU_UCHAR_H CACHE)
+    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
   endif()
   set(HAVE_COREFOUNDATION 1)
   set(HAVE__NSGETENVIRON 1)
@@ -877,9 +890,9 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
     unset(HAVE_LIBUNWIND_H CACHE)
     message(FATAL_ERROR "Cannot find libunwind. Try installing libunwind8 and libunwind8-dev (or the appropriate packages for your platform)")
   endif()
-  if(NOT HAVE_BSD_UUID_H)
-    unset(HAVE_BSD_UUID_H CACHE)
-    message(FATAL_ERROR "Cannot find uuid.h")
+  if(NOT HAVE_LIBICU_UCHAR_H)
+    unset(HAVE_LIBICU_UCHAR_H CACHE)
+    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
   endif()
   set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
   set(PAL_PTRACE "ptrace((cmd), (pid), (caddr_t)(addr), (data))")
@@ -897,38 +910,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
   else()
     message(FATAL_ERROR "Cannot find libc on this system.")
   endif()
-  
-elseif(CMAKE_SYSTEM_NAME STREQUAL SunOS)
-  if(NOT HAVE_LIBUNWIND_H)
-    unset(HAVE_LIBUNWIND_H CACHE)
-    message(FATAL_ERROR "Cannot find libunwind. Try installing libunwind8 and libunwind8-dev (or the appropriate packages for your platform)")
-  endif()
-  if(NOT HAVE_LIBUUID_H)
-    unset(HAVE_LIBUUID_H CACHE)
-    message(FATAL_ERROR "Cannot find libuuid. Try installing uuid-dev or the appropriate packages for your platform")
-  endif()
-  set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
-  set(PAL_PTRACE "ptrace((cmd), (pid), (caddr_t)(addr), (data))")
-  set(PAL_PT_ATTACH PT_ATTACH)
-  set(PAL_PT_DETACH PT_DETACH)
-  set(PAL_PT_READ_D PT_READ_D)
-  set(PAL_PT_WRITE_D PT_WRITE_D)
-  set(JA_JP_LOCALE_NAME ja_JP_LOCALE_NOT_FOUND)
-  set(KO_KR_LOCALE_NAME ko_KR_LOCALE_NOT_FOUND)
-  set(ZH_TW_LOCALE_NAME zh_TW_LOCALE_NOT_FOUND)
-  set(HAS_FTRUNCATE_LENGTH_ISSUE 0)
 else() # Anything else is Linux
   if(NOT HAVE_LIBUNWIND_H)
     unset(HAVE_LIBUNWIND_H CACHE)
     message(FATAL_ERROR "Cannot find libunwind. Try installing libunwind8 and libunwind8-dev (or the appropriate packages for your platform)")
   endif()
-  if(NOT HAVE_LTTNG_TRACEPOINT_H)
-    unset(HAVE_LTTNG_TRACEPOINT_H CACHE)
-    message(FATAL_ERROR "Cannot find liblttng-ust-dev. Try installing liblttng-ust-dev  (or the appropriate packages for your platform)")
-  endif()
-  if(NOT HAVE_LIBUUID_H)
-    unset(HAVE_LIBUUID_H CACHE)
-    message(FATAL_ERROR "Cannot find libuuid. Try installing uuid-dev or the appropriate packages for your platform")
+  if(NOT HAVE_LIBICU_UCHAR_H)
+    unset(HAVE_LIBICU_UCHAR_H CACHE)
+    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
   endif()
   set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
   set(PAL_PTRACE "ptrace((cmd), (pid), (void*)(addr), (data))")

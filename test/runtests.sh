@@ -19,6 +19,20 @@ if [[ $build_type != "-d" && $build_type != "-t" ]]; then
     elif [[ -f "$test_path/../BuildLinux/Test/ch" ]]; then
         echo "Warning: Test build was found"
         build_type="-t"
+    elif [[ -f "$test_path/../BuildLinux/Release/ch" ]]; then
+        # TEST flags are not enabled for release build
+        # however we would like to test if the compiled binary
+        # works or not
+        CH="$test_path/../BuildLinux/Release/ch"
+        echo "Warning: Release build was found"
+        RES=$(${CH} $test_path/test/basics/hello.js)
+        if [[ $RES =~ "Error :" ]]; then
+            echo "FAILED"
+            exit 1
+        else
+            echo "PASS"
+            exit 0
+        fi
     else
         echo 'Error: ch not found- exiting'
         exit 1
@@ -29,5 +43,3 @@ fi
 if [[ $? != 0 ]]; then
     exit 1
 fi
-
-
