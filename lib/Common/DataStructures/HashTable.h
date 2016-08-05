@@ -33,7 +33,7 @@ public:
     SListBase<Bucket<T>> *  table;
 
 public:
-    static HashTable<T, TAllocator> * New(TAllocator *allocator, __declspec(guard(overflow)) uint tableSize)
+    static HashTable<T, TAllocator> * New(TAllocator *allocator, DECLSPEC_GUARD_OVERFLOW uint tableSize)
     {
         return AllocatorNewPlus(TAllocator, allocator, (tableSize*sizeof(SListBase<Bucket<T>>)), HashTable, allocator, tableSize);
     }
@@ -382,7 +382,7 @@ public:
 #endif
 
 protected:
-    HashTable(TAllocator * allocator, __declspec(guard(overflow)) uint tableSize) : alloc(allocator), tableSize(tableSize)
+    HashTable(TAllocator * allocator, DECLSPEC_GUARD_OVERFLOW uint tableSize) : alloc(allocator), tableSize(tableSize)
     {
         Init();
 #if PROFILE_DICTIONARY

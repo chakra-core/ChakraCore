@@ -224,9 +224,9 @@ public:
 
     static size_t GetAlignedSize(size_t size) { return AllocSizeMath::Align(size, ArenaAllocatorBase::ObjectAlignment); }
 
-    char * AllocInternal(__declspec(guard(overflow)) size_t requestedBytes);
+    char * AllocInternal(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
 
-    char* Realloc(void* buffer, __declspec(guard(overflow)) size_t existingBytes, __declspec(guard(overflow)) size_t requestedBytes);
+    char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     void Free(void * buffer, size_t byteSize);
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
@@ -235,8 +235,8 @@ public:
 #endif
 
 protected:
-    char * RealAlloc(__declspec(guard(overflow)) size_t nbytes);
-    __forceinline char * RealAllocInlined(__declspec(guard(overflow)) size_t nbytes);
+    char * RealAlloc(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
+    __forceinline char * RealAllocInlined(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
 private:
 #ifdef PROFILE_MEM
     void LogBegin();
@@ -250,11 +250,11 @@ private:
     static size_t Size(BigBlock * blockList);
     void FullReset();
     void SetCacheBlock(BigBlock * cacheBlock);
-    template <bool DoRecoverMemory> char * AllocFromHeap(__declspec(guard(overflow)) size_t nbytes);
+    template <bool DoRecoverMemory> char * AllocFromHeap(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
     void ReleaseMemory();
     void ReleasePageMemory();
     void ReleaseHeapMemory();
-    char * SnailAlloc(__declspec(guard(overflow)) size_t nbytes);
+    char * SnailAlloc(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
     BigBlock * AddBigBlock(size_t pages);
 
 #ifdef ARENA_ALLOCATOR_FREE_LIST_SIZE
@@ -289,7 +289,7 @@ public:
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InPlaceFreeListPolicy> * allocator);
-    static void * Allocate(void * policy, __declspec(guard(overflow)) size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
     static void PrepareFreeObject(__out_bcount(size) void * object, _In_ size_t size)
@@ -341,7 +341,7 @@ public:
     static const char DbgFreeMemFill = 0x0;
 #endif
     static void * New(ArenaAllocatorBase<StandAloneFreeListPolicy> * allocator);
-    static void * Allocate(void * policy, __declspec(guard(overflow)) size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
     static void PrepareFreeObject(_Out_writes_bytes_all_(size) void * object, _In_ size_t size)
@@ -377,12 +377,12 @@ public:
     }
 
     __forceinline
-    char * Alloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(__declspec(guard(overflow)) size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -393,13 +393,13 @@ public:
         return buffer;
     }
 
-    char * AllocLeaf(__declspec(guard(overflow)) size_t requestedBytes)
+    char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         // Leaf allocation is not meaningful here, but needed by Allocator-templatized classes that may call one of the Leaf versions of AllocatorNew
         return Alloc(requestedBytes);
     }
 
-    char * NoThrowAlloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         void (*tempOutOfMemoryFunc)() = outOfMemoryFunc;
         outOfMemoryFunc = nullptr;
@@ -408,7 +408,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowAllocZero(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         char * buffer = NoThrowAlloc(requestedBytes);
         if (buffer != nullptr)
@@ -418,7 +418,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowNoRecoveryAlloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowNoRecoveryAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         void (*tempRecoverMemoryFunc)() = recoverMemoryFunc;
         recoverMemoryFunc = nullptr;
@@ -427,7 +427,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowNoRecoveryAllocZero(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowNoRecoveryAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         char * buffer = NoThrowNoRecoveryAlloc(requestedBytes);
         if (buffer != nullptr)
@@ -453,7 +453,7 @@ public:
     {
     }
 
-    char * Alloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         // Fast path
         if (sizeof(BVSparseNode) == requestedBytes)
@@ -492,22 +492,22 @@ public:
         return ArenaAllocator::Free(buffer, byteSize);
     }
 
-    char * AllocZero(__declspec(guard(overflow)) size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         return ArenaAllocator::AllocZero(nbytes);
     }
 
-    char * AllocLeaf(__declspec(guard(overflow)) size_t requestedBytes)
+    char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::AllocLeaf(requestedBytes);
     }
 
-    char * NoThrowAlloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::NoThrowAlloc(requestedBytes);
     }
 
-    char * NoThrowAllocZero(__declspec(guard(overflow)) size_t requestedBytes)
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::NoThrowAllocZero(requestedBytes);
     }
@@ -593,7 +593,7 @@ public:
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InlineCacheAllocatorTraits> * allocator);
-    static void * Allocate(void * policy, __declspec(guard(overflow)) size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
     static void Release(void * policy);
@@ -649,12 +649,12 @@ public:
 #endif
     {}
 
-    char * Alloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(__declspec(guard(overflow)) size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -705,12 +705,12 @@ public:
     InlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
         ArenaAllocatorBase<InlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
-    char * Alloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(__declspec(guard(overflow)) size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -770,12 +770,12 @@ public:
     IsInstInlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
         ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
-    char * Alloc(__declspec(guard(overflow)) size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(__declspec(guard(overflow)) size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);

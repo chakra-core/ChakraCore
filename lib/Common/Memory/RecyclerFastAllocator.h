@@ -37,7 +37,7 @@ public:
     }
 
     Recycler * GetRecycler() { return recycler; }
-    char * Alloc(__declspec(guard(overflow)) size_t size)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t size)
     {
         Assert(recycler != nullptr);
         Assert(!recycler->IsHeapEnumInProgress() || recycler->AllowAllocationDuringHeapEnum());

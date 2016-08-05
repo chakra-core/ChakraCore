@@ -1043,7 +1043,7 @@ namespace JsUtil
             entries = newEntries;
         }
 
-        __ecount(bucketCount) int *AllocateBuckets(__declspec(guard(overflow)) const uint bucketCount)
+        __ecount(bucketCount) int *AllocateBuckets(DECLSPEC_GUARD_OVERFLOW const uint bucketCount)
         {
             return
                 AllocateArray<AllocatorType, int, false>(
@@ -1052,7 +1052,7 @@ namespace JsUtil
                     bucketCount);
         }
 
-        __ecount(size) EntryType * AllocateEntries(__declspec(guard(overflow)) int size, const bool zeroAllocate = true)
+        __ecount(size) EntryType * AllocateEntries(DECLSPEC_GUARD_OVERFLOW int size, const bool zeroAllocate = true)
         {
             // Note that the choice of leaf/non-leaf node is decided for the EntryType on the basis of TValue. By default, if
             // TValue is a pointer, a non-leaf allocation is done. This behavior can be overridden by specializing
@@ -1080,7 +1080,7 @@ namespace JsUtil
             AllocatorFree(alloc, EntryAllocatorFuncType::GetFreeFunc(), entries, size * sizeof(EntryType));
         }
 
-        void Allocate(__deref_out_ecount(bucketCount) int** ppBuckets, __deref_out_ecount(size) EntryType** ppEntries, __declspec(guard(overflow)) uint bucketCount, __declspec(guard(overflow)) int size)
+        void Allocate(__deref_out_ecount(bucketCount) int** ppBuckets, __deref_out_ecount(size) EntryType** ppEntries, DECLSPEC_GUARD_OVERFLOW uint bucketCount, DECLSPEC_GUARD_OVERFLOW int size)
         {
             int *const buckets = AllocateBuckets(bucketCount);
             Assert(buckets); // no-throw allocators are currently not supported
