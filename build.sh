@@ -1,3 +1,4 @@
+#!/bin/bash
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
@@ -20,20 +21,21 @@ PRINT_USAGE() {
     echo "build.sh [options]"
     echo ""
     echo "options:"
-    echo "      --cxx=PATH      Path to Clang++ (see example below)"
-    echo "      --cc=PATH       Path to Clang   (see example below)"
-    echo "  -d, --debug         Debug build (by default Release build)"
-    echo "  -h, --help          Show help"
-    echo "      --icu=PATH      Path to ICU include folder (see example below)"
-    echo "  -j [N], --jobs[=N]  Multicore build, allow N jobs at once"
-    echo "  -n, --ninja         Build with ninja instead of make"
-    echo "      --xcode         Generate XCode project"
-    echo "  -t, --test-build    Test build (by default Release build)"
-    echo "      --static        Build as static library (by default shared library)"
-    echo "  -v, --verbose       Display verbose output including all options"
+    echo "      --cxx=PATH       Path to Clang++ (see example below)"
+    echo "      --cc=PATH        Path to Clang   (see example below)"
+    echo "  -d, --debug          Debug build (by default Release build)"
+    echo "  -h, --help           Show help"
+    echo "      --icu=PATH       Path to ICU include folder (see example below)"
+    echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
+    echo "  -n, --ninja          Build with ninja instead of make"
+    echo "      --xcode          Generate XCode project"
+    echo "  -t, --test-build     Test build (by default Release build)"
+    echo "      --static         Build as static library (by default shared library)"
+    echo "  -v, --verbose        Display verbose output including all options"
+    echo "      --create-deb=V   Create .deb package with given V version"
     echo "      --without=FEATURE,FEATURE,..."
-    echo "                      Disable FEATUREs from JSRT experimental"
-    echo "                      features."
+    echo "                       Disable FEATUREs from JSRT experimental"
+    echo "                       features."
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -53,6 +55,7 @@ MULTICORE_BUILD=""
 ICU_PATH=""
 STATIC_LIBRARY=""
 WITHOUT_FEATURES=""
+CREATE_DEB=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -111,9 +114,14 @@ while [[ $# -gt 0 ]]; do
         MAKE=ninja
         ;;
 
-	--xcode)
+    --xcode)
         CMAKE_GEN="-G Xcode -DCC_XCODE_PROJECT=1"
         MAKE=0
+        ;;
+
+    --create-deb=*)
+        CREATE_DEB=$1
+        CREATE_DEB="${CREATE_DEB:13}"
         ;;
 
     --static)
@@ -228,6 +236,34 @@ fi
 
 if [[ $_RET != 0 ]]; then
     echo "See error details above. Exit code was $_RET"
+else
+    if [[ $CREATE_DEB != 0 ]]; then
+        DEB_FOLDER=`realpath .`
+        DEB_FOLDER="${DEB_FOLDER}/chakracore_${CREATE_DEB}"
+
+        mkdir -p $DEB_FOLDER/usr/local/bin
+        mkdir -p $DEB_FOLDER/DEBIAN
+        cp $DEB_FOLDER/../ch $DEB_FOLDER/usr/local/bin/
+        if [[ $STATIC_LIBRARY == "" ]]; then
+            cp $DEB_FOLDER/../*.so $DEB_FOLDER/usr/local/bin/
+        fi
+        echo -e "Package: ChakraCore"\
+            "\nVersion: ${CREATE_DEB}"\
+            "\nSection: base"\
+            "\nPriority: optional"\
+            "\nArchitecture: amd64"\
+            "\nDepends: libc6 (>= 2.19), uuid-dev (>> 0), libunwind-dev (>> 0), libicu-dev (>> 0)"\
+            "\nMaintainer: ChakraCore <chakracore@microsoft.com>"\
+            "\nDescription: Chakra Core"\
+            "\n Open source Core of Chakra Javascript Engine"\
+            > $DEB_FOLDER/DEBIAN/control
+
+        dpkg-deb --build $DEB_FOLDER
+        _RET=$?
+        if [[ $_RET == 0 ]]; then
+            echo ".deb package is available under $build_directory"
+        fi
+    fi
 fi
 
 popd > /dev/null
