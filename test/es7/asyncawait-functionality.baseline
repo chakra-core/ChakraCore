@@ -20,6 +20,9 @@ Executing test #14 - super value in async methods behaves like it does in normal
 Executing test #15 - Async function with formal captured in a lambda
 Executing test #16 - Async function with formal captured in a nested function
 Executing test #17 - Async function with formal captured in eval
+Executing test #18 - Async function with formal capturing in param scope
+Executing test #19 - Async function with formal capturing in param scope with eval in the body
+Executing test #20 - Async function with duplicate variable decalration in the body with eval
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
@@ -43,7 +46,6 @@ Test #5 - Success async in a class #6 called with result = '12'
 Test #5 - Success async in a class #7 called with result = '10'
 Test #5 - Success async in a class #10 called with result = '10'
 Test #8 - Success async function with default arguments's value overwritten #1 called with result = 'true'
-Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #8 - Success async function with default arguments's value #3 called with result = 'true'
 Test #11 - Success inner var x overwrote formal parameter x only after the declaration statement
 Test #11 - Success inner function x() overwrote formal parameter x
@@ -54,6 +56,11 @@ Test #14 - Success result is 'base derived' from derived method call
 Test #15 - Success lambda returns 1 when no arguments passed
 Test #16 - Success nested function returns 1 when no arguments passed
 Test #17 - Success eval returns 1 when no arguments passed
+Test #18 - Success inner function decalration captures the body variable
+Test #18 - Success function defined in the param scope captures the param scope variable
+Test #19 - Success inner function decalration captures the body variable with eval in the body
+Test #19 - Success function defined in the param scope captures the param scope variable with eval in the body
+Test #20 - Success inner variable decalration shadows the formal
 Test #6 - Success await in an async function #1 called with result = '-4'
 Test #6 - Success await in an async function #2 called with result = '2'
 Test #6 - Success await in an async function catch a rejected Promise in 'err'. Error = 'Error: My Error'
@@ -62,6 +69,7 @@ Test #7 - Success await keyword with a lambda expressions #1 called with result 
 Test #7 - Success await keyword with a lambda expressions #1 called with result = '60'
 Test #9 - Success resolved promise in an async function #2 called with result = 'resolved'
 Test #10 - Success %AsyncFunction% created async function #1 called with result = '0'
+Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #9 - Success resolved promise in an async function #1 called with result = 'resolved'
 Test #9 - Success promise in an async function has been rejected as expected by 'err' #3 called with err = 'rejected'
 Test #10 - Success %AsyncFunction% created async function #2 called with result = '6'

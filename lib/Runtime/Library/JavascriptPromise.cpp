@@ -946,11 +946,11 @@ namespace Js
 
         Assert(JavascriptPromiseAsyncSpawnExecutorFunction::Is(function));
         JavascriptPromiseAsyncSpawnExecutorFunction* asyncSpawnExecutorFunction = JavascriptPromiseAsyncSpawnExecutorFunction::FromVar(function);
-        JavascriptGenerator* genF = asyncSpawnExecutorFunction->GetGeneratorFunction();
         Var self = asyncSpawnExecutorFunction->GetTarget();
 
-        JavascriptGenerator* gen = JavascriptGenerator::FromVar(CALL_FUNCTION(genF, CallInfo(CallFlags_Value, 2), undefinedVar, self));
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, undefinedVar);
+        Var varCallArgs[] = { undefinedVar, self };
+        JavascriptGenerator* gen = asyncSpawnExecutorFunction->GetGenerator();
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, varCallArgs);
 
         Assert(JavascriptFunction::Is(resolve) && JavascriptFunction::Is(reject));
         AsyncSpawnStep(nextFunction, gen, JavascriptFunction::FromVar(resolve), JavascriptFunction::FromVar(reject));
@@ -965,7 +965,7 @@ namespace Js
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
         Var argument = asyncSpawnStepArgumentExecutorFunction->GetArgument();
 
-        JavascriptFunction* next = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::next, function->GetScriptContext()));
+        JavascriptFunction* next = function->GetScriptContext()->GetLibrary()->EnsureGeneratorNextFunction();
         return CALL_FUNCTION(next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
     }
 
@@ -974,7 +974,7 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
-        JavascriptFunction* throw_ = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::throw_, function->GetScriptContext()));
+        JavascriptFunction* throw_ = function->GetScriptContext()->GetLibrary()->EnsureGeneratorThrowFunction();
         return CALL_FUNCTION(throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
     }
 
@@ -1324,8 +1324,8 @@ namespace Js
     }
 #endif
 
-    JavascriptPromiseAsyncSpawnExecutorFunction::JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generatorFunction, Var target)
-        : RuntimeFunction(type, functionInfo), generatorFunction(generatorFunction), target(target)
+    JavascriptPromiseAsyncSpawnExecutorFunction::JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target)
+        : RuntimeFunction(type, functionInfo), generator(generator), target(target)
     { }
 
     bool JavascriptPromiseAsyncSpawnExecutorFunction::Is(Var var)
@@ -1348,9 +1348,9 @@ namespace Js
         return static_cast<JavascriptPromiseAsyncSpawnExecutorFunction*>(var);
     }
 
-    JavascriptGenerator* JavascriptPromiseAsyncSpawnExecutorFunction::GetGeneratorFunction()
+    JavascriptGenerator* JavascriptPromiseAsyncSpawnExecutorFunction::GetGenerator()
     {
-        return this->generatorFunction;
+        return this->generator;
     }
 
     Var JavascriptPromiseAsyncSpawnExecutorFunction::GetTarget()
