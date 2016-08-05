@@ -81,33 +81,6 @@ namespace Js
     }
 
     //
-    // Clone a ScopeInfo object
-    //
-    ScopeInfo *ScopeInfo::CloneFor(ParseableFunctionInfo *body)
-    {
-        auto count = this->symbolCount;
-        auto symbolsSize = count * sizeof(SymbolInfo);
-        auto scopeInfo = RecyclerNewPlusZ(parent->GetScriptContext()->GetRecycler(), symbolsSize,
-            ScopeInfo, parent, count);
-        scopeInfo->isDynamic = this->isDynamic;
-        scopeInfo->isObject = this->isObject;
-        scopeInfo->mustInstantiate = this->mustInstantiate;
-        scopeInfo->isCached = this->isCached;
-        scopeInfo->isGlobalEval = this->isGlobalEval;
-        if (funcExprScopeInfo)
-        {
-            scopeInfo->funcExprScopeInfo = funcExprScopeInfo->CloneFor(body);
-        }
-        if (paramScopeInfo)
-        {
-            scopeInfo->paramScopeInfo = paramScopeInfo->CloneFor(body);
-        }
-        memcpy_s(scopeInfo->symbols, symbolsSize, this->symbols, symbolsSize);
-
-        return scopeInfo;
-    }
-
-    //
     // Ensure the pids referenced by this scope are tracked.
     //
     void ScopeInfo::EnsurePidTracking(ScriptContext* scriptContext)

@@ -215,24 +215,6 @@ namespace Js
         return newSourceInfo;
     }
 
-    Utf8SourceInfo*
-    Utf8SourceInfo::CloneNoCopy(ScriptContext* scriptContext, const Utf8SourceInfo* sourceInfo, SRCINFO const* srcInfo)
-    {
-        Utf8SourceInfo* newSourceInfo = Utf8SourceInfo::NewWithHolder(scriptContext, sourceInfo->GetSourceHolder(), sourceInfo->m_cchLength,
-             srcInfo ? srcInfo : sourceInfo->GetSrcInfo(), sourceInfo->m_isLibraryCode);
-        newSourceInfo->m_isXDomain = sourceInfo->m_isXDomain;
-        newSourceInfo->m_isXDomainString = sourceInfo->m_isXDomainString;
-        newSourceInfo->m_isLibraryCode = sourceInfo->m_isLibraryCode;
-        newSourceInfo->SetIsCesu8(sourceInfo->GetIsCesu8());
-        if (sourceInfo->m_hasHostBuffer)
-        {
-            // Keep the host buffer alive via the original source info
-            newSourceInfo->m_pOriginalSourceInfo = sourceInfo;
-        }
-        newSourceInfo->EnsureInitialized(sourceInfo->GetFunctionBodyCount());
-        return newSourceInfo;
-    }
-
     HRESULT Utf8SourceInfo::EnsureLineOffsetCacheNoThrow()
     {
         HRESULT hr = S_OK;

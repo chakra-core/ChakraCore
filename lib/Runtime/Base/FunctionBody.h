@@ -1490,9 +1490,6 @@ namespace Js
         {
             this->m_boundPropertyRecords = nullptr;
         }
-        virtual ParseableFunctionInfo* Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex);
-        ParseableFunctionInfo* CopyFunctionInfoInto(ScriptContext *scriptContext, Js::ParseableFunctionInfo* functionInfo, uint sourceIndex = Js::Constants::InvalidSourceIndex);
-        void CloneSourceInfo(ScriptContext* scriptContext, const ParseableFunctionInfo& other, ScriptContext* othersScriptContext, uint sourceIndex);
 
         void SetInitialDefaultEntryPoint();
         void SetDeferredParsingEntryPoint();
@@ -2806,7 +2803,6 @@ namespace Js
         Var GetConstantVar(RegSlot location);
         Js::Var* GetConstTable() const { return this->m_constTable; }
         void SetConstTable(Js::Var* constTable) { this->m_constTable = constTable; }
-        void CloneConstantTable(FunctionBody *newFunc);
 
         void MarkScript(ByteBlock * pblkByteCode, ByteBlock * pblkAuxiliaryData, ByteBlock* auxContextBlock,
             uint byteCodeCount, uint byteCodeInLoopCount, uint byteCodeWithoutLDACount);
@@ -2818,8 +2814,6 @@ namespace Js
         bool InstallProbe(int offset);
         bool UninstallProbe(int offset);
         bool ProbeAtOffset(int offset, OpCode* pOriginalOpcode);
-
-        ParseableFunctionInfo * Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex) override;
 
         static bool ShouldShareInlineCaches() { return CONFIG_FLAG(ShareInlineCaches); }
 
@@ -3423,8 +3417,6 @@ namespace Js
 
         // Below function will not change any state, so it will not alter accumulated index and value
         BOOL Seek(int index, StatementData & data);
-
-        SmallSpanSequence * Clone();
     };
 #pragma endregion
 

@@ -73,11 +73,6 @@ namespace Js
         return newBlock;
     }
 
-    ByteBlock * ByteBlock::Clone(Recycler* alloc)
-    {
-        return ByteBlock::New(alloc, this->m_content, this->m_contentSize);
-    }
-
     ByteBlock *ByteBlock::New(Recycler *alloc, const byte * initialContent, int initialContentSize, ScriptContext * requestContext)
     {
         // initialContent may be 'null' if no data to copy
@@ -119,14 +114,5 @@ namespace Js
         }
 
         return newBlock;
-    }
-
-    //
-    // Create a copy of buffer
-    // Each Var is cloned on the requestContext
-    //
-    ByteBlock * ByteBlock::Clone(Recycler* alloc, ScriptContext * requestContext)
-    {
-        return ByteBlock::New(alloc, this->m_content, this->m_contentSize, requestContext);
     }
 }
