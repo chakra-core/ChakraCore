@@ -91,7 +91,7 @@ struct SecondaryAllocation
 class SecondaryAllocator
 {
 public:
-    virtual bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* xdata) = 0;
+    virtual bool Alloc(ULONG_PTR functionStart, DWORD functionSize, __declspec(guard(overflow)) ushort pdataCount, __declspec(guard(overflow)) ushort xdataSize, SecondaryAllocation* xdata) = 0;
     virtual void Release(const SecondaryAllocation& allocation) = 0;
     virtual void Delete() = 0;
     virtual bool CanAllocate() = 0;
@@ -108,7 +108,7 @@ template<typename TVirtualAlloc>
 class SegmentBase
 {
 public:
-    SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, size_t pageCount);
+    SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, __declspec(guard(overflow)) size_t pageCount);
     virtual ~SegmentBase();
 
     size_t GetPageCount() const { return segmentPageCount; }
@@ -221,10 +221,10 @@ public:
     static bool IsAllocationPageAligned(__in char* address, size_t pageCount);
 
     template <typename T, bool notPageAligned>
-    char * AllocDecommitPages(uint pageCount, T freePages, T decommitPages);
+    char * AllocDecommitPages(__declspec(guard(overflow)) uint pageCount, T freePages, T decommitPages);
 
     template <bool notPageAligned>
-    char * AllocPages(uint pageCount);
+    char * AllocPages(__declspec(guard(overflow)) uint pageCount);
 
     void ReleasePages(__in void * address, uint pageCount);
     template <bool onlyUpdateState>
@@ -247,7 +247,7 @@ public:
     void ClearRangeInDecommitPagesBitVector(uint index, uint pageCount);
 
     template <bool notPageAligned>
-    char * DoAllocDecommitPages(uint pageCount);
+    char * DoAllocDecommitPages(__declspec(guard(overflow)) uint pageCount);
     uint GetMaxPageCount();
 
     size_t DecommitFreePages(size_t pageToDecommit);
@@ -425,12 +425,11 @@ public:
 
     //VirtualAllocator APIs
     TVirtualAlloc * GetVirtualAllocator() { return virtualAllocator; }
-
     bool IsPreReservedPageAllocator() { return virtualAllocator != nullptr; }
 
 
-    PageAllocation * AllocPagesForBytes(size_t requestedBytes);
-    PageAllocation * AllocAllocation(size_t pageCount);
+    PageAllocation * AllocPagesForBytes(__declspec(guard(overflow)) size_t requestedBytes);
+    PageAllocation * AllocAllocation(__declspec(guard(overflow)) size_t pageCount);
 
     void ReleaseAllocation(PageAllocation * allocation);
     void ReleaseAllocationNoSuspend(PageAllocation * allocation);
@@ -439,8 +438,8 @@ public:
 
     void Release(void * address, size_t pageCount, void * segment);
 
-    char * AllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
-    char * AllocPagesPageAligned(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char * AllocPages(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char * AllocPagesPageAligned(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     void ReleasePages(__in void * address, uint pageCount, __in void * pageSegment);
 #if ENABLE_BACKGROUND_PAGE_FREEING
@@ -500,23 +499,23 @@ public:
     char16 const * debugName;
 #endif
 protected:
-    SegmentBase<TVirtualAlloc> * AllocSegment(size_t pageCount);
+    SegmentBase<TVirtualAlloc> * AllocSegment(__declspec(guard(overflow)) size_t pageCount);
     void ReleaseSegment(SegmentBase<TVirtualAlloc> * segment);
 
     template <bool doPageAlign>
     char * AllocInternal(size_t * pageCount, SegmentBase<TVirtualAlloc> ** segment);
 
     template <bool notPageAligned>
-    char * SnailAllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
-    void OnAllocFromNewSegment(uint pageCount, __in void* pages, SegmentBase<TVirtualAlloc>* segment);
+    char * SnailAllocPages(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    void OnAllocFromNewSegment(__declspec(guard(overflow)) uint pageCount, __in void* pages, SegmentBase<TVirtualAlloc>* segment);
 
     template <bool notPageAligned>
-    char * TryAllocFreePages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
-    char * TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
-    char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char * TryAllocFreePages(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char * TryAllocFromZeroPagesList(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
+    char * TryAllocFromZeroPages(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     template <bool notPageAligned>
-    char * TryAllocDecommittedPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char * TryAllocDecommittedPages(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     DListBase<PageSegmentBase<TVirtualAlloc>> * GetSegmentList(PageSegmentBase<TVirtualAlloc> * segment);
     void TransferSegment(PageSegmentBase<TVirtualAlloc> * segment, DListBase<PageSegmentBase<TVirtualAlloc>> * fromSegmentList);
@@ -539,9 +538,8 @@ protected:
     virtual void DumpStats() const;
 #endif
     virtual PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList,
-
-    PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, 
+        PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
 
     // Zero Pages
 #if ENABLE_BACKGROUND_PAGE_ZEROING
@@ -644,7 +642,7 @@ private:
 #endif
 
     template <bool notPageAligned>
-    char* AllocPagesInternal(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+    char* AllocPagesInternal(__declspec(guard(overflow)) uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
 #ifdef PROFILE_MEM
     PageMemoryData * memoryData;
@@ -758,7 +756,7 @@ public:
     HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, TVirtualAlloc * virtualAllocator);
 
     BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag);
-    bool AllocSecondary(void* segment, ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
+    bool AllocSecondary(void* segment, ULONG_PTR functionStart, DWORD functionSize, __declspec(guard(overflow)) ushort pdataCount, __declspec(guard(overflow)) ushort xdataSize, SecondaryAllocation* allocation);
     bool ReleaseSecondary(const SecondaryAllocation& allocation, void* segment);
     void TrackDecommittedPages(void * address, uint pageCount, __in void* segment);
     void DecommitPages(__in char* address, size_t pageCount = 1);

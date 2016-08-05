@@ -4499,6 +4499,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::SaveStartupProfileAndRelease(bool isSaveOnClose)
     {
+        // No need to save profiler info in JSRT scenario at this time.
+        if (GetThreadContext()->IsJSRT())
+        {
+            return;
+        }
         if (!startupComplete && this->cache->sourceContextInfoMap)
         {
 #if ENABLE_PROFILE_INFO
@@ -4513,7 +4518,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 }
             });
 #endif
-    }
+        }
         startupComplete = true;
     }
 
