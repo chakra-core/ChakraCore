@@ -891,6 +891,11 @@ namespace Js
             return nanF;
         }
 
+        if (IsNegZero(value))
+        {
+            return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("-0"));
+        }
+
         if (IsZero(value))
         {
             return scriptContext->GetLibrary()->GetCharStringCache().GetStringForCharA('0');
