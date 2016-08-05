@@ -302,14 +302,6 @@ namespace Js
             /* TODO-ERROR: args.Info.Count > 0? args[0] : nullptr); */);
     }
 
-    Var RecyclableObject::DefaultExternalEntryPoint(RecyclableObject* function, CallInfo callInfo, Var* arguments)
-    {
-        TypeId typeId = function->GetTypeId();
-        rtErrors err = typeId == TypeIds_Undefined || typeId == TypeIds_Null ? JSERR_NeedObject : JSERR_NeedFunction;
-        JavascriptError::ThrowTypeError(function->GetScriptContext(), err
-            /* TODO-ERROR: args.Info.Count > 0? args[0] : nullptr); */);
-    }
-
     BOOL RecyclableObject::HasProperty(PropertyId propertyId)
     {
         return false;
@@ -446,14 +438,15 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::StrictEquals(Var aRight, BOOL* value, ScriptContext * requestContext)
+    BOOL RecyclableObject::StrictEquals(__in Var aRight, __out BOOL* value, ScriptContext * requestContext)
     {
+        *value = false;
         //StrictEquals is handled in JavascriptOperators::StrictEqual
         Throw::InternalError();
     }
 
 #pragma fenv_access (on)
-    BOOL RecyclableObject::Equals(Var aRight, BOOL* value, ScriptContext * requestContext)
+    BOOL RecyclableObject::Equals(__in Var aRight, __out BOOL* value, ScriptContext * requestContext)
     {
         Var aLeft = this;
         if (aLeft == aRight)

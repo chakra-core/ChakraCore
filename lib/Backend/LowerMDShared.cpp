@@ -2060,6 +2060,7 @@ LowererMD::LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd)
         instr->InsertBefore(mov1);
         functionObjOpnd = mov1->GetDst()->AsRegOpnd();
         instrPrev = mov1;
+        instr->m_func->SetHasImplicitParamLoad();
     }
     else
     {
@@ -8050,6 +8051,7 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
 
     StackSym * stackSym = StackSym::NewParamSlotSym(argSlot, func);
     func->SetArgOffset(stackSym, (2 + argSlot) * MachPtr);
+    func->SetHasImplicitParamLoad();
     return stackSym;
 }
 
@@ -8783,6 +8785,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Instr *floatCall = IR::Instr::New(Js::OpCode::CALL, floatCallDst, s1, this->m_func);
             instr->InsertBefore(floatCall);
 #endif
+            instr->m_func->SetHasCalls();
             // Save the result.
             instr->m_opcode = Js::OpCode::MOVSD;
             instr->SetSrc1(floatCall->GetDst());

@@ -1,5 +1,4 @@
 add_library (Chakra.Common.Common OBJECT
-    Api.cpp
     CfgLogger.cpp
     CommonCommonPch.cpp
     DateUtilities.cpp

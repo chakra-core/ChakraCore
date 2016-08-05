@@ -6411,6 +6411,7 @@ PALIMPORT double __cdecl _copysign(double, double);
 
 #if !defined(PAL_STDCPP_COMPAT) || defined(USING_PAL_STDLIB)
 
+#ifdef PLATFORM_ACCEPTS_ABS_OVERLOAD
 #ifdef __cplusplus
 extern "C++" {
 
@@ -6419,6 +6420,7 @@ inline __int64 abs(__int64 _X) {
 }
 
 }
+#endif
 #endif
 
 PALIMPORT void * __cdecl malloc(size_t);

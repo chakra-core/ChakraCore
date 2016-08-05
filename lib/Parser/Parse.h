@@ -442,9 +442,29 @@ private:
     BlockInfoStack* GetCurrentBlockInfo();
     BlockInfoStack* GetCurrentFunctionBlockInfo();
     ParseNode *GetCurrentFunctionNode();
-    ParseNode *GetCurrentNonLamdaFunctionNode();
-    bool IsNodeAllowedForDeferParse(OpCode op) {return !this->m_deferringAST ||
-        (op == knopBlock || op == knopVarDecl || op == knopConstDecl || op == knopLetDecl || op == knopFncDecl); }
+    ParseNode *GetCurrentNonLambdaFunctionNode();
+
+    bool IsNodeAllowedInCurrentDeferralState(OpCode op) 
+    {
+        if (!this->m_deferringAST)
+        {
+            return true;
+        }
+        switch(op)
+        {
+            case knopBlock:
+            case knopVarDecl:
+            case knopConstDecl:
+            case knopLetDecl:
+            case knopFncDecl:
+            case knopName:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     bool NextTokenConfirmsLetDecl() const { return m_token.tk == tkID || m_token.tk == tkLBrack || m_token.tk == tkLCurly || m_token.IsReservedWord(); }
     bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
@@ -739,11 +759,11 @@ private:
     template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
     template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags);
-    template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly);
+    template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false);
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
-    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef);
+    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool skipCurlyBraces = false);
     void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
     void ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
@@ -756,6 +776,8 @@ private:
     uint CalculateFunctionColumnNumber();
 
     template<bool buildAST> ParseNodePtr GenerateEmptyConstructor(bool extends = false);
+
+    template<bool buildAST> ParseNodePtr GenerateModuleFunctionWrapper();
 
     IdentPtr ParseClassPropertyName(IdentPtr * hint);
     template<bool buildAST> ParseNodePtr ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uint32 *pHintLength, uint32 *pShortNameOffset);
@@ -1000,6 +1022,7 @@ private:
         fFncClassMember = 1 << 6,
         fFncGenerator   = 1 << 7,
         fFncAsync       = 1 << 8,
+        fFncModule      = 1 << 9,
     };
 
     //

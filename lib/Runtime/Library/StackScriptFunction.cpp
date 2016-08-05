@@ -242,9 +242,12 @@ namespace Js
 
                     if (walker.IsBailedOutFromInlinee())
                     {
-                        // this is the interpret frame from bailing out of inline frame
-                        // Just mark we have inlinee to box so we will walk the native frame's list when we get there.
-                        hasInlineeToBox = true;
+                        if (!walker.IsCurrentPhysicalFrameForLoopBody())
+                        {
+                            // this is the interpret frame from bailing out of inline frame
+                            // Just mark we have inlinee to box so we will walk the native frame's list when we get there.
+                            hasInlineeToBox = true;
+                        }
                     }
                     else if (walker.IsBailedOutFromFunction())
                     {
@@ -268,9 +271,12 @@ namespace Js
                 {
                     if (walker.IsInlineFrame())
                     {
-                        // We may have function that are not in slots.  So we have to walk the stack function list of the inliner
-                        // to box all the needed function to catch those
-                        hasInlineeToBox = true;
+                        if (!walker.IsCurrentPhysicalFrameForLoopBody())
+                        {
+                            // We may have function that are not in slots.  So we have to walk the stack function list of the inliner
+                            // to box all the needed function to catch those
+                            hasInlineeToBox = true;
+                        }
                     }
                     else
                     {

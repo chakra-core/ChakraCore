@@ -50,3 +50,19 @@ function f10(){
     f12();
 };
 f10();
+
+function outer(g) {
+    function inner() {
+        try {
+            throw 1;
+        }
+        catch(g) {
+            if (g !== 1) 
+                WScript.Echo('g === ' + g + ' in catch');
+        }
+    }
+    inner();
+    if (g !== 'g')
+        WScript.Echo('g === ' + g + ' in "inner"');
+}
+outer('g');

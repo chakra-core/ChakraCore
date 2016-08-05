@@ -231,7 +231,6 @@ namespace Js
 #undef FORWARD_THREAD_CONFIG
 
         bool SupportsCollectGarbage() const { return true; }
-        bool IsTypedArrayEnabled() const { return true; }
 
         void ForceNoNative() { this->NoNative = true; }
         void ForceNative() { this->NoNative = false; }

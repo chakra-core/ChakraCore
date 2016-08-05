@@ -165,6 +165,7 @@ PHASE(All)
                 PHASE(MemOp)
                     PHASE(MemSet)
                     PHASE(MemCopy)
+                PHASE(IncrementalBailout)
             PHASE(DeadStore)
                 PHASE(ReverseCopyProp)
                 PHASE(MarkTemp)
@@ -532,8 +533,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_ES6ToPrimitive          (false)
 #define DEFAULT_CONFIG_ES6ToLength             (false)
-#define DEFAULT_CONFIG_ES6ToStringTag          (false)
-#define DEFAULT_CONFIG_ES6TypedArrayExtensions (true)
+#define DEFAULT_CONFIG_ES6ToStringTag          (true)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
 #define DEFAULT_CONFIG_ES6Unscopables          (true)
@@ -700,6 +700,10 @@ PHASE(All)
 
 #if defined(_M_IX86) || defined(_M_X64)
 #define DEFAULT_CONFIG_LoopAlignNopLimit (6)
+#endif
+
+#if defined(_M_IX86) || defined(_M_X64)
+#define DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore (true)
 #endif
 
 #define TraceLevel_Error        (1)
@@ -975,10 +979,12 @@ FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prot
     #define COMPILE_DISABLE_ES6PrototypeChain 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
-FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
+#ifndef COMPILE_DISABLE_ES6ToPrimitive
+    #define COMPILE_DISABLE_ES6ToPrimitive 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
 FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
 FLAGPR           (Boolean, ES6, ES6ToStringTag         , "Enable ES6 ToStringTag symbol"                            , DEFAULT_CONFIG_ES6ToStringTag)
-FLAGPR           (Boolean, ES6, ES6TypedArrayExtensions, "Enable ES6 TypedArray extensions"                         , DEFAULT_CONFIG_ES6TypedArrayExtensions)
 FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0 extensions"                        , DEFAULT_CONFIG_ES6Unicode)
 FLAGPR           (Boolean, ES6, ES6UnicodeVerbose      , "Enable ES6 Unicode 6.0 verbose failure output"            , DEFAULT_CONFIG_ES6UnicodeVerbose)
 FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statement Unscopables"                    , DEFAULT_CONFIG_ES6Unscopables)
@@ -1414,6 +1420,10 @@ FLAGNR(NumberSet, RejitTraceFilter, "Filter the rejit trace messages to specific
 FLAGNR(Number,  MaxBackgroundFinishMarkCount, "Maximum number of background finish mark", 1)
 FLAGNR(Number,  BackgroundFinishMarkWaitTime, "Millisecond to wait for background finish mark", 15)
 FLAGNR(Number,  MinBackgroundRepeatMarkRescanBytes, "Minimum number of bytes rescan to trigger background finish mark",  -1)
+
+#if defined(_M_IX86) || defined(_M_X64)
+FLAGNR(Boolean, ZeroMemoryWithNonTemporalStore, "Zero free memory with non-temporal stores to avoid evicting other content from processor cache", DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore)
+#endif
 
 // recycler memory restrict test flags
 FLAGNR(Number,  MaxMarkStackPageCount , "Restrict recycler mark stack size (in pages)", -1)

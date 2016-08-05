@@ -29,6 +29,7 @@ var tests = [
       assert.doesNotThrow(function () { eval("for({} = function (...a) { } in '' ) { }"); }, "Having a function with rest parameter as initializer should not assert and is a valid syntax");
       assert.doesNotThrow(function () { eval("for([] = ((...a) => {}) in '' ) { }"); }, "Having a lambda function with rest parameter as initializer should not assert and is a valid syntax");
       assert.doesNotThrow(function () { eval("[[[] = [function () { }] ] = []]"); }, "Nested array has array pattern which has function expression is a valid syntax");
+      assert.doesNotThrow(function () { eval("var a = ({x = 1}) => x;"); }, "Lambda has Object destructuring as parameter which has initializer on shorthand is a valid syntax");
     }
   },
   {
@@ -311,6 +312,53 @@ var tests = [
             eval('');
         }
         foo1([]);
+    }
+  },
+  {
+    name: "Destructuring - array pattern at call expression (which causes iterator close)",
+    body: function () {
+        function foo(x1, x2, x3, x4) {
+            assert.areEqual(x1, 'first');
+            assert.areEqual(x2, 'second');
+            assert.areEqual(x3[0][0], 'third');
+            assert.areEqual(x4[0][0][0][0], 'fourth');
+        }
+        var a1;
+        var a2;
+        foo([{}] = 'first', 'second', [[a1]] = [['third']], [[[[a2]]]] = [[[['fourth']]]]);
+        assert.areEqual(a1, 'third');
+        assert.areEqual(a2, 'fourth');
+    }
+  },
+  {
+    name: "Destructuring - array patten at call expression - validating the next/return functions are called.",
+    body: function () {
+        var nextCount = 0;
+        var returnCount = 0;
+        var iterable = {};
+        iterable[Symbol.iterator] = function () {
+            return {
+                next: function() {
+                    nextCount++;
+                    return {value : 1, done:false};
+                },
+                return: function (value) {
+                    returnCount++;
+                    return {done:true};
+                }
+            };
+        };
+
+        var obj = {
+          set prop(val) {
+            throw new Error('From setter');
+          }
+        };
+        
+        var foo = function () { };
+        assert.throws(function () { foo([[obj.prop]] = [iterable]); }, Error, 'pattern at call expression throws and return function is called', 'From setter');
+        assert.areEqual(nextCount, 1);
+        assert.areEqual(returnCount, 1);
     }
   }
 ];

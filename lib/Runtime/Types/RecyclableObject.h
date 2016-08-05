@@ -240,7 +240,6 @@ namespace Js {
         // function - however, if it can't be called like a function, it's set to DefaultEntryPoint
         // which will emit an error.
         static Var DefaultEntryPoint(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var DefaultExternalEntryPoint(RecyclableObject* function, CallInfo callInfo, Var* arguments);
 
         virtual PropertyId GetPropertyId(PropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }
@@ -279,8 +278,8 @@ namespace Js {
         virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false);
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext * requestContext);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None);
-        virtual BOOL Equals(Var other, BOOL* value, ScriptContext* requestContext);
-        virtual BOOL StrictEquals(Var other, BOOL* value, ScriptContext* requestContext);
+        virtual BOOL Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext);
+        virtual BOOL StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext);
         virtual BOOL IsWritable(PropertyId propertyId) { return false; }
         virtual BOOL IsConfigurable(PropertyId propertyId) { return false; }
         virtual BOOL IsEnumerable(PropertyId propertyId) { return false; }

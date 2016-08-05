@@ -29,11 +29,6 @@ namespace Js {
         virtual Var GetCurrentIndex() = 0;
 
         //
-        // Returns the current value
-        //
-        virtual Var GetCurrentValue() = 0;
-
-        //
         // Moves to next element
         //
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) = 0;
@@ -59,19 +54,6 @@ namespace Js {
             if (MoveNext(attributes))
             {
                 Var currentIndex = GetCurrentIndex();
-                return currentIndex;
-            }
-            return NULL;
-        }
-
-        virtual Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var* currentValueRef)
-        {
-            propertyId = Constants::NoProperty;
-
-            if (MoveNext())
-            {
-                Var currentIndex = GetCurrentIndex();
-                *currentValueRef = GetCurrentValue();
                 return currentIndex;
             }
             return NULL;

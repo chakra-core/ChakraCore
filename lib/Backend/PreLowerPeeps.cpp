@@ -71,10 +71,6 @@ IR::Instr *Lowerer::PeepShl(IR::Instr *instrShl)
     {
         return instrShl;
     }
-    if (IR::Instr::FindRegUseInRange(src1->AsRegOpnd()->m_sym, instrDef->m_next, instrShl->m_prev))
-    {
-        return instrShl;
-    }
 
     FOREACH_INSTR_IN_RANGE(instrIter, instrDef->m_next, instrShl->m_prev)
     {
@@ -87,6 +83,11 @@ IR::Instr *Lowerer::PeepShl(IR::Instr *instrShl)
             return instrShl;
         }
         if (instrIter->FindRegUse(src1->AsRegOpnd()->m_sym))
+        {
+            return instrShl;
+        }
+        // if any branch between def-use, don't do peeps on it because branch target might depend on the def
+        if (instrIter->IsBranchInstr())
         {
             return instrShl;
         }

@@ -16,7 +16,6 @@ namespace Memory
     Output::Flush(); \
 }
 
-
 namespace CustomHeap
 {
 
@@ -33,13 +32,13 @@ enum BucketId
     NumBuckets
 };
 
-BucketId GetBucketForSize(size_t bytes);
+BucketId GetBucketForSize(__declspec(guard(overflow)) size_t bytes);
 
 struct Page
 {
-    bool         inFullList;
-    bool         isDecommitted;
-    void*        segment;
+    bool inFullList;
+    bool isDecommitted;
+    void* segment;
     BVUnit       freeBitVector;
     char*        address;
     BucketId     currentBucket;
@@ -59,13 +58,13 @@ struct Page
         return freeBitVector.FirstStringOfOnes(targetBucket + 1) != BVInvalidIndex;
     }
 
-    Page(__in char* address, void* segment, BucketId bucket) :
-        address(address),
-        segment(segment),
-        currentBucket(bucket),
-        freeBitVector(0xFFFFFFFF),
-        isDecommitted(false),
-        inFullList(false)
+    Page(__in char* address, void* segment, BucketId bucket):
+      address(address),
+      segment(segment),
+      currentBucket(bucket),
+      freeBitVector(0xFFFFFFFF),
+    isDecommitted(false),
+    inFullList(false)
     {
     }
 
@@ -190,8 +189,7 @@ public:
         }
         return address;
     }
-
-    char * AllocPages(uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
+    char * AllocPages(__declspec(guard(overflow)) uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
     {
         Assert(this->cs.IsLocked());
         char * address = nullptr;
@@ -403,7 +401,7 @@ class Heap
 public:
     Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators);
 
-    Allocation* Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
+    Allocation* Alloc(__declspec(guard(overflow)) size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     void Free(__in Allocation* allocation);
     void DecommitAll();
     void FreeAll();
@@ -431,12 +429,12 @@ private:
     /**
      * Inline methods
      */
-    inline unsigned int GetChunkSizeForBytes(size_t bytes)
+    inline unsigned int GetChunkSizeForBytes(__declspec(guard(overflow)) size_t bytes)
     {
         return (bytes > Page::Alignment ? static_cast<unsigned int>(bytes) / Page::Alignment : 1);
     }
 
-    inline size_t GetNumPagesForSize(size_t bytes)
+    inline size_t GetNumPagesForSize(__declspec(guard(overflow)) size_t bytes)
     {
         size_t allocSize = AllocSizeMath::Add(bytes, AutoSystemInfo::PageSize);
 
@@ -448,7 +446,7 @@ private:
         return ((allocSize - 1)/ AutoSystemInfo::PageSize);
     }
 
-    inline BVIndex GetFreeIndexForPage(Page* page, size_t bytes)
+    inline BVIndex GetFreeIndexForPage(Page* page, __declspec(guard(overflow)) size_t bytes)
     {
         unsigned int length = GetChunkSizeForBytes(bytes);
         BVIndex index = page->freeBitVector.FirstStringOfOnes(length);
@@ -459,8 +457,8 @@ private:
     /**
      * Large object methods
      */
-    Allocation* AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
-    
+    Allocation* AllocLargeObject(__declspec(guard(overflow)) size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
+
     void FreeLargeObject(Allocation* header);
 
     void FreeLargeObjects();
@@ -478,13 +476,13 @@ private:
     DWORD EnsurePageReadWrite(Page* page)
     {
         Assert(!page->isDecommitted);
-
         BOOL result = this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
         Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
         return PAGE_EXECUTE;
     }
 
     template<DWORD readWriteFlags>
+
     DWORD EnsureAllocationReadWrite(Allocation* allocation)
     {
         if (allocation->IsLargeAllocation())
@@ -518,18 +516,17 @@ private:
      * Page methods
      */
     Page*       AddPageToBucket(Page* page, BucketId bucket, bool wasFull = false);
-    bool        AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocation);
+    bool        AllocInPage(Page* page, __declspec(guard(overflow)) size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocation);
     Page*       AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     Page*       FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages = false);
+
     bool        UpdateFullPages();
     Page *      GetExistingPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment);
 
     BVIndex     GetIndexInPage(__in Page* page, __in char* address);
-
-
-    bool IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void *address);
-    bool IsInHeap(DListBase<Page> const& buckets, __in void *address);
-    bool IsInHeap(DListBase<Allocation> const& allocations, __in void *address);
+    bool        IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void *address);
+    bool        IsInHeap(DListBase<Page> const& buckets, __in void *address);
+    bool        IsInHeap(DListBase<Allocation> const& allocations, __in void *address);
 
     /**
      * Stats
@@ -544,8 +541,8 @@ private:
     /**
      * Allocator stuff
      */
-    CodePageAllocators *                              codePageAllocators;
-    ArenaAllocator*                                   auxiliaryAllocator;
+    CodePageAllocators *   codePageAllocators;
+    ArenaAllocator*        auxiliaryAllocator;
 
     /*
      * Various tracking lists
@@ -557,7 +554,7 @@ private:
     DListBase<Page>        decommittedPages;
     DListBase<Allocation>  decommittedLargeObjects;
 
-    uint lastSecondaryAllocStateChangedCount;
+    uint                   lastSecondaryAllocStateChangedCount;
 #if DBG
     bool inDtor;
 #endif
@@ -565,7 +562,7 @@ private:
 
 // Helpers
 unsigned int log2(size_t number);
-BucketId GetBucketForSize(size_t bytes);
+BucketId GetBucketForSize(__declspec(guard(overflow)) size_t bytes);
 void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount);
 };
 }

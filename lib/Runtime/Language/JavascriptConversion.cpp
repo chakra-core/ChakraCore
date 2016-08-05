@@ -295,7 +295,7 @@ CommonNumber:
     // ToPropertyKey() takes a value and converts it to a property key
     // Implementation of ES6 7.1.14
     //----------------------------------------------------------------------------
-    BOOL JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
+    void JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
     {
         Var key = JavascriptConversion::ToPrimitive(argument, JavascriptHint::HintString, scriptContext);
 
@@ -319,8 +319,6 @@ CommonNumber:
                 scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
             }
         }
-
-        return TRUE;
     }
 
     //----------------------------------------------------------------------------
@@ -527,17 +525,17 @@ CommonNumber:
                 return CALL_FUNCTION(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
             });
 
-            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
-
             if (!result)
             {
                 // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
                 Assert(threadContext->IsDisableImplicitCall());
                 return requestContext->GetLibrary()->GetNull();
             }
+
+            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
         }
         // If result is an ECMAScript language value and Type(result) is not Object, then return result.
-        if (TaggedInt::Is(result) || JavascriptOperators::IsExposedType(JavascriptOperators::GetTypeId(result)))
+        if (TaggedInt::Is(result) || !JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(result)))
         {
             return result;
         }

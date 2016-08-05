@@ -5,10 +5,32 @@
 
 var echo = WScript.Echo;
 
+// https://github.com/Microsoft/ChakraCore/issues/1340
+function testForInInitializer() {
+    try {
+        eval('(function () { "use strict"; for (var i = 0 in { }) { } })');
+        print('testForInInitializer strict: failure: did not throw');
+    } catch (e) {
+        var m = '' + e;
+        var result = m === 'SyntaxError: for-in loop head declarations cannot have an initializer' ? 'success' : 'failure';
+        print('testForInInitializer strict: ' + result + ': e = ' + m);
+    }
+
+    try {
+        var f = eval('(function () { for (var i = 0 in { }) { } return i; })');
+        var i = f();
+        var result = i === 0 ? 'success' : 'failure';
+        print('testForInInitializer non-strict: ' + result + ': i = ' + i);
+    } catch (e) {
+        print('testForInInitializer non-strict: failure: e = ' + e);
+    }
+}
+testForInInitializer();
+
 // regress WOOB 1143623
 function find(arr, value) {
     var result = -1;
-    
+
     for(var i in arr)
     {
         echo("enumerated index:", i);

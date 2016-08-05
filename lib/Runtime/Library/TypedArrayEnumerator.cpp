@@ -37,11 +37,6 @@ namespace Js
         return GetCurrentAndMoveNext(propId, attributes) != nullptr;
     }
 
-    Var TypedArrayEnumerator::GetCurrentValue()
-    {
-        return GetLibrary()->GetUndefined();
-    }
-
     Var TypedArrayEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // TypedArrayEnumerator follows the same logic in JavascriptArrayEnumerator,

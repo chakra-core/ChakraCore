@@ -937,7 +937,7 @@ namespace Js
         return false;
     }
 
-    BOOL JavascriptProxy::Equals(Var other, BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
     {
         //RecyclableObject* targetObj;
         if (this->target == nullptr)
@@ -950,14 +950,16 @@ namespace Js
         if (threadContext->IsDisableImplicitCall())
         {
             threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
+            *value = FALSE;
             return FALSE;
         }
         *value = (other == this);
         return true;
     }
 
-    BOOL JavascriptProxy::StrictEquals(Var other, BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
     {
+        *value = FALSE;
         //RecyclableObject* targetObj;
         if (this->target == nullptr)
         {
@@ -1142,8 +1144,7 @@ namespace Js
         //7. Let keys be O.[[OwnPropertyKeys]]().
         //8. ReturnIfAbrupt(keys).
         Assert(JavascriptProxy::Is(obj));
-        Var resultVar = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
-        Assert(JavascriptArray::Is(resultVar));
+        JavascriptArray* resultArray = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
 
         //9. Repeat for each element k of keys,
         //      a. Let currentDesc be O.[[GetOwnProperty]](k).
@@ -1152,7 +1153,6 @@ namespace Js
         //          i. If currentDesc.[[Configurable]] is true, return false.
         //          ii. If level is "frozen" and IsDataDescriptor(currentDesc) is true, then
         //              1. If currentDesc.[[Writable]] is true, return false.
-        JavascriptArray* resultArray = JavascriptArray::FromVar(resultVar);
         Var itemVar;
         bool writable = false;
         bool configurable = false;
@@ -1199,10 +1199,7 @@ namespace Js
 
         //6. Let keys be O.[[OwnPropertyKeys]]().
         //7. ReturnIfAbrupt(keys).
-        Var resultVar = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
-        Assert(JavascriptArray::Is(resultVar));
-
-        JavascriptArray* resultArray = JavascriptArray::FromVar(resultVar);
+        JavascriptArray* resultArray = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
 
         const PropertyRecord* propertyRecord;        
         if (integrityLevel == IntegrityLevel::IntegrityLevel_sealed)
@@ -1344,7 +1341,7 @@ namespace Js
         Var getPrototypeOfResult;
         if (nullptr == getPrototypeOfMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
-            return target->GetPrototype();
+            return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(target, scriptContext));
         }
         CallInfo callInfo(CallFlags_Value, 2);
         Var varArgs[2];
@@ -2061,7 +2058,7 @@ namespace Js
         return trapResult;
     }
 
-    Var JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind)
+    JavascriptArray* JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2094,32 +2091,23 @@ namespace Js
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
 
         JavascriptArray *targetKeys;
-        Var targetResult;
 
         if (nullptr == ownKeysMethod)
         {
             switch (keysTrapKind)
             {
                 case GetOwnPropertyNamesKind:
-                    targetResult = JavascriptOperators::GetOwnPropertyNames(this->target, scriptContext);
+                    targetKeys = JavascriptOperators::GetOwnPropertyNames(this->target, scriptContext);
                     break;
                 case GetOwnPropertySymbolKind:
-                    targetResult = JavascriptOperators::GetOwnPropertySymbols(this->target, scriptContext);
+                    targetKeys = JavascriptOperators::GetOwnPropertySymbols(this->target, scriptContext);
                     break;
                 case KeysKind:
-                    targetResult = JavascriptOperators::GetOwnPropertyKeys(this->target, scriptContext);
+                    targetKeys = JavascriptOperators::GetOwnPropertyKeys(this->target, scriptContext);
                     break;
                 default:
                     AssertMsg(false, "Invalid KeysTrapKind.");
                     return scriptContext->GetLibrary()->CreateArray(0);
-            }
-            if (JavascriptArray::Is(targetResult))
-            {
-                targetKeys = JavascriptArray::FromVar(targetResult);
-            }
-            else
-            {
-                targetKeys = scriptContext->GetLibrary()->CreateArray(0);
             }
             return targetKeys;
         }
@@ -2149,15 +2137,7 @@ namespace Js
 
         BOOL isTargetExtensible = target->IsExtensible();
 
-        targetResult = JavascriptOperators::GetOwnPropertyKeys(this->target, scriptContext);
-        if (JavascriptArray::Is(targetResult))
-        {
-            targetKeys = JavascriptArray::FromVar(targetResult);
-        }
-        else
-        {
-            targetKeys = scriptContext->GetLibrary()->CreateArray(0);
-        }
+        targetKeys = JavascriptOperators::GetOwnPropertyKeys(this->target, scriptContext);
 
         //15. Assert: targetKeys is a List containing only String and Symbol values.
         //16. Let targetConfigurableKeys be an empty List.

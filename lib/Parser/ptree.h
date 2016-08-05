@@ -182,7 +182,7 @@ enum FncFlags
     kFunctionHasNonThisStmt                     = 1 << 7,
     kFunctionStrictMode                         = 1 << 8,
     kFunctionDoesNotEscape                      = 1 << 9, // function is known not to escape its declaring scope
-    kFunctionSubsumed                           = 1 << 10, // function expression is a parameter in a call that has no closing paren and should be treated as a global declaration (only occurs during error correction)
+    kFunctionIsModule                           = 1 << 10, // function is a module body
     kFunctionHasThisStmt                        = 1 << 11, // function has at least one this.assignment and might be a constructor
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
     kFunctionIsLambda                           = 1 << 13,
@@ -301,7 +301,7 @@ public:
     void SetNameIsHidden(bool set = true) { SetFlags(kFunctionNameIsHidden, set); }
     void SetNested(bool set = true) { SetFlags(kFunctionNested, set); }
     void SetStrictMode(bool set = true) { SetFlags(kFunctionStrictMode, set); }
-    void SetSubsumed(bool set = true) { SetFlags(kFunctionSubsumed, set); }
+    void SetIsModule(bool set = true) { SetFlags(kFunctionIsModule, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
 
@@ -334,7 +334,7 @@ public:
     bool IsMethod() const { return HasFlags(kFunctionIsMethod); }
     bool IsNested() const { return HasFlags(kFunctionNested); }
     bool IsStaticMember() const { return HasFlags(kFunctionIsStaticMember); }
-    bool IsSubsumed() const { return HasFlags(kFunctionSubsumed); }
+    bool IsModule() const { return HasFlags(kFunctionIsModule); }
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }

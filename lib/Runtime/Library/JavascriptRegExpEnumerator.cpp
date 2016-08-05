@@ -27,22 +27,6 @@ namespace Js
         }
     }
 
-    Var JavascriptRegExpEnumerator::GetCurrentValue()
-    {
-        ScriptContext* scriptContext = regExpObject->GetScriptContext();
-
-        if (index != -1 && index < regExpObject->GetSpecialEnumerablePropertyCount())
-        {
-            Var item;
-            if (regExpObject->GetSpecialEnumerablePropertyName(index, &item, scriptContext))
-            {
-                return item;
-            }
-        }
-
-        return scriptContext->GetLibrary()->GetUndefined();
-    }
-
     BOOL JavascriptRegExpEnumerator::MoveNext(PropertyAttributes* attributes)
     {
         if (++index < regExpObject->GetSpecialEnumerablePropertyCount())
@@ -110,22 +94,6 @@ namespace Js
         else if (objectEnumerator != nullptr)
         {
             return objectEnumerator->GetCurrentIndex();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
-    Var JavascriptRegExpObjectEnumerator::GetCurrentValue()
-    {
-        if (regExpEnumerator != nullptr)
-        {
-            return regExpEnumerator->GetCurrentValue();
-        }
-        else if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentValue();
         }
         else
         {

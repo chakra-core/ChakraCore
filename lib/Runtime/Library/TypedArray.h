@@ -15,14 +15,9 @@ namespace Js
     class TypedArrayBase : public ArrayBufferParent
     {
         friend ArrayBuffer;
-    private:
-        static PropertyId const specialPropertyIds[];
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(TypedArrayBase, ArrayBufferParent);
-
-    private:
-        BOOL GetPropertyBuiltIns(Js::PropertyId propertyId, Js::Var* value);
 
     public:
         static Var GetDefaultConstructor(Var object, ScriptContext* scriptContext);
@@ -126,9 +121,6 @@ namespace Js
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags) override;
 
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
-        virtual uint GetSpecialPropertyCount() const override;
-        virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual BOOL InitProperty(Js::PropertyId propertyId, Js::Var value, PropertyOperationFlags flags = PropertyOperation_None, Js::PropertyValueInfo* info = NULL) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
         static BOOL Is(Var aValue);
@@ -169,7 +161,6 @@ namespace Js
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
 
     protected:
-        inline BOOL IsBuiltinProperty(PropertyId);
         static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
@@ -219,7 +210,6 @@ namespace Js
         public:
             static FunctionInfo NewInstance;
             static FunctionInfo Set;
-            static FunctionInfo Subarray;
         };
 
         TypedArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
@@ -228,7 +218,6 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntrySet(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
 
         Var Subarray(uint32 begin, uint32 end);
 
@@ -479,8 +468,7 @@ namespace Js
 // hack for clang message: "...add an explicit instantiation declaration to .."
 #define __EXPLICIT_INSTANTINATE_TA(x) x;\
             template<> FunctionInfo Js::x::EntryInfo::NewInstance;\
-            template<> FunctionInfo Js::x::EntryInfo::Set;\
-            template<> FunctionInfo Js::x::EntryInfo::Subarray
+            template<> FunctionInfo Js::x::EntryInfo::Set
 #else // MSVC
 #define __EXPLICIT_INSTANTINATE_TA(x) x
 #endif

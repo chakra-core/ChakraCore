@@ -97,7 +97,9 @@ Contributions to ChakraCore are welcome.  Here is how you can contribute to Chak
 * [Submit pull requests](https://github.com/Microsoft/ChakraCore/pulls) for bug fixes and features and discuss existing proposals
 * Chat about [@ChakraCore](https://twitter.com/ChakraCore) on Twitter
 
-Please refer to [Contribution guidelines](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) for more details.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
 
 ### License
 

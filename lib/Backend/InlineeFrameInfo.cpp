@@ -53,6 +53,26 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
 
 }
 
+bool BailoutConstantValue::IsEqual(const BailoutConstantValue & bailoutConstValue)
+{
+    if (this->type == bailoutConstValue.type)
+    {
+        if (this->type == TyInt32)
+        {
+            return this->u.intConst.value == bailoutConstValue.u.intConst.value;
+        }
+        else if (this->type == TyVar)
+        {
+            return this->u.varConst.value == bailoutConstValue.u.varConst.value;
+        }
+        else
+        {
+            return this->u.floatConst.value == bailoutConstValue.u.floatConst.value;
+        }
+    }
+    return false;
+}
+
 
 void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody)
 {

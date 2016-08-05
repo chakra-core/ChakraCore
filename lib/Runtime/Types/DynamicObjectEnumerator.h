@@ -35,7 +35,6 @@ namespace Js
 
     public:
         virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentValue() override;
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
         virtual bool GetCurrentPropertyId(PropertyId *propertyId) override;

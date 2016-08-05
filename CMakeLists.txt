@@ -10,7 +10,26 @@ function(clr_unknown_arch)
     endif()
 endfunction()
 
+if(ICU_INCLUDE_PATH)
+  set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
+  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  if(ICUUC)
+    message("found libraries on ${ICU_CC_PATH}")
+    set(ICULIB
+      ${ICUUC}
+      ${ICU18}
+      ${ICUDATA}
+      )
+  endif()
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    if(NOT ICULIB)
+      set(ICULIB "icuuc")
+    endif()
+
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
         set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
@@ -21,8 +40,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
         -DPLATFORM_UNIX
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
     )
+
+    if(NOT ICULIB)
+      set(ICULIB "icucore")
+      add_definitions(
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
+        )
+      message("using ICU from system default: ${ICULIB}")
+    endif()
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -192,6 +218,12 @@ include_directories(
     pal/inc/rt
     ${ICU_INCLUDE_PATH}
     )
+
+if(ICU_INCLUDE_PATH)
+    if(NOT HAVE_LIBICU_UCHAR_H)
+        set(HAVE_LIBICU_UCHAR_H "1")
+    endif()
+endif()
 
 add_subdirectory (pal)
 

@@ -21,7 +21,8 @@ def machineTypeToOSTagMap = [
     'Windows 7': 'Windows 7',
     'Windows_NT': 'Windows',
     'Ubuntu14.04': 'Ubuntu14.04',
-    'Ubuntu16.04': 'Ubuntu'
+    'Ubuntu16.04': 'Ubuntu',
+    'OSX': 'OSX'
 ]
 
 def dailyRegex = 'dailies'
@@ -113,32 +114,38 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
     }
 }
 
-def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSetup ->
+// Generic task to trigger clang-based cross-plat build tasks
+def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
         ['debug', 'test', 'release'].each { buildType ->
-            [true, false].each { staticBuild ->
-                def config = "linux_${buildType}"
+            def staticBuildConfigs = [true, false]
+            if (platform == "osx") {
+                staticBuildConfigs = [true]
+            }
+
+            staticBuildConfigs.each { staticBuild ->
+                def config = (platform == "osx" ? "osx_${buildType}" : "linux_${buildType}")
+                def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
+
                 config = (configTag == null) ? config : "${configTag}_${config}"
                 config = staticBuild ? "${config}_static" : config
 
                 // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
                 def jobName = Utilities.getFullJobName(project, config, isPR)
 
-                def testableConfig = buildType in ['debug', 'test']
-
-                def infoScript = 'bash jenkins/get_system_info.sh'
+                def infoScript = "bash jenkins/get_system_info.sh --${platform}"
                 def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
                 def staticFlag = staticBuild ? "--static" : ""
-                def buildScript = "bash ./build.sh ${staticFlag} -j=`nproc` ${buildFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+                def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
+                def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+                def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} ${compilerPaths} ${icuFlag}"
                 def testScript = "bash test/runtests.sh"
 
                 def newJob = job(jobName) {
                     steps {
                         shell(infoScript)
                         shell(buildScript)
-                        if (testableConfig) {
-                            shell(testScript)
-                        }
+                        shell(testScript)
                     }
                 }
 
@@ -155,7 +162,7 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
                     if (isPR) {
                         def osTag = machineTypeToOSTagMap.get(machine)
                         // Set up checks which apply to PRs targeting any branch
-                        Utilities.addGithubPRTriggerForBranch(newJob, linuxBranch, "${osTag} ${config}")
+                        Utilities.addGithubPRTriggerForBranch(newJob, xplatBranch, "${osTag} ${config}")
                     } else {
                         Utilities.addGithubPushTrigger(newJob)
                     }
@@ -258,14 +265,34 @@ if (branch.startsWith('linux') || branch.startsWith('master')) {
     def osString = 'Ubuntu16.04'
 
     // PR and CI checks
-    CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
+    CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null)
 
     // daily builds - explicit branch names only
     if (branch in ['linux', 'master']) {
-        CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
+        CreateXPlatBuildTasks(osString, "linux", "daily_ubuntu", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
                     "Ubuntu ${config}",
+                    'linux\\s+tests')})
+    }
+}
+
+// -----------------
+// OSX BUILD TASKS
+// -----------------
+
+if (branch.startsWith('linux') || branch.startsWith('master')) {
+    def osString = 'OSX'
+
+    // PR and CI checks
+    CreateXPlatBuildTasks(osString, "osx", "osx", branch, null)
+
+    // daily builds - explicit branch names only
+    if (branch in ['linux', 'master']) {
+        CreateXPlatBuildTasks(osString, "osx", "daily_osx", branch,
+            /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+                DailyBuildTaskSetup(newJob, isPR,
+                    "OSX ${config}",
                     'linux\\s+tests')})
     }
 }

@@ -22,8 +22,7 @@ namespace Js
 
     public:
         ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols = false);
-        virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentValue() override;
+        virtual Var GetCurrentIndex() override;        
         virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
         virtual bool GetCurrentPropertyId(PropertyId *propertyId) override;

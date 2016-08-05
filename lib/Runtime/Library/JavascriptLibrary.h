@@ -185,7 +185,6 @@ namespace Js
         DynamicType * generatorConstructorPrototypeObjectType;
         DynamicType * constructorPrototypeObjectType;
         DynamicType * heapArgumentsType;
-        DynamicType * heapArgumentsTypeStrictMode;
         DynamicType * activationObjectType;
         DynamicType * arrayType;
         DynamicType * nativeIntArrayType;
@@ -243,6 +242,7 @@ namespace Js
         DynamicType * stdCallFunctionWithDeferredPrototypeType;
         DynamicType * idMappedFunctionWithPrototypeType;
         DynamicType * externalConstructorFunctionWithDeferredPrototypeType;
+        DynamicType * defaultExternalConstructorFunctionWithDeferredPrototypeType;
         DynamicType * boundFunctionType;
         DynamicType * regexConstructorType;
         DynamicType * crossSiteDeferredPrototypeFunctionType;
