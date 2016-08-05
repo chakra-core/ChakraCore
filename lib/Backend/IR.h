@@ -26,6 +26,14 @@ struct CapturedValues
     SListBase<ConstantStackSymValue> constantValues;           // Captured constant values during glob opt
     SListBase<CopyPropSyms> copyPropSyms;                      // Captured copy prop values during glob opt
     BVSparse<JitArenaAllocator> * argObjSyms;                  // Captured arg object symbols during glob opt
+
+    ~CapturedValues()
+    {
+        // Reset SListBase to be exception safe. Captured values are from GlobOpt->func->alloc
+        // in normal case the 2 SListBase are empty so no Clear needed, also no need to Clear in exception case
+        constantValues.Reset();
+        copyPropSyms.Reset();
+    }
 };
 
 class LoweredBasicBlock;
