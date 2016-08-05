@@ -283,6 +283,7 @@ namespace Js
         // For AMD64/ARM calling convention already uses SSE2/VFP registers so we don't have to use assembler.
         // We can't just use "if (0 == y)" because NaN compares
         // equal to 0 according to our compilers.
+        int32 intY;
         if (0 == NumberUtilities::LuLoDbl(y) && 0 == (NumberUtilities::LuHiDbl(y) & 0x7FFFFFFF))
         {
             // pow(x, 0) = 1 even if x is NaN.
@@ -292,6 +293,11 @@ namespace Js
         {
             // pow([+/-] 1, Infinity) = NaN according to javascript, but not for CRT pow.
             return JavascriptNumber::NaN;
+        }
+        else if (TryGetInt32Value(y, &intY))
+        {
+            // check fast path
+            return DirectPowDoubleInt(x, intY);
         }
 
         return ::pow(x, y);
