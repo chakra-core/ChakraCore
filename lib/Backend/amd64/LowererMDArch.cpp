@@ -140,7 +140,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJnFunction()->IsCoroutine())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -380,7 +380,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJnFunction()->IsGenerator())
+            if (this->m_func->GetJnFunction()->IsCoroutine())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -430,7 +430,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
     }
 
-    if (instrFuncExpr->m_func->GetJnFunction()->IsGenerator())
+    if (instrFuncExpr->m_func->GetJnFunction()->IsCoroutine())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before

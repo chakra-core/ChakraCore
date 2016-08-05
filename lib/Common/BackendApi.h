@@ -267,6 +267,7 @@ enum VTableValue {
     VtableJavascriptRegExp,
     VtableScriptFunction,
     VtableJavascriptGeneratorFunction,
+    VtableJavascriptAsyncFunction,
     VtableStackScriptFunction,
     VtableConcatStringMulti,
     VtableCompoundString,

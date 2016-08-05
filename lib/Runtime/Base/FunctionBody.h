@@ -3171,7 +3171,7 @@ namespace Js
 
         bool IsGeneratorAndJitIsDisabled()
         {
-            return this->IsGenerator() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry());
+            return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry());
         }
 
         FunctionBodyFlags * GetAddressOfFlags() { return &this->flags; }

@@ -60,7 +60,6 @@ PTNODE(knopComputedName,"[name]"           , Nop      , Uni         , fnopUni   
 PTNODE(knopYield      , "yield"            , Nop      , Uni         , fnopUni|fnopAsg       , "YieldExpr"                      )
 PTNODE(knopYieldStar  , "yield *"          , Nop      , Uni         , fnopUni|fnopAsg       , "YieldStarExpr"                  )
 PTNODE(knopAwait      , "await"            , Nop      , Uni         , fnopUni               , "AwaitExpr"                      )
-PTNODE(knopAsyncSpawn , "asyncspawn"       , Nop      , Bin         , fnopBin               , "AsyncSpawnExpr"                 )
 
 /***************************************************************************
 Binary and ternary operators.

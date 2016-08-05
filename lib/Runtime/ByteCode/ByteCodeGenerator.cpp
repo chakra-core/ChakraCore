@@ -1392,13 +1392,6 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         paramScope->SetMustInstantiate(true);
     }
 
-    if (pnode->sxFnc.IsAsync())
-    {
-        // For async methods we use the same parameter symbols in the inner function too.
-        // So mark them as having non local reference here.
-        funcInfo->paramScope->ForceAllSymbolNonLocalReference(this);
-    }
-
     PushFuncInfo(_u("StartBindFunction"), funcInfo);
 
     if (funcExprScope)
@@ -1704,7 +1697,9 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     Assert(!funcInfo->IsGlobalFunction());
-    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator() && !funcInfo->byteCodeFunction->IsModule();
+    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode()
+        && !funcInfo->byteCodeFunction->IsCoroutine()
+        && !funcInfo->byteCodeFunction->IsModule();
     if (!doStackNestedFunc)
     {
         return false;
@@ -2368,7 +2363,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                     }
 #endif
                 }
-                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsGenerator() && doStackArgsOpt /*= Optimize arguments in backend*/);
+                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsCoroutine() && doStackArgsOpt /*= Optimize arguments in backend*/);
                 if (funcInfo->inArgsCount == 0)
                 {
                     // If no formals to function, no need to create the propertyid array
@@ -2435,8 +2430,7 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 byteCodeGenerator->AssignRegister(sym);
                 pnode->location = sym->GetLocation();
 
-                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc() ||
-                    sym->GetScope()->GetFunc()->root->sxFnc.IsAsync());
+                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
                 if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
                 {
                     Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
@@ -5034,18 +5028,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         {
             sym = pnode->sxVar.sym;
             Assert(sym != nullptr);
-
-            if (sym->GetScope()->GetEnclosingFunc() != byteCodeGenerator->TopFuncInfo())
-            {
-                FuncInfo* parentFunc = GetParentFuncInfo(byteCodeGenerator->TopFuncInfo());
-                Assert(parentFunc == sym->GetScope()->GetEnclosingFunc());
-                if (parentFunc->root->sxFnc.IsAsync())
-                {
-                    // async functions produce a situation where a var decl can have a symbol
-                    // declared from an enclosing function.  In this case just no-op the vardecl.
-                    return;
-                }
-            }
 
             Assert(sym->GetScope()->GetEnclosingFunc() == byteCodeGenerator->TopFuncInfo());
 

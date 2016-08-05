@@ -494,7 +494,6 @@ HELPERCALL(ScopedLdSuperCtor,   Js::JavascriptOperators::OP_ScopedLdSuperCtor,  
 HELPERCALL(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj,         0)
 
 HELPERCALL(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield,   AttrCanThrow)
-HELPERCALL(AsyncSpawn,    Js::JavascriptOperators::OP_AsyncSpawn,    AttrCanThrow)
 
 #include "ExternalHelperMethodList.h"
 
