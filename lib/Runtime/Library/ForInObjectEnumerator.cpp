@@ -136,12 +136,7 @@ namespace Js
 
     Var ForInObjectEnumerator::GetCurrentIndex()
     {
-        if (currentIndex)
-        {
-            return currentIndex;
-        }
-        Assert(currentEnumerator != nullptr);
-        return currentEnumerator->GetCurrentIndex();
+        return currentIndex;
     }
 
     BOOL ForInObjectEnumerator::TestAndSetEnumerated(PropertyId propertyId)
@@ -155,11 +150,11 @@ namespace Js
     BOOL ForInObjectEnumerator::MoveNext()
     {
         PropertyId propertyId;
-        currentIndex = GetCurrentAndMoveNext(propertyId);
+        currentIndex = MoveAndGetNext(propertyId);
         return currentIndex != NULL;
     }
 
-    Var ForInObjectEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId)
+    Var ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
     {
         JavascriptEnumerator *pEnumerator = currentEnumerator;
         PropertyRecord const * propRecord;
@@ -168,7 +163,7 @@ namespace Js
         while (true)
         {
             propertyId = Constants::NoProperty;
-            currentIndex = pEnumerator->GetCurrentAndMoveNext(propertyId, &attributes);
+            currentIndex = pEnumerator->MoveAndGetNext(propertyId, &attributes);
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(currentIndex);
 #endif
@@ -177,7 +172,7 @@ namespace Js
                 if (firstPrototype == nullptr)
                 {
                     // We are calculating correct shadowing for non-enumerable properties of the child object, we will receive
-                    // both enumerable and non-enumerable properties from GetCurrentAndMoveNext so we need to check before we simply
+                    // both enumerable and non-enumerable properties from MoveAndGetNext so we need to check before we simply
                     // return here. If this property is non-enumerable we're going to skip it.
                     if (!(attributes & PropertyEnumerable))
                     {

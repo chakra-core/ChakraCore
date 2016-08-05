@@ -57,7 +57,7 @@ namespace Js
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     JavascriptString *
-        DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
+        DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (this->initialType != this->object->GetDynamicType())
         {
@@ -71,7 +71,7 @@ namespace Js
                 // downgrade back to the normal snapshot enumerator
                 VirtualTableInfo<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>::SetVirtualTable(this);
             }
-            return this->GetCurrentAndMoveNextFromObject(this->objectIndex, propertyId, attributes);
+            return this->MoveAndGetNextFromObject(this->objectIndex, propertyId, attributes);
         }
         Assert(enumeratedCount <= cachedData->cachedCount);
         JavascriptString* propertyStringName;
@@ -84,7 +84,7 @@ namespace Js
 
 #if ENABLE_TTD
             //
-            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //TODO: We have code in MoveAndGetNextFromObject to record replay the order in which properties are enumerated. 
             //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
@@ -92,14 +92,14 @@ namespace Js
             if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
             {
                 PropertyId tempPropertyId;
-                /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+                /* JavascriptString * tempPropertyString = */ this->MoveAndGetNextFromObject(this->objectIndex, tempPropertyId, attributes);
 
                 Assert(tempPropertyId == propertyId);
                 Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
             }
 #elif DBG
             PropertyId tempPropertyId;
-            /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+            /* JavascriptString * tempPropertyString = */ this->MoveAndGetNextFromObject(this->objectIndex, tempPropertyId, attributes);
 
             Assert(tempPropertyId == propertyId);
             Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
@@ -112,7 +112,7 @@ namespace Js
         }
         else if (!cachedData->completed)
         {
-            propertyStringName = this->GetCurrentAndMoveNextFromObject(this->objectIndex, propertyId, &propertyAttributes);
+            propertyStringName = this->MoveAndGetNextFromObject(this->objectIndex, propertyId, &propertyAttributes);
 
             if (propertyStringName && VirtualTableInfo<PropertyString>::HasVirtualTable(propertyStringName))
             {
@@ -131,7 +131,7 @@ namespace Js
         {
 #if ENABLE_TTD
             //
-            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //TODO: We have code in MoveAndGetNextFromObject to record replay the order in which properties are enumerated. 
             //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
@@ -139,11 +139,11 @@ namespace Js
             if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
             {
                 PropertyId tempPropertyId;
-                /*JavascriptString* tempPropertyStringName =*/ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+                /*JavascriptString* tempPropertyStringName =*/ this->MoveAndGetNextFromObject(this->objectIndex, tempPropertyId, attributes);
             }
 #elif DBG
             PropertyId tempPropertyId;
-            Assert(this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes) == nullptr);
+            Assert(this->MoveAndGetNextFromObject(this->objectIndex, tempPropertyId, attributes) == nullptr);
 #endif
 
             propertyStringName = nullptr;
@@ -158,13 +158,13 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var currentIndex = this->GetCurrentAndMoveNextFromArray(propertyId, attributes);
+        Var currentIndex = this->MoveAndGetNextFromArray(propertyId, attributes);
 
         if (currentIndex == nullptr)
         {
-            currentIndex = this->GetCurrentAndMoveNextFromObjectWPCache(this->objectIndex, propertyId, attributes);
+            currentIndex = this->MoveAndGetNextFromObjectWPCache(this->objectIndex, propertyId, attributes);
         }
 
         return currentIndex;
