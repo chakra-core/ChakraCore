@@ -73,7 +73,7 @@
   <test>
     <default>
       <files>toPrimitive.js</files>
-      <compile-flags>-es6regexsymbols -es6toprimitive -es6hasInstance -es6isconcatspreadable -es6tostringtag -es6functionname -args summary -endargs</compile-flags>
+      <compile-flags>-es6regexsymbols -es6toprimitive -es6hasInstance -es6isconcatspreadable -es6functionname -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -104,7 +104,7 @@
   <test>
     <default>
       <files>toStringTag.js</files>
-      <compile-flags>-es6tostringtag -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -420,7 +420,7 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags> -es6tostringtag -ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
@@ -445,7 +445,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags>-ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -458,7 +458,7 @@
   <test>
     <default>
       <files>ES6Promise.js</files>
-      <compile-flags> -ES6 -ES6Promise -es6tostringtag -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags> -ES6 -ES6Promise -ES6Species -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -661,7 +661,7 @@
   <test>
     <default>
       <files>ES6Iterators-apis.js</files>
-      <compile-flags>-ES6 -es6tostringtag -Intl- -args summary -endargs</compile-flags>
+      <compile-flags>-ES6 -Intl- -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -798,7 +798,7 @@
   <test>
     <default>
       <files>generators-apis.js</files>
-      <compile-flags>-ES6Generators -es6tostringtag -JitES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Generators -JitES6Generators -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
