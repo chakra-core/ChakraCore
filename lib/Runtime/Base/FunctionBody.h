@@ -755,20 +755,12 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize,
-            NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks)
+        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
         {
             Assert(this->GetState() == CodeGenQueued);
             Assert(codeSize > 0);
-            Assert(this->jitTransferData != nullptr || transferData == nullptr);
             this->nativeAddress = nativeAddress;
             this->codeSize = codeSize;
-            this->inProcJITNaticeCodedata = data;
-            if (transferData != nullptr)
-            {
-                this->jitTransferData->jitTransferRawData = transferData;
-            }
-            this->numberChunks = numberChunks;
             this->state = CodeGenRecorded;
 
 #ifdef PERF_COUNTERS
@@ -3436,11 +3428,13 @@ namespace Js
             if (pStatementBuffer != nullptr)
             {
                 HeapDelete(pStatementBuffer);
+                pStatementBuffer = nullptr;
             }
 
             if (pActualOffsetList != nullptr)
             {
                 HeapDelete(pActualOffsetList);
+                pActualOffsetList = nullptr;
             }
         }
 

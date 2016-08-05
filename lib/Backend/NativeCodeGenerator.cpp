@@ -1030,7 +1030,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
-    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
+    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
 
     if (jitWriteData.writeableBodyData.hasBailoutInstr != FALSE)
     {
