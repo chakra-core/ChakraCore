@@ -843,7 +843,7 @@ SECOND_PASS:
             if (!endSeg)
             {
                 // end is beyond the length of the array
-                Assert(endIndex == this->length - 1);
+                Assert(endIndex == (current->left + current->length - 1));
                 current->next = nullptr;
             }
             else
