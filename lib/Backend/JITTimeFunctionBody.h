@@ -143,7 +143,7 @@ public:
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
 
-    void InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const;
+    void InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;
     Js::FunctionBody::FunctionBodyFlags GetFlags() const;

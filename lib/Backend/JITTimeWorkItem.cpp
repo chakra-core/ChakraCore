@@ -76,7 +76,7 @@ JITTimeWorkItem::GetLoopHeaderAddr() const
 void
 JITTimeWorkItem::InitializeReader(
     Js::ByteCodeReader * reader,
-    Js::StatementReader * statementReader)
+    Js::StatementReader * statementReader, ArenaAllocator* alloc)
 {
     uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
 #if DBG
@@ -84,7 +84,7 @@ JITTimeWorkItem::InitializeReader(
 #else
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif
-    m_jitBody.InitializeStatementMap(&m_statementMap);
+    m_jitBody.InitializeStatementMap(&m_statementMap, alloc);
     statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, &m_statementMap);
 }
 
