@@ -9,6 +9,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCreateRuntimePtr)(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
     typedef JsErrorCode (WINAPI *JsrtSetRuntimeMemoryLimitPtr)(JsRuntimeHandle runtime, size_t memoryLimit);
+    typedef JsErrorCode (WINAPI *JsrtGetContextUrlPtr)(JsContextRef context, char** url);
     typedef JsErrorCode (WINAPI *JsrtSetCurrentContextPtr)(JsContextRef context);
     typedef JsErrorCode (WINAPI *JsrtGetCurrentContextPtr)(JsContextRef* context);
     typedef JsErrorCode (WINAPI *JsrtDisposeRuntimePtr)(JsRuntimeHandle runtime);
@@ -100,6 +101,7 @@ struct JsAPIHooks
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetRuntimeMemoryLimitPtr pfJsrtSetRuntimeMemoryLimit;
+    JsrtGetContextUrlPtr pfJsrtGetContextUrl;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
     JsrtGetCurrentContextPtr pfJsrtGetCurrentContext;
     JsrtDisposeRuntimePtr pfJsrtDisposeRuntime;
@@ -270,6 +272,7 @@ public:
     static JsErrorCode WINAPI JsCreateRuntime(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return HOOK_JS_API(CreateRuntime(attributes, threadService, runtime)); }
     static JsErrorCode WINAPI JsCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return HOOK_JS_API(CreateContext(runtime, newContext)); }
     static JsErrorCode WINAPI JsSetRuntimeMemoryLimit(JsRuntimeHandle runtime, size_t memory) { return HOOK_JS_API(SetRuntimeMemoryLimit(runtime, memory)); }
+    static JsErrorCode WINAPI JsGetContextUrl(JsContextRef context, char** url) { return HOOK_JS_API(GetContextUrl(context, url)); }
     static JsErrorCode WINAPI JsSetCurrentContext(JsContextRef context) { return HOOK_JS_API(SetCurrentContext(context)); }
     static JsErrorCode WINAPI JsGetCurrentContext(JsContextRef* context) { return HOOK_JS_API(GetCurrentContext(context)); }
     static JsErrorCode WINAPI JsDisposeRuntime(JsRuntimeHandle runtime) { return HOOK_JS_API(DisposeRuntime(runtime)); }

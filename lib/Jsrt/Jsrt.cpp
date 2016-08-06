@@ -745,6 +745,24 @@ CHAKRA_API JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRe
     return CreateContextCore(runtimeHandle, false /*createUnderTimeTravel*/, newContext);
 }
 
+
+CHAKRA_API JsGetContextUrl(_In_ JsContextRef context, _Out_ char **url)
+{
+    PARAM_NOT_NULL(context);
+    PARAM_NOT_NULL(url);
+
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        *url = ((JsrtContext*)context)->GetScriptContext()->GetCurrentUrl();
+        if (!*url)
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidContext);
+        }
+    }
+    END_JSRT_NO_EXCEPTION
+}
+
+
 CHAKRA_API JsGetCurrentContext(_Out_ JsContextRef *currentContext)
 {
     PARAM_NOT_NULL(currentContext);

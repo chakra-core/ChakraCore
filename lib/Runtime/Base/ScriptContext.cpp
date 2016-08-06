@@ -33,6 +33,7 @@
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "ScriptContextTelemetry.h"
 #endif
+#include "Codex/Utf8Helper.h"
 
 namespace Js
 {
@@ -489,6 +490,27 @@ namespace Js
         this->weakReferenceDictionaryList.Reset();
 
         PERF_COUNTER_DEC(Basic, ScriptContext);
+    }
+
+    char* ScriptContext::GetCurrentUrl()
+    {
+        Js::JavascriptStackWalker walker(this);
+        char* url = nullptr;;
+        walker.WalkUntil((ushort)10, [&](Js::JavascriptFunction* func, ushort frameIndex) -> bool
+        {
+            FunctionBody* body = func->GetFunctionBody();
+            if (body)
+            {
+                SourceContextInfo* info = body->GetSourceContextInfo();
+                if (info)
+                {
+                    utf8::WideStringToNarrowDynamic(info->url, &url);
+                    return true;
+                }
+            }
+            return false;
+        });
+        return url;
     }
 
     void ScriptContext::SetUrl(BSTR bstrUrl)

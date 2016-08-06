@@ -126,6 +126,76 @@ JsValueRef __stdcall WScriptJsrt::QuitCallback(JsValueRef callee, bool isConstru
     ExitProcess(exitCode);
 }
 
+JsValueRef __stdcall WScriptJsrt::GetDirectoryCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("Internal error.");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsContextRef calleeContext = JS_INVALID_REFERENCE;
+    AutoString url;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextUrl(calleeContext, &url));
+    char drive[8], dir[256], filename[256], ext[256];
+    IfJsrtErrorSetGo(_splitpath_s(*url, drive, 8, dir, 256, filename, 256, ext, 256) ? JsErrorInvalidArgument : JsNoError);
+    char fullDir[256];
+    _makepath_s(fullDir, 256, drive, dir, nullptr, nullptr);
+    size_t len = strlen(fullDir);
+    IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(fullDir, len, &returnValue));
+
+Error:
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0) {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::GetFileNameCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("Internal error.");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsContextRef calleeContext = JS_INVALID_REFERENCE;
+    AutoString url;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextUrl(calleeContext, &url));
+    size_t len = strlen(*url);
+    IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(*url, len, &returnValue));
+
+Error:
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0) {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadScriptFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     return LoadScriptFileHelper(callee, arguments, argumentCount, false);
@@ -322,7 +392,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     JsValueRef errorObject = JS_INVALID_REFERENCE;
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.
-    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent, 
+    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
         (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
     if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE)
     {
@@ -711,6 +781,8 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Quit", QuitCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetFileName", GetFileNameCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetDirectory", GetDirectoryCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScript", LoadScriptCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadModule", LoadModuleCallback));
@@ -1017,7 +1089,7 @@ JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModu
     return errorCode;
 }
 
-// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully. 
+// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully.
 JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
 {
     if (exceptionVar != nullptr)

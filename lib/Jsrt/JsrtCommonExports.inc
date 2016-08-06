@@ -5,6 +5,7 @@
     JsAddRef
     JsRelease
     JsCreateContext
+    JsGetContextUrl
     JsGetCurrentContext
     JsSetCurrentContext
     JsGetContextOfObject

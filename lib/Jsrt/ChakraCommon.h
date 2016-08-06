@@ -931,6 +931,19 @@ typedef UINT32 DWORD;
             _Out_ JsContextRef *newContext);
 
     /// <summary>
+    ///     Gets the source url of the context
+    /// </summary>
+    /// <param name="context">The context the url belongs to.</param>
+    /// <param name="url">The url of the context</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetContextUrl(
+            _In_ JsContextRef context,
+            _Out_ char** url);
+
+    /// <summary>
     ///     Gets the current script context on the thread.
     /// </summary>
     /// <param name="currentContext">

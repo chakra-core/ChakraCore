@@ -920,6 +920,7 @@ private:
 #ifdef ENABLE_DOM_FAST_PATH
         DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();
 #endif
+        char* GetCurrentUrl();
         char16 const * GetUrl() const { return url; }
         void SetUrl(BSTR bstr);
 #ifdef RUNTIME_DATA_COLLECTION
