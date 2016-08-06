@@ -126,6 +126,84 @@ JsValueRef __stdcall WScriptJsrt::QuitCallback(JsValueRef callee, bool isConstru
     ExitProcess(exitCode);
 }
 
+JsValueRef __stdcall WScriptJsrt::GetDirectoryCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("Internal error.");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsContextRef calleeContext = JS_INVALID_REFERENCE;
+    ContextData* data;
+    char drive[8], dir[256], filename[256], ext[256];
+    char fullDir[256];
+    size_t len;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextData(calleeContext, (void**)&data));
+    if (data)
+    {
+        IfJsrtErrorSetGo(_splitpath_s(data->scriptFullPath, drive, 8, dir, 256, filename, 256, ext, 256) ? JsErrorInvalidArgument : JsNoError);
+        _makepath_s(fullDir, 256, drive, dir, nullptr, nullptr);
+        len = strlen(fullDir);
+        IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(fullDir, len, &returnValue));
+    }
+
+Error:
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0) {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::GetFileNameCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("Internal error.");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsContextRef calleeContext = JS_INVALID_REFERENCE;
+    ContextData* data;
+    size_t len;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextData(calleeContext, (void**)&data));
+    if (data)
+    {
+        len = strlen(data->scriptFullPath);
+        IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(data->scriptFullPath, len, &returnValue));
+    }
+
+Error:
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0) {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadScriptFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     return LoadScriptFileHelper(callee, arguments, argumentCount, false);
@@ -342,6 +420,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
     JsContextRef currentContext = JS_INVALID_REFERENCE;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
 
+    char fullPathSrcNarrow[_MAX_PATH];
     char fullPathNarrow[_MAX_PATH];
     size_t len = 0;
 
@@ -350,16 +429,16 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
 
     if (fileName)
     {
-        if (_fullpath(fullPathNarrow, fileName, _MAX_PATH) == nullptr)
+        if (_fullpath(fullPathSrcNarrow, fileName, _MAX_PATH) == nullptr)
         {
             IfFailGo(E_FAIL);
         }
         // canonicalize that path name to lower case for the profile storage
         // REVIEW: This doesn't work for UTF8...
-        len = strlen(fullPathNarrow);
+        len = strlen(fullPathSrcNarrow) + 1;
         for (size_t i = 0; i < len; i++)
         {
-            fullPathNarrow[i] = (char)tolower(fullPathNarrow[i]);
+            fullPathNarrow[i] = (char)tolower(fullPathSrcNarrow[i]);
         }
     }
     else
@@ -397,6 +476,8 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         // Create a new context and set it as the current context
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateContext(runtime, &newContext));
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(newContext));
+        WScriptJsrt::ContextData* contextData = new WScriptJsrt::ContextData(fullPathSrcNarrow);
+        IfJsErrorFailLog(ChakraRTInterface::JsSetContextData(newContext, (void*)contextData));
 
         // Initialize the host objects
         Initialize();
@@ -695,6 +776,8 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Quit", QuitCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetFileName", GetFileNameCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetDirectory", GetDirectoryCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScript", LoadScriptCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadModule", LoadModuleCallback));

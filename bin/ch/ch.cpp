@@ -397,6 +397,9 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     JsContextRef context = JS_INVALID_REFERENCE, current = JS_INVALID_REFERENCE;
     BYTE *bcBuffer = nullptr;
     DWORD bcBufferSize = 0;
+    WScriptJsrt::ContextData* contextData = nullptr;
+    char fullPathLower[_MAX_PATH];
+    size_t len;
     IfFailGo(GetSerializedBuffer(fileContents, &bcBuffer, &bcBufferSize));
 
     // Bytecode buffer is created in one runtime and will be executed on different runtime.
@@ -408,13 +411,23 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     IfJsErrorFailLog(ChakraRTInterface::JsGetCurrentContext(&current));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
+    // canonicalize that path name to lower case for the profile storage
+    // REVIEW: Assuming no utf8 characters here
+    len = strlen(fullPath) + 1;
+    for (size_t i = 0; i < len; i++)
+    {
+        fullPathLower[i] = (char)tolower(fullPath[i]);
+    }
+    contextData = new WScriptJsrt::ContextData(fullPath);
+    IfJsErrorFailLog(ChakraRTInterface::JsSetContextData(context, (void*)contextData));
+
     // Initialized the WScript object on the new context
     if (!WScriptJsrt::Initialize())
     {
         IfFailGo(E_FAIL);
     }
 
-    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
+    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPathLower));
 
 Error:
     if (bcBuffer != nullptr)
@@ -471,6 +484,7 @@ HRESULT ExecuteTest(const char* fileName)
     {
         LPCOLESTR contentsRaw = nullptr;
 
+        char fullPathSrc[_MAX_PATH];
         char fullPath[_MAX_PATH];
         size_t len = 0;
 
@@ -483,6 +497,7 @@ HRESULT ExecuteTest(const char* fileName)
             jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
         }
 
+        JsContextRef context = JS_INVALID_REFERENCE;
 #if ENABLE_TTD
         if (doTTRecord)
         {
@@ -494,7 +509,6 @@ HRESULT ExecuteTest(const char* fileName)
 
             ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTCreateStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
 
-            JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
@@ -511,7 +525,6 @@ HRESULT ExecuteTest(const char* fileName)
                 debugger->StartDebugging(runtime);
             }
 
-            JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
@@ -525,7 +538,6 @@ HRESULT ExecuteTest(const char* fileName)
             debugger->StartDebugging(runtime);
         }
 
-        JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 #endif
@@ -539,18 +551,21 @@ HRESULT ExecuteTest(const char* fileName)
             IfFailGo(E_FAIL);
         }
 
-        if (_fullpath(fullPath, fileName, _MAX_PATH) == nullptr)
+        if (_fullpath(fullPathSrc, fileName, _MAX_PATH) == nullptr)
         {
             IfFailGo(E_FAIL);
         }
 
         // canonicalize that path name to lower case for the profile storage
         // REVIEW: Assuming no utf8 characters here
-        len = strlen(fullPath);
+        len = strlen(fullPathSrc) + 1;
         for (size_t i = 0; i < len; i++)
         {
-            fullPath[i] = (char)tolower(fullPath[i]);
+            fullPath[i] = (char)tolower(fullPathSrc[i]);
         }
+
+        WScriptJsrt::ContextData* contextData = new WScriptJsrt::ContextData(fullPathSrc);
+        IfJsErrorFailLog(ChakraRTInterface::JsSetContextData(context, (void*)contextData));
 
         if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
@@ -570,7 +585,7 @@ HRESULT ExecuteTest(const char* fileName)
         }
         else if (HostConfigFlags::flags.SerializedIsEnabled)
         {
-            CreateAndRunSerializedScript(fileName, fileContents, fullPath);
+            CreateAndRunSerializedScript(fileName, fileContents, fullPathSrc);
         }
         else
         {

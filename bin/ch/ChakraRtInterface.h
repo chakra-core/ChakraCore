@@ -11,6 +11,8 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtSetRuntimeMemoryLimitPtr)(JsRuntimeHandle runtime, size_t memoryLimit);
     typedef JsErrorCode (WINAPI *JsrtSetCurrentContextPtr)(JsContextRef context);
     typedef JsErrorCode (WINAPI *JsrtGetCurrentContextPtr)(JsContextRef* context);
+    typedef JsErrorCode (WINAPI *JsrtSetContextDataPtr)(JsContextRef context, void* data);
+    typedef JsErrorCode (WINAPI *JsrtGetContextDataPtr)(JsContextRef context, void** data);
     typedef JsErrorCode (WINAPI *JsrtDisposeRuntimePtr)(JsRuntimeHandle runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateObjectPtr)(JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtCreateExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef *object);
@@ -102,6 +104,8 @@ struct JsAPIHooks
     JsrtSetRuntimeMemoryLimitPtr pfJsrtSetRuntimeMemoryLimit;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
     JsrtGetCurrentContextPtr pfJsrtGetCurrentContext;
+    JsrtSetContextDataPtr pfJsrtSetContextData;
+    JsrtGetContextDataPtr pfJsrtGetContextData;
     JsrtDisposeRuntimePtr pfJsrtDisposeRuntime;
     JsrtCreateObjectPtr pfJsrtCreateObject;
     JsrtCreateExternalObjectPtr pfJsrtCreateExternalObject;
@@ -272,6 +276,8 @@ public:
     static JsErrorCode WINAPI JsSetRuntimeMemoryLimit(JsRuntimeHandle runtime, size_t memory) { return HOOK_JS_API(SetRuntimeMemoryLimit(runtime, memory)); }
     static JsErrorCode WINAPI JsSetCurrentContext(JsContextRef context) { return HOOK_JS_API(SetCurrentContext(context)); }
     static JsErrorCode WINAPI JsGetCurrentContext(JsContextRef* context) { return HOOK_JS_API(GetCurrentContext(context)); }
+    static JsErrorCode WINAPI JsSetContextData(JsContextRef context, void* data) { return HOOK_JS_API(SetContextData(context, data)); }
+    static JsErrorCode WINAPI JsGetContextData(JsContextRef context, void** data) { return HOOK_JS_API(GetContextData(context, data)); }
     static JsErrorCode WINAPI JsDisposeRuntime(JsRuntimeHandle runtime) { return HOOK_JS_API(DisposeRuntime(runtime)); }
     static JsErrorCode WINAPI JsCreateObject(JsValueRef *object) { return HOOK_JS_API(CreateObject(object)); }
     static JsErrorCode WINAPI JsCreateExternalObject(void *data, JsFinalizeCallback callback, JsValueRef *object) { return HOOK_JS_API(CreateExternalObject(data, callback, object)); }
