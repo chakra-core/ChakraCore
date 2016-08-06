@@ -36,8 +36,8 @@ public:
         Allocator();
         ~Allocator();
 
-        char * Alloc(__declspec(guard(overflow)) size_t requestedBytes);
-        char * AllocZero(__declspec(guard(overflow)) size_t requestedBytes);
+        char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
+        char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
 

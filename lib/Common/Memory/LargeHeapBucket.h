@@ -36,14 +36,14 @@ public:
 
     ~LargeHeapBucket();
 
-    void Initialize(HeapInfo * heapInfo, __declspec(guard(overflow)) uint sizeCat, bool supportFreeList = false);
+    void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat, bool supportFreeList = false);
 
-    LargeHeapBlock* AddLargeHeapBlock(__declspec(guard(overflow)) size_t size, bool nothrow);
+    LargeHeapBlock* AddLargeHeapBlock(DECLSPEC_GUARD_OVERFLOW size_t size, bool nothrow);
 
     template <ObjectInfoBits attributes, bool nothrow>
     char* Alloc(Recycler * recycler, size_t sizeCat);
 #ifdef RECYCLER_PAGE_HEAP
-    char *PageHeapAlloc(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
+    char *PageHeapAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
 #endif
     void ExplicitFree(void * object, size_t sizeCat);
 
@@ -93,11 +93,11 @@ public:
 #endif
 
 private:
-    char * SnailAlloc(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
-    char * TryAlloc(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, ObjectInfoBits attributes);
-    char * TryAllocFromNewHeapBlock(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
-    char * TryAllocFromFreeList(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, ObjectInfoBits attributes);
-    char * TryAllocFromExplicitFreeList(Recycler * recycler, __declspec(guard(overflow)) size_t sizeCat, ObjectInfoBits attributes);
+    char * SnailAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
+    char * TryAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes);
+    char * TryAllocFromNewHeapBlock(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
+    char * TryAllocFromFreeList(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes);
+    char * TryAllocFromExplicitFreeList(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes);
 
     template <class Fn> void ForEachLargeHeapBlock(Fn fn);
     template <class Fn> void ForEachEditingLargeHeapBlock(Fn fn);

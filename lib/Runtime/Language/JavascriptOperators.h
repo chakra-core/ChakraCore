@@ -563,13 +563,13 @@ namespace Js
         static Var OP_AsyncSpawn(Js::Var aGenerator, Js::Var aThis, ScriptContext* scriptContext);
 
         template <typename T>
-        static void * JitRecyclerAlloc(__declspec(guard(overflow)) size_t size, Recycler* recycler)
+        static void * JitRecyclerAlloc(DECLSPEC_GUARD_OVERFLOW size_t size, Recycler* recycler)
         {
             TRACK_ALLOC_INFO(recycler, T, Recycler, size - sizeof(T), (size_t)-1);
             return recycler->AllocZero(size);
         }
 
-        static void * AllocMemForVarArray(__declspec(guard(overflow)) size_t size, Recycler* recycler);
+        static void * AllocMemForVarArray(DECLSPEC_GUARD_OVERFLOW size_t size, Recycler* recycler);
         static void * AllocUninitializedNumber(RecyclerJavascriptNumberAllocator * allocator);
 
         static void ScriptAbort();

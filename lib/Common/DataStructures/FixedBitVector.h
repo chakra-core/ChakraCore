@@ -35,10 +35,10 @@ public:
     static  BVFixed *       New(TAllocator* alloc, BVFixed * initBv);
 
     template <typename TAllocator>
-    static  BVFixed *       New(__declspec(guard(overflow)) BVIndex length, TAllocator* alloc, bool initialSet = false);
+    static  BVFixed *       New(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator* alloc, bool initialSet = false);
 
     template <typename TAllocator>
-    static  BVFixed *       NewNoThrow(__declspec(guard(overflow)) BVIndex length, TAllocator* alloc, bool initialSet = false);
+    static  BVFixed *       NewNoThrow(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator* alloc, bool initialSet = false);
 
     template <typename TAllocator>
     void                    Delete(TAllocator * alloc);
@@ -152,14 +152,14 @@ BVFixed * BVFixed::New(TAllocator * alloc, BVFixed * initBv)
 }
 
 template <typename TAllocator>
-BVFixed * BVFixed::New(__declspec(guard(overflow)) BVIndex length, TAllocator * alloc, bool initialSet)
+BVFixed * BVFixed::New(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * alloc, bool initialSet)
 {
     BVFixed *result = AllocatorNewPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
     return result;
 }
 
 template <typename TAllocator>
-BVFixed * BVFixed::NewNoThrow(__declspec(guard(overflow)) BVIndex length, TAllocator * alloc, bool initialSet)
+BVFixed * BVFixed::NewNoThrow(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * alloc, bool initialSet)
 {
     BVFixed *result = AllocatorNewNoThrowPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
     return result;

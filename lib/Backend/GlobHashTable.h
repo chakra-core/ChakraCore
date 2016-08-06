@@ -55,7 +55,7 @@ public:
     SListBase<HashBucket> * table;
 
 public:
-    static ValueHashTable * New(JitArenaAllocator *allocator, __declspec(guard(overflow)) uint tableSize)
+    static ValueHashTable * New(JitArenaAllocator *allocator, DECLSPEC_GUARD_OVERFLOW uint tableSize)
     {
         return AllocatorNewPlus(JitArenaAllocator, allocator, (tableSize*sizeof(SListBase<HashBucket>)), ValueHashTable, allocator, tableSize);
     }

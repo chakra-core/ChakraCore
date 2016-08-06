@@ -37,7 +37,7 @@ public:
     void Decommit();
     void Clear();
 
-    EmitBufferAllocation* AllocateBuffer(__declspec(guard(overflow)) __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
+    EmitBufferAllocation* AllocateBuffer(DECLSPEC_GUARD_OVERFLOW __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
     bool CommitBuffer(EmitBufferAllocation* allocation, __out_bcount(bytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad = 0);
     bool ProtectBufferWithExecuteReadWriteForInterpreter(EmitBufferAllocation* allocation);
     bool CommitReadWriteBufferForInterpreter(EmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
@@ -72,8 +72,8 @@ private:
     ArenaAllocator * allocator;
     Js::ScriptContext * scriptContext;
 
-    EmitBufferAllocation * NewAllocation(__declspec(guard(overflow)) size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode);
-    EmitBufferAllocation* GetBuffer(EmitBufferAllocation *allocation, __declspec(guard(overflow)) __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer);
+    EmitBufferAllocation * NewAllocation(DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode);
+    EmitBufferAllocation* GetBuffer(EmitBufferAllocation *allocation, DECLSPEC_GUARD_OVERFLOW __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer);
 
     bool FinalizeAllocation(EmitBufferAllocation *allocation);
     CustomHeap::Heap allocationHeap;
