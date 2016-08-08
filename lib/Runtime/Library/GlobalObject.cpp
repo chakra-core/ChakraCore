@@ -599,10 +599,12 @@ namespace Js
         if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
+
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
             }
+
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
             Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
@@ -887,7 +889,8 @@ namespace Js
 
             grfscr = grfscr | fscrDynamicCode;
 
-            hrParser = parser.ParseCesu8Source(&parseTree, utf8Source, cbSource, grfscr, &se, &sourceContextInfo->nextLocalFunctionId,
+            // fscrEval signifies direct eval in parser
+            hrParser = parser.ParseCesu8Source(&parseTree, utf8Source, cbSource, isIndirect ? grfscr & ~fscrEval : grfscr, &se, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
             sourceInfo->SetParseFlags(grfscr);
 

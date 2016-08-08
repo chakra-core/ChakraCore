@@ -1604,6 +1604,9 @@ namespace Js
         void SetCapturesThis() { attributes = (Attributes)(attributes | Attributes::CapturesThis); }
         bool GetCapturesThis() { return (attributes & Attributes::CapturesThis) != 0; }
 
+        void SetEnclosedByGlobalFunc() { attributes = (Attributes)(attributes | Attributes::EnclosedByGlobalFunc ); }
+        bool GetEnclosedByGlobalFunc() { return (attributes & Attributes::EnclosedByGlobalFunc) != 0; }
+
         void BuildDeferredStubs(ParseNode *pnodeFnc);
         DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }

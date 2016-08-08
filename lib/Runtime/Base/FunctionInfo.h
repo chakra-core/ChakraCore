@@ -37,6 +37,7 @@ namespace Js
             BuiltInInlinableAsLdFldInlinee = 0x08000,
             Async                          = 0x10000,
             Module                         = 0x20000, // The function is the function body wrapper for a module
+            EnclosedByGlobalFunc           = 0x40000,
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionBody* functionBodyImpl = NULL);
 

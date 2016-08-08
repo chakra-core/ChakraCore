@@ -485,7 +485,7 @@ namespace Js
         *isConst = false;
 
 
-        if (!allowLexicalThis && propertyId == Js::PropertyIds::_lexicalThisSlotSymbol)
+        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_lexicalThisSlotSymbol || propertyId == Js::PropertyIds::_lexicalNewTargetSymbol))
         {
             return false;
         }
