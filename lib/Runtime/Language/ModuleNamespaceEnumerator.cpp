@@ -55,56 +55,8 @@ namespace Js
         symbolEnumerator->Reset();
     }
 
-    Var ModuleNamespaceEnumerator::GetCurrentIndex()
-    {
-        Var undefined = GetLibrary()->GetUndefined();
-        Var result = undefined;
-        Assert(doneWithLocalExports || currentNonLocalMapIndex == Constants::NoBigSlot);
-        if (!doneWithSymbol)
-        {
-            result = symbolEnumerator->GetCurrentIndex();
-            if (result == undefined)
-            {
-                doneWithSymbol = true;
-            }
-            else
-            {
-                return result;
-            }
-        }
-        if (!doneWithLocalExports)
-        {
-            Assert(currentLocalMapIndex != Constants::NoBigSlot);
-            if (currentLocalMapIndex != Constants::NoBigSlot)
-            {
-                PropertyId currentPropertyId = nsObject->GetPropertyId(currentLocalMapIndex);
-                result = this->GetScriptContext()->GetPropertyString(currentPropertyId);
-            }
-            if (result == undefined)
-            {
-                // we are done with the object part; 
-                this->doneWithLocalExports = true;
-            }
-            else
-            {
-                return result;
-            }
-        }
-        if (this->nonLocalMap != nullptr && currentNonLocalMapIndex < nonLocalMap->Count())
-        {
-            result = this->GetScriptContext()->GetPropertyString(this->nonLocalMap->GetKeyAt(currentNonLocalMapIndex));
-        }
-        return result;
-    }
-
-    BOOL ModuleNamespaceEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        PropertyId propId;
-        return GetCurrentAndMoveNext(propId, attributes) != NULL;
-    }
-
     // enumeration order: symbol first; local exports next; nonlocal exports last.
-    Var ModuleNamespaceEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var undefined = GetLibrary()->GetUndefined();
         Var result = undefined;
@@ -115,7 +67,7 @@ namespace Js
         }
         if (!doneWithSymbol)
         {
-            result = symbolEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            result = symbolEnumerator->MoveAndGetNext(propertyId, attributes);
             if (result == nullptr)
             {
                 doneWithSymbol = true;

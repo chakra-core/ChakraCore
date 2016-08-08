@@ -17,9 +17,7 @@ namespace Js
         static ModuleNamespaceEnumerator* New(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols = false);
         BOOL Init();
         virtual void Reset() override;
-        virtual Var GetCurrentIndex() override;
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual Var GetCurrentValue() { Assert(false); return nullptr; }
 
     private:
