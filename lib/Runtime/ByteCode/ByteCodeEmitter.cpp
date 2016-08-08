@@ -9116,7 +9116,7 @@ void EmitForIn(ParseNode *loopNode,
     // The EndStatement will happen in the EmitForInOfLoopBody function
     byteCodeGenerator->StartStatement(loopNode->sxForInOrForOf.pnodeLval);
 
-    // branch past loop when GetCurrentAndMoveNext returns nullptr
+    // branch past loop when MoveAndGetNext returns nullptr
     byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrOnEmpty, continuePastLoop, loopNode->sxForInOrForOf.itemLocation, loopNode->location);
     
     EmitForInOfLoopBody(loopNode, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, fReturnValue);

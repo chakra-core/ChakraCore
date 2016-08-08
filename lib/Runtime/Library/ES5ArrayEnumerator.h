@@ -24,8 +24,7 @@ namespace Js
 
     public:
         ES5ArrayEnumerator(Var originalInstance, ES5Array* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols = false);
-        virtual Var GetCurrentIndex() override;
         virtual void Reset() override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 }

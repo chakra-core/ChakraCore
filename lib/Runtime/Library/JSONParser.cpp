@@ -131,16 +131,21 @@ namespace JSON
                 {
                     Js::JavascriptEnumerator* enumerator = static_cast<Js::JavascriptEnumerator*>(enumeratorVar);
                     Js::Var propertyNameVar;
-                    Js::PropertyId idMember;
 
-                    while(enumerator->MoveNext())
+                    while (true)
                     {
-                        propertyNameVar  = enumerator->GetCurrentIndex();
+                        Js::PropertyId idMember = Js::Constants::NoProperty;
+                        propertyNameVar = enumerator->MoveAndGetNext(idMember);
+                        if (propertyNameVar == nullptr)
+                        {
+                            break;
+                        }
+
                         //NOTE: If testing key value call enumerator->GetCurrentValue() to confirm value is correct;
 
-                        AssertMsg(!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar,  undefined) && Js::JavascriptString::Is(propertyNameVar) , "bad enumeration on a JSON Object");
+                        AssertMsg(Js::JavascriptString::Is(propertyNameVar) , "bad enumeration on a JSON Object");
 
-                        if (enumerator->GetCurrentPropertyId(&idMember))
+                        if (idMember != Js::Constants::NoProperty)
                         {
                             Js::Var newElement = Walk(Js::JavascriptString::FromVar(propertyNameVar), idMember, value);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))

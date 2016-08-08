@@ -5214,7 +5214,7 @@ CommonNumber:
     Var JavascriptOperators::OP_BrOnEmpty(ForInObjectEnumerator * aEnumerator)
     {
         PropertyId id;
-        return aEnumerator->GetCurrentAndMoveNext(id);
+        return aEnumerator->MoveAndGetNext(id);
     }
 
     ForInObjectEnumerator * JavascriptOperators::OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext)

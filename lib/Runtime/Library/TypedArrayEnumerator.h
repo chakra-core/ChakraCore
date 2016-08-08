@@ -23,10 +23,7 @@ namespace Js
 
     public:
         TypedArrayEnumerator(BOOL enumNonEnumerable, TypedArrayBase* typeArrayBase, ScriptContext* scriptContext, bool enumSymbols = false);
-        virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
-        virtual bool GetCurrentPropertyId(PropertyId *propertyId) override;
     };
 }

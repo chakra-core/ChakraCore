@@ -10,9 +10,7 @@ namespace Js
     {
     public:
         static Var Create(ScriptContext* scriptContext, Var iteratorObject);
-        virtual Var GetCurrentIndex() override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
         virtual void Reset() override;
     protected:
         IteratorObjectEnumerator(ScriptContext* scriptContext, Var iteratorObject);

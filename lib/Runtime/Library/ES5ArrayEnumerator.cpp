@@ -17,21 +17,7 @@ namespace Js
         Reset();
     }
 
-    Var ES5ArrayEnumerator::GetCurrentIndex()
-    {
-        if (!doneArray && index != JavascriptArray::InvalidIndex)
-        {
-            return arrayObject->GetScriptContext()->GetIntegerString(index);
-        }
-        else if (!doneObject)
-        {
-            return objectEnumerator->GetCurrentIndex();
-        }
-
-        return GetLibrary()->GetUndefined();
-    }
-
-    Var ES5ArrayEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ES5ArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 
@@ -77,7 +63,7 @@ namespace Js
         }
         if (!doneObject)
         {
-            Var currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
             if (currentIndex)
             {
                 return currentIndex;
