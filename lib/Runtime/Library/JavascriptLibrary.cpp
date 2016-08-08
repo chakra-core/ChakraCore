@@ -3448,7 +3448,6 @@ namespace Js
         }
     }
 
-    // TODO: OOP JIT, can we avoid this (e.g. with macro list)?
     BuiltinFunction JavascriptLibrary::GetBuiltinFunctionForFuncId(uint localFuncId)
     {
         switch (localFuncId)

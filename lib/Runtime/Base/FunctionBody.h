@@ -393,7 +393,7 @@ namespace Js
             // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
-            NativeCodeData* data;
+            NativeCodeData* jitTransferRawData;
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
             TypeGuardTransferData typeGuardTransferData;
 
@@ -405,9 +405,10 @@ namespace Js
                 jitTimeTypeRefs(nullptr), runtimeTypeRefs(nullptr),
                 propertyGuardCount(0), propertyGuardsByPropertyId(nullptr), propertyGuardsByPropertyIdPlusSize(0),
                 ctorCacheGuardsByPropertyId(nullptr), ctorCacheGuardsByPropertyIdPlusSize(0),
-                equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), data(nullptr),
+                equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), jitTransferRawData(nullptr),
                 falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0){}
 
+            void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
             int GetRuntimeTypeRefCount() { return this->runtimeTypeRefs ? this->runtimeTypeRefs->count : 0; }
@@ -441,7 +442,7 @@ namespace Js
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
 
-        NativeCodeData * data;
+        NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
         CodeGenNumberChunk * numberChunks;
 
@@ -504,6 +505,7 @@ namespace Js
 
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
+        void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
 
         void SetNumberChunks(CodeGenNumberChunk * chunks) { numberChunks = chunks; }
 
@@ -550,7 +552,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
-            equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), data(nullptr),
+            equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
@@ -753,20 +755,12 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize,
-            NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks)
+        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
         {
             Assert(this->GetState() == CodeGenQueued);
             Assert(codeSize > 0);
-            Assert(this->jitTransferData != nullptr || transferData == nullptr);
             this->nativeAddress = nativeAddress;
             this->codeSize = codeSize;
-            this->data = data;
-            if (transferData != nullptr)
-            {
-                this->jitTransferData->data = transferData;
-            }
-            this->numberChunks = numberChunks;
             this->state = CodeGenRecorded;
 
 #ifdef PERF_COUNTERS
@@ -3002,9 +2996,6 @@ namespace Js
         bool HasNonBuiltInCallee();
 
         void RecordNativeThrowMap(SmallSpanSequenceIter& iter, uint32 offset, uint32 statementIndex, EntryPointInfo* entryPoint, uint loopNum);
-        void RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t codeSizeS,  NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks,
-            EntryPointInfo* info, uint loopNum);
-
         void SetNativeThrowSpanSequence(SmallSpanSequence *seq, uint loopNum, LoopEntryPointInfo* entryPoint);
 
         BOOL GetMatchingStatementMapFromNativeAddress(DWORD_PTR codeAddress, StatementData &data, uint loopNum, FunctionBody *inlinee = nullptr);
@@ -3437,11 +3428,13 @@ namespace Js
             if (pStatementBuffer != nullptr)
             {
                 HeapDelete(pStatementBuffer);
+                pStatementBuffer = nullptr;
             }
 
             if (pActualOffsetList != nullptr)
             {
                 HeapDelete(pActualOffsetList);
+                pActualOffsetList = nullptr;
             }
         }
 

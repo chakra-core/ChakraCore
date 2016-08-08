@@ -32,7 +32,7 @@ void BailoutConstantValue::InitVarConstValue(Js::Var value)
     this->u.varConst.value = value;
 }
 
-Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext) const
+Js::Var BailoutConstantValue::ToVar(Func* func) const
 {
     Assert(this->type == TyVar || this->type == TyFloat64 || IRType_IsSignedInt(this->type));
     Js::Var varValue;
@@ -131,7 +131,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
         {
             // Constants
             Assert(constantIndex < constantCount);
-            this->record->constants[constantIndex] = value.constValue.ToVar(func, func->GetScriptContext());
+            this->record->constants[constantIndex] = value.constValue.ToVar(func);
             this->record->argOffsets[i] = constantIndex;
             constantIndex++;
         }
@@ -153,7 +153,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
     else
     {
         Assert(constantIndex < constantCount);
-        this->record->constants[constantIndex] = function.constValue.ToVar(func, func->GetScriptContext());
+        this->record->constants[constantIndex] = function.constValue.ToVar(func);
         this->record->functionOffset = constantIndex;
     }
 }

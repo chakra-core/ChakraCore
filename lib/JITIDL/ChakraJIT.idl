@@ -5,6 +5,14 @@
 
 import "wtypes.idl";
 
+#if defined(_M_IX86) || defined(_M_ARM)
+#define CHAKRA_PTR int
+#define BV_SHIFT 5
+#elif defined(_M_X64) || defined(_M_ARM64)
+#define CHAKRA_PTR __int64
+#define BV_SHIFT 6
+#endif
+
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE_IDL = 8;
@@ -27,11 +35,11 @@ typedef struct TypeIDL
 
     int typeId;
 
-    __int3264 libAddr;
-    __int3264 protoAddr;
-    __int3264 entrypointAddr;
-    __int3264 propertyCacheAddr;
-    __int3264 addr;
+    CHAKRA_PTR libAddr;
+    CHAKRA_PTR protoAddr;
+    CHAKRA_PTR entrypointAddr;
+    CHAKRA_PTR propertyCacheAddr;
+    CHAKRA_PTR addr;
 
     TypeHandlerIDL handler;
 } TypeIDL;
@@ -47,7 +55,7 @@ typedef struct FixedFieldIDL
 {
     boolean nextHasSameFixedField;
     TypeIDL type;
-    __int3264 fieldValue;
+    CHAKRA_PTR fieldValue;
 } FixedFieldIDL;
 
 typedef struct JITTimeConstructorCacheIDL
@@ -63,8 +71,8 @@ typedef struct JITTimeConstructorCacheIDL
 
     TypeIDL type;
 
-    __int3264 runtimeCacheAddr;
-    __int3264 runtimeCacheGuardAddr;
+    CHAKRA_PTR runtimeCacheAddr;
+    CHAKRA_PTR runtimeCacheGuardAddr;
 } JITTimeConstructorCacheIDL;
 
 typedef struct ObjTypeSpecFldIDL
@@ -76,8 +84,8 @@ typedef struct ObjTypeSpecFldIDL
     int propertyId;
     int typeId;
     unsigned int id;
-    __int3264 protoObjectAddr;
-    __int3264 propertyGuardValueAddr;
+    CHAKRA_PTR protoObjectAddr;
+    CHAKRA_PTR propertyGuardValueAddr;
     EquivalentTypeSetIDL * typeSet;
     TypeIDL * initialType;
     JITTimeConstructorCacheIDL * ctorCache;
@@ -88,20 +96,19 @@ typedef struct PinnedTypeRefsIDL
 {
     boolean isOOPJIT;// REVIEW: remove this
     unsigned int count;
-    [size_is(count)] __int3264 typeRefs[*];
+    [size_is(count)] CHAKRA_PTR typeRefs[*];
 
 } PinnedTypeRefsIDL;
 
 typedef struct BVUnitIDL
 {
-    unsigned __int3264 word;
+    unsigned CHAKRA_PTR word;
 } BVUnitIDL;
 
 typedef struct BVFixedIDL
 {
     unsigned int len;
-    // TODO: OOP JIT, should be 6 on x64, 5 on x86 (BVUnit::ShiftValue)
-    [size_is(((len-1) >> 6) + 1)] BVUnitIDL data[*];
+    [size_is(((len-1) >> BV_SHIFT) + 1)] BVUnitIDL data[*];
 } BVFixedIDL;
 
 typedef struct CallSiteIDL
@@ -188,29 +195,29 @@ typedef struct ProfileDataIDL
     unsigned int loopCount;
     [size_is(loopCount)] byte * loopImplicitCallFlags;
 
-    __int3264 arrayCallSiteDataAddr;
-    __int3264 fldDataAddr;
+    CHAKRA_PTR arrayCallSiteDataAddr;
+    CHAKRA_PTR fldDataAddr;
     __int64 flags;
 } ProfileDataIDL;
 
 typedef struct ThreadContextDataIDL
 {
     boolean isThreadBound;
-    __int3264 processHandle;
-    __int3264 chakraBaseAddress;
-    __int3264 crtBaseAddress;
-    __int3264 threadStackLimitAddr;
-    __int3264 scriptStackLimit;
-    __int3264 bailOutRegisterSaveSpaceAddr;
-    __int3264 disableImplicitFlagsAddr;
-    __int3264 implicitCallFlagsAddr;
-    __int3264 debuggingFlagsAddr;
-    __int3264 debugStepTypeAddr;
-    __int3264 debugFrameAddressAddr;
-    __int3264 debugScriptIdWhenSetAddr;
-    __int3264 stringReplaceNameAddr;
-    __int3264 stringMatchNameAddr;
-    __int3264 simdTempAreaBaseAddr;
+    CHAKRA_PTR processHandle;
+    CHAKRA_PTR chakraBaseAddress;
+    CHAKRA_PTR crtBaseAddress;
+    CHAKRA_PTR threadStackLimitAddr;
+    CHAKRA_PTR scriptStackLimit;
+    CHAKRA_PTR bailOutRegisterSaveSpaceAddr;
+    CHAKRA_PTR disableImplicitFlagsAddr;
+    CHAKRA_PTR implicitCallFlagsAddr;
+    CHAKRA_PTR debuggingFlagsAddr;
+    CHAKRA_PTR debugStepTypeAddr;
+    CHAKRA_PTR debugFrameAddressAddr;
+    CHAKRA_PTR debugScriptIdWhenSetAddr;
+    CHAKRA_PTR stringReplaceNameAddr;
+    CHAKRA_PTR stringMatchNameAddr;
+    CHAKRA_PTR simdTempAreaBaseAddr;
 } ThreadContextDataIDL;
 
 typedef struct ScriptContextDataIDL
@@ -219,34 +226,34 @@ typedef struct ScriptContextDataIDL
     boolean recyclerAllowNativeCodeBumpAllocation;
     boolean isSIMDEnabled;
     unsigned int recyclerVerifyPad;
-    __int3264 vtableAddresses[VTABLE_COUNT];
+    CHAKRA_PTR vtableAddresses[VTABLE_COUNT];
 
-    __int3264 nullAddr;
-    __int3264 undefinedAddr;
-    __int3264 trueAddr;
-    __int3264 falseAddr;
-    __int3264 undeclBlockVarAddr;
-    __int3264 scriptContextAddr;
-    __int3264 emptyStringAddr;
-    __int3264 negativeZeroAddr;
-    __int3264 numberTypeStaticAddr;
-    __int3264 stringTypeStaticAddr;
-    __int3264 objectTypeAddr;
-    __int3264 objectHeaderInlinedTypeAddr;
-    __int3264 regexTypeAddr;
-    __int3264 arrayTypeAddr;
-    __int3264 nativeIntArrayTypeAddr;
-    __int3264 nativeFloatArrayTypeAddr;
-    __int3264 arrayConstructorAddr;
-    __int3264 charStringCacheAddr;
-    __int3264 libraryAddr;
-    __int3264 sideEffectsAddr;
-    __int3264 arraySetElementFastPathVtableAddr;
-    __int3264 intArraySetElementFastPathVtableAddr;
-    __int3264 floatArraySetElementFastPathVtableAddr;
-    __int3264 numberAllocatorAddr;
-    __int3264 recyclerAddr;
-    __int3264 builtinFunctionsBaseAddr;
+    CHAKRA_PTR nullAddr;
+    CHAKRA_PTR undefinedAddr;
+    CHAKRA_PTR trueAddr;
+    CHAKRA_PTR falseAddr;
+    CHAKRA_PTR undeclBlockVarAddr;
+    CHAKRA_PTR scriptContextAddr;
+    CHAKRA_PTR emptyStringAddr;
+    CHAKRA_PTR negativeZeroAddr;
+    CHAKRA_PTR numberTypeStaticAddr;
+    CHAKRA_PTR stringTypeStaticAddr;
+    CHAKRA_PTR objectTypeAddr;
+    CHAKRA_PTR objectHeaderInlinedTypeAddr;
+    CHAKRA_PTR regexTypeAddr;
+    CHAKRA_PTR arrayTypeAddr;
+    CHAKRA_PTR nativeIntArrayTypeAddr;
+    CHAKRA_PTR nativeFloatArrayTypeAddr;
+    CHAKRA_PTR arrayConstructorAddr;
+    CHAKRA_PTR charStringCacheAddr;
+    CHAKRA_PTR libraryAddr;
+    CHAKRA_PTR sideEffectsAddr;
+    CHAKRA_PTR arraySetElementFastPathVtableAddr;
+    CHAKRA_PTR intArraySetElementFastPathVtableAddr;
+    CHAKRA_PTR floatArraySetElementFastPathVtableAddr;
+    CHAKRA_PTR numberAllocatorAddr;
+    CHAKRA_PTR recyclerAddr;
+    CHAKRA_PTR builtinFunctionsBaseAddr;
 } ScriptContextDataIDL;
 
 typedef struct SmallSpanSequenceIDL
@@ -296,7 +303,7 @@ typedef struct AsmJsDataIDL
 
 typedef struct PropertyRecordIDL
 {
-    __int3264 vTable;
+    CHAKRA_PTR vTable;
     int pid;
     unsigned int hash;
     boolean isNumeric;
@@ -309,7 +316,7 @@ typedef struct PropertyRecordIDL
 typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
-    [size_is(clonedCacheCount)] __int3264 * clonedInlineCaches;
+    [size_is(clonedCacheCount)] CHAKRA_PTR * clonedInlineCaches;
 } FunctionJITRuntimeIDL;
 
 typedef struct PropertyIdArrayIDL
@@ -343,7 +350,7 @@ typedef [switch_type(int)] union RecyclableObjectContent
 
 typedef struct RecyclableObjectIDL
 {
-    __int3264 vtbl; // todo: this can be saved
+    CHAKRA_PTR vtbl; // todo: this can be saved
     int* typeId; // first field of Js::Type is typeId, so this should work
     [switch_is(*typeId)] RecyclableObjectContent x;
 
@@ -410,12 +417,12 @@ typedef struct FunctionBodyDataIDL
     [size_is(byteCodeLength)] byte * byteCodeBuffer;
 
     unsigned int constCount;
-    [size_is(constCount)] __int3264 * constTable;
+    [size_is(constCount)] CHAKRA_PTR * constTable;
     [size_is(constCount)] RecyclableObjectIDL** constTableContent;
 
     unsigned int inlineCacheCount;
     [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
-    [size_is(inlineCacheCount + isInstInlineCacheCount)] __int3264 * inlineCaches;
+    [size_is(inlineCacheCount + isInstInlineCacheCount)] CHAKRA_PTR * inlineCaches;
 
     unsigned int loopHeaderArrayLength;
     [size_is(loopHeaderArrayLength)] JITLoopHeaderIDL * loopHeaders;
@@ -427,7 +434,7 @@ typedef struct FunctionBodyDataIDL
     [size_is(nameLength)] wchar_t * displayName;
 
     unsigned int literalRegexCount;
-    [size_is(literalRegexCount)] __int3264 * literalRegexes;
+    [size_is(literalRegexCount)] CHAKRA_PTR * literalRegexes;
 
     unsigned int auxDataCount;
     [size_is(auxDataCount)] byte * auxData;
@@ -441,18 +448,18 @@ typedef struct FunctionBodyDataIDL
 
     PropertyIdArrayIDL * formalsPropIdArray;
 
-    __int3264 loopHeaderArrayAddr;
-    __int3264 functionBodyAddr;
-    __int3264 scriptIdAddr;
-    __int3264 probeCountAddr;
-    __int3264 flagsAddr;
-    __int3264 regAllocStoreCountAddr;
-    __int3264 regAllocLoadCountAddr;
-    __int3264 callCountStatsAddr;
-    __int3264 nestedFuncArrayAddr;
-    __int3264 auxDataBufferAddr;
-    __int3264 objectLiteralTypesAddr;
-    __int3264 formalsPropIdArrayAddr;
+    CHAKRA_PTR loopHeaderArrayAddr;
+    CHAKRA_PTR functionBodyAddr;
+    CHAKRA_PTR scriptIdAddr;
+    CHAKRA_PTR probeCountAddr;
+    CHAKRA_PTR flagsAddr;
+    CHAKRA_PTR regAllocStoreCountAddr;
+    CHAKRA_PTR regAllocLoadCountAddr;
+    CHAKRA_PTR callCountStatsAddr;
+    CHAKRA_PTR nestedFuncArrayAddr;
+    CHAKRA_PTR auxDataBufferAddr;
+    CHAKRA_PTR objectLiteralTypesAddr;
+    CHAKRA_PTR formalsPropIdArrayAddr;
 } FunctionBodyDataIDL;
 
 // EntryPointInfo fields, read/write in JIT
@@ -476,9 +483,9 @@ typedef struct FunctionJITTimeDataIDL
     boolean isAggressiveInliningEnabled;
     boolean isInlined;
     unsigned int localFuncId;
-    __int3264 functionInfoAddr;
-    __int3264 callsCountAddress;
-    __int3264 weakFuncRef;
+    CHAKRA_PTR functionInfoAddr;
+    CHAKRA_PTR callsCountAddress;
+    CHAKRA_PTR weakFuncRef;
     FunctionBodyDataIDL * bodyData; // TODO: oop jit, can these repeat, should we share?
 
     BVFixedIDL * inlineesBv;
@@ -504,11 +511,11 @@ typedef struct FunctionJITTimeDataIDL
 
 typedef struct XProcNumberPageSegment
 {
-    __int3264 pageAddress;
-    __int3264 allocStartAddress;
-    __int3264 allocEndAddress;
-    __int3264 pageSegment;
-    __int3264 chunkAllocator;
+    CHAKRA_PTR pageAddress;
+    CHAKRA_PTR allocStartAddress;
+    CHAKRA_PTR allocEndAddress;
+    CHAKRA_PTR pageSegment;
+    CHAKRA_PTR chunkAllocator;
     struct XProcNumberPageSegment* nextSegment;
     unsigned int blockSize; // 2 pages
     unsigned int committedEnd;
@@ -520,8 +527,8 @@ typedef struct XProcNumberPageSegment
 typedef struct PolymorphicInlineCacheIDL
 {
     unsigned short size;
-    __int3264 addr;
-    __int3264 inlineCachesAddr;
+    CHAKRA_PTR addr;
+    CHAKRA_PTR inlineCachesAddr;
 } PolymorphicInlineCacheIDL;
 
 typedef struct PolymorphicInlineCacheInfoIDL
@@ -530,7 +537,7 @@ typedef struct PolymorphicInlineCacheInfoIDL
     [size_is(polymorphicInlineCacheCount)] byte * polymorphicCacheUtilizationArray;
     [size_is(polymorphicInlineCacheCount)] PolymorphicInlineCacheIDL ** polymorphicInlineCaches;
 
-    __int3264 functionBodyAddr;
+    CHAKRA_PTR functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
 
 typedef struct EntryPointPolymorphicInlineCacheInfoIDL
@@ -558,8 +565,8 @@ typedef struct CodeGenWorkItemIDL
     [size_is(symIdToValueTypeMapCount)] unsigned short * symIdToValueTypeMap;
 
     FunctionJITTimeDataIDL * jitData;
-    __int3264 jittedLoopIterationsSinceLastBailoutAddr;
-    __int3264 nativeDataAddr;
+    CHAKRA_PTR jittedLoopIterationsSinceLastBailoutAddr;
+    CHAKRA_PTR nativeDataAddr;
 } CodeGenWorkItemIDL;
 
 typedef struct NativeDataFixupEntry
@@ -592,8 +599,8 @@ typedef struct TypeEquivalenceRecordIDL
 
 typedef struct EquivlentTypeCacheIDL
 {
-    __int3264 types[EQUIVALENT_TYPE_CACHE_SIZE_IDL];
-    __int3264 guardOffset;
+    CHAKRA_PTR types[EQUIVALENT_TYPE_CACHE_SIZE_IDL];
+    CHAKRA_PTR guardOffset;
     struct TypeEquivalenceRecordIDL record;
     unsigned int nextEvictionVictim;
     boolean isLoadedFromProto;
@@ -682,51 +689,56 @@ interface IChakraJIT
     HRESULT InitializeThreadContext(
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
-        [out] __int3264 * threadContextInfoAddress);
+        [out] CHAKRA_PTR * threadContextInfoAddress);
 
     HRESULT CleanupProcess(
         [in] handle_t binding,
-        [in] __int3264 processHandle);
+        [in] CHAKRA_PTR processHandle);
 
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
-        [in] __int3264 threadContextInfoAddress);
+        [in] CHAKRA_PTR threadContextInfoAddress);
 
     HRESULT AddPropertyRecord(
         [in] handle_t binding,
-        [in] __int3264 threadContextInfoAddress,
+        [in] CHAKRA_PTR threadContextInfoAddress,
         [in] PropertyRecordIDL * propertyRecord);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,
-        [in] __int3264 scriptContextInfoAddress,
-        [in] __int3264 funcInfoAddr,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] CHAKRA_PTR funcInfoAddr,
         [in] int helper);
+
+    HRESULT SetWellKnownHostTypeId(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] int typeId);
 
     HRESULT InitializeScriptContext(
         [in] handle_t binding,
         [in] ScriptContextDataIDL * scriptContextData,
-        [out] __int3264 * scriptContextInfoAddress);
+        [out] CHAKRA_PTR * scriptContextInfoAddress);
 
     HRESULT CleanupScriptContext(
         [in] handle_t binding,
-        [in] __int3264 scriptContextInfoAddress);
+        [in] CHAKRA_PTR scriptContextInfoAddress);
 
     HRESULT FreeAllocation(
         [in] handle_t binding,
-        [in] __int3264 threadContextInfoAddress,
-        [in] __int3264 address);
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR address);
 
     HRESULT IsNativeAddr(
         [in] handle_t binding,
-        [in] __int3264 threadContextInfoAddress,
-        [in] __int3264 address,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR address,
         [out] boolean * result);
 
     HRESULT RemoteCodeGen(
         [in] handle_t binding,
-        [in] __int3264 threadContextInfoAddress,
-        [in] __int3264 scriptContextInfoAddress,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
         [in] CodeGenWorkItemIDL * workItemData,
         [out] JITOutputIDL * jitData);
 

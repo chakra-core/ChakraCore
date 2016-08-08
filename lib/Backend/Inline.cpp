@@ -1182,6 +1182,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
                             this->topFunc->GetThreadContextInfo(),
                             this->topFunc->GetScriptContextInfo(),
                             this->topFunc->GetJITOutput()->GetOutputData(),
+                            nullptr,
                             inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo,
                             this->topFunc->GetCodeGenAllocators(),
@@ -2626,6 +2627,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         callInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
@@ -3365,6 +3367,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         accessorInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetLdFldInlineeRuntimeData(inlineCacheIndex),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
@@ -3679,6 +3682,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetThreadContextInfo(),
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
+        nullptr,
         funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
@@ -4510,13 +4514,12 @@ Inline::MapFormals(Func *inlinee,
                         {
                             fUsesSafeThis = true;
                         }
-#if 0 // TODO: OOP JIT, const this
-                        else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
+                        // TODO: OOP JIT, const this
+                        else if (!topFunc->IsOOPJIT() && symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
                             thisConstVar = symSrc->GetConstAddress();
                             fUsesConstThis = true;
                         }
-#endif
                         else if(fixedFunctionSafeThis)
                         {
                             // Note this need to come after we determined that this pointer is not const (undefined/null)

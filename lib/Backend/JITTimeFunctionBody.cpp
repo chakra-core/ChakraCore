@@ -938,17 +938,21 @@ JITTimeFunctionBody::GetFormalsPropIdArray() const
 }
 
 void
-JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const
+JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const
 {
     const uint statementsLength = m_bodyData.statementMap.statementLength;
     const uint offsetsLength = m_bodyData.statementMap.actualOffsetLength;
 
     statementMap->baseValue = m_bodyData.statementMap.baseValue;
 
+    // TODO: (leish OOP JIT) using arena to prevent memory leak, fix to really implement GrowingUint32ArenaArray::Create()
+    // or find other way to reuse like michhol's comments
+    typedef JsUtil::GrowingArray<uint32, ArenaAllocator> GrowingUint32ArenaArray;
+
     if (statementsLength > 0)
     {
-        // TODO: (michhol OOP JIT) should be able to directly use statementMap.statementBuffer
-        statementMap->pStatementBuffer = JsUtil::GrowingUint32HeapArray::Create(statementsLength);
+        // TODO: (michhol OOP JIT) should be able to directly use statementMap.statementBuffer        
+        statementMap->pStatementBuffer = (JsUtil::GrowingUint32HeapArray*)Anew(alloc, GrowingUint32ArenaArray, alloc, statementsLength);
         statementMap->pStatementBuffer->SetCount(statementsLength);
         js_memcpy_s(
             statementMap->pStatementBuffer->GetBuffer(),
@@ -959,7 +963,7 @@ JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statem
 
     if (offsetsLength > 0)
     {
-        statementMap->pActualOffsetList = JsUtil::GrowingUint32HeapArray::Create(offsetsLength);
+        statementMap->pActualOffsetList = (JsUtil::GrowingUint32HeapArray*)Anew(alloc, GrowingUint32ArenaArray, alloc, offsetsLength);
         statementMap->pActualOffsetList->SetCount(offsetsLength);
         js_memcpy_s(
             statementMap->pActualOffsetList->GetBuffer(),

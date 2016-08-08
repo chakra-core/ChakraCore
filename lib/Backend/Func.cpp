@@ -13,6 +13,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
     JITOutputIDL * outputData,
+    Js::EntryPointInfo* epInfo,
     const FunctionJITRuntimeInfo *const runtimeInfo,
     JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
@@ -22,6 +23,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_alloc(alloc),
     m_workItem(workItem),
     m_output(outputData),
+    m_entryPointInfo(epInfo),
     m_threadContextInfo(threadContextInfo),
     m_scriptContextInfo(scriptContextInfo),
     m_runtimeInfo(runtimeInfo),
@@ -266,6 +268,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
     JITOutputIDL * outputData,
+    Js::EntryPointInfo* epInfo, // for in-proc jit only
     const FunctionJITRuntimeInfo *const runtimeInfo,
     JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
@@ -275,7 +278,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     do
     {
         Func func(alloc, workItem, threadContextInfo,
-            scriptContextInfo, outputData, runtimeInfo,
+            scriptContextInfo, outputData, epInfo, runtimeInfo,
             polymorphicInlineCacheInfo, codeGenAllocators, numberAllocator,
             codeGenProfiler, isBackgroundJIT);
         try
@@ -533,74 +536,74 @@ Func::TryCodegen()
         }
     }
 #endif
-
-
-    auto dataAllocator = this->GetNativeCodeDataAllocator();
-    if (dataAllocator->allocCount > 0)
+    if (this->IsOOPJIT())
     {
-        // fill in the fixup list by scanning the memory
-        // todo: this should be done while generating code
-        
-        NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
-        NativeCodeData::DataChunk *next1 = chunk;
-        while (next1)
-        {
-            if (next1->fixupFunc) 
-            {
-                next1->fixupFunc(next1->data, chunk);
-            }
 
-#if DBG
-            NativeCodeData::DataChunk *next2 = chunk;
-            while (next2)
+        auto dataAllocator = this->GetNativeCodeDataAllocator();
+        if (dataAllocator->allocCount > 0)
+        {
+            // fill in the fixup list by scanning the memory
+            // todo: this should be done while generating code
+
+            NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
+            NativeCodeData::DataChunk *next1 = chunk;
+            while (next1)
             {
-                for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                if (next1->fixupFunc)
                 {
-                    if (((void**)next1->data)[i] == (void*)next2->data)
-                    {
-                        NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
-                        //NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data, chunk);
-                    }
+                    next1->fixupFunc(next1->data, chunk);
                 }
-                next2 = next2->next;
-            }
-#endif
-            next1 = next1->next;
-        }
-        ////
-        
-
-        JITOutputIDL* jitOutputData = m_output.GetOutputData();
-
-        jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount));
-        jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
-
-        jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
-        jitOutputData->buffer->len = dataAllocator->totalSize;
-
-        unsigned int len = 0;
-        unsigned int count = 0;
-        next1 = chunk;
-        while (next1)
-        {
-            memcpy(jitOutputData->buffer->data + len, next1->data, next1->len);
-            len += next1->len;
-
-            jitOutputData->nativeDataFixupTable->fixupRecords[count].index = next1->allocIndex;
-            jitOutputData->nativeDataFixupTable->fixupRecords[count].length = next1->len;
-            jitOutputData->nativeDataFixupTable->fixupRecords[count].startOffset = next1->offset;
-            jitOutputData->nativeDataFixupTable->fixupRecords[count].updateList = next1->fixupList;
-
-            count++;
-            next1 = next1->next;
-        }
 
 #if DBG
-        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-        {
-            Output::Print(L"NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n", jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
-        }
+                NativeCodeData::DataChunk *next2 = chunk;
+                while (next2)
+                {
+                    for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                    {
+                        if (((void**)next1->data)[i] == (void*)next2->data)
+                        {
+                            NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            //NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data, chunk);
+                        }
+                    }
+                    next2 = next2->next;
+                }
 #endif
+                next1 = next1->next;
+            }
+            ////
+
+            JITOutputIDL* jitOutputData = m_output.GetOutputData();
+            jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount));
+            jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
+
+            jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
+            jitOutputData->buffer->len = dataAllocator->totalSize;
+
+            unsigned int len = 0;
+            unsigned int count = 0;
+            next1 = chunk;
+            while (next1)
+            {
+                memcpy(jitOutputData->buffer->data + len, next1->data, next1->len);
+                len += next1->len;
+
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].index = next1->allocIndex;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].length = next1->len;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].startOffset = next1->offset;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].updateList = next1->fixupList;
+
+                count++;
+                next1 = next1->next;
+            }
+
+#if DBG
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(L"NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n", jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
+            }
+#endif
+        }
     }
 
 }
@@ -1762,7 +1765,7 @@ Func::AllocateNumber(double value)
 {
     Js::Var number = nullptr;
 #if FLOATVAR
-    number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, GetScriptContext());
+    number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, nullptr);
 #else
     if (!IsOOPJIT()) // in-proc jit
     {

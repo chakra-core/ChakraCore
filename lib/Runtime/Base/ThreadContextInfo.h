@@ -89,6 +89,8 @@ public:
 
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
 
+    bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
+
     bool IsCFGEnabled();
     void BeginJIT();
     void EndJIT();
@@ -99,11 +101,13 @@ public:
 
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
-
+protected:
+    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 private:
 
     uint m_activeJITCount;
     bool m_isAllJITCodeInPreReservedRegion;
+    
 };
 
 // TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?

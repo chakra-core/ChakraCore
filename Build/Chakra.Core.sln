@@ -58,6 +58,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Parser", "..\lib\Parser\Chakra.Parser.vcxproj", "{F6FAD160-5A4B-476A-93AC-33E0B3A18C0C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Jsrt", "..\lib\Jsrt\Chakra.Jsrt.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9220F5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719} = {0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Jsrt.Core", "..\lib\Jsrt\Core\Chakra.Jsrt.Core.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9220EE}"
 EndProject

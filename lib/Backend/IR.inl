@@ -533,7 +533,8 @@ MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar
 {
     Assert(this->m_kind == StrDictionary);
     Assert(key);
-    this->GetBranchDictionary()->AddEntry(offset, key, remoteVar);
+    auto dict = this->GetBranchDictionary();
+    dict->AddEntry(offset, key, remoteVar);
 }
 
 inline void
@@ -541,7 +542,8 @@ MultiBranchInstr::AddtoJumpTable(uint32 offset, uint32 jmpIndex)
 {
     Assert(this->m_kind == IntJumpTable || this->m_kind == SingleCharStrJumpTable);
     Assert(jmpIndex != -1);
-    this->GetBranchJumpTable()->jmpTable[jmpIndex] = (void*)offset;
+    auto table = this->GetBranchJumpTable();
+    table->jmpTable[jmpIndex] = (void*)offset;
 }
 
 inline void

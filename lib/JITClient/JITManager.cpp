@@ -129,7 +129,7 @@ JITManager::CreateBinding(
 
             // The server process died for some reason. No need to reattempt.
             // We use -1 as the exit code if GetExitCodeProcess fails.
-            NT_VERIFY(GetExitCodeProcess(serverProcessHandle, &exitCode));
+            Assert(GetExitCodeProcess(serverProcessHandle, &exitCode));
             status = RPC_S_SERVER_UNAVAILABLE;
             break;
         }
@@ -140,7 +140,7 @@ JITManager::CreateBinding(
         else
         {
             // wait operation failed for an unknown reason.
-            NT_ASSERT(false);
+            Assert(false);
             status = HRESULT_FROM_WIN32(waitStatus);
             break;
         }
@@ -207,7 +207,7 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
         return E_FAIL;
     }
 
-    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, &connectionUuidString));
+    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, (RPC_WSTR*)&connectionUuidString));
     if (FAILED(hr))
     {
         return hr;
@@ -371,6 +371,29 @@ JITManager::AddDOMFastPathHelper(
     RpcEndExcept;
 
     return hr;
+}
+
+HRESULT
+JITManager::SetWellKnownHostTypeId(
+    __in  intptr_t threadContextRoot,
+    __in  int typeId)
+{
+
+    Assert(JITManager::IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientSetWellKnownHostTypeId(m_rpcBindingHandle, threadContextRoot, typeId);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+
 }
 
 HRESULT

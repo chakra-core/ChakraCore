@@ -101,7 +101,7 @@ private:
         Flags_disableObjTypeSpec_jitLoopBody = 1 << 28,
         Flags_disableMemOp = 1 << 29,
         Flags_disableCheckThis = 1 << 30,
-        Flags_hasLdFldCallSiteInfo = 1 << 31,
+        Flags_hasLdFldCallSiteInfo = 1ll << 31,
         Flags_disableStackArgOpt = 1ll << 32,
         Flags_disableLoopImplicitCallInfo = 1ll << 33,
         Flags_disablePowIntIntTypeSpec = 1ll << 34

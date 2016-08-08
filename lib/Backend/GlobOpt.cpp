@@ -6936,7 +6936,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
 {
     bool isVar = addrOpnd->IsVar();
     // TODO: OOP JIT, fix string const stuff
-    bool isString = isVar && false;// Js::JavascriptString::Is(addrOpnd->m_address);
+    bool isString = isVar && !func->IsOOPJIT() && Js::JavascriptString::Is(addrOpnd->m_address);
     Value *val = nullptr;
     Value *cachedValue;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
@@ -9132,22 +9132,26 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             return false;
         }
-        return false;
-#if 0 // TODO: OOP JIT, const folding
+        if (func->IsOOPJIT())
+        {
+            // TODO: OOP JIT, const folding
+            return false;
+        }
         result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
         break;
-#endif
     case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrNotEq_A:
         if (!src1Var || !src2Var)
         {
             return false;
         }
-        return false;
-#if 0 // TODO: OOP JIT, const folding
+        if (func->IsOOPJIT())
+        {
+            // TODO: OOP JIT, const folding
+            return false;
+        }
         result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
         break;
-#endif
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNotNeq_A:
         if (!src1Var || !src2Var)
@@ -9177,10 +9181,12 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
-            return false;
-#if 0 // TODO: OOP JIT, strict equal check in const folding
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
             result = Js::JavascriptOperators::StrictEqual(src1Var, src2Var, this->func->GetScriptContext());
-#endif
         }
         break;
 
@@ -9213,10 +9219,12 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
-            return false;
-#if 0 // TODO: OOP JIT, strict equal check in const folding
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
             result = Js::JavascriptOperators::NotStrictEqual(src1Var, src2Var, this->func->GetScriptContext());
-#endif
         }
         break;
 
@@ -9235,7 +9243,12 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             result = instr->m_opcode == Js::OpCode::BrTrue_A;
             break;
         }
-#if 0   // TODO: OOP JIT, const folding
+
+        if (func->IsOOPJIT())
+        {
+            // TODO: OOP JIT, const folding
+            return false;
+        }
         if (!src1Var)
         {
             return false;
@@ -9246,9 +9259,6 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             result = !result;
         }
         break;
-#else
-        return false;
-#endif
     }
     case Js::OpCode::BrFalse_I4:
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
@@ -21346,7 +21356,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         }
         else
         {
-            src1 = IR::AddrOpnd::New(candidate->constant.ToVar(localFunc, func->GetScriptContext()), IR::AddrOpndKindConstant, localFunc);
+            src1 = IR::AddrOpnd::New(candidate->constant.ToVar(localFunc), IR::AddrOpndKindConstant, localFunc);
         }
     }
     else

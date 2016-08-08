@@ -37,6 +37,10 @@ public:
         __in intptr_t funcInfoAddr,
         __in int helper);
 
+    HRESULT SetWellKnownHostTypeId(
+        __in  intptr_t threadContextRoot,
+        __in  int typeId);
+
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
         __out intptr_t *scriptContextInfoAddress);

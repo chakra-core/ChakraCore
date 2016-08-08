@@ -206,8 +206,6 @@ public:
 
     void OnWorkItemProcessFail(NativeCodeGenerator *codeGen);
 
-    void FinalizeNativeCode(Func *func);
-
     void RecordNativeThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeOffset, uint32 statementIndex)
     {
         this->functionBody->RecordNativeThrowMap(iter, nativeOffset, statementIndex, this->GetEntryPoint(), GetLoopNumber());

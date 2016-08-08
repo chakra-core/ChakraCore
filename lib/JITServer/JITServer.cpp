@@ -19,7 +19,7 @@ HRESULT JsInitializeRpcServer(
     uuidVector.Uuid[0] = connectionUuid;
 
     status = RpcServerUseProtseqEpW(
-        L"ncalrpc",
+        (RPC_WSTR)L"ncalrpc",
         RPC_C_PROTSEQ_MAX_REQS_DEFAULT,
         NULL,
         alpcSecurityDescriptor);
@@ -127,6 +127,10 @@ ServerCleanupThreadContext(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+    if (threadContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     while (threadContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(threadContextInfo);
@@ -143,6 +147,12 @@ ServerAddPropertyRecord(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+
+    if (threadContextInfo == nullptr) 
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecord);
 
     return S_OK;
@@ -158,7 +168,30 @@ ServerAddDOMFastPathHelper(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
+
+    return S_OK;
+}
+
+HRESULT 
+ServerSetWellKnownHostTypeId(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 threadContextRoot,
+    /* [in] */ int typeId)
+{
+    ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextRoot);
+
+    if (threadContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+    threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
 
     return S_OK;
 }
@@ -182,6 +215,12 @@ ServerCleanupScriptContext(
     /* [in] */ __int3264 scriptContextRoot)
 {
     ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     while (scriptContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(scriptContextInfo);
     return S_OK;
@@ -195,6 +234,12 @@ ServerFreeAllocation(
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+
+    if (context == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
     bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
     return succeeded ? S_OK : E_FAIL;
 }
@@ -207,6 +252,11 @@ ServerIsNativeAddr(
     /* [out] */ boolean * result)
 {
     ServerThreadContext * context = reinterpret_cast<ServerThreadContext*>(threadContextInfo);
+
+    if (context == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = context->GetPreReservedVirtualAllocator();
     if (preReservedVirtualAllocWrapper->IsInRange((void*)address))
@@ -238,15 +288,19 @@ ServerRemoteCodeGen(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextInfoAddress);
+    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
 
+    if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
 
     PageAllocator backgroundPageAllocator(threadContextInfo->GetAllocationPolicyManager(), Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         (AutoSystemInfo::Data.IsLowMemoryProcess() ?
             PageAllocator::DefaultLowMaxFreePageCount :
             PageAllocator::DefaultMaxFreePageCount));
 
-    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
-    ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
+    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);    
 
     scriptContextInfo->BeginJIT(); // TODO: OOP JIT, improve how we do this
     threadContextInfo->BeginJIT();
@@ -256,7 +310,7 @@ ServerRemoteCodeGen(
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
     memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), &jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
-    Func::Codegen(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), threadContextInfo->GetCodeGenAllocators(), nullptr, nullptr, true);
+    Func::Codegen(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), threadContextInfo->GetCodeGenAllocators(), nullptr, nullptr, true);
 
     scriptContextInfo->EndJIT();
     threadContextInfo->EndJIT();

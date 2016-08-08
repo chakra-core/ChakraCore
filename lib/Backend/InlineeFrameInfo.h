@@ -32,7 +32,7 @@ public:
             FloatConstType value;
         } floatConst;
     } u;
-    Js::Var ToVar(Func* func, Js::ScriptContext* scriptContext) const;
+    Js::Var ToVar(Func* func) const;
 };
 
 enum InlineeFrameInfoValueType

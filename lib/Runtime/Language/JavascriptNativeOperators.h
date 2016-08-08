@@ -105,7 +105,10 @@ namespace Js
         void AddEntry(uint32 offset, T key, void* remoteVar)
         {
             int index = dictionary.AddNew(key, (void**)offset);
-            remoteKeys[index] = remoteVar;
+            if (IsOOPJit())
+            {
+                remoteKeys[index] = remoteVar;
+            }
         }
 
         void Fixup(NativeCodeData::DataChunk* chunkList)

@@ -18,10 +18,21 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+    </Midl>
+  </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildingInsideVisualStudio)'=='true'">
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /target NT60 /prefix client "Client" server "Server"</AdditionalOptions>
+      <HeaderFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).h</HeaderFileName>
     </Midl>
   </ItemGroup>
   <ItemGroup Condition="'$(BuildingWithBuildExe)'=='true'">

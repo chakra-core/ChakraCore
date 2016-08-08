@@ -177,7 +177,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     configuration(enableExperimentalFeatures),
     jsrtRuntime(nullptr),
     rootPendingClose(nullptr),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     isProfilingUserCode(true),
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
@@ -2177,14 +2176,11 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
     if (WellKnownHostType_HTMLAllCollection == wellKnownType)
     {
         this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId;
+        if (this->m_remoteThreadContextInfo != 0)
+        {
+            JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
+        }
     }
-}
-
-bool
-ThreadContext::CanBeFalsy(Js::TypeId typeId)
-{
-    // Declare all the type ID that can be falsy so we can avoid the falsy check in the JIT
-    return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId;
 }
 
 void ThreadContext::EnsureDebugManager()

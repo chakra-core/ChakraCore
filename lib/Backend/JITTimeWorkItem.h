@@ -26,7 +26,7 @@ public:
 
     void InitializeReader(
         Js::ByteCodeReader * reader,
-        Js::StatementReader * statementReader);
+        Js::StatementReader * statementReader, ArenaAllocator* alloc);
 
     JITTimeFunctionBody * GetJITFunctionBody();
 

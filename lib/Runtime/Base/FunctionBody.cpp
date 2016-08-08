@@ -978,17 +978,7 @@ namespace Js
         this->GetBoundPropertyRecords()->Item(pid, propRecord);
 
         return pid;
-    }
-
-#if ENABLE_NATIVE_CODEGEN
-    void
-    FunctionBody::RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t size, NativeCodeData * data, NativeCodeData * transferData,
-        CodeGenNumberChunk * numberChunks, EntryPointInfo* entryPoint, uint loopNum)
-    {
-        entryPoint->SetCodeGenRecorded(reinterpret_cast<Js::JavascriptMethod>(baseAddress), size, data, transferData, numberChunks);
-    }
-#endif
-    
+    }  
 
     SmallSpanSequence::SmallSpanSequence()
         : pStatementBuffer(nullptr),
@@ -8379,6 +8369,44 @@ namespace Js
             }
         }
 
+
+        // in-proc JIT
+        if (this->jitTransferData->equivalentTypeGuardCount > 0)
+        {
+            Assert(jitTransferData->equivalentTypeGuardOffsets == nullptr);
+            Assert(this->jitTransferData->equivalentTypeGuards != nullptr);
+
+            Recycler* recycler = scriptContext->GetRecycler();
+
+            int guardCount = this->jitTransferData->equivalentTypeGuardCount;
+            JitEquivalentTypeGuard** guards = this->jitTransferData->equivalentTypeGuards;
+
+            // Create an array of equivalent type caches on the entry point info to ensure they are kept
+            // alive for the lifetime of the entry point.
+            this->equivalentTypeCacheCount = guardCount;
+
+            // No need to zero-initialize, since we will populate all data slots.
+            // We used to let the recycler scan the types in the cache, but we no longer do. See
+            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
+            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
+
+            this->RegisterEquivalentTypeCaches();
+
+            EquivalentTypeCache* cache = this->equivalentTypeCaches;
+
+            for (JitEquivalentTypeGuard** guard = guards; guard < guards + guardCount; guard++)
+            {
+                EquivalentTypeCache* oldCache = (*guard)->GetCache();
+                // Copy the contents of the heap-allocated cache to the recycler-allocated version to make sure the types are
+                // kept alive. Allow the properties pointer to refer to the heap-allocated arrays. It will stay alive as long
+                // as the entry point is alive, and property entries contain no pointers to other recycler allocated objects.
+                (*cache) = (*oldCache);
+                // Set the recycler-allocated cache on the (heap-allocated) guard.
+                (*guard)->SetCache(cache);
+                cache++;
+            }
+        }
+
         if (jitTransferData->equivalentTypeGuardOffsets)
         {
             Recycler* recycler = scriptContext->GetRecycler();
@@ -8880,10 +8908,10 @@ namespace Js
             }
             jitTransferData->equivalentTypeGuardCount = 0;
 
-            if (jitTransferData->data != nullptr)
+            if (jitTransferData->jitTransferRawData != nullptr)
             {
-                HeapDelete(jitTransferData->data);
-                jitTransferData->data = nullptr;
+                HeapDelete(jitTransferData->jitTransferRawData);
+                jitTransferData->jitTransferRawData = nullptr;
             }
 
             jitTransferData = nullptr;
@@ -9096,8 +9124,8 @@ namespace Js
             this->library = nullptr;
 
 #if ENABLE_NATIVE_CODEGEN
-            DeleteNativeCodeData(this->data);
-            this->data = nullptr;
+            DeleteNativeCodeData(this->inProcJITNaticeCodedata);
+            this->inProcJITNaticeCodedata = nullptr;
             this->numberChunks = nullptr;
 
             if (this->nativeDataBuffer)
@@ -9154,10 +9182,10 @@ namespace Js
         this->sharedPropertyGuards = nullptr;
         FreePropertyGuards();
         FreeJitTransferData();
-        if (this->data != nullptr)
+        if (this->inProcJITNaticeCodedata != nullptr)
         {
-            DeleteNativeCodeData(this->data);
-            this->data = nullptr;
+            DeleteNativeCodeData(this->inProcJITNaticeCodedata);
+            this->inProcJITNaticeCodedata = nullptr;
         }
 #endif
         // Set the state to NotScheduled only if the call to Reset is not because of JIT cap being reached
