@@ -486,7 +486,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitGetLocal();
         break;
     case wbSetLocal:
-        info = EmitSetLocal(false);
+        return EmitSetLocal(false);
         break;
     case wbTeeLocal:
         info = EmitSetLocal(true);
