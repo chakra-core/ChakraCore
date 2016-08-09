@@ -111,7 +111,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
-    <ClCompile Include="JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />

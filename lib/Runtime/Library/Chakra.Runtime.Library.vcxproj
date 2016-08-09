@@ -157,7 +157,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
-    <ClCompile Include="JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
