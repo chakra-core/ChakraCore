@@ -35,4 +35,11 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>i32_popcnt.js</files>
+       <baseline>i32_popcnt.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>

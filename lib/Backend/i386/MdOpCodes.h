@@ -63,7 +63,6 @@ MACRO(CMPLEPD,  Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|
 MACRO(CMPEQPD,  Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                   OLB_NONE)
 MACRO(CMPNEQPD, Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                   OLB_NONE)
 
-
 MACRO(COMISD,   Empty,      OpSideEffect,   RNON,   f(MODRM),   o(COMISD),  DNO16|D66|DSETCC,           OLB_NONE)
 MACRO(COMISS,   Empty,      OpSideEffect,   RNON,   f(MODRM),   o(COMISS),  DNO16|DZEROF|DSETCC,        OLB_NONE)
 MACRO(CVTDQ2PD, Reg2,       None,           RNON,   f(MODRM),   o(CVTDQ2PD),DDST|DNO16|DF3,             OLB_NONE)
@@ -252,6 +251,7 @@ MACRO(UCOMISS,  Empty,      None,           RNON,   f(MODRM),   o(UCOMISS), DNO1
 MACRO(XCHG,     Reg2,       None,           RNON,   f(XCHG),    o(XCHG),    DOPEQ,                      OLB_NONE)
 MACRO(XOR,      Reg2,       None,           R110,   f(BINOP),   o(XOR),     DOPEQ|DSETCC|DCOMMOP,       OLB_NONE)
 MACRO(XORPS,    Reg3,       None,           RNON,   f(MODRM),   o(XORPS),   DNO16|DOPEQ|DZEROF|DCOMMOP, OLB_NONE)
+MACRO(POPCNT,   Reg2,       None,           RNON,   f(MODRM),   o(POPCNT),  DF3|DDST|DSETCC           , OLB_NONE)
 
 #undef o
 #undef f

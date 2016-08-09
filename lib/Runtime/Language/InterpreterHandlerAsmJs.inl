@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-
 #ifndef TEMP_DISABLE_ASMJS
 // See  Lib\Runtime\Language\InterpreterProcessOpCodeAsmJs.h  for Handler Process
 //         (   HandlerProcess , OpCodeAsmJs ,        HandlerFunction       , LayoutAsmJs , Type  )
@@ -129,7 +128,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Imul_Int     , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I1toI1Mem        , Clz32_Int    , AsmJsMath::Clz32                                   )
   DEF2_WMS( I1toI1Mem        , Ctz_Int      , Wasm::WasmMath::Ctz                                )
-  DEF2_WMS( I1toI1Mem        , Eqz_Int      , Wasm::WasmMath::Eqz)
+  DEF2_WMS( I1toI1Mem        , Eqz_Int      , Wasm::WasmMath::Eqz                                )
 
   DEF2_WMS( D2toI1Mem        , CmLt_Db      , AsmJsMath::CmpLt<double>                           )
   DEF2_WMS( D2toI1Mem        , CmLe_Db      , AsmJsMath::CmpLe<double>                           )
@@ -174,10 +173,11 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
   EXDEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
 
-  EXDEF2_WMS( F1toF1Mem      , Trunc_Flt    , Wasm::WasmMath::Trunc<float>                       )
-  EXDEF2_WMS( F1toF1Mem      , Nearest_Flt  , Wasm::WasmMath::Nearest<float>                     )
-  EXDEF2_WMS( D1toD1Mem      , Trunc_Db     , Wasm::WasmMath::Trunc<double>                      )
-  EXDEF2_WMS( D1toD1Mem      , Nearest_Db   , Wasm::WasmMath::Nearest<double>                    )
+  EXDEF2_WMS( F1toF1Mem      , Trunc_Flt        , Wasm::WasmMath::Trunc<float>                       )
+  EXDEF2_WMS( F1toF1Mem      , Nearest_Flt      , Wasm::WasmMath::Nearest<float>                     )
+  EXDEF2_WMS( D1toD1Mem      , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
+  EXDEF2_WMS( D1toD1Mem      , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
+  EXDEF2_WMS( I1toI1Mem      , PopCnt_Int       , ::Math::PopCnt32                                   )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 
@@ -227,7 +227,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_B4_1toB4_1, Simd128_Not_B4              , Js::SIMDInt32x4Operation::OpNot             )
   EXDEF2_WMS( SIMD_B8_1toB8_1, Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
   EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
-    
+
   EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
   EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
   EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AllTrue_B16          , Js::SIMDBool32x4Operation::OpAllTrue        )
@@ -257,7 +257,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
 
   DEF2_WMS( SIMD_F4_2toB4_1  , Simd128_Lt_F4               , Js::SIMDFloat32x4Operation::OpLessThan      )
   DEF2_WMS( SIMD_I4_2toB4_1  , Simd128_Lt_I4               , Js::SIMDInt32x4Operation::OpLessThan        )
-  
 
   DEF2_WMS( SIMD_F4_2toB4_1  , Simd128_LtEq_F4             , Js::SIMDFloat32x4Operation::OpLessThanOrEqual)
 
@@ -280,7 +279,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_B4_2toB4_1  , Simd128_Or_B4             , Js::SIMDInt32x4Operation::OpOr             )
   EXDEF2_WMS( SIMD_B8_2toB8_1  , Simd128_Or_B8             , Js::SIMDInt32x4Operation::OpOr             )
   DEF2_WMS( SIMD_B16_2toB16_1  , Simd128_Or_B16          , Js::SIMDInt32x4Operation::OpOr             )
-  
+
   DEF2_WMS( SIMD_I4_2toI4_1  , Simd128_Xor_I4              , Js::SIMDInt32x4Operation::OpXor             )
   EXDEF2_WMS( SIMD_B4_2toB4_1, Simd128_Xor_B4              , Js::SIMDInt32x4Operation::OpXor             )
   EXDEF2_WMS( SIMD_B8_2toB8_1, Simd128_Xor_B8              , Js::SIMDInt32x4Operation::OpXor             )
@@ -298,7 +297,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   // args out, copy value to outParams
   DEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
-  
 
   DEF2_WMS   ( SIMD_F4_1toF4_1   , Simd128_I_Conv_VTF4     , (AsmJsSIMDValue)                            )
   DEF2_WMS   ( SIMD_I4_1toI4_1   , Simd128_I_Conv_VTI4     , (AsmJsSIMDValue)                            )
@@ -309,7 +307,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS   ( SIMD_I4_1I4toI4_1   , Simd128_Swizzle_I4      , SIMDUtils::SIMD128InnerShuffle            )
   DEF2_WMS   ( SIMD_I4_2I4toI4_1   , Simd128_Shuffle_I4      , SIMDUtils::SIMD128InnerShuffle            )
 
-  
   DEF2_WMS    ( SIMD_I8_1toI8_1      , Simd128_Ld_I8           , (AsmJsSIMDValue)                           )
   DEF2_WMS    ( SIMD_U4_1toU4_1      , Simd128_Ld_U4           , (AsmJsSIMDValue)                           )
   DEF2_WMS    ( SIMD_U8_1toU8_1      , Simd128_Ld_U8           , (AsmJsSIMDValue)                           )
@@ -317,7 +314,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
 
   DEF4_WMS    ( TEMPLATE_ASMJS        , Simd128_LdSlot_I8      , OP_LdSlotPrimitive  , ElementSlot, AsmJsSIMDValue)
   DEF4_WMS    ( TEMPLATE_ASMJS        , Simd128_LdSlot_I16     , OP_LdSlotPrimitive  , ElementSlot, AsmJsSIMDValue)
-  
+
   // Extended opcodes
   EXDEF4_WMS    ( TEMPLATE_ASMJS        , Simd128_LdSlot_U4      , OP_LdSlotPrimitive  , ElementSlot, AsmJsSIMDValue)
   EXDEF4_WMS    ( TEMPLATE_ASMJS        , Simd128_LdSlot_U8      , OP_LdSlotPrimitive  , ElementSlot, AsmJsSIMDValue)
@@ -334,7 +331,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF4_WMS    ( TEMPLATE_ASMJS         , Simd128_StSlot_B4    , OP_StSlotPrimitive      , ElementSlot, AsmJsSIMDValue)
   EXDEF4_WMS    ( TEMPLATE_ASMJS         , Simd128_StSlot_B8    , OP_StSlotPrimitive      , ElementSlot, AsmJsSIMDValue)
   EXDEF4_WMS    ( TEMPLATE_ASMJS         , Simd128_StSlot_B16   , OP_StSlotPrimitive      , ElementSlot, AsmJsSIMDValue)
-
 
   EXDEF3_WMS    ( CUSTOM_ASMJS     , Simd128_IntsToB4        , OP_SimdBool32x4      , Bool32x4_1Int4)
   EXDEF3_WMS    ( CUSTOM_ASMJS     , Simd128_IntsToB8        , OP_SimdBool16x8      , Bool16x8_1Int8)
@@ -359,11 +355,10 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS ( SIMD_I16_2toI16_1  , Simd128_Or_I16            , Js::SIMDInt32x4Operation::OpOr              )
   DEF2_WMS ( SIMD_I16_2toI16_1  , Simd128_Xor_I16           , Js::SIMDInt32x4Operation::OpXor             )
 
-
   EXDEF2_WMS ( SIMD_I16_1toI16_1  , Simd128_Return_I16       , (AsmJsSIMDValue)                            )
   EXDEF2_WMS ( SIMD_I16_1toR1Mem  , Simd128_I_ArgOut_I16     , OP_I_SetOutAsmSimd                          )
   EXDEF2_WMS ( SIMD_I16_1toI16_1  , Simd128_I_Conv_VTI16     , (AsmJsSIMDValue)                            )
-  
+
   //Lane Access
   DEF2_WMS   ( SIMD_I16_1I1toI1    , Simd128_ExtractLane_I16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
   DEF2_WMS   ( SIMD_I16_1I2toI16_1 , Simd128_ReplaceLane_I16 , SIMDUtils::SIMD128InnerReplaceLaneI16       )
@@ -404,8 +399,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS   ( SIMD_U8_1toF4_1    , Simd128_FromUint16x8Bits_F4  , Js::SIMDUtils::FromSimdBits            )
   EXDEF2_WMS   ( SIMD_U16_1toF4_1   , Simd128_FromUint8x16Bits_F4  , Js::SIMDUtils::FromSimdBits            )
 
-  
-  
   EXDEF2_WMS   ( SIMD_I8_1toI4_1    , Simd128_FromInt16x8Bits_I4   , Js::SIMDUtils::FromSimdBits            )
   EXDEF2_WMS   ( SIMD_I16_1toI4_1   , Simd128_FromInt8x16Bits_I4   , Js::SIMDUtils::FromSimdBits            )
   EXDEF2_WMS   ( SIMD_U4_1toI4_1    , Simd128_FromUint32x4Bits_I4  , Js::SIMDUtils::FromSimdBits            )
@@ -441,7 +434,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS   ( SIMD_B4_1toB4_1   , Simd128_Return_B4       , (AsmJsSIMDValue)                            )
   EXDEF2_WMS   ( SIMD_B8_1toB8_1   , Simd128_Return_B8       , (AsmJsSIMDValue)                            )
   EXDEF2_WMS   ( SIMD_B16_1toB16_1 , Simd128_Return_B16      , (AsmJsSIMDValue)                            )
-  
+
   EXDEF2_WMS   ( SIMD_I8_1I8toI8_1    , Simd128_Swizzle_I8   , SIMDUtils::SIMD128InnerShuffle              )
   EXDEF2_WMS   ( SIMD_I8_2I8toI8_1    , Simd128_Shuffle_I8   , SIMDUtils::SIMD128InnerShuffle              )
   DEF2_WMS     ( SIMD_I16_1I16toI16_1 , Simd128_Swizzle_I16  , SIMDUtils::SIMD128InnerShuffle              )
@@ -457,7 +450,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_I1toU4_1    , Simd128_Splat_U4     ,Js::SIMDUint32x4Operation::OpSplat                  )
   EXDEF2_WMS( SIMD_I1toU8_1    , Simd128_Splat_U8     ,Js::SIMDInt16x8Operation::OpSplat                   )
   EXDEF2_WMS( SIMD_I1toU16_1   , Simd128_Splat_U16    ,Js::SIMDInt8x16Operation::OpSplat                   )
-      
+
   EXDEF2_WMS( SIMD_I8_2toI8_1    , Simd128_And_I8              , Js::SIMDInt16x8Operation::OpAnd           )
   EXDEF2_WMS( SIMD_U4_2toU4_1    , Simd128_And_U4              , Js::SIMDInt32x4Operation::OpAnd           )
   EXDEF2_WMS( SIMD_U8_2toU8_1    , Simd128_And_U8              , Js::SIMDInt32x4Operation::OpAnd           )
@@ -517,7 +510,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
 
   EXDEF2_WMS( SIMD_U8_2toU8_1    , Simd128_AddSaturate_U8      , Js::SIMDUint16x8Operation::OpAddSaturate       )
   EXDEF2_WMS( SIMD_U8_2toU8_1    , Simd128_SubSaturate_U8      , Js::SIMDUint16x8Operation::OpSubSaturate       )
-  
+
   EXDEF2_WMS( SIMD_U16_2toU16_1  , Simd128_AddSaturate_U16     , Js::SIMDUint8x16Operation::OpAddSaturate       )
   EXDEF2_WMS( SIMD_U16_2toU16_1  , Simd128_SubSaturate_U16     , Js::SIMDUint8x16Operation::OpSubSaturate       )
 
@@ -539,7 +532,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_U4_1toI8_1  , Simd128_FromUint32x4Bits_I8    , Js::SIMDUtils::FromSimdBits                   )
   EXDEF2_WMS( SIMD_U8_1toI8_1  , Simd128_FromUint16x8Bits_I8    , Js::SIMDUtils::FromSimdBits                   )
   EXDEF2_WMS( SIMD_U16_1toI8_1 , Simd128_FromUint8x16Bits_I8    , Js::SIMDUtils::FromSimdBits                   )
-      
+
   EXDEF2_WMS( SIMD_F4_1toI16_1 , Simd128_FromFloat32x4Bits_I16  , Js::SIMDUtils::FromSimdBits                   )
   EXDEF2_WMS( SIMD_I4_1toI16_1 , Simd128_FromInt32x4Bits_I16    , Js::SIMDUtils::FromSimdBits                   )
   EXDEF2_WMS( SIMD_I8_1toI16_1 , Simd128_FromInt16x8Bits_I16    , Js::SIMDUtils::FromSimdBits                   )
@@ -580,7 +573,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_U4_2toB4_1   , Simd128_LtEq_U4             , Js::SIMDUint32x4Operation::OpLessThanOrEqual    )
   EXDEF2_WMS( SIMD_U8_2toB8_1   , Simd128_LtEq_U8             , Js::SIMDUint16x8Operation::OpLessThanOrEqual    )
   EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_LtEq_U16            , Js::SIMDUint8x16Operation::OpLessThanOrEqual    )
-  
+
   EXDEF2_WMS( SIMD_I8_2toB8_1   , Simd128_Eq_I8               , Js::SIMDInt16x8Operation::OpEqual               )
   EXDEF2_WMS( SIMD_U4_2toB4_1   , Simd128_Eq_U4               , Js::SIMDInt32x4Operation::OpEqual               )
   EXDEF2_WMS( SIMD_U8_2toB8_1   , Simd128_Eq_U8               , Js::SIMDInt16x8Operation::OpEqual               )
@@ -649,7 +642,5 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
       EXDEF3_WMS(CUSTOM_ASMJS, Simd128_LdArrConst_D2, OP_SimdLdArrConstIndex, AsmSimdTypedArr)
       EXDEF3_WMS(CUSTOM_ASMJS, Simd128_StArrConst_D2, OP_SimdStArrConstIndex, AsmSimdTypedArr)
 #endif // 0
-
-
 
 #endif

@@ -9,8 +9,6 @@
 // Contains constants and tables used by the encoder.
 //
 
-
-
 // Define the encodings of the second byte in instructions. This value is
 // or'ed in with the mod r/m fields to build a constant reg field.
 //
@@ -47,7 +45,6 @@
 #define NDPinc  0x800000    /* instruction incs stack level by 1 */
 #define NDPdec  0x1000000    /* instruction decs stack level by 1 */
 
-
 // 2nd 3 bits is options
 #define SBIT 0x20
 #define DBIT 0x40
@@ -78,7 +75,6 @@
 #define AX_IM 20        // EAX, immediate
 #define FMODRMR 21
 #define FILD 22
-
 
 // Forms
 #define TEMPLATE_FORM_BINOP      {AX_IM+SBIT+WBIT,IMM+SBIT+WBIT, MODRM+DBIT+WBIT, INVALID}
@@ -273,9 +269,10 @@ enum Forms : BYTE
 #define OPBYTE_POP      {0x58, 0, 0x8f}         // pshpop, byte2=0 immed not legal
 
 #define OPBYTE_POR      {0xeb}                  // modrm
+#define OPBYTE_POPCNT   {0xB8}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
-#define OPBYTE_PEXTRW   {0xc5}                  // special 
-#define OPBYTE_PINSRW   {0xc4}                  // special 
+#define OPBYTE_PEXTRW   {0xc5}                  // special
+#define OPBYTE_PINSRW   {0xc4}                  // special
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
 
