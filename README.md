@@ -15,6 +15,7 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 | __Windows (ARM)__             | [![armdebug][armdbgicon]][armdbglink] | [![armtest][armtesticon]][armtestlink] | [![armrelease][armrelicon]][armrellink] |
 | __Ubuntu 16.04 (x64)__        | [![linuxdebug][linuxdbgicon]][linuxdbglink] | [![linuxtest][linuxtesticon]][linuxtestlink] | [![linuxrelease][linuxrelicon]][linuxrellink] |
 | __Ubuntu 16.04 (x64 static)__ | [![linuxsdebug][linuxsdbgicon]][linuxsdbglink] | [![linuxstest][linuxstesticon]][linuxstestlink] | [![linuxsrelease][linuxsrelicon]][linuxsrellink] |
+| __OS X 10.9 (x64 static)__    | [![osxsdebug][osxsdbgicon]][osxsdbglink] | [![osxstest][osxstesticon]][osxstestlink] | [![osxsrelease][osxsrelicon]][osxsrellink] |
 
 *If you see badges reading "Build: Unknown" it is likely because a build was skipped due to changes being only in files known not to affect the health of the build.*
 
@@ -52,6 +53,13 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 [linuxstestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test_static/
 [linuxsrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/badge/icon
 [linuxsrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/
+
+[osxsdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/badge/icon
+[osxsdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/
+[osxstesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/badge/icon
+[osxstestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/
+[osxsrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/badge/icon
+[osxsrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/
 
 Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds.
 
