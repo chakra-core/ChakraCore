@@ -10405,6 +10405,9 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
 #if defined(_M_X64)
     if (m_func->GetScriptContextInfo()->IsPRNGSeeded())
     {
+        const uint64 mExp = 0x3FF0000000000000;
+        const uint64 mMant = 0x000FFFFFFFFFFFFF;
+
         IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, m_func);  // s0
         IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, m_func);  // s1
         IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, m_func);  // helper uint64 reg
@@ -10458,9 +10461,9 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
         // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
         // ===========================================================
         this->InsertAdd(false, r1, r1, r0, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetMantissaMaskAddr(), IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
         this->InsertAnd(r1, r1, r3, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetExponentMaskAddr(), IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
         this->InsertOr(r1, r1, r3, instr);
         this->InsertMoveBitCast(dst, r1, instr);
 
