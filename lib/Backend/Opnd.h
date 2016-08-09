@@ -820,14 +820,6 @@ public:
         this->isTypeCheckSeqCandidate = value;
     }
 
-    void SetTypeCheckSeqCandidateIfObjTypeSpecCandidate()
-    {
-        if (IsObjTypeSpecCandidate())
-        {
-            this->isTypeCheckSeqCandidate = true;
-        }
-    }
-
     bool IsTypeCheckOnly() const
     {
         return this->isTypeCheckOnly;

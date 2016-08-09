@@ -232,6 +232,7 @@ namespace Js
         {
         }
         void EnsureUtilArray(Recycler * const recycler, Js::FunctionBody * functionBody);
+        byte* GetByteArray() { return utilArray; }
         void SetUtil(Js::FunctionBody* functionBody, uint index, byte util);
         byte GetUtil(Js::FunctionBody* functionBody, uint index);
     };
@@ -251,6 +252,7 @@ namespace Js
 
         InlineCachePointerArray<PolymorphicInlineCache> * GetPolymorphicInlineCaches() { return &polymorphicInlineCaches; }
         PolymorphicCacheUtilizationArray * GetUtilArray() { return &polymorphicCacheUtilizationArray; }
+        byte * GetUtilByteArray() { return polymorphicCacheUtilizationArray.GetByteArray(); }
         FunctionBody * GetFunctionBody() const { return functionBody; }
     };
 

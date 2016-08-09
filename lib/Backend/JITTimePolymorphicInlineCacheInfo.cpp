@@ -48,7 +48,7 @@ JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
     __in Js::PolymorphicInlineCacheInfo * runtimeInfo,
     __inout PolymorphicInlineCacheInfoIDL * jitInfo)
 {
-    jitInfo->polymorphicCacheUtilizationArray = (byte *)runtimeInfo->GetUtilArray();
+    jitInfo->polymorphicCacheUtilizationArray = runtimeInfo->GetUtilByteArray();
     jitInfo->functionBodyAddr = (intptr_t)runtimeInfo->GetFunctionBody();
 
     if (runtimeInfo->GetPolymorphicInlineCaches()->HasInlineCaches())

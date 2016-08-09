@@ -571,9 +571,10 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     JsFunctionCodeGen * workitem = workItemAutoPtr.Detach();
     workitem->SetEntryPointInfo(entryPointInfo);
 
+    // TODO: (leish OOPJIT) seems not needed?
     JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
         fn->GetRecycler(),
-        entryPointInfo->GetPolymorphicInlineCacheInfo(),
+        entryPointInfo->EnsurePolymorphicInlineCacheInfo(fn->GetRecycler(),fn),
         &workitem->GetJITData()->polymorphicInlineCacheInfo);
 
     entryPointInfo->SetCodeGenPending(workitem);
@@ -3205,6 +3206,14 @@ void NativeCodeGenerator::AddToJitQueue(CodeGenWorkItem *const codeGenWorkItem, 
 
     Js::CodeGenRecyclableData* recyclableData = GatherCodeGenData(codeGenWorkItem->GetFunctionBody(), codeGenWorkItem->GetFunctionBody(), codeGenWorkItem->GetEntryPoint(), codeGenWorkItem, function);
     codeGenWorkItem->SetRecyclableData(recyclableData);
+
+    // TODO: (leish OOPJIT) move following to better place
+    auto fn = codeGenWorkItem->GetFunctionBody();
+    auto entryPointInfo = codeGenWorkItem->GetEntryPoint();
+    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
+        fn->GetRecycler(),
+        entryPointInfo->EnsurePolymorphicInlineCacheInfo(fn->GetRecycler(), fn),
+        &codeGenWorkItem->GetJITData()->polymorphicInlineCacheInfo);
 
     AutoOptionalCriticalSection autoLock(lock ? Processor()->GetCriticalSection() : nullptr);
     scriptContext->GetThreadContext()->RegisterCodeGenRecyclableData(recyclableData);
