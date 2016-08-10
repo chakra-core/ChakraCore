@@ -50,8 +50,8 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
-parser.add_argument('--timeout', type=int, default=60,
-                    help='test timeout (default 60 seconds)')
+parser.add_argument('--timeout', type=int, default=120,
+                    help='test timeout (default 120 seconds)')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true', help='use x86 build')
 parser.add_argument('--x64', action='store_true', help='use x64 build')
