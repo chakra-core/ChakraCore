@@ -23,9 +23,14 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 
 ServerThreadContext::~ServerThreadContext()
 {
-    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
+    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?    
     if (this->m_propertyMap != nullptr)
     {
+        this->m_propertyMap->Map([](const Js::PropertyRecord* record) 
+        {
+            size_t allocLength = record->byteCount + sizeof(char16) + (record->isNumeric ? sizeof(uint32) : 0);
+            HeapDeletePlus(allocLength, const_cast<Js::PropertyRecord*>(record));
+        });
         HeapDelete(m_propertyMap);
         this->m_propertyMap = nullptr;
     }
