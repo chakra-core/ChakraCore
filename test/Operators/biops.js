@@ -3,7 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function write(v) { WScript.Echo(v + ""); }
+function write(v) {
+    v = (v + "").replace(/\(PST\)/g, "(Pacific Standard Time)")
+                .replace(/\(PDT\)/g, "(Pacific Daylight Time)");
+
+    WScript.Echo(v);
+}
 
 function foo() {}
 var d = new Date("Thu Aug 5 05:30:00 PDT 2010");
@@ -29,7 +34,6 @@ var all = [ undefined, null,
             [1,2,3], [1,2,3],
             new Array(3), Array(3), new Array(1, 2, 3), Array(1),
             foo, d, 1281011400000 , d.getVarDate()
-
           ];
 
 var biops = [    
