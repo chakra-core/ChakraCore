@@ -281,6 +281,7 @@
     <default>
       <files>array_slice.js</files>
       <baseline>array_slice.baseline</baseline>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
