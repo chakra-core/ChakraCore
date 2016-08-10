@@ -8447,6 +8447,7 @@ namespace Js
             midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
         }
 
+        // OOP JIT
         if (jitTransferData->typeGuardTransferData.entries != nullptr)
         {
             this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
@@ -8497,42 +8498,7 @@ namespace Js
             }
         }
 
-#if 0 // TODO: in-proc jit
-        if (this->jitTransferData->equivalentTypeGuardCount > 0)
-        {
-            Assert(this->jitTransferData->equivalentTypeGuards != nullptr);
-
-            Recycler* recycler = scriptContext->GetRecycler();
-
-            int guardCount = this->jitTransferData->equivalentTypeGuardCount;
-            JitEquivalentTypeGuard** guards = this->jitTransferData->equivalentTypeGuards;
-
-            // Create an array of equivalent type caches on the entry point info to ensure they are kept
-            // alive for the lifetime of the entry point.
-            this->equivalentTypeCacheCount = guardCount;
-
-            // No need to zero-initialize, since we will populate all data slots.
-            // We used to let the recycler scan the types in the cache, but we no longer do. See
-            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
-            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
-
-            this->RegisterEquivalentTypeCaches();
-
-            EquivalentTypeCache* cache = this->equivalentTypeCaches;
-
-            for (JitEquivalentTypeGuard** guard = guards; guard < guards + guardCount; guard++)
-            {
-                EquivalentTypeCache* oldCache = (*guard)->GetCache();
-                // Copy the contents of the heap-allocated cache to the recycler-allocated version to make sure the types are
-                // kept alive. Allow the properties pointer to refer to the heap-allocated arrays. It will stay alive as long
-                // as the entry point is alive, and property entries contain no pointers to other recycler allocated objects.
-                (*cache) = (*oldCache);
-                // Set the recycler-allocated cache on the (heap-allocated) guard.
-                (*guard)->SetCache(cache);
-                cache++;
-            }
-        }
-
+        // in-proc JIT
         // The propertyGuardsByPropertyId structure is temporary and serves only to register the type guards for the correct
         // properties.  If we've done code gen for this EntryPointInfo, typePropertyGuardsByPropertyId will have been used and nulled out.
         if (this->jitTransferData->propertyGuardsByPropertyId != nullptr)
@@ -8585,7 +8551,7 @@ namespace Js
                 entry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&entry->guards[++entryGuardIndex]);
             }
         }
-#endif
+
 
         // The ctorCacheGuardsByPropertyId structure is temporary and serves only to register the constructor cache guards for the correct
         // properties.  If we've done code gen for this EntryPointInfo, ctorCacheGuardsByPropertyId will have been used and nulled out.
