@@ -291,6 +291,17 @@ var tests = [
             WScript.LoadModule(functionBody, 'samethread');
         }
     },
+    {
+        name: "Nested function in module function body which captures exported symbol doesn't create empty frame object",
+        body: function() { 
+            let functionBody = 
+                `function foo() { };
+                export { foo };
+                function bar() { foo(); };`;
+                
+            WScript.LoadModule(functionBody, 'samethread');
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
