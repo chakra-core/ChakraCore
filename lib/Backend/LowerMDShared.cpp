@@ -5115,7 +5115,7 @@ LowererMD::GenerateFastBrBReturn(IR::Instr *instr)
     instr->InsertBefore(checkFirstPrototypeNullInstr);
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
 
-    typedef Js::DynamicObjectSnapshotEnumeratorWPCache<Js::BigPropertyIndex, true, false> SmallDynamicObjectSnapshotEnumeratorWPCache;
+    typedef Js::DynamicObjectSnapshotEnumeratorWPCache<true, false> SmallDynamicObjectSnapshotEnumeratorWPCache;
 
     // MOV currentEnumeratorOpnd, forInEnumerator->currentEnumerator
     // CMP currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::`vtable

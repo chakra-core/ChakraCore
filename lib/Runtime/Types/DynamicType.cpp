@@ -344,20 +344,20 @@ namespace Js
                     {
                         if (enumNonEnumerable)
                         {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
+                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
                         }
                         else
                         {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
+                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
                         }
                     }
                     else if (enumNonEnumerable)
                     {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
+                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
                     }
                     else
                     {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
+                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
                     }
                 }
                 else
@@ -366,20 +366,20 @@ namespace Js
                     {
                         if (enumNonEnumerable)
                         {
-                            *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
+                            *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
                         }
                         else
                         {
-                            *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
+                            *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
                         }
                     }
                     else if (enumNonEnumerable)
                     {
-                        *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
+                        *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
                     }
                     else
                     {
-                        *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
+                        *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
                     }
                 }
             }
@@ -388,20 +388,20 @@ namespace Js
         {
             if (enumNonEnumerable)
             {
-                *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
+                *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
             }
             else
             {
-                *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
+                *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
             }
         }
         else if (enumNonEnumerable)
         {
-            *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
+            *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
         }
         else
         {
-            *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
+            *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
         }
 
         return true;
