@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
 <test>
   <default>
@@ -47,6 +47,13 @@
        <files>f32address.js</files>
        <baseline>f32address.baseline</baseline>
        <compile-flags>-on:Wasm  -on:wasmlazytrap</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
+       <files>f32_known_sections.js</files>
+       <baseline>f32.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
 </regress-exe>

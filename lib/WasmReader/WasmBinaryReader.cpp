@@ -5,7 +5,6 @@
 
 #include "WasmReaderPch.h"
 
-
 #ifdef ENABLE_WASM
 
 namespace Wasm
@@ -150,34 +149,46 @@ WasmBinaryReader::ReadSectionHeader()
 {
     UINT len = 0;
     UINT32 sectionSize;
-    UINT32 idSize;
+    UINT32 sectionId;
 
     SectionHeader header;
     header.start = m_pc;
 
-    idSize = LEB128(len);
-    const char *sectionName = (char*)(m_pc);
-    m_pc += idSize;
+    sectionId = LEB128(len);
+
+    const char *sectionName = nullptr;
+    size_t nameLength = 0;
+
+    if (sectionId > 0)
+    {
+        int normId = sectionId - 1;
+
+        if (normId >= bSectNames) // ">=" since "Name" isn't considered to be a known section
+        {
+            ThrowDecodingError(_u("Invalid known section opcode %d"), normId);
+        }
+
+        sectionName = SectionInfo::All[normId].id;
+        header.code = (SectionCode)normId;
+        nameLength = strlen(sectionName); //sectionName (SectionInfo.id) is null-terminated
+    }
+    else
+    {
+        sectionName = (char*)(m_pc); //including "name" section
+        nameLength = LEB128(len);
+        m_pc += nameLength; //skip section name for now
+    }
 
     sectionSize = LEB128(len);
     header.end = m_pc + sectionSize;
     CheckBytesLeft(sectionSize);
 
-    for (int i = 0; i < bSectLimit ; i++)
-    {
-        if (!memcmp(SectionInfo::All[i].id, sectionName, idSize))
-        {
-            header.code = (SectionCode)i;
-            break;
-        }
-    }
-
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    Assert(idSize < 64);
+    Assert(nameLength < 64);
     char16 buf[64];
     size_t convertedChars = 0;
-    mbstowcs_s(&convertedChars, buf, idSize + 1, sectionName, _TRUNCATE);
-    buf[idSize] = 0;
+    mbstowcs_s(&convertedChars, buf, nameLength + 1, sectionName, _TRUNCATE);
+    buf[nameLength] = 0;
     TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
 #endif
     return header;
