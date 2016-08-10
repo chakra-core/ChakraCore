@@ -54,14 +54,20 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
         {
             jitData->inlineeCount = jitData->bodyData->profiledCallSiteCount;
             jitData->inlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->profiledCallSiteCount);
+            jitData->inlineesRecursionFlags = AnewArrayZ(alloc, boolean, jitData->bodyData->profiledCallSiteCount);
 
             for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
             {
                 const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
                 const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
-                if (inlineeJITData != nullptr && inlineeJITData != codeGenData)
+                if (inlineeJITData == codeGenData)
                 {
-                    jitData->inlinees[i] = BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData);
+                    jitData->inlinees[i] = nullptr;
+                    jitData->inlineesRecursionFlags[i] = TRUE;
+                }
+                else if (inlineeJITData != nullptr)
+                {
+                    jitData->inlinees[i] = BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, true);
                 }
             }
         }
@@ -286,7 +292,12 @@ FunctionJITTimeInfo::GetInlinee(Js::ProfileId profileId) const
     }
     Assert(profileId < m_data.inlineeCount);
 
-    return reinterpret_cast<const FunctionJITTimeInfo *>(m_data.inlinees[profileId]);
+    auto inlinee = reinterpret_cast<const FunctionJITTimeInfo *>(m_data.inlinees[profileId]);
+    if (inlinee == nullptr && m_data.inlineesRecursionFlags[profileId]) 
+    {
+        inlinee = this;
+    }
+    return inlinee;
 }
 
 const FunctionJITTimeInfo *
@@ -318,7 +329,7 @@ FunctionJITTimeInfo::IsPolymorphicCallSite(Js::ProfileId profiledCallSiteId) con
     }
     Assert(profiledCallSiteId < m_data.inlineeCount);
 
-    return m_data.inlinees[profiledCallSiteId]->next != nullptr;
+    return ((FunctionJITTimeDataIDL*)this->GetInlinee(profiledCallSiteId))->next != nullptr;
 }
 
 bool

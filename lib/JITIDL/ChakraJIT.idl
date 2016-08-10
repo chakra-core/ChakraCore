@@ -498,6 +498,7 @@ typedef struct FunctionJITTimeDataIDL
 
     unsigned int inlineeCount;
     [size_is(inlineeCount)] struct FunctionJITTimeDataIDL ** inlinees;
+    [size_is(inlineeCount)] boolean * inlineesRecursionFlags;
     unsigned int ldFldInlineeCount;
     [size_is(ldFldInlineeCount)] struct FunctionJITTimeDataIDL ** ldFldInlinees;
 
