@@ -104,6 +104,10 @@ FuncInfo::FuncInfo(
     {
         paramScope->SetFunc(this);
     }
+    if (pnode && pnode->sxFnc.NestedFuncEscapes())
+    {
+        this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
+    }
 }
 
 bool FuncInfo::IsGlobalFunction() const

@@ -293,6 +293,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
         m_currentNodeFunc = pnodeFnc;
         m_currentNodeDeferredFunc = NULL;
+        m_sourceContextInfo = nullptr;
         AssertMsg(m_pstmtCur == NULL, "Statement stack should be empty when we start parse function body");
 
         ParseNodePtr block = StartParseBlock<false>(PnodeBlockType::Function, ScopeType_FunctionBody);
@@ -2776,7 +2777,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     _Inout_opt_ IdentToken* pToken /*= nullptr*/,
     bool fUnaryOrParen /*= false*/,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
-    _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/)
+    _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
+    _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     charcount_t ichMin = 0;
@@ -3152,7 +3154,7 @@ LFunction :
         break;
     }
 
-    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, &fCanAssign, &term);
+    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, &fCanAssign, &term, pfIsDotOrIndex);
 
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
@@ -3248,10 +3250,15 @@ ParseNodePtr Parser::ParsePostfixOperators(
     BOOL fAllowCall,
     BOOL fInNew,
     BOOL *pfCanAssign,
-    _Inout_ IdentToken* pToken)
+    _Inout_ IdentToken* pToken,
+    _Out_opt_ bool* pfIsDotOrIndex /*= nullptr */)
 {
     uint16 count = 0;
     bool callOfConstants = false;
+    if (pfIsDotOrIndex)
+    {
+        *pfIsDotOrIndex = false;
+    }
 
     for (;;)
     {
@@ -3277,6 +3284,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     }
                     else
                     {
+                        pnode = nullptr;
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
                     fInNew = FALSE;
@@ -3316,6 +3324,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     }
                     else
                     {
+                        pnode = nullptr;
                         if (pToken->tk == tkID && pToken->pid == wellKnownPropertyPids.eval && count > 0) // Detect eval
                         {
                             this->MarkEvalCaller();
@@ -3327,6 +3336,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pfCanAssign)
                 {
                     *pfCanAssign = FALSE;
+                }
+                if (pfIsDotOrIndex)
+                {
+                    *pfIsDotOrIndex = false;
                 }
                 break;
             }
@@ -3341,12 +3354,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 else
                 {
+                    pnode = nullptr;
                     pToken->tk = tkNone; // This is no longer an identifier
                 }
                 ChkCurTok(tkRBrack, ERRnoRbrack);
                 if (pfCanAssign)
                 {
                     *pfCanAssign = TRUE;
+                }
+                if (pfIsDotOrIndex)
+                {
+                    *pfIsDotOrIndex = true;
                 }
 
                 if (!buildAST)
@@ -3443,12 +3461,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
             else
             {
+                pnode = nullptr;
                 pToken->tk = tkNone;
             }
 
             if (pfCanAssign)
             {
                 *pfCanAssign = TRUE;
+            }
+            if (pfIsDotOrIndex)
+            {
+                *pfIsDotOrIndex = true;
             }
             m_pscan->Scan();
 
@@ -3469,6 +3492,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pfCanAssign)
                 {
                     *pfCanAssign = FALSE;
+                }
+                if (pfIsDotOrIndex)
+                {
+                    *pfIsDotOrIndex = false;
                 }
                 break;
             }
@@ -4444,6 +4471,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     pnodeFnc->sxFnc.hintOffset          = 0;
     pnodeFnc->sxFnc.hintLength          = 0;
     pnodeFnc->sxFnc.isNameIdentifierRef = true;
+    pnodeFnc->sxFnc.nestedFuncEscapes   = false;
     pnodeFnc->sxFnc.pnodeNext           = nullptr;
     pnodeFnc->sxFnc.pnodeParams         = nullptr;
     pnodeFnc->sxFnc.pnodeVars           = nullptr;
@@ -5727,6 +5755,7 @@ ParseNodePtr Parser::CreateDummyFuncNode(bool fDeclaration)
     pnodeFnc->sxFnc.hintOffset          = 0;
     pnodeFnc->sxFnc.hintLength          = 0;
     pnodeFnc->sxFnc.isNameIdentifierRef = true;
+    pnodeFnc->sxFnc.nestedFuncEscapes   = false;
     pnodeFnc->sxFnc.pnodeNext           = nullptr;
     pnodeFnc->sxFnc.pnodeParams         = nullptr;
     pnodeFnc->sxFnc.pnodeVars           = nullptr;
@@ -6293,6 +6322,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->sxFnc.hintOffset          = 0;
     pnodeFnc->sxFnc.hintLength          = 0;
     pnodeFnc->sxFnc.isNameIdentifierRef = true;
+    pnodeFnc->sxFnc.nestedFuncEscapes   = false;
     pnodeFnc->sxFnc.pnodeName           = nullptr;
     pnodeFnc->sxFnc.pnodeScopes         = nullptr;
     pnodeFnc->sxFnc.pnodeParams         = nullptr;
@@ -7989,7 +8019,20 @@ bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplM
         return false;
     }
 
-    *pnode = ParseExpr<buildAST>(oplMin, pfCanAssign, fAllowIn, fAllowEllipsis, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, pToken, fUnaryOrParen);
+    ParseNodePtr pnodeT = ParseExpr<buildAST>(oplMin, pfCanAssign, fAllowIn, fAllowEllipsis, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, pToken, fUnaryOrParen);
+    // Detect nested function escapes of the pattern "return function(){...}" or "yield function(){...}".
+    // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
+    // is not detected at byte code gen time because of deferred parsing.
+    if (m_currentNodeFunc && pnodeT && pnodeT->nop == knopFncDecl)
+    {
+        if (m_sourceContextInfo ? 
+                !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
+                !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+        {
+            m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
+        }
+    }
+    *pnode = pnodeT;
     return true;
 }
 
@@ -8018,6 +8061,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     ParseNodePtr pnodeT = nullptr;
     BOOL fCanAssign = TRUE;
     bool assignmentStmt = false;
+    bool fIsDotOrIndex = false;
     IdentToken term;
     RestorePoint termStart;
     uint32 hintLength = 0;
@@ -8221,7 +8265,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     {
         ichMin = m_pscan->IchMinTok();
         BOOL fLikelyPattern = FALSE;
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex);
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -8442,6 +8486,19 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             // Parse the operand, make a new node, and look for more
             pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, nullptr);
+
+            // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
+            // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
+            // is not detected at byte code gen time because of deferred parsing.
+            if (m_currentNodeFunc && pnodeT && pnodeT->nop == knopFncDecl && fIsDotOrIndex && nop == knopAsg)
+            {
+                if (m_sourceContextInfo ? 
+                        !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
+                        !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+                {
+                    m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
+                }
+            }
 
             if (buildAST)
             {
@@ -10886,6 +10943,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     pnodeProg->sxFnc.hintLength = 0;
     pnodeProg->sxFnc.hintOffset = 0;
     pnodeProg->sxFnc.isNameIdentifierRef = true;
+    pnodeProg->sxFnc.nestedFuncEscapes = false;
 
     // initialize parsing variables
     pnodeProg->sxFnc.pnodeNext = nullptr;
