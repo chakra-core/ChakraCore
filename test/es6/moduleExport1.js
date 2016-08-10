@@ -49,7 +49,7 @@ export var var3 = 5, var4
 export var var5, var6, var7
 
 export default 'default';
-function changeContext()
+export function changeContext()
 {
     foo = 20;
     var1 = 'new string';
@@ -59,7 +59,7 @@ function changeContext()
     fn2 = fn1;
 }
 
-function verifyNamespace(ns)
+export function verifyNamespace(ns)
 {
     var unused = 1;
     for (var i in ns) helpers.writeln(i + " = " + ns[i]);
@@ -71,12 +71,12 @@ function verifyNamespace(ns)
     assert.areEqual(ns.var2, var2, "var2 is the same");
     assert.areEqual(ns.var1, var1, "var1 is the same");
     assert.areEqual(ns.foobar, foobar, "foobar is the same");
-    assert.areEqual(ns.foo4, foo4, "foo4 is the same");
-    assert.areEqual(ns.baz2, baz2, "baz2 is the same");
-    assert.areEqual(ns.foo3, foo3, "foo3 is the same");
-    assert.areEqual(ns.baz2, baz2, "baz2 is the same");
+    assert.areEqual(ns.foo4, foo, "foo4 is the same");
+    assert.areEqual(ns.baz2, baz, "baz2 is the same");
+    assert.areEqual(ns.foo3, foo, "foo3 is the same");
+    assert.areEqual(ns.bar2, bar, "bar2 is the same");
     assert.areEqual(ns.baz, baz, "baz is the same");
-    assert.areEqual(ns.foo2, foo2, "foo2 is the same");
+    assert.areEqual(ns.foo2, foo, "foo2 is the same");
     assert.areEqual(ns.foo, foo, "foo is the same");
     assert.areEqual(ns.bar, bar, "bar is the same");
     assert.areEqual(ns.const6, const6, "const6 is the same");

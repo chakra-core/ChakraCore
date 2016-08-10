@@ -37,14 +37,14 @@ var tests = [
            testModuleScript('import * as foo from "ValidExportStatements.js"; for (var i in foo) helpers.writeln(i + "=" + foo[i]);', '', false);
        }
     },
-    // {
-        // name: "import namespace with verification",
-        // body: function () {
-           // // testModuleScript('import * as foo from "moduleExport1.js"; for (var i in foo) WScript.Echo(i + "=" + foo[i]);', '', false);
-           // // testModuleScript('import * as foo from "moduleExport1.js"; foo.verifyNamespace(foo);', '', false);
-           // // testModuleScript('import * as foo1 from "moduleExport1.js"; foo1.changeContent(); foo1.verifyNamespace(foo1);', '', false);
-        // }
-    // },
+    {
+        name: "import namespace with verification",
+        body: function () {
+           testModuleScript('import * as foo from "moduleExport1.js"; for (var i in foo) WScript.Echo(i + "=" + foo[i]);', '', false);
+           testModuleScript('import * as foo from "moduleExport1.js"; foo.verifyNamespace(foo);', '', false);
+           testModuleScript('import * as foo from "moduleExport1.js"; foo.changeContext(); foo.verifyNamespace(foo);', '', false);
+        }
+    },
     {
         name: "reexport only",
         body: function () {
@@ -79,7 +79,7 @@ var tests = [
                 assert.areEqual(undefined, foo[6], 'cannot get item in namespace obect');
                 assert.areEqual(false, Reflect.set(foo, Symbol.species, 20), 'no species property');
                 assert.areEqual(undefined, foo[Symbol.species], 'namespace is not contructor');
-                assert.areEqual("Module", foo[Symbol.toStringTag], 'namespace toStringTag');
+                assert.areEqual("module", foo[Symbol.toStringTag], 'namespace toStringTag');
                 helpers.writeln("in iterator"); for (var i of foo) helpers.writeln(i);
                 helpers.writeln("done with iterator")
                 var symbols = Object.getOwnPropertySymbols(foo);

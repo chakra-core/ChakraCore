@@ -1051,7 +1051,7 @@ namespace Js
         functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
-        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("Module"));
+        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
         promiseResolveFunction = nullptr;
 
 #ifdef ENABLE_SIMDJS

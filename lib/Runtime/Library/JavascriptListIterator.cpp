@@ -55,8 +55,8 @@ namespace Js
 
         if (iterator->index >= iterator->count)
         {
-            // Nulling out the m_string field is important so that the iterator
-            // does not keep the string alive after iteration is completed.
+            // Nulling out the listForIterator field is important so that the iterator
+            // does not keep the list alive after iteration is completed.
             iterator->listForIterator = nullptr;
             return library->CreateIteratorResultObjectUndefinedTrue();
         }

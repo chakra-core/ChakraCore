@@ -181,7 +181,7 @@ ENTRY(decodeURI)
 ENTRY(decodeURIComponent)
 ENTRY2(default_, _u("default"))
 ENTRY2(delete_, _u("delete")) // "delete" cannot be an identifier in C++ so using "delete_" instead
-ENTRY2(star, _u("*"))
+ENTRY2(star_, _u("*"))
 ENTRY(deleteProperty)
 ENTRY(description)
 ENTRY(done)

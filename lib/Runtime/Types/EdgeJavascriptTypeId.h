@@ -124,5 +124,3 @@ enum TypeId
 
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };
-
-

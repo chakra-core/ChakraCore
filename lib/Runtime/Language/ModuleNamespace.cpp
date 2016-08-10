@@ -179,10 +179,11 @@ namespace Js
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
             Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)moduleRecord)->GetLocalExportCount());
-            if ((PropertyIndex)propertyDescriptor.propertyIndex == propertyDescriptor.propertyIndex)
-            {
-                PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
-            }
+            PropertyValueInfo::SetNoCache(info, this); // Disable inlinecache for localexport slot for now.
+            //if ((PropertyIndex)propertyDescriptor.propertyIndex == propertyDescriptor.propertyIndex)
+            //{
+            //    PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
+            //}
             *value = this->GetNSSlot(propertyDescriptor.propertyIndex);
             return TRUE;
         }

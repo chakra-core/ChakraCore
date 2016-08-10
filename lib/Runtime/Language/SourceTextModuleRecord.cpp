@@ -45,7 +45,7 @@ namespace Js
         localExportCount(0)
     {
         namespaceRecord.module = this;
-        namespaceRecord.bindingName = PropertyIds::star;
+        namespaceRecord.bindingName = PropertyIds::star_;
     }
 
     SourceTextModuleRecord* SourceTextModuleRecord::Create(ScriptContext* scriptContext)
@@ -349,7 +349,7 @@ namespace Js
             {
                 SourceTextModuleRecord* childModule = this->GetChildModuleRecord(importEntry.moduleRequest->Psz());
                 Js::PropertyId importName = EnsurePropertyIdForIdentifier(importEntry.importName);
-                if (importName == Js::PropertyIds::star)
+                if (importName == Js::PropertyIds::star_)
                 {
                     *importRecord = childModule->GetNamespaceNameRecord();
                 }
@@ -747,7 +747,7 @@ namespace Js
                 SourceTextModuleRecord* childModule = this->GetChildModuleRecord(importEntry.moduleRequest->Psz());
                 ModuleNameRecord* importRecord = nullptr;
                 // We don't need to initialize anything for * import.
-                if (importName != Js::PropertyIds::star)
+                if (importName != Js::PropertyIds::star_)
                 {
                     if (!childModule->ResolveExport(importName, nullptr, nullptr, &importRecord)
                         || importRecord == nullptr)
@@ -896,10 +896,10 @@ namespace Js
 
     uint SourceTextModuleRecord::GetLocalExportSlotIndexByLocalName(PropertyId localNameId)
     {
-        Assert(localSlotCount != 0 || localNameId == PropertyIds::star);
+        Assert(localSlotCount != 0 || localNameId == PropertyIds::star_);
         Assert(localExportSlots != nullptr);
         uint slotIndex = InvalidSlotIndex;
-        if (localNameId == PropertyIds::star)
+        if (localNameId == PropertyIds::star_)
         {
             return localSlotCount;  // namespace is put on the last slot.
         } else if (!localExportMapByLocalName->TryGetValue(localNameId, &slotIndex))
