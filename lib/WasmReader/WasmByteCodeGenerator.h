@@ -132,8 +132,9 @@ namespace Wasm
         EmitInfo EmitCall();
         EmitInfo EmitIfElseExpr();
         EmitInfo EmitBrTable();
+        EmitInfo EmitDrop();
         EmitInfo EmitGetLocal();
-        EmitInfo EmitSetLocal();
+        EmitInfo EmitSetLocal(bool tee);
         EmitInfo EmitReturnExpr();
         EmitInfo EmitSelect();
 #if DBG_DUMP

@@ -486,7 +486,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitGetLocal();
         break;
     case wbSetLocal:
-        info = EmitSetLocal();
+        return EmitSetLocal(false);
+    case wbTeeLocal:
+        info = EmitSetLocal(true);
         break;
     case wbReturn:
         info = EmitReturnExpr();
@@ -533,6 +535,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbBrTable:
         info = EmitBrTable();
+        break;
+    case wbDrop:
+        info = EmitDrop();
         break;
     case wbNop:
         info = EmitInfo();
@@ -582,7 +587,7 @@ WasmBytecodeGenerator::EmitGetLocal()
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitSetLocal()
+WasmBytecodeGenerator::EmitSetLocal(bool tee)
 {
     uint localNum = GetReader()->m_currentNode.var.num;
     if (localNum >= m_funcInfo->GetLocalCount())
@@ -600,7 +605,15 @@ WasmBytecodeGenerator::EmitSetLocal()
 
     m_writer.AsmReg2(GetLoadOp(local.type), local.location, info.location);
 
-    return info;
+    if (tee)
+    {
+        return info;
+    }
+    else
+    {
+        ReleaseLocation(&info);
+        return EmitInfo();
+    }
 }
 
 template<WasmTypes::WasmType type>
@@ -973,6 +986,14 @@ WasmBytecodeGenerator::EmitBrTable()
     ReleaseLocation(&yieldInfo);
 
     return EmitInfo(WasmTypes::Unreachable);
+}
+
+EmitInfo
+WasmBytecodeGenerator::EmitDrop()
+{
+    EmitInfo info = PopEvalStack();
+    ReleaseLocation(&info);
+    return EmitInfo();
 }
 
 template<Js::OpCodeAsmJs op, typename Signature>

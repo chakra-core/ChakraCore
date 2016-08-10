@@ -369,11 +369,14 @@ WasmBinaryReader::ASTNode()
         break;
     case wbSetLocal:
     case wbGetLocal:
+    case wbTeeLocal:
         VarNode();
         break;
     case wbIf:
     case wbElse:
         // no node attributes
+        break;
+    case wbDrop:
         break;
     case wbEnd:
         break;
