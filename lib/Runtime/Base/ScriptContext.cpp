@@ -5699,6 +5699,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return nameLen;
     }
 
+    Js::Var* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
+    {
+        Js::SourceTextModuleRecord* moduleRecord = this->GetModuleRecord(moduleIndex);
+        Assert(moduleRecord != nullptr);
+
+        // Require caller to also provide the intended access slot so we can do bounds check now.
+        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        {
+            Js::Throw::FatalInternalError();
+        }
+
+        return moduleRecord->GetLocalExportSlots();
+    }
+
 } // End namespace Js
 
 SRCINFO* SRCINFO::Clone(Js::ScriptContext* scriptContext) const

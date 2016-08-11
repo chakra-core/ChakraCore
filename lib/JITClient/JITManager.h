@@ -37,6 +37,11 @@ public:
         __in intptr_t funcInfoAddr,
         __in int helper);
 
+    HRESULT AddModuleRecordInfo(
+            /* [in] */ __int64 scriptContextInfoAddress,
+            /* [in] */ unsigned int moduleId,
+            /* [in] */ __int64 localExportSlotsAddr);
+
     HRESULT SetWellKnownHostTypeId(
         __in  intptr_t threadContextRoot,
         __in  int typeId);

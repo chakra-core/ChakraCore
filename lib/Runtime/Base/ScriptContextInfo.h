@@ -47,6 +47,8 @@ public:
     virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) = 0;
     virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) = 0;
 
+    virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) = 0;
+
     typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy,
         DefaultComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> JITDOMFastPathHelperMap;
 

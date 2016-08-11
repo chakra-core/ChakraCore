@@ -49,6 +49,14 @@ public:
     virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
     virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
 
+
+    typedef JsUtil::BaseDictionary<uint, Js::ServerSourceTextModuleRecord*, Memory::HeapAllocator> ServerModuleRecords;
+    ServerModuleRecords m_moduleRecords;
+
+    virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+
+    void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
+
     void BeginJIT();
     void EndJIT();
     bool IsJITActive();

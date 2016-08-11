@@ -50,6 +50,7 @@ namespace Js
         // site. Host might hold a reference to the module as well after initializing the module. 
         // In our implementation, we'll use the moduleId in bytecode to identify the module.
         childModuleRecord->moduleId = scriptContext->GetLibrary()->EnsureModuleRecordList()->Add(childModuleRecord);
+
         return childModuleRecord;
     }
 
@@ -801,6 +802,14 @@ namespace Js
             else
             {
                 localSlotCount = 0;
+            }
+
+            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            {
+                JITManager::GetJITManager()->AddModuleRecordInfo(
+                    scriptContext->GetRemoteScriptAddr(),
+                    this->GetModuleId(),
+                    (intptr_t)this->GetLocalExportSlots());
             }
         }
     }

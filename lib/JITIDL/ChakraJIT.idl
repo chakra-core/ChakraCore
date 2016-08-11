@@ -711,6 +711,12 @@ interface IChakraJIT
         [in] CHAKRA_PTR funcInfoAddr,
         [in] int helper);
 
+    HRESULT AddModuleRecordInfo(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] unsigned int moduleId,
+        [in] CHAKRA_PTR localExportSlotsAddr);
+
     HRESULT SetWellKnownHostTypeId(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,

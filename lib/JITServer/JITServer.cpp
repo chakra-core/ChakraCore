@@ -166,6 +166,26 @@ ServerAddDOMFastPathHelper(
     return S_OK;
 }
 
+HRESULT
+ServerAddModuleRecordInfo(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int64 scriptContextInfoAddress,
+    /* [in] */ unsigned int moduleId,
+    /* [in] */ __int64 localExportSlotsAddr)
+{
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+    ServerScriptContext * serverScriptContext = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
+    if (serverScriptContext == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+    serverScriptContext->AddModuleRecordInfo(moduleId, localExportSlotsAddr);
+    HRESULT hr = E_FAIL;
+
+    return hr;
+}
+
 HRESULT 
 ServerSetWellKnownHostTypeId(
     /* [in] */ handle_t binding,

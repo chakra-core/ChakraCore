@@ -368,6 +368,29 @@ JITManager::AddDOMFastPathHelper(
     return hr;
 }
 
+HRESULT 
+JITManager::AddModuleRecordInfo(
+    /* [in] */ __int64 scriptContextInfoAddress,
+    /* [in] */ unsigned int moduleId,
+    /* [in] */ __int64 localExportSlotsAddr)
+{
+    Assert(JITManager::IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientAddModuleRecordInfo(m_rpcBindingHandle, scriptContextInfoAddress, moduleId, localExportSlotsAddr);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+
 HRESULT
 JITManager::SetWellKnownHostTypeId(
     __in  intptr_t threadContextRoot,

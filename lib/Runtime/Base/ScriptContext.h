@@ -1743,6 +1743,13 @@ private:
 
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
+ 
+        virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+
+        Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
+        {
+            return javascriptLibrary->GetModuleRecord(moduleId);
+        }
 
         void SetBuiltInLibraryFunction(JavascriptMethod entryPoint, JavascriptFunction* function);
         JavascriptFunction* GetBuiltInLibraryFunction(JavascriptMethod entryPoint);

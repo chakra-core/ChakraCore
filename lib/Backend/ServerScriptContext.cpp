@@ -8,6 +8,7 @@
 ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
     m_contextData(*contextData),
     m_isPRNGSeeded(false),
+    m_moduleRecords(&HeapAllocator::Instance),
     m_activeJITCount(0)
 {
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
@@ -16,6 +17,10 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
 ServerScriptContext::~ServerScriptContext()
 {
     HeapDelete(m_domFastPathHelperMap);
+    m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
+    {
+        HeapDelete(record);
+    });
 }
 
 intptr_t
@@ -246,4 +251,21 @@ bool
 ServerScriptContext::IsJITActive()
 {
     return m_activeJITCount != 0;
+}
+
+Js::Var* 
+ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) 
+{
+    Assert(m_moduleRecords.ContainsKey(moduleIndex));
+    auto record = m_moduleRecords.Item(moduleIndex);
+    return record->localExportSlotsAddr;
+}
+
+void 
+ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr)
+{
+    Js::ServerSourceTextModuleRecord* record = HeapNewStructZ(Js::ServerSourceTextModuleRecord);
+    record->moduleId = moduleId;
+    record->localExportSlotsAddr = (Js::Var*)localExportSlotsAddr;
+    m_moduleRecords.Add(moduleId, record);
 }
