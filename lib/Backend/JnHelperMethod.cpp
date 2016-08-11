@@ -389,9 +389,6 @@ const char16 *GetVtableName(VTableValue value)
     case VtableJavascriptBoolean:
         return _u("vtable JavascriptBoolean");
         break;
-    case VtableSmallDynamicObjectSnapshotEnumeratorWPCache:
-        return _u("vtable SmallDynamicObjectSnapshotEnumeratorWPCache");
-        break;
     case VtableJavascriptArray:
         return _u("vtable JavascriptArray");
         break;

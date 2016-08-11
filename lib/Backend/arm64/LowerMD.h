@@ -122,7 +122,6 @@ public:
               IR::Instr *     GenerateFastScopedLdFld(IR::Instr * instrLdFld) { __debugbreak(); return 0; }
               IR::Instr *     GenerateFastScopedStFld(IR::Instr * instrStFld) { __debugbreak(); return 0; }
               bool            GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false) { __debugbreak(); return 0; }
-              void            GenerateFastBrBReturn(IR::Instr *instr) { __debugbreak(); }
               bool            TryGenerateFastFloatOp(IR::Instr * instr, IR::Instr ** pInsertHelper, bool *pfNoLower) { __debugbreak(); return 0; }
               bool            GenerateFastFloatCall(IR::Instr * instr, IR::Instr ** pInsertHelper, bool noFieldFastPath, bool *pfNoLower, IR::Instr **pInstrPrev) { __debugbreak(); return 0; }
               bool            GenerateFastFloatBranch(IR::BranchInstr * instr, IR::Instr ** pInsertHelper, bool *pfNoLower) { __debugbreak(); return 0; }

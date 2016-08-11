@@ -13,9 +13,6 @@
 #include "Library/ThrowErrorObject.h"
 #include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 

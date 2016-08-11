@@ -6,18 +6,13 @@
 
 namespace Js
 {
-    ES5ArrayEnumerator::ES5ArrayEnumerator(Var originalInstance, ES5Array* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols)
-        : originalInstance(originalInstance), JavascriptArrayEnumeratorBase(arrayObject, scriptContext, enumNonEnumerable, enumSymbols)
+    ES5ArrayIndexEnumerator::ES5ArrayIndexEnumerator(ES5Array* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext)
+        : JavascriptArrayIndexEnumeratorBase(arrayObject, flags, scriptContext)
     {
-        if (originalInstance != arrayObject)
-        {
-            Assert(static_cast<DynamicObject*>(originalInstance)->GetObjectArray() == arrayObject);
-        }
-
         Reset();
     }
 
-    Var ES5ArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ES5ArrayIndexEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 
@@ -41,7 +36,7 @@ namespace Js
                     break;
                 }
 
-                if (enumNonEnumerable
+                if (!!(flags & EnumeratorFlags::EnumNonEnumerable)
                     || index < descriptorIndex
                     || (descriptor->Attributes & PropertyEnumerable))
                 {
@@ -57,23 +52,14 @@ namespace Js
                         }
                     }
 
-                    return arrayObject->GetScriptContext()->GetIntegerString(index);
+                    return this->GetScriptContext()->GetIntegerString(index);
                 }
             }
         }
-        if (!doneObject)
-        {
-            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex)
-            {
-                return currentIndex;
-            }
-            doneObject = true;
-        }
-        return NULL;
+        return nullptr;
     }
 
-    void ES5ArrayEnumerator::Reset()
+    void ES5ArrayIndexEnumerator::Reset()
     {
         initialLength = arrayObject->GetLength();
         dataIndex = JavascriptArray::InvalidIndex;
@@ -83,10 +69,5 @@ namespace Js
 
         index = JavascriptArray::InvalidIndex;
         doneArray = false;
-        doneObject = false;
-
-        Var enumerator;
-        arrayObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), true, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

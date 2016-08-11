@@ -48,7 +48,7 @@ namespace Js
         friend class CrossSite;
         friend class DynamicTypeHandler;
         friend class ModuleNamespace;
-        template <bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
+        friend class DynamicObjectEnumerator;
         friend class RecyclableObject;
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator
@@ -232,7 +232,7 @@ namespace Js
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
@@ -269,10 +269,8 @@ namespace Js
 
         void ChangeTypeIf(const Type* oldType);
 
-        Var GetNextProperty(PropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
-        Var GetNextProperty(BigPropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
-        
-        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) const;
+        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
+            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const;
 
         virtual BOOL HasDeferredTypeHandler() const sealed;
         static DWORD GetOffsetOfAuxSlots();
@@ -287,6 +285,8 @@ namespace Js
 
         void SetObjectArray(ArrayObject* objectArray);
     protected:
+        BOOL GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext);
+
         // These are only call for arrays
         void InitArrayFlags(DynamicObjectFlags flags);
         DynamicObjectFlags GetArrayFlags() const;

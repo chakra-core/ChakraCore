@@ -875,11 +875,10 @@ namespace Js
     }
 
     // No change to foreign enumerator, just forward
-    BOOL JavascriptProxy::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        ScriptContext* scriptContext = GetScriptContext();
         // Reject implicit call
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        ThreadContext* threadContext = requestContext->GetThreadContext();
         if (threadContext->IsDisableImplicitCall())
         {
             threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
@@ -897,31 +896,33 @@ namespace Js
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
         }    
         
-        Var enmeratorObj;
         Var propertyName = nullptr;
         PropertyId propertyId;
         int index = 0;
-        JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(scriptContext->GetRecycler());
-        JavascriptArray* arrResult = scriptContext->GetLibrary()->CreateArray();
+        JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(requestContext->GetRecycler());
+        JavascriptArray* arrResult = requestContext->GetLibrary()->CreateArray();
 
         // 13.7.5.15 EnumerateObjectProperties(O) (https://tc39.github.io/ecma262/#sec-enumerate-object-properties)
         // for (let key of Reflect.ownKeys(obj)) {    
-        Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, scriptContext);
+        Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, requestContext);
         if (JavascriptArray::Is(trapResult))
         {
-            ((JavascriptArray*)trapResult)->GetEnumerator(false, &enmeratorObj, scriptContext);
-            JavascriptEnumerator* pEnumerator = JavascriptEnumerator::FromVar(enmeratorObj);
-            while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
+            JavascriptStaticEnumerator trapEnumerator;
+            if (!((JavascriptArray*)trapResult)->GetEnumerator(&trapEnumerator, EnumeratorFlags::SnapShotSemantics, requestContext))
             {
-                PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, scriptContext);
-                Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, scriptContext);
+                return FALSE;
+            }
+            while ((propertyName = trapEnumerator.MoveAndGetNext(propertyId)) != NULL)
+            {
+                PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, requestContext);
+                Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, requestContext);
                 // if (typeof key === "string") {
                 if (JavascriptString::Is(prop))
                 {
                     Js::PropertyDescriptor desc;
                     JavascriptString* str = JavascriptString::FromVar(prop);
                     // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
-                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
+                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, requestContext, &desc);
                     // if (desc && !visited.has(key)) {
                     if (ret && !dict.ContainsKey(str->GetSz()))
                     {
@@ -941,10 +942,9 @@ namespace Js
             AssertMsg(false, "Expect GetOwnPropertyNames result to be array");
         }
 
-        *enumerator = IteratorObjectEnumerator::Create(scriptContext,
-            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext));
+        return enumerator->Initialize(IteratorObjectEnumerator::Create(requestContext,
+            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), requestContext)), nullptr, nullptr, flags, requestContext);
 
-        return TRUE;
     }
 
     BOOL JavascriptProxy::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)

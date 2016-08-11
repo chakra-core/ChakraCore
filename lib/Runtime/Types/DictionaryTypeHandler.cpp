@@ -96,7 +96,7 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -107,13 +107,13 @@ namespace Js
             DictionaryPropertyDescriptor<T> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
 
-            if (!(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)) &&
+            if (!(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)) &&
                 (!(attribs & PropertyLetConstGlobal) || descriptor.HasNonLetConstGlobal()))
             {
                 const PropertyRecord* propertyRecord = propertyMap->GetKeyAt(index);
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }
@@ -125,7 +125,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
                 T dataSlot = descriptor.template GetDataPropertyIndex<false>();
                 if (dataSlot != NoSlots && (attribs & PropertyWritable))
@@ -153,7 +153,7 @@ namespace Js
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(false);
         Throw::InternalError();
@@ -161,18 +161,18 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         PropertyIndex local = (PropertyIndex)index;
         Assert(index <= Constants::UShortMaxValue || index == Constants::NoBigSlot);
-        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
         index = local;
         return result;
     }
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -182,13 +182,13 @@ namespace Js
         {
             DictionaryPropertyDescriptor<BigPropertyIndex> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
-            if (!(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)) &&
+            if (!(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)) &&
                 (!(attribs & PropertyLetConstGlobal) || descriptor.HasNonLetConstGlobal()))
             {
                 const PropertyRecord* propertyRecord = propertyMap->GetKeyAt(index);
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }

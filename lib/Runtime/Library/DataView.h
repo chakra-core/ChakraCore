@@ -76,7 +76,12 @@ namespace Js
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
-
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext) override
+        {
+            // Data View can not be an objectArray
+            Assert(false);
+            return nullptr;
+        }
     private:
         template<typename TypeName>
         void SwapRoutine(TypeName* input, TypeName* dest);

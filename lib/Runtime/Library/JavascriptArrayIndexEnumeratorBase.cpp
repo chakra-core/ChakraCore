@@ -4,16 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Library/NullEnumerator.h"
-
 namespace Js
 {
-    void NullEnumerator::Reset()
+    JavascriptArrayIndexEnumeratorBase::JavascriptArrayIndexEnumeratorBase(
+        JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext) :
+        JavascriptEnumerator(scriptContext),
+        arrayObject(arrayObject),
+        flags(flags)
     {
     }
-
-    Var NullEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
-    {
-        return nullptr;
-    }
-};
+}

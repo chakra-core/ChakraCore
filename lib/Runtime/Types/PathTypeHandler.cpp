@@ -47,7 +47,7 @@ namespace Js
     }
 
     BOOL PathTypeHandlerBase::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName, PropertyId* propertyId,
-        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -58,7 +58,7 @@ namespace Js
             const PropertyRecord* propertyRecord = typePath->GetPropertyId(index);
 
             // Skip this property if it is a symbol and we are not including symbol properties
-            if (!enumSymbols && propertyRecord->IsSymbol())
+            if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
             {
                 continue;
             }
@@ -69,7 +69,7 @@ namespace Js
             }
 
             *propertyId = propertyRecord->GetPropertyId();
-            PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+            PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
             *propertyStringName = propertyString;
 
             uint16 inlineOrAuxSlotIndex;

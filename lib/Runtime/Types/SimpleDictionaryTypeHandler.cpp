@@ -613,7 +613,7 @@ namespace Js
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -625,12 +625,12 @@ namespace Js
             for( ; index < propertyMap->Count(); ++index )
             {
                 SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor(propertyMap->GetValueAt(index));
-                if( !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) && (!requireEnumerable || (descriptor.Attributes & PropertyEnumerable)))
+                if( !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (descriptor.Attributes & PropertyEnumerable)))
                 {
                     TMapKey key = propertyMap->GetKeyAt(index);
 
                     // Skip this property if it is a symbol and we are not including symbol properties
-                    if (!enumSymbols && TMapKey_IsSymbol(key, scriptContext))
+                    if (!(flags & EnumeratorFlags::EnumSymbols) && TMapKey_IsSymbol(key, scriptContext))
                     {
                         continue;
                     }
@@ -641,7 +641,7 @@ namespace Js
                     }
 
                     *propertyId = TMapKey_GetPropertyId(scriptContext, key);
-                    PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+                    PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                     *propertyStringName = propertyString;
                     if (descriptor.Attributes & PropertyWritable)
                     {
@@ -679,8 +679,7 @@ namespace Js
                 attributes,
                 typeToEnumerate,
                 typeToEnumerate,
-                requireEnumerable,
-                enumSymbols);
+                flags);
             ++index)
         {
             SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor;
@@ -689,7 +688,7 @@ namespace Js
             {
                 PropertyRecord const* propertyRecord = type->GetScriptContext()->GetPropertyName(*propertyId);
 
-                AssertMsg(enumSymbols || !propertyRecord->IsSymbol(),
+                AssertMsg(!!(flags & EnumeratorFlags::EnumSymbols) || !propertyRecord->IsSymbol(),
                     "typeHandlerToEnumerate->FindNextProperty call above should not have returned us a symbol if we are not enumerating symbols");
 
                 hasValue = propertyMap->TryGetValue(propertyRecord, &descriptor);
@@ -701,7 +700,7 @@ namespace Js
 
             if (hasValue &&
                 !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) &&
-                (!requireEnumerable || descriptor.Attributes & PropertyEnumerable))
+                (!!(flags & EnumeratorFlags::EnumNonEnumerable) || descriptor.Attributes & PropertyEnumerable))
             {
                 if (attributes != nullptr)
                 {
@@ -745,7 +744,7 @@ namespace Js
 
 
 #define DefineUnusedSpecialization_FindNextProperty_BigPropertyIndex(T, S) \
-    template <> BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, T, S>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols) { Throw::InternalError(); }
+    template <> BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, T, S>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) { Throw::InternalError(); }
 
     DefineUnusedSpecialization_FindNextProperty_BigPropertyIndex(const PropertyRecord*, false)
     DefineUnusedSpecialization_FindNextProperty_BigPropertyIndex(const PropertyRecord*, true)
@@ -756,18 +755,18 @@ namespace Js
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         PropertyIndex local = (PropertyIndex)index;
         Assert(index <= Constants::UShortMaxValue || index == Constants::NoBigSlot);
-        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
         index = local;
         return result;
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     inline BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty_BigPropertyIndex(ScriptContext* scriptContext, TPropertyIndex& index,
-        JavascriptString** propertyStringName, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        JavascriptString** propertyStringName, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -779,12 +778,12 @@ namespace Js
             for( ; index < propertyMap->Count(); ++index )
             {
                 SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor(propertyMap->GetValueAt(index));
-                if( !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) && (!requireEnumerable || (descriptor.Attributes & PropertyEnumerable)))
+                if( !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (descriptor.Attributes & PropertyEnumerable)))
                 {
                     auto key = propertyMap->GetKeyAt(index);
 
                     // Skip this property if it is a symbol and we are not including symbol properties
-                    if (!enumSymbols && TMapKey_IsSymbol(key, scriptContext))
+                    if (!(flags & EnumeratorFlags::EnumSymbols) && TMapKey_IsSymbol(key, scriptContext))
                     {
                         continue;
                     }
@@ -795,7 +794,7 @@ namespace Js
                     }
 
                     *propertyId = TMapKey_GetPropertyId(scriptContext, key);
-                    *propertyStringName = type->GetScriptContext()->GetPropertyString(*propertyId);
+                    *propertyStringName = scriptContext->GetPropertyString(*propertyId);
 
                     return TRUE;
                 }
@@ -817,8 +816,7 @@ namespace Js
                 attributes,
                 typeToEnumerate,
                 typeToEnumerate,
-                requireEnumerable,
-                enumSymbols);
+                flags);
             ++index)
         {
             SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor;
@@ -827,7 +825,7 @@ namespace Js
             {
                 PropertyRecord const* propertyRecord = type->GetScriptContext()->GetPropertyName(*propertyId);
 
-                AssertMsg(enumSymbols || !propertyRecord->IsSymbol(),
+                AssertMsg(!!(flags & EnumeratorFlags::EnumSymbols) || !propertyRecord->IsSymbol(),
                     "typeHandlerToEnumerate->FindNextProperty call above should not have returned us a symbol if we are not enumerating symbols");
 
                 hasValue = propertyMap->TryGetValue(propertyRecord, &descriptor);
@@ -838,7 +836,7 @@ namespace Js
             }
             if (hasValue &&
                 !(descriptor.Attributes & (PropertyDeleted | PropertyLetConstGlobal)) &&
-                (!requireEnumerable || descriptor.Attributes & PropertyEnumerable))
+                (!!(flags & EnumeratorFlags::EnumNonEnumerable) || descriptor.Attributes & PropertyEnumerable))
             {
                 if (attributes != nullptr)
                 {
@@ -862,30 +860,30 @@ namespace Js
 
     template <>
     BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
-        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
     }
 
     template <>
     BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, true>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
-        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
     }
 
     template <>
     BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
-        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
     }
 
     template <>
     BOOL SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
-        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        return this->FindNextProperty_BigPropertyIndex(scriptContext, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
     }
 
     template <typename TPropertyIndex>

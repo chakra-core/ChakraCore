@@ -10,11 +10,10 @@ namespace Js
     {
     protected:
         DEFINE_VTABLE_CTOR(ModuleNamespaceEnumerator, JavascriptEnumerator);
-        DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(ModuleNamespaceEnumerator);
-        ModuleNamespaceEnumerator(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols = false);
+        ModuleNamespaceEnumerator(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext);
 
     public:
-        static ModuleNamespaceEnumerator* New(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols = false);
+        static ModuleNamespaceEnumerator* New(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext);
         BOOL Init();
         virtual void Reset() override;
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
@@ -22,13 +21,12 @@ namespace Js
 
     private:
         ModuleNamespace* nsObject;
-        JavascriptEnumerator* symbolEnumerator;
+        JavascriptStaticEnumerator symbolEnumerator;
         ModuleNamespace::UnambiguousExportMap* nonLocalMap;
         BigPropertyIndex currentLocalMapIndex;
         BigPropertyIndex currentNonLocalMapIndex;
         bool doneWithLocalExports;
-        bool enumNonEnumerable;
-        bool enumSymbols;
         bool doneWithSymbol;
+        EnumeratorFlags flags;
     };
 }

@@ -355,8 +355,6 @@ namespace Js
 
         StaticType* throwErrorObjectType;
 
-        NullEnumerator *nullEnumerator;
-
         PropertyStringCacheMap* propertyStringMap;
         RecyclerWeakReference<ForInObjectEnumerator>*  cachedForInEnumerator;
 
@@ -957,7 +955,6 @@ namespace Js
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
         DynamicType * CreateGeneratorType(RecyclableObject* prototype);
 
-        JavascriptEnumerator * GetNullEnumerator() const;
 #if 0
         JavascriptNumber* CreateNumber(double value);
 #endif

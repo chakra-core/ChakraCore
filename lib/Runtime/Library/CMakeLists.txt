@@ -10,7 +10,7 @@ add_library (Chakra.Runtime.Library OBJECT
     DataView.cpp
     DateImplementation.cpp
     ES5Array.cpp
-    ES5ArrayEnumerator.cpp
+    ES5ArrayIndexEnumerator.cpp
     EngineInterfaceObject.cpp
     ExternalLibraryBase.cpp
     ForInObjectEnumerator.cpp
@@ -23,10 +23,10 @@ add_library (Chakra.Runtime.Library OBJECT
     JSONStack.cpp
     JSONString.cpp
     JavascriptArray.cpp
-    JavascriptArrayEnumerator.cpp
-    JavascriptArrayEnumeratorBase.cpp
+    JavascriptArrayIndexEnumerator.cpp
+    JavascriptArrayIndexEnumeratorBase.cpp
     JavascriptArrayIterator.cpp
-    JavascriptArraySnapshotEnumerator.cpp
+    JavascriptArrayIndexSnapshotEnumerator.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp
@@ -80,7 +80,6 @@ add_library (Chakra.Runtime.Library OBJECT
     LiteralString.cpp
     MathLibrary.cpp
     ModuleRoot.cpp
-    NullEnumerator.cpp
     ObjectPrototypeObject.cpp
     ProfileString.cpp
     PropertyString.cpp
@@ -108,7 +107,7 @@ add_library (Chakra.Runtime.Library OBJECT
     SubString.cpp
     ThrowErrorObject.cpp
     TypedArray.cpp
-    TypedArrayEnumerator.cpp
+    TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
     amd64/JavascriptFunctionA.S
     )

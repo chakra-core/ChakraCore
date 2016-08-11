@@ -6,15 +6,20 @@
 
 namespace Js
 {
-    class JavascriptArrayEnumerator : public JavascriptArrayEnumeratorBase
+    class TypedArrayIndexEnumerator : public JavascriptEnumerator
     {
+    private:
+        TypedArrayBase* typedArrayObject;
+        uint32 index;
+        bool doneArray;
+        EnumeratorFlags flags;
+
     protected:
-        DEFINE_VTABLE_CTOR(JavascriptArrayEnumerator, JavascriptArrayEnumeratorBase);
-        DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(JavascriptArrayEnumerator);
+        DEFINE_VTABLE_CTOR(TypedArrayIndexEnumerator, JavascriptEnumerator);
 
     public:
-        JavascriptArrayEnumerator(JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols = false);
-        virtual void Reset() override;
+        TypedArrayIndexEnumerator(TypedArrayBase* typeArrayBase, EnumeratorFlags flags, ScriptContext* scriptContext);
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual void Reset() override;
     };
 }
