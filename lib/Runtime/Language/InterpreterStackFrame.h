@@ -259,7 +259,7 @@ namespace Js
         static bool IsBrLong(OpCode op, const byte * ip)
         {
 #ifdef BYTECODE_BRANCH_ISLAND
-            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekExtendedOp(ip)) == OpCode::BrLong);
+            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekExtOp(ip)) == OpCode::BrLong);
 #else
             return false;
 #endif
@@ -305,12 +305,7 @@ namespace Js
         template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
         OpCodeType ReadOp(const byte *& ip);
 
-        Js::OpCode ReadJsOpCode(const byte *& ip);
-        Js::OpCode ReadExtendedJsOpCode(const byte *& ip);
-        Js::OpCodeAsmJs ReadJsOpCodeAsmJs(const byte *& ip);
-        Js::OpCodeAsmJs ReadExtendedJsOpCodeAsmJs(const byte *& ip);
-
-        static void TraceJsOpCode(InterpreterStackFrame* that, Js::OpCode op);
+        static void TraceOpCode(InterpreterStackFrame* that, Js::OpCode op);
         static void TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op);
 
         void* __cdecl operator new(size_t byteSize, void* previousAllocation) throw();
@@ -329,10 +324,10 @@ namespace Js
         Var ProcessProfiled();
         Var ProcessUnprofiled();
 
-        const byte* ProcessProfiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessUnprofiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessWithDebuggingExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessAsmJsExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessProfiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedOpcodePrefix(const byte* ip);
 
         const byte* ProcessProfiledMediumLayoutPrefix(const byte* ip, Var&);
         const byte* ProcessUnprofiledMediumLayoutPrefix(const byte* ip, Var&);

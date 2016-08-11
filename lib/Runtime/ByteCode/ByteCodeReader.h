@@ -45,10 +45,10 @@ namespace Js
         OpCode PeekOp() const { LayoutSize layoutSize; return PeekOp(layoutSize); }
         OpCode PeekOp(const byte * ip, LayoutSize& layoutSize);
 
-        static OpCode PeekSmallOp(const byte*  ip);
-        static OpCode ReadSmallOp(const byte*& ip);
-        static OpCode PeekExtendedOp(const byte*  ip);
-        static OpCode ReadExtendedOp(const byte*& ip);
+        static OpCode PeekByteOp(const byte*  ip);
+        static OpCode ReadByteOp(const byte*& ip);
+        static OpCode PeekExtOp(const byte*  ip);
+        static OpCode ReadExtOp(const byte*& ip);
 
         // Declare reading functions
 #define LAYOUT_TYPE(layout) \

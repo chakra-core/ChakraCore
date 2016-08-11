@@ -2346,27 +2346,7 @@ namespace Js
         return op;
     }
 
-    Js::OpCode InterpreterStackFrame::ReadJsOpCode(const byte *& ip)
-    {
-        return ReadOp<Js::OpCode, ByteCodeReader::ReadSmallOp, &InterpreterStackFrame::TraceJsOpCode>(ip);
-    }
-
-    Js::OpCode InterpreterStackFrame::ReadExtendedJsOpCode(const byte *& ip)
-    {
-        return ReadOp<Js::OpCode, ByteCodeReader::ReadExtendedOp, &InterpreterStackFrame::TraceJsOpCode>(ip);
-    }
-
-    Js::OpCodeAsmJs InterpreterStackFrame::ReadJsOpCodeAsmJs(const byte *& ip)
-    {
-        return ReadOp<Js::OpCodeAsmJs, ByteCodeReader::ReadSmallOp, &InterpreterStackFrame::TraceAsmJsOpCode>(ip);
-    }
-
-    Js::OpCodeAsmJs InterpreterStackFrame::ReadExtendedJsOpCodeAsmJs(const byte *& ip)
-    {
-        return ReadOp<Js::OpCodeAsmJs, ByteCodeReader::ReadExtendedOp, &InterpreterStackFrame::TraceAsmJsOpCode>(ip);
-    }
-
-    void InterpreterStackFrame::TraceJsOpCode(InterpreterStackFrame* that, Js::OpCode op)
+    void InterpreterStackFrame::TraceOpCode(InterpreterStackFrame* that, Js::OpCode op)
     {
 #if DBG_DUMP
         that->scriptContext->byteCodeHistogram[(int)op]++;
@@ -2379,7 +2359,7 @@ namespace Js
 
     void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
     {
-#if DBG_DUMP
+#if DBG_DUMP && !defined(TEMP_DISABLE_ASMJS)
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
         {
             Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
