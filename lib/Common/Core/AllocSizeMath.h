@@ -10,7 +10,7 @@ public:
     // Works for both 32bit and 64bit size_t arithmetic. It's also pretty
     // optimal in the cases where either left or right or both are small, compile-
     // time constants.
-    static size_t Add(__declspec(guard(overflow)) size_t left, __declspec(guard(overflow)) size_t right)
+    static size_t Add(DECLSPEC_GUARD_OVERFLOW size_t left, DECLSPEC_GUARD_OVERFLOW size_t right)
     {
         size_t allocSize = left + right;
         if (allocSize < left)
@@ -28,7 +28,7 @@ public:
     }
 
     // Optimized for right being a constant power of 2...
-    static size_t Mul(__declspec(guard(overflow)) size_t left, __declspec(guard(overflow)) size_t right)
+    static size_t Mul(DECLSPEC_GUARD_OVERFLOW size_t left, DECLSPEC_GUARD_OVERFLOW size_t right)
     {
         size_t allocSize = left * right;
         if (left != (allocSize / right))

@@ -14,10 +14,10 @@ namespace Js
 
     public:
         InternalString() : m_charLength(0), m_content(NULL), m_offset(0) { };
-        InternalString(const char16* content, __declspec(guard(overflow)) charcount_t charLength, unsigned char offset = 0);
-        static InternalString* New(ArenaAllocator* alloc, const char16* content, __declspec(guard(overflow)) charcount_t length);
-        static InternalString* New(Recycler* recycler, const char16* content, __declspec(guard(overflow)) charcount_t length);
-        static InternalString* NewNoCopy(ArenaAllocator* alloc, const char16* content, __declspec(guard(overflow)) charcount_t length);
+        InternalString(const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t charLength, unsigned char offset = 0);
+        static InternalString* New(ArenaAllocator* alloc, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);
+        static InternalString* New(Recycler* recycler, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);
+        static InternalString* NewNoCopy(ArenaAllocator* alloc, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);
 
         inline charcount_t GetLength() const
         {

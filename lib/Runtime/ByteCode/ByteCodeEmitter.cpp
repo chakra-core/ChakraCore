@@ -1824,27 +1824,24 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
 
         funcInfo->GetBodyScope()->ForEachSymbol(setPropIdsForScopeSlotArray);
 
-        if (!funcInfo->paramScope || funcInfo->paramScope->GetCanMergeWithBodyScope())
+        if (funcInfo->thisScopeSlot != Js::Constants::NoRegister)
         {
-            if (funcInfo->thisScopeSlot != Js::Constants::NoRegister)
-            {
-                setPropertyIdForScopeSlotArray(funcInfo->thisScopeSlot, Js::PropertyIds::_lexicalThisSlotSymbol);
-            }
+            setPropertyIdForScopeSlotArray(funcInfo->thisScopeSlot, Js::PropertyIds::_lexicalThisSlotSymbol);
+        }
 
-            if (funcInfo->newTargetScopeSlot != Js::Constants::NoRegister)
-            {
-                setPropertyIdForScopeSlotArray(funcInfo->newTargetScopeSlot, Js::PropertyIds::_lexicalNewTargetSymbol);
-            }
+        if (funcInfo->newTargetScopeSlot != Js::Constants::NoRegister)
+        {
+            setPropertyIdForScopeSlotArray(funcInfo->newTargetScopeSlot, Js::PropertyIds::_lexicalNewTargetSymbol);
+        }
 
-            if (funcInfo->superScopeSlot != Js::Constants::NoRegister)
-            {
-                setPropertyIdForScopeSlotArray(funcInfo->superScopeSlot, Js::PropertyIds::_superReferenceSymbol);
-            }
+        if (funcInfo->superScopeSlot != Js::Constants::NoRegister)
+        {
+            setPropertyIdForScopeSlotArray(funcInfo->superScopeSlot, Js::PropertyIds::_superReferenceSymbol);
+        }
 
-            if (funcInfo->superCtorScopeSlot != Js::Constants::NoRegister)
-            {
-                setPropertyIdForScopeSlotArray(funcInfo->superCtorScopeSlot, Js::PropertyIds::_superCtorReferenceSymbol);
-            }
+        if (funcInfo->superCtorScopeSlot != Js::Constants::NoRegister)
+        {
+            setPropertyIdForScopeSlotArray(funcInfo->superCtorScopeSlot, Js::PropertyIds::_superCtorReferenceSymbol);
         }
 
 #if DEBUG
@@ -2178,7 +2175,7 @@ void ByteCodeGenerator::LoadNewTargetObject(FuncInfo *funcInfo)
             EmitInternalScopedSlotLoad(funcInfo, scope, envIndex, slot, funcInfo->newTargetRegister);
         }
     }
-    else if (this->flags & fscrEval)
+    else if ((funcInfo->IsGlobalFunction() || funcInfo->IsLambda()) && (this->flags & fscrEval))
     {
         Js::RegSlot scopeLocation;
 
@@ -2546,7 +2543,7 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
         {
             envIndex++;
         }
-        if ((((scope == scope->GetFunc()->GetBodyScope() && (!scope->GetFunc()->GetParamScope() || scope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope())) || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
+        if (((scope == scope->GetFunc()->GetBodyScope() || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
         {
             break;
         }
@@ -3263,6 +3260,8 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             }
         }
 
+        InitSpecialScopeSlots(funcInfo);
+
         // Emit all scope-wide function definitions before emitting function bodies
         // so that calls may reference functions they precede lexically.
         // Note, global eval scope is a fake local scope and is handled as if it were
@@ -3273,8 +3272,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             // This only handles function declarations, which param scope cannot have any.
             DefineFunctions(funcInfo);
         }
-
-        InitSpecialScopeSlots(funcInfo);
 
         DefineUserVars(funcInfo);
 
@@ -9119,7 +9116,7 @@ void EmitForIn(ParseNode *loopNode,
     // The EndStatement will happen in the EmitForInOfLoopBody function
     byteCodeGenerator->StartStatement(loopNode->sxForInOrForOf.pnodeLval);
 
-    // branch past loop when GetCurrentAndMoveNext returns nullptr
+    // branch past loop when MoveAndGetNext returns nullptr
     byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrOnEmpty, continuePastLoop, loopNode->sxForInOrForOf.itemLocation, loopNode->location);
     
     EmitForInOfLoopBody(loopNode, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, fReturnValue);

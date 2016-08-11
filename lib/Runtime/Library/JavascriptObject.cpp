@@ -1143,7 +1143,7 @@ namespace Js
         const PropertyRecord* propertyRecord;
         JavascriptSymbol* symbol;
 
-        while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
+        while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
         {
             if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
             {
@@ -1521,7 +1521,7 @@ namespace Js
         Var propertyVar = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = pEnumerator->GetCurrentAndMoveNext(nextKey)) != NULL)
+        while ((propertyVar = pEnumerator->MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
@@ -1684,7 +1684,7 @@ namespace Js
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = pEnumerator->GetCurrentAndMoveNext(propId)) != NULL)
+        while ((tempVar = pEnumerator->MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {

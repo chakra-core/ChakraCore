@@ -27,6 +27,13 @@
     #define __forceinline inline
 #endif
 
+// Only VC compiler support overflow guard
+#if defined(__GNUC__) || defined(__clang__)
+#define DECLSPEC_GUARD_OVERFLOW
+#else // Windows
+#define DECLSPEC_GUARD_OVERFLOW __declspec(guard(overflow))
+#endif
+
 #ifdef __clang__
 #define CLANG_WNO_BEGIN_(x) \
     _Pragma("clang diagnostic push")\

@@ -3446,7 +3446,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
         LowererMD::CreateAssign(newSrc1, src1, instr);
         src1 = newSrc1;
     }
-    else if (dst->IsEqual(src2))
+    if (dst->IsEqual(src2))
     {
         IR::RegOpnd *newSrc2 = IR::RegOpnd::New(TyMachReg, m_func);
         LowererMD::CreateAssign(newSrc2, src2, instr);

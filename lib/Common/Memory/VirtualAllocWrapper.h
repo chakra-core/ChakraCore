@@ -16,7 +16,7 @@ namespace Memory
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, __declspec(guard(overflow)) size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
+    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
 };
 
@@ -42,7 +42,7 @@ public:
 public:
     PreReservedVirtualAllocWrapper();
     ~PreReservedVirtualAllocWrapper();
-    LPVOID      Alloc(LPVOID lpAddress, __declspec(guard(overflow)) size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
+    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
     BOOL        Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
 
     bool        IsInRange(void * address);

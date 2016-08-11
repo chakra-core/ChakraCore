@@ -1287,6 +1287,14 @@
     </default>
 </test>
 <test>
+    <default>
+        <files>module-namespace.js</files>
+        <compile-flags>-ES6Module  -ES7AsyncAwait -Es6ToStringTag</compile-flags>
+        <baseline>module-namespace.baseline</baseline>
+        <tags>exclude_xplat</tags>
+    </default>
+</test>
+<test>
   <default>
     <files>OS_5500719.js</files>
     <compile-flags>-forceserialized</compile-flags>

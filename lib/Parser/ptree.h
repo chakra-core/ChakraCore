@@ -266,6 +266,11 @@ private:
         return (fncFlags & flags) == flags;
     }
 
+    bool HasNoFlags(uint flags) const
+    {
+        return (fncFlags & flags) == 0;
+    }
+
 public:
     void ClearFlags()
     {
@@ -324,6 +329,7 @@ public:
     bool HasWithStmt() const { return HasFlags(kFunctionHasWithStmt); }
     bool IsAccessor() const { return HasFlags(kFunctionIsAccessor); }
     bool IsAsync() const { return HasFlags(kFunctionIsAsync); }
+    bool IsConstructor() const { return HasNoFlags(kFunctionIsAsync|kFunctionIsLambda|kFunctionIsAccessor);  }
     bool IsClassConstructor() const { return HasFlags(kFunctionIsClassConstructor); }
     bool IsBaseClassConstructor() const { return HasFlags(kFunctionIsBaseClassConstructor); }
     bool IsClassMember() const { return HasFlags(kFunctionIsClassMember); }

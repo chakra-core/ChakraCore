@@ -66,7 +66,7 @@ namespace Js
 
         if (enumerator != nullptr)
         {
-            index = enumerator->GetCurrentAndMoveNext(propertyId);
+            index = enumerator->MoveAndGetNext(propertyId);
             if (index == nullptr)
             {
                 // when done with iterator, cleanup the enumerator to avoid GC pressure.
