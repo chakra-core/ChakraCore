@@ -21,7 +21,7 @@ namespace Js
         DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumerator, Base);
         DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(DynamicObjectSnapshotEnumerator);
 
-        Var MoveAndGetNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes);
+        Var MoveAndGetNextFromArray(_Out_ PropertyId& propertyId, PropertyAttributes* attributes);
         JavascriptString * MoveAndGetNextFromObject(T& index, PropertyId& propertyId, PropertyAttributes* attributes);
 
         DynamicObjectSnapshotEnumerator() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
@@ -31,7 +31,7 @@ namespace Js
         static JavascriptEnumerator* New(ScriptContext* scriptContext, DynamicObject* object);
 
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
 } // namespace Js

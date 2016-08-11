@@ -18,7 +18,7 @@ namespace Js
         index = (uint)-1;
     }
 
-    Var JavascriptRegExpEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptRegExpEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
         ScriptContext* scriptContext = regExpObject->GetScriptContext();
@@ -53,9 +53,10 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptRegExpObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptRegExpObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex;
+        propertyId = Constants::NoProperty;
         if (regExpEnumerator != nullptr)
         {
             currentIndex = regExpEnumerator->MoveAndGetNext(propertyId, attributes);

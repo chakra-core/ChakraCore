@@ -57,8 +57,9 @@ namespace Js
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     JavascriptString *
-        DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
+        DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObjectWPCache(T& index, _Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         if (this->initialType != this->object->GetDynamicType())
         {
             if (this->IsCrossSiteEnumerator())
@@ -158,7 +159,7 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex = this->MoveAndGetNextFromArray(propertyId, attributes);
 

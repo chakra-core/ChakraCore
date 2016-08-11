@@ -15,7 +15,7 @@ namespace Js
         Reset();
     }
 
-    Var ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ArgumentsObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (!doneFormalArgs)
         {
@@ -51,7 +51,7 @@ namespace Js
         this->Reset();
     }
 
-    Var ES5ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ES5ArgumentsObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // Formals:
         // - deleted => not in objectArray && not connected -- do not enum, do not advance

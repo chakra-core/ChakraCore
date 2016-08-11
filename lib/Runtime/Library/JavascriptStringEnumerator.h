@@ -18,7 +18,7 @@ namespace Js
     public:
         JavascriptStringEnumerator(JavascriptString* stringObject, ScriptContext * requestContext);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
     class JavascriptStringObjectEnumerator : public JavascriptEnumerator
@@ -37,6 +37,6 @@ namespace Js
     public:
         JavascriptStringObjectEnumerator(JavascriptStringObject* stringObject, ScriptContext * requestContext, BOOL enumNonEnumerable, bool enumSymbols = false);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 }

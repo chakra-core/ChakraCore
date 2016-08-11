@@ -19,7 +19,7 @@ namespace Js
     }
 
 
-    Var JavascriptStringEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptStringEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
         if (++index < stringObject->GetLengthAsSignedInt())
@@ -50,9 +50,10 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptStringObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptStringObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex;
+        propertyId = Constants::NoProperty;
         if (stringEnumerator != nullptr)
         {
             currentIndex = stringEnumerator->MoveAndGetNext(propertyId, attributes);

@@ -13,7 +13,7 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptArrayEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // TypedArrayEnumerator follow the same logic but implementation is slightly
         // different as we don't have sparse array in typed array, and typed array

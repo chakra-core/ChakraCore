@@ -36,7 +36,7 @@ namespace Js
     public:
         virtual void Reset() override;
         virtual uint32 GetCurrentItemIndex() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
 
         static uint32 GetOffsetOfObject() { return offsetof(DynamicObjectEnumerator, object); }
         static uint32 GetOffsetOfArrayEnumerator() { return offsetof(DynamicObjectEnumerator, arrayEnumerator); }

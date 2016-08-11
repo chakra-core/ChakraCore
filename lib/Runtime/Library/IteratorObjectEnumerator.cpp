@@ -20,8 +20,9 @@ namespace Js
         iteratorObject = RecyclableObject::FromVar(iterator);
     }
 
-    Var IteratorObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var IteratorObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         ScriptContext* scriptContext = GetScriptContext();
         if (JavascriptOperators::IteratorStepAndValue(iteratorObject, scriptContext, &value))
         {

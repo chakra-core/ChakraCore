@@ -39,7 +39,7 @@ namespace Js
         Var GetCurrentIndex();        
         BOOL MoveNext();
         void Reset();
-        Var MoveAndGetNext(PropertyId& propertyId);
+        Var MoveAndGetNext(_Out_ PropertyId& propertyId);
 
         static uint32 GetOffsetOfCurrentEnumerator() { return offsetof(ForInObjectEnumerator, currentEnumerator); }
         static uint32 GetOffsetOfFirstPrototype() { return offsetof(ForInObjectEnumerator, firstPrototype); }
@@ -57,7 +57,7 @@ namespace Js
         }
 
         virtual void Reset() override { forInObjectEnumerator.Reset(); }
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
         {
             return forInObjectEnumerator.MoveAndGetNext(propertyId);
         }
