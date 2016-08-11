@@ -8775,14 +8775,17 @@ namespace Js
             Type *type = reinterpret_cast<Type*>(this->guard->GetValue());
             if (!recycler->IsObjectMarked(type))
             {
-                this->guard->Invalidate();
+                this->guard->InvalidateDuringSweep();
             }
             else
             {
                 isAnyTypeLive = true;
             }
         }
-
+        uint16 nonNullIndex = 0;
+#if DBG
+        bool isGuardValuePresent = false;
+#endif
         for (int i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
         {
             Type *type = this->types[i];
@@ -8794,11 +8797,29 @@ namespace Js
                 }
                 else
                 {
+                    // compact the types array by moving non-null types
+                    // at the beginning.
+                    this->types[nonNullIndex++] = type;
                     isAnyTypeLive = true;
+#if DBG
+                    isGuardValuePresent = this->guard->GetValue() == reinterpret_cast<intptr_t>(type) ? true : isGuardValuePresent;
+#endif
                 }
             }
         }
+        if (nonNullIndex > 0)
+        {
+            memset((void*)(this->types + nonNullIndex), 0, sizeof(Js::Type*) * (EQUIVALENT_TYPE_CACHE_SIZE - nonNullIndex));
+        }
+        else if(guard->IsInvalidatedDuringSweep())
+        {
+            // just mark this as actual invalidated since there are no types
+            // present
+            guard->Invalidate();
+        }
 
+        // verify if guard value is valid, it is present in one of the types
+        AssertMsg(!this->guard->IsValid() || isGuardValuePresent, "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
         return isAnyTypeLive;
     }
 
