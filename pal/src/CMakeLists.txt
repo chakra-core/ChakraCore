@@ -93,9 +93,8 @@ set(SOURCES
   cruntime/wchar.cpp
   cruntime/wchartls.cpp
   safecrt/makepath_s.c
-  safecrt/mbusafecrt.c  
+  safecrt/mbusafecrt.c
   safecrt/safecrt_input_s.c
-#  safecrt/safecrt_output_l.c
   safecrt/safecrt_output_s.c
   safecrt/safecrt_winput_s.c
   safecrt/safecrt_woutput_s.c
@@ -181,7 +180,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
       unwind-x86_64
     )
   endif()
-    
+
   target_link_libraries(Chakra.Pal
     gcc_s
     pthread
