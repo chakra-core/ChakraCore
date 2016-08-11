@@ -572,7 +572,7 @@ MultiBranchInstr::CreateBranchTargetsAndSetDefaultTarget(int size, Kind kind, ui
         }
     case StrDictionary:
         {
-            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(allocator, size, m_func->IsOOPJIT());
+            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(allocator, size, m_func->IsOOPJIT() ? m_func->m_alloc : nullptr);
             branchTargets->defaultTarget = (void *)defaultTargetOffset;
             this->m_branchTargets = branchTargets;
             break;

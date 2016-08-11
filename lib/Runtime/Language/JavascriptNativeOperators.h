@@ -75,12 +75,12 @@ namespace Js
             }
         };
 
-        BranchDictionaryWrapper(NativeCodeData::Allocator * allocator, uint dictionarySize, bool oopjit) :
+        BranchDictionaryWrapper(NativeCodeData::Allocator * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc) :
             defaultTarget(nullptr), dictionary((DictAllocator*)allocator, dictionarySize)
         {
-            if (oopjit)
+            if (remoteKeyAlloc)
             {
-                remoteKeys = HeapNewArrayZ(void*, dictionarySize);
+                remoteKeys = AnewArrayZ(remoteKeyAlloc, void*, dictionarySize);
             }
             else
             {
@@ -97,9 +97,9 @@ namespace Js
             return remoteKeys != nullptr;
         }
 
-        static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize, bool oopjit)
+        static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc)
         {
-            return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize, oopjit);
+            return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize, remoteKeyAlloc);
         }
 
         void AddEntry(uint32 offset, T key, void* remoteVar)
@@ -116,7 +116,6 @@ namespace Js
             if (IsOOPJit())
             {
                 dictionary.Fixup(chunkList, remoteKeys);
-                HeapDeleteArray(dictionary.Count(), remoteKeys);
             }
         }
     };
