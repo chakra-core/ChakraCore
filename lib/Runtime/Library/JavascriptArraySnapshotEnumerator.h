@@ -18,6 +18,6 @@ namespace Js
     public:
         JavascriptArraySnapshotEnumerator(JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols = false);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
     };
 }

@@ -574,7 +574,7 @@ namespace JSON
     Js::Var StringifySession::StringifyObject(Js::Var value)
     {
         Js::JavascriptString* propertyName;
-        Js::PropertyId id;
+        Js::PropertyId id = Constants::NoProperty;
         Js::PropertyRecord const * propRecord;
 
         bool isFirstMember = true;

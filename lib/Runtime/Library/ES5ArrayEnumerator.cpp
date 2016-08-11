@@ -17,7 +17,7 @@ namespace Js
         Reset();
     }
 
-    Var ES5ArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ES5ArrayEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 

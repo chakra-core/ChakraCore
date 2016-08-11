@@ -15,8 +15,9 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromArray(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         if (this->arrayEnumerator)
         {
             Var currentIndex = this->arrayEnumerator->MoveAndGetNext(propertyId, attributes);
@@ -52,7 +53,7 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex = MoveAndGetNextFromArray(propertyId, attributes);
         return (currentIndex != nullptr)? currentIndex :

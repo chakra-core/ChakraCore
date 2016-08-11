@@ -19,7 +19,7 @@ namespace Js
     public:
         JavascriptRegExpEnumerator(JavascriptRegExpConstructor* regExpObject, ScriptContext * requestContext, BOOL enumNonEnumerable);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
     class JavascriptRegExpObjectEnumerator : public JavascriptEnumerator
@@ -38,6 +38,6 @@ namespace Js
     public:
         JavascriptRegExpObjectEnumerator(JavascriptRegExpConstructor* regExpObject, ScriptContext * requestContext, BOOL enumNonEnumerable, bool enumSymbols);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 }

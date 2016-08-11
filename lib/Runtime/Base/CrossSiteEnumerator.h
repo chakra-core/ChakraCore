@@ -29,7 +29,7 @@ namespace Js
 
     public:
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual BOOL IsCrossSiteEnumerator() override
         {
             return true;
@@ -44,7 +44,7 @@ namespace Js
     }
 
     template <typename T>
-    Var CrossSiteEnumerator<T>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var CrossSiteEnumerator<T>::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var result = __super::MoveAndGetNext(propertyId, attributes);
         if (result)

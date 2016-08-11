@@ -14,6 +14,7 @@ namespace Js
 
     Var NullEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         return nullptr;
     }
 };

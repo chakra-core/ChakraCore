@@ -56,8 +56,9 @@ namespace Js
     }
 
     // enumeration order: symbol first; local exports next; nonlocal exports last.
-    Var ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var ModuleNamespaceEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         Var undefined = GetLibrary()->GetUndefined();
         Var result = undefined;
         if (attributes != nullptr)

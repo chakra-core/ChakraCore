@@ -2376,7 +2376,7 @@ namespace Js
                             JavascriptEnumerator* enumerator;
                             if (object->GetEnumerator(true/*enumNonEnumable*/, (Var*)&enumerator, scriptContext, false/*preferSnapshotSyntax*/, true/*enumSymbols*/))
                             {
-                                Js::PropertyId propertyId;
+                                Js::PropertyId propertyId = Constants::NoProperty;
                                 Var obj;
 
                                 while ((obj = enumerator->MoveAndGetNext(propertyId)) != nullptr)

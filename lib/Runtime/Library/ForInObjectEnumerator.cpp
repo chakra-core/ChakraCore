@@ -154,7 +154,7 @@ namespace Js
         return currentIndex != NULL;
     }
 
-    Var ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
+    Var ForInObjectEnumerator::MoveAndGetNext(_Out_ PropertyId& propertyId)
     {
         JavascriptEnumerator *pEnumerator = currentEnumerator;
         PropertyRecord const * propRecord;
