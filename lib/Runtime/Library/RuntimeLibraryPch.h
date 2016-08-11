@@ -69,6 +69,9 @@
 #include "Library/JavascriptRegExpEnumerator.h"
 #include "Library/IteratorObjectEnumerator.h"
 
+#include "Library/JavascriptRegistry.h"
+#include "Library/JavascriptLoader.h"
+#include "Library/JavascriptModuleStatus.h"
 
 #include "Library/JavascriptIterator.h"
 #include "Library/JavascriptArrayIterator.h"
@@ -91,6 +94,7 @@
 #include "Language/SimdOps.h"
 
 #include "Language/JavascriptStackWalker.h"
+#include "Language/ModuleNamespace.h"
 
 // .inl files
 #include "Library/JavascriptString.inl"

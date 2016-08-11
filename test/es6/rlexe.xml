@@ -1313,4 +1313,25 @@
     <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
   </default>
 </test>
+<test>
+    <default>
+        <files>module-registry.js</files>
+        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
+    </default>
+</test>
+<test>
+    <default>
+        <files>module-loader.js</files>
+        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
+    </default>
+</test>
+<test>
+    <default>
+        <files>module-modulestatus.js</files>
+        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_xplat</tags>
+    </default>
+</test>
 </regress-exe>

@@ -422,6 +422,14 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptPromise* FromVar(Js::Var aValue);
 
+        static JavascriptPromise* CreateRejectedPromiseFromExceptionObject(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+        static Var CreateRejectedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor);
+        static JavascriptPromise* CreateRejectedPromise(Var resolution, ScriptContext* scriptContext);
+        static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor);
+        static JavascriptPromise* CreateResolvedPromise(Var resolution, ScriptContext* scriptContext);
+        static Var CreatePassThroughPromise(JavascriptPromise* sourcePromise, ScriptContext* scriptContext);
+        static Var CreateThenPromise(JavascriptPromise* sourcePromise, RecyclableObject* fulfillmentHandler, RecyclableObject* rejectionHandler, ScriptContext* scriptContext);
+
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
@@ -437,6 +445,9 @@ namespace Js
         static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
         static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
+        Var Resolve(Var resolution, ScriptContext* scriptContext);
+        Var Reject(Var resolution, ScriptContext* scriptContext);
+
         enum PromiseStatus
         {
             PromiseStatusCode_Undefined,
@@ -447,6 +458,9 @@ namespace Js
 
         PromiseStatus GetStatus() const { return status; }
         Var GetResult() const { return result; }
+
+    protected:
+        Var ResolveHelper(Var resolution, bool isRejecting, ScriptContext* scriptContext);
 
     protected:
         PromiseStatus status;
