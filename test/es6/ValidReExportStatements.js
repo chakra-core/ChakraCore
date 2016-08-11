@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 // Re-export statements
-//export * from 'ValidExportDefaultStatement1.js';
+export * from 'ValidExportDefaultStatement1.js';
 export {} from 'ValidExportDefaultStatement2.js';
 export { foo } from 'ValidExportStatements.js';
 export { bar, } from 'ValidExportStatements.js';

@@ -102,6 +102,7 @@ namespace Js
     class JavascriptSetIterator;
     enum class JavascriptSetIteratorKind;
     class JavascriptStringIterator;
+    class JavascriptListIterator;
     class JavascriptPromise;
     class JavascriptPromiseCapability;
     class JavascriptPromiseReaction;
@@ -501,7 +502,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
-#include "Language/ModuleNamespace.h"
+//#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 
