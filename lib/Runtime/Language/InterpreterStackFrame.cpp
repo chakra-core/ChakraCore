@@ -7442,7 +7442,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <typename RegSlotType>
     Var InterpreterStackFrame::GetReg(RegSlotType localRegisterID) const
     {
-        Var value = m_localSlots[localRegisterID];
+        Var value = m_localSlots[static_cast<int>(localRegisterID)];
         ValidateRegValue(value);
         return value;
     }

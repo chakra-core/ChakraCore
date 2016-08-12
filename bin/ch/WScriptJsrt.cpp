@@ -865,8 +865,10 @@ WScriptJsrt::CallbackMessage::~CallbackMessage()
     {
         WScriptJsrt::PrintException("", JsErrorScriptException);
     }
+CLANG_WNO_BEGIN("-Wunused-variable")
     JsErrorCode errorCode = ChakraRTInterface::JsRelease(m_function, nullptr);
     Assert(errorCode == JsNoError);
+CLANG_WNO_END
     m_function = JS_INVALID_REFERENCE;
 }
 

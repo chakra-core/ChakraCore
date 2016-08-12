@@ -73,6 +73,8 @@ namespace Js
         template<size_t size>
         SimpleTypeHandler<size>* ConvertToNonSharedSimpleType(DynamicObject * instance);
 
+        using DynamicTypeHandler::GetDescriptor; // tell clang we have defined the method below intentionally
+                                                 // clang warning (xxxx hides overloaded virtual function)
         BOOL GetDescriptor(PropertyId propertyId, int * index);
         BOOL SetAttribute(DynamicObject* instance, int index, PropertyAttributes attribute);
         BOOL ClearAttribute(DynamicObject* instance, int index, PropertyAttributes attribute);

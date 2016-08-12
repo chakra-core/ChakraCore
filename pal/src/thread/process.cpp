@@ -1958,7 +1958,10 @@ CreateProcessModules(
         ssize_t read;
 
         char vmmapCommand[100];
+CLANG_WNO_BEGIN("-Wunused-variable")
         int chars = snprintf(vmmapCommand, sizeof(vmmapCommand), "/usr/bin/vmmap -interleaved %d", dwProcessId);
+CLANG_WNO_END
+
         _ASSERTE(chars > 0 && chars <= sizeof(vmmapCommand));
 
         FILE *vmmapFile = popen(vmmapCommand, "r");

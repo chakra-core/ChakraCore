@@ -58,6 +58,19 @@ const CharCountOrFlag CharCountFlag = (CharCountOrFlag)-1;
 #define STRINGIZE(s) QUOTE(s)
 #define STRINGIZEW(s) _u(#s)
 
+#ifdef __clang__
+#define CLANG_WNO_BEGIN_(x) \
+    _Pragma("clang diagnostic push")\
+    _Pragma(#x)
+
+#define CLANG_WNO_BEGIN(x) CLANG_WNO_BEGIN_(clang diagnostic ignored x)
+#define CLANG_WNO_END
+    _Pragma("clang diagnostic pop")
+#else
+#define CLANG_WNO_BEGIN(x)
+#define CLANG_WNO_END
+#endif
+
 namespace Js
 {
     typedef uint32 LocalFunctionId;

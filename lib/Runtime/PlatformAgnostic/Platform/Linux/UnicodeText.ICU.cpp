@@ -40,10 +40,11 @@ namespace PlatformAgnostic
                 case NormalizationForm::KD:
                     normalizer = Normalizer2::getNFKDInstance(errorCode);
                     break;
+CLANG_WNO_BEGIN("-Wsometimes-uninitialized")
                 default:
                     AssertMsg(false, "Unsupported normalization form");
+CLANG_WNO_END
             };
-
             AssertMsg(U_SUCCESS(errorCode), (char*) u_errorName(errorCode));
 
             return normalizer;

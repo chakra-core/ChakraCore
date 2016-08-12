@@ -70,6 +70,9 @@ namespace Js
     public:
         static ConcatStringN<N>* New(ScriptContext* scriptContext);
         const char16 * GetSz() override sealed;
+
+        using ConcatStringBase::SetItem; // tell clang we have defined the method below intentionally
+                                         // clang warning (xxxx hides overloaded virtual function)
         void SetItem(_In_range_(0, N - 1) int index, JavascriptString* value);
 
     protected:
@@ -217,6 +220,9 @@ namespace Js
         static bool Is(Var var);
         static ConcatStringMulti * FromVar(Var value);
         static size_t GetAllocSize(uint slotCount);
+
+        using ConcatStringBase::SetItem; // tell clang we have defined the method below intentionally
+                                         // clang warning (xxxx hides overloaded virtual function)
         void SetItem(_In_range_(0, slotCount - 1) uint index, JavascriptString* value);
 
         static uint32 GetOffsetOfSlotCount() { return offsetof(ConcatStringMulti, slotCount); }

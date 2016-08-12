@@ -405,9 +405,11 @@ namespace Js
     {
         const auto VerifyExecutionModeLimits = [this]()
         {
+CLANG_WNO_BEGIN("-Wunused-variable");
             const Number zero = static_cast<Number>(0);
             const Number maxUint8 = static_cast<Number>(static_cast<uint8>(-1)); // entry point call count is uint8
             const Number maxUint16 = static_cast<Number>(static_cast<uint16>(-1));
+CLANG_WNO_END
 
         #if ENABLE_DEBUG_CONFIG_OPTIONS
             Assert(MinInterpretCount >= zero);
