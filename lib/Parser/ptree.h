@@ -218,6 +218,7 @@ struct PnFnc
     uint32 hintLength;
     uint32 hintOffset;
     bool  isNameIdentifierRef;
+    bool  nestedFuncEscapes;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
     ParseNodePtr pnodeParams;
@@ -266,6 +267,11 @@ private:
         return (fncFlags & flags) == flags;
     }
 
+    bool HasNoFlags(uint flags) const
+    {
+        return (fncFlags & flags) == 0;
+    }
+
 public:
     void ClearFlags()
     {
@@ -304,6 +310,7 @@ public:
     void SetIsModule(bool set = true) { SetFlags(kFunctionIsModule, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
+    void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -324,6 +331,7 @@ public:
     bool HasWithStmt() const { return HasFlags(kFunctionHasWithStmt); }
     bool IsAccessor() const { return HasFlags(kFunctionIsAccessor); }
     bool IsAsync() const { return HasFlags(kFunctionIsAsync); }
+    bool IsConstructor() const { return HasNoFlags(kFunctionIsAsync|kFunctionIsLambda|kFunctionIsAccessor);  }
     bool IsClassConstructor() const { return HasFlags(kFunctionIsClassConstructor); }
     bool IsBaseClassConstructor() const { return HasFlags(kFunctionIsBaseClassConstructor); }
     bool IsClassMember() const { return HasFlags(kFunctionIsClassMember); }
@@ -338,6 +346,7 @@ public:
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
+    bool NestedFuncEscapes() const { return nestedFuncEscapes; }
 
     size_t LengthInBytes()
     {

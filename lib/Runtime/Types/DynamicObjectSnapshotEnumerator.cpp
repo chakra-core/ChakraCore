@@ -15,11 +15,11 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (this->arrayEnumerator)
         {
-            Var currentIndex = this->arrayEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = this->arrayEnumerator->MoveAndGetNext(propertyId, attributes);
             if(currentIndex != nullptr)
             {
                 return currentIndex;
@@ -31,7 +31,7 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    JavascriptString * DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNextFromObject(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObject(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
     {
         JavascriptString* propertyString = nullptr;
         auto newIndex = this->objectIndex;
@@ -52,11 +52,11 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var currentIndex = GetCurrentAndMoveNextFromArray(propertyId, attributes);
+        Var currentIndex = MoveAndGetNextFromArray(propertyId, attributes);
         return (currentIndex != nullptr)? currentIndex :
-            this->GetCurrentAndMoveNextFromObject(this->objectIndex, propertyId, attributes);
+            this->MoveAndGetNextFromObject(this->objectIndex, propertyId, attributes);
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols>

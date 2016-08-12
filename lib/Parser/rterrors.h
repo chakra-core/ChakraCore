@@ -356,3 +356,6 @@ RT_ERROR_MSG(JSERR_JsonNoStrEnd, 5657, "JSON.parse Error: Unterminated string co
 
 // Date.prototype[@@toPrimitive] invalid hint
 RT_ERROR_MSG(JSERR_InvalidHint, 5658, "%s: invalid hint", "invalid hint", kjstTypeError, 0)
+
+RT_ERROR_MSG(JSERR_This_NeedNamespace, 5659, "%s: 'this' is not a Module Namespace object", "Module Namespace object expected", kjstTypeError, JSERR_This_NeedNamespace) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedListIterator, 5660, "%s: 'this' is not a List Iterator object", "List Iterator expected", kjstTypeError, 0) 

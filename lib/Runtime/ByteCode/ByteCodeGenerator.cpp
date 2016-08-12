@@ -2200,8 +2200,17 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
             vars->sxVar.sym = sym;
             if (sym->GetIsArguments())
             {
-                byteCodeGenerator->TopFuncInfo()->SetArgumentsSymbol(sym);
+                FuncInfo* funcInfo = byteCodeGenerator->TopFuncInfo();
+                funcInfo->SetArgumentsSymbol(sym);
+
+                if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                {
+                    Symbol* innerArgSym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                    funcInfo->SetInnerArgumentsSymbol(innerArgSym);
+                    byteCodeGenerator->AssignRegister(innerArgSym);
+                }
             }
+
         }
         else
         {
@@ -2468,9 +2477,16 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
     if (top->IsLambda())
     {
-        if (byteCodeGenerator->FindEnclosingNonLambda()->isThisLexicallyCaptured)
+        FuncInfo *enclosingNonLambda = byteCodeGenerator->FindEnclosingNonLambda();
+
+        if (enclosingNonLambda->isThisLexicallyCaptured)
         {
             top->byteCodeFunction->SetCapturesThis();
+        }
+
+        if (enclosingNonLambda->IsGlobalFunction())
+        {
+            top->byteCodeFunction->SetEnclosedByGlobalFunc();
         }
     }
 
@@ -2800,7 +2816,9 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
             parentFunc->SetChildHasWith();
 
-            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure())
+            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure() ||
+                (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
+                 parentFunc->GetParamScope()->GetCanMergeWithBodyScope()))
             {
                 parentFunc->GetBodyScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
@@ -2871,7 +2889,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         top->AssignSuperCtorRegister();
     }
 
-    if (top->IsClassConstructor())
+    if ((top->root->sxFnc.IsConstructor() && (top->isNewTargetLexicallyCaptured || top->GetCallsEval() || top->GetChildCallsEval())) || top->IsClassConstructor())
     {
         if (top->IsBaseClassConstructor())
         {

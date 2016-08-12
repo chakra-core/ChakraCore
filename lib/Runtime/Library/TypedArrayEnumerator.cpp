@@ -15,29 +15,7 @@ namespace Js
             Reset();
         }
 
-    Var TypedArrayEnumerator::GetCurrentIndex()
-    {
-        if (index != JavascriptArray::InvalidIndex && !doneArray)
-        {
-            return typedArrayObject->GetScriptContext()->GetIntegerString(index);
-        }
-        else if (!doneObject)
-        {
-            return objectEnumerator->GetCurrentIndex();
-        }
-        else
-        {
-            return typedArrayObject->GetType()->GetLibrary()->GetUndefined();
-        }
-    }
-
-    BOOL TypedArrayEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        PropertyId propId;
-        return GetCurrentAndMoveNext(propId, attributes) != nullptr;
-    }
-
-    Var TypedArrayEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var TypedArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // TypedArrayEnumerator follows the same logic in JavascriptArrayEnumerator,
         // but the implementation is slightly different as we don't have sparse array
@@ -68,7 +46,7 @@ namespace Js
         }
         if (!doneObject)
         {
-            Var currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
             if (!currentIndex)
             {
                 doneObject = true;
@@ -86,20 +64,5 @@ namespace Js
         Var enumerator;
         typedArrayObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), true, enumSymbols);
         objectEnumerator = (JavascriptEnumerator*)enumerator;
-    }
-
-    bool TypedArrayEnumerator::GetCurrentPropertyId(PropertyId* propertyId)
-    {
-        if (!doneArray)
-        {
-            *propertyId = Constants::NoProperty;
-            return false;
-        }
-        if (!doneObject)
-        {
-            return objectEnumerator->GetCurrentPropertyId(propertyId);
-        }
-        *propertyId = Constants::NoProperty;
-        return false;
     }
 }

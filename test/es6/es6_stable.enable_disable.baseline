@@ -59,8 +59,8 @@ FLAG ES6 = 1 - setting child flag ES6ToPrimitive = 0
 FLAG ES6ToPrimitive = 0
 FLAG ES6 = 1 - setting child flag ES6ToLength = 0
 FLAG ES6ToLength = 0
-FLAG ES6 = 1 - setting child flag ES6ToStringTag = 0
-FLAG ES6ToStringTag = 0
+FLAG ES6 = 1 - setting child flag ES6ToStringTag = 1
+FLAG ES6ToStringTag = 1
 FLAG ES6 = 1 - setting child flag ES6Unicode = 1
 FLAG ES6Unicode = 1
 FLAG ES6 = 1 - setting child flag ES6UnicodeVerbose = 1

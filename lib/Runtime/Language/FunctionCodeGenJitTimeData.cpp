@@ -667,20 +667,17 @@ namespace Js
 
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
         {
-            if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
+            if (typeSet)
             {
-                if (typeSet)
+                const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
+                Output::Print(_u("Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: "),
+                              id, propertyRecord->GetBuffer(), propertyId, slotIndex);
+                for (uint16 ti = 0; ti < typeCount - 1; ti++)
                 {
-                    const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
-                    Output::Print(_u("Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: "),
-                        id, propertyRecord->GetBuffer(), propertyId, slotIndex);
-                    for (uint16 ti = 0; ti < typeCount - 1; ti++)
-                    {
-                        Output::Print(_u("0x%p, "), typeSet->GetType(ti));
-                    }
-                    Output::Print(_u("0x%p\n"), typeSet->GetType(typeCount - 1));
-                    Output::Flush();
+                    Output::Print(_u("0x%p, "), typeSet->GetType(ti));
                 }
+                Output::Print(_u("0x%p\n"), typeSet->GetType(typeCount - 1));
+                Output::Flush();
             }
         }
 

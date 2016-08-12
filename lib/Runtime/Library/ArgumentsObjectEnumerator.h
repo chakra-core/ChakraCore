@@ -22,10 +22,8 @@ namespace Js
 
     public:
         ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols = false);
-        virtual Var GetCurrentIndex() override;        
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
-        virtual bool GetCurrentPropertyId(PropertyId *propertyId) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
     class ES5ArgumentsObjectEnumerator : public ArgumentsObjectEnumerator
@@ -36,10 +34,8 @@ namespace Js
 
     public:
         ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols = false);
-
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
-
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     private:
         uint enumeratedFormalsInObjectArrayCount;  // The number of enumerated formals for far.
     };

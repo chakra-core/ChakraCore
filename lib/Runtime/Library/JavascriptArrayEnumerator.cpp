@@ -13,7 +13,7 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptArrayEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // TypedArrayEnumerator follow the same logic but implementation is slightly
         // different as we don't have sparse array in typed array, and typed array
@@ -46,7 +46,7 @@ namespace Js
         }
         if (!doneObject)
         {
-            Var currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
             if (currentIndex)
             {
                 return currentIndex;

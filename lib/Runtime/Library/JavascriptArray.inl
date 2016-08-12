@@ -1014,6 +1014,7 @@ SECOND_PASS:
 #endif
         return true;
     }
+
     template<typename T>
     bool JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
     {
@@ -1033,18 +1034,7 @@ SECOND_PASS:
 
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
-            if (newValue == (T)0 || newValue == (T)(-1))
-            {
-                memset(((Js::SparseArraySegment<T>*)head)->elements, ((int)(intptr_t)newValue), sizeof(T)* length);
-            }
-            else
-            {
-                Js::SparseArraySegment<T>* headSegment = ((Js::SparseArraySegment<T>*)head);
-                for (uint32 i = 0; i < length; i++)
-                {
-                    headSegment->elements[i] = newValue;
-                }
-            }
+            CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)head)->elements, length, newValue);
 
             if (length > this->length)
             {
@@ -1082,17 +1072,7 @@ SECOND_PASS:
 
             SetHasNoMissingValues(true);
 
-            if (newValue == (T)0 || newValue == (T)(-1))
-            {
-                memset(((Js::SparseArraySegment<T>*)current)->elements, ((int)(intptr_t)newValue), sizeof(T)* length);
-            }
-            else
-            {
-                for (uint32 i = 0; i < length; i++)
-                {
-                    ((Js::SparseArraySegment<T>*)current)->elements[i] = newValue;
-                }
-            }
+            CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)current)->elements, length, newValue);
             this->SetLastUsedSegment(current);
         }
         else
@@ -1116,17 +1096,9 @@ SECOND_PASS:
         {
             return false;
         }
-        if (newValue == (T)0 || newValue == (T)(-1))
-        {
-            memset((((Js::SparseArraySegment<T>*)current)->elements + (startIndex - current->left)), ((int)(intptr_t)newValue), sizeof(T)* length);
-        }
-        else
-        {
-            for (uint32 i = 0; i < length; i++)
-            {
-                ((Js::SparseArraySegment<T>*)current)->elements[startIndex - current->left + i] = newValue;
-            }
-        }
+        Assert(current->left + current->length >= startIndex + length);
+        T* segmentCopyStart = current->elements + (startIndex - current->left);
+        CopyValueToSegmentBuferNoCheck(segmentCopyStart, length, newValue);
         this->SetLastUsedSegment(current);
 #if DBG
         if (Js::Configuration::Global.flags.MemOpMissingValueValidate)

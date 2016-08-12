@@ -13,45 +13,13 @@ namespace Js
     {
     }
 
-    Var JavascriptStringEnumerator::GetCurrentIndex()
-    {
-        ScriptContext *scriptContext = stringObject->GetScriptContext();
-
-        if (index >= 0 && index < stringObject->GetLengthAsSignedInt())
-        {
-            return scriptContext->GetIntegerString(index);
-        }
-        else
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-    }
-
-    BOOL JavascriptStringEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        if (++index < stringObject->GetLengthAsSignedInt())
-        {
-            if (attributes != nullptr)
-            {
-                *attributes = PropertyEnumerable;
-            }
-
-            return true;
-        }
-        else
-        {
-            index = stringObject->GetLength();
-            return false;
-        }
-    }
-
     void JavascriptStringEnumerator::Reset()
     {
         index = -1;
     }
 
 
-    Var JavascriptStringEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptStringEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
         if (++index < stringObject->GetLengthAsSignedInt())
@@ -82,64 +50,12 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptStringObjectEnumerator::GetCurrentIndex()
-    {
-        if (stringEnumerator != nullptr)
-        {
-            return stringEnumerator->GetCurrentIndex();
-        }
-        else if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentIndex();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
-    BOOL JavascriptStringObjectEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        if (stringEnumerator != nullptr)
-        {
-            if (stringEnumerator->MoveNext(attributes))
-            {
-                return true;
-            }
-            stringEnumerator = nullptr;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            if (objectEnumerator->MoveNext(attributes))
-            {
-                return true;
-            }
-            objectEnumerator = nullptr;
-        }
-        return false;
-    }
-
-    bool JavascriptStringObjectEnumerator::GetCurrentPropertyId(PropertyId* propertyId)
-    {
-        if (stringEnumerator != nullptr)
-        {
-            *propertyId = Constants::NoProperty;
-            return false;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentPropertyId(propertyId);
-        }
-        *propertyId = Constants::NoProperty;
-        return false;
-    }
-
-    Var JavascriptStringObjectEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptStringObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex;
         if (stringEnumerator != nullptr)
         {
-            currentIndex = stringEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            currentIndex = stringEnumerator->MoveAndGetNext(propertyId, attributes);
             if (currentIndex != nullptr)
             {
                 return currentIndex;
@@ -148,7 +64,7 @@ namespace Js
         }
         if (objectEnumerator != nullptr)
         {
-            currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
             if (currentIndex != nullptr)
             {
                 return currentIndex;

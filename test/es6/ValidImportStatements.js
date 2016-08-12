@@ -16,8 +16,8 @@ import { foo } from "ValidExportStatements.js";
 import { foo as foo22, bar, } from "ValidExportStatements.js"
 
 // Namespace import statement
-//import * as ns3 from "ValidExportStatements.js";
-//import * as ns8 from "ValidExportStatements.js"
+import * as ns3 from "ValidExportStatements.js";
+import * as ns8 from "ValidExportStatements.js"
 
 // Import statement with default binding and a second clause
 //import ns4, * as ns5 from "ValidExportStatements.js"

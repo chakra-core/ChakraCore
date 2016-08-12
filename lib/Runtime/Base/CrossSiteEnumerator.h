@@ -28,33 +28,14 @@ namespace Js
         DEFINE_VTABLE_CTOR(CrossSiteEnumerator<T>, T);
 
     public:
-        virtual Var GetCurrentIndex() override;
         virtual void Reset() override;
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual BOOL IsCrossSiteEnumerator() override
         {
             return true;
         }
 
     };
-
-    template<typename T>
-    Var CrossSiteEnumerator<T>::GetCurrentIndex()
-    {
-        Var result = __super::GetCurrentIndex();
-        if (result)
-        {
-            result = CrossSite::MarshalVar(this->GetScriptContext(), result);
-        }
-        return result;
-    }
-
-    template <typename T>
-    BOOL CrossSiteEnumerator<T>::MoveNext(PropertyAttributes* attributes)
-    {
-        return __super::MoveNext(attributes);
-    }
 
     template <typename T>
     void CrossSiteEnumerator<T>::Reset()
@@ -63,9 +44,9 @@ namespace Js
     }
 
     template <typename T>
-    Var CrossSiteEnumerator<T>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var CrossSiteEnumerator<T>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var result = __super::GetCurrentAndMoveNext(propertyId, attributes);
+        Var result = __super::MoveAndGetNext(propertyId, attributes);
         if (result)
         {
             result = CrossSite::MarshalVar(this->GetScriptContext(), result);

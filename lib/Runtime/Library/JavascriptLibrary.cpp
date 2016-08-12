@@ -39,6 +39,12 @@ namespace Js
         SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolToStringTag, PropertyConfigurable),
+        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolIterator, PropertyConfigurable)
+    };
+
     SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(BuiltInPropertyRecords::constructor, PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(BuiltInPropertyRecords::name, PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(BuiltInPropertyRecords::prototype, PropertyWritable);
@@ -46,6 +52,7 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(BuiltInPropertyRecords::prototype);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(BuiltInPropertyRecords::length);
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(FunctionWithLengthAndNameTypeDescriptors);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(ModuleNamespaceTypeDescriptors);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -489,6 +496,7 @@ namespace Js
         withType    = nullptr;
         proxyType   = nullptr;
         promiseType = nullptr;
+        moduleNamespaceType = nullptr;
         javascriptEnumeratorIteratorType = nullptr;
 
         // Initialize boolean types
@@ -517,13 +525,17 @@ namespace Js
             proxyType = DynamicType::New(scriptContext, TypeIds_Proxy, GetNull(), nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
             javascriptEnumeratorIteratorType = DynamicType::New(scriptContext, TypeIds_JavascriptEnumeratorIterator, javascriptEnumeratorIteratorPrototype, nullptr,
-
                 SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         }
 
         if (config->IsES6PromiseEnabled())
         {
             promiseType = DynamicType::New(scriptContext, TypeIds_Promise, promisePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+        }
+
+        if (config->IsES6ModuleEnabled())
+        {
+            moduleNamespaceType = DynamicType::New(scriptContext, TypeIds_ModuleNamespace, nullValue, nullptr, &SharedNamespaceSymbolTypeHandler);
         }
 
         // Initialize Date types
@@ -690,6 +702,8 @@ namespace Js
         setIteratorType = DynamicType::New(scriptContext, TypeIds_SetIterator, setIteratorPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         stringIteratorType = DynamicType::New(scriptContext, TypeIds_StringIterator, stringIteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        listIteratorType = DynamicType::New(scriptContext, TypeIds_ListIterator, iteratorPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
 
         if (config->IsES6GeneratorsEnabled())
@@ -1037,6 +1051,7 @@ namespace Js
         functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
+        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
         promiseResolveFunction = nullptr;
 
 #ifdef ENABLE_SIMDJS
@@ -6243,6 +6258,14 @@ namespace Js
         iteratorResult->SetSlot(SetSlotArguments(Js::PropertyIds::done, 1, done));
 
         return iteratorResult;
+    }
+
+    JavascriptListIterator* JavascriptLibrary::CreateListIterator(ListForListIterator* list)
+    {
+        JavascriptListIterator* iterator = RecyclerNew(this->GetRecycler(), JavascriptListIterator, listIteratorType, list);
+        RuntimeFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
+        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, RuntimeFunction::FromVar(nextFunction), GetScriptContext(), PropertyOperation_None);
+        return iterator;
     }
 
     DynamicObject* JavascriptLibrary::CreateIteratorResultObjectValueFalse(Var value)

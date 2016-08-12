@@ -107,9 +107,7 @@ namespace Js
 
         static BOOL DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, ScriptContext* scriptContext, bool throwOnError = true);
         static Var ToStringHelper(Var thisArg, ScriptContext* scriptContext);
-        static Var LegacyToStringHelper(ScriptContext* scriptContext, TypeId type);
         static JavascriptString* ToStringTagHelper(Var thisArg, ScriptContext* scriptContext, TypeId type);
-        static JavascriptString* ToStringTagHelperOld(Var thisArg, ScriptContext* scriptContext, TypeId type);
 
     private:
         static void AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);

@@ -30,6 +30,8 @@ add_library (Chakra.Runtime.Language OBJECT
     JavascriptNativeOperators.cpp
     JavascriptOperators.cpp
     JavascriptStackWalker.cpp
+    ModuleNamespace.cpp
+    ModuleNamespaceEnumerator.cpp
     ProfilingHelpers.cpp
     ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
