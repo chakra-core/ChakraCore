@@ -40,6 +40,13 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptSymbolObject::SetValue_TTD(Js::Var val)
+    {
+        AssertMsg(val == nullptr || Js::JavascriptSymbol::Is(val), "Only allowable values!");
+
+        this->value = static_cast<Js::JavascriptSymbol*>(val);
+    }
+
     void JavascriptSymbolObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
         if(this->value != nullptr)

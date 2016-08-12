@@ -10,6 +10,9 @@
 //It should also be of a size that allows us to inline the event data for the most common events without being too wasteful on other events.
 #define EVENT_INLINE_DATA_BYTE_COUNT 36
 
+//The limit on event times used as the default value
+#define TTD_EVENT_MAXTIME INT64_MAX
+
 namespace TTD
 {
     //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
@@ -22,25 +25,29 @@ namespace TTD
         //An optional target event time -- intent is interpreted based on the abort code
         const int64 m_optEventTime;
 
-        //An optional -- and static string message to include
-        const LPCWSTR m_staticAbortMessage;
+        //An optional move mode value -- should be built by host we just propagate it
+        const int64 m_optMoveMode;
 
-        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, LPCWSTR staticAbortMessage);
+        //An optional -- and static string message to include
+        const char16* m_staticAbortMessage;
+
+        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, const char16* staticAbortMessage);
 
     public:
         ~TTDebuggerAbortException();
 
-        static TTDebuggerAbortException CreateAbortEndOfLog(LPCWSTR staticMessage);
-        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
-        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
+        static TTDebuggerAbortException CreateAbortEndOfLog(const char16* staticMessage);
+        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, const char16* staticMessage);
+        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, const char16* staticMessage);
 
         bool IsEndOfLog() const;
         bool IsEventTimeMove() const;
         bool IsTopLevelException() const;
 
         int64 GetTargetEventTime() const;
+        int64 GetMoveMode() const;
 
-        LPCWSTR GetStaticAbortMessage() const;
+        const char16* GetStaticAbortMessage() const;
     };
 
     //A struct for tracking time events in a single method
@@ -49,7 +56,7 @@ namespace TTD
         Js::FunctionBody* Function;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR Name; //only added for debugging can get rid of later.
+        const char16* Name; //only added for debugging can get rid of later.
 #endif
 
         uint64 EventTime; //The event time when the function was called
@@ -63,7 +70,7 @@ namespace TTD
         int32 CurrentStatementIndex; //The currently executing statement
         uint64 CurrentStatementLoopTime; //The currently executing statement
 
-                                         //bytecode range of the current stmt
+        //bytecode range of the current stmt
         uint32 CurrentStatementBytecodeMin;
         uint32 CurrentStatementBytecodeMax;
 #endif
@@ -92,8 +99,15 @@ namespace TTD
 
     public:
         TTDebuggerSourceLocation();
+        TTDebuggerSourceLocation(const SingleCallCounter& callFrame);
         TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
         ~TTDebuggerSourceLocation();
+
+        TTDebuggerSourceLocation& operator= (const TTDebuggerSourceLocation& other);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void PrintToConsole(bool newline) const;
+#endif
 
         void Initialize();
 
@@ -107,9 +121,12 @@ namespace TTD
         int64 GetFunctionTime() const;
         int64 GetLoopTime() const;
 
-        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
+        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const;
         uint32 GetLine() const;
         uint32 GetColumn() const;
+
+        //return true if this comes strictly before other in execution order
+        bool IsBefore(const TTDebuggerSourceLocation& other) const;
     };
 
     //////////////////
@@ -158,6 +175,7 @@ namespace TTD
             AllocateExternalArrayBufferActionTag,
             AllocateFunctionActionTag,
 
+            HostExitProcessTag,
             GetAndClearExceptionActionTag,
 
             GetPropertyActionTag,
@@ -174,6 +192,11 @@ namespace TTD
 
             GetTypedArrayInfoActionTag,
 
+            RawBufferCopySync,
+            RawBufferModifySync,
+            RawBufferAsyncModificationRegister,
+            RawBufferAsyncModifyComplete,
+
             ConstructCallActionTag,
             CallbackOpActionTag,
             CodeParseActionTag,
@@ -189,7 +212,7 @@ namespace TTD
         typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         typedef void(*fPtr_EventLogEntryInfoUnload)(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         typedef void(*fPtr_EventLogEntryInfoParse)(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that we use for our pseudo v-table on the EventLogEntry data
@@ -236,7 +259,7 @@ namespace TTD
 
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
-        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
+        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator);
         void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -252,10 +275,10 @@ namespace TTD
         };
 
         void SnapshotEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void SnapshotEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, LPCWSTR uri, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, ThreadContext* threadContext);
         void SnapshotEventLogEntry_UnloadSnapshot(EventLogEntry* evt);
 
         //A struct that represents snapshot events
@@ -268,7 +291,7 @@ namespace TTD
             double EventWallTime;
         };
 
-        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void EventLoopYieldPointEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -280,7 +303,7 @@ namespace TTD
             uint64 BodyCounterId;
         };
 
-        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void CodeLoadEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents telemetry events from the user code
@@ -294,7 +317,7 @@ namespace TTD
         };
 
         void TelemetryEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void TelemetryEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -307,7 +330,7 @@ namespace TTD
             uint64 Seed1;
         };
 
-        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void RandomSeedEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents a simple event that needs a double value (e.g. date values)
@@ -317,7 +340,7 @@ namespace TTD
             double DoubleValue;
         };
 
-        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void DoubleEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents a simple event that needs a string value (e.g. date values)
@@ -328,7 +351,7 @@ namespace TTD
         };
 
         void StringValueEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void StringValueEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -347,7 +370,7 @@ namespace TTD
         };
 
         void PropertyEnumStepEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void PropertyEnumStepEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -359,7 +382,7 @@ namespace TTD
             Js::PropertyId Pid;
         };
 
-        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void SymbolCreationEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -376,7 +399,7 @@ namespace TTD
 
         int64 ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -426,7 +449,7 @@ namespace TTD
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }

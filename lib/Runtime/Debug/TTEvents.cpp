@@ -8,8 +8,8 @@
 
 namespace TTD
 {
-    TTDebuggerAbortException::TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, LPCWSTR staticAbortMessage)
-        : m_abortCode(abortCode), m_optEventTime(optEventTime), m_staticAbortMessage(staticAbortMessage)
+    TTDebuggerAbortException::TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, const char16* staticAbortMessage)
+        : m_abortCode(abortCode), m_optEventTime(optEventTime), m_optMoveMode(optMoveMode), m_staticAbortMessage(staticAbortMessage)
     {
         ;
     }
@@ -19,19 +19,19 @@ namespace TTD
         ;
     }
 
-    TTDebuggerAbortException TTDebuggerAbortException::CreateAbortEndOfLog(LPCWSTR staticMessage)
+    TTDebuggerAbortException TTDebuggerAbortException::CreateAbortEndOfLog(const char16* staticMessage)
     {
-        return TTDebuggerAbortException(1, -1, staticMessage);
+        return TTDebuggerAbortException(1, -1, 0, staticMessage);
     }
 
-    TTDebuggerAbortException TTDebuggerAbortException::CreateTopLevelAbortRequest(int64 targetEventTime, LPCWSTR staticMessage)
+    TTDebuggerAbortException TTDebuggerAbortException::CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, const char16* staticMessage)
     {
-        return TTDebuggerAbortException(2, targetEventTime, staticMessage);
+        return TTDebuggerAbortException(2, targetEventTime, moveMode, staticMessage);
     }
 
-    TTDebuggerAbortException TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(int64 targetEventTime, LPCWSTR staticMessage)
+    TTDebuggerAbortException TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(int64 targetEventTime, const char16* staticMessage)
     {
-        return TTDebuggerAbortException(3, targetEventTime, staticMessage);;
+        return TTDebuggerAbortException(3, targetEventTime, 0, staticMessage);
     }
 
     bool TTDebuggerAbortException::IsEndOfLog() const
@@ -54,7 +54,12 @@ namespace TTD
         return this->m_optEventTime;
     }
 
-    LPCWSTR TTDebuggerAbortException::GetStaticAbortMessage() const
+    int64 TTDebuggerAbortException::GetMoveMode() const
+    {
+        return this->m_optMoveMode;
+    }
+
+    const char16* TTDebuggerAbortException::GetStaticAbortMessage() const
     {
         return this->m_staticAbortMessage;
     }
@@ -65,15 +70,21 @@ namespace TTD
         ;
     }
 
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const SingleCallCounter& callFrame)
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
+    {
+        this->SetLocation(callFrame);
+    }
+
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
         : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_functionLine(other.m_functionLine), m_functionColumn(other.m_functionColumn), m_line(other.m_line), m_column(other.m_column)
     {
         if(other.m_sourceFile != nullptr)
         {
-            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
-            size_t byteLength = wcharLength * sizeof(wchar);
+            size_t char16Length = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = char16Length * sizeof(char16);
 
-            this->m_sourceFile = new wchar[wcharLength];
+            this->m_sourceFile = new char16[char16Length];
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
     }
@@ -82,6 +93,35 @@ namespace TTD
     {
         this->Clear();
     }
+
+    TTDebuggerSourceLocation& TTDebuggerSourceLocation::operator= (const TTDebuggerSourceLocation& other)
+    {
+        if(this != &other)
+        {
+            this->SetLocation(other);
+        }
+
+        return *this;
+    }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+    void TTDebuggerSourceLocation::PrintToConsole(bool newline) const
+    {
+        if(!this->HasValue())
+        {
+            wprintf(_u("undef"));
+        }
+        else
+        {
+            wprintf(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), this->m_sourceFile, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
+        }
+
+        if(newline)
+        {
+            wprintf(_u("\n"));
+        }
+    }
+#endif
 
     void TTDebuggerSourceLocation::Initialize()
     {
@@ -150,10 +190,10 @@ namespace TTD
 
         if(other.m_sourceFile != nullptr)
         {
-            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
-            size_t byteLength = wcharLength * sizeof(wchar);
+            size_t char16Length = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = char16Length * sizeof(char16);
 
-            this->m_sourceFile = new wchar[wcharLength];
+            this->m_sourceFile = new char16[char16Length];
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
 #endif
@@ -198,13 +238,13 @@ namespace TTD
         }
         this->m_sourceFile = nullptr;
 
-        LPCWSTR sourceFile = body->GetSourceContextInfo()->url;
+        const char16* sourceFile = body->GetSourceContextInfo()->url;
         if(sourceFile != nullptr)
         {
-            size_t wcharLength = wcslen(sourceFile) + 1;
-            size_t byteLength = wcharLength * sizeof(wchar);
+            size_t char16Length = wcslen(sourceFile) + 1;
+            size_t byteLength = char16Length * sizeof(char16);
 
-            this->m_sourceFile = new wchar[wcharLength];
+            this->m_sourceFile = new char16[char16Length];
             js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
         }
 #endif
@@ -225,7 +265,7 @@ namespace TTD
         return this->m_ltime;
     }
 
-    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
+    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const
     {
         Js::FunctionBody* resBody = ctx->TTDContextInfo->FindFunctionBodyByFileName(this->m_sourceFile);
 
@@ -277,6 +317,42 @@ namespace TTD
         return this->m_column;
     }
 
+    bool TTDebuggerSourceLocation::IsBefore(const TTDebuggerSourceLocation& other) const
+    {
+        AssertMsg(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
+        AssertMsg(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
+
+        //first check the order of the time parts
+        if(this->m_etime != other.m_etime)
+        {
+            return this->m_etime < other.m_etime;
+        }
+
+        if(this->m_ftime != other.m_ftime)
+        {
+            return this->m_ftime < other.m_ftime;
+        }
+
+        if(this->m_ltime != other.m_ltime)
+        {
+            return this->m_ltime < other.m_ltime;
+        }
+
+        //so all times are the same => min column/min row decide
+        if(this->m_functionLine != other.m_functionLine)
+        {
+            return this->m_functionLine < other.m_functionLine;
+        }
+
+        if(this->m_functionColumn != other.m_functionColumn)
+        {
+            return this->m_functionColumn < other.m_functionColumn;
+        }
+
+        //they are refering to the same location so this is *not* stricly before
+        return false;
+    }
+
     //////////////////
 
     namespace NSLogEvents
@@ -321,7 +397,7 @@ namespace TTD
 #endif
         }
 
-        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator)
+        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
 
@@ -334,7 +410,7 @@ namespace TTD
             auto emitFP = evtFPVTable[(uint32)evt->EventKind].EmitFP;
             if(emitFP != nullptr)
             {
-                emitFP(evt, uri, writer, threadContext);
+                emitFP(evt, writer, threadContext);
             }
 
             writer->WriteRecordEnd();
@@ -366,7 +442,7 @@ namespace TTD
             SnapshotEventLogEntry_UnloadSnapshot(evt);
         }
 
-        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const SnapshotEventLogEntry* snapEvt = GetInlineEventDataAs<SnapshotEventLogEntry, EventKind::SnapshotTag>(evt);
 
@@ -374,7 +450,7 @@ namespace TTD
 
             if(snapEvt->Snap != nullptr)
             {
-                snapEvt->Snap->EmitSnapshot(uri, (DWORD)snapEvt->RestoreTimestamp, threadContext);
+                snapEvt->Snap->EmitSnapshot(snapEvt->RestoreTimestamp, threadContext);
             }
         }
 
@@ -386,13 +462,13 @@ namespace TTD
             snapEvt->Snap = nullptr;
         }
 
-        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, LPCWSTR uri, ThreadContext* threadContext)
+        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, ThreadContext* threadContext)
         {
             SnapshotEventLogEntry* snapEvt = GetInlineEventDataAs<SnapshotEventLogEntry, EventKind::SnapshotTag>(evt);
 
             if(snapEvt->Snap == nullptr)
             {
-                snapEvt->Snap = SnapShot::Parse(uri, (DWORD)snapEvt->RestoreTimestamp, threadContext);
+                snapEvt->Snap = SnapShot::Parse(snapEvt->RestoreTimestamp, threadContext);
             }
         }
 
@@ -402,12 +478,12 @@ namespace TTD
 
             if(snapEvt->Snap != nullptr)
             {
-                HeapDelete(snapEvt->Snap);
+                TT_HEAP_DELETE(SnapShot, snapEvt->Snap);
                 snapEvt->Snap = nullptr;
             }
         }
 
-        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const EventLoopYieldPointEntry* ypEvt = GetInlineEventDataAs<EventLoopYieldPointEntry, EventKind::EventLoopYieldPointTag>(evt);
 
@@ -425,7 +501,7 @@ namespace TTD
 
         //////////////////
 
-        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const CodeLoadEventLogEntry* codeEvt = GetInlineEventDataAs<CodeLoadEventLogEntry, EventKind::TopLevelCodeTag>(evt);
 
@@ -446,7 +522,7 @@ namespace TTD
             alloc.UnlinkString(telemetryEvt->InfoString);
         }
 
-        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const TelemetryEventLogEntry* telemetryEvt = GetInlineEventDataAs<TelemetryEventLogEntry, EventKind::TelemetryLogTag>(evt);
 
@@ -464,7 +540,7 @@ namespace TTD
 
         //////////////////
 
-        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const RandomSeedEventLogEntry* rndEvt = GetInlineEventDataAs<RandomSeedEventLogEntry, EventKind::RandomSeedTag>(evt);
 
@@ -481,7 +557,7 @@ namespace TTD
             rndEvt->Seed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
         }
 
-        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const DoubleEventLogEntry* dblEvt = GetInlineEventDataAs<DoubleEventLogEntry, EventKind::DoubleTag>(evt);
 
@@ -502,7 +578,7 @@ namespace TTD
             alloc.UnlinkString(strEvt->StringValue);
         }
 
-        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const StringValueEventLogEntry* strEvt = GetInlineEventDataAs<StringValueEventLogEntry, EventKind::StringTag>(evt);
 
@@ -528,7 +604,7 @@ namespace TTD
             }
         }
 
-        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const PropertyEnumStepEventLogEntry* propertyEvt = GetInlineEventDataAs<PropertyEnumStepEventLogEntry, EventKind::PropertyEnumTag>(evt);
 
@@ -574,7 +650,7 @@ namespace TTD
 
         //////////////////
 
-        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const SymbolCreationEventLogEntry* symEvt = GetInlineEventDataAs<SymbolCreationEventLogEntry, EventKind::SymbolCreationTag>(evt);
 
@@ -597,7 +673,7 @@ namespace TTD
             return cbrEvt->LastNestedEventTime;
         }
 
-        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
 
@@ -645,6 +721,12 @@ namespace TTD
             callEvt->ArgArray = alloc.SlabAllocateArray<TTDVar>(callEvt->ArgCount);
             callEvt->ArgArray[0] = static_cast<TTDVar>(function);
             js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
+
+            //Initialize this info in case we terminate without completing (e.g. exit(1))
+            callEvt->ReturnValue = nullptr;
+            callEvt->AdditionalInfo->HasScriptException = false;
+            callEvt->AdditionalInfo->HasTerminiatingException = false;
+            callEvt->AdditionalInfo->LastNestedEventTime = TTD_EVENT_MAXTIME;
         }
 
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent)
@@ -670,7 +752,7 @@ namespace TTD
             alloc.UnlinkAllocation(callEvt->AdditionalInfo);
         }
 
-        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 

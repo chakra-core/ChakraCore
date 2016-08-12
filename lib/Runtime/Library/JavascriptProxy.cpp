@@ -2357,36 +2357,46 @@ namespace Js
 
     void JavascriptProxy::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        uint32 depOnCount = (this->handler != nullptr ? 1 : 0) + (this->target != nullptr ? 1 : 0);
-        TTD_PTR_ID* depOnArray = (depOnCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount) : nullptr;
-
         TTD::NSSnapObjects::SnapProxyInfo* spi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapProxyInfo>();
 
-        uint32 pos = 0;
+        const uint32 reserveSize = 2;
+        uint32 depOnCount = 0;
+        TTD_PTR_ID* depOnArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(reserveSize);
+
         spi->HandlerId = TTD_INVALID_PTR_ID;
         if(this->handler != nullptr)
         {
             spi->HandlerId = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
-            depOnArray[pos] = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
 
-            pos++;
+            if(TTD::JsSupport::IsVarComplexKind(this->handler))
+            {
+                depOnArray[depOnCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
+                depOnCount++;
+            }
         }
 
         spi->TargetId = TTD_INVALID_PTR_ID;
         if(this->target != nullptr)
         {
             spi->TargetId = TTD_CONVERT_VAR_TO_PTR_ID(this->target);
-            depOnArray[pos] = TTD_CONVERT_VAR_TO_PTR_ID(this->target);
 
-            pos++;
+            if(TTD::JsSupport::IsVarComplexKind(this->handler))
+            {
+                depOnArray[depOnCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->target);
+                depOnCount++;
+            }
         }
 
         if(depOnCount == 0)
         {
+            alloc.SlabAbortArraySpace<TTD_PTR_ID>(reserveSize);
+
             TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapProxyInfo*, TTD::NSSnapObjects::SnapObjectType::SnapProxyObject>(objData, spi);
         }
         else
         {
+            alloc.SlabCommitArraySpace<TTD_PTR_ID>(depOnCount, reserveSize);
+
             TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapProxyInfo*, TTD::NSSnapObjects::SnapObjectType::SnapProxyObject>(objData, spi, alloc, depOnCount, depOnArray);
         }
     }

@@ -1932,6 +1932,12 @@ namespace Js
 
         return plength;
     }
+
+    Js::PropertyIndex PathTypeHandlerBase::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        //The regular LookupInline is fine for path types
+        return this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
+    }
 #endif
 
     SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType)

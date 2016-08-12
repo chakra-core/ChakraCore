@@ -700,6 +700,11 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    Js::PropertyIndex DynamicTypeHandler::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        return Constants::NoSlot;
+    }
+
     void DynamicTypeHandler::ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
     {
         handler->HandlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
@@ -730,19 +735,12 @@ namespace Js
         }
 
         //The kind of type this snaptype record is associated with and the extensible flag
-        handler->IsExtensibleFlag = this->GetFlags() & IsExtensibleFlag;
+        handler->IsExtensibleFlag = this->GetFlags() & Js::DynamicTypeHandler::IsExtensibleFlag;
     }
 
-    void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)
+    void DynamicTypeHandler::SetExtensible_TTD()
     {
-        if(extensibleFlag == IsExtensibleFlag)
-        {
-            this->flags |= extensibleFlag;
-        }
-        else
-        {
-            this->flags = (this->flags & ~IsExtensibleFlag);
-        }
+        this->flags |= Js::DynamicTypeHandler::IsExtensibleFlag;
     }
 #endif
 }

@@ -1143,6 +1143,56 @@ private:
             return ((modeIsPending | modeIsRecord) & inDebugableCode);
         }
 
+        //A special record check because we want to take action on async buffer registration and completion even if we have not started actively logging (but are planning to do so in the future)
+        bool ShouldPerformAsyncBufferModAction() const
+        {
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
+        //A special check for to see if we want to push the supression flag for getter exection
+        bool ShouldDoGetterInvocationSupression() const
+        {
+#if !ENABLE_TTD_DEBUGGING
+            return false;
+#else
+            return (this->TTDMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
+#endif
+        }
+
+        //A special check to see if we are debugging and want to suppress the execution of getters when displaying values in the debugger
+        bool ShouldSuppressGetterInvocationForDebuggerEvaluation() const
+        {
+#if !ENABLE_TTD_DEBUGGING
+            return false;
+#else
+            return (this->TTDMode & TTD::TTDMode::TTDShouldSupressGetterActionMask) == TTD::TTDMode::TTDShouldSupressGetterActionMask;
+#endif
+        }
+
+        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
+        bool ShouldSuppressBreakpointsForTimeTravelMove() const
+        {
+#if !ENABLE_TTD_DEBUGGING
+            return false;
+#else
+            return (this->TTDMode & TTD::TTDMode::DebuggerSuppressBreakpoints) == TTD::TTDMode::DebuggerSuppressBreakpoints;
+#endif
+        }
+
+        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
+        bool ShouldRecordBreakpointsDuringTimeTravelScan() const
+        {
+#if !ENABLE_TTD_DEBUGGING
+            return false;
+#else
+            return (this->TTDMode & TTD::TTDMode::DebuggerLogBreakpoints) == TTD::TTDMode::DebuggerLogBreakpoints;
+#endif
+        }
+
         //
         //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
         //

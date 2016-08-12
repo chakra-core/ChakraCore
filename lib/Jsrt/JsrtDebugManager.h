@@ -40,6 +40,10 @@ public:
     Js::DynamicObject* SetBreakPoint(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber);
     void GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext* scriptContext);
 
+#if ENABLE_TTD_DEBUGGING
+    Js::BreakpointProbe* SetBreakpointHelper_TTD(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, bool* isNewBP);
+#endif
+
     JsrtDebuggerObjectsManager* GetDebuggerObjectsManager();
     void ClearDebuggerObjects();
 

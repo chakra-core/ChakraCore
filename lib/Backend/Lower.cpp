@@ -4036,7 +4036,10 @@ Lowerer::LowerNewScIntArray(IR::Instr *arrInstr)
 
             // Only do fast-path if it isn't a JitProfiling instr and not copy-on-access array
             if (arrInstr->IsProfiledInstr()
-                && (PHASE_OFF1(Js::Phase::CopyOnAccessArrayPhase) || arrayInfo->isNotCopyOnAccessArray) && !PHASE_FORCE1(Js::Phase::CopyOnAccessArrayPhase))
+#if ENABLE_COPYONACCESS_ARRAY
+                && (PHASE_OFF1(Js::Phase::CopyOnAccessArrayPhase) || arrayInfo->isNotCopyOnAccessArray) && !PHASE_FORCE1(Js::Phase::CopyOnAccessArrayPhase)
+#endif
+                )
             {
                 GenerateProfiledNewScIntArrayFastPath(arrInstr, arrayInfo, weakFuncRef);
             }

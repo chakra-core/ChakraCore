@@ -11,20 +11,16 @@ public :
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
     static void LogError(__in __nullterminated const char16 *msg, ...);
 
-    static void TTReportLastIOErrorAsNeeded(BOOL ok, char* msg);
-    static void CreateDirectoryIfNeeded(const char16* path);
-    static void DeleteDirectory(const char16* path);
-    static void GetFileFromURI(const char16* uri, char16** res);
-    static void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir);
+    static void TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg);
+    static void CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes);
+    static void CleanDirectory(size_t uriByteLength, const byte* uriBytes);
 
-    static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri);
-    static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri);
-    static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write);
+    static void GetTTDDirectory(const wchar* curi, size_t* uriByteLength, byte* uriBytes);
 
-    static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write);
-    static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write);
-    static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write);
-    static bool CALLBACK TTReadBytesFromStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* readCount);
-    static bool CALLBACK TTWriteBytesToStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* writtenCount);
-    static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE handle, bool read, bool write);
+    static void CALLBACK TTInitializeForWriteLogStreamCallback(size_t uriByteLength, const byte* uriBytes);
+    static JsTTDStreamHandle CALLBACK TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write);
+
+    static bool CALLBACK TTReadBytesFromStreamCallback(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount);
+    static bool CALLBACK TTWriteBytesToStreamCallback(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount);
+    static void CALLBACK TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, bool read, bool write);
 };
