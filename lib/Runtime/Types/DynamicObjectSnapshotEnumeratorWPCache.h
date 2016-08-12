@@ -14,10 +14,10 @@ namespace Js
      *      the same type is enumerated, thus speeding up enumeration by eliminating
      *      virtual calls, internal property checks, and property string lookup
      **************************************************************************************/
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    class DynamicObjectSnapshotEnumeratorWPCache : public DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>
+    template <bool enumNonEnumerable, bool enumSymbols>
+    class DynamicObjectSnapshotEnumeratorWPCache : public DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols>
     {
-        typedef DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols> Base;
+        typedef DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols> Base;
 
     protected:
         DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumeratorWPCache, Base);
@@ -25,16 +25,16 @@ namespace Js
 
     private:
         DynamicObjectSnapshotEnumeratorWPCache(ScriptContext* scriptContext)
-            : DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>(scriptContext)
+            : DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols>(scriptContext)
         {
         }
 
-        JavascriptString * MoveAndGetNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes);
+        JavascriptString * MoveAndGetNextFromObjectWPCache(BigPropertyIndex& index, PropertyId& propertyId, PropertyAttributes* attributes);
 
         struct CachedData
         {
             PropertyString ** strings;
-            T * indexes;
+            BigPropertyIndex * indexes;
             PropertyAttributes * attributes;
             int cachedCount;
             bool completed;

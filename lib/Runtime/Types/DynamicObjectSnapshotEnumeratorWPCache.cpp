@@ -6,16 +6,16 @@
 
 namespace Js
 {
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    JavascriptEnumerator* DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::New(ScriptContext* scriptContext, DynamicObject* object)
+    template <bool enumNonEnumerable, bool enumSymbols>
+    JavascriptEnumerator* DynamicObjectSnapshotEnumeratorWPCache<enumNonEnumerable, enumSymbols>::New(ScriptContext* scriptContext, DynamicObject* object)
     {
         DynamicObjectSnapshotEnumeratorWPCache* enumerator = RecyclerNew(scriptContext->GetRecycler(), DynamicObjectSnapshotEnumeratorWPCache, scriptContext);
         enumerator->Initialize(object, false);
         return enumerator;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    void DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::Initialize(DynamicObject* object, bool allowUnlockedType/*= false*/)
+    template <bool enumNonEnumerable, bool enumSymbols>
+    void DynamicObjectSnapshotEnumeratorWPCache<enumNonEnumerable, enumSymbols>::Initialize(DynamicObject* object, bool allowUnlockedType/*= false*/)
     {
         __super::Initialize(object);
 
@@ -31,7 +31,7 @@ namespace Js
         }
         else
         {
-            VirtualTableInfo<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>::SetVirtualTable(this); // Downgrade to normal snapshot enumerator
+            VirtualTableInfo<DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols>>::SetVirtualTable(this); // Downgrade to normal snapshot enumerator
             return;
         }
 
@@ -42,10 +42,10 @@ namespace Js
         if (data == nullptr || data->enumNonEnumerable != enumNonEnumerable || data->enumSymbols != enumSymbols)
         {
             data = RecyclerNewStructPlus(scriptContext->GetRecycler(),
-                this->initialPropertyCount * sizeof(PropertyString *) + this->initialPropertyCount * sizeof(T) + this->initialPropertyCount * sizeof(PropertyAttributes), CachedData);
+                this->initialPropertyCount * sizeof(PropertyString *) + this->initialPropertyCount * sizeof(BigPropertyIndex) + this->initialPropertyCount * sizeof(PropertyAttributes), CachedData);
             data->cachedCount = 0;
             data->strings = (PropertyString **)(data + 1);
-            data->indexes = (T *)(data->strings + this->initialPropertyCount);
+            data->indexes = (BigPropertyIndex *)(data->strings + this->initialPropertyCount);
             data->attributes = (PropertyAttributes*)(data->indexes + this->initialPropertyCount);
             data->completed = false;
             data->enumNonEnumerable = enumNonEnumerable;
@@ -55,21 +55,21 @@ namespace Js
         this->cachedData = data;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
+    template <bool enumNonEnumerable, bool enumSymbols>
     JavascriptString *
-        DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
+    DynamicObjectSnapshotEnumeratorWPCache<enumNonEnumerable, enumSymbols>::MoveAndGetNextFromObjectWPCache(BigPropertyIndex& index, PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (this->initialType != this->object->GetDynamicType())
         {
             if (this->IsCrossSiteEnumerator())
             {
                 // downgrade back to the normal snapshot enumerator
-                VirtualTableInfo<CrossSiteEnumerator<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>>::SetVirtualTable(this);
+                VirtualTableInfo<CrossSiteEnumerator<DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols>>>::SetVirtualTable(this);
             }
             else
             {
                 // downgrade back to the normal snapshot enumerator
-                VirtualTableInfo<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>::SetVirtualTable(this);
+                VirtualTableInfo<DynamicObjectSnapshotEnumerator<enumNonEnumerable, enumSymbols>>::SetVirtualTable(this);
             }
             return this->MoveAndGetNextFromObject(this->objectIndex, propertyId, attributes);
         }
@@ -157,8 +157,8 @@ namespace Js
         return propertyStringName;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    template <bool enumNonEnumerable, bool enumSymbols>
+    Var DynamicObjectSnapshotEnumeratorWPCache<enumNonEnumerable, enumSymbols>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         Var currentIndex = this->MoveAndGetNextFromArray(propertyId, attributes);
 
@@ -170,8 +170,8 @@ namespace Js
         return currentIndex;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    void DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::Reset()
+    template <bool enumNonEnumerable, bool enumSymbols>
+    void DynamicObjectSnapshotEnumeratorWPCache<enumNonEnumerable, enumSymbols>::Reset()
     {
         // If we are reusing the enumerator the object type should be the same
         Assert(this->object->GetDynamicType() == this->initialType);
@@ -182,12 +182,8 @@ namespace Js
         this->enumeratedCount = 0;
     }
 
-    template class DynamicObjectSnapshotEnumeratorWPCache<PropertyIndex, true, true>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<PropertyIndex, true, false>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<PropertyIndex, false, true>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<PropertyIndex, false, false>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, true, true>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, true, false>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, false, true>;
-    template class DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, false, false>;
+    template class DynamicObjectSnapshotEnumeratorWPCache<true, true>;
+    template class DynamicObjectSnapshotEnumeratorWPCache<true, false>;
+    template class DynamicObjectSnapshotEnumeratorWPCache<false, true>;
+    template class DynamicObjectSnapshotEnumeratorWPCache<false, false>;
 };

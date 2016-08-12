@@ -9,7 +9,7 @@ namespace Js
     class ForInObjectEnumerator : public WeakReferenceCache<ForInObjectEnumerator>
     {
     private:
-        DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, true, false> embeddedEnumerator;
+        DynamicObjectSnapshotEnumeratorWPCache<true, false> embeddedEnumerator;
         JavascriptEnumerator * currentEnumerator;
         RecyclableObject *object;
         RecyclableObject *baseObject;
