@@ -1977,12 +1977,6 @@ if (!sourceList)
     }
 
 
-    Utf8SourceInfo* ScriptContext::CloneSourceCrossContext(Utf8SourceInfo* crossContextSourceInfo, SRCINFO const* srcInfo)
-    {
-        return Utf8SourceInfo::CloneNoCopy(this, crossContextSourceInfo, srcInfo);
-    }
-
-
     uint ScriptContext::SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8)
     {
         Assert(sourceInfo->GetScriptContext() == this);
@@ -5525,20 +5519,3 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
 } // End namespace Js
 
-SRCINFO* SRCINFO::Clone(Js::ScriptContext* scriptContext) const
-{
-    SRCINFO* srcInfo;
-    if (this->sourceContextInfo->dwHostSourceContext == Js::Constants::NoHostSourceContext  &&
-        this->dlnHost == 0 && this->ulColumnHost == 0 && this->ulCharOffset == 0 &&
-        this->ichMinHost == 0 && this->ichLimHost == 0 && this->grfsi == 0)
-    {
-        srcInfo = const_cast<SRCINFO*>(scriptContext->GetModuleSrcInfo(this->moduleID));
-    }
-    else
-    {
-        SourceContextInfo* sourceContextInfo = this->sourceContextInfo->Clone(scriptContext);
-        srcInfo = SRCINFO::Copy(scriptContext->GetRecycler(), this);
-        srcInfo->sourceContextInfo = sourceContextInfo;
-    }
-    return srcInfo;
-}

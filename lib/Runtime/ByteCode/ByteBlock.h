@@ -48,13 +48,5 @@ namespace Js
         const byte* GetBuffer() const;
         const byte operator[](uint itemIndex) const;
         byte& operator[] (uint itemIndex);
-
-        ByteBlock * Clone(Recycler* alloc);
-
-        //
-        // Create a copy of buffer
-        // Each Var is cloned on the requestContext
-        //
-        ByteBlock * Clone(Recycler* alloc, ScriptContext * requestContext);
     };
 } // namespace Js
