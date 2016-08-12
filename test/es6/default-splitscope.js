@@ -913,6 +913,23 @@ var tests = [
             }
         }
         assert.areEqual([2, 3], f16(1, undefined, 2, 3), "Rest should remain unaffected when arguments is updated");
+
+        function f18(a, b = () => eval("arguments[0]")) {
+            return b();
+        }
+        assert.areEqual(1, f18(1), "eval('arguments') inside split scope should work correctly");
+        assert.areEqual([1, 2], f18([1, 2]), "eval('arguments') inside split scope should work correctly");
+
+        function f19(a, b = eval('() => () => eval("arguments[0]"')) {
+            return b()();
+        }
+        assert.areEqual(1, f18(1), "nested eval('arguments') inside split scope should work correctly");
+        assert.areEqual([1, 2], f18([1, 2]), "nested eval('arguments') inside split scope should work correctly");
+
+        function f20(a, c = () => eval("arguments.length")) {
+            return c();
+        }
+        assert.areEqual(1, f20(1), "arguments.length is set correctly with eval in split scope lambda");
     }  
   },
   {

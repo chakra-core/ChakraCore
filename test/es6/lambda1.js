@@ -270,6 +270,52 @@ var tests = [
         }
     },
     {
+        name: "eval('arguments') works correctly within lambdas",
+        body: function () {
+            var arguments = 'not arguments object';
+            assert.areEqual(arguments, (() => eval("arguments"))(), "arguments in lambda should bind to outside arguments since it is not given its own arguments binding");
+
+            function h () {
+                return () => {
+                    assert.areEqual(5, eval("arguments.length"), "captured arguments length is respected");
+                    assert.areEqual(h, eval("arguments.callee"), "arguments caller is respected");
+                    assert.areEqual(1, eval("arguments[0]"), "first argument is 1");
+                    assert.areEqual(2, eval("arguments[1]"), "second argument is 2");
+                    assert.areEqual(3, eval("arguments[2]"), "third argument is 3");
+                    assert.areEqual('abc', eval("arguments[3]"), "fourth argument is 'abc'");
+                    assert.areEqual(null, eval("arguments[4]"), "fifth argument is null");
+                };
+            }
+            h(1, 2, 3, 'abc', null)();
+
+            function i () {
+                return () => () => { return () => eval("arguments"); };
+            }
+            var args = i('a', 'b', 'c', 123, undefined)()()();
+
+            assert.areEqual(5, args.length, "captured arguments (through multiple lambdas) length is respected");
+            assert.areEqual(i, args.callee, "arguments (through multiple lambdas) caller is respected");
+            assert.areEqual('a', args[0], "first argument (through multiple lambdas) is 'a'");
+            assert.areEqual('b', args[1], "second argument (through multiple lambdas) is 'b'");
+            assert.areEqual('c', args[2], "third argument (through multiple lambdas) is 'c'");
+            assert.areEqual(123, args[3], "fourth argument (through multiple lambdas) is 123");
+            assert.areEqual(undefined, args[4], "fifth argument (through multiple lambdas) is undefined");
+
+            function j () {
+                var arguments = 'not an arguments object';
+                return () => eval("arguments");
+            }
+
+            assert.areEqual('not an arguments object', j()(), "lambda captures local variables named arguments");
+
+            function k (arguments) {
+                return () => eval("arguments");
+            }
+
+            assert.areEqual('foo', k('foo')(), "lambda captures formal parameters named arguments");
+        }
+    },
+    {
         name: "Capturing dynamically scoped variables",
         body: function () {
             eval("var a = 10;");
