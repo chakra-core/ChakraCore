@@ -94,7 +94,7 @@ namespace TTD
         reader->ReadDouble(NSTokens::Key::timeMark, true);
         reader->ReadDouble(NSTokens::Key::timeExtract, true);
 
-        SnapShot* snap = HeapNew(SnapShot);
+        SnapShot* snap = TT_HEAP_NEW(SnapShot);
 
         uint32 ctxCount = reader->ReadLengthValue(true);
         reader->ReadSequenceStart_WDefaultKey(true);
@@ -182,7 +182,7 @@ namespace TTD
             res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snpObject->OptWellKnownToken);
 
             //Well known objects may always be dirty (e.g. we are re-using a context) so we always want to clean them
-            res = NSSnapObjects::ObjectPropertyReset(snpObject, Js::DynamicObject::FromVar(res), inflator, FALSE);
+            res = NSSnapObjects::ObjectPropertyReset(snpObject, Js::DynamicObject::FromVar(res), inflator, true);
             AssertMsg(res != nullptr, "Should always produce a result!!!");
         }
         else
@@ -236,14 +236,14 @@ namespace TTD
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject] = { &NSSnapObjects::DoObjectInflation_SnapHeapArgumentsInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapHeapArgumentsInfo<NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>, &NSSnapObjects::ParseAddtlInfo_SnapHeapArgumentsInfo<NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject> };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject] = { &NSSnapObjects::DoObjectInflation_SnapES5HeapArgumentsInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapHeapArgumentsInfo<NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject>, &NSSnapObjects::ParseAddtlInfo_SnapHeapArgumentsInfo<NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject> };
 
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapBoxedValueObject] = { &NSSnapObjects::DoObjectInflation_SnapBoxedValue, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapBoxedValue, &NSSnapObjects::ParseAddtlInfo_SnapBoxedValue };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapBoxedValueObject] = { &NSSnapObjects::DoObjectInflation_SnapBoxedValue, &NSSnapObjects::DoAddtlValueInstantiation_SnapBoxedValue, &NSSnapObjects::EmitAddtlInfo_SnapBoxedValue, &NSSnapObjects::ParseAddtlInfo_SnapBoxedValue };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapDateObject] = { &NSSnapObjects::DoObjectInflation_SnapDate, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapDate, &NSSnapObjects::ParseAddtlInfo_SnapDate };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapRegexObject] = { &NSSnapObjects::DoObjectInflation_SnapRegexInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapRegexInfo, &NSSnapObjects::ParseAddtlInfo_SnapRegexInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapErrorObject] = { &NSSnapObjects::DoObjectInflation_SnapError, nullptr, nullptr, nullptr };
 
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<TTDVar, Js::Var, NSSnapObjects::SnapObjectType::SnapArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<TTDVar, NSSnapObjects::SnapObjectType::SnapArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<TTDVar, NSSnapObjects::SnapObjectType::SnapArrayObject> };
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<int32, int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject> };
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<double, double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject> };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo<Js::Var, NSSnapObjects::SnapObjectType::SnapArrayObject>, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<TTDVar, Js::Var, NSSnapObjects::SnapObjectType::SnapArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<TTDVar, NSSnapObjects::SnapObjectType::SnapArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<TTDVar, NSSnapObjects::SnapObjectType::SnapArrayObject> };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo<int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<int32, int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<int32, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject> };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>, &NSSnapObjects::DoAddtlValueInstantiation_SnapArrayInfo<double, double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>, &NSSnapObjects::EmitAddtlInfo_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>, &NSSnapObjects::ParseAddtlInfo_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject> };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapES5ArrayObject] = { &NSSnapObjects::DoObjectInflation_SnapES5ArrayInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapES5ArrayInfo, &NSSnapObjects::EmitAddtlInfo_SnapES5ArrayInfo, &NSSnapObjects::ParseAddtlInfo_SnapES5ArrayInfo };
 
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapArrayBufferObject] = { &NSSnapObjects::DoObjectInflation_SnapArrayBufferInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapArrayBufferInfo, &NSSnapObjects::ParseAddtlInfo_SnapArrayBufferInfo };
@@ -444,34 +444,31 @@ namespace TTD
 
         Js::ScriptContext* tCtx = inflator->LookupScriptContext(sCtx->m_scriptContextLogId);
         NSSnapValues::ReLinkRoots(sCtx, tCtx, inflator);
+        NSSnapValues::ResetPendingAsyncBufferModInfo(sCtx, tCtx, inflator);
     }
 
-    void SnapShot::EmitSnapshot(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext) const
+    void SnapShot::EmitSnapshot(int64 snapId, ThreadContext* threadContext) const
     {
-        wchar* snapIdString = HeapNewArrayZ(wchar, 64);
-        swprintf_s(snapIdString, 64, _u("%u"), snapId);
+        char asciiResourceName[64];
+        sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, false, true);
+        JsTTDStreamHandle snapHandle = threadContext->TTDStreamFunctions.pfGetResourceStream(threadContext->TTDUri.UriByteLength, threadContext->TTDUri.UriBytes, asciiResourceName, false, true);
 
         TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         this->EmitSnapshotToFile(&snapwriter, threadContext);
         snapwriter.FlushAndClose();
-
-        HeapDeleteArray(64, snapIdString);
     }
 
-    SnapShot* SnapShot::Parse(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext)
+    SnapShot* SnapShot::Parse(int64 snapId, ThreadContext* threadContext)
     {
-        wchar* snapIdString = HeapNewArrayZ(wchar, 64);
-        swprintf_s(snapIdString, 64, _u("%u"), snapId);
+        char asciiResourceName[64];
+        sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false);
+        JsTTDStreamHandle snapHandle = threadContext->TTDStreamFunctions.pfGetResourceStream(threadContext->TTDUri.UriByteLength, threadContext->TTDUri.UriBytes, asciiResourceName, true, false);
 
         TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader);
-
-        HeapDeleteArray(64, snapIdString);
 
         return snap;
     }

@@ -314,15 +314,28 @@
 
 ////////
 //Time Travel flags
+#ifdef __APPLE__
+#define ENABLE_TTD 0
+#else
 #define ENABLE_TTD 1
+#endif
 
 #if ENABLE_TTD
 //Enable debugging specific aspects of TTD
 #define ENABLE_TTD_DEBUGGING 1
 
-//A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
-//Also makes step out behave the same as step back
-#define TTD_VSCODE_WORK_AROUNDS 1
+//Temp code needed to run VSCode but slows down execution (later will fix + implement high perf. version)
+//The ifndef check allows us to override this in build from Node in TTD version (where we want to have this on by default)
+#ifndef TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
+#define TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS 0
+#endif
+
+//A workaround for some unimplemented code parse features (force debug mode)
+//Enable to turn these features off for good performance measurements.
+#define TTD_DYNAMIC_DECOMPILATION_WORK_AROUNDS 1
+
+//A workaround for copy on access native arrays -- disable them for now and we should have support later
+#define TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS 1
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
@@ -340,8 +353,9 @@
 #endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-#define ENABLE_SNAPSHOT_COMPARE 1
+#define ENABLE_SNAPSHOT_COMPARE 0
 #define ENABLE_OBJECT_SOURCE_TRACKING 0
+#define ENABLE_VALUE_TRACE 0
 #define ENABLE_BASIC_TRACE 0
 #define ENABLE_FULL_BC_TRACE 0
 #else

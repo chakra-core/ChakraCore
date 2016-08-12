@@ -59,16 +59,23 @@ namespace TTD
             }
         }
 
-        int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt)
+        bool TryGetTimeFromRootCallOrSnapshot(const EventLogEntry* evt, int64& res)
         {
             bool isSnap = false;
             bool isRoot = false;
             bool hasRtrSnap = false;
 
-            int64 time = AccessTimeInRootCallOrSnapshot(evt, isSnap, isRoot, hasRtrSnap);
-            AssertMsg(isSnap || isRoot, "Not snap or root?");
+            res = AccessTimeInRootCallOrSnapshot(evt, isSnap, isRoot, hasRtrSnap);
+            return (isSnap | isRoot);
+        }
 
-            return time;
+        int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt)
+        {
+            int64 res = -1;
+            bool success = TryGetTimeFromRootCallOrSnapshot(evt, res);
+
+            AssertMsg(success, "Not a root or snapshot!!!");
+            return res;
         }
 
 #if !INT32VAR
@@ -242,7 +249,7 @@ namespace TTD
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateFunctionActionTag>(evt);
 
             Js::Var res = nullptr;
-            if(action->u_bVal)
+            if(!action->u_bVal)
             {
                 res = ctx->GetLibrary()->CreateStdCallExternalFunction(nullptr, 0, nullptr);
             }
@@ -264,6 +271,11 @@ namespace TTD
             }
 
             JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateFunctionActionTag>(ctx, evt, res);
+        }
+
+        void HostProcessExitAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            throw TTDebuggerAbortException::CreateAbortEndOfLog(_u("End of log reached with Host Process Exit -- returning to top-level."));
         }
 
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -413,7 +425,92 @@ namespace TTD
 
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetTypedArrayInfoActionTag>(ctx, evt, res);
         }
-        
+
+        //////////////////
+
+        void JsRTRawBufferCopyAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const JsRTRawBufferCopyAction* rbcAction = GetInlineEventDataAs<JsRTRawBufferCopyAction, EventKind::RawBufferCopySync>(evt);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(rbcAction->Dst, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(rbcAction->Src, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::u32Val, rbcAction->DstIndx, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::u32Val, rbcAction->SrcIndx, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::u32Val, rbcAction->Count, NSTokens::Separator::CommaSeparator);
+        }
+
+        void JsRTRawBufferCopyAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTRawBufferCopyAction* rbcAction = GetInlineEventDataAs<JsRTRawBufferCopyAction, EventKind::RawBufferCopySync>(evt);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            rbcAction->Dst = NSSnapValues::ParseTTDVar(false, reader);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            rbcAction->Src = NSSnapValues::ParseTTDVar(false, reader);
+
+            rbcAction->DstIndx = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            rbcAction->SrcIndx = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            rbcAction->Count = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+        }
+
+        void RawBufferCopySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTRawBufferCopyAction* action = GetInlineEventDataAs<JsRTRawBufferCopyAction, EventKind::RawBufferCopySync>(evt);
+            Js::Var dst = InflateVarInReplay(ctx, action->Dst);
+            Js::Var src = InflateVarInReplay(ctx, action->Src);
+
+            AssertMsg(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
+            AssertMsg(action->DstIndx + action->Count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
+            AssertMsg(action->SrcIndx + action->Count <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
+
+            byte* dstBuff = Js::ArrayBuffer::FromVar(dst)->GetBuffer() + action->DstIndx;
+            byte* srcBuff = Js::ArrayBuffer::FromVar(src)->GetBuffer() + action->SrcIndx;
+
+            //node uses mmove so we do too
+            memmove(dstBuff, srcBuff, action->Count);
+        }
+
+        void RawBufferModifySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferModifySync>(evt);
+            Js::Var trgt = InflateVarInReplay(ctx, action->Trgt);
+
+            AssertMsg(Js::ArrayBuffer::Is(trgt), "Not array buffer object!!!");
+            AssertMsg(action->Index + action->Length <= Js::ArrayBuffer::FromVar(trgt)->GetByteLength(), "Copy off end of buffer!!!");
+
+            byte* trgtBuff = Js::ArrayBuffer::FromVar(trgt)->GetBuffer() + action->Index;
+            js_memcpy_s(trgtBuff, action->Length, action->Data, action->Length);
+        }
+
+        void RawBufferAsyncModificationRegister_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferAsyncModificationRegister>(evt);
+            Js::Var trgt = InflateVarInReplay(ctx, action->Trgt);
+
+            ctx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(trgt), action->Index);
+        }
+
+        void RawBufferAsyncModifyComplete_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferAsyncModifyComplete>(evt);
+            Js::Var trgt = InflateVarInReplay(ctx, action->Trgt);
+
+            const Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(trgt);
+            byte* copyBuff = dstBuff->GetBuffer() + action->Index;
+            byte* finalModPos = dstBuff->GetBuffer() + action->Index + action->Length;
+
+            TTDPendingAsyncBufferModification pendingAsyncInfo = { 0 };
+            ctx->TTDContextInfo->GetFromAsyncPendingList(&pendingAsyncInfo, finalModPos);
+            AssertMsg(dstBuff == pendingAsyncInfo.ArrayBufferVar && action->Index == pendingAsyncInfo.Index, "Something is not right.");
+
+            js_memcpy_s(copyBuff, action->Length, action->Data, action->Length);
+        }
+
         //////////////////
 
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -456,7 +553,7 @@ namespace TTD
             }
         }
 
-        void JsRTConstructCallAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void JsRTConstructCallAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const JsRTConstructCallAction* ccAction = GetInlineEventDataAs<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(evt);
 
@@ -502,7 +599,7 @@ namespace TTD
 
             if(cbAction->RegisterLocation == nullptr)
             {
-                const_cast<JsRTCallbackAction*>(cbAction)->RegisterLocation = HeapNew(TTDebuggerSourceLocation);
+                const_cast<JsRTCallbackAction*>(cbAction)->RegisterLocation = TT_HEAP_NEW(TTDebuggerSourceLocation);
             }
 
             if(!cbAction->RegisterLocation->HasValue())
@@ -520,12 +617,12 @@ namespace TTD
             {
                 cbAction->RegisterLocation->Clear();
 
-                HeapDelete(cbAction->RegisterLocation);
+                TT_HEAP_DELETE(TTDebuggerSourceLocation, cbAction->RegisterLocation);
                 cbAction->RegisterLocation = nullptr;
             }
         }
 
-        void JsRTCallbackAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void JsRTCallbackAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
 
@@ -578,9 +675,11 @@ namespace TTD
 
             Js::JavascriptFunction* function = nullptr;
 
-            LPCWSTR script = cpInfo->SourceCode.Contents;
-            uint32 scriptLength = cpInfo->SourceCode.Length;
+            byte* script = cpInfo->SourceCode;
+            uint32 scriptByteLength = cpInfo->SourceByteLength;
             DWORD_PTR sourceContext = cpInfo->DocumentID;
+
+            AssertMsg(cpAction->AdditionalInfo->IsUtf8 == ((cpAction->AdditionalInfo->LoadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source), "Utf8 status is inconsistent!!!");
 
             SourceContextInfo * sourceContextInfo = ctx->GetSourceContextInfo(sourceContext, nullptr);
 
@@ -589,23 +688,25 @@ namespace TTD
                 sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, cpInfo->SourceUri.Contents, cpInfo->SourceUri.Length, nullptr);
             }
 
+            AssertMsg(cpAction->AdditionalInfo->IsUtf8 || sizeof(wchar) == sizeof(char16), "Non-utf8 code only allowed on windows!!!");
+            const int chsize = (cpAction->AdditionalInfo->LoadFlag & LoadScriptFlag_Utf8Source) ? sizeof(char) : sizeof(char16);
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
                 /* dlnHost             */ 0,
                 /* ulColumnHost        */ 0,
                 /* lnMinHost           */ 0,
                 /* ichMinHost          */ 0,
-                /* ichLimHost          */ static_cast<ULONG>(scriptLength), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+                /* ichLimHost          */ static_cast<ULONG>(scriptByteLength / chsize), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
                 /* ulCharOffset        */ 0,
                 /* mod                 */ kmodGlobal,
                 /* grfsi               */ 0
             };
 
-            Js::Utf8SourceInfo* utf8SourceInfo;
+            Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
             CompileScriptException se;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                function = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, (LoadScriptFlag)(cpInfo->LoadFlag & ~LoadScriptFlag::LoadScriptFlag_Utf8Source));
+                function = ctx->LoadScript(script, scriptByteLength, &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(function != nullptr, "Something went wrong");
@@ -632,22 +733,17 @@ namespace TTD
             JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(evt);
             JsRTCodeParseAction_AdditionalInfo* cpInfo = cpAction->AdditionalInfo;
 
-            alloc.UnlinkString(cpInfo->SourceCode);
+            alloc.UnlinkAllocation(cpInfo->SourceCode);
 
             if(!IsNullPtrTTString(cpInfo->SourceUri))
             {
                 alloc.UnlinkString(cpInfo->SourceUri);
             }
 
-            if(!IsNullPtrTTString(cpInfo->SrcDir))
-            {
-                alloc.UnlinkString(cpInfo->SrcDir);
-            }
-
             alloc.UnlinkAllocation(cpAction->AdditionalInfo);
         }
 
-        void JsRTCodeParseAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void JsRTCodeParseAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(evt);
             JsRTCodeParseAction_AdditionalInfo* cpInfo = cpAction->AdditionalInfo;
@@ -660,16 +756,12 @@ namespace TTD
 
             writer->WriteUInt64(NSTokens::Key::bodyCounterId, cpAction->BodyCtrId, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteString(NSTokens::Key::logDir, cpInfo->SrcDir, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::uri, cpInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteLengthValue(cpInfo->SourceCode.Length, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, cpInfo->IsUtf8, NSTokens::Separator::CommaSeparator);
+            writer->WriteLengthValue(cpInfo->SourceByteLength, NSTokens::Separator::CommaSeparator);
 
-            UtilSupport::TTAutoString docId;
-            docId.Append(cpInfo->DocumentID);
-            docId.Append(_u("ld"));
-
-            JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, cpInfo->SrcDir.Contents, docId.GetStrValue(), cpInfo->SourceUri.Contents, cpInfo->SourceCode.Contents, cpInfo->SourceCode.Length);
+            JsSupport::WriteCodeToFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
         }
 
         void JsRTCodeParseAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -687,17 +779,14 @@ namespace TTD
 
             cpAction->BodyCtrId = reader->ReadUInt64(NSTokens::Key::bodyCounterId, true);
 
-            reader->ReadString(NSTokens::Key::logDir, alloc, cpInfo->SrcDir, true);
             reader->ReadString(NSTokens::Key::uri, alloc, cpInfo->SourceUri, true);
 
-            cpInfo->SourceCode.Length = reader->ReadLengthValue(true);
-            cpInfo->SourceCode.Contents = alloc.SlabAllocateArray<wchar>(cpInfo->SourceCode.Length + 1);
+            cpInfo->IsUtf8 = reader->ReadBool(NSTokens::Key::boolVal, true);
+            cpInfo->SourceByteLength = reader->ReadLengthValue(true);
 
-            UtilSupport::TTAutoString docId;
-            docId.Append(cpInfo->DocumentID);
-            docId.Append(_u("ld"));
+            cpInfo->SourceCode = alloc.SlabAllocateArray<byte>(cpAction->AdditionalInfo->SourceByteLength);
 
-            JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, cpInfo->SrcDir.Contents, docId.GetStrValue(), cpInfo->SourceUri.Contents, cpInfo->SourceCode.Contents, cpInfo->SourceCode.Length);
+            JsSupport::ReadCodeFromFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -714,6 +803,10 @@ namespace TTD
 
             Js::JavascriptString* displayName = function->GetDisplayName();
             alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), cfAction->AdditionalInfo->FunctionName);
+
+            //In case we don't terminate add these nicely
+            cfAction->AdditionalInfo->EndTime = -1.0;
+            cfAction->AdditionalInfo->LastNestedEvent = TTD_EVENT_MAXTIME;
         }
 
         void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent)
@@ -725,7 +818,7 @@ namespace TTD
         }
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             cfAction->AdditionalInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_AdditionalInfo>();
@@ -744,12 +837,19 @@ namespace TTD
 
             cfAction->AdditionalInfo->CallEventTime = callEventTime;
 
-            cfAction->AdditionalInfo->HostCallbackId = hostCallbackId;
             cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
 
             cfAction->AdditionalInfo->RtRSnap = nullptr;
             cfAction->AdditionalInfo->ExecArgs = nullptr;
+
+            cfAction->AdditionalInfo->MarkedAsJustMyCode = false;
             cfAction->AdditionalInfo->LastExecutedLocation.Initialize();
+
+            //Set values in case we terminate in this handler without completing (e.g. exit(1))
+            cfAction->Result = nullptr;
+
+            cfAction->AdditionalInfo->HasScriptException = false;
+            cfAction->AdditionalInfo->HasTerminiatingException = false;
         }
 
         void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
@@ -783,7 +883,7 @@ namespace TTD
 
             if(cfAction->CallbackDepth == 0)
             {
-                threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime, cfInfo->HostCallbackId);
+                threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime);
             }
 
             Js::Var result = nullptr;
@@ -820,18 +920,15 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
             if(cfAction->CallbackDepth == 0)
             {
-                if(threadContext->TTDLog->HasImmediateReturnFrame())
-                {
-                    JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), threadContext->TTDLog->GetImmediateReturnFrame());
-                }
-                else
-                {
-                    JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), threadContext->TTDLog->GetImmediateExceptionFrame());
-                }
+                bool markedAsJustMyCode = false;
+                TTDebuggerSourceLocation lastLocation;
+                threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, lastLocation);
+
+                JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), markedAsJustMyCode, lastLocation);
 
                 if(cfInfo->HasScriptException || cfInfo->HasTerminiatingException)
                 {
-                    throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(threadContext->TTDLog->GetCurrentTopLevelEventTime(), _u("Uncaught exception -- Propagate to top-level."));
+                    throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(lastLocation.GetRootEventTime(), _u("Uncaught exception -- Propagate to top-level."));
                 }
             }
 #endif
@@ -853,6 +950,7 @@ namespace TTD
 
             if(cfInfo->LastExecutedLocation.HasValue())
             {
+                cfInfo->MarkedAsJustMyCode = false;
                 cfInfo->LastExecutedLocation.Clear();
             }
 
@@ -863,7 +961,7 @@ namespace TTD
             alloc.UnlinkAllocation(cfInfo);
         }
 
-        void JsRTCallFunctionAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        void JsRTCallFunctionAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
             const JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             const JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
@@ -888,7 +986,6 @@ namespace TTD
 
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->CallEventTime, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteInt64(NSTokens::Key::hostCallbackId, cfInfo->HostCallbackId, NSTokens::Separator::CommaSeparator);
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->TopLevelCallbackEventTime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteBool(NSTokens::Key::boolVal, cfInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
@@ -926,7 +1023,6 @@ namespace TTD
 
             cfInfo->CallEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
-            cfInfo->HostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
             cfInfo->TopLevelCallbackEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
             cfInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
@@ -934,6 +1030,8 @@ namespace TTD
 
             cfInfo->RtRSnap = nullptr;
             cfInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
+
+            cfInfo->MarkedAsJustMyCode = false;
             cfInfo->LastExecutedLocation.Initialize();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -949,24 +1047,26 @@ namespace TTD
 
             if(cfInfo->RtRSnap != nullptr)
             {
-                HeapDelete(cfInfo->RtRSnap);
+                TT_HEAP_DELETE(SnapShot, cfInfo->RtRSnap);
                 cfInfo->RtRSnap = nullptr;
             }
         }
 
-        void JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(EventLogEntry* evt, const SingleCallCounter& lastSourceLocation)
+        void JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(EventLogEntry* evt, bool markedAsJustMyCode, const TTDebuggerSourceLocation& lastSourceLocation)
         {
 #if ENABLE_TTD_DEBUGGING
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
+            cfInfo->MarkedAsJustMyCode = markedAsJustMyCode;
             cfInfo->LastExecutedLocation.SetLocation(lastSourceLocation);
 #endif
         }
 
-        bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& lastSourceInfo)
+        bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, bool* markedAsJustMyCode, TTDebuggerSourceLocation& lastSourceInfo)
         {
 #if !ENABLE_TTD_DEBUGGING
+            *markedAsJustMyCode = false;
             lastSourceInfo.Clear();
             return false;
 #else
@@ -974,11 +1074,13 @@ namespace TTD
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
             if(cfInfo->LastExecutedLocation.HasValue())
             {
+                *markedAsJustMyCode = cfInfo->MarkedAsJustMyCode;
                 lastSourceInfo.SetLocation(cfInfo->LastExecutedLocation);
                 return true;
             }
             else
             {
+                *markedAsJustMyCode = false;
                 lastSourceInfo.Clear();
                 return false;
             }

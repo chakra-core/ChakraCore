@@ -640,10 +640,8 @@ namespace Js
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::JavascriptString* str);
 
-        Js::RecyclableObject* CreateBooleanObject_TTD(Var value);
-        Js::RecyclableObject* CreateNumberObject_TTD(Var value);
-        Js::RecyclableObject* CreateStringObject_TTD(Var value);
-        Js::RecyclableObject* CreateSymbolObject_TTD(Var value);
+        Js::RecyclableObject* CreateDefaultBoxedObject_TTD(Js::TypeId kind);
+        void SetBoxedObjectValue_TTD(Js::RecyclableObject* obj, Js::Var value);
 
         Js::RecyclableObject* CreateDate_TTD(double value);
         Js::RecyclableObject* CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex);

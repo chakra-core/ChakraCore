@@ -555,13 +555,13 @@ namespace Js
 #if ENABLE_TTD
         if(this->TTDWellKnownInfo != nullptr)
         {
-            HeapDelete(this->TTDWellKnownInfo);
+            TT_HEAP_DELETE(TTD::RuntimeContextInfo, this->TTDWellKnownInfo);
             this->TTDWellKnownInfo = nullptr;
         }
 
         if(this->TTDContextInfo != nullptr)
         {
-            HeapDelete(this->TTDContextInfo);
+            TT_HEAP_DELETE(TTD::ScriptContextTTD, this->TTDContextInfo);
             this->TTDContextInfo = nullptr;
         }
 #endif
@@ -2325,7 +2325,7 @@ if (!sourceList)
     {
         AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
-        this->TTDWellKnownInfo = HeapNew(TTD::RuntimeContextInfo);
+        this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
         bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
         BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
@@ -2337,7 +2337,7 @@ if (!sourceList)
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-        this->TTDContextInfo = HeapNew(TTD::ScriptContextTTD, this);
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
 
         this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());

@@ -2741,6 +2741,29 @@ namespace Js
             return maxSlot + 1;
         }
     }
+
+    template <typename T>
+    Js::PropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        T index = NoSlots;
+        for(index = 0; index < this->propertyMap->Count(); index++)
+        {
+            Js::PropertyId pid = this->propertyMap->GetKeyAt(index)->GetPropertyId();
+            const DictionaryPropertyDescriptor<T>& idescriptor = propertyMap->GetValueAt(index);
+
+            if(pid == pRecord->GetPropertyId() && !(idescriptor.Attributes & PropertyDeleted))
+            {
+                break;
+            }
+        }
+        AssertMsg(index != NoSlots, "We found this and not accessor but noslots for index?");
+
+        if(index <= Constants::PropertyIndexMax)
+        {
+            return (PropertyIndex)index;
+        }
+        return Constants::NoSlot;
+    }
 #endif
 
     template class DictionaryTypeHandlerBase<PropertyIndex>;

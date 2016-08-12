@@ -4726,44 +4726,43 @@ namespace Js
         return this->CreateSymbol(str);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateBooleanObject_TTD(Var value)
+    Js::RecyclableObject* JavascriptLibrary::CreateDefaultBoxedObject_TTD(Js::TypeId kind)
     {
-        if(value == nullptr)
+        switch(kind)
         {
+        case Js::TypeIds_BooleanObject:
             return this->CreateBooleanObject();
-        }
-        else
-        {
-            return this->CreateBooleanObject(JavascriptBoolean::FromVar(value)->GetValue());
-        }
-    }
-
-    Js::RecyclableObject* JavascriptLibrary::CreateNumberObject_TTD(Var value)
-    {
-        return this->CreateNumberObject(value);
-    }
-
-    Js::RecyclableObject* JavascriptLibrary::CreateStringObject_TTD(Var value)
-    {
-        if(value == nullptr)
-        {
+        case Js::TypeIds_NumberObject:
+            return this->CreateNumberObject(Js::TaggedInt::ToVarUnchecked(0));
+        case Js::TypeIds_StringObject:
             return this->CreateStringObject(nullptr);
-        }
-        else
-        {
-            return this->CreateStringObject(JavascriptString::FromVar(value));
+        case Js::TypeIds_SymbolObject:
+            return this->CreateSymbolObject(nullptr);
+        default:
+            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            return nullptr;
         }
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateSymbolObject_TTD(Var value)
+    void JavascriptLibrary::SetBoxedObjectValue_TTD(Js::RecyclableObject* obj, Js::Var value)
     {
-        if(value == nullptr)
+        switch(obj->GetTypeId())
         {
-            return this->CreateSymbolObject(nullptr);
-        }
-        else
-        {
-            return this->CreateSymbolObject(JavascriptSymbol::FromVar(value));
+        case Js::TypeIds_BooleanObject:
+            Js::JavascriptBooleanObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_NumberObject:
+            Js::JavascriptNumberObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_StringObject:
+            Js::JavascriptStringObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_SymbolObject:
+            Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        default:
+            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            break;
         }
     }
 

@@ -394,6 +394,13 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptStringObject::SetValue_TTD(Js::Var val)
+    {
+        AssertMsg(val == nullptr || Js::JavascriptString::Is(val), "Only legal values!");
+
+        this->value = static_cast<Js::JavascriptString*>(val);
+    }
+
     void JavascriptStringObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
         if(this->value != nullptr)

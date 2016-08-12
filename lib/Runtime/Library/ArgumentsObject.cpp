@@ -313,9 +313,13 @@ namespace Js
         {
             argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
 
-            depOnCount = 1;
-            depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
-            depOnArray[0] = argsInfo->FrameObject;
+            //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
+            if(TTD::JsSupport::IsVarComplexKind(this->frameObject))
+            {
+                depOnCount = 1;
+                depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+                depOnArray[0] = argsInfo->FrameObject;
+            }
         }
 
         argsInfo->DeletedArgFlags = (this->formalCount != 0) ? alloc.SlabAllocateArrayZ<byte>(argsInfo->FormalCount) : nullptr;
