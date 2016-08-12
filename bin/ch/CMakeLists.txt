@@ -1,4 +1,4 @@
-set(ch_source_files 
+set(ch_source_files
   ch.cpp
   ChakraRtInterface.cpp
   CodexAssert.cpp
@@ -59,12 +59,12 @@ if(STATIC_LIBRARY)
 
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(lib_target "${lib_target}"
-      icuuc
+      ${ICULIB}
       unwind-x86_64
       )
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(lib_target "${lib_target}"
-      icucore
+      ${ICULIB}
       "-framework CoreFoundation"
       "-framework Security"
       )
@@ -78,7 +78,7 @@ else() # // !from shared library
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}" 
+  set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
     )
 endif()

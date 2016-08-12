@@ -27,7 +27,6 @@
           $(ChakraCoreRootDirectory)bin\External;
           %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <MinimalRebuild>false</MinimalRebuild>

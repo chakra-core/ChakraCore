@@ -1264,6 +1264,10 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         {
             attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew);
         }
+        if (pnode->sxFnc.IsModule())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Module);
+        }
 
         if (createFunctionBody)
         {
@@ -1568,7 +1572,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
     }
 #endif
 
-    if (!(sym->GetIsGlobal()))
+    if (!sym->GetIsGlobal() && !sym->GetIsModuleExportStorage())
     {
         FuncInfo *top = funcInfoStack->Top();
 
@@ -1700,7 +1704,7 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     Assert(!funcInfo->IsGlobalFunction());
-    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator();
+    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator() && !funcInfo->byteCodeFunction->IsModule();
     if (!doStackNestedFunc)
     {
         return false;
@@ -2196,8 +2200,17 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
             vars->sxVar.sym = sym;
             if (sym->GetIsArguments())
             {
-                byteCodeGenerator->TopFuncInfo()->SetArgumentsSymbol(sym);
+                FuncInfo* funcInfo = byteCodeGenerator->TopFuncInfo();
+                funcInfo->SetArgumentsSymbol(sym);
+
+                if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                {
+                    Symbol* innerArgSym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                    funcInfo->SetInnerArgumentsSymbol(innerArgSym);
+                    byteCodeGenerator->AssignRegister(innerArgSym);
+                }
             }
+
         }
         else
         {
@@ -2464,9 +2477,16 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
     if (top->IsLambda())
     {
-        if (byteCodeGenerator->FindEnclosingNonLambda()->isThisLexicallyCaptured)
+        FuncInfo *enclosingNonLambda = byteCodeGenerator->FindEnclosingNonLambda();
+
+        if (enclosingNonLambda->isThisLexicallyCaptured)
         {
             top->byteCodeFunction->SetCapturesThis();
+        }
+
+        if (enclosingNonLambda->IsGlobalFunction())
+        {
+            top->byteCodeFunction->SetEnclosedByGlobalFunc();
         }
     }
 
@@ -2539,7 +2559,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             auto fnProcess = 
                 [byteCodeGenerator, top](Symbol *const sym)
                 {
-                    if (sym->GetHasNonLocalReference())
+                    if (sym->GetHasNonLocalReference() && !sym->GetIsModuleExportStorage())
                     {
                         byteCodeGenerator->ProcessCapturedSym(sym);
                     }
@@ -2704,7 +2724,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         }
         else
         {
-            Assert(top->IsGlobalFunction());
+            Assert(top->IsGlobalFunction() || pnode->sxFnc.IsModule());
             // eval is called in strict mode
             bool newScopeForEval = (top->byteCodeFunction->GetIsStrictMode() && (byteCodeGenerator->GetFlags() & fscrEval));
 
@@ -2796,7 +2816,9 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
             parentFunc->SetChildHasWith();
 
-            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure())
+            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure() ||
+                (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
+                 parentFunc->GetParamScope()->GetCanMergeWithBodyScope()))
             {
                 parentFunc->GetBodyScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
@@ -2867,7 +2889,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         top->AssignSuperCtorRegister();
     }
 
-    if (top->IsClassConstructor())
+    if ((top->root->sxFnc.IsConstructor() && (top->isNewTargetLexicallyCaptured || top->GetCallsEval() || top->GetChildCallsEval())) || top->IsClassConstructor())
     {
         if (top->IsBaseClassConstructor())
         {
@@ -3066,7 +3088,8 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
     // All the attributes we need to propagate downward should already be recorded by the parser.
     // - call to "eval()"
     // - nested in "with"
-    Js::ParseableFunctionInfo* parentFunc = pnodeParent->sxFnc.funcInfo->byteCodeFunction;
+    FuncInfo * parentFuncInfo = pnodeParent->sxFnc.funcInfo;
+    Js::ParseableFunctionInfo* parentFunc = parentFuncInfo->byteCodeFunction;
     ParseNode* pnodeScope;
     uint i = 0;
 
@@ -3119,7 +3142,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             PreVisitFunction(pnodeScope, byteCodeGenerator);
             FuncInfo *funcInfo = pnodeScope->sxFnc.funcInfo;
 
-            pnodeParent->sxFnc.funcInfo->OnStartVisitFunction(pnodeScope);
+            parentFuncInfo->OnStartVisitFunction(pnodeScope);
 
             if (pnodeScope->sxFnc.pnodeBody)
             {
@@ -3220,12 +3243,15 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 byteCodeGenerator->PushScope(funcInfo->GetBodyScope());
             }
 
-            pnodeScope->sxFnc.nestedIndex = *pIndex;
-            parentFunc->SetNestedFunc(funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());
+            if (!parentFuncInfo->IsFakeGlobalFunction(byteCodeGenerator->GetFlags()))
+            {
+                pnodeScope->sxFnc.nestedIndex = *pIndex;
+                parentFunc->SetNestedFunc(funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());
+            }
 
             Assert(parentFunc);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitFunction(pnodeScope);
+            parentFuncInfo->OnEndVisitFunction(pnodeScope);
 
             PostVisitFunction(pnodeScope, byteCodeGenerator);
 
@@ -3239,9 +3265,9 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitBlock(pnodeScope, byteCodeGenerator);
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxBlock.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
             PostVisitBlock(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxBlock.pnodeNext;
@@ -3271,10 +3297,10 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             }
 
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
             PostVisitCatch(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxCatch.pnodeNext;
@@ -3285,9 +3311,9 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitWith(pnodeScope, byteCodeGenerator);
             bool isMergedScope;
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
+            parentFuncInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxWith.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
+            parentFuncInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
             PostVisitWith(pnodeScope, byteCodeGenerator);
             pnodeScope = pnodeScope->sxWith.pnodeNext;
             break;

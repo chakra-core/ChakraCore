@@ -120,4 +120,5 @@ foo called
 42
 expected :method  is called on a revoked Proxy object
 expected :method get is called on a revoked Proxy object
+expected :method toObject is called on a revoked Proxy object
 expected :method construct is called on a revoked Proxy object

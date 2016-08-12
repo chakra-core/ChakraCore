@@ -62,3 +62,38 @@ function foo3(a = 10, b = function () { return a; }) {
     }
 }
 foo3();
+
+function f9(a, b = function () { a; } ) {
+    if (eval("a") !== 1) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+    if (arguments[0] !== 1) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+    if (eval("arguments[0]") !== 1) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+    arguments = 100;
+    if (eval("a") !== 1) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+    if (eval("arguments") !== 100) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+    if (arguments !== 100) {
+        print("FAILED")
+    } else {
+        print("PASSED");
+    }
+}
+f9(1);

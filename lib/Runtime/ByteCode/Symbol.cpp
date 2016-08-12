@@ -66,7 +66,7 @@ bool Symbol::NeedsSlotAlloc(FuncInfo *funcInfo)
 
 bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 {
-    if (this->GetIsGlobal())
+    if (this->GetIsGlobal() || this->GetIsModuleExportStorage())
     {
         return false;
     }
@@ -83,7 +83,7 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
         return true;
     }
     // If body and param scopes are not merged then an inner scope slot is used
-    if (!this->GetIsArguments() && this->scope->GetScopeType() == ScopeType_Parameter && !this->scope->GetCanMergeWithBodyScope())
+    if (this->scope->GetScopeType() == ScopeType_Parameter && !this->scope->GetCanMergeWithBodyScope())
     {
         return true;
     }
@@ -93,6 +93,10 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 
 bool Symbol::GetIsCommittedToSlot() const
 {
+    if (!PHASE_ON1(Js::DelayCapturePhase))
+    {
+        return true;
+    }
     return isCommittedToSlot || this->scope->GetFunc()->GetCallsEval() || this->scope->GetFunc()->GetChildCallsEval();
 }
 

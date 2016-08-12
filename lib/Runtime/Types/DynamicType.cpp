@@ -117,6 +117,8 @@ namespace Js
         return GetTypeHandler()->HasProperty(this, propertyId);
     }
 
+    // HasOwnProperty and HasProperty is the same for most objects except globalobject (moduleroot as well in legacy)
+    // Note that in GlobalObject, HasProperty and HasRootProperty is not quite the same as it's handling let/const global etc.
     BOOL DynamicObject::HasOwnProperty(PropertyId propertyId)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));

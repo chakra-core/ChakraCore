@@ -39,6 +39,7 @@ add_library (Chakra.Runtime.Library OBJECT
     JavascriptGenerator.cpp
     JavascriptGeneratorFunction.cpp
     JavascriptIterator.cpp
+    JavascriptListIterator.cpp
     JavascriptLibrary.cpp
     JavascriptMap.cpp
     JavascriptMapIterator.cpp

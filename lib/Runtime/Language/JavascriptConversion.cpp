@@ -525,17 +525,17 @@ CommonNumber:
                 return CALL_FUNCTION(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
             });
 
-            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
-
             if (!result)
             {
                 // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
                 Assert(threadContext->IsDisableImplicitCall());
                 return requestContext->GetLibrary()->GetNull();
             }
+
+            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
         }
         // If result is an ECMAScript language value and Type(result) is not Object, then return result.
-        if (TaggedInt::Is(result) || JavascriptOperators::IsExposedType(JavascriptOperators::GetTypeId(result)))
+        if (TaggedInt::Is(result) || !JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(result)))
         {
             return result;
         }
