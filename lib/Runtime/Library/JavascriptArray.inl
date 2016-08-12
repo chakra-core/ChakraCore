@@ -1073,17 +1073,6 @@ SECOND_PASS:
             SetHasNoMissingValues(true);
 
             CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)current)->elements, length, newValue);
-            if (newValue == (T)0 || newValue == (T)(-1))
-            {
-                memset(((Js::SparseArraySegment<T>*)current)->elements, ((int)(intptr_t)newValue), sizeof(T)* length);
-            }
-            else
-            {
-                for (uint32 i = 0; i < length; i++)
-                {
-                    ((Js::SparseArraySegment<T>*)current)->elements[i] = newValue;
-                }
-            }
             this->SetLastUsedSegment(current);
         }
         else
