@@ -21446,7 +21446,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
                 case TyInt16:
                 case TyInt32:
                 case TyInt64:
-                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("lld%") : _u("%d"), candidate->constant.u.intConst.value);
+                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("%lld") : _u("%d"), candidate->constant.u.intConst.value);
                     break;
                 case TyFloat32:
                 case TyFloat64:
