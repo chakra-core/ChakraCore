@@ -381,13 +381,9 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(calleeContext));
 
-#if ENABLE_TTD
-        errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-#else
         errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-#endif
 
-        if (errorCode == JsNoError)
+        if(errorCode == JsNoError)
         {
             errorCode = ChakraRTInterface::JsGetGlobalObject(&returnValue);
         }
@@ -405,11 +401,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         // Initialize the host objects
         Initialize();
 
-#if ENABLE_TTD
-            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-#else
-            errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
-#endif
+        errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 
         if (errorCode == JsNoError)
         {
@@ -480,10 +472,6 @@ JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCa
     msg = new CallbackMessage(time, function);
     messageQueue->InsertSorted(msg);
 
-#if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true /*isCreate*/, false /*isCancel*/, false /*isRepeating*/, function, msg->GetId());
-#endif
-
     IfJsrtError(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(msg->GetId()), &timerId));
     return timerId;
 
@@ -524,10 +512,6 @@ JsValueRef WScriptJsrt::ClearTimeoutCallback(JsValueRef callee, bool isConstruct
 
     timerId = static_cast<int>(tmp);
     messageQueue->RemoveById(timerId);
-
-#if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(false /*isCreate*/, true /*isCancel*/, false /*isRepeating*/, nullptr, timerId);
-#endif
 
     IfJsrtError(ChakraRTInterface::JsGetGlobalObject(&global));
     IfJsrtError(ChakraRTInterface::JsGetUndefinedValue(&undef));
@@ -897,19 +881,11 @@ HRESULT WScriptJsrt::CallbackMessage::CallFunction(LPCSTR fileName)
         IfJsrtErrorHR(ChakraRTInterface::JsStringToPointerUtf8Copy(stringValue, &script, &length));
 
         // Run the code
-#if ENABLE_TTD
-        errorCode = ChakraRTInterface::JsTTDRunScript(this->GetId(), *script, JS_SOURCE_CONTEXT_NONE, "" /*sourceUrl*/, nullptr /*no result needed*/);
-#else
         errorCode = ChakraRTInterface::JsRunScriptUtf8(*script, JS_SOURCE_CONTEXT_NONE, "" /*sourceUrl*/, nullptr /*no result needed*/);
-#endif
     }
     else
     {
-#if ENABLE_TTD
-        errorCode = ChakraRTInterface::JsTTDCallFunction(this->GetId(), m_function, &global, 1, &result);
-#else
         errorCode = ChakraRTInterface::JsCallFunction(m_function, &global, 1, &result);
-#endif
     }
 
     if (errorCode != JsNoError)

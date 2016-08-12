@@ -218,6 +218,7 @@ struct PnFnc
     uint32 hintLength;
     uint32 hintOffset;
     bool  isNameIdentifierRef;
+    bool  nestedFuncEscapes;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
     ParseNodePtr pnodeParams;
@@ -309,6 +310,7 @@ public:
     void SetIsModule(bool set = true) { SetFlags(kFunctionIsModule, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
+    void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -344,6 +346,7 @@ public:
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
+    bool NestedFuncEscapes() const { return nestedFuncEscapes; }
 
     size_t LengthInBytes()
     {

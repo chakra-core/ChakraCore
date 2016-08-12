@@ -48,8 +48,7 @@ namespace Js
         friend class CrossSite;
         friend class DynamicTypeHandler;
         friend class ModuleNamespace;
-        template <typename T> friend class DynamicObjectEnumeratorBase;
-        template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
+        template <bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
         friend class RecyclableObject;
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator
@@ -272,8 +271,7 @@ namespace Js
 
         Var GetNextProperty(PropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
         Var GetNextProperty(BigPropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
-
-        BOOL FindNextProperty(PropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) const;
+        
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) const;
 
         virtual BOOL HasDeferredTypeHandler() const sealed;

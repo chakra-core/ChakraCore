@@ -1112,6 +1112,21 @@ namespace Js
 
         return plength;
     }
+
+    template<size_t size>
+    Js::PropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        int index;
+        if(this->GetDescriptor(pRecord->GetPropertyId(), &index))
+        {
+            AssertMsg(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
+
+            return (PropertyIndex)index;
+        }
+
+        return Constants::NoSlot;
+    }
+
 #endif
 
     template class SimpleTypeHandler<1>;

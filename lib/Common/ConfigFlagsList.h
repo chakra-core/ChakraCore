@@ -22,6 +22,7 @@ PHASE(All)
         PHASE(CachedScope)
         PHASE(StackFunc)
         PHASE(StackClosure)
+        PHASE(DisableStackFuncOnDeferredEscape)
         PHASE(DelayCapture)
         PHASE(DebuggerScope)
         PHASE(ByteCodeSerialization)
@@ -1190,10 +1191,6 @@ FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
-#endif
-
-#if ENABLE_TTD && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 1)
 #endif
 
 FLAGNR(Number,  NopFrequency          , "Frequency of NOPs inserted by NOP insertion phase.  A NOP is guaranteed to be inserted within a range of (1<<n) instrs (default=8)", DEFAULT_CONFIG_NopFrequency)

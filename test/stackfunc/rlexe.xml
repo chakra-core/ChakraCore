@@ -577,7 +577,7 @@
     <default>
       <files>funcexpr.js</files>
       <baseline>funcexpr.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm</tags>
     </default>
   </test>

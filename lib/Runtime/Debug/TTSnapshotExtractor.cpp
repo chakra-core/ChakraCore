@@ -343,7 +343,7 @@ namespace TTD
     {
         AssertMsg((this->m_pendingSnap == nullptr) & this->m_worklist.Empty(), "Something went wrong.");
 
-        this->m_pendingSnap = HeapNew(SnapShot);
+        this->m_pendingSnap = TT_HEAP_NEW(SnapShot);
 
         UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
         for(int32 i = 0; i < ctxs.Count(); ++i)

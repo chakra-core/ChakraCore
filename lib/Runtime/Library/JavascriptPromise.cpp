@@ -1104,6 +1104,7 @@ namespace Js
 
         spi->Result = this->result;
 
+        //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
         if(this->result != nullptr && TTD::JsSupport::IsVarComplexKind(this->result))
         {
             depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->result));

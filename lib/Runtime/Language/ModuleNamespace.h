@@ -95,7 +95,6 @@ namespace Js
         UnambiguousExportMap* GetUnambiguousNonLocalExports() const { return unambiguousNonLocalExports; }
 
         // Methods used by NamespaceEnumerator;
-        Var GetNextProperty(BigPropertyIndex& index);
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes) const;
     };
 }
