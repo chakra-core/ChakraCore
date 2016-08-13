@@ -17,7 +17,7 @@ WScript.Echo(x.slice(-12, -9));
 WScript.Echo(x.slice(-12, -15));
 
 
-var large = new Array(1000000);
+var large = new Array(1e6);
 for (var i = 0; i < large.length; i++)
 {
     large[i] = 0;
@@ -26,6 +26,3 @@ for (var i = 0; i < large.length; i++)
 s = large.slice(0, large.length - 1);
 
 WScript.Echo(s.length);
-
-
-
