@@ -1269,7 +1269,7 @@
     <default>
         <files>module-functionality.js</files>
         <compile-flags>-ES6Module  -ES7AsyncAwait -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+        <tags>exclude_xplat,exclude_dynapogo</tags>
     </default>
 </test>
 <test>
