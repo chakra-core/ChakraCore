@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+# Keep CMake from caching static/shared library
+# option. Otherwise, CMake fails to update cached
+# references
+if(SHARED_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY CACHE)
+  set(SHARED_LIBRARY 1)
+endif()
+
+if(STATIC_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(SHARED_LIBRARY CACHE)
+  set(STATIC_LIBRARY 1)
+endif()
 
 function(clr_unknown_arch)
     if (WIN32)
