@@ -297,12 +297,12 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             else if (ex.Reason() == RejitReason::InlineApplyDisabled)
             {
                 workItem->GetJITFunctionBody()->DisableInlineApply();
-                outputData->disableInlineApply = FALSE;
+                outputData->disableInlineApply = TRUE;
             }
             else if (ex.Reason() == RejitReason::InlineSpreadDisabled)
             {
                 workItem->GetJITFunctionBody()->DisableInlineSpread();
-                outputData->disableInlineSpread = FALSE;
+                outputData->disableInlineSpread = TRUE;
             }
             else if (ex.Reason() == RejitReason::DisableStackArgOpt)
             {
