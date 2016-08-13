@@ -20,43 +20,17 @@ namespace Js
         iteratorObject = RecyclableObject::FromVar(iterator);
     }
 
-    void IteratorObjectEnumerator::EnsureIterator()
-    {
-        if (value == nullptr)
-        {
-            MoveNext();
-        }
-    }
-
-    Var IteratorObjectEnumerator::GetCurrentIndex()
-    {
-        EnsureIterator();
-        if (done)
-        {
-            return GetScriptContext()->GetLibrary()->GetUndefined();
-        }
-        return value;
-    }
-
-    BOOL IteratorObjectEnumerator::MoveNext(PropertyAttributes* attributes)
+    Var IteratorObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         ScriptContext* scriptContext = GetScriptContext();
-        done = !JavascriptOperators::IteratorStepAndValue(iteratorObject, scriptContext, &value);
-
-        if (attributes != nullptr)
+        if (JavascriptOperators::IteratorStepAndValue(iteratorObject, scriptContext, &value))
         {
-            *attributes = PropertyEnumerable;
-        }
+            if (attributes != nullptr)
+            {
+                *attributes = PropertyEnumerable;
+            }
 
-        return !done;
-    }
-
-    Var IteratorObjectEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
-    {
-        if (MoveNext(attributes))
-        {
-            Var currentIndex = GetCurrentIndex();
-            ScriptContext* scriptContext = GetScriptContext();
+            Var currentIndex = value;
             const PropertyRecord* propertyRecord = nullptr;
             if (!TaggedInt::Is(currentIndex) && JavascriptString::Is(currentIndex) &&
                 VirtualTableInfo<Js::PropertyString>::HasVirtualTable(JavascriptString::FromVar(currentIndex)))

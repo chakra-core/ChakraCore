@@ -14,7 +14,7 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptArraySnapshotEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptArraySnapshotEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 
@@ -39,7 +39,7 @@ namespace Js
         }
         if (!doneObject)
         {
-            Var currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
             if (!currentIndex)
             {
                 doneObject = true;

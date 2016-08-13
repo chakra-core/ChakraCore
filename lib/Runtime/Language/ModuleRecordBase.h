@@ -21,15 +21,15 @@ namespace Js
     class ModuleRecordBase : public FinalizableObject
     {
     public:
-        const uint32 ModuleMagicNumber = *(const uint32*)"Mode";
+        static const uint32 ModuleMagicNumber;
         ModuleRecordBase(JavascriptLibrary* library) :
             namespaceObject(nullptr), wasEvaluated(false),
             javascriptLibrary(library),  magicNumber(ModuleMagicNumber){};
         bool WasEvaluated() { return wasEvaluated; }
         void SetWasEvaluated() { Assert(!wasEvaluated); wasEvaluated = true; }
         JavascriptLibrary* GetRealm() { return javascriptLibrary; }  // TODO: do we need to provide this method ?
-        ModuleNamespace* GetNamespace() { return namespaceObject; }
-        void SetNamespace(ModuleNamespace* moduleNamespace) { namespaceObject = moduleNamespace; }
+        virtual ModuleNamespace* GetNamespace() { return namespaceObject; }
+        virtual void SetNamespace(ModuleNamespace* moduleNamespace) { namespaceObject = moduleNamespace; }
 
         virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) = 0;
         // return false when "ambiguous".

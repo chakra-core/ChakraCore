@@ -827,9 +827,15 @@ private:
         _Inout_opt_ IdentToken* pToken = nullptr,
         bool fUnaryOrParen = false,
         _Out_opt_ BOOL* pfCanAssign = nullptr,
-        _Inout_opt_ BOOL* pfLikelyPattern = nullptr);
-    template<bool buildAST> ParseNodePtr ParsePostfixOperators(ParseNodePtr pnode,
-        BOOL fAllowCall, BOOL fInNew, BOOL *pfCanAssign, _Inout_ IdentToken* pToken);
+        _Inout_opt_ BOOL* pfLikelyPattern = nullptr,
+        _Out_opt_ bool* pfIsDotOrIndex = nullptr);
+    template<bool buildAST> ParseNodePtr ParsePostfixOperators(
+        ParseNodePtr pnode,
+        BOOL fAllowCall, 
+        BOOL fInNew, 
+        BOOL *pfCanAssign, 
+        _Inout_ IdentToken* pToken, 
+        _Out_opt_ bool* pfIsDotOrIndex = nullptr);
 
     void ThrowNewTargetSyntaxErrForGlobalScope();
 

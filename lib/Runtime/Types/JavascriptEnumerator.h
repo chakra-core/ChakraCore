@@ -24,16 +24,6 @@ namespace Js {
         virtual uint32 GetCurrentItemIndex() { return Constants::InvalidSourceIndex; }
 
         //
-        // Returns the current index
-        //
-        virtual Var GetCurrentIndex() = 0;
-
-        //
-        // Moves to next element
-        //
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) = 0;
-
-        //
         // Sets the enumerator to its initial position
         //
         virtual void Reset() = 0;
@@ -48,22 +38,7 @@ namespace Js {
         // If that code is added in this base class use JavaScriptRegExpEnumerator.h/cpp
         // as a reference and then remove it. If you have already made the edits before
         // seeing this comment please just consolidate the changes.
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
-        {
-            propertyId = Constants::NoProperty;
-            if (MoveNext(attributes))
-            {
-                Var currentIndex = GetCurrentIndex();
-                return currentIndex;
-            }
-            return NULL;
-        }
-
-        virtual bool GetCurrentPropertyId(PropertyId *propertyId)
-        {
-           *propertyId = Constants::NoProperty;
-            return false;
-        };
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) = 0;
 
         virtual BOOL IsCrossSiteEnumerator()
         {

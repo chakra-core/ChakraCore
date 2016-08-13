@@ -54,17 +54,19 @@ var explicitTagTypedArrayBuiltIns = [
 // 5. If isArray is true, let builtinTag be "Array".
 // ...
 // 14. Else, let builtinTag be "Object"
-var internalSlotBuiltIns = [
-    { tag: "Array",             instance: [],                                    prototype: Array.prototype },
-    { tag: "String",            instance: "",                                    prototype: String.prototype },
+var arrayInternalSlotBuiltIn = { tag: "Array", instance: [], prototype: Array.prototype };
+var internalSlotBuiltInsNoArray = [
+    { tag: "String",            instance: new String(),                          prototype: String.prototype },
     { tag: "Function",          instance: function () {},                        prototype: Function.prototype },
     { tag: "Error",             instance: new Error(),                           prototype: Error.prototype },
-    { tag: "Boolean",           instance: true,                                  prototype: Boolean.prototype },
-    { tag: "Number",            instance: 1,                                     prototype: Number.prototype },
+    { tag: "Boolean",           instance: new Boolean(),                         prototype: Boolean.prototype },
+    { tag: "Number",            instance: new Number(),                          prototype: Number.prototype },
     { tag: "Date",              instance: new Date(),                            prototype: Date.prototype },
     { tag: "RegExp",            instance: /a/,                                   prototype: RegExp.prototype },
     { tag: "Object",            instance: {},                                    prototype: Object.prototype },
 ];
+
+var internalSlotBuiltIns = [...internalSlotBuiltInsNoArray, arrayInternalSlotBuiltIn];
 
 var argumentsInternalSlotBuiltIn =
     { tag: "Arguments",         instance: (function () { return arguments; })(), prototype: (function () { return arguments; })() }
@@ -117,9 +119,17 @@ var tests = [
     {
         name: "Proxy forwarding behavior",
         body: function () {
-            for (var { tag, instance } of explicitTagBuiltIns) {
-                assert.areEqual("[object " + tag + "]", Object.prototype.toString.call(new Proxy(instance, {})),                "Proxy toString should have tag Object");
-                assert.areEqual("[object " + tag + "]", Object.prototype.toString.call(new Proxy(new Proxy(instance, {}), {})), "Chained proxy toString should have tag Object");
+            function testBuiltIn({ tag, instance }, expectedTag) {
+                assert.areEqual("[object " + expectedTag + "]", Object.prototype.toString.call(new Proxy(instance, {})),                tag + " proxy toString should have tag " + expectedTag);
+                assert.areEqual("[object " + expectedTag + "]", Object.prototype.toString.call(new Proxy(new Proxy(instance, {}), {})), tag + " chained proxy toString should have tag " + expectedTag);
+            }
+
+            for (var row of [...explicitTagBuiltIns, arrayInternalSlotBuiltIn]) {
+                testBuiltIn(row, row['tag']);
+            }
+
+            for (var row of internalSlotBuiltInsNoArray) {
+                testBuiltIn(row, "Object");
             }
         }
     },

@@ -650,7 +650,7 @@ namespace JSON
                     {
                         Js::Var propertyNameVar;
                         enumerator->Reset();
-                        while ((propertyNameVar = enumerator->GetCurrentAndMoveNext(id)) != NULL)
+                        while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL)
                         {
                             if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
                             {
@@ -692,7 +692,7 @@ namespace JSON
                             enumerator->Reset();
                             uint32 index = 0;
                             Js::Var propertyNameVar;
-                            while ((propertyNameVar = enumerator->GetCurrentAndMoveNext(id)) != NULL && index < precisePropertyCount)
+                            while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
                             {
                                 if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
                                 {
@@ -925,7 +925,7 @@ namespace JSON
         Js::Var propertyNameVar;
         Js::PropertyId id;
         enumerator->Reset();
-        while ((propertyNameVar = enumerator->GetCurrentAndMoveNext(id)) != NULL)
+        while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL)
         {
             if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, this->scriptContext->GetLibrary()->GetUndefined()))
             {

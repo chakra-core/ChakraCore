@@ -26,53 +26,6 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentIndex()
-    {
-        if (arrayEnumerator)
-        {
-            return arrayEnumerator->GetCurrentIndex();
-        }
-
-        JavascriptString* propertyString = nullptr;
-        PropertyId propertyId = Constants::NoProperty;
-        if (!object->FindNextProperty(objectIndex, &propertyString, &propertyId, nullptr, GetTypeToEnumerate(), !enumNonEnumerable, enumSymbols))
-        {
-            return this->GetLibrary()->GetUndefined();
-        }
-
-        Assert(propertyId == Constants::NoProperty || !Js::IsInternalPropertyId(propertyId));
-
-        return propertyString;
-    }
-
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
-    BOOL DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::MoveNext(PropertyAttributes* attributes)
-    {
-        PropertyId propId;
-        return GetCurrentAndMoveNext(propId, attributes) != NULL;
-    }
-
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
-    bool DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentPropertyId(PropertyId *pPropertyId)
-    {
-        if (arrayEnumerator)
-        {
-            return arrayEnumerator->GetCurrentPropertyId(pPropertyId);
-        }
-        Js::PropertyId propertyId = object->GetPropertyId((T) objectIndex);
-
-        if ((enumNonEnumerable || (propertyId != Constants::NoProperty && object->IsEnumerable(propertyId))))
-        {
-            *pPropertyId = propertyId;
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
     uint32 DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentItemIndex()
     {
         if (arrayEnumerator)
@@ -100,11 +53,11 @@ namespace Js
     }
 
     template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (arrayEnumerator)
         {
-            Var currentIndex = arrayEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
+            Var currentIndex = arrayEnumerator->MoveAndGetNext(propertyId, attributes);
             if(currentIndex != NULL)
             {
                 return currentIndex;

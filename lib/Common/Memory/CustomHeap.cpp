@@ -471,7 +471,7 @@ DWORD Heap::EnsureAllocationExecuteWriteable(Allocation* allocation)
     else
     {
         return EnsureAllocationReadWrite<PAGE_EXECUTE_READWRITE>(allocation);
-    }   
+    }
 }
 
 void Heap::FreeLargeObjects()
@@ -485,7 +485,7 @@ void Heap::FreeLargeObjects()
 #endif
         this->codePageAllocators->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-        largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
+            largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
 }
@@ -826,7 +826,9 @@ bool Heap::FreeAllocation(Allocation* object)
         {
             protectFlags = PAGE_EXECUTE;
         }
+
         this->codePageAllocators->ProtectPages(page->address, 1, segment, protectFlags, PAGE_EXECUTE_READWRITE);
+        
         return true;
     }
 }

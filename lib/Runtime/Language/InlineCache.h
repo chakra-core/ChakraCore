@@ -564,7 +564,7 @@ namespace Js
         {
             return this->sortedAndDuplicatesRemoved;
         }
-        bool Contains(const Js::Type * type, uint16 * pIndex = nullptr) const;
+        bool Contains(const Js::Type * type, uint16 * pIndex = nullptr);
 
         static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);
         static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);

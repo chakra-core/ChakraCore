@@ -1,7 +1,7 @@
-[object Object]
-[object Object]
+[object ArrayBuffer]
+[object ArrayBuffer]
 20
-[object Object]
+[object ArrayBuffer]
 aaa = 20
 foo = 20
 bar = 42

@@ -31,6 +31,10 @@
     ;JavascriptMethod ScriptContext::ProfileModeDeferredDeserialize(ScriptFunction *function)
     IMPORT  |?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APAXPAVRecyclableObject@2@UCallInfo@2@ZZPAVScriptFunction@2@@Z|
 
+#if defined(_CONTROL_FLOW_GUARD)
+    IMPORT __guard_check_icall_fptr
+#endif
+
     TEXTAREA
 
 #ifdef _ENABLE_DYNAMIC_THUNKS

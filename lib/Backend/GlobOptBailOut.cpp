@@ -240,12 +240,10 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
     bailOutInfo->capturedValues.constantValues.Clear(this->func->m_alloc);
     bailOutConstValuesIter.SetNext(&bailOutInfo->capturedValues.constantValues);
     bailOutInfo->capturedValues.constantValues = capturedValues.constantValues;
-    capturedValues.constantValues.Reset();
 
     bailOutInfo->capturedValues.copyPropSyms.Clear(this->func->m_alloc);
     bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues.copyPropSyms);
     bailOutInfo->capturedValues.copyPropSyms = capturedValues.copyPropSyms;
-    capturedValues.copyPropSyms.Reset();
     
     if (!PHASE_OFF(Js::IncrementalBailoutPhase, func))
     {

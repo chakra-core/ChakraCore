@@ -12,7 +12,8 @@ namespace Js
     void ScopeInfo::SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData)
     {
         // We don't need to create slot for or save "arguments"
-        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference();
+        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference()
+            && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments());
         Js::PropertyId scopeSlot = Constants::NoSlot;
         
         if (sym->GetIsModuleExportStorage())
