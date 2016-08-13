@@ -160,6 +160,7 @@ endif()
     # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
     # Release Builds: Not sure if this has to be as strict as the debug/test?
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -fstack-protector\
         -fdelayed-template-parsing\
         -fno-omit-frame-pointer\
         -fno-optimize-sibling-calls\

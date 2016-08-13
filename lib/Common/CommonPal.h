@@ -27,8 +27,8 @@
     #define __forceinline inline
 #endif
 
-// Only VC compiler support overflow guard
 #if defined(__GNUC__) || defined(__clang__)
+// We have -fstack-protector added to CMake CXX flags
 #define DECLSPEC_GUARD_OVERFLOW
 #else // Windows
 #define DECLSPEC_GUARD_OVERFLOW __declspec(guard(overflow))
