@@ -51,7 +51,7 @@ namespace Js
         }
         RecyclableObject* executor = RecyclableObject::FromVar(args[1]);
 
-        // 3. Let promise be ? OrdinaryCreateFromConstructor(NewTarget, "%PromisePrototype%", «[[PromiseState]], [[PromiseResult]], [[PromiseFulfillReactions]], [[PromiseRejectReactions]], [[PromiseIsHandled]] »).
+        // 3. Let promise be ? OrdinaryCreateFromConstructor(NewTarget, "%PromisePrototype%", <<[[PromiseState]], [[PromiseResult]], [[PromiseFulfillReactions]], [[PromiseRejectReactions]], [[PromiseIsHandled]] >>).
         JavascriptPromise* promise = library->CreatePromise();
         if (isCtorSuperCall)
         {
@@ -70,7 +70,7 @@ namespace Js
 
         JavascriptExceptionObject* exception = nullptr;
         
-        // 9. Let completion be Call(executor, undefined, « resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] »).
+        // 9. Let completion be Call(executor, undefined, << resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] >>).
         try
         {
             CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3),
@@ -86,7 +86,7 @@ namespace Js
         if (exception != nullptr)
         {
             // 10. If completion is an abrupt completion, then
-            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, « completion.[[Value]] »).
+            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, << completion.[[Value]] >>).
             TryRejectWithExceptionObject(exception, reject, scriptContext);
         }
         
@@ -453,7 +453,7 @@ namespace Js
         // 3. Let promiseCapability be NewPromiseCapability(C).
         JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
 
-        // 4. Perform ? Call(promiseCapability.[[Reject]], undefined, « r »).
+        // 4. Perform ? Call(promiseCapability.[[Reject]], undefined, << r >>).
         TryCallResolveOrRejectHandler(promiseCapability->GetReject(), r, scriptContext);
 
         // 5. Return promiseCapability.[[Promise]].
@@ -507,7 +507,7 @@ namespace Js
         // 4. Let promiseCapability be NewPromiseCapability(C).
         JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
 
-        // 5. Perform ? Call(promiseCapability.[[Resolve]], undefined, « x »).
+        // 5. Perform ? Call(promiseCapability.[[Resolve]], undefined, << x >>).
         TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), x, scriptContext);
 
         // 6. Return promiseCapability.[[Promise]].
