@@ -284,6 +284,18 @@ namespace TTD
         void CreateString_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void CreateSymbol_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
+        Js::Var Execute_CreateErrorHelper(const JsRTVarsArgumentAction* errorData, Js::ScriptContext* ctx, EventKind eventKind);
+
+        template<EventKind errorKind>
+        void CreateError_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, errorKind>(evt);
+
+            Js::Var res = Execute_CreateErrorHelper(action, ctx, errorKind);
+
+            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, errorKind>(ctx, evt, res);
+        }
+
         void VarConvertToNumber_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void VarConvertToBoolean_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void VarConvertToString_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);

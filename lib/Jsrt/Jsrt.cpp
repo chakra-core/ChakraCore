@@ -2302,11 +2302,13 @@ CHAKRA_API JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateError(scriptContext, message, &__ttd_resultPtr));
 
         JsValueRef newError = scriptContext->GetLibrary()->CreateError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
@@ -2321,11 +2323,13 @@ CHAKRA_API JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRef *error)
 
         JsValueRef newError;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateRangeError(scriptContext, message, &__ttd_resultPtr));
 
         newError = scriptContext->GetLibrary()->CreateRangeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
@@ -2340,11 +2344,13 @@ CHAKRA_API JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsValueRef *err
 
         JsValueRef newError;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateReferenceError(scriptContext, message, &__ttd_resultPtr));
 
         newError = scriptContext->GetLibrary()->CreateReferenceError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
@@ -2359,11 +2365,13 @@ CHAKRA_API JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueRef *error)
 
         JsValueRef newError;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateSyntaxError(scriptContext, message, &__ttd_resultPtr));
 
         newError = scriptContext->GetLibrary()->CreateSyntaxError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
@@ -2378,11 +2386,13 @@ CHAKRA_API JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef *error)
 
         JsValueRef newError;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateTypeError(scriptContext, message, &__ttd_resultPtr));
 
         newError = scriptContext->GetLibrary()->CreateTypeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
@@ -2397,11 +2407,13 @@ CHAKRA_API JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef *error)
 
         JsValueRef newError;
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateURIError(scriptContext, message, &__ttd_resultPtr));
 
         newError = scriptContext->GetLibrary()->CreateURIError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(error);
 
         return JsNoError;
     });
