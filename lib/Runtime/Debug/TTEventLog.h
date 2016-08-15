@@ -645,12 +645,21 @@ namespace TTD
         void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar** resultVarPtr);
 #endif
 
+        //Record creation operations
         void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar** resultVarPtr);
         void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar** resultVarPtr);
         void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar** resultVarPtr);
         void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
 
-        //Record conversions and symbol creation
+        //Record error creation
+        void RecordJsRTCreateError(Js::ScriptContext* ctx, Js::Var msg, TTDVar** resultVarPtr);
+        void RecordJsRTCreateRangeError(Js::ScriptContext* ctx, Js::Var vmsg, TTDVar** resultVarPtr);
+        void RecordJsRTCreateReferenceError(Js::ScriptContext* ctx, Js::Var msg, TTDVar** resultVarPtr);
+        void RecordJsRTCreateSyntaxError(Js::ScriptContext* ctx, Js::Var msg, TTDVar** resultVarPtr);
+        void RecordJsRTCreateTypeError(Js::ScriptContext* ctx, Js::Var msg, TTDVar** resultVarPtr);
+        void RecordJsRTCreateURIError(Js::ScriptContext* ctx, Js::Var msg, TTDVar** resultVarPtr);
+
+        //Record conversions
         void RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
         void RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
         void RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);

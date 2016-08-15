@@ -160,6 +160,13 @@ namespace TTD
             CreateStringActionTag,
             CreateSymbolActionTag,
 
+            CreateErrorActionTag,
+            CreateRangeErrorActionTag,
+            CreateReferenceErrorActionTag,
+            CreateSyntaxErrorActionTag,
+            CreateTypeErrorActionTag,
+            CreateURIErrorActionTag,
+
             VarConvertToNumberActionTag,
             VarConvertToBooleanActionTag,
             VarConvertToStringActionTag,

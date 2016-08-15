@@ -135,6 +135,40 @@ namespace TTD
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::CreateSymbolActionTag>(ctx, evt, res);
         }
 
+        Js::Var Execute_CreateErrorHelper(const JsRTVarsArgumentAction* errorData, Js::ScriptContext* ctx, EventKind eventKind)
+        {
+            Js::Var message = InflateVarInReplay(ctx, errorData->Var1);
+
+            Js::Var res = nullptr; 
+            switch(eventKind)
+            {
+            case EventKind::CreateErrorActionTag:
+                res = ctx->GetLibrary()->CreateError();
+                break;
+            case EventKind::CreateRangeErrorActionTag:
+                res = ctx->GetLibrary()->CreateRangeError();
+                break;
+            case EventKind::CreateReferenceErrorActionTag:
+                res = ctx->GetLibrary()->CreateReferenceError();
+                break;
+            case EventKind::CreateSyntaxErrorActionTag:
+                res = ctx->GetLibrary()->CreateSyntaxError();
+                break;
+            case EventKind::CreateTypeErrorActionTag:
+                res = ctx->GetLibrary()->CreateTypeError();
+                break;
+            case EventKind::CreateURIErrorActionTag:
+                res = ctx->GetLibrary()->CreateURIError();
+                break;
+            default:
+                AssertMsg(false, "Missing error kind!!!");
+            }
+
+            Js::JavascriptOperators::OP_SetProperty(res, Js::PropertyIds::message, message, ctx);
+
+            return res;
+        }
+
         void VarConvertToNumber_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::VarConvertToNumberActionTag>(evt);
