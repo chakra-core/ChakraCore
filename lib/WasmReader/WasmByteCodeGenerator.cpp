@@ -1130,6 +1130,10 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
         m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, GetViewType(wasmOp));
     }
 
+    m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, exprInfo.location, GetViewType(wasmOp));
+    ReleaseLocation(&rhsInfo);
+    ReleaseLocation(&exprInfo);
+
     return EmitInfo(resultReg, type);
 }
 
