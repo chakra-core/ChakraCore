@@ -75,7 +75,6 @@ private:
         __out RPC_BINDING_HANDLE* bindingHandle);
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
-    HANDLE m_rpcServerProcessHandle;
     HANDLE m_targetHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
