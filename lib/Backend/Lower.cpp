@@ -6215,20 +6215,12 @@ Lowerer::EnsureZeroLastStackFunctionNext()
 }
 
 IR::Instr *
-Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
+Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnvOpnd)
 {
     Assert(newScFuncInstr->m_func->DoStackNestedFunc());
     Func * func = newScFuncInstr->m_func;
     uint index = newScFuncInstr->GetSrc1()->AsIntConstOpnd()->AsUint32();
     Assert(index < func->GetJnFunction()->GetNestedCount());
-
-    Js::FunctionProxyPtrPtr nestedProxy = func->GetJnFunction()->GetNestedFuncReference(index);
-    // the stackAllocate Call below for this sym is passing a size that is not represented by any IRType and hence passing TyMisc for the constructor
-    StackSym * stackSym = StackSym::New(TyMisc, func);
-    // ScriptFunction and it's next pointer
-    this->m_func->StackAllocate(stackSym, sizeof(Js::StackScriptFunction) + sizeof(Js::StackScriptFunction *));
-    IR::Opnd * envOpnd = newScFuncInstr->GetSrc2();
-    GenerateStackScriptFunctionInit(stackSym, nestedProxy);
 
     IR::LabelInstr * labelNoStackFunc = IR::LabelInstr::New(Js::OpCode::Label, func, true);
     IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func);
@@ -6237,33 +6229,71 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
         IR::IntConstOpnd::New(Js::FunctionBody::Flags_StackNestedFunc, TyInt8, func, true),
         Js::OpCode::BrEq_A, labelNoStackFunc, newScFuncInstr);
 
-    InsertMove(IR::SymOpnd::New(stackSym, Js::ScriptFunction::GetOffsetOfEnvironment(), TyMachPtr, func),
-        envOpnd,
-        newScFuncInstr);
+    Js::FunctionProxyPtrPtr nestedProxy = func->GetJnFunction()->GetNestedFuncReference(index);
+    IR::Instr * instrAssignDst;
+    IR::RegOpnd * envOpnd = *ppEnvOpnd;
+    if (!func->IsLoopBody())
+    {
+        // the stackAllocate Call below for this sym is passing a size that is not represented by any IRType and hence passing TyMisc for the constructor
+        StackSym * stackSym = StackSym::New(TyMisc, func);
+        // ScriptFunction and it's next pointer
+        this->m_func->StackAllocate(stackSym, sizeof(Js::StackScriptFunction) + sizeof(Js::StackScriptFunction *));
+        GenerateStackScriptFunctionInit(stackSym, nestedProxy);
 
-    IR::Instr * lea =
-        InsertLea(newScFuncInstr->GetDst()->AsRegOpnd(), IR::SymOpnd::New(stackSym, TyMachPtr, func), newScFuncInstr);
+        InsertMove(IR::SymOpnd::New(stackSym, Js::ScriptFunction::GetOffsetOfEnvironment(), TyMachPtr, func),
+            envOpnd,
+            newScFuncInstr);
+
+        instrAssignDst =
+            InsertLea(newScFuncInstr->GetDst()->AsRegOpnd(), IR::SymOpnd::New(stackSym, TyMachPtr, func), newScFuncInstr);
+    }
+    else
+    {
+        Assert(func->IsTopFunc());
+        Assert(func->m_loopParamSym);
+
+        IR::Instr * envDefInstr = envOpnd->AsRegOpnd()->m_sym->m_instrDef;
+        Assert(envDefInstr && envDefInstr->m_opcode == Js::OpCode::NewScFuncData);
+        IR::RegOpnd * opndFuncPtr = envDefInstr->UnlinkSrc2()->AsRegOpnd();
+        Assert(opndFuncPtr);
+        envOpnd = envDefInstr->UnlinkSrc1()->AsRegOpnd();
+        Assert(envOpnd);
+        *ppEnvOpnd = envOpnd;
+        envDefInstr->Remove();
+
+        if (index != 0)
+        {
+            IR::RegOpnd * opnd = IR::RegOpnd::New(TyVar, func);
+            InsertAdd(false, opnd, opndFuncPtr, IR::IntConstOpnd::New(index * sizeof(Js::StackScriptFunction), TyUint32, func), newScFuncInstr);
+            opndFuncPtr = opnd;
+        }
+
+        InsertMove(IR::IndirOpnd::New(opndFuncPtr, Js::ScriptFunction::GetOffsetOfEnvironment(), TyMachPtr, func),
+                   envOpnd, newScFuncInstr);
+
+        instrAssignDst = InsertMove(newScFuncInstr->GetDst(), opndFuncPtr, newScFuncInstr);
+    }
 
     InsertBranch(Js::OpCode::Br, labelDone, newScFuncInstr);
 
     newScFuncInstr->InsertBefore(labelNoStackFunc);
     newScFuncInstr->InsertAfter(labelDone);
 
-    return lea;
+    return instrAssignDst;
 }
 
 IR::Instr *
 Lowerer::LowerNewScFunc(IR::Instr * newScFuncInstr)
 {
     IR::Instr *stackNewScFuncInstr = nullptr;
+    IR::RegOpnd * envOpnd = newScFuncInstr->UnlinkSrc2()->AsRegOpnd();
 
     if (newScFuncInstr->m_func->DoStackNestedFunc())
     {
-        stackNewScFuncInstr = GenerateNewStackScFunc(newScFuncInstr);
+        stackNewScFuncInstr = GenerateNewStackScFunc(newScFuncInstr, &envOpnd);
     }
 
     IR::IntConstOpnd * functionBodySlotOpnd = newScFuncInstr->UnlinkSrc1()->AsIntConstOpnd();
-    IR::RegOpnd * envOpnd = newScFuncInstr->UnlinkSrc2()->AsRegOpnd();
 
     IR::Instr * instrPrev = this->LoadFunctionBodyAsArgument(newScFuncInstr, functionBodySlotOpnd, envOpnd);
     m_lowererMD.ChangeToHelperCall(newScFuncInstr, IR::HelperScrFunc_OP_NewScFunc );
