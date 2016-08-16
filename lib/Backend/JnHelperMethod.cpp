@@ -221,16 +221,18 @@ DECLSPEC_GUARDIGNORE _NOINLINE void * const GetNonTableMethodAddress(JnHelperMet
         return (float(*)(float))ceil;
 
     case HelperDirectMath_TruncDb:
-        return (double(*)(double))trunc;
+        //return (double(*)(double))trunc;
 
     case HelperDirectMath_TruncFlt:
-        return (float(*)(float))trunc;
+        //return (float(*)(float))trunc;
 
     case HelperDirectMath_NearestDb:
-        return (double(*)(double))round;
+        //return (double(*)(double))round;
 
     case HelperDirectMath_NearestFlt:
-        return (float(*)(float))round;
+        //return (float(*)(float))round;
+        // todo:: change for the right helper
+        return (float(*)(float))ceil;
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this

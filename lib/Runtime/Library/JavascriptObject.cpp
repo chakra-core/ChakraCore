@@ -357,381 +357,163 @@ namespace Js
         return ToStringHelper(args[0], scriptContext);
     }
 
-    JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext* scriptContext, TypeId type)
+    // ES2017 19.1.3.6 Object.prototype.toString()
+    JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext *scriptContext, TypeId type)
     {
-        JavascriptString* tag = nullptr;
-        bool addTilde = true;
-        bool isES6ToStringTagEnabled = scriptContext->GetConfig()->IsES6ToStringTagEnabled();
-        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptLibrary *library = scriptContext->GetLibrary();
 
-        if (isES6ToStringTagEnabled && RecyclableObject::Is(thisArg))
+        // 1. If the this value is undefined, return "[object Undefined]".
+        if (type == TypeIds_Undefined)
         {
-            RecyclableObject* thisArgObject = RecyclableObject::FromVar(thisArg);
-
-            if (JavascriptOperators::HasProperty(thisArgObject, PropertyIds::_symbolToStringTag)) // Let hasTag be the result of HasProperty(O, @@toStringTag).
-            {
-                Var tagVar;
-
-                try
-                {
-                    tagVar = JavascriptOperators::GetProperty(thisArgObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
-                }
-                catch (JavascriptExceptionObject*)
-                {
-                    // tag = "???"
-                    return library->CreateStringFromCppLiteral(_u("[object ???]")); // If tag is an abrupt completion, let tag be NormalCompletion("???").
-                }
-
-                if (!JavascriptString::Is(tagVar))
-                {
-                    // tag = "???"
-                    return library->CreateStringFromCppLiteral(_u("[object ???]")); // If Type(tag) is not String, let tag be "???".
-                }
-
-                tag = JavascriptString::FromVar(tagVar);
-            }
+            return library->CreateStringFromCppLiteral(_u("[object Undefined]"));
+        }
+        // 2. If the this value is null, return "[object Null]".
+        if (type == TypeIds_Null)
+        {
+            return library->CreateStringFromCppLiteral(_u("[object Null]"));
         }
 
+        // 3. Let O be ToObject(this value).
+        RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
 
-        // If tag is any of "Arguments", "Array", "Boolean", "Date", "Error", "Function", "Number", "RegExp", or "String" and
-        // SameValue(tag, builtinTag) is false, then let tag be the string value "~" concatenated with the current value of tag.
-        switch (type)
-        {
-            case TypeIds_Arguments:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Arguments")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Arguments]"));
-                }
-                break;
-            case TypeIds_Array:
-            case TypeIds_ES5Array:
-            case TypeIds_NativeIntArray:
-#if ENABLE_COPYONACCESS_ARRAY
-            case TypeIds_CopyOnAccessNativeIntArray:
-#endif
-            case TypeIds_NativeFloatArray:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Array]"));
-                }
-                break;
-            case TypeIds_Boolean:
-            case TypeIds_BooleanObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Boolean")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
-                }
-                break;
-            case TypeIds_DataView:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object DataView]"));
-                }
-                break;
-            case TypeIds_Date:
-            case TypeIds_WinRTDate:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Date]"));
-                }
-                break;
-            case TypeIds_Error:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Error")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Error]"));
-                }
-                break;
+        // 4. Let isArray be ? IsArray(O).
+        // There is an implicit check for a null proxy handler in IsArray, so use the operator.
+        BOOL isArray = JavascriptOperators::IsArray(thisArgAsObject);
 
-            case TypeIds_Function:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Function")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Function]"));
-                }
-                break;
-            case TypeIds_Number:
-            case TypeIds_Int64Number:
-            case TypeIds_UInt64Number:
-            case TypeIds_Integer:
-            case TypeIds_NumberObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Number]"));
-                }
-                break;
-            case TypeIds_Promise:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Promise]"));
-                }
-                break;
-            case TypeIds_SIMDObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("SIMD")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object SIMD]"));
-                }
-                break;
+        // 15. Let tag be ? Get(O, @@toStringTag).
+        Var tag = JavascriptOperators::GetProperty(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
 
-            case TypeIds_RegEx:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("RegExp")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object RegExp]"));
-                }
-                break;
+        // 17. Return the String that is the result of concatenating "[object ", tag, and "]". 
+        auto buildToString = [&scriptContext](Var tag) {
+            JavascriptString *tagStr = JavascriptString::FromVar(tag);
 
-            case TypeIds_String:
-            case TypeIds_StringObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("String")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object String]"));
-                }
-                break;
+            CompoundString::Builder<32> stringBuilder(scriptContext);
 
-            case TypeIds_ModuleNamespace:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Module")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Module]"));
-                }
-                break;
-
-            case TypeIds_Proxy:
-                if (JavascriptOperators::IsArray(thisArg))
-                {
-                    if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
-                    {
-                        return library->CreateStringFromCppLiteral(_u("[object Array]"));
-                    }
-                }
-                //otherwise, fall though
-            case TypeIds_Object:
-            default:
-                if (tag == nullptr)
-                {
-                    // Else, let builtinTag be "Object".
-                    // If hasTag is false, then let tag be builtinTag.
-                    return library->GetObjectDisplayString(); // "[object Object]"
-                }
-                addTilde = false;
-                break;
-        }
-
-        Assert(tag != nullptr);
-        Assert(isES6ToStringTagEnabled);
-
-        CompoundString::Builder<32> stringBuilder(scriptContext);
-
-        if (addTilde)
-            stringBuilder.AppendChars(_u("[object ~"));
-        else
             stringBuilder.AppendChars(_u("[object "));
 
-        stringBuilder.AppendChars(tag);
-        stringBuilder.AppendChars(_u(']'));
+            stringBuilder.AppendChars(tagStr);
+            stringBuilder.AppendChars(_u(']'));
 
-        return stringBuilder.ToString();
-    }
-
-    Var JavascriptObject::LegacyToStringHelper(ScriptContext* scriptContext, TypeId type)
-    {
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-        switch (type)
+            return stringBuilder.ToString();
+        };
+        if (tag != nullptr && JavascriptString::Is(tag))
         {
-            case TypeIds_ArrayBuffer:
-                return library->CreateStringFromCppLiteral(_u("[object ArrayBuffer]"));
-            case TypeIds_Int8Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int8Array]"));
-            case TypeIds_Uint8Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint8Array]"));
-            case TypeIds_Uint8ClampedArray:
-                return library->CreateStringFromCppLiteral(_u("[object Uint8ClampedArray]"));
-            case TypeIds_Int16Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int16Array]"));
-            case TypeIds_Uint16Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint16Array]"));
-            case TypeIds_Int32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int32Array]"));
-            case TypeIds_Uint32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint32Array]"));
-            case TypeIds_Float32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Float32Array]"));
-            case TypeIds_Float64Array:
-                return library->CreateStringFromCppLiteral(_u("[object Float64Array]"));
-            case TypeIds_Symbol:
-            case TypeIds_SymbolObject:
-                return library->CreateStringFromCppLiteral(_u("[object Symbol]"));
-            case TypeIds_Map:
-                return library->CreateStringFromCppLiteral(_u("[object Map]"));
-            case TypeIds_Set:
-                return library->CreateStringFromCppLiteral(_u("[object Set]"));
-            case TypeIds_WeakMap:
-                return library->CreateStringFromCppLiteral(_u("[object WeakMap]"));
-            case TypeIds_WeakSet:
-                return library->CreateStringFromCppLiteral(_u("[object WeakSet]"));
-            case TypeIds_Generator:
-                return library->CreateStringFromCppLiteral(_u("[object Generator]"));
-            default:
-                AssertMsg(false, "We should never be here");
-                return library->GetUndefined();
-        }
-    }
-
-    Var JavascriptObject::ToStringHelper(Var thisArg, ScriptContext* scriptContext)
-    {
-        TypeId type = JavascriptOperators::GetTypeId(thisArg);
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-        switch (type)
-        {
-        case TypeIds_Undefined:
-            return library->CreateStringFromCppLiteral(_u("[object Undefined]"));
-        case TypeIds_Null:
-            return library->CreateStringFromCppLiteral(_u("[object Null]"));
-        case TypeIds_Enumerator:
-        case TypeIds_Proxy:
-        case TypeIds_Object:
-            if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-            {
-                // Math, Object and JSON handled by toStringTag now,
-                return ToStringTagHelper(thisArg, scriptContext, type);
-            }
-
-            if (thisArg == scriptContext->GetLibrary()->GetMathObject())
-            {
-                return library->CreateStringFromCppLiteral(_u("[object Math]"));
-            }
-            else if (thisArg == library->GetJSONObject())
-            {
-                return library->CreateStringFromCppLiteral(_u("[object JSON]"));
-            }
-
-        default:
-        {
-            RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
-            if (!obj->CanHaveInterceptors())
-            {
-                //this will handle printing Object for non interceptor cases
-                return library->GetObjectDisplayString();
-            }
-            // otherwise, fall through.
-            RecyclableObject* recyclableObject = Js::RecyclableObject::FromVar(thisArg);
-
-            JavascriptString* name = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[object "));
-            name = JavascriptString::Concat(name, recyclableObject->GetClassName(scriptContext));
-            name = JavascriptString::Concat(name, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("]")));
-            return name;
+            return buildToString(tag);
         }
 
-        case TypeIds_HostObject:
-            AssertMsg(false, "Host object should never be here");
-            return library->GetUndefined();
+        // If we don't have a tag or it's not a string, use the 'built in tag'.
+        if (isArray)
+        {
+            // 5. If isArray is true, let builtinTag be "Array".
+            return library->CreateStringFromCppLiteral(_u("[object Array]"));
+        }
 
-        case TypeIds_StringIterator:
-        case TypeIds_ArrayIterator:
-        case TypeIds_MapIterator:
-        case TypeIds_SetIterator:
-        case TypeIds_DataView:
-        case TypeIds_Promise:
+        JavascriptString* builtInTag = nullptr;
+        switch (type)
+        {
+            // 6. Else if O is an exotic String object, let builtinTag be "String".
+        case TypeIds_String:
+        case TypeIds_StringObject:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object String]"));
+            break;
+
+            // 7. Else if O has an[[ParameterMap]] internal slot, let builtinTag be "Arguments".
+        case TypeIds_Arguments:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Arguments]"));
+            break;
+
+            // 8. Else if O has a [[Call]] internal method, let builtinTag be "Function".
+        case TypeIds_Function:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Function]"));
+            break;
+
+            // 9. Else if O has an [[ErrorData]] internal slot, let builtinTag be "Error".
+        case TypeIds_Error:
+            builtInTag = library->GetErrorDisplayString();
+            break;
+
+            // 10. Else if O has a [[BooleanData]] internal slot, let builtinTag be "Boolean".
         case TypeIds_Boolean:
         case TypeIds_BooleanObject:
-        case TypeIds_Date:
-        case TypeIds_WinRTDate:
-        case TypeIds_Error:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Boolean]"));
+            break;
+
+            // 11. Else if O has a [[NumberData]] internal slot, let builtinTag be "Number".
         case TypeIds_Number:
         case TypeIds_Int64Number:
         case TypeIds_UInt64Number:
         case TypeIds_Integer:
         case TypeIds_NumberObject:
-        case TypeIds_SIMDObject:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Number]"));
+            break;
+
+            // 12. Else if O has a [[DateValue]] internal slot, let builtinTag be "Date".
+        case TypeIds_Date:
+        case TypeIds_WinRTDate:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Date]"));
+            break;
+
+            // 13. Else if O has a [[RegExpMatcher]] internal slot, let builtinTag be "RegExp".
         case TypeIds_RegEx:
-        case TypeIds_Array:
-        case TypeIds_ES5Array:
-        case TypeIds_NativeIntArray:
-#if ENABLE_COPYONACCESS_ARRAY
-        case TypeIds_CopyOnAccessNativeIntArray:
-#endif
-        case TypeIds_NativeFloatArray:
-        case TypeIds_Function:
-        case TypeIds_String:
-        case TypeIds_StringObject:
-        case TypeIds_Arguments:
-            return ToStringTagHelper(thisArg, scriptContext, type);
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object RegExp]"));
+            break;
 
-        case TypeIds_GlobalObject:
+            // 14. Else, let builtinTag be "Object".
+        default:
+        {
+            if (thisArgAsObject->IsExternal())
             {
-                GlobalObject* globalObject = static_cast<Js::GlobalObject*>(thisArg);
-                AssertMsg(globalObject == thisArg, "Should be the global object");
-
-                Var toThis = globalObject->ToThis();
-                if (toThis == globalObject)
-                {
-                    return library->GetObjectDisplayString();
-                }
-                else
-                {
-                    return ToStringHelper(toThis, scriptContext);
-                }
-            }
-        case TypeIds_HostDispatch:
-            {
-                RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
-                DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
-                if (remoteObject)
-                {
-                    return ToStringHelper(remoteObject, scriptContext);
-                }
-                else
-                {
-                    Var result;
-                    Js::Var values[1];
-                    Js::CallInfo info(Js::CallFlags_Value, 1);
-                    Js::Arguments args(info, values);
-                    values[0] = thisArg;
-                    if (hostDispatchObject->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
-                    {
-                        return result;
-                    }
-                }
-                return library->GetObjectDisplayString();
-            }
-
-        case TypeIds_ArrayBuffer:
-        case TypeIds_Int8Array:
-        case TypeIds_Uint8Array:
-        case TypeIds_Uint8ClampedArray:
-        case TypeIds_Int16Array:
-        case TypeIds_Uint16Array:
-        case TypeIds_Int32Array:
-        case TypeIds_Uint32Array:
-        case TypeIds_Float32Array:
-        case TypeIds_Float64Array:
-        case TypeIds_Symbol:
-        case TypeIds_SymbolObject:
-        case TypeIds_Map:
-        case TypeIds_Set:
-        case TypeIds_WeakMap:
-        case TypeIds_WeakSet:
-        case TypeIds_Generator:
-            if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-            {
-                JavascriptString* toStringValue = nullptr;
-                if (!scriptContext->GetThreadContext()->IsScriptActive())
-                {
-                    // Note we need this for typed Arrays in the debugger b/c they invoke a function call to get the toStringTag
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false);
-                    toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
-                    END_JS_RUNTIME_CALL(scriptContext);
-                }
-                else
-                {
-                    toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
-                }
-                return toStringValue;
-
+                builtInTag = buildToString(thisArgAsObject->GetClassName(scriptContext));
             }
             else
             {
-                return LegacyToStringHelper(scriptContext, type);
+                builtInTag = library->GetObjectDisplayString(); // [object Object]
             }
-
+            break;
         }
+        }
+
+        Assert(builtInTag != nullptr);
+
+        return builtInTag;
+    }
+
+    Var JavascriptObject::ToStringHelper(Var thisArg, ScriptContext* scriptContext)
+    {
+        TypeId type = JavascriptOperators::GetTypeId(thisArg);
+
+        // We first need to make sure we are in the right context.
+        if (type == TypeIds_HostDispatch)
+        {
+            RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
+            DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
+            if (!remoteObject)
+            {
+                Var result = nullptr;
+                Js::Var values[1];
+                Js::CallInfo info(Js::CallFlags_Value, 1);
+                Js::Arguments args(info, values);
+                values[0] = thisArg;
+                if (hostDispatchObject->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                {
+                    return result;
+                }
+            }
+        }
+
+        // Dispatch to @@toStringTag implementation.
+        if (type >= TypeIds_TypedArrayMin && type <= TypeIds_TypedArrayMax && !scriptContext->GetThreadContext()->IsScriptActive())
+        {
+            // Use external call for typedarray in the debugger.
+            Var toStringValue = nullptr;
+            BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false);
+            toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
+            END_JS_RUNTIME_CALL(scriptContext);
+            return toStringValue;
+        }
+
+        // By this point, we should be in the correct context, but the thisArg may still need to be marshalled (for to the implicit ToObject conversion call.)
+        return ToStringTagHelper(CrossSite::MarshalVar(scriptContext, thisArg), scriptContext, type);
     }
 
     // -----------------------------------------------------------
@@ -888,7 +670,10 @@ namespace Js
             JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
 
             Var newDescriptor = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propKey, scriptContext);
-            resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+            if (!JavascriptOperators::IsUndefined(newDescriptor))
+            {
+                resultObj->SetProperty(propertyRecord->GetPropertyId(), newDescriptor, PropertyOperation_None, nullptr);
+            }
         }
 
         return resultObj;
@@ -1358,7 +1143,7 @@ namespace Js
         const PropertyRecord* propertyRecord;
         JavascriptSymbol* symbol;
 
-        while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
+        while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
         {
             if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
             {
@@ -1736,7 +1521,7 @@ namespace Js
         Var propertyVar = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = pEnumerator->GetCurrentAndMoveNext(nextKey)) != NULL)
+        while ((propertyVar = pEnumerator->MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
@@ -1899,7 +1684,7 @@ namespace Js
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = pEnumerator->GetCurrentAndMoveNext(propId)) != NULL)
+        while ((tempVar = pEnumerator->MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {

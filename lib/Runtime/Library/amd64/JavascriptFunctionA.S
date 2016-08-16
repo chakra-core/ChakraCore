@@ -108,14 +108,13 @@ NESTED_END amd64_CallFunction, _TEXT
 
 
 .balign 16
-.text
-C_FUNC(_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz):
-        push rbp
+NESTED_ENTRY _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
+        push_nonvol_reg rbp
         lea  rbp, [rsp]
 
         // save argument registers used by custom calling convention
-        push rdi
-        push rsi
+        push_register rdi
+        push_register rsi
 
         // Call
         //  JavascriptMethod JavascriptFunction::DeferredParse(ScriptFunction**)
@@ -123,23 +122,25 @@ C_FUNC(_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectEN
         lea rdi, [rbp + 10h]    // &function, setup by custom calling convention
         call C_FUNC(_ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE)
 
-        pop rsi
-        pop rdi
-        pop rbp
+        pop_register rsi
+        pop_register rdi
+        pop_nonvol_reg rbp
 
         jmp rax
+
+NESTED_END _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
 
 
 // Var JavascriptFunction::DeferredDeserializeThunk(
 //              RecyclableObject* function, CallInfo callInfo, ...)
 .balign 16
-C_FUNC(_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz):
-        push rbp
+NESTED_ENTRY _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
+        push_nonvol_reg rbp
         lea  rbp, [rsp]
 
         // save argument registers used by custom calling convention
-        push rdi
-        push rsi
+        push_register rdi
+        push_register rsi
 
         // Call
         //  Js::JavascriptMethod JavascriptFunction::DeferredDeserialize(
@@ -148,8 +149,10 @@ C_FUNC(_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObje
         //      RDI == function, setup by custom calling convention
         call C_FUNC(_ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE)
 
-        pop rsi
-        pop rdi
-        pop rbp
+        pop_register rsi
+        pop_register rdi
+        pop_nonvol_reg rbp
 
         jmp rax
+
+NESTED_END _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT

@@ -937,7 +937,7 @@ namespace Js
         return false;
     }
 
-    BOOL JavascriptProxy::Equals(Var other, BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
     {
         //RecyclableObject* targetObj;
         if (this->target == nullptr)
@@ -950,14 +950,16 @@ namespace Js
         if (threadContext->IsDisableImplicitCall())
         {
             threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
+            *value = FALSE;
             return FALSE;
         }
         *value = (other == this);
         return true;
     }
 
-    BOOL JavascriptProxy::StrictEquals(Var other, BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
     {
+        *value = FALSE;
         //RecyclableObject* targetObj;
         if (this->target == nullptr)
         {
@@ -1339,7 +1341,7 @@ namespace Js
         Var getPrototypeOfResult;
         if (nullptr == getPrototypeOfMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
-            return target->GetPrototype();
+            return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(target, scriptContext));
         }
         CallInfo callInfo(CallFlags_Value, 2);
         Var varArgs[2];

@@ -456,21 +456,18 @@ var tests = [
             var typedArrayPrototype = Int8Array.prototype.__proto__;
             var descriptor = Object.getOwnPropertyDescriptor(typedArrayPrototype, Symbol.toStringTag);
 
-            assert.throws(function () { typedArrayPrototype.length; }, TypeError, "%TypedArrayPrototype%[@@toStringTag] throws TypeError if called with no parameter", "'this' is not a typed array object");
-            assert.throws(function () { descriptor.get(); }, TypeError, "%TypedArrayPrototype%[@@toStringTag] throws TypeError if called with no parameter", "'this' is not a typed array object");
-            assert.throws(function () { descriptor.get.call(); }, TypeError, "%TypedArrayPrototype%[@@toStringTag] throws TypeError if called with no parameter", "'this' is not a typed array object");
-            assert.throws(function () { descriptor.get.call(undefined); }, TypeError, "%TypedArrayPrototype%[@@toStringTag] throws TypeError if called with no parameter", "'this' is not a typed array object");
-            assert.throws(function () { descriptor.get.call([1,2,3]); }, TypeError, "%TypedArrayPrototype%[@@toStringTag] throws TypeError if called with a non-TypedArray parameter", "'this' is not a typed array object");
+            assert.throws(function () { typedArrayPrototype.length; }, TypeError, "%TypedArrayPrototype%[length] throws TypeError if called with no parameter", "'this' is not a typed array object");
+            assert.areEqual(undefined, descriptor.get.call(), "%TypedArrayPrototype%[@@toStringTag] returns undefined if called with no parameter");
 
-            assert.areEqual('Int8Array', new Int8Array(10)[Symbol.toStringTag], "new Int8Array()[@@toStringTag] === 'Int8Array'");
-            assert.areEqual('Uint8Array', new Uint8Array(10)[Symbol.toStringTag], "new Uint8Array()[@@toStringTag] === 'Uint8Array'");
+            assert.areEqual('Int8Array',         new Int8Array(10)[Symbol.toStringTag],         "new Int8Array()[@@toStringTag] === 'Int8Array'");
+            assert.areEqual('Uint8Array',        new Uint8Array(10)[Symbol.toStringTag],        "new Uint8Array()[@@toStringTag] === 'Uint8Array'");
             assert.areEqual('Uint8ClampedArray', new Uint8ClampedArray(10)[Symbol.toStringTag], "new Uint8ClampedArray()[@@toStringTag] === 'Uint8ClampedArray'");
-            assert.areEqual('Int16Array', new Int16Array(10)[Symbol.toStringTag], "new Int16Array()[@@toStringTag] === 'Int16Array'");
-            assert.areEqual('Uint16Array', new Uint16Array(10)[Symbol.toStringTag], "new Uint16Array()[@@toStringTag] === 'Uint16Array'");
-            assert.areEqual('Int32Array', new Int32Array(10)[Symbol.toStringTag], "new Int32Array()[@@toStringTag] === 'Int32Array'");
-            assert.areEqual('Uint32Array', new Uint32Array(10)[Symbol.toStringTag], "new Uint32Array()[@@toStringTag] === 'Uint32Array'");
-            assert.areEqual('Float32Array', new Float32Array(10)[Symbol.toStringTag], "new Float32Array()[@@toStringTag] === 'Float32Array'");
-            assert.areEqual('Float64Array', new Float64Array(10)[Symbol.toStringTag], "new Float64Array()[@@toStringTag] === 'Float64Array'");
+            assert.areEqual('Int16Array',        new Int16Array(10)[Symbol.toStringTag],        "new Int16Array()[@@toStringTag] === 'Int16Array'");
+            assert.areEqual('Uint16Array',       new Uint16Array(10)[Symbol.toStringTag],       "new Uint16Array()[@@toStringTag] === 'Uint16Array'");
+            assert.areEqual('Int32Array',        new Int32Array(10)[Symbol.toStringTag],        "new Int32Array()[@@toStringTag] === 'Int32Array'");
+            assert.areEqual('Uint32Array',       new Uint32Array(10)[Symbol.toStringTag],       "new Uint32Array()[@@toStringTag] === 'Uint32Array'");
+            assert.areEqual('Float32Array',      new Float32Array(10)[Symbol.toStringTag],      "new Float32Array()[@@toStringTag] === 'Float32Array'");
+            assert.areEqual('Float64Array',      new Float64Array(10)[Symbol.toStringTag],      "new Float64Array()[@@toStringTag] === 'Float64Array'");
         }
     },
     {

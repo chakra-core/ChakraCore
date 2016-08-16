@@ -29,7 +29,7 @@ namespace Js
         {
         }
 
-        JavascriptString * GetCurrentAndMoveNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes);
+        JavascriptString * MoveAndGetNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes);
 
         struct CachedData
         {
@@ -51,7 +51,7 @@ namespace Js
     public:
         static JavascriptEnumerator* New(ScriptContext* scriptContext, DynamicObject* object);
         virtual void Reset() override;
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
 
         static uint32 GetOffsetOfInitialType() { return offsetof(DynamicObjectSnapshotEnumeratorWPCache, initialType); }
         static uint32 GetOffsetOfEnumeratedCount() { return offsetof(DynamicObjectSnapshotEnumeratorWPCache, enumeratedCount); }

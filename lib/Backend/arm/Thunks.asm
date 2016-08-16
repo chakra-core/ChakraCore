@@ -14,6 +14,10 @@
     ;Js::JavascriptMethod NativeCodeGenerator::CheckCodeGen(Js::JavascriptFunction * function)
     IMPORT  |?CheckCodeGen@NativeCodeGenerator@@SAP6APAXPAVRecyclableObject@Js@@UCallInfo@3@ZZPAVScriptFunction@3@@Z|
 
+#if defined(_CONTROL_FLOW_GUARD)
+    IMPORT __guard_check_icall_fptr
+#endif
+
     TEXTAREA
 
 ;;============================================================================================================

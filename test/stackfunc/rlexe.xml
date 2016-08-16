@@ -577,7 +577,7 @@
     <default>
       <files>funcexpr.js</files>
       <baseline>funcexpr.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm</tags>
     </default>
   </test>
@@ -695,6 +695,12 @@
       <files>box_native_emptyframe.js</files>
       <baseline>box_native_emptyframe.baseline</baseline>
       <compile-flags>-lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>box_inlineeFrameInLoopBody.js</files>
+      <compile-flags>-forcedeferparse -forcejitloopbody -force:rejit -force:inline</compile-flags>
     </default>
   </test>
 </regress-exe>
