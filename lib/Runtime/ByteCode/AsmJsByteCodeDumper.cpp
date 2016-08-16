@@ -373,13 +373,15 @@ namespace Js
     template <class T>
     void AsmJsByteCodeDumper::DumpElementSlot(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-        auto asmInfo = dumpFunction->GetAsmJsFunctionInfo();
-        auto wasmInfo = asmInfo->GetWasmReaderInfo();
 
         switch (op)
         {
         case OpCodeAsmJs::LdSlot:
         case OpCodeAsmJs::LdSlotArr:
+        {
+#ifdef ENABLE_WASM
+            auto asmInfo = dumpFunction->GetAsmJsFunctionInfo();
+            auto wasmInfo = asmInfo->GetWasmReaderInfo();
             if (wasmInfo)
             {
                 uint index = (uint)data->SlotIndex;
@@ -398,8 +400,10 @@ namespace Js
                     break;
                 }
             }
+#endif
             Output::Print(_u(" R%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
+        }
         case OpCodeAsmJs::LdArr_Func:
             Output::Print(_u(" R%d = R%d[I%d]"), data->Value, data->Instance, data->SlotIndex);
             break;

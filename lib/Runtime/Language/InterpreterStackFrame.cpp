@@ -2004,11 +2004,13 @@ namespace Js
     {
         return instance->m_localSimdSlots[0];
     }
+#if _M_IX86 || _M_X64
     template<>
     X86SIMDValue InterpreterStackFrame::GetAsmJsRetVal<X86SIMDValue>(InterpreterStackFrame* instance)
     {
         return X86SIMDValue::ToX86SIMDValue(instance->m_localSimdSlots[0]);
     }
+#endif
 
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
