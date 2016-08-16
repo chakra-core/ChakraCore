@@ -67,7 +67,14 @@ namespace Js
             TYPE_UINT32,
             TYPE_FLOAT32,
             TYPE_FLOAT64,
-            TYPE_INVALID
+            TYPE_INT64,
+            TYPE_INT8_TO_INT64,
+            TYPE_UINT8_TO_INT64,
+            TYPE_INT16_TO_INT64,
+            TYPE_UINT16_TO_INT64,
+            TYPE_INT32_TO_INT64,
+            TYPE_UINT32_TO_INT64,
+            TYPE_COUNT
         };
 
     } /* namespace ArrayBufferView */

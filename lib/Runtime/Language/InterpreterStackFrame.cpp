@@ -925,33 +925,70 @@ namespace Js
         , (uint32)~3 //TYPE_UINT32
         , (uint32)~3 //TYPE_FLOAT32
         , (uint32)~7 //TYPE_FLOAT64
+        , (uint32)~7 //TYPE_INT64
+        , (uint32)~0 //TYPE_INT8_TO_INT64
+        , (uint32)~0 //TYPE_UINT8_TO_UINT64
+        , (uint32)~1 //TYPE_INT16_TO_INT64
+        , (uint32)~1 //TYPE_UINT16_TO_UINT64
+        , (uint32)~3 //TYPE_INT32_TO_INT64
+        , (uint32)~3 //TYPE_UINT32_TO_UINT64
     };
 
 #ifdef ASMJS_PLAT
-    typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
 
-    const ArrFunc InterpreterStackFrame::StArrFunc[8] =
+    typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT8 == 0);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT8 == 1);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT16 == 2);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT16 == 3);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT32 == 4);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT32 == 5);
+    CompileAssert(Js::ArrayBufferView::TYPE_FLOAT32 == 6);
+    CompileAssert(Js::ArrayBufferView::TYPE_FLOAT64 == 7);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT64 == 8);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT8_TO_INT64 == 9);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT8_TO_INT64 == 10);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT16_TO_INT64 == 11);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT16_TO_INT64 == 12);
+    CompileAssert(Js::ArrayBufferView::TYPE_INT32_TO_INT64 == 13);
+    CompileAssert(Js::ArrayBufferView::TYPE_UINT32_TO_INT64 == 14);
+
+    const InterpreterStackFrame::ArrFunc InterpreterStackFrame::StArrFunc[] =
     {
-        &InterpreterStackFrame::OP_StArr<int8>,
-        &InterpreterStackFrame::OP_StArr<uint8>,
-        &InterpreterStackFrame::OP_StArr<int16>,
-        &InterpreterStackFrame::OP_StArr<uint16>,
+        &InterpreterStackFrame::OP_StArr<int8, int32>,
+        &InterpreterStackFrame::OP_StArr<uint8, int32>,
+        &InterpreterStackFrame::OP_StArr<int16, int32>,
+        &InterpreterStackFrame::OP_StArr<uint16, int32>,
         &InterpreterStackFrame::OP_StArr<int32>,
-        &InterpreterStackFrame::OP_StArr<uint32>,
+        &InterpreterStackFrame::OP_StArr<uint32, int32>,
         &InterpreterStackFrame::OP_StArr<float>,
         &InterpreterStackFrame::OP_StArr<double>,
+        &InterpreterStackFrame::OP_StArr<int64>,
+        &InterpreterStackFrame::OP_StArr<int8, int64>,
+        &InterpreterStackFrame::OP_StArr<uint8, int64>,
+        &InterpreterStackFrame::OP_StArr<int16, int64>,
+        &InterpreterStackFrame::OP_StArr<uint16, int64>,
+        &InterpreterStackFrame::OP_StArr<int32, int64>,
+        &InterpreterStackFrame::OP_StArr<uint32, int64>,
     };
 
-    const ArrFunc InterpreterStackFrame::LdArrFunc[8] =
+    const InterpreterStackFrame::ArrFunc InterpreterStackFrame::LdArrFunc[] =
     {
-        &InterpreterStackFrame::OP_LdArr<int8>,
-        &InterpreterStackFrame::OP_LdArr<uint8>,
-        &InterpreterStackFrame::OP_LdArr<int16>,
-        &InterpreterStackFrame::OP_LdArr<uint16>,
+        &InterpreterStackFrame::OP_LdArr<int8, int32>,
+        &InterpreterStackFrame::OP_LdArr<uint8, int32>,
+        &InterpreterStackFrame::OP_LdArr<int16, int32>,
+        &InterpreterStackFrame::OP_LdArr<uint16, int32>,
         &InterpreterStackFrame::OP_LdArr<int32>,
-        &InterpreterStackFrame::OP_LdArr<uint32>,
+        &InterpreterStackFrame::OP_LdArr<uint32, int32>,
         &InterpreterStackFrame::OP_LdArr<float>,
         &InterpreterStackFrame::OP_LdArr<double>,
+        &InterpreterStackFrame::OP_LdArr<int64>,
+        &InterpreterStackFrame::OP_LdArr<int8, int64>,
+        &InterpreterStackFrame::OP_LdArr<uint8, int64>,
+        &InterpreterStackFrame::OP_LdArr<int16, int64>,
+        &InterpreterStackFrame::OP_LdArr<uint16, int64>,
+        &InterpreterStackFrame::OP_LdArr<int32, int64>,
+        &InterpreterStackFrame::OP_LdArr<uint32, int64>,
     };
 #endif
 
@@ -7541,6 +7578,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return (float)m_localFloatSlots[localRegisterID];
     }
 
+    template <>
+    int64 InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
+    {
+        return m_localInt64Slots[localRegisterID];
+    }
+
     template <typename T>
     void InterpreterStackFrame::SetRegRaw(RegSlot localRegisterID, T bValue)
     {
@@ -7557,6 +7600,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::SetRegRaw(RegSlot localRegisterID, double bValue)
     {
         m_localDoubleSlots[localRegisterID] = bValue;
+    }
+
+    template <>
+    void InterpreterStackFrame::SetRegRaw(RegSlot localRegisterID, int64 bValue)
+    {
+        m_localInt64Slots[localRegisterID] = bValue;
     }
 
     template <typename RegSlotType>
@@ -7703,7 +7752,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -7724,7 +7773,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrConstIndex(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -7745,7 +7794,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -7764,7 +7813,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdStArrConstIndex(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -8188,14 +8237,15 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 
 #ifdef ASMJS_PLAT
-    template <typename T2>
-    void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot value)
+    template <typename ArrayType, typename RegType>
+    void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot regSlot)
     {
+        CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::StArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index < (arr->GetByteLength()))
         {
             BYTE* buffer = arr->GetBuffer();
-            *(T2*)(buffer + index) = (T2)GetRegRaw<T2>(value);
+            *(ArrayType*)(buffer + index) = (ArrayType)GetRegRaw<RegType>(regSlot);
         }
     }
 #endif
@@ -8224,13 +8274,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 
 #ifdef ASMJS_PLAT
-    template <typename T2>
-    void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot value)
+    template <typename ArrayType, typename RegType>
+    void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot regSlot)
     {
+        CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::LdArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
-        T2 val = index < (arr->GetByteLength()) ? *(T2*)(buffer + index) : GetArrayViewOverflowVal<T2>();
-        SetRegRaw<T2>(value, val);
+        ArrayType val = index < (arr->GetByteLength()) ? *(ArrayType*)(buffer + index) : GetArrayViewOverflowVal<ArrayType>();
+        SetRegRaw<RegType>(regSlot, (RegType)val);
     }
 #endif
 
@@ -8254,17 +8305,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         SetRegRaw<T2>(playout->Value, buffer[playout->SlotIndex]);
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     template <class T>
     void InterpreterStackFrame::OP_LdArrGeneric(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
@@ -8272,20 +8324,20 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
     {
         const uint32 index = playout->SlotIndex;
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
     void InterpreterStackFrame::OP_StArrGeneric(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
@@ -8293,9 +8345,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrConstIndex(const unaligned T* playout)
     {
         const uint32 index = playout->SlotIndex;
-        Assert(playout->ViewType < 8);
+        Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
+#endif
 
     Var InterpreterStackFrame::OP_LdSlot(Var instance, int32 slotIndex)
     {

@@ -25,11 +25,11 @@
 #endif
 
 #ifndef WASM_MEMREAD_OPCODE
-#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
+#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi, viewtype) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_MEMSTORE_OPCODE
-#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
+#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi, viewtype) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_UNARY__OPCODE
@@ -98,31 +98,31 @@ WASM_MISC_OPCODE(CallImport,   0x18, Limit, false)
 WASM_MISC_OPCODE(TeeLocal,     0x19, Limit, false)
 
 // Load memory expressions.
-WASM_MEMREAD_OPCODE(I32LoadMem8S,  0x20, I_I, false)
-WASM_MEMREAD_OPCODE(I32LoadMem8U,  0x21, I_I, false)
-WASM_MEMREAD_OPCODE(I32LoadMem16S, 0x22, I_I, false)
-WASM_MEMREAD_OPCODE(I32LoadMem16U, 0x23, I_I, false)
-WASM_MEMREAD_OPCODE(I64LoadMem8S,  0x24, L_I, true)
-WASM_MEMREAD_OPCODE(I64LoadMem8U,  0x25, L_I, true)
-WASM_MEMREAD_OPCODE(I64LoadMem16S, 0x26, L_I, true)
-WASM_MEMREAD_OPCODE(I64LoadMem16U, 0x27, L_I, true)
-WASM_MEMREAD_OPCODE(I64LoadMem32S, 0x28, L_I, true)
-WASM_MEMREAD_OPCODE(I64LoadMem32U, 0x29, L_I, true)
-WASM_MEMREAD_OPCODE(I32LoadMem,    0x2a, I_I, false)
-WASM_MEMREAD_OPCODE(I64LoadMem,    0x2b, L_I, true)
-WASM_MEMREAD_OPCODE(F32LoadMem,    0x2c, F_I, false)
-WASM_MEMREAD_OPCODE(F64LoadMem,    0x2d, D_I, false)
+WASM_MEMREAD_OPCODE(I32LoadMem8S,  0x20, I_I, false, Js::ArrayBufferView::TYPE_INT8)
+WASM_MEMREAD_OPCODE(I32LoadMem8U,  0x21, I_I, false, Js::ArrayBufferView::TYPE_UINT8)
+WASM_MEMREAD_OPCODE(I32LoadMem16S, 0x22, I_I, false, Js::ArrayBufferView::TYPE_INT16)
+WASM_MEMREAD_OPCODE(I32LoadMem16U, 0x23, I_I, false, Js::ArrayBufferView::TYPE_UINT16)
+WASM_MEMREAD_OPCODE(I64LoadMem8S,  0x24, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT8_TO_INT64)
+WASM_MEMREAD_OPCODE(I64LoadMem8U,  0x25, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_UINT8_TO_INT64)
+WASM_MEMREAD_OPCODE(I64LoadMem16S, 0x26, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT16_TO_INT64)
+WASM_MEMREAD_OPCODE(I64LoadMem16U, 0x27, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_UINT16_TO_INT64)
+WASM_MEMREAD_OPCODE(I64LoadMem32S, 0x28, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT32_TO_INT64)
+WASM_MEMREAD_OPCODE(I64LoadMem32U, 0x29, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_UINT32_TO_INT64)
+WASM_MEMREAD_OPCODE(I32LoadMem,    0x2a, I_I, false, Js::ArrayBufferView::TYPE_INT32)
+WASM_MEMREAD_OPCODE(I64LoadMem,    0x2b, L_I, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT64)
+WASM_MEMREAD_OPCODE(F32LoadMem,    0x2c, F_I, false, Js::ArrayBufferView::TYPE_FLOAT32)
+WASM_MEMREAD_OPCODE(F64LoadMem,    0x2d, D_I, false, Js::ArrayBufferView::TYPE_FLOAT64)
 
 // Store memory expressions.
-WASM_MEMSTORE_OPCODE(I32StoreMem8,  0x2e, I_II, false)
-WASM_MEMSTORE_OPCODE(I32StoreMem16, 0x2f, I_II, false)
-WASM_MEMSTORE_OPCODE(I64StoreMem8,  0x30, L_IL, true)
-WASM_MEMSTORE_OPCODE(I64StoreMem16, 0x31, L_IL, true)
-WASM_MEMSTORE_OPCODE(I64StoreMem32, 0x32, L_IL, true)
-WASM_MEMSTORE_OPCODE(I32StoreMem,   0x33, I_II, false)
-WASM_MEMSTORE_OPCODE(I64StoreMem,   0x34, L_IL, true)
-WASM_MEMSTORE_OPCODE(F32StoreMem,   0x35, F_IF, false)
-WASM_MEMSTORE_OPCODE(F64StoreMem,   0x36, D_ID, false)
+WASM_MEMSTORE_OPCODE(I32StoreMem8,  0x2e, I_II, false, Js::ArrayBufferView::TYPE_INT8)
+WASM_MEMSTORE_OPCODE(I32StoreMem16, 0x2f, I_II, false, Js::ArrayBufferView::TYPE_INT16)
+WASM_MEMSTORE_OPCODE(I64StoreMem8,  0x30, L_IL, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT8_TO_INT64)
+WASM_MEMSTORE_OPCODE(I64StoreMem16, 0x31, L_IL, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT16_TO_INT64)
+WASM_MEMSTORE_OPCODE(I64StoreMem32, 0x32, L_IL, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT32_TO_INT64)
+WASM_MEMSTORE_OPCODE(I32StoreMem,   0x33, I_II, false, Js::ArrayBufferView::TYPE_INT32)
+WASM_MEMSTORE_OPCODE(I64StoreMem,   0x34, L_IL, !Js::Configuration::Global.flags.NoNative, Js::ArrayBufferView::TYPE_INT64)
+WASM_MEMSTORE_OPCODE(F32StoreMem,   0x35, F_IF, false, Js::ArrayBufferView::TYPE_FLOAT32)
+WASM_MEMSTORE_OPCODE(F64StoreMem,   0x36, D_ID, false, Js::ArrayBufferView::TYPE_FLOAT64)
 
 // Memory operator
 WASM_MISC_OPCODE(CurrentMemory, 0x3b, I_I, false)

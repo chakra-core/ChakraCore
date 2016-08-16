@@ -485,20 +485,20 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbCurrentMemory:
         {
-        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
+        Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         info = EmitInfo(tempReg, WasmTypes::I32);
         }
         break;
-#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi, viewtype) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(false); \
+        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, false); \
         break;
-#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi, viewtype) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(true); \
+        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, true); \
         break;
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
@@ -1027,9 +1027,8 @@ WasmBytecodeGenerator::EmitUnaryExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
 EmitInfo
-WasmBytecodeGenerator::EmitMemAccess(bool isStore)
+WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
 {
     WasmTypes::WasmType type = signature[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
@@ -1063,7 +1062,7 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
         {
             throw WasmCompilationException(_u("Invalid type for store op"));
         }
-        m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, GetViewType(wasmOp));
+        m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, viewType);
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
@@ -1077,7 +1076,7 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
     {
         ReleaseLocation(&exprInfo);
         resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
-        m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, GetViewType(wasmOp));
+        m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, viewType);
     }
 
     return EmitInfo(resultReg, type);
@@ -1219,43 +1218,6 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
         return Js::OpCodeAsmJs::Ld_Long;
     default:
         throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
-    }
-}
-
-/* static */
-Js::ArrayBufferView::ViewType
-WasmBytecodeGenerator::GetViewType(WasmOp op)
-{
-    switch (op)
-    {
-    case wbI32LoadMem8S:
-    case wbI32StoreMem8:
-        return Js::ArrayBufferView::TYPE_INT8;
-        break;
-    case wbI32LoadMem8U:
-        return Js::ArrayBufferView::TYPE_UINT8;
-        break;
-    case wbI32LoadMem16S:
-    case wbI32StoreMem16:
-        return Js::ArrayBufferView::TYPE_INT16;
-        break;
-    case wbI32LoadMem16U:
-        return Js::ArrayBufferView::TYPE_UINT16;
-        break;
-    case wbF32LoadMem:
-    case wbF32StoreMem:
-        return Js::ArrayBufferView::TYPE_FLOAT32;
-        break;
-    case wbF64LoadMem:
-    case wbF64StoreMem:
-        return Js::ArrayBufferView::TYPE_FLOAT64;
-        break;
-    case wbI32LoadMem:
-    case wbI32StoreMem:
-        return Js::ArrayBufferView::TYPE_INT32;
-        break;
-    default:
-        throw WasmCompilationException(_u("Could not match typed array name"));
     }
 }
 

@@ -147,11 +147,11 @@ namespace Js
 
         static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
                                                       // If there are more, we'll use an arena.
-
+#ifndef TEMP_DISABLE_ASMJS
         typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
-
-        static const ArrFunc StArrFunc[8];
-        static const ArrFunc LdArrFunc[8];
+        static const ArrFunc StArrFunc[15];
+        static const ArrFunc LdArrFunc[15];
+#endif
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
@@ -574,11 +574,11 @@ namespace Js
         template <class T> inline void OP_InitClassMemberSet(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberGetComputedName(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberSetComputedName(const unaligned T * playout);
-        template <typename T2> inline void OP_LdArr(  uint32 index, RegSlot value  );
+        template <typename ArrayType, typename RegType = ArrayType> inline void OP_LdArr(  uint32 index, RegSlot value  );
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
         template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
-        template <typename T2> inline void OP_StArr( uint32 index, RegSlot value );
+        template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );
         template <class T> inline Var OP_LdAsmJsSlot(Var instance, const unaligned T* playout );
         template <class T, typename T2> inline void OP_StSlotPrimitive(const unaligned T* playout);
         template <class T, typename T2> inline void OP_LdSlotPrimitive( const unaligned T* playout );
