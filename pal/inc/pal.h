@@ -6177,6 +6177,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define log           PAL_log
 #define log10         PAL_log10
 #define malloc        PAL_malloc
+#define memmove       memmove_xplat
 #define free          PAL_free
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
@@ -6224,7 +6225,6 @@ PALIMPORT div_t div(int numer, int denom);
 PALIMPORT void * __cdecl memcpy(void *, const void *, size_t);
 PALIMPORT int    __cdecl memcmp(const void *, const void *, size_t);
 PALIMPORT void * __cdecl memset(void *, int, size_t);
-PALIMPORT void * __cdecl memmove(void *, const void *, size_t);
 PALIMPORT void * __cdecl memchr(const void *, int, size_t);
 
 PALIMPORT size_t __cdecl strlen(const char *);
@@ -6266,6 +6266,7 @@ PALIMPORT int __cdecl toupper(int);
 
 PALIMPORT errno_t __cdecl memcpy_s(void *, size_t, const void *, size_t);
 PALIMPORT errno_t __cdecl memmove_s(void *, size_t, const void *, size_t);
+PALIMPORT void * __cdecl memmove_xplat(void *, const void *, size_t);
 PALIMPORT char * __cdecl _strlwr(char *);
 PALIMPORT int __cdecl _stricmp(const char *, const char *);
 PALIMPORT int __cdecl _snprintf(char *, size_t, const char *, ...);
