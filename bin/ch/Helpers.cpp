@@ -4,6 +4,232 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
+//TODO: x-plat definitions
+#ifdef _WIN32
+typedef char16 TTDHostCharType;
+typedef struct _wfinddata_t TTDHostFileInfo;
+typedef intptr_t TTDHostFindHandle;
+typedef struct _stat TTDHostStatType;
+
+#define TTDHostPathSeparator _u("\\")
+#define TTDHostPathSeparatorChar _u('\\')
+#define TTDHostFindInvalid -1
+
+size_t TTDHostStringLength(const TTDHostCharType* str)
+{
+    return wcslen(str);
+}
+
+void TTDHostInitEmpty(TTDHostCharType* dst)
+{
+    dst[0] = _u('\0');
+}
+
+void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t uriBytesLength)
+{
+    memcpy_s(dst, MAX_PATH * sizeof(TTDHostCharType), uriBytes, uriBytesLength);
+    dst[uriBytesLength / sizeof(TTDHostCharType)] = _u('\0');
+
+    AssertMsg(wcslen(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
+}
+
+void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = TTDHostStringLength(src);
+    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+
+    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    dst[dpos + srcLength] = _u('\0');
+}
+
+void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = wcslen(src);
+
+    for(size_t i = 0; i < srcLength; ++i)
+    {
+        dst[dpos + i] = (char16)src[i];
+    }
+    dst[dpos + srcLength] = _u('\0');
+}
+
+void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = strlen(src);
+    for(size_t i = 0; i < srcLength; ++i)
+    {
+        dst[dpos + i] = (char16)src[i];
+    }
+    dst[dpos + srcLength] = _u('\0');
+}
+
+void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLength)
+{
+    wchar exePath[MAX_PATH];
+    GetModuleFileName(NULL, exePath, MAX_PATH);
+
+    size_t i = wcslen(exePath) - 1;
+    while(exePath[i] != TTDHostPathSeparatorChar)
+    {
+        --i;
+    }
+    exePath[i + 1] = _u('\0');
+
+    TTDHostAppendWChar(path, exePath);
+}
+
+JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
+{
+    FILE* res = nullptr;
+    _wfopen_s(&res, path, isWrite ? _u("w+b") : _u("r+b"));
+
+    return (JsTTDStreamHandle)res;
+}
+
+#define TTDHostCWD(dst) _wgetcwd(dst, MAX_PATH)
+#define TTDDoPathInit(dst)
+#define TTDHostTok(opath, TTDHostPathSeparator, context) wcstok_s(opath, TTDHostPathSeparator, context)
+#define TTDHostStat(cpath, statVal) _wstat(cpath, statVal)
+
+#define TTDHostMKDir(cpath) _wmkdir(cpath)
+#define TTDHostCHMod(cpath, flags) _wchmod(cpath, flags)
+#define TTDHostRMFile(cpath) _wremove(cpath)
+
+#define TTDHostFindFirst(strPattern, FileInformation) _wfindfirst(strPattern, FileInformation)
+#define TTDHostFindNext(hFile, FileInformation) _wfindnext(hFile, FileInformation)
+#define TTDHostFindClose(hFile) _findclose(hFile)
+
+#define TTDHostDirInfoName(FileInformation) FileInformation.name
+
+#define TTDHostRead(buff, size, handle) fread_s(buff, size, 1, size, (FILE*)handle);
+#define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
+#else
+#include <unistd.h>
+#include <cstring>
+#include <libgen.h>
+#include <dirent.h>
+
+#include <sys/stat.h>
+
+typedef utf8char_t TTDHostCharType;
+typedef struct dirent* TTDHostFileInfo;
+typedef DIR* TTDHostFindHandle;
+typedef struct stat TTDHostStatType;
+
+#define TTDHostPathSeparator ((TTDHostCharType*)"/")
+#define TTDHostPathSeparatorChar ((TTDHostCharType)'/')
+#define TTDHostFindInvalid nullptr
+
+#define TTDHostCharConvert(X) ((char*)X)
+#define TTDHostUtf8CharConvert(X) ((TTDHostCharType*)X)
+
+size_t TTDHostStringLength(const TTDHostCharType* str)
+{
+    return strlen(TTDHostCharConvert(str));
+}
+
+void TTDHostInitEmpty(TTDHostCharType* dst)
+{
+    dst[0] = '\0';
+}
+
+void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t uriBytesLength)
+{
+    memcpy_s(dst, MAX_PATH * sizeof(TTDHostCharType), uriBytes, uriBytesLength);
+    dst[uriBytesLength / sizeof(TTDHostCharType)] = '\0';
+
+    AssertMsg(TTDHostStringLength(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
+}
+
+void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = TTDHostStringLength(src);
+    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+
+    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    dst[dpos + srcLength] = '\0';
+}
+
+void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = wcslen(src);
+    utf8::EncodeIntoAndNullTerminate(dst + dpos, src, srcLength);
+}
+
+void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
+{
+    size_t dpos = TTDHostStringLength(dst);
+    size_t srcLength = strlen(src);
+    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+
+    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    dst[dpos + srcLength] = '\0';
+}
+
+void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLength)
+{
+    TTDHostCharType exePath[MAX_PATH];
+    size_t len = readlink("/proc/self/exe", TTDHostCharConvert(exePath), MAX_PATH);
+
+    size_t i = len - 1;
+    while(exePath[i] != TTDHostPathSeparatorChar)
+    {
+        --i;
+    }
+    exePath[i + 1] = '\0';
+
+    TTDHostAppend(path, exePath);
+}
+
+JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
+{
+    return (JsTTDStreamHandle)fopen(TTDHostCharConvert(path), isWrite ? "w+b" : "r+b");
+}
+
+#ifdef __APPLE__
+#define TTDHostCWD(dst) nullptr
+#define TTDDoPathInit(dst) 
+#define TTDHostTok(opath, TTDHostPathSeparator, context) nullptr
+#define TTDHostStat(cpath, statVal) 0
+
+#define TTDHostMKDir(cpath) -1
+#define TTDHostCHMod(cpath, flags) -1
+#define TTDHostRMFile(cpath) -1
+
+#define TTDHostFindFirst(strPattern, FileInformation) nullptr
+#define TTDHostFindNext(hFile, FileInformation) TTDHostFindInvalid
+#define TTDHostFindClose(hFile) 
+
+#define TTDHostDirInfoName(FileInformation) ((const TTDHostCharType*)"\0")
+
+#define TTDHostRead(buff, size, handle) 0
+#define TTDHostWrite(buff, size, handle) 0
+#else
+#define TTDHostCWD(dst) TTDHostUtf8CharConvert(getcwd(TTDHostCharConvert(dst), MAX_PATH))
+#define TTDDoPathInit(dst) TTDHostAppend(dst, TTDHostPathSeparator)
+#define TTDHostTok(opath, TTDHostPathSeparator, context) TTDHostUtf8CharConvert(strtok(TTDHostCharConvert(opath), TTDHostCharConvert(TTDHostPathSeparator)))
+#define TTDHostStat(cpath, statVal) stat(TTDHostCharConvert(cpath), statVal)
+
+#define TTDHostMKDir(cpath) mkdir(TTDHostCharConvert(cpath), 0777)
+#define TTDHostCHMod(cpath, flags) chmod(TTDHostCharConvert(cpath), flags)
+#define TTDHostRMFile(cpath) remove(TTDHostCharConvert(cpath))
+
+#define TTDHostFindFirst(strPattern, FileInformation) opendir(TTDHostCharConvert(strPattern))
+#define TTDHostFindNext(hFile, FileInformation) (*FileInformation = readdir(hFile))
+#define TTDHostFindClose(hFile) closedir(hFile)
+
+#define TTDHostDirInfoName(FileInformation) TTDHostUtf8CharConvert(FileInformation->d_name)
+
+#define TTDHostRead(buff, size, handle) fread(buff, 1, size, (FILE*)handle)
+#define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
+#endif
+#endif
+
 HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
 {
     HRESULT hr = S_OK;
@@ -212,8 +438,7 @@ void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
     va_end(args);
 }
 
-
-void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, char* msg)
+void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
 {
     if(!ok)
     {
@@ -221,372 +446,214 @@ void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, char* msg)
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s"), pTemp);
+        fwprintf(stderr, _u("Error is: %s\n"), pTemp);
+#else
+        fprintf(stderr, "Error is: %i %s\n", errno, strerror(errno));
 #endif
-        fprintf(stderr, "msg is: %s", msg);
+        fprintf(stderr, "Message is: %s\n", msg);
 
         AssertMsg(false, "IO Error!!!");
+        exit(1);
     }
 }
 
-void Helpers::CreateDirectoryIfNeeded(const char16* path)
+void Helpers::CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes)
 {
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
+    TTDHostCharType opath[MAX_PATH];
+    TTDHostInitFromUriBytes(opath, uriBytes, uriByteLength);
 
-    size_t fplength = (wcslen(path) + 2);
-    char16* fullpath = new char16[fplength];
-    fullpath[0] = _u('\0');
+    TTDHostCharType cpath[MAX_PATH];
+    TTDHostInitEmpty(cpath);
+    TTDDoPathInit(cpath);
 
-    wcscat_s(fullpath, fplength, path);
-    if(!isPathDirName)
+    TTDHostStatType statVal;
+    TTDHostCharType* context = nullptr;
+    TTDHostCharType* token = TTDHostTok(opath, TTDHostPathSeparator, &context);
+    TTDHostAppend(cpath, token);
+
+    //At least 1 part of the path must exist so iterate until we find it
+    while(TTDHostStat(cpath, &statVal) == -1)
     {
-        wcscat_s(fullpath, fplength, _u("\\"));
+        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
+        TTDHostAppend(cpath, TTDHostPathSeparator);
+        TTDHostAppend(cpath, token);
     }
 
-    DWORD dwAttrib = GetFileAttributes(fullpath);
-    if((dwAttrib != INVALID_FILE_ATTRIBUTES) && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+    //Now continue until we hit the part that doesn't exist (or the end of the path)
+    while(token != nullptr && TTDHostStat(cpath, &statVal) != -1)
     {
-        delete[] fullpath;
-        return;
+        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
+        if(token != nullptr)
+        {
+            TTDHostAppend(cpath, TTDHostPathSeparator);
+            TTDHostAppend(cpath, token);
+        }
     }
 
-    BOOL success = CreateDirectory(fullpath, NULL);
-    Helpers::TTReportLastIOErrorAsNeeded(success, "Failed Directory Create");
+    //Now if there is path left then continue build up the directory tree as we go
+    while(token != nullptr)
+    {
+        int success = TTDHostMKDir(cpath);
+        if(success != 0)
+        {
+            //we may fail because someone else created the directory -- that is ok
+            Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
+        }
 
-    delete[] fullpath;
-#endif
+        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
+        if(token != nullptr)
+        {
+            TTDHostAppend(cpath, TTDHostPathSeparator);
+            TTDHostAppend(cpath, token);
+        }
+    }
 }
 
-void Helpers::DeleteDirectory(const char16* path)
+void Helpers::CleanDirectory(size_t uriByteLength, const byte* uriBytes)
 {
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    HANDLE hFile;
-    WIN32_FIND_DATA FileInformation;
+    TTDHostFindHandle hFile;
+    TTDHostFileInfo FileInformation;
 
-    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
+    TTDHostCharType strPattern[MAX_PATH];
+    TTDHostInitFromUriBytes(strPattern, uriBytes, uriByteLength);
+    TTDHostAppendAscii(strPattern, "*.*");
 
-    size_t splength = (wcslen(path) + 5);
-    char16* strPattern = new char16[splength];
-    strPattern[0] = _u('\0');
-
-    wcscat_s(strPattern, splength, path);
-    if(!isPathDirName)
-    {
-        wcscat_s(strPattern, splength, _u("\\"));
-    }
-    wcscat_s(strPattern, splength, _u("*.*"));
-
-    hFile = ::FindFirstFile(strPattern, &FileInformation);
-    if(hFile != INVALID_HANDLE_VALUE)
+    hFile = TTDHostFindFirst(strPattern, &FileInformation);
+    if(hFile != TTDHostFindInvalid)
     {
         do
         {
-            if(FileInformation.cFileName[0] != '.')
+            if(TTDHostDirInfoName(FileInformation)[0] != '.')
             {
-                size_t sfplength = (wcslen(path) + wcslen(FileInformation.cFileName) + 2);
-                char16* strFilePath = new char16[sfplength];
-                strFilePath[0] = _u('\0');
+                TTDHostCharType strFilePath[MAX_PATH];
+                TTDHostInitFromUriBytes(strFilePath, uriBytes, uriByteLength);
+                TTDHostAppend(strFilePath, TTDHostDirInfoName(FileInformation));
 
-                wcscat_s(strFilePath, sfplength, path);
-                if(!isPathDirName)
-                {
-                    wcscat_s(strFilePath, sfplength, _u("\\"));
-                }
-                wcscat_s(strFilePath, sfplength, FileInformation.cFileName);
+                // Set file attributes
+                int statusch = TTDHostCHMod(strFilePath, S_IREAD | S_IWRITE);
+                Helpers::TTReportLastIOErrorAsNeeded(statusch == 0, "Failed to chmod directory");
 
-                if(FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                {
-                    DeleteDirectory(strFilePath);
-                    ::RemoveDirectory(strFilePath);
-                }
-                else
-                {
-                    // Set file attributes
-                    ::SetFileAttributes(strFilePath, FILE_ATTRIBUTE_NORMAL);
-                    ::DeleteFile(strFilePath);
-                }
-
-                delete[] strFilePath;
+                int statusrm = TTDHostRMFile(strFilePath);
+                Helpers::TTReportLastIOErrorAsNeeded(statusrm == 0, "Failed to delete file directory");
             }
-        } while(::FindNextFile(hFile, &FileInformation) == TRUE);
+        } while(TTDHostFindNext(hFile, &FileInformation) != TTDHostFindInvalid);
 
         // Close handle
-        ::FindClose(hFile);
+        TTDHostFindClose(hFile);
     }
-
-    delete[] strPattern;
-#endif
 }
 
-void Helpers::GetFileFromURI(const char16* uri, char16** res)
+void Helpers::GetTTDDirectory(const wchar* curi, size_t* uriByteLength, byte* uriBytes)
 {
-    int urilen = (int)wcslen(uri);
-    int fpos = 0;
-    for(int spos = urilen - 1; spos >= 0; --spos)
+    TTDHostCharType turi[MAX_PATH];
+    TTDHostInitEmpty(turi);
+
+    if(curi[0] != _u('~'))
     {
-        if(uri[spos] == _u('\\') || uri[spos] == _u('/'))
-        {
-            fpos = spos + 1;
-            break;
-        }
-    }
+        TTDHostCharType* status = TTDHostCWD(turi);
+        Helpers::TTReportLastIOErrorAsNeeded(status != nullptr, "Failed to chmod directory");
 
-    size_t rlength = (wcslen(uri + fpos) + 1);
-    *res = new char16[rlength];
-    (*res)[0] = _u('\0');
+        TTDHostAppend(turi, TTDHostPathSeparator);
 
-    wcscat_s(*res, rlength, uri + fpos);
-}
-
-void Helpers::GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
-{
-#ifndef _WIN32
-    *res = nullptr;
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    char16* path = new char16[MAX_PATH];
-    path[0] = _u('\0');
-
-    GetModuleFileName(NULL, path, MAX_PATH);
-
-    char16* spos = wcsstr(path, _u("\\Build\\VcBuild\\"));
-    AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
-
-    int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
-
-    *res = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
-    if(*res == nullptr)
-    {
-        //This is for testing only so just assert and return here is ok
-        AssertMsg(false, "OOM");
-        return;
-    }
-
-    (*res)[0] = _u('\0');
-
-    for(int i = 0; i < ccount; ++i)
-    {
-        (*res)[i] = path[i];
-    }
-    (*res)[ccount] = _u('\0');
-
-    wcscat_s(*res, MAX_PATH, _u("\\test\\_ttdlog\\"));
-
-    if(wcslen(optExtraDir) == 0)
-    {
-        wcscat_s(*res, MAX_PATH, _u("_defaultLog"));
+        TTDHostAppendWChar(turi, curi);
     }
     else
     {
-        wcscat_s(*res, MAX_PATH, optExtraDir);
+        TTDHostBuildCurrentExeDirectory(turi, MAX_PATH);
+
+        TTDHostAppendAscii(turi, "_ttdlog");
+        TTDHostAppend(turi, TTDHostPathSeparator);
+
+        TTDHostAppendWChar(turi, curi + 1);
     }
 
-    bool isPathDirName = ((*res)[wcslen(*res) - 1] == _u('\\'));
-    if(!isPathDirName)
+    //add a path separator if one is not already present
+    if(curi[wcslen(curi) - 1] != (wchar)TTDHostPathSeparatorChar)
     {
-        wcscat_s(*res, MAX_PATH, _u("\\"));
+        TTDHostAppend(turi, TTDHostPathSeparator);
     }
 
-    delete[] path;
-#endif
+    size_t turiLength = TTDHostStringLength(turi);
+
+    size_t byteLengthWNull = (turiLength + 1) * sizeof(TTDHostCharType);
+    memcpy_s(uriBytes, byteLengthWNull, turi, byteLengthWNull);
+
+    *uriByteLength = turiLength * sizeof(TTDHostCharType);
 }
 
-void CALLBACK Helpers::GetTTDDirectory(const char16* uri, char16** fullTTDUri)
-{
-#ifndef _WIN32
-    *fullTTDUri = nullptr;
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    if(uri[0] != _u('!'))
-    {
-        bool isPathDirName = (uri[wcslen(uri) - 1] == _u('\\'));
-
-        size_t rlength = (wcslen(uri) + wcslen(_u("\\")) + 1);
-        *fullTTDUri = (wchar_t*)CoTaskMemAlloc(rlength * sizeof(char16));
-        if(*fullTTDUri == nullptr)
-        {
-            //This is for testing only so just assert and return here is ok
-            AssertMsg(false, "OOM");
-            return;
-        }
-
-        (*fullTTDUri)[0] = _u('\0');
-
-        wcscat_s(*fullTTDUri, rlength, uri);
-        if(!isPathDirName)
-        {
-            wcscat_s(*fullTTDUri, rlength, _u("\\"));
-        }
-    }
-    else
-    {
-        Helpers::GetDefaultTTDDirectory(fullTTDUri, uri + 1);
-    }
-#endif
-}
-
-void CALLBACK Helpers::TTInitializeForWriteLogStreamCallback(const char16* uri)
+void CALLBACK Helpers::TTInitializeForWriteLogStreamCallback(size_t uriByteLength, const byte* uriBytes)
 {
     //If the directory does not exist then we want to create it
-    Helpers::CreateDirectoryIfNeeded(uri);
+    Helpers::CreateDirectoryIfNeeded(uriByteLength, uriBytes);
 
     //Clear the logging directory so it is ready for us to write into
-    Helpers::DeleteDirectory(uri);
+    Helpers::CleanDirectory(uriByteLength, uriBytes);
 }
 
-HANDLE Helpers::TTOpenStream_Helper(const char16* uri, bool read, bool write)
+JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write)
 {
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
     AssertMsg((read | write) & (!read | !write), "Read/Write streams not supported yet -- defaulting to read only");
 
-    HANDLE res = INVALID_HANDLE_VALUE;
+    void* res = nullptr;
+    TTDHostCharType path[MAX_PATH];
+    TTDHostInitFromUriBytes(path, uriBytes, uriByteLength);
+    TTDHostAppendAscii(path, asciiResourceName);
 
-    if(read)
+    res = TTDHostOpen(path, write);
+    if(res == nullptr)
     {
-        res = CreateFile(uri, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+#if _WIN32
+        fwprintf(stderr, _u("Failed to open file: %ls\n"), path);
+#else
+        fprintf(stderr, "Failed to open file: %s\n", path);
+#endif
     }
-    else
+
+    Helpers::TTReportLastIOErrorAsNeeded(res != nullptr, "Failed File Open");
+    return res;
+}
+
+bool CALLBACK Helpers::TTReadBytesFromStreamCallback(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount)
+{
+    AssertMsg(handle != nullptr, "Bad file handle.");
+
+    if(size > MAXDWORD)
     {
-        res = CreateFile(uri, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        *readCount = 0;
+        return false;
     }
 
-    Helpers::TTReportLastIOErrorAsNeeded(res != INVALID_HANDLE_VALUE, "Failed File Open");
-
-    return res;
-#endif
-}
-
-HANDLE CALLBACK Helpers::TTGetLogStreamCallback(const char16* uri, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    size_t rlength = (wcslen(uri) + wcslen(_u("ttdlog.log")) + 1);
-    char16* logfile = new char16[rlength];
-    logfile[0] = _u('\0');
-
-    wcscat_s(logfile, rlength, uri);
-    wcscat_s(logfile, rlength, _u("ttdlog.log"));
-
-    HANDLE res = TTOpenStream_Helper(logfile, read, write);
-
-    delete[] logfile;
-    return res;
-#endif
-}
-
-HANDLE CALLBACK Helpers::TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    size_t rlength = (wcslen(uri) + wcslen(_u("\\snap_")) + wcslen(snapId) + wcslen(_u(".snp")) + 1);
-    char16* snapfile = new char16[rlength];
-    snapfile[0] = _u('\0');
-
-    wcscat_s(snapfile, rlength, uri);
-    wcscat_s(snapfile, rlength, _u("\\snap_"));
-    wcscat_s(snapfile, rlength, snapId);
-    wcscat_s(snapfile, rlength, _u(".snp"));
-
-    HANDLE res = TTOpenStream_Helper(snapfile, read, write);
-
-    delete[] snapfile;
-    return res;
-#endif
-}
-
-HANDLE CALLBACK Helpers::TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    char16* sFile = nullptr;
-    Helpers::GetFileFromURI(srcFileName, &sFile);
-
-    size_t rlength = (wcslen(uri) + wcslen(bodyCtrId) + wcslen(_u("_")) + wcslen(sFile) + 1);
-    char16* srcPath = new char16[rlength];
-    srcPath[0] = _u('\0');
-
-    wcscat_s(srcPath, rlength, uri);
-    wcscat_s(srcPath, rlength, bodyCtrId);
-    wcscat_s(srcPath, rlength, _u("_"));
-    wcscat_s(srcPath, rlength, sFile);
-
-    HANDLE res = TTOpenStream_Helper(srcPath, read, write);
-
-    delete[] sFile;
-    delete[] srcPath;
-    return res;
-#endif
-}
-
-bool CALLBACK Helpers::TTReadBytesFromStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* readCount)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return FALSE;
-#else
-    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
-
-    *readCount = 0;
-    BOOL ok = ReadFile(handle, buff, size, readCount, NULL);
+    BOOL ok = FALSE;
+    *readCount = TTDHostRead(buff, size, (FILE*)handle);
+    ok = (*readCount != 0);
 
     Helpers::TTReportLastIOErrorAsNeeded(ok, "Failed Read!!!");
 
     return ok ? true : false;
-#endif
 }
 
-bool CALLBACK Helpers::TTWriteBytesToStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* writtenCount)
+bool CALLBACK Helpers::TTWriteBytesToStreamCallback(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount)
 {
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return FALSE;
-#else
-    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
+    AssertMsg(handle != nullptr, "Bad file handle.");
 
-    BOOL ok = WriteFile(handle, buff, size, writtenCount, NULL);
+    if(size > MAXDWORD)
+    {
+        *writtenCount = 0;
+        return false;
+    }
 
-    Helpers::TTReportLastIOErrorAsNeeded(ok && (*writtenCount == size), "Write Failed!!!");
+    BOOL ok = FALSE;
+    *writtenCount = TTDHostWrite(buff, size, (FILE*)handle);
+    ok = (*writtenCount == size);
+
+    Helpers::TTReportLastIOErrorAsNeeded(ok, "Failed Read!!!");
 
     return ok ? true : false;
-#endif
 }
 
-void CALLBACK Helpers::TTFlushAndCloseStreamCallback(HANDLE handle, bool read, bool write)
+void CALLBACK Helpers::TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, bool read, bool write)
 {
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    if(handle != INVALID_HANDLE_VALUE)
-    {
-        if(write)
-        {
-            FlushFileBuffers(handle);
-        }
-
-        CloseHandle(handle);
-    }
-#endif
+    fflush((FILE*)handle);
+    fclose((FILE*)handle);
 }
 

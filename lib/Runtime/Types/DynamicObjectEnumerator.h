@@ -6,14 +6,14 @@
 
 namespace Js
 {
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    template <bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
     class DynamicObjectEnumerator : public JavascriptEnumerator
     {
     protected:
         DynamicObject* object;
         JavascriptEnumerator* arrayEnumerator;
         DynamicType *initialType;
-        T objectIndex;
+        BigPropertyIndex objectIndex;
 
         DynamicObjectEnumerator(ScriptContext* scriptContext)
             : JavascriptEnumerator(scriptContext)

@@ -247,6 +247,7 @@
       <files>05.arguments.js</files>
       <baseline>05.arguments_sm.baseline</baseline>
       <compile-flags>-Serialized -ForceStrictMode</compile-flags>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>
@@ -268,6 +269,7 @@
       <files>05.arguments_sm.js</files>
       <baseline>05.arguments_sm.baseline</baseline>
       <compile-flags>-Serialized</compile-flags>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>

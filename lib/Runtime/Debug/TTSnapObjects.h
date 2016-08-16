@@ -117,7 +117,7 @@ namespace TTD
 
         //Check to see if we have an old version of this object around and, if so, clean up its type/handler/standard properties and return it
         Js::DynamicObject* ReuseObjectCheckAndReset(const SnapObject* snpObject, InflateMap* inflator);
-        Js::DynamicObject* ObjectPropertyReset(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator, BOOL bailOnUnclearable);
+        Js::DynamicObject* ObjectPropertyReset(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator, bool isForWellKnown);
 
         //Set all the general properties for the object 
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator);
@@ -429,7 +429,7 @@ namespace TTD
         //SnapBoxedValueObject is resolved via a TTDVar to the underlying value or ptrId
 
         Js::RecyclableObject* DoObjectInflation_SnapBoxedValue(const SnapObject* snpObject, InflateMap* inflator);
-        //DoAddtlValueInstantiation is a nop
+        void DoAddtlValueInstantiation_SnapBoxedValue(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
         void EmitAddtlInfo_SnapBoxedValue(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapBoxedValue(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
 
@@ -532,7 +532,7 @@ namespace TTD
             {
                 ; //just leave it as a null ptr
             }
-            else if(length < TTD_ARRAY_SMALL_ARRAY)
+            else if(length <= TTD_ARRAY_SMALL_ARRAY)
             {
                 sai = AllocateArrayInfoBlock<T, false>(alloc, 0, length);
                 for(uint32 i = 0; i < length; ++i)
@@ -586,7 +586,40 @@ namespace TTD
         ////
         //Functions for the VTable for SnapArrayObject tags
 
-        Js::RecyclableObject* DoObjectInflation_SnapArrayInfo(const SnapObject* snpObject, InflateMap* inflator);
+        template<typename T, SnapObjectType snapArrayKind>
+        Js::RecyclableObject* DoObjectInflation_SnapArrayInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            //Arrays can change type on us so seems easiest to always re-create them.
+            //We can re-evaluate this choice later if needed and add checks for same type-ness.
+
+            const SnapArrayInfo<T>* arrayInfo = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+
+            Js::JavascriptLibrary* jslib = ctx->GetLibrary();
+            uint32 preAllocSpace = 0;
+            if(arrayInfo != nullptr && arrayInfo->Next == nullptr && arrayInfo->FirstIndex == 0 && arrayInfo->LastIndex <= TTD_ARRAY_SMALL_ARRAY)
+            {
+                preAllocSpace = arrayInfo->LastIndex; //first index is 0
+            }
+
+            if(snpObject->SnapType->JsTypeId == Js::TypeIds_Array)
+            {
+                return (preAllocSpace > 0) ? jslib->CreateArray(preAllocSpace) : jslib->CreateArray();
+            }
+            else if(snpObject->SnapType->JsTypeId == Js::TypeIds_NativeIntArray)
+            {
+                return (preAllocSpace > 0) ? ctx->GetLibrary()->CreateNativeIntArray(preAllocSpace) : ctx->GetLibrary()->CreateNativeIntArray();
+            }
+            else if(snpObject->SnapType->JsTypeId == Js::TypeIds_NativeFloatArray)
+            {
+                return (preAllocSpace > 0) ? ctx->GetLibrary()->CreateNativeFloatArray(preAllocSpace) : ctx->GetLibrary()->CreateNativeFloatArray();
+            }
+            else
+            {
+                AssertMsg(false, "Unknown array type!");
+                return nullptr;
+            }
+        }
 
         template<typename T, typename U>
         void DoAddtlValueInstantiation_SnapArrayInfoCore(SnapArrayInfo<T>* arrayInfo, Js::JavascriptArray* arrayObj, InflateMap* inflator)
@@ -748,55 +781,48 @@ namespace TTD
         template<typename T>
         void AssertSnapEquiv_SnapArrayInfoCore(const SnapArrayInfo<T>* arrayInfo1, const SnapArrayInfo<T>* arrayInfo2, TTDCompareMap& compareMap)
         {
-            if(arrayInfo1 == nullptr || arrayInfo2 == nullptr)
+            uint32 index1 = (arrayInfo1 != nullptr) ? arrayInfo1->FirstIndex : 0;
+            uint32 pos1 = 0;
+
+            uint32 index2 = (arrayInfo2 != nullptr) ? arrayInfo2->FirstIndex : 0;
+            uint32 pos2 = 0;
+
+            while(arrayInfo1 != nullptr && arrayInfo2 != nullptr)
             {
-                compareMap.DiagnosticAssert(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
-            }
-            else
-            {
-                uint32 index1 = arrayInfo1->FirstIndex;
-                uint32 pos1 = 0;
-
-                uint32 index2 = arrayInfo2->FirstIndex;
-                uint32 pos2 = 0;
-
-                while(arrayInfo1 != nullptr && arrayInfo2 != nullptr)
-                {
-                    if(index1 < index2)
-                    {
-                        compareMap.DiagnosticAssert(!arrayInfo1->ArrayValidTags[pos1]);
-                        AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
-                    }
-                    else if(index1 > index2)
-                    {
-                        compareMap.DiagnosticAssert(!arrayInfo2->ArrayValidTags[pos2]);
-                        AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
-                    }
-                    else
-                    {
-                        compareMap.DiagnosticAssert(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
-                        if(arrayInfo1->ArrayValidTags[pos1])
-                        {
-                            SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap, index1);
-                        }
-
-                        AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
-                        AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
-                    }
-                }
-
-                //make sure any remaining entries an empty
-                while(arrayInfo1 != nullptr)
+                if(index1 < index2)
                 {
                     compareMap.DiagnosticAssert(!arrayInfo1->ArrayValidTags[pos1]);
                     AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
                 }
-
-                while(arrayInfo1 != nullptr)
+                else if(index1 > index2)
                 {
                     compareMap.DiagnosticAssert(!arrayInfo2->ArrayValidTags[pos2]);
                     AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
                 }
+                else
+                {
+                    compareMap.DiagnosticAssert(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
+                    if(arrayInfo1->ArrayValidTags[pos1])
+                    {
+                        SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap, index1);
+                    }
+
+                    AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
+                    AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
+                }
+            }
+
+            //make sure any remaining entries an empty
+            while(arrayInfo1 != nullptr)
+            {
+                compareMap.DiagnosticAssert(!arrayInfo1->ArrayValidTags[pos1]);
+                AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
+            }
+
+            while(arrayInfo1 != nullptr)
+            {
+                compareMap.DiagnosticAssert(!arrayInfo2->ArrayValidTags[pos2]);
+                AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
             }
         }
 

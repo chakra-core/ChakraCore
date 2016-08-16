@@ -107,6 +107,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>invalcachedscope.js</files>
       <baseline>invalcachedscope.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>

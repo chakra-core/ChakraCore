@@ -190,6 +190,9 @@ namespace Js
 #if ENABLE_TTD
         Var result = nullptr;
 
+        //
+        //TODO: This may be a hot path so we may want to reduce the number of checks here and perhaps create a special TTD external function so only record code is needed here (see also in StdCallExternalFunctionThunk below).
+        //
         if(scriptContext->ShouldPerformDebugAction())
         {
             TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
@@ -216,14 +219,10 @@ namespace Js
         {
             if(externalFunction->nativeMethod == nullptr)
             {
-                //
-                //TODO: we really shouldn't be seeing this and should suppress the eval of getters/setters instead to avoid any statefullness.
-                //
+                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor 
+                //or the debugger is running something that can fail (and it is ok with that).
 
-                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
-                //We don't support this so it should be ok to return a Js string message.
-                LPCWSTR msg = _u("Non-Inspectable External Value");
-                result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
+                result = function->GetScriptContext()->GetLibrary()->GetUndefined();
             }
             else
             {

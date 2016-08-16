@@ -3208,6 +3208,20 @@ namespace Js
             return maxSlot + 1;
         }
     }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    Js::PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
+        if(propertyMap->TryGetReference(pRecord, &descriptor))
+        {
+            AssertMsg(!(descriptor->Attributes & PropertyDeleted), "We found this during enum so what is going on here?");
+
+            return DisallowBigPropertyIndex(descriptor->propertyIndex);
+        }
+
+        return Constants::NoSlot;
+    }
 #endif
 
     template <>

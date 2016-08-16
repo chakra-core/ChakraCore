@@ -555,13 +555,13 @@ namespace Js
 #if ENABLE_TTD
         if(this->TTDWellKnownInfo != nullptr)
         {
-            HeapDelete(this->TTDWellKnownInfo);
+            TT_HEAP_DELETE(TTD::RuntimeContextInfo, this->TTDWellKnownInfo);
             this->TTDWellKnownInfo = nullptr;
         }
 
         if(this->TTDContextInfo != nullptr)
         {
-            HeapDelete(this->TTDContextInfo);
+            TT_HEAP_DELETE(TTD::ScriptContextTTD, this->TTDContextInfo);
             this->TTDContextInfo = nullptr;
         }
 #endif
@@ -1977,12 +1977,6 @@ if (!sourceList)
     }
 
 
-    Utf8SourceInfo* ScriptContext::CloneSourceCrossContext(Utf8SourceInfo* crossContextSourceInfo, SRCINFO const* srcInfo)
-    {
-        return Utf8SourceInfo::CloneNoCopy(this, crossContextSourceInfo, srcInfo);
-    }
-
-
     uint ScriptContext::SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8)
     {
         Assert(sourceInfo->GetScriptContext() == this);
@@ -2325,7 +2319,7 @@ if (!sourceList)
     {
         AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
-        this->TTDWellKnownInfo = HeapNew(TTD::RuntimeContextInfo);
+        this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
         bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
         BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
@@ -2337,7 +2331,7 @@ if (!sourceList)
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-        this->TTDContextInfo = HeapNew(TTD::ScriptContextTTD, this);
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
 
         this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
@@ -5525,20 +5519,3 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
 } // End namespace Js
 
-SRCINFO* SRCINFO::Clone(Js::ScriptContext* scriptContext) const
-{
-    SRCINFO* srcInfo;
-    if (this->sourceContextInfo->dwHostSourceContext == Js::Constants::NoHostSourceContext  &&
-        this->dlnHost == 0 && this->ulColumnHost == 0 && this->ulCharOffset == 0 &&
-        this->ichMinHost == 0 && this->ichLimHost == 0 && this->grfsi == 0)
-    {
-        srcInfo = const_cast<SRCINFO*>(scriptContext->GetModuleSrcInfo(this->moduleID));
-    }
-    else
-    {
-        SourceContextInfo* sourceContextInfo = this->sourceContextInfo->Clone(scriptContext);
-        srcInfo = SRCINFO::Copy(scriptContext->GetRecycler(), this);
-        srcInfo->sourceContextInfo = sourceContextInfo;
-    }
-    return srcInfo;
-}

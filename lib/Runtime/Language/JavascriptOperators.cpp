@@ -9275,6 +9275,13 @@ CommonNumber:
 
     Var JavascriptOperators::CallGetter(RecyclableObject * const function, Var const object, ScriptContext * requestContext)
     {
+#if ENABLE_TTD_DEBUGGING
+        if(requestContext->ShouldSuppressGetterInvocationForDebuggerEvaluation())
+        {
+            return requestContext->GetLibrary()->GetUndefined();
+        }
+#endif
+
         ScriptContext * scriptContext = function->GetScriptContext();
         ThreadContext * threadContext = scriptContext->GetThreadContext();
         return threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor, [=]() -> Js::Var

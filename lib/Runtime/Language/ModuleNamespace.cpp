@@ -265,19 +265,6 @@ namespace Js
         return Constants::NoProperty;
     }
 
-    Var ModuleNamespace::GetNextProperty(BigPropertyIndex& index)
-    {
-        PropertyId propertyId;
-        Var result = GetLibrary()->GetUndefined();
-        BOOL retVal = FALSE;
-        if (this->FindNextProperty(index, nullptr, &propertyId, nullptr))
-        {
-            retVal = this->GetProperty(this, propertyId, &result, nullptr, GetScriptContext());
-            Assert(retVal);
-        }
-        return result;
-    }
-
     BOOL ModuleNamespace::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes) const
     {
         if (index < propertyMap->Count())
