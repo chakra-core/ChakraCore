@@ -311,6 +311,10 @@ WasmBinaryReader::ReadExpr()
     if (EndOfFunc())
     {
         // end of AST
+        if ((WasmOp)*m_pc++ != wbEnd)
+        {
+            ThrowDecodingError(_u("missing function end opcode"));
+        }
         return wbFuncEnd;
     }
 
