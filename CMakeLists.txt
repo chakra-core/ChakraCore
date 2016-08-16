@@ -141,6 +141,8 @@ endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-deprecated-declarations\
+        -Wno-parentheses-equality\
         -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\
