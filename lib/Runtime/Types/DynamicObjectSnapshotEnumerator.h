@@ -5,16 +5,16 @@
 #pragma once
 namespace Js
 {
-    template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>
+    template <bool enumNonEnumerable, bool enumSymbols>
+    class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>
     {
-        typedef DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true> Base;
+        typedef DynamicObjectEnumerator<enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true> Base;
 
     protected:
         int initialPropertyCount;
 
         DynamicObjectSnapshotEnumerator(ScriptContext* scriptContext)
-            : DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>(scriptContext)
+            : DynamicObjectEnumerator<enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>(scriptContext)
         {
         }
 
@@ -22,7 +22,7 @@ namespace Js
         DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(DynamicObjectSnapshotEnumerator);
 
         Var MoveAndGetNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes);
-        JavascriptString * MoveAndGetNextFromObject(T& index, PropertyId& propertyId, PropertyAttributes* attributes);
+        JavascriptString * MoveAndGetNextFromObject(BigPropertyIndex& index, PropertyId& propertyId, PropertyAttributes* attributes);
 
         DynamicObjectSnapshotEnumerator() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
         void Initialize(DynamicObject* object);

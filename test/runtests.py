@@ -556,7 +556,7 @@ def main():
     ]
 
     # run each variant
-    pool = Pool() # Use a multiprocessing process Pool
+    pool = Pool(1) # Use a multiprocessing process Pool -- TODO: forcing this to single threaded until we have support for sequential tag
     start_time = datetime.now()
     for variant in variants:
         variant.run(tests, pool)

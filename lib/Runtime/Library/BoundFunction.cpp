@@ -504,17 +504,25 @@ namespace Js
             bfi->ArgArray = alloc.SlabAllocateArray<TTD::TTDVar>(bfi->ArgCount);
         }
 
-        uint32 depCount = 2;
-        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(depCount + bfi->ArgCount);
+        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(bfi->ArgCount + 2 /*this and bound function*/);
+
         depArray[0] = bfi->TargetFunction;
-        depArray[1] = bfi->BoundThis;
+        uint32 depCount = 1;
+
+        if(this->boundThis != nullptr && TTD::JsSupport::IsVarComplexKind(this->boundThis))
+        {
+            depArray[depCount] = bfi->BoundThis;
+            depCount++;
+        }
 
         if(bfi->ArgCount > 0)
         {
             for(uint32 i = 0; i < bfi->ArgCount; ++i)
             {
                 bfi->ArgArray[i] = this->boundArgs[i];
-                if(TTD::JsSupport::IsVarPtrValued(this->boundArgs[i]))
+
+                //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
+                if(TTD::JsSupport::IsVarComplexKind(this->boundArgs[i]))
                 {
                     depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->boundArgs[i]);
                     depCount++;

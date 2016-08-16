@@ -1831,10 +1831,29 @@ namespace Js
             ScriptContext* requestContext = obj->GetScriptContext();
             Var objValue = nullptr;
 
+#if ENABLE_TTD_DEBUGGING
+            if(requestContext->ShouldDoGetterInvocationSupression())
+            {
+                requestContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            BOOL success = Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext);
+
+            if(requestContext->ShouldDoGetterInvocationSupression())
+            {
+                requestContext->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            if(success)
+            {
+                return objValue;
+            }
+#else
             if (Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext))
             {
                 return objValue;
             }
+#endif
         }
 
         return nullptr;
@@ -2175,6 +2194,14 @@ namespace Js
     BOOL RecyclableObjectDisplay::GetPropertyWithScriptEnter(RecyclableObject* originalInstance, RecyclableObject* instance, PropertyId propertyId, Var* value, ScriptContext* scriptContext)
     {
         BOOL retValue = FALSE;
+
+#if ENABLE_TTD_DEBUGGING
+        if(instance->GetScriptContext()->ShouldDoGetterInvocationSupression())
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         if(!scriptContext->GetThreadContext()->IsScriptActive())
         {
             BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
@@ -2188,6 +2215,14 @@ namespace Js
         {
             retValue = Js::JavascriptOperators::GetProperty(originalInstance, instance, propertyId, value, scriptContext);
         }
+
+#if ENABLE_TTD_DEBUGGING
+        if(instance->GetScriptContext()->ShouldDoGetterInvocationSupression())
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         return retValue;
     }
 

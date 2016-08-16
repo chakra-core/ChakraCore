@@ -8019,18 +8019,42 @@ bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplM
         return false;
     }
 
-    ParseNodePtr pnodeT = ParseExpr<buildAST>(oplMin, pfCanAssign, fAllowIn, fAllowEllipsis, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, pToken, fUnaryOrParen);
+    IdentToken token;
+    ParseNodePtr pnodeT = ParseExpr<buildAST>(oplMin, pfCanAssign, fAllowIn, fAllowEllipsis, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, fUnaryOrParen);
     // Detect nested function escapes of the pattern "return function(){...}" or "yield function(){...}".
     // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
     // is not detected at byte code gen time because of deferred parsing.
-    if (m_currentNodeFunc && pnodeT && pnodeT->nop == knopFncDecl)
+    if (m_currentNodeFunc)
     {
-        if (m_sourceContextInfo ? 
-                !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
-                !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+        ParseNodePtr pnodeEnclosingFunc = nullptr;
+        if (pnodeT && pnodeT->nop == knopFncDecl)
         {
-            m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
+            pnodeEnclosingFunc = m_currentNodeFunc;
         }
+        else if (token.pid)
+        {
+            // Allow detect "function() { function f(){...}; return f; }".
+            PidRefStack *pidRefDecl = token.pid->TopDecl(GetCurrentBlockInfo()->pnodeBlock->sxBlock.blockId);
+            if (pidRefDecl && pidRefDecl->sym->GetSymbolType() == STFunction)
+            {
+                // This may be conservative if the function object we're returning actually encloses the current function.
+                // But being precise for such a case doesn't seem worth the extra bookkeeping.
+                pnodeEnclosingFunc = m_currentNodeFunc;
+            }
+        }
+        if (pnodeEnclosingFunc)
+        {
+            if (m_sourceContextInfo ? 
+                    !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, pnodeEnclosingFunc->sxFnc.functionId) :
+                    !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+            {
+                pnodeEnclosingFunc->sxFnc.SetNestedFuncEscapes();
+            }
+        }
+    }
+    if (pToken)
+    {
+        *pToken = token;
     }
     *pnode = pnodeT;
     return true;

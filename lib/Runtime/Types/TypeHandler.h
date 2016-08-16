@@ -611,11 +611,14 @@ namespace Js
          //Use to extract the handler specific information during snapshot
          virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const = 0;
 
+         //Use to lookup the slotid for a propertyid 
+         virtual Js::PropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord);
+
          //Extract the snap handler info
          void ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const;
 
          //Set the extensible flag info in the handler
-         void SetExtensibleFlag_TTD(byte extensibleFlag);
+         void SetExtensible_TTD();
 
          //Return true if we should restore the given property id (we want to skip most internal property ids)
          static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)

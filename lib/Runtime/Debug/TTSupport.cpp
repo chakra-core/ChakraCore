@@ -16,15 +16,15 @@ namespace TTD
             ;
         }
 
-        TTAutoString::TTAutoString(LPCWSTR str)
+        TTAutoString::TTAutoString(const char16* str)
             : m_allocSize(-1), m_contents(nullptr), m_optFormatBuff(nullptr)
         {
-            size_t wclen = wcslen(str) + 1;
+            size_t clen = wcslen(str) + 1;
 
-            this->m_contents = HeapNewArrayZ(wchar, wclen);
-            this->m_allocSize = (int32)wclen;
+            this->m_contents = TT_HEAP_ALLOC_ARRAY_ZERO(char16, clen);
+            this->m_allocSize = (int32)clen;
 
-            wcscat_s(this->m_contents, wclen, str);
+            js_memcpy_s(this->m_contents, clen * sizeof(char16), str, clen * sizeof(char16));
         }
 
         TTAutoString::TTAutoString(const TTAutoString& str)
@@ -54,14 +54,14 @@ namespace TTD
         {
             if(this->m_contents != nullptr)
             {
-                HeapDeleteArray((size_t)this->m_allocSize, this->m_contents);
+                TT_HEAP_FREE_ARRAY(char16, this->m_contents, (size_t)this->m_allocSize);
                 this->m_allocSize = -1;
                 this->m_contents = nullptr;
             }
 
             if(this->m_optFormatBuff != nullptr)
             {
-                HeapDeleteArray(64, this->m_optFormatBuff);
+                TT_HEAP_FREE_ARRAY(char16, this->m_optFormatBuff, 64);
                 this->m_optFormatBuff = nullptr;
             }
         }
@@ -71,7 +71,7 @@ namespace TTD
             return this->m_contents == nullptr;
         }
 
-        void TTAutoString::Append(LPCWSTR str, int32 start, int32 end)
+        void TTAutoString::Append(const char16* str, int32 start, int32 end)
         {
             if(this->m_contents == nullptr && str == nullptr)
             {
@@ -90,13 +90,13 @@ namespace TTD
             }
 
             size_t nsize = origsize + strsize + 1;
-            wchar* nbuff = HeapNewArrayZ(wchar, nsize);
+            char16* nbuff = TT_HEAP_ALLOC_ARRAY_ZERO(char16, nsize);
 
             if(this->m_contents != nullptr)
             {
-                wcscat_s(nbuff, nsize, this->m_contents);
+                js_memcpy_s(nbuff, nsize * sizeof(char16), this->m_contents, origsize * sizeof(char16));
 
-                HeapDeleteArray(origsize + 1, this->m_contents);
+                TT_HEAP_FREE_ARRAY(char16, this->m_contents, origsize + 1);
                 this->m_allocSize = -1;
                 this->m_contents = nullptr;
             }
@@ -125,10 +125,10 @@ namespace TTD
         {
             if(this->m_optFormatBuff == nullptr)
             {
-                this->m_optFormatBuff = HeapNewArrayZ(wchar, 64);
+                this->m_optFormatBuff = TT_HEAP_ALLOC_ARRAY_ZERO(char16, 64);
             }
 
-            swprintf_s(this->m_optFormatBuff, 32, _u("%I64u"), val); //64 wchars is 32 words
+            swprintf_s(this->m_optFormatBuff, 32, _u("%I64u"), val); //64 char16s is 32 words
 
             this->Append(this->m_optFormatBuff);
         }
@@ -136,13 +136,13 @@ namespace TTD
         void TTAutoString::Append(LPCUTF8 strBegin, LPCUTF8 strEnd)
         {
             int32 strCount = (int32)((strEnd - strBegin) + 1);
-            wchar* buff = HeapNewArrayZ(wchar, (size_t)strCount);
+            char16* buff = TT_HEAP_ALLOC_ARRAY_ZERO(char16, (size_t)strCount);
 
             LPCUTF8 curr = strBegin;
             int32 i = 0;
             while(curr != strEnd)
             {
-                buff[i] = (wchar)*curr;
+                buff[i] = (char16)*curr;
                 i++;
                 curr++;
             }
@@ -151,7 +151,7 @@ namespace TTD
             buff[i] = _u('\0');
             this->Append(buff);
 
-            HeapDeleteArray((size_t)strCount, buff);
+            TT_HEAP_FREE_ARRAY(char16, buff, (size_t)strCount);
         }
 
         int32 TTAutoString::GetLength() const
@@ -161,7 +161,7 @@ namespace TTD
             return (int32)wcslen(this->m_contents);
         }
 
-        wchar TTAutoString::GetCharAt(int32 pos) const
+        char16 TTAutoString::GetCharAt(int32 pos) const
         {
             AssertMsg(!this->IsNullString(), "That doesn't make sense.");
             AssertMsg(0 <= pos && pos < this->GetLength(), "Not in valid range.");
@@ -169,7 +169,7 @@ namespace TTD
             return this->m_contents[pos];
         }
 
-        LPCWSTR TTAutoString::GetStrValue() const
+        const char16* TTAutoString::GetStrValue() const
         {
             return this->m_contents;
         }
@@ -239,21 +239,46 @@ namespace TTD
     }
 #endif
 
+    TTUriString::TTUriString()
+        : UriByteLength(0), UriBytes(nullptr)
+    {
+        ;
+    }
+
+    TTUriString::~TTUriString()
+    {
+        if(this->UriBytes != nullptr)
+        {
+            CoTaskMemFree(this->UriBytes);
+            this->UriBytes = nullptr;
+        }
+    }
+
+    void TTUriString::SetUriValue(size_t byteLength, const byte* data)
+    {
+        AssertMsg(this->UriBytes == nullptr, "Should not set this if it is already set!!!");
+
+        this->UriByteLength = byteLength;
+        this->UriBytes = (byte*)CoTaskMemAlloc(byteLength);
+
+        js_memcpy_s(this->UriBytes, this->UriByteLength, data, byteLength);
+    }
+
     //////////////////
 
     MarkTable::MarkTable()
         : m_capcity(TTD_MARK_TABLE_INIT_SIZE), m_h2Prime(TTD_MARK_TABLE_INIT_H2PRIME), m_count(0), m_iterPos(0)
     {
-        this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
-        this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+        this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
+        this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
 
         memset(this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
     }
 
     MarkTable::~MarkTable()
     {
-        HeapDeleteArray(this->m_capcity, this->m_addrArray);
-        HeapDeleteArray(this->m_capcity, this->m_markArray);
+        TT_HEAP_FREE_ARRAY(uint64, this->m_addrArray, this->m_capcity);
+        TT_HEAP_FREE_ARRAY(MarkTableTag, this->m_markArray, this->m_capcity);
     }
 
     void MarkTable::Clear()
@@ -265,13 +290,13 @@ namespace TTD
         }
         else
         {
-            HeapDeleteArray(this->m_capcity, this->m_addrArray);
-            HeapDeleteArray(this->m_capcity, this->m_markArray);
+            TT_HEAP_FREE_ARRAY(uint64, this->m_addrArray, this->m_capcity);
+            TT_HEAP_FREE_ARRAY(MarkTableTag, this->m_markArray, this->m_capcity);
 
             this->m_capcity = TTD_MARK_TABLE_INIT_SIZE;
             this->m_h2Prime = TTD_MARK_TABLE_INIT_H2PRIME;
-            this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
-            this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+            this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
+            this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
         }
 
         this->m_count = 0;

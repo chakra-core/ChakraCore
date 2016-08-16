@@ -206,6 +206,22 @@ public:
         return prevRef;
     }
 
+    PidRefStack * TopDecl(int maxBlockId) const
+    {
+        for (PidRefStack *pidRef = m_pidRefStack; pidRef; pidRef = pidRef->prev)
+        {
+            if (pidRef->id > maxBlockId)
+            {
+                continue;
+            }
+            if (pidRef->sym != nullptr)
+            {
+                return pidRef;
+            }
+        }
+        return nullptr;
+    }
+
     PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId)
     {
         // If the stack is empty, or we are pushing to the innermost scope already,

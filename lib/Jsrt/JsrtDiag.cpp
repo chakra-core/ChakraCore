@@ -428,6 +428,28 @@ CHAKRA_API JsDiagSetStepType(
         {
             jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
         }
+        else if (stepType == JsDiagStepTypeStepBack)
+        {
+#if ENABLE_TTD_DEBUGGING
+            ThreadContext* threadContext = runtime->GetThreadContext();
+            if(threadContext->TTDLog == nullptr || !threadContext->TTDLog->ShouldPerformDebugAction_BreakPointAction())
+            {
+                return JsErrorInvalidArgument;
+            }
+
+            TTD::TTDebuggerSourceLocation bpLocation;
+            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(bpLocation);
+            threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
+
+            threadContext->TTDLog->LoadBPListForContextRecreate();
+
+            //don't worry about BP suppression because we are just going to throw after we return
+
+            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+#else
+            return JsErrorInvalidArgument;
+#endif
+        }
 
         return JsNoError;
     });

@@ -284,7 +284,7 @@
     <default>
       <files>funcname_escape.js</files>
       <baseline>funcname_escape.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>
@@ -511,7 +511,7 @@
     <default>
       <files>box_callparam.js</files>
       <baseline>box_callparam.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:cachescopeinfonames </compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:cachescopeinfonames -off:disablestackfuncondeferredescape </compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>

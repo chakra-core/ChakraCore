@@ -39,7 +39,7 @@ namespace Js
         isRootModule(false),
         hadNotifyHostReady(false),
         localExportSlots(nullptr),
-        numUnParsedChildrenModule(0),
+        numUnInitializedChildrenModule(0),
         moduleId(InvalidModuleIndex),
         localSlotCount(InvalidSlotCount),
         localExportCount(0)
@@ -197,7 +197,7 @@ namespace Js
     {
         HRESULT hr = NO_ERROR;
 
-        if (numUnParsedChildrenModule == 0)
+        if (numUnInitializedChildrenModule == 0)
         {
             NotifyParentsAsNeeded();
         
@@ -239,11 +239,11 @@ namespace Js
         }
         else
         {
-            if (numUnParsedChildrenModule == 0)
+            if (numUnInitializedChildrenModule == 0)
             {
                 return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
             }
-            numUnParsedChildrenModule--;
+            numUnInitializedChildrenModule--;
 
             hr = PrepareForModuleDeclarationInitialization();
         }
@@ -577,9 +577,9 @@ namespace Js
                         moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
                     }
                     moduleRecord->parentModuleList->Add(this);
-                    if (!moduleRecord->WasParsed())
+                    if (!moduleRecord->WasDeclarationInitialized())
                     {
-                        numUnParsedChildrenModule++;
+                        numUnInitializedChildrenModule++;
                     }
                 }
                 return false;

@@ -26,6 +26,8 @@ namespace Js
 
 #if ENABLE_TTD
     public:
+        void SetValue_TTD(Js::Var val);
+
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
 
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
