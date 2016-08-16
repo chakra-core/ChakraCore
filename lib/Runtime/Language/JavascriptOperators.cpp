@@ -1075,10 +1075,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext *requestContext)
     {
-        BOOL result;
         if (TaggedNumber::Is(instance))
         {
-            result = false;
+            return false;
         }
         else
         {
@@ -1091,10 +1090,30 @@ CommonNumber:
             }
             else
             {
-                return object && object->HasOwnProperty(propertyId);
+#ifdef DEBUG
+                // In debug builds, calculate the expectedAnswer up-front so that
+                // we can Assert the fast path gets the right result.
+                bool expectedAnswer = object && object->HasOwnProperty(propertyId);
+#endif
+
+                PropertyString *propString = requestContext->GetPropertyString(propertyId);
+                const PropertyCache *propCache = propString->GetPropertyCache();
+
+                if (object->GetType() == propCache->type)
+                {
+                    // The type cached for the property was the same as the type of this object
+                    // (i.e. obj in obj.hasOwnProperty), so we know the answer is "true".
+                    Assert(expectedAnswer == true); // sanity check on the fastpath result
+                    return true;
+                }
+
+#ifndef DEBUG
+                // In release builds, wait until here to calculate the result.
+                bool expectedAnswer = object && object->HasOwnProperty(propertyId);
+#endif
+                return expectedAnswer;
             }
         }
-        return result;
     }
 
     BOOL JavascriptOperators::GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
