@@ -235,7 +235,6 @@ public:
         return m_workItem->GetJITTimeInfo()->GetDebugNumberSet(bufferToWriteTo);
     }
 
-    void BuildIR();
     void TryCodegen();
     static void Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         ThreadContextInfo * threadContextInfo,

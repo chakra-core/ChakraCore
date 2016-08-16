@@ -3453,11 +3453,12 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     literalTypeRefOpnd = IR::AddrOpnd::New(literalTypeRef, IR::AddrOpndKindDynamicMisc, this->m_func);
     propertyArrayOpnd = IR::AddrOpnd::New(propArrayAddr, IR::AddrOpndKindDynamicMisc, this->m_func);
 
-#if 0 // TODO: OOP JIT, obj literal types
-    Js::DynamicType * literalType = *literalTypeRef;
+    //#if 0 TODO: OOP JIT, obj literal types
+    // should pass in isShared bit through RPC, enable for in-proc jit to see perf impact    
+    Js::DynamicType * literalType = func->IsOOPJIT() ? nullptr : *(Js::DynamicType **)literalTypeRef;
+
     if (literalType == nullptr || !literalType->GetIsShared())
     {
-#endif
         helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
         allocLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
 
@@ -3469,7 +3470,6 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
             IR::IntConstOpnd::New(1, TyInt8, func, true), Js::OpCode::BrEq_A, helperLabel, newObjInstr);
 
         dstOpnd = newObjInstr->GetDst()->AsRegOpnd();
-#if 0 // TODO: OOP JIT, obj literal types
     }
     else
     {
@@ -3478,7 +3478,6 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
         Assert(inlineSlotCapacity == literalType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(slotCapacity == (uint)literalType->GetTypeHandler()->GetSlotCapacity());
     }
-#endif
 
     if (helperLabel)
     {
