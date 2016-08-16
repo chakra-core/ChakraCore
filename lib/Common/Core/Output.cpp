@@ -52,6 +52,7 @@ Output::VerboseNote(const char16 * format, ...)
         va_list argptr;
         va_start(argptr, format);
         size_t size = vfwprintf(stdout, format, argptr);
+        fflush(stdout);
         va_end(argptr);
         return size;
     }
@@ -344,10 +345,7 @@ Output::PrintBuffer(const char16 * buf, size_t size)
         }
     }
 
-    if (IsDebuggerPresent())
-    {
-        Output::Flush();
-    }
+    Output::Flush();
 
     return size;
 }
