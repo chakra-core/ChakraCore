@@ -48,6 +48,7 @@ namespace Js
             Js::Var ffi,
             Js::Var* start = nullptr
         );
+        static char16* lastWasmExceptionMessage;
 #endif
     };
 }

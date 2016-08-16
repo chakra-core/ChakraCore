@@ -13,7 +13,7 @@ namespace Js
 {
     const unsigned int WasmLibrary::experimentalVersion = Wasm::experimentalVersion;
 
-    char16* lastWasmExceptionMessage = nullptr;
+    char16* WasmLibrary::lastWasmExceptionMessage = nullptr;
 
     Var WasmLibrary::instantiateModule(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -168,9 +168,11 @@ namespace Js
             }
 #endif
         }
-        catch (Wasm::WasmCompilationException ex)
+        catch (Wasm::WasmCompilationException& ex)
         {
-            Wasm::WasmCompilationException newEx(_u("function %s: %s"), body->GetDisplayName(), ex.GetErrorMessage());
+            char16* originalMessage = ex.ReleaseErrorMessage();
+            Wasm::WasmCompilationException newEx = Wasm::WasmCompilationException(_u("function %s: %s"), body->GetDisplayName(), originalMessage);
+            SysFreeString(originalMessage);
             if (propagateError)
             {
                 throw newEx;

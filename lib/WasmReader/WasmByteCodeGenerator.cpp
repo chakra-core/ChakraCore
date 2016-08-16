@@ -1477,14 +1477,6 @@ WasmCompilationException::FormatError(const char16* _msg, va_list arglist)
     errorMsg = SysAllocString(buf);
 }
 
-WasmCompilationException::~WasmCompilationException()
-{
-    if (errorMsg)
-    {
-        SysFreeString(errorMsg);
-    }
-}
-
 WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
     va_list arglist;
