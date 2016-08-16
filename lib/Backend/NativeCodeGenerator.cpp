@@ -571,12 +571,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     JsFunctionCodeGen * workitem = workItemAutoPtr.Detach();
     workitem->SetEntryPointInfo(entryPointInfo);
 
-    // TODO: (leish OOPJIT) seems not needed?
-    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-        fn->GetRecycler(),
-        entryPointInfo->EnsurePolymorphicInlineCacheInfo(fn->GetRecycler(),fn),
-        &workitem->GetJITData()->polymorphicInlineCacheInfo);
-
     entryPointInfo->SetCodeGenPending(workitem);
     InterlockedIncrement(&pendingCodeGenWorkItems);
 
@@ -2879,6 +2873,16 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
         END_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext);
 
+
+        auto& polymorphicInlineCacheInfo = workItem->GetJITData()->polymorphicInlineCacheInfo;
+
+        JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
+            recycler,
+            entryPoint->EnsurePolymorphicInlineCacheInfo(recycler, workItem->GetFunctionBody()),
+            &polymorphicInlineCacheInfo);
+
+        jitTimeData->SetPolymorphicInlineInfo(polymorphicInlineCacheInfo.inlineeInfo, polymorphicInlineCacheInfo.selfInfo.polymorphicInlineCaches);
+
         return RecyclerNew(recycler, Js::CodeGenRecyclableData, jitTimeData);
     }
 }
@@ -3206,14 +3210,6 @@ void NativeCodeGenerator::AddToJitQueue(CodeGenWorkItem *const codeGenWorkItem, 
 
     Js::CodeGenRecyclableData* recyclableData = GatherCodeGenData(codeGenWorkItem->GetFunctionBody(), codeGenWorkItem->GetFunctionBody(), codeGenWorkItem->GetEntryPoint(), codeGenWorkItem, function);
     codeGenWorkItem->SetRecyclableData(recyclableData);
-
-    // TODO: (leish OOPJIT) move following to better place
-    auto fn = codeGenWorkItem->GetFunctionBody();
-    auto entryPointInfo = codeGenWorkItem->GetEntryPoint();
-    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-        fn->GetRecycler(),
-        entryPointInfo->EnsurePolymorphicInlineCacheInfo(fn->GetRecycler(), fn),
-        &codeGenWorkItem->GetJITData()->polymorphicInlineCacheInfo);
 
     AutoOptionalCriticalSection autoLock(lock ? Processor()->GetCriticalSection() : nullptr);
     scriptContext->GetThreadContext()->RegisterCodeGenRecyclableData(recyclableData);

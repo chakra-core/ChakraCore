@@ -34,6 +34,9 @@ namespace Js
         FunctionCodeGenJitTimeData **ldFldInlinees;
         RecyclerWeakReference<FunctionBody> *weakFuncRef;
 
+        PolymorphicInlineCacheInfoIDL* inlineeInfo;
+        PolymorphicInlineCacheIDL** polymorphicInlineCaches;
+
         // Number of functions that are to be inlined (this is not the length of the 'inlinees' array above, includes getter setter inlinee count)
         uint inlineeCount;
         // Number of counts of getter setter to be inlined. This is not an exact count as inline caches are shared and we have no way of knowing
@@ -90,6 +93,12 @@ namespace Js
         {
             Assert(this->weakFuncRef == nullptr || weakFuncRef == nullptr || this->weakFuncRef == weakFuncRef);
             this->weakFuncRef = weakFuncRef;
+        }
+
+        void SetPolymorphicInlineInfo(PolymorphicInlineCacheInfoIDL* inlineeInfo, PolymorphicInlineCacheIDL** polymorphicInlineCaches)
+        {
+            this->inlineeInfo = inlineeInfo;
+            this->polymorphicInlineCaches = polymorphicInlineCaches;
         }
 
         FunctionCodeGenJitTimeData *AddLdFldInlinee(
