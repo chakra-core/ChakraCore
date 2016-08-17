@@ -133,6 +133,7 @@ namespace Wasm
         uint32 funcIndex;
         uint32 nameLength;
         char16* name;
+        ImportKinds::ImportKind kind;
     };
 
     struct WasmImport

@@ -95,6 +95,8 @@ WASM_MISC_OPCODE(SetLocal,     0x15, Limit, false)
 WASM_MISC_OPCODE(Call,         0x16, Limit, false)
 WASM_MISC_OPCODE(CallIndirect, 0x17, Limit, false)
 WASM_MISC_OPCODE(TeeLocal,     0x19, Limit, false)
+WASM_MISC_OPCODE(GetGlobal,    0xbb, Limit, false)
+WASM_MISC_OPCODE(SetGlobal,    0xbc, Limit, false)
 
 // Load memory expressions.
 WASM_MEMREAD_OPCODE(I32LoadMem8S,  0x20, I_I, false)
