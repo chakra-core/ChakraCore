@@ -805,7 +805,6 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
 
     for (uint i = 0; i < maxReads; i++, length++)
     {
-        // 5 bytes at most
         b = *m_pc++;
         result = result | ((MaxAllowedType)(b & 0x7f) << shamt);
         if (sgn)
