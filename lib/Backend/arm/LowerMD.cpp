@@ -3109,12 +3109,94 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
 }
 
 bool
-LowererMD::GenerateFastBrString(IR::BranchInstr* instrBr)
+LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
+{
+    IR::RegOpnd *regSrc1 = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
+    IR::RegOpnd *regSrc2 = instr->GetSrc2()->IsRegOpnd() ? instr->GetSrc2()->AsRegOpnd() : nullptr;
+
+    // Check that we likely have strings or know we have strings as the arguments
+    if (!regSrc1 || !regSrc2 ||
+        !regSrc1->GetValueType().IsLikelyString() ||
+        !regSrc2->GetValueType().IsLikelyString())
+    {
+        return false;
+    }
+
+    // Generate fast path code
+    IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+    IR::LabelInstr * labelFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    IR::LabelInstr * labelTarget = nullptr;
+    bool isBranch = true;
+    bool isCmNegOp = false;
+    IR::Opnd *opndSuccess = nullptr;
+    IR::Opnd *opndFailure = nullptr;
+
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrNotEq_A:
+    case Js::OpCode::BrSrNotEq_A:
+        labelTarget = instr->AsBranchInstr()->GetTarget();
+        break;
+
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrNotNeq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+        labelTarget = labelFail;
+        break;
+
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmSrNeq_A:
+        isCmNegOp = true;
+    case Js::OpCode::CmEq_A:
+    case Js::OpCode::CmSrEq_A:
+        labelTarget = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        isBranch = false;
+
+        if (instr->GetDst()->IsInt32())
+        {
+            opndSuccess = IR::IntConstOpnd::New(!isCmNegOp ? 1 : 0, TyMachReg, this->m_func);
+            opndFailure = IR::IntConstOpnd::New(!isCmNegOp ? 0 : 0, TyMachReg, this->m_func);
+        }
+        else
+        {
+            opndSuccess = m_lowerer->LoadLibraryValueOpnd(instr, !isCmNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse);
+            opndFailure = m_lowerer->LoadLibraryValueOpnd(instr, !isCmNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue);
+        }
+
+        break;
+
+    default:
+        Assert(UNREACHED);
+        __assume(0);
+    }
+
+    this->GenerateFastStringCheck(instr, regSrc1, regSrc2, false, false, labelHelper, labelTarget, labelFail);
+
+    if (!isBranch)
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, instr->GetDst(), opndSuccess, m_func));
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelFail, m_func));
+
+        instr->InsertBefore(labelTarget);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, instr->GetDst(), opndFailure, m_func));
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelFail, m_func));
+    }
+
+    instr->InsertBefore(labelHelper);
+
+    instr->InsertAfter(labelFail);
+
+    return true;
+}
+
+bool
+LowererMD::GenerateFastStringCheck(IR::Instr* instrBr, IR::RegOpnd *regSrc1, IR::RegOpnd *regSrc2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelTarget, IR::LabelInstr *labelFail)
 {
     // Generates
     //
-    // if operands not already in registers then bail; no fast path
-    // if operands not likely string or string then bail; no fast path
     // if operands are not string then generate object test
     // if branch is (Sr)Neq then $notEqual = instrBr->GetTarget()
     // else $notEqual = $fail
@@ -3154,38 +3236,21 @@ LowererMD::GenerateFastBrString(IR::BranchInstr* instrBr)
     //
     // $fail:
 
-    Assert(instrBr->m_opcode == Js::OpCode::BrSrEq_A ||
-           instrBr->m_opcode == Js::OpCode::BrSrNeq_A ||
-           instrBr->m_opcode == Js::OpCode::BrEq_A ||
-           instrBr->m_opcode == Js::OpCode::BrNeq_A ||
-           instrBr->m_opcode == Js::OpCode::BrSrNotEq_A ||
-           instrBr->m_opcode == Js::OpCode::BrSrNotNeq_A ||
-           instrBr->m_opcode == Js::OpCode::BrNotEq_A ||
-           instrBr->m_opcode == Js::OpCode::BrNotNeq_A);
+    Assert(instrBr->m_opcode == Js::OpCode::BrSrEq_A    ||
+        instrBr->m_opcode == Js::OpCode::BrSrNeq_A      ||
+        instrBr->m_opcode == Js::OpCode::BrEq_A         ||
+        instrBr->m_opcode == Js::OpCode::BrNeq_A        ||
+        instrBr->m_opcode == Js::OpCode::BrSrNotEq_A    ||
+        instrBr->m_opcode == Js::OpCode::BrSrNotNeq_A   ||
+        instrBr->m_opcode == Js::OpCode::BrNotEq_A      ||
+        instrBr->m_opcode == Js::OpCode::BrNotNeq_A     ||
+        instrBr->m_opcode == Js::OpCode::CmEq_A         ||
+        instrBr->m_opcode == Js::OpCode::CmNeq_A        ||
+        instrBr->m_opcode == Js::OpCode::CmSrEq_A       ||
+        instrBr->m_opcode == Js::OpCode::CmSrNeq_A);
 
-    IR::RegOpnd *regSrc1 = instrBr->GetSrc1()->IsRegOpnd() ? instrBr->GetSrc1()->AsRegOpnd() : nullptr;
-    IR::RegOpnd *regSrc2 = instrBr->GetSrc2()->IsRegOpnd() ? instrBr->GetSrc2()->AsRegOpnd() : nullptr;
-
-    // Check that we likely have strings or know we have strings as the arguments
-    if (!regSrc1 || !regSrc2 ||
-        !regSrc1->GetValueType().IsLikelyString() ||
-        !regSrc2->GetValueType().IsLikelyString())
-    {
-        return false;
-    }
-
-    // Generate fast path code
-    IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    IR::LabelInstr * labelFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    IR::LabelInstr * labelTarget = instrBr->GetTarget();
     IR::Instr * instr;
     IR::IndirOpnd * indirOpnd;
-
-    if (instrBr->m_opcode == Js::OpCode::BrSrEq_A || instrBr->m_opcode == Js::OpCode::BrEq_A
-        || instrBr->m_opcode == Js::OpCode::BrNotNeq_A || instrBr->m_opcode == Js::OpCode::BrSrNotNeq_A)
-    {
-        labelTarget = labelFail;
-    }
 
     if (!regSrc1->GetValueType().IsString() && !regSrc2->GetValueType().IsString())
     {
@@ -3288,8 +3353,6 @@ LowererMD::GenerateFastBrString(IR::BranchInstr* instrBr)
     //           instrBr
     //
     // $fail:
-    instrBr->InsertBefore(labelHelper);
-    instrBr->InsertAfter(labelFail);
 
     return true;
 };
