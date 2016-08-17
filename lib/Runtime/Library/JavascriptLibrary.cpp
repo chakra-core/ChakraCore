@@ -4771,10 +4771,10 @@ namespace Js
         return this->CreateDate(value);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
+    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex, Js::Var lastVar)
     {
         Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(patternSource, patternLength, flags, this->scriptContext);
-        re->SetLastIndex(lastIndex);
+        re->SetLastIndexInfo_TTD(lastIndex, lastVar);
 
         return re;
     }

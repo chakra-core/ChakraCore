@@ -1526,9 +1526,16 @@ namespace Js
         //split regex should be automatically generated from regex string and flags so no need to exttract it as well
 
         sri->Flags = this->GetFlags();
-        sri->LastIndexOrFlag = this->GetLastIndex();
+        sri->LastIndexVar = TTD_CONVERT_JSVAR_TO_TTDVAR(this->lastIndexVar);
+        sri->LastIndexOrFlag = this->lastIndexOrFlag;
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapRegexInfo*, TTD::NSSnapObjects::SnapObjectType::SnapRegexObject>(objData, sri);
+    }
+
+    void JavascriptRegExp::SetLastIndexInfo_TTD(CharCount lastIndex, Js::Var lastVar)
+    {
+        this->lastIndexOrFlag = lastIndex;
+        this->lastIndexVar = lastVar;
     }
 #endif
 } // namespace Js

@@ -122,6 +122,7 @@ namespace TTD
         uint32 ObjectCount() const;
         uint32 EnvCount() const;
         uint32 SlotArrayCount() const;
+        uint32 GetDbgScopeCountNonTopLevel() const;
 
         //Get the context list for this snapshot
         UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& GetContextList();
