@@ -1709,6 +1709,53 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         {
             break;
         }
+
+        if (m_currentNodeFunc && ref->isEscape && sym->GetSymbolType() == STFunction)
+        {
+            if (m_sourceContextInfo ? 
+                    !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
+                    !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+            {
+                m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
+            }
+        }
+    }
+}
+
+void Parser::MarkEscapingRef(ParseNodePtr pnode, IdentToken *pToken)
+{
+    if (m_currentNodeFunc == nullptr)
+    {
+        return;
+    }
+    if (pnode && pnode->nop == knopFncDecl)
+    {
+        this->SetNestedFuncEscapes();
+    }
+    else if (pToken->pid)
+    {
+        PidRefStack *pidRef = pToken->pid->GetTopRef();
+        if (pidRef->sym)
+        {
+            if (pidRef->sym->GetSymbolType() == STFunction)
+            {
+                this->SetNestedFuncEscapes();
+            }
+        }
+        else
+        {
+            pidRef->isEscape = true;
+        }
+    }
+}
+
+void Parser::SetNestedFuncEscapes() const
+{
+    if (m_sourceContextInfo ? 
+            !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
+            !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
+    {
+        m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
     }
 }
 
@@ -3588,8 +3635,10 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
         if (count > 0xffffU)
             Error(ERRnoMemory);
         // Allow spread in argument lists.
-        pnodeArg = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */TRUE);
+        IdentToken token;
+        pnodeArg = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */TRUE, NULL, nullptr, nullptr, &token);
         ++count;
+        this->MarkEscapingRef(pnodeArg, &token);
 
         if (buildAST)
         {
@@ -8024,34 +8073,7 @@ bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplM
     // Detect nested function escapes of the pattern "return function(){...}" or "yield function(){...}".
     // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
     // is not detected at byte code gen time because of deferred parsing.
-    if (m_currentNodeFunc)
-    {
-        ParseNodePtr pnodeEnclosingFunc = nullptr;
-        if (pnodeT && pnodeT->nop == knopFncDecl)
-        {
-            pnodeEnclosingFunc = m_currentNodeFunc;
-        }
-        else if (token.pid)
-        {
-            // Allow detect "function() { function f(){...}; return f; }".
-            PidRefStack *pidRefDecl = token.pid->TopDecl(GetCurrentBlockInfo()->pnodeBlock->sxBlock.blockId);
-            if (pidRefDecl && pidRefDecl->sym->GetSymbolType() == STFunction)
-            {
-                // This may be conservative if the function object we're returning actually encloses the current function.
-                // But being precise for such a case doesn't seem worth the extra bookkeeping.
-                pnodeEnclosingFunc = m_currentNodeFunc;
-            }
-        }
-        if (pnodeEnclosingFunc)
-        {
-            if (m_sourceContextInfo ? 
-                    !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, pnodeEnclosingFunc->sxFnc.functionId) :
-                    !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
-            {
-                pnodeEnclosingFunc->sxFnc.SetNestedFuncEscapes();
-            }
-        }
-    }
+    this->MarkEscapingRef(pnodeT, &token);
     if (pToken)
     {
         *pToken = token;
@@ -8509,19 +8531,15 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else
         {
             // Parse the operand, make a new node, and look for more
-            pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, nullptr);
+            IdentToken token;
+            pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token);
 
             // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
             // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
             // is not detected at byte code gen time because of deferred parsing.
-            if (m_currentNodeFunc && pnodeT && pnodeT->nop == knopFncDecl && fIsDotOrIndex && nop == knopAsg)
+            if (fIsDotOrIndex && nop == knopAsg)
             {
-                if (m_sourceContextInfo ? 
-                        !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
-                        !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
-                {
-                    m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
-                }
+                this->MarkEscapingRef(pnodeT, &token);
             }
 
             if (buildAST)

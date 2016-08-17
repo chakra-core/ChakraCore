@@ -75,14 +75,16 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
-    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
+    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
 
     int GetScopeId() const    { return id; }
     Js::LocalFunctionId GetFuncScopeId() const { return funcId; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
     bool IsAssignment() const { return isAsg; }
+    bool IsEscape() const { return isEscape; }
+    void SetIsEscape(bool is) { isEscape = is; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
 
@@ -94,6 +96,7 @@ struct PidRefStack
     bool           isAsg;
     bool           isDynamic;
     bool           isModuleExport;
+    bool           isEscape;
     int            id;
     Js::LocalFunctionId funcId;
     Symbol        *sym;
