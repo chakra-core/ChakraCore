@@ -1,11 +1,3 @@
-Unexpected Error while compiling memory.9.wasm
-Error: Compiling wasm failed: Invalid initexpr opcode
-Unexpected Error while compiling memory.10.wasm
-Error: Compiling wasm failed: Invalid initexpr opcode
-Unexpected Error while compiling memory.11.wasm
-Error: Compiling wasm failed: Invalid initexpr opcode
-Unexpected Error while compiling memory.12.wasm
-Error: Compiling wasm failed: Invalid initexpr opcode
 memory.wast:305: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[17] at offset 4/16: Operator I64ReinterpretF64 NYI
 memory.wast:317: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_12[26] at offset 3/9: Operator I64Const NYI
 memory.wast:318: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_13[27] at offset 3/10: Operator I64Const NYI
