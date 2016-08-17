@@ -652,11 +652,6 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
         return;
     }
 
-    JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-        fn->GetRecycler(),
-        entryPoint->EnsurePolymorphicInlineCacheInfo(fn->GetRecycler(), fn),
-        &workitem->GetJITData()->polymorphicInlineCacheInfo);
-
     entryPoint->SetCodeGenPending(workitem);
 
     try
@@ -2877,7 +2872,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         auto& polymorphicInlineCacheInfo = workItem->GetJITData()->polymorphicInlineCacheInfo;
 
         JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-            recycler,
+            recycler, jitTimeData,
             entryPoint->EnsurePolymorphicInlineCacheInfo(recycler, workItem->GetFunctionBody()),
             &polymorphicInlineCacheInfo);
 

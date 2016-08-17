@@ -12,6 +12,7 @@ public:
 
     static void InitializeEntryPointPolymorphicInlineCacheInfo(
         __in Recycler * recycler,
+        __in Js::FunctionCodeGenJitTimeData* jitTimeData,
         __in Js::EntryPointPolymorphicInlineCacheInfo * runtimeInfo,
         __inout EntryPointPolymorphicInlineCacheInfoIDL * jitInfo);
 
