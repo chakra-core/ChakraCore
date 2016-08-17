@@ -1877,6 +1877,22 @@ GetProcessTimes(
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
 
+typedef struct _IO_COUNTERS {
+  ULONGLONG ReadOperationCount;
+  ULONGLONG WriteOperationCount;
+  ULONGLONG OtherOperationCount;
+  ULONGLONG ReadTransferCount;
+  ULONGLONG WriteTransferCount;
+  ULONGLONG OtherTransferCount;
+} IO_COUNTERS, *PIO_COUNTERS;
+
+PALIMPORT
+BOOL
+PALAPI
+GetProcessIoCounters(
+    IN  HANDLE       hProcess,
+    OUT PIO_COUNTERS lpIoCounters);
+
 #define MAXIMUM_WAIT_OBJECTS  64
 #define WAIT_OBJECT_0 0
 #define WAIT_ABANDONED   0x00000080
