@@ -1581,6 +1581,14 @@ LError:
         double dblT;
         uint ivar;
 
+        // See: https://github.com/Microsoft/ChakraCore/issues/1318
+        // Date.UTC should return NaN with < 2 arguments.
+        // args.Info.Count includes an implicit first parameter, so we check for Count <= 2.
+        if (args.Info.Count <= 2)
+        {
+            return JavascriptNumber::NaN;
+        }
+
         for (ivar = 0; (ivar < (args.Info.Count-1)) && ivar < kcvarMax; ++ivar)
         {
             rgdbl[ivar] = JavascriptConversion::ToNumber(args[ivar+1],scriptContext);
