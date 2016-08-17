@@ -1454,21 +1454,32 @@ if (!sourceList)
         return NULL;
     }
 
-
-    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    PropertyString* ScriptContext::TryGetPropertyString(PropertyId propertyId)
     {
         PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
-        PropertyString *string;
         RecyclerWeakReference<PropertyString>* stringReference;
         if (propertyStringMap->TryGetValue(propertyId, &stringReference))
         {
-            string = stringReference->Get();
+            PropertyString *string = stringReference->Get();
             if (string != nullptr)
             {
                 return string;
             }
         }
+
+        return nullptr;
+    }
+
+    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    {
+        PropertyString *string = TryGetPropertyString(propertyId);
+        if (string != nullptr)
+        {
+            return string;
+        }
+
+        PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
         const Js::PropertyRecord* propertyName = this->GetPropertyName(propertyId);
         string = this->GetLibrary()->CreatePropertyString(propertyName);
