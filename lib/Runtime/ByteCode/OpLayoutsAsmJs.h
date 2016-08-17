@@ -267,9 +267,11 @@ namespace Js
 
 #define RegLayoutType typename SizePolicy::RegSlotType
 #define IntLayoutType typename SizePolicy::RegSlotType
+#define LongLayoutType typename SizePolicy::RegSlotType
 #define FloatLayoutType typename SizePolicy::RegSlotType
 #define DoubleLayoutType typename SizePolicy::RegSlotType
 #define IntConstLayoutType int
+#define LongConstLayoutType int64
 #define FloatConstLayoutType float
 #define DoubleConstLayoutType double
 #define Float32x4LayoutType typename SizePolicy::RegSlotType
@@ -446,9 +448,11 @@ namespace Js
 #include "LayoutTypesAsmJs.h"
 #undef RegLayoutType
 #undef IntLayoutType
+#undef LongLayoutType
 #undef FloatLayoutType
 #undef DoubleLayoutType
 #undef IntConstLayoutType
+#undef LongConstLayoutType
 #undef FloatConstLayoutType
 #undef DoubleConstLayoutType
 #undef Float32x4LayoutType

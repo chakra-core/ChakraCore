@@ -154,10 +154,10 @@ namespace Js
 
         Js::FunctionEntryPointInfo * entypointInfo = (Js::FunctionEntryPointInfo*)func->GetEntryPointInfo();
         Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
-        info->SetWasmReaderInfo(nullptr);
         try
         {
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
+            info->SetWasmReaderInfo(nullptr);
             func->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
             entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
             // Do MTJRC/MAIC:0 check
@@ -177,6 +177,7 @@ namespace Js
             {
                 throw newEx;
             }
+            info->SetWasmReaderInfo(nullptr);
             Js::JavascriptLibrary *library = scriptContext->GetLibrary();
             Js::JavascriptError *pError = library->CreateError();
             Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);

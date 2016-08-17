@@ -1477,18 +1477,11 @@ namespace Js
         return asmInfo->GetReturnType().which();
     }
 
-    DWORD InterpreterStackFrame::GetAsmIntDbValOffSet(AsmJsCallStackLayout* stack)
+    DWORD InterpreterStackFrame::GetAsmJsReturnValueOffset(AsmJsCallStackLayout* stack)
     {
         JavascriptFunction * func = stack->functionObject;
         ScriptContext* scriptContext = func->GetScriptContext();
-        return (DWORD)scriptContext + ScriptContext::GetAsmIntDbValOffset();
-    }
-
-    DWORD InterpreterStackFrame::GetAsmSimdValOffSet(AsmJsCallStackLayout* stack)
-    {
-        JavascriptFunction * func = stack->functionObject;
-        ScriptContext* scriptContext = func->GetScriptContext();
-        return (DWORD)scriptContext + ScriptContext::GetAsmSimdValOffset();
+        return (DWORD)scriptContext + ScriptContext::GetAsmJsReturnValueOffset();
     }
 
 #ifdef ASMJS_PLAT
@@ -1514,22 +1507,22 @@ namespace Js
     void InterpreterStackFrame::InterpreterAsmThunk(AsmJsCallStackLayout* layout)
     {
             enum {
-                Void       = AsmJsRetType::Void,
-                Signed     = AsmJsRetType::Signed,
-                Float      = AsmJsRetType::Float,
-                Double     = AsmJsRetType::Double,
-                Int32x4    = AsmJsRetType::Int32x4,
-                Bool32x4   = AsmJsRetType::Bool32x4,
-                Bool16x8   = AsmJsRetType::Bool16x8,
-                Bool8x16   = AsmJsRetType::Bool8x16,
-                Float32x4  = AsmJsRetType::Float32x4,
-                Float64x2  = AsmJsRetType::Float64x2,
-                Int16x8    = AsmJsRetType::Int16x8,
-                Int8x16    = AsmJsRetType::Int8x16,
-                Uint32x4   = AsmJsRetType::Uint32x4,
-                Uint16x8   = AsmJsRetType::Uint16x8,
-                Uint8x16   = AsmJsRetType::Uint8x16,
-
+                IsFloat = 1 << AsmJsRetType::Float,
+                IsDouble = 1 << AsmJsRetType::Double,
+                IsInt64 = 1 << AsmJsRetType::Int64,
+                IsSimd = 
+                    1 << AsmJsRetType::Int32x4 |
+                    1 << AsmJsRetType::Bool32x4 |
+                    1 << AsmJsRetType::Bool16x8 |
+                    1 << AsmJsRetType::Bool8x16 |
+                    1 << AsmJsRetType::Float32x4 |
+                    1 << AsmJsRetType::Float64x2 |
+                    1 << AsmJsRetType::Int16x8 |
+                    1 << AsmJsRetType::Int8x16 |
+                    1 << AsmJsRetType::Uint32x4 |
+                    1 << AsmJsRetType::Uint16x8 |
+                    1 << AsmJsRetType::Uint8x16,
+                CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
             };
 
             //Prolog
@@ -1543,29 +1536,30 @@ namespace Js
                 push eax; // push the return value into the stack
                 push layout;
                 call InterpreterStackFrame::GetDynamicRetType;
-                cmp eax, Void;
-                je end;
-                cmp eax, Signed;
-                je end;
-                cmp eax, Float;
-                jne skipFloat;
-                // float
+                mov ecx, eax;
+                mov eax, 1
+                shl eax, cl;
+                and eax, CannotUseEax;
+                jz end;
+                push eax;
                 push layout;
-                call InterpreterStackFrame::GetAsmIntDbValOffSet;
+                call InterpreterStackFrame::GetAsmJsReturnValueOffset;
+                pop ecx;
+                and ecx, ~IsFloat;
+                jz ToXmmWord;
+                and ecx, ~(IsDouble | IsInt64);
+                jz ToXmmDWord;
+                jmp doSimd;
+            ToXmmWord:
+                // float
                 cvtsd2ss xmm0, [eax];
                 jmp end;
-            skipFloat:
-                cmp eax, Double;
-                jne skipDouble;
-                // double
-                push layout;
-                call InterpreterStackFrame::GetAsmIntDbValOffSet;
+            ToXmmDWord:
+                // double and int64
                 movsd xmm0, [eax];
                 jmp end;
-            skipDouble:
+            doSimd:
                 // simd value
-                push layout;
-                call InterpreterStackFrame::GetAsmSimdValOffSet;
                 movups xmm0, [eax];
            end:
                 push layout;
@@ -1592,9 +1586,7 @@ namespace Js
                 // 0x0C InterpreterAsmThunk return address <- stack pointer
 
                 push eax; // save eax
-                mov eax, esp;
-                add eax, ecx;
-                add eax, 0xC; // eax will be our stack destination. we need to move backwards because memory might overlap
+                lea eax, [esp+ecx*1+0xC] // eax will be our stack destination. we need to move backwards because memory might overlap
                 mov edx, [esp+0x10];
                 mov [eax], edx; // move the dynamic interpreter thunk return location
                 sub eax, 0x4;
@@ -1987,6 +1979,39 @@ namespace Js
     }
 
 #ifndef TEMP_DISABLE_ASMJS
+    template<>
+    int InterpreterStackFrame::GetAsmJsRetVal<int>(InterpreterStackFrame* instance)
+    {
+        return instance->m_localIntSlots[0];
+    }
+    template<>
+    int64 InterpreterStackFrame::GetAsmJsRetVal<int64>(InterpreterStackFrame* instance)
+    {
+        return instance->m_localInt64Slots[0];
+    }
+    template<>
+    double InterpreterStackFrame::GetAsmJsRetVal<double>(InterpreterStackFrame* instance)
+    {
+        return instance->m_localDoubleSlots[0];
+    }
+    template<>
+    float InterpreterStackFrame::GetAsmJsRetVal<float>(InterpreterStackFrame* instance)
+    {
+        return instance->m_localFloatSlots[0];
+    }
+    template<>
+    AsmJsSIMDValue InterpreterStackFrame::GetAsmJsRetVal<AsmJsSIMDValue>(InterpreterStackFrame* instance)
+    {
+        return instance->m_localSimdSlots[0];
+    }
+#if _M_IX86 || _M_X64
+    template<>
+    X86SIMDValue InterpreterStackFrame::GetAsmJsRetVal<X86SIMDValue>(InterpreterStackFrame* instance)
+    {
+        return X86SIMDValue::ToX86SIMDValue(instance->m_localSimdSlots[0]);
+    }
+#endif
+
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
     {
@@ -2022,22 +2047,25 @@ namespace Js
         case AsmJsRetType::Uint8x16:
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
-                function->GetScriptContext()->retAsmSimdVal = newInstance->m_localSimdSlots[0];
+                function->GetScriptContext()->asmJsReturnValue.simdVal = GetAsmJsRetVal<AsmJsSIMDValue>(newInstance);
                 break;
             }
             Assert(UNREACHED);
         // double return
         case AsmJsRetType::Double:
-            function->GetScriptContext()->retAsmIntDbVal = newInstance->m_localDoubleSlots[0];
+            function->GetScriptContext()->asmJsReturnValue.dbVal = GetAsmJsRetVal<double>(newInstance);
             break;
         // float return
         case AsmJsRetType::Float:
-            function->GetScriptContext()->retAsmIntDbVal = (double)newInstance->m_localFloatSlots[0];
+            function->GetScriptContext()->asmJsReturnValue.dbVal = (double)GetAsmJsRetVal<float>(newInstance);
             break;
         // signed or void return
         case AsmJsRetType::Signed:
         case AsmJsRetType::Void:
-            retVal = newInstance->m_localIntSlots[0];
+            retVal = GetAsmJsRetVal<int>(newInstance);
+            break;
+        case AsmJsRetType::Int64:
+            function->GetScriptContext()->asmJsReturnValue.int64Val = GetAsmJsRetVal<int64>(newInstance);
             break;
         default:
             Assume(false);
@@ -2046,10 +2074,10 @@ namespace Js
     }
 
 #elif _M_X64
-
     typedef double(*AsmJsInterpreterDoubleEP)(AsmJsCallStackLayout*, void *);
     typedef float(*AsmJsInterpreterFloatEP)(AsmJsCallStackLayout*, void *);
     typedef int(*AsmJsInterpreterIntEP)(AsmJsCallStackLayout*, void *);
+    typedef int64(*AsmJsInterpreterInt64EP)(AsmJsCallStackLayout*, void *);
 
     void * InterpreterStackFrame::GetAsmJsInterpreterEntryPoint(AsmJsCallStackLayout* stack)
     {
@@ -2073,6 +2101,11 @@ namespace Js
             entryPoint = (AsmJsInterpreterIntEP)Js::InterpreterStackFrame::AsmJsInterpreter < int > ;
             break;
         }
+        case Js::AsmJsRetType::Int64:
+        {
+            entryPoint = (AsmJsInterpreterInt64EP)Js::InterpreterStackFrame::AsmJsInterpreter < int64 > ;
+            break;
+        }
         case Js::AsmJsRetType::Int32x4:
         case Js::AsmJsRetType::Bool32x4:
         case Js::AsmJsRetType::Bool16x8:
@@ -2094,26 +2127,7 @@ namespace Js
         return entryPoint;
     }
 
-    template<>
-    int InterpreterStackFrame::GetAsmJsRetVal<int>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localIntSlots[0];
-    }
-    template<>
-    double InterpreterStackFrame::GetAsmJsRetVal<double>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localDoubleSlots[0];
-    }
-    template<>
-    float InterpreterStackFrame::GetAsmJsRetVal<float>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localFloatSlots[0];
-    }
-    template<>
-    X86SIMDValue InterpreterStackFrame::GetAsmJsRetVal<X86SIMDValue>(InterpreterStackFrame* instance)
-    {
-        return X86SIMDValue::ToX86SIMDValue(instance->m_localSimdSlots[0]);
-    }
+    
 
 
     template<typename T>
@@ -2187,6 +2201,12 @@ namespace Js
     {
         Assert(m_outParams + outRegisterID < m_outSp);
         *(float*)(&(m_outParams[outRegisterID])) = val;
+    }
+
+    inline void InterpreterStackFrame::OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val)
+    {
+        Assert(m_outParams + outRegisterID < m_outSp);
+        *(int64*)(&(m_outParams[outRegisterID])) = val;
     }
 
     inline void InterpreterStackFrame::OP_I_SetOutAsmInt(RegSlot outRegisterID, int val)
@@ -2401,15 +2421,6 @@ namespace Js
         PushPopFrameHelper pushPopFrameHelper(this, address, addressOfReturnAddress);
         return this->Process();
     }
-
-    template<> uint32 InterpreterStackFrame::LogSizeOf<uint8>(){return 0;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<int8>(){return 0;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<uint16>(){return 1;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<int16>(){return 1;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<uint32>(){return 2;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<int32>(){return 2;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<float>(){return 2;}
-    template<> uint32 InterpreterStackFrame::LogSizeOf<double>(){return 3;}
 
     Var InterpreterStackFrame::ProcessAsmJsModule()
     {
@@ -2827,33 +2838,6 @@ namespace Js
 #if DBG_DUMP
     int AsmJsCallDepth = 0;
 #endif
-    void InterpreterStackFrame::PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state)
-    {
-        Output::Print(_u("\n"));
-        Output::Print(_u("Interpreter Constant Stack Data(%s)\n"), state);
-        Output::Print(_u("***************************************\n"));
-        Output::Print(_u("Int Data\n"));
-        Output::Print(_u("--------\n"));
-        for (int count = 0; count < intConstCount; count++)
-        {
-            Output::Print(_u("Index:%d Value:%d \n"), count, intSrc[count]);
-        }
-        Output::Print(_u("\n"));
-        Output::Print(_u("Float Data\n"));
-        Output::Print(_u("----------\n"));
-        for (int count = 0; count < floatConstCount; count++)
-        {
-            Output::Print(_u("Index:%d Value:%f \n"), count, fltSrc[count]);
-        }
-        Output::Print(_u("\n"));
-        Output::Print(_u("Double Data\n"));
-        Output::Print(_u("-----------\n"));
-        for (int count = 0; count < doubleConstCount; count++)
-        {
-            Output::Print(_u("Index:%d Value:%g \n"), count, dblSrc[count]);
-        }
-        Output::Print(_u("\n"));
-    }
 
 #ifndef TEMP_DISABLE_ASMJS
     // Function memory allocation should be done the same way as
@@ -2910,49 +2894,42 @@ namespace Js
             }
         }
         AsmJsFunctionInfo* info = functionBody->GetAsmJsFunctionInfo();
-        const int intConstCount = info->GetIntConstCount();
-        const int doubleConstCount = info->GetDoubleConstCount();
-        const int floatConstCount = info->GetFloatConstCount();
 
-        const int simdConstCount = info->GetSimdConstCount();
+        // The const table is copied after the FirstRegSlot
+        byte* constTable = (byte*)(m_localSlots + FunctionBody::FirstRegSlot);
+        byte* slotsStart = (byte*)m_localSlots;
 
-        // Offset of doubles from (double*)m_localSlot
-        const int intOffset = info->GetIntByteOffset() / sizeof(int);
-        const int doubleOffset = info->GetDoubleByteOffset() / sizeof(double);
-        const int floatOffset = info->GetFloatByteOffset() / sizeof(float);
-
-        const int simdByteOffset = info->GetSimdByteOffset();// in bytes;
-
-
-        int* intSrc = (int*)(m_localSlots + AsmJsFunctionMemory::RequiredVarConstants);
-
-        // Where all int value starts
-        m_localIntSlots = ((int*)m_localSlots) + intOffset;
-        // where int arguments starts
-        // int* intArgDst = m_localIntSlots + intConstCount;
-
-        // Where float constants currently are
-        float* floatSrc = (float*)(intSrc + intConstCount);
-        // where all float value starts with the new layout
-        m_localFloatSlots = ((float*)m_localSlots) + floatOffset;
-
-        // Where double arguments starts
-        // float* floatArgDst = m_localFloatSlots + floatConstCount;
-
-        // Where double constants currently are
-        double* doubleSrc = (double*)(floatSrc + floatConstCount);
-
-        // where all double value starts
-        m_localDoubleSlots = ((double*)m_localSlots) + doubleOffset;
-        // Where double arguments starts
-        // double* doubleArgDst = m_localDoubleSlots + doubleConstCount;
-
-
-        AsmJsSIMDValue* simdSrc = nullptr;
-        if (scriptContext->GetConfig()->IsSimdjsEnabled())
+        // Must do in reverse order to avoid overwriting const of other type as we move things around
+        for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
         {
-            simdSrc = (AsmJsSIMDValue*)(doubleSrc + doubleConstCount);
-            m_localSimdSlots = (AsmJsSIMDValue*)((char*)m_localSlots + simdByteOffset);
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            auto typeInfo = info->GetTypedSlotInfo(type);
+            if (!typeInfo->isValidType)
+            {
+                continue;
+            }
+
+            byte* destination = slotsStart + typeInfo->byteOffset;
+            switch (type)
+            {
+            case WAsmJs::INT32:   m_localIntSlots    = (int*)destination; break;
+            case WAsmJs::INT64:   m_localInt64Slots  = (int64*)destination; break;
+            case WAsmJs::FLOAT32: m_localFloatSlots  = (float*)destination; break;
+            case WAsmJs::FLOAT64: m_localDoubleSlots = (double*)destination; break;
+            case WAsmJs::SIMD:    m_localSimdSlots   = (AsmJsSIMDValue*)destination; break;
+            default: 
+                Assert(false);
+                break;
+            }
+
+            // Make sure slots are aligned for this type
+            Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
+            byte* source = constTable + typeInfo->constSrcByteOffset;
+            if (destination != source)
+            {
+                uint constByteSize = typeInfo->constCount * WAsmJs::GetTypeByteSize(type);
+                memcpy_s(destination, constByteSize, source, constByteSize);
+            }
         }
 
         // Load module environment
@@ -2962,35 +2939,12 @@ namespace Js
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter
         m_localSlots[AsmJsFunctionMemory::ScriptContextBufferRegister] = functionBody->GetScriptContext();
 
-        if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
-        {
-            PrintStack(intSrc, floatSrc, doubleSrc, intConstCount, floatConstCount, doubleConstCount, _u("Before Shuffling"));
-        }
+        int* intArg = m_localIntSlots + info->GetTypedSlotInfo(WAsmJs::INT32)->constCount;
+        int64* int64Arg = m_localInt64Slots + info->GetTypedSlotInfo(WAsmJs::INT64)->constCount;
+        double* doubleArg = m_localDoubleSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT64)->constCount;
+        float* floatArg = m_localFloatSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT32)->constCount;
+        AsmJsSIMDValue* simdArg = m_localSimdSlots + info->GetTypedSlotInfo(WAsmJs::SIMD)->constCount;
 
-        // Copying has to happen in that order in order not to overwrite constants
-        if (scriptContext->GetConfig()->IsSimdjsEnabled())
-        {
-            memcpy_s(m_localSimdSlots, simdConstCount*sizeof(AsmJsSIMDValue), simdSrc, simdConstCount*sizeof(AsmJsSIMDValue));
-        }
-
-        // Moving the double and floats  to their slot position. We must move the doubles first so that we do not overwrite the doubles stack with floats
-        memcpy_s(m_localDoubleSlots, doubleConstCount*sizeof(double), doubleSrc, doubleConstCount*sizeof(double));
-        memcpy_s(m_localFloatSlots, floatConstCount*sizeof(float), floatSrc, floatConstCount*sizeof(float));
-
-        if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
-        {
-            PrintStack(m_localIntSlots, m_localFloatSlots, m_localDoubleSlots, intConstCount, floatConstCount, doubleConstCount, _u("After Shuffling"));
-        }
-
-        int* intArg;
-        double* doubleArg;
-        float* floatArg;
-
-        intArg = m_localIntSlots + intConstCount;
-        doubleArg = m_localDoubleSlots + doubleConstCount;
-        floatArg = m_localFloatSlots + floatConstCount;
-
-        AsmJsSIMDValue* simdArg = m_localSimdSlots + simdConstCount;
         // Move the arguments to the right location
         ArgSlot argCount = info->GetArgCount();
 
@@ -3054,6 +3008,18 @@ namespace Js
                     ++intArg;
                     homingAreaSize += MachPtr;
                 }
+                else if (info->GetArgType(i).isInt64())
+                {
+                    *int64Arg = *(int64*)floatSpillAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%lld, "), *int64Arg);
+                    }
+#endif
+                    ++int64Arg;
+                    homingAreaSize += MachPtr;
+                }
                 else if (info->GetArgType(i).isFloat())
                 {
                     *floatArg = *(float*)floatSpillAddress;
@@ -3110,6 +3076,18 @@ namespace Js
 #endif
                 ++intArg;
                 argAddress += MachPtr;
+            }
+            else if (info->GetArgType(i).isInt64())
+            {
+                *int64Arg = *(int64*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%lld, "), *int64Arg);
+                }
+#endif
+                ++int64Arg;
+                argAddress += sizeof(int64);
             }
             else if (info->GetArgType(i).isFloat())
             {
@@ -3281,6 +3259,9 @@ namespace Js
                         break;
                     case AsmJsRetType::Signed:
                         Output::Print( _u(" = %d"), m_localIntSlots[0] );
+                        break;
+                    case AsmJsRetType::Int64:
+                        Output::Print( _u(" = %lld"), m_localInt64Slots[0] );
                         break;
                     case AsmJsRetType::Float:
                         Output::Print(_u(" = %.4f"), m_localFloatSlots[0]);
@@ -3638,6 +3619,9 @@ namespace Js
         case AsmJsRetType::Signed:
             m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
+        case AsmJsRetType::Int64:
+            m_localInt64Slots[0] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            break;
         case AsmJsRetType::Double:
             m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
@@ -3661,6 +3645,8 @@ namespace Js
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
             break;
 #endif
+        default:
+            Assume(UNREACHED);
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
@@ -3678,21 +3664,22 @@ namespace Js
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
         enum {
-            Void = AsmJsRetType::Void,
-            Signed = AsmJsRetType::Signed,
-            Float = AsmJsRetType::Float,
-            Double = AsmJsRetType::Double,
-            Int32x4 = AsmJsRetType::Int32x4,
-            Bool32x4 = AsmJsRetType::Bool32x4,
-            Bool16x8 = AsmJsRetType::Bool16x8,
-            Bool8x16 = AsmJsRetType::Bool8x16,
-            Float32x4 = AsmJsRetType::Float32x4,
-            Float64x2 = AsmJsRetType::Float64x2,
-            Int16x8   = AsmJsRetType::Int16x8,
-            Int8x16 = AsmJsRetType::Int8x16,
-            Uint32x4  = AsmJsRetType::Uint32x4,
-            Uint16x8  = AsmJsRetType::Uint16x8,
-            Uint8x16  = AsmJsRetType::Uint8x16,
+            IsFloat = 1 << AsmJsRetType::Float,
+            IsDouble = 1 << AsmJsRetType::Double,
+            IsInt64 = 1 << AsmJsRetType::Int64,
+            IsSimd = 
+            1 << AsmJsRetType::Int32x4 |
+            1 << AsmJsRetType::Bool32x4 |
+            1 << AsmJsRetType::Bool16x8 |
+            1 << AsmJsRetType::Bool8x16 |
+            1 << AsmJsRetType::Float32x4 |
+            1 << AsmJsRetType::Float64x2 |
+            1 << AsmJsRetType::Int16x8 |
+            1 << AsmJsRetType::Int8x16 |
+            1 << AsmJsRetType::Uint32x4 |
+            1 << AsmJsRetType::Uint16x8 |
+            1 << AsmJsRetType::Uint8x16,
+            CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
         };
 
         AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
@@ -3705,12 +3692,14 @@ namespace Js
 
         Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)scriptFunc->GetEntryPointInfo();
 
-        int retIntVal = NULL;
-        float retFloatVal = NULL;
-        double retDoubleVal = NULL;
-
-        AsmJsSIMDValue retSimdVal;
-        retSimdVal.Zero();
+        union
+        {
+            int retIntVal;
+            int64 retInt64Val;
+            float retFloatVal;
+            double retDoubleVal;
+            AsmJsSIMDValue retSimdVal;
+        } retVals;
 
         AsmJsRetType::Which retType = (AsmJsRetType::Which) GetRetType(scriptFunc);
 
@@ -3754,27 +3743,26 @@ namespace Js
 #endif
                 push function;
             call entryPoint;
-            mov ebx, retType;
-            cmp ebx, Void;
-            je VoidLabel;
-            cmp ebx, Signed;
-            je SignedLabel;
-            cmp ebx, Float;
-            je FloatLabel;
-            cmp ebx, Double;
-            je DoubleLabel;
+            mov ecx, retType;
+            mov edx, 1;
+            shl edx, cl;
+            and edx, CannotUseEax;
+            jz FromEax;
+            and edx, ~IsFloat;
+            jz FromXmmWord;
+            and edx, ~(IsDouble | IsInt64);
+            jz FromXmmDWord;
             // simd
-            movups retSimdVal, xmm0;
+            movups retVals.retSimdVal, xmm0;
             jmp end
-        VoidLabel:
-        SignedLabel:
-            mov retIntVal, eax;
+        FromEax:
+            mov retVals.retIntVal, eax;
             jmp end;
-        FloatLabel:
-            movss retFloatVal, xmm0;
+        FromXmmWord:
+            movss retVals.retFloatVal, xmm0;
             jmp end;
-        DoubleLabel:
-            movsd retDoubleVal, xmm0;
+        FromXmmDWord:
+            movsd retVals.retDoubleVal, xmm0;
         end:
               // Restore ESP
               mov esp, savedEsp;
@@ -3794,19 +3782,22 @@ namespace Js
         case AsmJsRetType::Uint8x16:
             if (scriptContext->GetConfig()->IsSimdjsEnabled())
             {
-                m_localSimdSlots[0] = retSimdVal;
+                m_localSimdSlots[0] = retVals.retSimdVal;
                 break;
             }
             Assert(UNREACHED);
         case AsmJsRetType::Double:
-            m_localDoubleSlots[0] = retDoubleVal;
+            m_localDoubleSlots[0] = retVals.retDoubleVal;
             break;
         case AsmJsRetType::Float:
-            m_localFloatSlots[0] = retFloatVal;
+            m_localFloatSlots[0] = retVals.retFloatVal;
+            break;
+        case AsmJsRetType::Int64:
+            m_localInt64Slots[0] = retVals.retInt64Val;
             break;
         case AsmJsRetType::Signed:
         case AsmJsRetType::Void:
-            m_localIntSlots[0] = retIntVal;
+            m_localIntSlots[0] = retVals.retIntVal;
             break;
         default:
             Assume(false);
@@ -7571,6 +7562,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::SetRegRawInt(RegSlotType localRegisterID, int bValue)
     {
         m_localIntSlots[localRegisterID] = bValue;
+    }
+
+    template <typename RegSlotType>
+    int64 InterpreterStackFrame::GetRegRawInt64(RegSlotType localRegisterID) const
+    {
+        return m_localInt64Slots[localRegisterID];
+    }
+
+    template <typename RegSlotType>
+    void InterpreterStackFrame::SetRegRawInt64(RegSlotType localRegisterID, int64 bValue)
+    {
+        m_localInt64Slots[localRegisterID] = bValue;
     }
 
     template <typename RegSlotType>

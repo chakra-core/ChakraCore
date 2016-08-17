@@ -394,14 +394,16 @@ namespace Js
         static DWORD GetOptimizationOverridesOffset() { return offsetof(ScriptContext, optimizationOverrides); }
         static DWORD GetRecyclerOffset() { return offsetof(ScriptContext, recycler); }
         static DWORD GetNumberAllocatorOffset() { return offsetof(ScriptContext, numberAllocator); }
-        static DWORD GetAsmIntDbValOffset() { return offsetof(ScriptContext, retAsmIntDbVal); }
 
         ScriptContext *next;
         ScriptContext *prev;
-        double retAsmIntDbVal; // stores the double & float result for Asm interpreter
-
-        AsmJsSIMDValue retAsmSimdVal; // stores raw simd result for Asm interpreter
-        static DWORD GetAsmSimdValOffset() { return offsetof(ScriptContext, retAsmSimdVal); }
+        union
+        {
+            int64 int64Val; // stores the double & float result for Asm interpreter
+            double dbVal; // stores the double & float result for Asm interpreter
+            AsmJsSIMDValue simdVal; // stores raw simd result for Asm interpreter
+        } asmJsReturnValue;
+        static DWORD GetAsmJsReturnValueOffset() { return offsetof(ScriptContext, asmJsReturnValue); }
 
         ScriptContextOptimizationOverrideInfo optimizationOverrides;
 

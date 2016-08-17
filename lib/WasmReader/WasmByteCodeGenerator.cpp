@@ -39,16 +39,11 @@ WasmToAsmJs::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
 {
     switch (wasmType)
     {
-    case WasmTypes::F32:
-        return Js::AsmJsRetType::Float;
-    case WasmTypes::F64:
-        return Js::AsmJsRetType::Double;
-    case WasmTypes::I32:
-        return Js::AsmJsRetType::Signed;
-    case WasmTypes::Void:
-        return Js::AsmJsRetType::Void;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return Js::AsmJsRetType::Signed;
+    case WasmTypes::I64: return Js::AsmJsRetType::Int64;
+    case WasmTypes::F32: return Js::AsmJsRetType::Float;
+    case WasmTypes::F64: return Js::AsmJsRetType::Double;
+    case WasmTypes::Void: return Js::AsmJsRetType::Void;
     default:
         throw WasmCompilationException(_u("Unknown return type %u"), wasmType);
     }
@@ -61,14 +56,10 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     Js::AsmJsVarType asmType = Js::AsmJsVarType::Int;
     switch (wasmType)
     {
-    case WasmTypes::F32:
-        return Js::AsmJsVarType::Float;
-    case WasmTypes::F64:
-        return Js::AsmJsVarType::Double;
-    case WasmTypes::I32:
-        return Js::AsmJsVarType::Int;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return Js::AsmJsVarType::Int;
+    case WasmTypes::I64: return Js::AsmJsVarType::Int64;
+    case WasmTypes::F32: return Js::AsmJsVarType::Float;
+    case WasmTypes::F64: return Js::AsmJsVarType::Double;
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
@@ -91,28 +82,7 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
 WasmModule*
 WasmModuleGenerator::GenerateModule()
 {
-    m_module->SetHeapOffset(0);
-    m_module->SetImportFuncOffset(m_module->GetHeapOffset() + 1);
-    m_module->SetFuncOffset(m_module->GetHeapOffset() + 1);
-
     BVStatic<bSectLimit + 1> visitedSections;
-
-    // Will callback regardless if the section is present or not
-    AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
-
-    afterSectionCallback[bSectFunctionSignatures] = [](WasmModuleGenerator* gen) {
-        gen->m_module->SetFuncOffset(gen->m_module->GetImportFuncOffset() + gen->m_module->GetImportCount());
-    };
-    afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
-        gen->m_module->SetIndirFuncTableOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetFunctionCount());
-    };
-    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
-        uint32 funcCount = gen->m_module->GetFunctionCount();
-        for (uint32 i = 0; i < funcCount; ++i)
-        {
-            gen->GenerateFunctionHeader(i);
-        }
-    };
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
     {
@@ -132,11 +102,12 @@ WasmModuleGenerator::GenerateModule()
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
         }
+    }
 
-        if (afterSectionCallback[sectionCode])
-        {
-            afterSectionCallback[sectionCode](this);
-        }
+    uint32 funcCount = m_module->GetFunctionCount();
+    for (uint32 i = 0; i < funcCount; ++i)
+    {
+        GenerateFunctionHeader(i);
     }
 
 #if DBG_DUMP
@@ -287,6 +258,12 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     info->SetReturnType(WasmToAsmJs::GetAsmJsReturnType(wasmInfo->GetResultType()));
 }
 
+WAsmJs::RegisterSpace*
+AllocateRegisterSpace(ArenaAllocator* alloc, WAsmJs::Types)
+{
+    return Anew(alloc, WAsmJs::RegisterSpace, 1);
+}
+
 void
 WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
 {
@@ -302,9 +279,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_scriptContext(scriptContext),
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_evalStack(&m_alloc),
-    m_i32RegSlots(ReservedRegisterCount),
-    m_f32RegSlots(ReservedRegisterCount),
-    m_f64RegSlots(ReservedRegisterCount),
+    mTypedRegisterAllocator(&m_alloc, AllocateRegisterSpace, 1 << WAsmJs::SIMD),
     m_blockInfos(&m_alloc)
 {
     m_writer.Create();
@@ -378,53 +353,16 @@ WasmBytecodeGenerator::GenerateFunction()
 #if DBG_DUMP
     if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()))
     {
-        Js::AsmJsByteCodeDumper::DumpBasic(GetFunctionBody());
+        Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
     }
 #endif
 
     Js::AsmJsFunctionInfo * info = GetFunctionBody()->GetAsmJsFunctionInfo();
-    info->SetIntVarCount(m_i32RegSlots.GetVarCount());
-    info->SetFloatVarCount(m_f32RegSlots.GetVarCount());
-    info->SetDoubleVarCount(m_f64RegSlots.GetVarCount());
+    mTypedRegisterAllocator.CommitToFunctionInfo(info);
+    mTypedRegisterAllocator.CommitToFunctionBody(GetFunctionBody());
 
-    info->SetIntTmpCount(m_i32RegSlots.GetTmpCount());
-    info->SetFloatTmpCount(m_f32RegSlots.GetTmpCount());
-    info->SetDoubleTmpCount(m_f64RegSlots.GetTmpCount());
-
-    info->SetIntConstCount(ReservedRegisterCount);
-    info->SetFloatConstCount(ReservedRegisterCount);
-    info->SetDoubleConstCount(ReservedRegisterCount);
-
-    const uint32 nbConst = 
-        ((info->GetDoubleConstCount() + 1) * WAsmJs::DOUBLE_SLOTS_SPACE)
-        + (uint32)((info->GetFloatConstCount() + 1) * WAsmJs::FLOAT_SLOTS_SPACE + 0.5 /*ceil*/)
-        + (uint32)((info->GetIntConstCount() + 1) * WAsmJs::INT_SLOTS_SPACE + 0.5/*ceil*/)
-        + Js::AsmJsFunctionMemory::RequiredVarConstants;
-
-    // This is constant, 29 for 32bits and 17 for 64bits systems
-    Assert(nbConst == 29 || nbConst == 17);
-    GetFunctionBody()->CheckAndSetConstantCount(nbConst);
-
-    info->SetReturnType(WasmToAsmJs::GetAsmJsReturnType(m_funcInfo->GetResultType()));
-
-    uint32 byteOffset = ReservedRegisterCount * sizeof(Js::Var);
-    info->SetIntByteOffset(byteOffset);
-    byteOffset = UInt32Math::Add(byteOffset, UInt32Math::Mul(m_i32RegSlots.GetRegisterCount(), sizeof(int32)));
-    info->SetFloatByteOffset(byteOffset);
-    byteOffset = UInt32Math::Add(info->GetFloatByteOffset(), UInt32Math::Mul(m_f32RegSlots.GetRegisterCount(), sizeof(float)));
-    // The offsets are stored as int, since we do uint32 math, make sure we haven't overflowed INT_MAX
-    if (byteOffset >= INT_MAX)
-    {
-        Js::Throw::OutOfMemory();
-    }
-    byteOffset = Math::AlignOverflowCheck<int>(byteOffset, sizeof(double));
-    info->SetDoubleByteOffset(byteOffset);
-
-    GetFunctionBody()->SetOutParamMaxDepth(m_maxArgOutDepth);
-    GetFunctionBody()->SetVarCount(UInt32Math::Add(
-        UInt32Math::Add(m_f32RegSlots.GetRegisterCount(), m_f64RegSlots.GetRegisterCount()),
-        m_i32RegSlots.GetRegisterCount()
-    ));
+    GetFunctionBody()->CheckAndSetOutParamMaxDepth(m_maxArgOutDepth);
+    GetFunctionBody()->CheckAndSetVarCount(mTypedRegisterAllocator.GetTotalJsVarCount());
 }
 
 void
@@ -501,6 +439,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbI32Const:
         info = EmitConst<WasmTypes::I32>();
+        break;
+    case wbI64Const:
+        info = EmitConst<WasmTypes::I64>();
         break;
     case wbBlock:
         info = EmitBlock();
@@ -634,6 +575,9 @@ WasmBytecodeGenerator::EmitConst()
         break;
     case WasmTypes::I32:
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tmpReg, GetReader()->m_currentNode.cnst.i32);
+        break;
+    case WasmTypes::I64:
+        m_writer.AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, tmpReg, GetReader()->m_currentNode.cnst.i64);
         break;
     default:
         throw WasmCompilationException(_u("Unknown type %u"), type);
@@ -796,6 +740,13 @@ WasmBytecodeGenerator::EmitCall()
         case WasmTypes::I32:
             argOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
+        case WasmTypes::I64:
+            if (wasmOp == wbCallImport)
+            {
+                throw WasmCompilationException(_u("External calls with int64 argument NYI"));
+            }
+            argOp = Js::OpCodeAsmJs::I_ArgOut_Long;
+            break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
@@ -856,22 +807,21 @@ WasmBytecodeGenerator::EmitCall()
     if (retInfo.type != WasmTypes::Void)
     {
         Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
+        retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
         switch (retInfo.type)
         {
         case WasmTypes::F32:
-            retInfo.location = m_f32RegSlots.AcquireTmpRegister();
             convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
             break;
         case WasmTypes::F64:
-            retInfo.location = m_f64RegSlots.AcquireTmpRegister();
             convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
             break;
         case WasmTypes::I32:
-            retInfo.location = m_i32RegSlots.AcquireTmpRegister();
             convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
-            throw WasmCompilationException(_u("I64 return type NYI"));
+            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
+            break;
         default:
             throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
         }
@@ -906,7 +856,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrFalse_Int, falseLabel, checkExpr.location);
 
-    m_i32RegSlots.ReleaseLocation(&checkExpr);
+    GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&checkExpr);
 
     EmitInfo trueExpr = EmitBlock();
 
@@ -1065,13 +1015,13 @@ WasmBytecodeGenerator::EmitMemRead()
     }
     if (offset != 0)
     {
-        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
+        Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tempReg, offset);
 
         m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, exprInfo.location, exprInfo.location, tempReg);
-        m_i32RegSlots.ReleaseTmpRegister(tempReg);
+        GetRegisterSpace(WasmTypes::I32)->ReleaseTmpRegister(tempReg);
     }
-    m_i32RegSlots.ReleaseLocation(&exprInfo);
+    GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&exprInfo);
     Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
 
     m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArr, resultReg, exprInfo.location, GetViewType(wasmOp));
@@ -1097,11 +1047,11 @@ WasmBytecodeGenerator::EmitMemStore()
     }
     if (offset != 0)
     {
-        Js::RegSlot indexReg = m_i32RegSlots.AcquireTmpRegister();
+        Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, offset);
 
         m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, exprInfo.location, exprInfo.location, indexReg);
-        m_i32RegSlots.ReleaseTmpRegister(indexReg);
+        GetRegisterSpace(WasmTypes::I32)->ReleaseTmpRegister(indexReg);
     }
     if (rhsInfo.type != type)
     {
@@ -1149,15 +1099,10 @@ WasmBytecodeGenerator::EmitReturnExpr()
         Js::OpCodeAsmJs retOp = Js::OpCodeAsmJs::Nop;
         switch (retExprInfo.type)
         {
-        case WasmTypes::F32:
-            retOp = Js::OpCodeAsmJs::Return_Flt;
-            break;
-        case WasmTypes::F64:
-            retOp = Js::OpCodeAsmJs::Return_Db;
-            break;
-        case WasmTypes::I32:
-            retOp = Js::OpCodeAsmJs::Return_Int;
-            break;
+        case WasmTypes::I32: retOp = Js::OpCodeAsmJs::Return_Int; break;
+        case WasmTypes::I64: retOp = Js::OpCodeAsmJs::Return_Long; break;
+        case WasmTypes::F32: retOp = Js::OpCodeAsmJs::Return_Flt; break;
+        case WasmTypes::F64: retOp = Js::OpCodeAsmJs::Return_Db; break;
         default:
             throw WasmCompilationException(_u("Unknown return type %u"), retExprInfo.type);
         }
@@ -1239,7 +1184,7 @@ WasmBytecodeGenerator::EmitBr()
     {
         Assert(wasmOp == WasmOp::wbBrIf);
         m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, target, conditionInfo.location);
-        m_i32RegSlots.ReleaseLocation(&conditionInfo);
+        GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&conditionInfo);
     }
 
     ReleaseLocation(&info);
@@ -1259,7 +1204,7 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
     case WasmTypes::I32:
         return Js::OpCodeAsmJs::Ld_Int;
     case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+        return Js::OpCodeAsmJs::Ld_Long;
     default:
         throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
     }
@@ -1418,14 +1363,10 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)
 {
     switch (type)
     {
-    case WasmTypes::F32:
-        return &m_f32RegSlots;
-    case WasmTypes::F64:
-        return &m_f64RegSlots;
-    case WasmTypes::I32:
-        return &m_i32RegSlots;
-    case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+    case WasmTypes::I32: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::INT32);
+    case WasmTypes::I64: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::INT64);
+    case WasmTypes::F32: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT32);
+    case WasmTypes::F64: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT64);
     default:
         return nullptr;
     }

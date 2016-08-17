@@ -72,13 +72,11 @@ namespace Js
             AsmJsFunc* func = mFunctionArray.Item(i);
             FunctionBody* functionBody = func->GetFuncBody();
             AsmJsFunctionInfo* asmInfo = functionBody->AllocateAsmJsFunctionInfo();
+
             if (i == 0 && mUsesChangeHeap)
             {
                 continue;
             }
-            const auto& intRegisterSpace = func->GetRegisterSpace<int>();
-            const auto& doubleRegisterSpace = func->GetRegisterSpace<double>();
-            const auto& floatRegisterSpace = func->GetRegisterSpace<float>();
 
             if (!asmInfo->Init(func))
             {
@@ -86,18 +84,7 @@ namespace Js
             }
             asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
-            int varCount = 0;
-            varCount += (int)((intRegisterSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE) + 0.5);
-            varCount += (int)(floatRegisterSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
-            varCount += doubleRegisterSpace.GetTotalVarCount() * WAsmJs::DOUBLE_SLOTS_SPACE;
-
-            if (IsSimdjsEnabled())
-            {
-                const auto& simdRegisterSpace = func->GetRegisterSpace<AsmJsSIMDValue>();
-                varCount += (int)((simdRegisterSpace.GetTotalVarCount() + 1) * WAsmJs::SIMD_SLOTS_SPACE); /* + 1 to make room for possible alignment of SIMD values*/
-                // Aligned SIMD values.
-                Assert(asmInfo->GetSimdByteOffset() % sizeof(AsmJsSIMDValue) == 0);
-            }
+            uint32 varCount = func->GetTotalJsVarCount();
 
             functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
             functionBody->CheckAndSetVarCount(varCount);
@@ -105,6 +92,13 @@ namespace Js
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
             ((EntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->SetIsAsmJSFunction(true);
+
+#if DBG_DUMP && defined(ASMJS_PLAT)
+            if(PHASE_DUMP(ByteCodePhase, functionBody))
+            {
+                AsmJsByteCodeDumper::Dump(functionBody, nullptr, func);
+            }
+#endif
 #if _M_IX86
             if (PHASE_ON1(AsmJsJITTemplatePhase) && !Configuration::Global.flags.NoNative)
             {
@@ -1084,7 +1078,7 @@ namespace Js
     {
         PropertyName name = ParserWrapper::FunctionName( pnodeFnc );
         GetByteCodeGenerator()->AssignPropertyId(name);
-        AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator );
+        AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator, mCx->scriptContext );
         if( func )
         {
             if( DefineIdentifier( name, func ) )

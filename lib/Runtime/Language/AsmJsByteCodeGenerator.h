@@ -103,6 +103,7 @@ namespace Js
         EmitExpressionInfo EmitSimdLoadStoreBuiltin(ParseNode* pnode, AsmJsSIMDFunction* simdFunction, AsmJsRetType expectedType);
 
         void FinalizeRegisters( FunctionBody* byteCodeFunction );
+        template<typename T> void SetConstsToTable(byte* byteTable, T zeroValue);
         void LoadAllConstants();
         void StartStatement(ParseNode* pnode);
         void EndStatement(ParseNode* pnode);

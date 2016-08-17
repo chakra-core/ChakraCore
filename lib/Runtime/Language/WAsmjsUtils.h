@@ -16,6 +16,34 @@ namespace WAsmJs
 
     typedef Js::RegSlot RegSlot;
 
+    template<typename ToType> uint32 ConvertOffset(uint32 ptr, uint32 fromSize)
+    {
+        if (fromSize == sizeof(ToType))
+        {
+            return ptr;
+        }
+        uint64 tmp = ptr * fromSize;
+        tmp = Math::Align<uint64>(tmp, sizeof(ToType));
+        tmp /= sizeof(ToType);
+        if (tmp > (uint64)UINT32_MAX)
+        {
+            Math::DefaultOverflowPolicy();
+        }
+        return (uint32)tmp;
+    }
+    template<typename FromType, typename ToType> uint32 ConvertOffset(uint32 ptr)
+    {
+        return ConvertOffset<ToType>(ptr, sizeof(FromType));
+    }
+    template<typename T> uint32 ConvertToJsVarOffset(uint32 ptr)
+    {
+        return ConvertOffset<T, Js::Var>(ptr);
+    }
+    template<typename T> uint32 ConvertFromJsVarOffset(uint32 ptr)
+    {
+        return ConvertOffset<Js::Var, T>(ptr);
+    }
+
     struct EmitInfoBase
     {
         EmitInfoBase(RegSlot location_) : location(location_) {}
@@ -23,6 +51,17 @@ namespace WAsmJs
 
         RegSlot location;
     };
+
+    enum Types
+    {
+        INT32,
+        INT64,
+        FLOAT32,
+        FLOAT64,
+        SIMD,
+        LIMIT
+    };
+    uint32 GetTypeByteSize(Types type);
 
     /// Register space for const, parameters, variables and tmp values
     ///     --------------------------------------------------------
@@ -68,7 +107,7 @@ namespace WAsmJs
         RegSlot AcquireRegister()
         {
             // Makes sure no temporary register have been allocated yet
-            Assert( mFirstTmpReg == mRegisterCount && mNextLocation == mFirstTmpReg );
+            Assert(mFirstTmpReg == mRegisterCount && mNextLocation == mFirstTmpReg);
             ++mFirstTmpReg;
             ++mRegisterCount;
             return mNextLocation++;
@@ -85,15 +124,15 @@ namespace WAsmJs
         RegSlot AcquireTmpRegister()
         {
             // Make sure this function is called correctly
-            Assert( this->mNextLocation <= this->mRegisterCount && this->mNextLocation >= this->mFirstTmpReg );
+            Assert(mNextLocation <= mRegisterCount && mNextLocation >= mFirstTmpReg);
 
             // Allocate a new temp pseudo-register, increasing the locals count if necessary.
-            if( this->mNextLocation == this->mRegisterCount )
+            if(mNextLocation == mRegisterCount)
             {
-                ++this->mRegisterCount;
+                ++mRegisterCount;
             }
 #if DBG_DUMP
-            PrintTmpRegisterAllocation( mNextLocation );
+            PrintTmpRegisterAllocation(mNextLocation);
 #endif
             return mNextLocation++;
         }
@@ -102,107 +141,147 @@ namespace WAsmJs
         void ReleaseTmpRegister( RegSlot tmpReg )
         {
             // make sure the location released is valid
-            Assert( tmpReg != Js::Constants::NoRegister );
+            Assert(tmpReg != Js::Constants::NoRegister);
 
             // Put this reg back on top of the temp stack (if it's a temp).
             if( this->IsTmpReg( tmpReg ) )
             {
                 Assert( tmpReg == this->mNextLocation - 1 );
 #if DBG_DUMP
-                PrintTmpRegisterDeAllocation( mNextLocation - 1 );
+                PrintTmpRegisterAllocation(mNextLocation - 1, true);
 #endif
-                this->mNextLocation--;
+                mNextLocation--;
             }
         }
 
         // Checks if the register is a temporary register
-        bool IsTmpReg( RegSlot tmpReg )
+        bool IsTmpReg(RegSlot tmpReg)
         {
-            Assert( this->mFirstTmpReg != Js::Constants::NoRegister );
-            return !IsConstReg( tmpReg ) && tmpReg >= mFirstTmpReg;
+            Assert(mFirstTmpReg != Js::Constants::NoRegister);
+            return !IsConstReg(tmpReg) && tmpReg >= mFirstTmpReg;
         }
 
         // Checks if the register is a const register
-        bool IsConstReg( RegSlot reg )
+        bool IsConstReg(RegSlot reg)
         {
             // a register is const if it is between the first register and the end of consts
             return reg < mNbConst && reg != 0;
         }
 
         // Checks if the register is a variable register
-        bool IsVarReg( RegSlot reg )
+        bool IsVarReg(RegSlot reg)
         {
             // a register is a var if it is between the last const and the end
             // equivalent to  reg>=mNbConst && reg<mRegisterCount
             // forcing unsigned, if reg < mNbConst then reg-mNbConst = 0xFFFFF..
-            return (uint32)( reg - mNbConst ) < (uint32)( mRegisterCount - mNbConst );
+            return (uint32)(reg - mNbConst) < (uint32)(mRegisterCount - mNbConst);
         }
 
         // Releases a location if its a temporary, safe to call with any expression
-        void ReleaseLocation( const EmitInfoBase *pnode )
+        void ReleaseLocation(const EmitInfoBase *pnode)
         {
             // Release the temp assigned to this expression so it can be re-used.
-            if( pnode && pnode->location != Js::Constants::NoRegister )
+            if(pnode && pnode->location != Js::Constants::NoRegister)
             {
-                this->ReleaseTmpRegister( pnode->location );
+                ReleaseTmpRegister(pnode->location);
             }
         }
 
         // Checks if the location points to a temporary register
-        bool IsTmpLocation( const EmitInfoBase* pnode )
+        bool IsTmpLocation(const EmitInfoBase* pnode)
         {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
+            if(pnode && pnode->location != Js::Constants::NoRegister)
             {
-                return IsTmpReg( pnode->location );
+                return IsTmpReg(pnode->location);
             }
             return false;
         }
 
         // Checks if the location points to a constant register
-        bool IsConstLocation( const EmitInfoBase* pnode )
+        bool IsConstLocation(const EmitInfoBase* pnode)
         {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
+            if(pnode && pnode->location != Js::Constants::NoRegister)
             {
-                return IsConstReg( pnode->location );
+                return IsConstReg(pnode->location);
             }
             return false;
         }
 
         // Checks if the location points to a variable register
-        bool IsVarLocation( const EmitInfoBase* pnode )
+        bool IsVarLocation(const EmitInfoBase* pnode)
         {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
+            if(pnode && pnode->location != Js::Constants::NoRegister)
             {
-                return IsVarReg( pnode->location );
+                return IsVarReg(pnode->location);
             }
             return false;
         }
 
-        // Checks if the location is valid ( within bounds of already allocated registers )
-        bool IsValidLocation( const EmitInfoBase* pnode )
+        // Checks if the location is valid (within bounds of already allocated registers)
+        bool IsValidLocation(const EmitInfoBase* pnode)
         {
-            if( pnode && pnode->location != Js::Constants::NoRegister )
+            if(pnode && pnode->location != Js::Constants::NoRegister)
             {
                 return pnode->location < mRegisterCount;
             }
             return false;
         }
 
+        template<typename T> static Types GetRegisterSpaceType(){return WAsmJs::LIMIT;}
+        template<> static Types GetRegisterSpaceType<int32>(){return WAsmJs::INT32;}
+        template<> static Types GetRegisterSpaceType<int64>(){return WAsmJs::INT64;}
+        template<> static Types GetRegisterSpaceType<float>(){return WAsmJs::FLOAT32;}
+        template<> static Types GetRegisterSpaceType<double>(){return WAsmJs::FLOAT64;}
+        template<> static Types GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
 #if DBG_DUMP
         // Used for debugging
-        enum Types
-        {
-            NONE,
-            INT32,
-            INT64,
-            FLOAT32,
-            FLOAT64,
-            SIMD
-        };
         Types mType;
-        void PrintTmpRegisterAllocation(RegSlot loc);
-        void PrintTmpRegisterDeAllocation(RegSlot loc);
+        static void GetTypeDebugName(Types type, char16* buf, uint bufsize, bool shortName = false);
+        void PrintTmpRegisterAllocation(RegSlot loc, bool deallocation = false);
 #endif
+    };
+
+    struct TypedConstSourcesInfo
+    {
+        uint32 srcByteOffsets[WAsmJs::LIMIT];
+    };
+
+    struct TypedSlotInfo
+    {
+        uint32 constCount;
+        uint32 varCount;
+        uint32 tmpCount;
+        // Offset in bytes from the start of InterpreterStack::m_localSlot
+        uint32 byteOffset;
+        // Offset in bytes from the start of the const table before shuffling (InterpreterStackFrame::AlignMemoryForAsmJs())
+        uint32 constSrcByteOffset;
+        bool isValidType;
+    };
+
+    typedef RegisterSpace*(*AllocateRegisterSpaceFunc)(ArenaAllocator*, WAsmJs::Types);
+    class TypedRegisterAllocator
+    {
+        uint32 mExcludedMask;
+        RegisterSpace* mTypeSpaces[WAsmJs::LIMIT];
+    public:
+        TypedRegisterAllocator(ArenaAllocator* allocator, AllocateRegisterSpaceFunc allocateFunc, uint32 excludedMask = 0);
+
+        uint32 GetJsVarCount(Types type, bool constOnly /*= false*/) const;
+        uint32 GetTotalJsVarCount(bool constOnly = false) const;
+        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const;
+        void CommitToFunctionBody(Js::FunctionBody* body);
+        TypedConstSourcesInfo GetConstSourceInfos() const;
+
+        bool IsTypeExcluded(Types type) const;
+#if DBG_DUMP
+        void DumpLocalsInfo() const;
+        // indexes' array size must be WAsmJs::RegisterSpace::LIMIT
+        void GetArgumentStartIndex(uint32* indexes) const;
+#endif
+
+        RegisterSpace* GetRegisterSpace(Types type) const;
+    private:
+        bool IsValidType(Types type) const;
     };
 };
 
