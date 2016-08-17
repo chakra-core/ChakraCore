@@ -65,6 +65,7 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
     }
 
     wprintf(L"\n");
+    fflush(stdout);
 
     JsValueRef undefinedValue;
     if (ChakraRTInterface::JsGetUndefinedValue(&undefinedValue) == JsNoError)
