@@ -93,7 +93,7 @@ namespace Js
             Assert(functionBody->GetIsAsmJsFunction());
             ((EntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->SetIsAsmJSFunction(true);
 
-#if DBG_DUMP
+#if DBG_DUMP && defined(ASMJS_PLAT)
             if(PHASE_DUMP(ByteCodePhase, functionBody))
             {
                 AsmJsByteCodeDumper::Dump(functionBody, nullptr, func);
