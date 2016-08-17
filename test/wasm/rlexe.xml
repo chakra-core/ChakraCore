@@ -55,4 +55,11 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>global.js</files>
+       <baseline>global.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>
