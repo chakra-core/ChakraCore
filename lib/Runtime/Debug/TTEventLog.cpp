@@ -1963,11 +1963,14 @@ namespace TTD
         }
         AssertMsg(snap != nullptr, "Log should start with a snapshot!!!");
 
+        uint32 dbgScopeCount = snap->GetDbgScopeCountNonTopLevel();
+
         TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*> topLevelLoadScriptMap;
         topLevelLoadScriptMap.Initialize(this->m_loadedTopLevelScripts.Count());
         for(auto iter = this->m_loadedTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             topLevelLoadScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+            dbgScopeCount += iter.Current()->TopLevelBase.ScopeChainInfo.ScopeCount;
         }
 
         TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelNewFunctionBodyResolveInfo*> topLevelNewScriptMap;
@@ -1975,6 +1978,7 @@ namespace TTD
         for(auto iter = this->m_newFunctionTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             topLevelNewScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+            dbgScopeCount += iter.Current()->TopLevelBase.ScopeChainInfo.ScopeCount;
         }
 
         TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*> topLevelEvalScriptMap;
@@ -1982,6 +1986,7 @@ namespace TTD
         for(auto iter = this->m_evalTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             topLevelEvalScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+            dbgScopeCount += iter.Current()->TopLevelBase.ScopeChainInfo.ScopeCount;
         }
 
         //
@@ -1993,14 +1998,14 @@ namespace TTD
 
         if(this->m_lastInflateMap != nullptr)
         {
-            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
 
             NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);
         }
         else
         {
             this->m_lastInflateMap = TT_HEAP_NEW(InflateMap);
-            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
 
             NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);

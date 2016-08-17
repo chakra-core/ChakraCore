@@ -571,8 +571,25 @@ namespace TTD
             }
             else
             {
-                //TODO: when we do better with debuggerscope we should set this to a real value
-                scopeSlots.SetScopeMetadata(nullptr);
+                Js::DebuggerScope* dbgScope = nullptr;
+                if(slotInfo->OptWellKnownDbgScope != TTD_INVALID_WELLKNOWN_TOKEN)
+                {
+                    dbgScope = ctx->TTDWellKnownInfo->LookupKnownDebuggerScopeFromPath(slotInfo->OptWellKnownDbgScope);
+                }
+                else
+                {
+                    Js::FunctionBody* scopeBody = nullptr;
+                    int32 scopeIndex = -1;
+                    inflator->LookupInfoForDebugScope(slotInfo->OptDebugScopeId, &scopeBody, &scopeIndex);
+
+                    dbgScope = scopeBody->GetScopeObjectChain()->pScopeChain->Item(scopeIndex);
+                }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                AssertMsg(dbgScope->GetStart() == slotInfo->OptDiagDebugScopeBegin && dbgScope->GetEnd() == slotInfo->OptDiagDebugScopeEnd, "Bytecode positions don't match!!!");
+#endif
+
+                scopeSlots.SetScopeMetadata(dbgScope);
             }
 
             for(uint32 j = 0; j < slotInfo->SlotCount; j++)
@@ -599,7 +616,20 @@ namespace TTD
             }
             else
             {
-                //TODO: emit debugger scope metadata
+                writer->WriteBool(NSTokens::Key::isWellKnownToken, slotInfo->OptWellKnownDbgScope != TTD_INVALID_WELLKNOWN_TOKEN, NSTokens::Separator::CommaSeparator);
+                if(slotInfo->OptWellKnownDbgScope != TTD_INVALID_WELLKNOWN_TOKEN)
+                {
+                    writer->WriteWellKnownToken(NSTokens::Key::wellKnownToken, slotInfo->OptWellKnownDbgScope, NSTokens::Separator::CommaSeparator);
+                }
+                else
+                {
+                    writer->WriteAddr(NSTokens::Key::debuggerScopeId, slotInfo->OptDebugScopeId, NSTokens::Separator::CommaSeparator);
+                }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                writer->WriteInt32(NSTokens::Key::i32Val, slotInfo->OptDiagDebugScopeBegin, NSTokens::Separator::CommaSeparator);
+                writer->WriteInt32(NSTokens::Key::i32Val, slotInfo->OptDiagDebugScopeEnd, NSTokens::Separator::CommaSeparator);
+#endif
             }
 
             writer->WriteLengthValue(slotInfo->SlotCount, NSTokens::Separator::CommaAndBigSpaceSeparator);
@@ -639,13 +669,33 @@ namespace TTD
 
             slotInfo->isFunctionBodyMetaData = reader->ReadBool(NSTokens::Key::isFunctionMetaData, true);
             slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
+            slotInfo->OptDebugScopeId = TTD_INVALID_PTR_ID;
+            slotInfo->OptWellKnownDbgScope = TTD_INVALID_WELLKNOWN_TOKEN;
+
             if(slotInfo->isFunctionBodyMetaData)
             {
                 slotInfo->OptFunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                slotInfo->OptDiagDebugScopeBegin = -1;
+                slotInfo->OptDiagDebugScopeEnd = -1;
+#endif
             }
             else
             {
-                //TODO: emit debugger scope metadata
+                bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
+                if(isWellKnown)
+                {
+                    slotInfo->OptWellKnownDbgScope = reader->ReadWellKnownToken(NSTokens::Key::wellKnownToken, alloc, true);
+                }
+                else
+                {
+                    slotInfo->OptDebugScopeId = reader->ReadAddr(NSTokens::Key::debuggerScopeId, true);
+                }
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                slotInfo->OptDiagDebugScopeBegin = reader->ReadInt32(NSTokens::Key::i32Val, true);
+                slotInfo->OptDiagDebugScopeEnd = reader->ReadInt32(NSTokens::Key::i32Val, true);
+#endif
             }
 
             slotInfo->SlotCount = reader->ReadLengthValue(true);
@@ -923,6 +973,68 @@ namespace TTD
 
         //////////////////
 
+        void ExtractSnapFunctionBodyScopeChain(bool isWellKnownFunction, SnapFunctionBodyScopeChain& scopeChain, Js::FunctionBody* fb, SlabAllocator& alloc)
+        {
+            scopeChain.ScopeCount = 0;
+            scopeChain.ScopeArray = nullptr;
+
+            if(!isWellKnownFunction && fb->GetScopeObjectChain() != nullptr)
+            {
+                Js::ScopeObjectChain* scChain = fb->GetScopeObjectChain();
+                scopeChain.ScopeCount = (uint32)scChain->pScopeChain->Count();
+                scopeChain.ScopeArray = (scopeChain.ScopeCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(scopeChain.ScopeCount) : 0;
+
+                for(int32 i = 0; i < scChain->pScopeChain->Count(); ++i)
+                {
+                    Js::DebuggerScope* dbgScope = scChain->pScopeChain->Item(i);
+                    scopeChain.ScopeArray[i] = TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(dbgScope);
+                }
+            }
+        }
+
+        void EmitSnapFunctionBodyScopeChain(const SnapFunctionBodyScopeChain& scopeChain, FileWriter* writer)
+        {
+            writer->WriteRecordStart();
+
+            writer->WriteLengthValue(scopeChain.ScopeCount);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < scopeChain.ScopeCount; ++i)
+            {
+                writer->WriteNakedAddr(scopeChain.ScopeArray[i], (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
+            writer->WriteSequenceEnd();
+
+            writer->WriteRecordEnd();
+        }
+
+        void ParseSnapFunctionBodyScopeChain(SnapFunctionBodyScopeChain& scopeChain, FileReader* reader, SlabAllocator& alloc)
+        {
+            reader->ReadRecordStart();
+
+            scopeChain.ScopeCount = reader->ReadLengthValue();
+            scopeChain.ScopeArray = (scopeChain.ScopeCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(scopeChain.ScopeCount) : nullptr;
+
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < scopeChain.ScopeCount; ++i)
+            {
+                scopeChain.ScopeArray[i] = reader->ReadNakedAddr(i != 0);
+            }
+            reader->ReadSequenceEnd();
+
+            reader->ReadRecordEnd();
+        }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapFunctionBodyScopeChain& chain1, const SnapFunctionBodyScopeChain& chain2, TTDCompareMap& compareMap)
+        {
+            compareMap.DiagnosticAssert(chain1.ScopeCount == chain2.ScopeCount);
+
+            //Not sure if there is a way to compare the pointer ids in the two scopes 
+        }
+#endif
+
+        //////////////////
+
         void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc)
         {
             fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
@@ -941,6 +1053,8 @@ namespace TTD
 
             fbInfo->DbgSerializedBytecodeSize = 0;
             fbInfo->DbgSerializedBytecodeBuffer = nullptr;
+
+            ExtractSnapFunctionBodyScopeChain(false, fbInfo->ScopeChainInfo, fb, alloc);
         }
 
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator)
@@ -957,6 +1071,9 @@ namespace TTD
 
             writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsUtf8, NSTokens::Separator::CommaSeparator);
             writer->WriteLengthValue(fbInfo->ByteLength, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::scopeChain, NSTokens::Separator::CommaSeparator);
+            EmitSnapFunctionBodyScopeChain(fbInfo->ScopeChainInfo, writer);
 
             if(emitInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
@@ -985,6 +1102,9 @@ namespace TTD
             fbInfo->IsUtf8 = reader->ReadBool(NSTokens::Key::boolVal, true);
             fbInfo->ByteLength = reader->ReadLengthValue(true);
             fbInfo->SourceBuffer = alloc.SlabAllocateArray<byte>(fbInfo->ByteLength);
+
+            reader->ReadKey(NSTokens::Key::scopeChain, true);
+            ParseSnapFunctionBodyScopeChain(fbInfo->ScopeChainInfo, reader, alloc);
 
             if(parseInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
@@ -1024,6 +1144,8 @@ namespace TTD
             {
                 compareMap.DiagnosticAssert(fbInfo1->SourceBuffer[i] == fbInfo2->SourceBuffer[i]);
             }
+
+            AssertSnapEquiv(fbInfo1->ScopeChainInfo, fbInfo2->ScopeChainInfo, compareMap);
         }
 #endif
 
@@ -1289,6 +1411,8 @@ namespace TTD
                 fbInfo->OptLine = fb->GetLineNumber();
                 fbInfo->OptColumn = fb->GetColumnNumber();
             }
+
+            ExtractSnapFunctionBodyScopeChain(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN, fbInfo->ScopeChainInfo, fb, alloc);
         }
 
         void InflateFunctionBody(const FunctionBodyResolveInfo* fbInfo, InflateMap* inflator, const TTDIdentifierDictionary<TTD_PTR_ID, FunctionBodyResolveInfo*>& idToFbResolveMap)
@@ -1358,6 +1482,9 @@ namespace TTD
                     AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
                     AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(_u("get"), resfb->GetDisplayName()) == 0 || wcscmp(_u("set"), resfb->GetDisplayName()) == 0), "We are missing something");
                 }
+
+                //Make sure to register any scopes the found function body has (but *not* for well known functions)
+                inflator->UpdateFBScopes(fbInfo->ScopeChainInfo, resfb);
             }
 
             bool updateName = false;
@@ -1403,6 +1530,9 @@ namespace TTD
                 writer->WriteInt64(NSTokens::Key::column, fbInfo->OptColumn, NSTokens::Separator::CommaSeparator);
             }
 
+            writer->WriteKey(NSTokens::Key::scopeChain, NSTokens::Separator::CommaSeparator);
+            EmitSnapFunctionBodyScopeChain(fbInfo->ScopeChainInfo, writer);
+
             writer->WriteRecordEnd();
         }
 
@@ -1432,6 +1562,9 @@ namespace TTD
                 fbInfo->OptColumn = reader->ReadInt64(NSTokens::Key::column, true);
             }
 
+            reader->ReadKey(NSTokens::Key::scopeChain, true);
+            ParseSnapFunctionBodyScopeChain(fbInfo->ScopeChainInfo, reader, alloc);
+
             reader->ReadRecordEnd();
         }
 
@@ -1449,6 +1582,8 @@ namespace TTD
                 compareMap.DiagnosticAssert(fbInfo1->OptLine == fbInfo2->OptLine);
                 compareMap.DiagnosticAssert(fbInfo1->OptColumn == fbInfo2->OptColumn);
             }
+
+            AssertSnapEquiv(fbInfo1->ScopeChainInfo, fbInfo1->ScopeChainInfo, compareMap);
         }
 #endif
 
@@ -1573,16 +1708,19 @@ namespace TTD
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_loadedTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb != nullptr)
+                const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = topLevelLoadScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
+
+                if(fb == nullptr)
+                {
+                    fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
+                }
+                else
                 {
                     intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                     intoCtx->TTDContextInfo->RegisterLoadedScript(fb, cri.TopLevelBodyCtr);
                 }
-                else
-                {
-                    const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = topLevelLoadScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
-                    fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
-                }
+
+                inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
                 inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
 
@@ -1591,16 +1729,19 @@ namespace TTD
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_newFunctionTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb != nullptr)
+                const TopLevelNewFunctionBodyResolveInfo* fbInfo = topLevelNewScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
+
+                if(fb == nullptr)
+                {
+                    fb = NSSnapValues::InflateTopLevelNewFunctionBodyInfo(fbInfo, intoCtx);
+                }
+                else
                 {
                     intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                     intoCtx->TTDContextInfo->RegisterNewScript(fb, cri.TopLevelBodyCtr);
                 }
-                else
-                {
-                    const TopLevelNewFunctionBodyResolveInfo* fbInfo = topLevelNewScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
-                    fb = NSSnapValues::InflateTopLevelNewFunctionBodyInfo(fbInfo, intoCtx);
-                }
+
+                inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
                 inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
 
@@ -1609,16 +1750,19 @@ namespace TTD
                 const TopLevelFunctionInContextRelation& cri = snpCtx->m_evalTopLevelScriptArray[i];
 
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
-                if(fb != nullptr)
+                const TopLevelEvalFunctionBodyResolveInfo* fbInfo = topLevelEvalScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
+
+                if(fb == nullptr)
+                {
+                    fb = NSSnapValues::InflateTopLevelEvalFunctionBodyInfo(fbInfo, intoCtx);
+                }
+                else
                 {
                     intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                     intoCtx->TTDContextInfo->RegisterEvalScript(fb, cri.TopLevelBodyCtr);
                 }
-                else
-                {
-                    const TopLevelEvalFunctionBodyResolveInfo* fbInfo = topLevelEvalScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
-                    fb = NSSnapValues::InflateTopLevelEvalFunctionBodyInfo(fbInfo, intoCtx);
-                }
+
+                inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
                 inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
         }

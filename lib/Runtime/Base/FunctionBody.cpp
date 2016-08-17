@@ -4932,6 +4932,15 @@ namespace Js
         }
     }
 #endif
+
+#if ENABLE_TTD
+    Js::PropertyId DebuggerScope::GetPropertyIdForSlotIndex_TTD(uint32 slotIndex) const
+    {
+        const Js::DebuggerScopeProperty& scopeProperty = this->scopeProperties->Item(slotIndex);
+        return scopeProperty.propId;
+    }
+#endif
+
     // Updates the current offset of where the property is first initialized.  This is used to
     // detect whether or not a property is in a dead zone when broken in the debugger.
     // location                 - The slot array index or register slot location of where the property is stored.

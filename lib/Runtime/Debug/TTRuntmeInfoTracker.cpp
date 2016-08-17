@@ -388,8 +388,8 @@ namespace TTD
     
     RuntimeContextInfo::RuntimeContextInfo()
         : m_worklist(&HeapAllocator::Instance), m_nullString(),
-        m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
-        m_sortedObjectList(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT)
+        m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT), m_coreDbgScopeToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
+        m_sortedObjectList(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT), m_sortedDbgScopeList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT)
     {
         ;
     }
@@ -402,6 +402,11 @@ namespace TTD
         }
 
         for(auto iter = this->m_coreBodyToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            TT_HEAP_DELETE(UtilSupport::TTAutoString, iter.CurrentValue());
+        }
+
+        for(auto iter = this->m_coreDbgScopeToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             TT_HEAP_DELETE(UtilSupport::TTAutoString, iter.CurrentValue());
         }
@@ -439,6 +444,18 @@ namespace TTD
         return res->GetStrValue();
     }
 
+    TTD_WELLKNOWN_TOKEN RuntimeContextInfo::ResolvePathForKnownDbgScopeIfExists(Js::DebuggerScope* dbgScope) const
+    {
+        const UtilSupport::TTAutoString* res = this->m_coreDbgScopeToPathMap.LookupWithKey(dbgScope, nullptr);
+
+        if(res == nullptr)
+        {
+            return nullptr;
+        }
+
+        return res->GetStrValue();
+    }
+
     Js::RecyclableObject* RuntimeContextInfo::LookupKnownObjectFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
     {
         int32 pos = LookupPositionInDictNameList<Js::RecyclableObject*, true>(pathIdString, this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
@@ -453,6 +470,14 @@ namespace TTD
         AssertMsg(pos != -1, "Missing function.");
 
         return (pos != -1) ? this->m_sortedFunctionBodyList.Item(pos) : nullptr;
+    }
+
+    Js::DebuggerScope* RuntimeContextInfo::LookupKnownDebuggerScopeFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
+    {
+        int32 pos = LookupPositionInDictNameList<Js::DebuggerScope*, true>(pathIdString, this->m_coreDbgScopeToPathMap, this->m_sortedDbgScopeList, this->m_nullString);
+        AssertMsg(pos != -1, "Missing debug scope.");
+
+        return (pos != -1) ? this->m_sortedDbgScopeList.Item(pos) : nullptr;
     }
 
     void RuntimeContextInfo::GatherKnownObjectToPathMap(Js::ScriptContext* ctx)
@@ -532,6 +557,7 @@ namespace TTD
 
         SortDictIntoListOnNames<Js::RecyclableObject*>(this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
         SortDictIntoListOnNames<Js::FunctionBody*>(this->m_coreBodyToPathMap, this->m_sortedFunctionBodyList, this->m_nullString);
+        SortDictIntoListOnNames<Js::DebuggerScope*>(this->m_coreDbgScopeToPathMap, this->m_sortedDbgScopeList, this->m_nullString);
     }
 
     ////
@@ -588,6 +614,7 @@ namespace TTD
     {
         if(!this->m_coreBodyToPathMap.ContainsKey(fbody))
         {
+            fbody->EnsureDeserialized();
             const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
 
             UtilSupport::TTAutoString* fpath = TT_HEAP_NEW(UtilSupport::TTAutoString, *ppath);
@@ -595,8 +622,23 @@ namespace TTD
             fpath->Append(_u("."));
             fpath->Append(name);
 
-            AssertMsg(!this->m_coreBodyToPathMap.ContainsKey(fbody), "Already in map!!!");
             this->m_coreBodyToPathMap.AddNew(fbody, fpath);
+        }
+    }
+
+    void RuntimeContextInfo::AddWellKnownDebuggerScopePath(Js::RecyclableObject* parent, Js::DebuggerScope* dbgScope, uint32 index)
+    {
+        if(!this->m_coreDbgScopeToPathMap.ContainsKey(dbgScope))
+        {
+            const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
+
+            UtilSupport::TTAutoString* scpath = TT_HEAP_NEW(UtilSupport::TTAutoString, *ppath);
+
+            scpath->Append(_u(".!scope["));
+            scpath->Append(index);
+            scpath->Append(_u("]"));
+
+            this->m_coreDbgScopeToPathMap.AddNew(dbgScope, scpath);
         }
     }
 

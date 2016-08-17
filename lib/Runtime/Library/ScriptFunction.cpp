@@ -558,6 +558,10 @@ namespace Js
                 {
                     rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
                 }
+                else
+                {
+                    rctxInfo->AddWellKnownDebuggerScopePath(this, slotArray.GetDebuggerScope(), i);
+                }
 
                 for(uint j = 0; j < slotArrayCount; j++)
                 {

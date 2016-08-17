@@ -114,6 +114,8 @@ namespace TTD
 
                 slotInfo->isFunctionBodyMetaData = true;
                 slotInfo->OptFunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
+                slotInfo->OptDebugScopeId = TTD_INVALID_PTR_ID;
+                slotInfo->OptWellKnownDbgScope = TTD_INVALID_WELLKNOWN_TOKEN;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 Js::PropertyId* propertyIds = fb->GetPropertyIdsForScopeSlotArray();
@@ -123,20 +125,39 @@ namespace TTD
                 {
                     slotInfo->DebugPIDArray[j] = propertyIds[j];
                 }
+
+                slotInfo->OptDiagDebugScopeBegin = -1;
+                slotInfo->OptDiagDebugScopeEnd = -1;
 #endif
             }
             else
             {
+                Js::DebuggerScope* dbgScope = slots.GetDebuggerScope();
                 slotInfo->isFunctionBodyMetaData = false;
                 slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
+
+                TTD_WELLKNOWN_TOKEN wellKnownToken = ctx->TTDWellKnownInfo->ResolvePathForKnownDbgScopeIfExists(dbgScope);
+                if(wellKnownToken == TTD_INVALID_WELLKNOWN_TOKEN)
+                {
+                    slotInfo->OptDebugScopeId = TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(dbgScope);
+                    slotInfo->OptWellKnownDbgScope = TTD_INVALID_WELLKNOWN_TOKEN;
+                }
+                else
+                {
+                    slotInfo->OptDebugScopeId = TTD_INVALID_PTR_ID;
+                    slotInfo->OptWellKnownDbgScope = wellKnownToken;
+                }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 slotInfo->DebugPIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 
                 for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
                 {
-                    slotInfo->DebugPIDArray[j] = (Js::PropertyId)0;
+                    slotInfo->DebugPIDArray[j] = dbgScope->GetPropertyIdForSlotIndex_TTD(j);
                 }
+
+                slotInfo->OptDiagDebugScopeBegin = dbgScope->GetStart();
+                slotInfo->OptDiagDebugScopeEnd = dbgScope->GetEnd();
 #endif
             }
 

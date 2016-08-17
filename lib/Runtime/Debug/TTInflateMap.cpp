@@ -12,6 +12,7 @@ namespace TTD
         : m_typeMap(), m_handlerMap(),
         m_tagToGlobalObjectMap(), m_objectMap(),
         m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
+        m_debuggerScopeHomeBodyMap(), m_debuggerScopeChainIndexMap(),
         m_inflatePinSet(nullptr), m_environmentPinSet(nullptr), m_slotArrayPinSet(nullptr), m_oldInflatePinSet(nullptr),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
@@ -45,13 +46,15 @@ namespace TTD
         }
     }
 
-    void InflateMap::PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount)
+    void InflateMap::PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
     {
         this->m_typeMap.Initialize(typeCount);
         this->m_handlerMap.Initialize(handlerCount);
         this->m_tagToGlobalObjectMap.Initialize(ctxCount);
         this->m_objectMap.Initialize(objectCount);
         this->m_functionBodyMap.Initialize(bodyCount);
+        this->m_debuggerScopeHomeBodyMap.Initialize(dbgScopeCount);
+        this->m_debuggerScopeChainIndexMap.Initialize(dbgScopeCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
@@ -66,11 +69,13 @@ namespace TTD
         threadContext->GetRecycler()->RootAddRef(this->m_slotArrayPinSet);
     }
 
-    void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount)
+    void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
     {
         this->m_typeMap.Initialize(typeCount);
         this->m_handlerMap.Initialize(handlerCount);
         this->m_tagToGlobalObjectMap.Initialize(ctxCount);
+        this->m_debuggerScopeHomeBodyMap.Initialize(dbgScopeCount);
+        this->m_debuggerScopeChainIndexMap.Initialize(dbgScopeCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
@@ -104,6 +109,8 @@ namespace TTD
         this->m_handlerMap.Unload();
         this->m_typeMap.Unload();
         this->m_tagToGlobalObjectMap.Unload();
+        this->m_debuggerScopeHomeBodyMap.Unload();
+        this->m_debuggerScopeChainIndexMap.Unload();
         this->m_environmentMap.Unload();
         this->m_slotArrayMap.Unload();
         this->m_promiseDataMap.Clear();
@@ -191,6 +198,12 @@ namespace TTD
         return this->m_slotArrayMap.LookupKnownItem(slotid);
     }
 
+    void InflateMap::LookupInfoForDebugScope(TTD_PTR_ID dbgScopeId, Js::FunctionBody** homeBody, int32* chainIndex) const
+    {
+        *homeBody = this->m_debuggerScopeHomeBodyMap.LookupKnownItem(dbgScopeId);
+        *chainIndex = this->m_debuggerScopeChainIndexMap.LookupKnownItem(dbgScopeId);
+    }
+
     void InflateMap::AddDynamicHandler(TTD_PTR_ID handlerId, Js::DynamicTypeHandler* value)
     {
         this->m_handlerMap.AddItem(handlerId, value);
@@ -231,6 +244,26 @@ namespace TTD
     {
         this->m_slotArrayMap.AddItem(slotId, value);
         this->m_slotArrayPinSet->AddNew(value);
+    }
+
+    void InflateMap::UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb)
+    {
+        AssertMsg((int32)scopeChainInfo.ScopeCount == (fb->GetScopeObjectChain() != nullptr ? fb->GetScopeObjectChain()->pScopeChain->Count() : 0), "Mismatch in scope counts!!!");
+
+        if(fb->GetScopeObjectChain() != nullptr)
+        {
+            Js::ScopeObjectChain* scChain = fb->GetScopeObjectChain();
+            for(int32 i = 0; i < scChain->pScopeChain->Count(); ++i)
+            {
+                TTD_PTR_ID dbgScopeId = scopeChainInfo.ScopeArray[i];
+
+                if(!this->m_debuggerScopeHomeBodyMap.Contains(dbgScopeId))
+                {
+                    this->m_debuggerScopeHomeBodyMap.AddItem(dbgScopeId, fb);
+                    this->m_debuggerScopeChainIndexMap.AddItem(dbgScopeId, i);
+                }
+            }
+        }
     }
 
     JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator>& InflateMap::GetPropertyResetSet()

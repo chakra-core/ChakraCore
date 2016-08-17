@@ -460,6 +460,9 @@ namespace TTD
 
             //The char count or flag value from the regex object
             CharCount LastIndexOrFlag;
+
+            //The last index var from the regex object
+            TTDVar LastIndexVar;
         };
 
         ////
