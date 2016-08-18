@@ -1480,7 +1480,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
 {
     IRType type = TyInt32;
     Js::RegSlot valueRegSlot = Js::Constants::NoRegister;
-    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrConst;
+    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::LdArrConst;
     Js::OpCode op = Js::OpCode::InvalidOpCode;
     ValueType arrayType;
     switch (viewType)
@@ -1541,7 +1541,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     IR::RegOpnd * regOpnd = nullptr;
     IR::IndirOpnd * indirOpnd = nullptr;
 
-    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr)
+    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::StArrWasm)
     {
         uint32 mask = 0;
         switch (type)
@@ -1578,11 +1578,11 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         }
         indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, type, m_func);
         indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
-
     }
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::LdArr:
+    case Js::OpCodeAsmJs::LdArrWasm:
         if (IRType_IsFloat(type))
         {
             regOpnd = BuildDstOpnd(valueRegSlot, type);
@@ -1614,6 +1614,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         break;
 
     case Js::OpCodeAsmJs::StArr:
+    case Js::OpCodeAsmJs::StArrWasm:
 
         if (IRType_IsFloat(type))
         {

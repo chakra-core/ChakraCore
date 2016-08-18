@@ -122,12 +122,7 @@
     }]
   }, {
     "filename": "float_memory.2.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "float_memory.wast",
-      "line": 95
-    }, {
+    "commands": [ {
       "type": "invoke",
       "name": "$invoke_1",
       "file": "float_memory.wast",

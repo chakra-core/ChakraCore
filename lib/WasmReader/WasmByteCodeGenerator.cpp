@@ -544,11 +544,11 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
-        info = EmitMemRead<wb##opname, WasmSignature##sig>(); \
+        info = EmitMemAccess<wb##opname, WasmSignature##sig>(false); \
         break;
 #define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
-        info = EmitMemStore<wb##opname, WasmSignature##sig>(); \
+        info = EmitMemAccess<wb##opname, WasmSignature##sig>(true); \
         break;
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
@@ -1051,12 +1051,17 @@ WasmBytecodeGenerator::EmitUnaryExpr()
 
 template<WasmOp wasmOp, typename Signature>
 EmitInfo
-WasmBytecodeGenerator::EmitMemRead()
+WasmBytecodeGenerator::EmitMemAccess(bool isStore)
 {
     WasmTypes::WasmType type = Signature::types[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
+    EmitInfo rhsInfo;
+    if (isStore)
+    {
+        rhsInfo = PopEvalStack();
+    }
     EmitInfo exprInfo = PopEvalStack();
 
     if (exprInfo.type != WasmTypes::I32)
@@ -1071,54 +1076,33 @@ WasmBytecodeGenerator::EmitMemRead()
         m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, exprInfo.location, exprInfo.location, tempReg);
         m_i32RegSlots.ReleaseTmpRegister(tempReg);
     }
-    m_i32RegSlots.ReleaseLocation(&exprInfo);
-    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
 
-    m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArr, resultReg, exprInfo.location, GetViewType(wasmOp));
+    Js::RegSlot resultReg;
+
+    if (isStore) // Stores
+    {
+        if (rhsInfo.type != type)
+        {
+            throw WasmCompilationException(_u("Invalid type for store op"));
+        }
+        m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, GetViewType(wasmOp));
+        ReleaseLocation(&rhsInfo);
+        ReleaseLocation(&exprInfo);
+
+        resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+        if (resultReg != rhsInfo.location)
+        {
+            m_writer.AsmReg2(GetLoadOp(type), resultReg, rhsInfo.location);
+        }
+    }
+    else // Loads
+    {
+        ReleaseLocation(&exprInfo);
+        resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+        m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, GetViewType(wasmOp));
+    }
 
     return EmitInfo(resultReg, type);
-}
-
-template<WasmOp wasmOp, typename Signature>
-EmitInfo
-WasmBytecodeGenerator::EmitMemStore()
-{
-    WasmTypes::WasmType type = Signature::types[0];
-    const uint offset = GetReader()->m_currentNode.mem.offset;
-    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
-    // TODO (michhol): combine with MemRead
-
-    EmitInfo rhsInfo = PopEvalStack();
-    EmitInfo exprInfo = PopEvalStack();
-
-    if (exprInfo.type != WasmTypes::I32)
-    {
-        throw WasmCompilationException(_u("Index expression must be of type I32"));
-    }
-    if (offset != 0)
-    {
-        Js::RegSlot indexReg = m_i32RegSlots.AcquireTmpRegister();
-        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, offset);
-
-        m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, exprInfo.location, exprInfo.location, indexReg);
-        m_i32RegSlots.ReleaseTmpRegister(indexReg);
-    }
-    if (rhsInfo.type != type)
-    {
-        throw WasmCompilationException(_u("Invalid type for store op"));
-    }
-
-    m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, exprInfo.location, GetViewType(wasmOp));
-    ReleaseLocation(&rhsInfo);
-    ReleaseLocation(&exprInfo);
-
-    Js::RegSlot retLoc = GetRegisterSpace(type)->AcquireTmpRegister();
-    if (retLoc != rhsInfo.location)
-    {
-        m_writer.AsmReg2(GetLoadOp(type), retLoc, rhsInfo.location);
-    }
-
-    return EmitInfo(retLoc, type);
 }
 
 EmitInfo

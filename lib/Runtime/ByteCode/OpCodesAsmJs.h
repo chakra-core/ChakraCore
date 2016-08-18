@@ -104,6 +104,8 @@ MACRO_WMS       ( StSlot_Flt                 , ElementSlot     , None           
 MACRO_WMS       ( LdArr_Func                 , ElementSlot     , None            ) // opcode to load func from function tables
 
 // Array Buffer manipulations
+MACRO_WMS       ( LdArrWasm                  , AsmTypedArr     , None            )
+MACRO_WMS       ( StArrWasm                  , AsmTypedArr     , None            )
 MACRO_WMS       ( LdArr                      , AsmTypedArr     , None            )
 MACRO_WMS       ( LdArrConst                 , AsmTypedArr     , None            )
 MACRO_WMS       ( StArr                      , AsmTypedArr     , None            )
