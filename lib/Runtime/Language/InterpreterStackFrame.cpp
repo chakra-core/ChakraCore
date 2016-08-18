@@ -915,25 +915,6 @@
 
 namespace Js
 {
-    extern const __declspec(selectany) uint32 TypedArrayViewMask[] =
-    {
-        (uint32)~0 //TYPE_INT8
-        , (uint32)~0 //TYPE_UINT8
-        , (uint32)~1 //TYPE_INT16
-        , (uint32)~1 //TYPE_UINT16
-        , (uint32)~3 //TYPE_INT32
-        , (uint32)~3 //TYPE_UINT32
-        , (uint32)~3 //TYPE_FLOAT32
-        , (uint32)~7 //TYPE_FLOAT64
-        , (uint32)~7 //TYPE_INT64
-        , (uint32)~0 //TYPE_INT8_TO_INT64
-        , (uint32)~0 //TYPE_UINT8_TO_UINT64
-        , (uint32)~1 //TYPE_INT16_TO_INT64
-        , (uint32)~1 //TYPE_UINT16_TO_UINT64
-        , (uint32)~3 //TYPE_INT32_TO_INT64
-        , (uint32)~3 //TYPE_UINT32_TO_UINT64
-    };
-
 #ifdef ASMJS_PLAT
 
     typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
@@ -7753,7 +7734,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
@@ -7795,7 +7776,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
@@ -8310,7 +8291,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
@@ -8331,7 +8312,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>

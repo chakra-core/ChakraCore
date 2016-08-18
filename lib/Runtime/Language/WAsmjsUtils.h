@@ -61,7 +61,10 @@ namespace WAsmJs
         SIMD,
         LIMIT
     };
+    const Types FirstType = (Types)0;
+    const Types LastType = (Types)(LIMIT - 1);
     uint32 GetTypeByteSize(Types type);
+    Types FromIRType(IRType irType);
 
     /// Register space for const, parameters, variables and tmp values
     ///     --------------------------------------------------------

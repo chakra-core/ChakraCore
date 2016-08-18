@@ -25,6 +25,40 @@ namespace WAsmJs
         Js::Throw::InternalError();
     }
 
+    WAsmJs::Types FromIRType(IRType irType)
+    {
+        switch(irType)
+        {
+        case TyInt8:
+        case TyInt16:
+        case TyInt32:
+        case TyUint8:
+        case TyUint16:
+        case TyUint32:
+            return WAsmJs::INT32;
+        case TyInt64:
+        case TyUint64:
+            return WAsmJs::INT64;
+        case TyFloat32:
+            return WAsmJs::FLOAT32;
+        case TyFloat64:
+            return WAsmJs::FLOAT64;
+        case TySimd128F4:
+        case TySimd128I4:
+        case TySimd128I8:
+        case TySimd128I16:
+        case TySimd128U4:
+        case TySimd128U8:
+        case TySimd128U16:
+        case TySimd128B4:
+        case TySimd128B8:
+        case TySimd128B16:
+        case TySimd128D2:
+            return WAsmJs::SIMD;
+        }
+        return WAsmJs::LIMIT;
+    }
+
 #if DBG_DUMP
     void RegisterSpace::GetTypeDebugName(Types type, char16* buf, uint bufsize, bool shortName)
     {

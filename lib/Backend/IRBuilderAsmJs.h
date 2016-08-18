@@ -78,15 +78,17 @@ private:
 #if DBG
     BVFixed *               m_usedAsTemp;
 #endif
-    Js::RegSlot             GetRegSlotFromIntReg(Js::RegSlot srcIntReg);
-    Js::RegSlot             GetRegSlotFromFloatReg(Js::RegSlot srcFloatReg);
-    Js::RegSlot             GetRegSlotFromDoubleReg(Js::RegSlot srcDoubleReg);
+    Js::RegSlot             GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type);
+    Js::RegSlot             GetRegSlotFromIntReg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT32);}
+    Js::RegSlot             GetRegSlotFromInt64Reg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT64);}
+    Js::RegSlot             GetRegSlotFromFloatReg(Js::RegSlot srcFloatReg) {return GetRegSlotFromTypedReg(srcFloatReg, WAsmJs::FLOAT32);}
+    Js::RegSlot             GetRegSlotFromDoubleReg(Js::RegSlot srcDoubleReg) {return GetRegSlotFromTypedReg(srcDoubleReg, WAsmJs::FLOAT64);}
+    Js::RegSlot             GetRegSlotFromSimd128Reg(Js::RegSlot srcSimd128Reg) {return GetRegSlotFromTypedReg(srcSimd128Reg, WAsmJs::SIMD);}
+
     Js::RegSlot             GetRegSlotFromVarReg(Js::RegSlot srcVarReg);
     Js::OpCode              GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode);
     void                    GetSimdTypesFromAsmType(Js::AsmJsType::Which asmType, IRType *pIRType, ValueType *pValueType = nullptr);
-    Js::RegSlot             GetRegSlotFromSimd128Reg(Js::RegSlot srcSimd128Reg);
     IR::Instr *             AddExtendedArg(IR::RegOpnd *src1, IR::RegOpnd *src2, uint32 offset);
-    BOOL                    RegIsSimd128Var(Js::RegSlot reg);
     bool                    RegIsSimd128ReturnVar(Js::RegSlot reg);
     SymID                   GetMappedTemp(Js::RegSlot reg);
     void                    SetMappedTemp(Js::RegSlot reg, SymID tempId);
@@ -95,9 +97,12 @@ private:
     BOOL                    RegIsTemp(Js::RegSlot reg);
     BOOL                    RegIsConstant(Js::RegSlot reg);
     BOOL                    RegIsVar(Js::RegSlot reg);
-    BOOL                    RegIsIntVar(Js::RegSlot reg);
-    BOOL                    RegIsFloatVar(Js::RegSlot reg);
-    BOOL                    RegIsDoubleVar(Js::RegSlot reg);
+    BOOL                    RegIsTypedVar(Js::RegSlot reg, WAsmJs::Types type);
+    BOOL                    RegIsIntVar(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::INT32);}
+    BOOL                    RegIsInt64Var(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::INT64);}
+    BOOL                    RegIsFloatVar(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::FLOAT32);}
+    BOOL                    RegIsDoubleVar(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::FLOAT64);}
+    BOOL                    RegIsSimd128Var(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::SIMD);}
 
 #define LAYOUT_TYPE(layout) \
     void                    Build##layout(Js::OpCodeAsmJs newOpcode, uint32 offset);
@@ -150,6 +155,9 @@ private:
     void                    BuildBrCmp(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, IR::RegOpnd* src1Opnd, IR::Opnd* src2Opnd);
     void                    GenerateLoopBodySlotAccesses(uint offset);
     void                    GenerateLoopBodyStSlots(SymID loopParamSymId, uint offset);
+
+    Js::PropertyId          CalculatePropertyOffset(SymID id, IRType type, bool isVar = true);
+
     IR::Instr*              GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType type);
     JitArenaAllocator *     m_tempAlloc;
     JitArenaAllocator *     m_funcAlloc;
@@ -162,21 +170,20 @@ private:
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;
     SList<BranchReloc *> *  m_branchRelocList;
-    Js::RegSlot             m_firstIntConst;
-    Js::RegSlot             m_firstFloatConst;
-    Js::RegSlot             m_firstDoubleConst;
+    // 1 for const, 1 for var, 1 for temps for each type and 1 for last
+    static constexpr uint32 m_firstsTypeCount = WAsmJs::LIMIT * 3 + 1;
+    Js::RegSlot             m_firstsType[m_firstsTypeCount];
     Js::RegSlot             m_firstVarConst;
-    Js::RegSlot             m_firstIntVar;
-    Js::RegSlot             m_firstFloatVar;
-    Js::RegSlot             m_firstDoubleVar;
-    Js::RegSlot             m_firstIntTemp;
-    Js::RegSlot             m_firstFloatTemp;
-    Js::RegSlot             m_firstDoubleTemp;
     Js::RegSlot             m_firstIRTemp;
-    Js::RegSlot             m_firstSimdConst;
-    Js::RegSlot             m_firstSimdVar;
-    Js::RegSlot             m_firstSimdTemp;
     Js::OpCode *            m_simdOpcodesMap;
+
+    Js::RegSlot GetFirstConst(WAsmJs::Types type) { return m_firstsType[type]; }
+    Js::RegSlot GetFirstVar(WAsmJs::Types type) { return m_firstsType[type + WAsmJs::LIMIT]; }
+    Js::RegSlot GetFirstTmp(WAsmJs::Types type) { return m_firstsType[type + WAsmJs::LIMIT * 2]; }
+    
+    Js::RegSlot GetLastConst(WAsmJs::Types type) { return m_firstsType[type + 1]; }
+    Js::RegSlot GetLastVar(WAsmJs::Types type) { return m_firstsType[type + WAsmJs::LIMIT + 1]; }
+    Js::RegSlot GetLastTmp(WAsmJs::Types type) { return m_firstsType[type + WAsmJs::LIMIT * 2 + 1]; }
 
     SymID *                 m_tempMap;
     BVFixed *               m_fbvTempUsed;

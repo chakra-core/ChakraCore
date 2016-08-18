@@ -77,6 +77,25 @@ namespace Js
             TYPE_COUNT
         };
 
+        const uint32 ViewMask[] =
+        {
+            (uint32)~0 //TYPE_INT8
+            , (uint32)~0 //TYPE_UINT8
+            , (uint32)~1 //TYPE_INT16
+            , (uint32)~1 //TYPE_UINT16
+            , (uint32)~3 //TYPE_INT32
+            , (uint32)~3 //TYPE_UINT32
+            , (uint32)~3 //TYPE_FLOAT32
+            , (uint32)~7 //TYPE_FLOAT64
+            , (uint32)~7 //TYPE_INT64
+            , (uint32)~0 //TYPE_INT8_TO_INT64
+            , (uint32)~0 //TYPE_UINT8_TO_UINT64
+            , (uint32)~1 //TYPE_INT16_TO_INT64
+            , (uint32)~1 //TYPE_UINT16_TO_UINT64
+            , (uint32)~3 //TYPE_INT32_TO_INT64
+            , (uint32)~3 //TYPE_UINT32_TO_UINT64
+        };
+
     } /* namespace ArrayBufferView */
     // The asm.js spec recognizes this set of builtin Math functions.
     enum AsmJSMathBuiltinFunction
