@@ -680,14 +680,6 @@ namespace Js
         case TypeIds_Function:
             if (rightType == TypeIds_Function)
             {
-                // In ES5 in certain cases (ES5 10.6.14(strict), 13.2.19(strict), 15.3.4.5.20-21) we return a function that throws type error.
-                // For different scenarios we return different instances of the function, which differ by exception/error message.
-                // According to ES5, this is the same [[ThrowTypeError]] (thrower) internal function, thus they should be equal.
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    goto ReturnTrue;
-                }
                 goto ReturnFalse;
             }
             // Fall through to do normal object comparison on function object.
