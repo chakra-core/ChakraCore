@@ -78,6 +78,7 @@ private:
 #if DBG
     BVFixed *               m_usedAsTemp;
 #endif
+    Js::RegSlot             GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Types type);
     Js::RegSlot             GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type);
     Js::RegSlot             GetRegSlotFromIntReg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT32);}
     Js::RegSlot             GetRegSlotFromInt64Reg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT64);}
@@ -126,29 +127,6 @@ private:
     void                    BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, int8 viewType, uint8 DataWidth);
     void                    BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSlot argCount, Js::RegSlot ret, Js::RegSlot function, int8 returnType);
     void                    BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg);
-    void                    BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstIntReg, Js::RegSlot srcDoubleReg);
-    void                    BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstIntReg, Js::RegSlot srcFloatReg);
-    void                    BuildDouble1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstDoubleReg, Js::RegSlot srcIntReg);
-    void                    BuildDouble1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstDoubleReg, Js::RegSlot srcFloatReg);
-    void                    BuildFloat1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstFloatReg, Js::RegSlot srcVarReg);
-    void                    BuildDouble1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstDoubleReg, Js::RegSlot srcVarReg);
-    void                    BuildInt1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstIntReg, Js::RegSlot srcVarReg);
-    void                    BuildReg1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg, Js::RegSlot srcDoubleReg);
-    void                    BuildReg1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg, Js::RegSlot srcFloatReg);
-    void                    BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg, Js::RegSlot srcIntReg);
-    void                    BuildInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstInt, int constInt);
-    void                    BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, float constVal);
-    void                    BuildDouble1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, double constVal);
-    void                    BuildInt1Double2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src1, Js::RegSlot src2);
-    void                    BuildInt1Float2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src1, Js::RegSlot src2);
-    void                    BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src);
-    void                    BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src1, Js::RegSlot src2);
-    void                    BuildDouble2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src);
-    void                    BuildFloat2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src);
-    void                    BuildFloat3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src1, Js::RegSlot src2);
-    void                    BuildFloat1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src);
-    void                    BuildFloat1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src);
-    void                    BuildDouble3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src1, Js::RegSlot src2);
     void                    BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src);
     void                    BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src1, Js::RegSlot src2);
     void                    BuildBrInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src1, int32 src2);
@@ -199,6 +177,63 @@ private:
 #if DBG
     uint32                  m_offsetToInstructionCount;
 #endif
+
+#define BUILD_LAYOUT_DEF(layout, ...) void Build##layout (Js::OpCodeAsmJs, uint32, __VA_ARGS__);
+#define RegType Js::RegSlot
+#define IntType Js::RegSlot
+#define LongType Js::RegSlot
+#define FloatType Js::RegSlot
+#define DoubleType Js::RegSlot
+#define IntConstType int
+#define LongConstType int64
+#define FloatConstType float
+#define DoubleConstType double
+#define Float32x4Type Js::RegSlot
+#define Bool32x4Type Js::RegSlot
+#define Int32x4Type Js::RegSlot
+#define Float64x2Type Js::RegSlot
+#define Int16x8Type Js::RegSlot
+#define Bool16x8Type Js::RegSlot
+#define Int8x16Type Js::RegSlot
+#define Bool8x16Type Js::RegSlot
+#define Uint32x4Type Js::RegSlot
+#define Uint16x8Type Js::RegSlot
+#define Uint8x16Type Js::RegSlot
+#define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type)
+#define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type)
+#define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type)
+#define LAYOUT_TYPE_WMS_REG5(layout, t0, t1, t2, t3, t4) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type)
+#define LAYOUT_TYPE_WMS_REG6(layout, t0, t1, t2, t3, t4, t5) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type)
+#define LAYOUT_TYPE_WMS_REG7(layout, t0, t1, t2, t3, t4, t5, t6) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type)
+#define LAYOUT_TYPE_WMS_REG9(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type)
+#define LAYOUT_TYPE_WMS_REG10(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type)
+#define LAYOUT_TYPE_WMS_REG11(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type)
+#define LAYOUT_TYPE_WMS_REG17(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type)
+#define LAYOUT_TYPE_WMS_REG18(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type, t17##Type)
+#define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type, t17##Type, t18##Type)
+#define EXCLUDE_FRONTEND_LAYOUT
+#include "LayoutTypesAsmJs.h"
+#undef BUILD_LAYOUT_DEF
+#undef RegType
+#undef IntType
+#undef LongType
+#undef FloatType
+#undef DoubleType
+#undef IntConstType
+#undef LongConstType
+#undef FloatConstType
+#undef DoubleConstType
+#undef Float32x4Type
+#undef Bool32x4Type
+#undef Int32x4Type
+#undef Float64x2Type
+#undef Int16x8Type
+#undef Bool16x8Type
+#undef Int8x16Type
+#undef Bool8x16Type
+#undef Uint32x4Type
+#undef Uint16x8Type
+#undef Uint8x16Type
 };
 
 #endif
