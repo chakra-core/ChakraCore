@@ -780,11 +780,6 @@ WasmBytecodeGenerator::EmitCall()
 
     m_writer.AsmStartCall(startCallOp, argSize);
 
-    if (calleeSignature->GetParamCount() != GetReader()->m_currentNode.call.arity)
-    {
-        throw WasmCompilationException(_u("Mismatch between call signature and arity"));
-    }
-
     //copy args into a list so they could be generated in the right order (FIFO)
     JsUtil::List<EmitInfo, ArenaAllocator> argsList(&m_alloc);
     for (int i = 0; i < (int)calleeSignature->GetParamCount(); i++)
@@ -792,8 +787,8 @@ WasmBytecodeGenerator::EmitCall()
         argsList.Add(PopEvalStack());
     }
 
-    int32 argsBytesLeft = 0;
-    for (int i = calleeSignature->GetParamCount() - 1; i >= 0 ; i--)
+    int32 argsBytesLeft = argSize;
+    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; --i)
     {
         EmitInfo info = argsList.Item(i);
         if (calleeSignature->GetParam(i) != info.type)

@@ -408,8 +408,6 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
@@ -424,8 +422,6 @@ void
 WasmBinaryReader::CallImportNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
