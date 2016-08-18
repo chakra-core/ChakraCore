@@ -18,11 +18,12 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeC
         true)
         , jsFinalizeCallback(finalizeCallback)
 {
+    this->flags |= TypeFlagMask_JsrtExternal;
 }
 
 JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data) :
     slot(data),
-    Js::DynamicObject(type)
+    Js::DynamicObject(type, false/* initSlots*/)
 {
 }
 

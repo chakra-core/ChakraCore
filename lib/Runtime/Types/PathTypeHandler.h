@@ -19,6 +19,7 @@ namespace Js
 
     public:
         DEFINE_GETCPPNAME();
+        typedef JsUtil::BaseDictionary<uintptr_t, DynamicType *, Recycler, PowerOf2SizePolicy> TypeTransitionMap;
 
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
