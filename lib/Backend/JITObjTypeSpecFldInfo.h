@@ -48,6 +48,10 @@ public:
     JITTypeHolder GetInitialType() const;
     JITTypeHolder GetFirstEquivalentType() const;
 
+    JITTimeFixedField * GetFixedFieldIfAvailableAsFixedFunction();
+    JITTimeFixedField * GetFixedFieldIfAvailableAsFixedFunction(uint i);
+    JITTimeFixedField * GetFixedFieldInfoArray();
+
     void SetIsBeingStored(bool value); // REVIEW: this doesn't flow out of JIT, should it?
 
     static void BuildObjTypeSpecFldInfoArray(
@@ -57,10 +61,7 @@ public:
         __out ObjTypeSpecFldIDL ** jitData);
 
     // TODO: OOP JIT, implement this
-    Js::JavascriptFunction * GetFieldValueAsFixedFunctionIfAvailable() { __debugbreak(); return nullptr; }
-    Js::JavascriptFunction * GetFieldValueAsFixedFunctionIfAvailable(uint i) { __debugbreak(); return nullptr; }
     wchar_t* GetCacheLayoutString() { __debugbreak(); return nullptr; }
-    Js::FixedFieldInfo * GetFixedFieldInfoArray() { __debugbreak(); return nullptr; }
 
 private:
     Js::ObjTypeSpecFldInfoFlags GetFlags() const;

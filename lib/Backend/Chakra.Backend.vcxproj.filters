@@ -105,26 +105,27 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SwitchIRBuilder.cpp" />
-    <ClCompile Include="JITTimeWorkItem.cpp" />
-    <ClCompile Include="JITTimeFunctionBody.cpp" />
-    <ClCompile Include="JITOutput.cpp" />
-    <ClCompile Include="JITTimeScriptContext.cpp" />
-    <ClCompile Include="JITTimeProfileInfo.cpp" />
-    <ClCompile Include="AsmJsJITInfo.cpp" />
-    <ClCompile Include="FunctionJITTimeInfo.cpp" />
-    <ClCompile Include="FunctionJITRuntimeInfo.cpp" />
-    <ClCompile Include="JITObjTypeSpecFldInfo.cpp" />
-    <ClCompile Include="JITTimeConstructorCache.cpp" />
-    <ClCompile Include="JITType.cpp" />
-    <ClCompile Include="JITTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
-    <ClCompile Include="JITTimePolymorphicInlineCacheInfo.cpp" />
-    <ClCompile Include="JITTimePolymorphicInlineCache.cpp" />
-    <ClCompile Include="ServerThreadContext.cpp" />
-    <ClCompile Include="ServerScriptContext.cpp" />
-    <ClCompile Include="BackendApi.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendApi.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITType.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
+    <ClCompile Include="JITTimeFixedField.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -332,6 +333,7 @@
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="ServerThreadContext.h" />
     <ClInclude Include="ServerScriptContext.h" />
+    <ClInclude Include="JITTimeFixedField.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

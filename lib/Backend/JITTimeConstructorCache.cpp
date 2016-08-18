@@ -5,6 +5,8 @@
 
 #include "Backend.h"
 
+CompileAssert(sizeof(JITTimeConstructorCache) == sizeof(JITTimeConstructorCacheIDL));
+
 JITTimeConstructorCache::JITTimeConstructorCache(const Js::JavascriptFunction* constructor, Js::ConstructorCache* runtimeCache)
 {
     Assert(constructor != nullptr);
@@ -17,7 +19,7 @@ JITTimeConstructorCache::JITTimeConstructorCache(const Js::JavascriptFunction* c
     m_data.ctorHasNoExplicitReturnValue = runtimeCache->content.ctorHasNoExplicitReturnValue;
     m_data.typeIsFinal = runtimeCache->content.typeIsFinal;
     m_data.isUsed = false;
-
+    m_data.guardedPropOps = 0;
     if (runtimeCache->IsNormal())
     {
         JITType::BuildFromJsType(runtimeCache->content.type, (JITType*)&m_data.type);
@@ -37,6 +39,7 @@ JITTimeConstructorCache::JITTimeConstructorCache(const JITTimeConstructorCache* 
     m_data.ctorHasNoExplicitReturnValue = other->CtorHasNoExplicitReturnValue();
     m_data.typeIsFinal = other->IsTypeFinal();
     m_data.isUsed = false;
+    m_data.guardedPropOps = 0; // REVIEW: OOP JIT should we copy these when cloning?
 }
 
 JITTimeConstructorCache*
@@ -45,33 +48,33 @@ JITTimeConstructorCache::Clone(JitArenaAllocator* allocator) const
     JITTimeConstructorCache* clone = Anew(allocator, JITTimeConstructorCache, this);
     return clone;
 }
-const BVSparse<JitArenaAllocator>*
+BVSparse<JitArenaAllocator>*
 JITTimeConstructorCache::GetGuardedPropOps() const
 {
-    return m_guardedPropOps;
+    return (BVSparse<JitArenaAllocator>*)m_data.guardedPropOps;
 }
 
 void
 JITTimeConstructorCache::EnsureGuardedPropOps(JitArenaAllocator* allocator)
 {
-    if (m_guardedPropOps == nullptr)
+    if (GetGuardedPropOps() == nullptr)
     {
-        m_guardedPropOps = Anew(allocator, BVSparse<JitArenaAllocator>, allocator);
+        m_data.guardedPropOps = (intptr_t)Anew(allocator, BVSparse<JitArenaAllocator>, allocator);
     }
 }
 
 void
 JITTimeConstructorCache::SetGuardedPropOp(uint propOpId)
 {
-    Assert(m_guardedPropOps != nullptr);
-    m_guardedPropOps->Set(propOpId);
+    Assert(GetGuardedPropOps() != nullptr);
+    GetGuardedPropOps()->Set(propOpId);
 }
 
 void
 JITTimeConstructorCache::AddGuardedPropOps(const BVSparse<JitArenaAllocator>* propOps)
 {
-    Assert(m_guardedPropOps != nullptr);
-    m_guardedPropOps->Or(propOps);
+    Assert(GetGuardedPropOps() != nullptr);
+    GetGuardedPropOps()->Or(propOps);
 }
 
 intptr_t

@@ -11,7 +11,7 @@ public:
     JITTimeConstructorCache(const JITTimeConstructorCache* other);
 
     JITTimeConstructorCache* Clone(JitArenaAllocator* allocator) const;
-    const BVSparse<JitArenaAllocator>* GetGuardedPropOps() const;
+    BVSparse<JitArenaAllocator>* GetGuardedPropOps() const;
     void EnsureGuardedPropOps(JitArenaAllocator* allocator);
     void SetGuardedPropOp(uint propOpId);
     void AddGuardedPropOps(const BVSparse<JitArenaAllocator>* propOps);
@@ -31,7 +31,6 @@ public:
 
 private:
     JITTimeConstructorCacheIDL m_data;
-    BVSparse<JitArenaAllocator> * m_guardedPropOps;
 };
 
 #pragma once

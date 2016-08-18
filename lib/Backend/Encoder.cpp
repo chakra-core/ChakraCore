@@ -562,49 +562,73 @@ Encoder::Encode()
         int propertyCount = this->m_func->ctorCachesByPropertyId->Count();
         Assert(propertyCount > 0);
 
-#if DBG
-        int cacheCount = m_func->GetInProcJITEntryPointInfo()->GetConstructorCacheCount();
-        Assert(cacheCount > 0);
-#endif
-
         int cacheSlotCount = 0;
         this->m_func->ctorCachesByPropertyId->Map([&cacheSlotCount](Js::PropertyId propertyId, Func::CtorCacheSet* cacheSet) -> void
         {
             cacheSlotCount += cacheSet->Count();
         });
 
-        size_t ctorCachesTransferSize =                                // Reserve enough room for:
-            propertyCount * sizeof(Js::CtorCacheGuardTransferEntry) +  //   each propertyId,
-            propertyCount * sizeof(Js::ConstructorCache*) +            //   terminating null cache for each propertyId,
-            cacheSlotCount * sizeof(Js::JitIndexedPropertyGuard*);     //   a pointer for each cache we counted above.
-
-        // The extra room for sizeof(Js::CtorCacheGuardTransferEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
-        // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-        Js::CtorCacheGuardTransferEntry* ctorCachesTransferRecord = HeapNewPlusZ(ctorCachesTransferSize, Js::CtorCacheGuardTransferEntry);
-
-        Func* func = this->m_func;
-
-        Js::CtorCacheGuardTransferEntry* dstEntry = ctorCachesTransferRecord;
-        this->m_func->ctorCachesByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
+        if (m_func->IsOOPJIT())
         {
-            dstEntry->propertyId = propertyId;
+            Func* func = this->m_func;
+            m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.ctorCachesCount = propertyCount;
+            m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.entries = (CtorCacheTransferEntryIDL**)midl_user_allocate(propertyCount * sizeof(CtorCacheTransferEntryIDL*));
+            CtorCacheTransferEntryIDL** entries = m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.entries;
 
-            int cacheIndex = 0;
-
-            srcCacheSet->Map([dstEntry, &cacheIndex](intptr_t cache) -> void
+            uint propIndex = 0;
+            m_func->ctorCachesByPropertyId->Map([func, entries, &propIndex](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
             {
-                dstEntry->caches[cacheIndex++] = cache;
+                entries[propIndex] = (CtorCacheTransferEntryIDL*)midl_user_allocate(srcCacheSet->Count() * sizeof(intptr_t) + sizeof(CtorCacheTransferEntryIDL));
+                entries[propIndex]->propId = propertyId;
+
+                int cacheIndex = 0;
+
+                srcCacheSet->Map([entries, propIndex, &cacheIndex](intptr_t cache) -> void
+                {
+                    entries[propIndex]->caches[cacheIndex++] = cache;
+                });
+
+                entries[propIndex]->cacheCount = cacheIndex;
+                propIndex++;
             });
+        }
+        else
+        {
+            Assert(m_func->GetInProcJITEntryPointInfo()->GetConstructorCacheCount() > 0);
 
-            dstEntry->caches[cacheIndex++] = 0;
-            dstEntry = reinterpret_cast<Js::CtorCacheGuardTransferEntry*>(&dstEntry->caches[cacheIndex]);
-        });
-        dstEntry->propertyId = Js::Constants::NoProperty;
-        dstEntry++;
+            size_t ctorCachesTransferSize =                                // Reserve enough room for:
+                propertyCount * sizeof(Js::CtorCacheGuardTransferEntry) +  //   each propertyId,
+                propertyCount * sizeof(Js::ConstructorCache*) +            //   terminating null cache for each propertyId,
+                cacheSlotCount * sizeof(Js::JitIndexedPropertyGuard*);     //   a pointer for each cache we counted above.
 
-        Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
+            // The extra room for sizeof(Js::CtorCacheGuardTransferEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
+            // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
+            Js::CtorCacheGuardTransferEntry* ctorCachesTransferRecord = HeapNewPlusZ(ctorCachesTransferSize, Js::CtorCacheGuardTransferEntry);
 
-        m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+            Func* func = this->m_func;
+
+            Js::CtorCacheGuardTransferEntry* dstEntry = ctorCachesTransferRecord;
+            this->m_func->ctorCachesByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
+            {
+                dstEntry->propertyId = propertyId;
+
+                int cacheIndex = 0;
+
+                srcCacheSet->Map([dstEntry, &cacheIndex](intptr_t cache) -> void
+                {
+                    dstEntry->caches[cacheIndex++] = cache;
+                });
+
+                dstEntry->caches[cacheIndex++] = 0;
+                dstEntry = reinterpret_cast<Js::CtorCacheGuardTransferEntry*>(&dstEntry->caches[cacheIndex]);
+            });
+            dstEntry->propertyId = Js::Constants::NoProperty;
+            dstEntry++;
+
+            Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
+
+            m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+        }
     }
     m_func->GetJITOutput()->FinalizeNativeCode(m_func, alloc);
 

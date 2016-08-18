@@ -760,16 +760,16 @@ public:
         return this->objTypeSpecFldInfo->GetProtoObject();
     }
 
-    Js::JavascriptFunction* GetFieldValueAsFixedFunction() const
+    JITTimeFixedField * GetFixedFunction() const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetFieldValueAsFixedFunctionIfAvailable();
+        return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction();
     }
 
-    Js::JavascriptFunction* GetFieldValueAsFixedFunction(uint i) const
+    JITTimeFixedField * GetFixedFunction(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetFieldValueAsFixedFunctionIfAvailable(i);
+        return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction(i);
     }
 
     intptr_t GetFieldValueAsFixedData() const
@@ -784,7 +784,7 @@ public:
         return this->objTypeSpecFldInfo->GetFieldValue(i);
     }
 
-    Js::FixedFieldInfo* GetFixedFieldInfoArray()
+    JITTimeFixedField * GetFixedFieldInfoArray()
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFixedFieldInfoArray();
@@ -1355,6 +1355,7 @@ public:
     AddrOpndKind            GetAddrOpndKind() const { return addrOpndKind; }
     void                    SetAddress(Js::Var address, AddrOpndKind addrOpndKind);
 public:
+    // TODO: OOP JIT, make this a union to be more transparent
     void *                  m_metadata;
     Js::Var                 m_address;
     Js::Var                 m_localAddress;

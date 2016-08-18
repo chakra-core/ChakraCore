@@ -1009,6 +1009,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
         epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
+        epInfo->GetJitTransferData()->SetCtorCacheTransferData(&jitWriteData.ctorCacheTransferData);
 
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }

@@ -372,6 +372,7 @@
     <ClInclude Include="JITObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITTimeConstructorCache.h" />
+    <ClInclude Include="JITTimeFixedField.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />
@@ -451,6 +452,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
+    <ClCompile Include="JITTimeFixedField.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

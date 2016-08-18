@@ -118,7 +118,7 @@ Js::TypeId
 JITObjTypeSpecFldInfo::GetTypeId(uint i) const
 {
     Assert(IsPoly());
-    return (Js::TypeId)m_data.fixedFieldInfoArray[i].type.typeId;
+    return (Js::TypeId)m_data.fixedFieldInfoArray[i].type->typeId;
 }
 
 Js::PropertyId
@@ -188,14 +188,14 @@ JITTypeHolder
 JITObjTypeSpecFldInfo::GetType() const
 {
     Assert(IsMono());
-    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[0].type);
+    return JITTypeHolder((JITType *)m_data.fixedFieldInfoArray[0].type);
 }
 
 JITTypeHolder
 JITObjTypeSpecFldInfo::GetType(uint i) const
 {
     Assert(IsPoly());
-    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[i].type);
+    return JITTypeHolder((JITType *)m_data.fixedFieldInfoArray[i].type);
 }
 
 JITTypeHolder
@@ -215,6 +215,36 @@ void
 JITObjTypeSpecFldInfo::SetIsBeingStored(bool value)
 {
     ((Js::ObjTypeSpecFldInfoFlags*)&m_data.flags)->isBeingStored = value;
+}
+
+JITTimeFixedField *
+JITObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
+{
+    Assert(HasFixedValue());
+    Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+    if (m_data.fixedFieldCount > 0 && m_data.fixedFieldInfoArray[0].funcInfoAddr != 0)
+    {
+        return (JITTimeFixedField *)&m_data.fixedFieldInfoArray[0];
+    }
+    return nullptr;
+}
+
+JITTimeFixedField *
+JITObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction(uint i)
+{
+    Assert(HasFixedValue());
+    Assert(IsPoly());
+    if (m_data.fixedFieldCount > 0 && m_data.fixedFieldInfoArray[i].funcInfoAddr != 0)
+    {
+        return (JITTimeFixedField *)&m_data.fixedFieldInfoArray[i];
+    }
+    return nullptr;
+}
+
+JITTimeFixedField *
+JITObjTypeSpecFldInfo::GetFixedFieldInfoArray()
+{
+    return (JITTimeFixedField*)m_data.fixedFieldInfoArray;
 }
 
 /* static */
@@ -268,10 +298,23 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
         {
             jitData[i]->fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
             jitData[i]->fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
+            if (ffInfo[j].fieldValue != nullptr && Js::JavascriptFunction::Is(ffInfo[j].fieldValue))
+            {
+                Js::JavascriptFunction * funcObj = Js::JavascriptFunction::FromVar(ffInfo[j].fieldValue);
+                jitData[i]->fixedFieldInfoArray[j].valueType = ValueType::FromObject(funcObj).GetRawData();
+                jitData[i]->fixedFieldInfoArray[j].funcInfoAddr = (intptr_t)funcObj->GetFunctionInfo();
+                jitData[i]->fixedFieldInfoArray[j].localFuncId = (intptr_t)funcObj->GetFunctionInfo()->GetLocalFunctionId();
+                if (Js::ScriptFunction::Is(ffInfo[j].fieldValue))
+                {
+                    jitData[i]->fixedFieldInfoArray[j].funcBodyAddr = (intptr_t)funcObj->GetFunctionBody();
+                    jitData[i]->fixedFieldInfoArray[j].environmentAddr = (intptr_t)Js::ScriptFunction::FromVar(funcObj)->GetEnvironment();
+                }
+            }
             if (ffInfo[j].type != nullptr)
             {
+                jitData[i]->fixedFieldInfoArray[j].type = AnewStructZ(alloc, TypeIDL);
                 // TODO: OOP JIT, maybe type should be out of line? might not save anything on x64 though
-                JITType::BuildFromJsType(ffInfo[j].type, (JITType*)&jitData[i]->fixedFieldInfoArray[j].type);
+                JITType::BuildFromJsType(ffInfo[j].type, (JITType*)jitData[i]->fixedFieldInfoArray[j].type);
             }
         }
     }

@@ -2273,27 +2273,6 @@ Instr::HoistSrc1(Js::OpCode assignOpcode, RegNum regNum, StackSym *newSym)
     return newInstr;
 }
 
-bool
-Instr::IsSrc1FunctionObject()
-{
-    if (!this->GetSrc1())
-    {
-        return false;
-    }
-    if (this->GetSrc1()->IsAddrOpnd())
-    {
-        return this->GetSrc1()->AsAddrOpnd()->m_isFunction;
-    }
-    if (this->GetSrc1()->IsRegOpnd())
-    {
-        return (this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->IsSingleDef() &&
-                this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->GetInstrDef()->GetSrc1()->IsAddrOpnd() &&
-                this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->GetInstrDef()->GetSrc1()->AsAddrOpnd()->m_isFunction);
-    }
-
-    return false;
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// Instr::UnlinkSrc2
@@ -3279,10 +3258,10 @@ bool Instr::HasAnySideEffects() const
     return false;
 }
 
-Js::JavascriptFunction* Instr::GetFixedFunction() const
+JITTimeFixedField* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
-    Js::JavascriptFunction* function = Js::JavascriptFunction::FromVar(this->m_src1->AsAddrOpnd()->m_address);
+    JITTimeFixedField* function = (JITTimeFixedField*)this->m_src1->AsAddrOpnd()->m_metadata;
     return function;
 }
 

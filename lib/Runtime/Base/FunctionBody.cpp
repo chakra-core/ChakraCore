@@ -8557,6 +8557,47 @@ namespace Js
         // properties.  If we've done code gen for this EntryPointInfo, ctorCacheGuardsByPropertyId will have been used and nulled out.
         // Unlike type property guards, constructor cache guards use the live constructor caches associated with function objects. These are
         // recycler allocated and are kept alive by the constructorCaches field, where they were inserted during work item creation.
+
+        // OOP JIT
+        if (jitTransferData->ctorCacheTransferData.entries != nullptr)
+        {
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+            CtorCacheTransferEntryIDL ** entries = this->jitTransferData->ctorCacheTransferData.entries;
+            for (uint i = 0; i < this->jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
+            {
+                Js::PropertyId propertyId = entries[i]->propId;
+                Js::PropertyGuard* sharedPropertyGuard;
+
+                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
+                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
+                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
+                // guard for some property during work item creation, we won't find out about it here.
+                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
+                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
+
+                if (isNeeded)
+                {
+                    for (uint j = 0; j < entries[i]->cacheCount; ++j)
+                    {
+                            Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
+                            // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                            // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
+                            if (isValid)
+                            {
+                                threadContext->RegisterConstructorCache(propertyId, cache);
+                            }
+                            else
+                            {
+                                cache->InvalidateAsGuard();
+                            }
+                    }
+                }
+                midl_user_free(entries[i]);
+            }
+            midl_user_free(entries);
+        }
+
         if (this->jitTransferData->ctorCacheGuardsByPropertyId != nullptr)
         {
             ThreadContext* threadContext = scriptContext->GetThreadContext();

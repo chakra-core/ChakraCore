@@ -73,6 +73,12 @@ ThreadContextInfo::GetJavascriptObjectNewInstanceAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetJavascriptArrayNewInstanceAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptArray::EntryInfo::NewInstance);
+}
+
+intptr_t
 ThreadContextInfo::GetDoubleOnePointZeroAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::ONE_POINT_ZERO);

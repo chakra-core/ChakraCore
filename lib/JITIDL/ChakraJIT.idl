@@ -54,8 +54,14 @@ typedef struct EquivalentTypeSetIDL
 typedef struct FixedFieldIDL
 {
     boolean nextHasSameFixedField;
-    TypeIDL type;
+    boolean isClassCtor;
+    unsigned short valueType;
+    unsigned int localFuncId;
+    TypeIDL * type;
     CHAKRA_PTR fieldValue;
+    CHAKRA_PTR funcInfoAddr;
+    CHAKRA_PTR funcBodyAddr;
+    CHAKRA_PTR environmentAddr;
 } FixedFieldIDL;
 
 typedef struct JITTimeConstructorCacheIDL
@@ -73,6 +79,7 @@ typedef struct JITTimeConstructorCacheIDL
 
     CHAKRA_PTR runtimeCacheAddr;
     CHAKRA_PTR runtimeCacheGuardAddr;
+    CHAKRA_PTR guardedPropOps;
 } JITTimeConstructorCacheIDL;
 
 typedef struct ObjTypeSpecFldIDL
@@ -636,6 +643,19 @@ typedef struct TypeGuardTransferData
     TypeGuardTransferEntryIDL* entries;
 } TypeGuardTransferData;
 
+typedef struct  CtorCacheTransferEntryIDL
+{
+    unsigned int propId;
+    unsigned int cacheCount;
+    [size_is(cacheCount)] CHAKRA_PTR caches[*];
+}  CtorCacheTransferEntryIDL;
+
+typedef struct CtorCacheTransferData
+{
+    unsigned int ctorCachesCount;
+    [size_is(ctorCachesCount)] CtorCacheTransferEntryIDL ** entries;
+} CtorCacheTransferData;
+
 
 typedef struct NativeDataBuffer
 {
@@ -662,6 +682,7 @@ typedef struct JITOutputIDL
     FunctionBodyOutputIDL writeableBodyData;
 
     TypeGuardTransferData typeGuardTransferData;
+    CtorCacheTransferData ctorCacheTransferData;
     PinnedTypeRefsIDL* pinnedTypeRefs;
 
     unsigned int codeSize;

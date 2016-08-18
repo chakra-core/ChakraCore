@@ -4201,7 +4201,7 @@ Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, b
     Assert(!usedFixedCtorCache || newObjInstr->HasFixedFunctionAddressTarget());
     Assert(!skipNewScObj || !emitBailOut);
 
-#if DBG
+#if DBG && 0 // TODO: OOP JIT, enable assert
     if (usedFixedCtorCache)
     {
         Js::JavascriptFunction* ctor = newObjInstr->GetFixedFunction();
@@ -4272,17 +4272,17 @@ Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, b
 
         // If we have no arguments (i.e. the argument chain is empty), we can recognize a couple of common special cases, such
         // as new Object() or new Array(), for which we have optimized helpers.
-        Js::JavascriptFunction* ctor = newObjInstr->GetFixedFunction();
-        Js::FunctionInfo* ctorInfo = ctor->GetFunctionInfo();
-        if (!hasArgs && (ctorInfo == &Js::JavascriptObject::EntryInfo::NewInstance || ctorInfo == &Js::JavascriptArray::EntryInfo::NewInstance))
+        JITTimeFixedField* ctor = newObjInstr->GetFixedFunction();
+        intptr_t ctorInfo = ctor->GetFuncInfoAddr();
+        if (!hasArgs && (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr() || ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr()))
         {
-            if (ctorInfo == &Js::JavascriptObject::EntryInfo::NewInstance)
+            if (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr())
             {
                 Assert(skipNewScObj);
                 ctorHelper = IR::HelperNewJavascriptObjectNoArg;
                 callCtor = false;
             }
-            else if (ctorInfo == &Js::JavascriptArray::EntryInfo::NewInstance)
+            else if (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr())
             {
                 Assert(skipNewScObj);
                 ctorHelper = IR::HelperNewJavascriptArrayNoArg;
@@ -4629,11 +4629,9 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     // If we are calling new on a class constructor, the contract is that we pass new.target as the 'this' argument.
     // function is the constructor on which we called new - which is new.target.
-    Js::JavascriptFunction* ctor = newObjInstr->GetFixedFunction();
-    Js::FunctionInfo* functionInfo = Js::JavascriptOperators::GetConstructorFunctionInfo(ctor, this->m_func->GetScriptContext());
-    Assert(functionInfo);
+    JITTimeFixedField* ctor = newObjInstr->GetFixedFunction();
 
-    if (functionInfo->IsClassConstructor())
+    if (ctor->IsClassCtor())
     {
         // MOV newObjDst, function
         this->m_lowererMD.CreateAssign(newObjDst, newObjInstr->GetSrc1(), newObjInstr);
@@ -4946,7 +4944,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
         }
     }
 
-    IR::Opnd *profileOpnd = IR::AddrOpnd::New(func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfoAddr(profileId), IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
+    IR::Opnd *profileOpnd = IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
     this->m_lowererMD.LoadNewScObjFirstArg(newObjInstr, profileOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperScrArr_ProfiledNewInstance;
@@ -7286,7 +7284,7 @@ Lowerer::GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr)
 {
     IR::Instr* instrPrev = insertInstr->m_prev;
 
-    IR::Opnd* numberTypeOpnd = IR::AddrOpnd::New(insertInstr->m_func->GetScriptContext()->GetLibrary()->GetNumberTypeStatic(), IR::AddrOpndKindDynamicType, insertInstr->m_func);
+    IR::Opnd* numberTypeOpnd = IR::AddrOpnd::New(insertInstr->m_func->GetScriptContextInfo()->GetNumberTypeStaticAddr(), IR::AddrOpndKindDynamicType, insertInstr->m_func);
     IR::PropertySymOpnd* propertySymOpnd = insertInstr->GetSrc1()->AsPropertySymOpnd();
 
     IR::LabelInstr* labelBailout = IR::LabelInstr::New(Js::OpCode::Label, insertInstr->m_func, true);
@@ -10269,11 +10267,10 @@ void Lowerer::LowerInlineBuiltIn(IR::Instr* builtInEndInstr)
     builtInEndInstr->Remove();
 }
 
-Js::JavascriptFunction **
+intptr_t
 Lowerer::GetObjRefForBuiltInTarget(IR::RegOpnd * regOpnd)
 {
-    Js::JavascriptFunction ** mathFns =
-        this->m_func->GetScriptContext()->GetLibrary()->GetBuiltinFunctions();
+    intptr_t mathFns = m_func->GetScriptContextInfo()->GetBuiltinFunctionsBaseAddr();
     Js::BuiltinFunction index = regOpnd->m_sym->m_builtInIndex;
 
     AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");

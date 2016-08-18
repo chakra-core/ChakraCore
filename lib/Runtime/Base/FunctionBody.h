@@ -398,6 +398,7 @@ namespace Js
             NativeCodeData* jitTransferRawData;
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
             TypeGuardTransferData typeGuardTransferData;
+            CtorCacheTransferData ctorCacheTransferData;
 
             bool falseReferencePreventionBit;
             bool isReady;
@@ -436,6 +437,11 @@ namespace Js
             {
                 typeGuardTransferData.entries = data->entries;
                 typeGuardTransferData.propertyGuardCount = data->propertyGuardCount;
+            }
+            void SetCtorCacheTransferData(CtorCacheTransferData * data)
+            {
+                ctorCacheTransferData.entries = data->entries;
+                ctorCacheTransferData.ctorCachesCount = data->ctorCachesCount;
             }
             bool GetIsReady() { return this->isReady; }
             void SetIsReady() { this->isReady = true; }

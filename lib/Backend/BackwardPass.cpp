@@ -4492,7 +4492,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     Assert(opnd->IsMono() || opnd->HasEquivalentTypeSet());
 
     JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
-    JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
+    JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : JITTypeHolder(nullptr);
 
     if (typeWithoutProperty.t == nullptr ||
         typeWithProperty == typeWithoutProperty ||
@@ -4534,9 +4534,9 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
-    JITTypeHolder finalType = nullptr;
+    JITTypeHolder finalType(nullptr);
 #if DBG
-    JITTypeHolder deadStoreUnavailableFinalType = nullptr;
+    JITTypeHolder deadStoreUnavailableFinalType(nullptr);
 #endif
     if (pBucket->GetInitialType().t == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {

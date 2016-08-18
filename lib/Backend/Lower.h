@@ -237,7 +237,7 @@ private:
     IR::Instr *     GenerateRuntimeError(IR::Instr * insertBeforeInstr, Js::MessageId errorCode, IR::JnHelperMethod helper = IR::JnHelperMethod::HelperOp_RuntimeTypeError);
     bool            InlineBuiltInLibraryCall(IR::Instr *callInstr);
     void            LowerInlineBuiltIn(IR::Instr* instr);
-    Js::JavascriptFunction** GetObjRefForBuiltInTarget(IR::RegOpnd * opnd);
+    intptr_t GetObjRefForBuiltInTarget(IR::RegOpnd * opnd);
     bool            TryGenerateFastCmSrEq(IR::Instr * instr);
     bool            TryGenerateFastBrEq(IR::Instr * instr);
     bool            TryGenerateFastBrNeq(IR::Instr * instr);

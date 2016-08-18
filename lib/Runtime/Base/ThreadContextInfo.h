@@ -35,6 +35,7 @@ public:
     intptr_t GetUint8ClampedArraySetItemAddr() const;
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;
+    intptr_t GetJavascriptArrayNewInstanceAddr() const;
     intptr_t GetNativeFloatArrayMissingItemAddr() const;
     intptr_t GetMantissaMaskAddr() const;
     intptr_t GetExponentMaskAddr() const;

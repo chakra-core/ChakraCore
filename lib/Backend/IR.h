@@ -222,7 +222,6 @@ public:
     void            FreeSrc1();
     Opnd *          ReplaceSrc1(Opnd * newSrc);
     Instr *         HoistSrc1(Js::OpCode assignOpcode, RegNum regNum = RegNOREG, StackSym *newSym = nullptr);
-    bool            IsSrc1FunctionObject();
     Opnd *          GetSrc2() const;
     Opnd *          SetSrc2(Opnd * newSrc);
     Opnd *          UnlinkSrc2();
@@ -416,7 +415,7 @@ public:
     bool       HasByteCodeArgOutCapture();
     void       GenerateArgOutSnapshot();
     IR::Instr* GetArgOutSnapshot();
-    Js::JavascriptFunction* GetFixedFunction() const;
+    JITTimeFixedField* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
     bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);

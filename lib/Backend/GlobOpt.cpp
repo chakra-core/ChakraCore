@@ -3469,7 +3469,7 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
 
     const JITTypeHolder toType = toValueInfo->GetJsType();
     const JITTypeHolder fromType = fromValueInfo->GetJsType();
-    const JITTypeHolder mergedType = toType == fromType ? toType : nullptr;
+    const JITTypeHolder mergedType = toType == fromType ? toType : JITTypeHolder(nullptr);
 
     Js::EquivalentTypeSet* toTypeSet = toValueInfo->GetJsTypeSet();
     Js::EquivalentTypeSet* fromTypeSet = fromValueInfo->GetJsTypeSet();
@@ -4150,7 +4150,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 {
                     Assert(builtinOpnd->AsAddrOpnd()->m_isFunction);
 
-                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((Js::JavascriptFunction*)builtinOpnd->AsAddrOpnd()->m_address)->GetFunctionInfo(), func->GetScriptContext());
+                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(((JITTimeFixedField*)builtinOpnd->AsAddrOpnd()->m_metadata)->GetLocalFuncId());
                     if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         ClearArgumentsSym(src1->AsRegOpnd());
