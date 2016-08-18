@@ -8208,6 +8208,8 @@ CommonNumber:
             return false;
         }
 
+        AssertMsg(type && type->GetScriptContext(), "type and it's ScriptContext should be valid.");
+
         if (!guard->IsInvalidatedDuringSweep() && guard->GetType()->GetScriptContext() != type->GetScriptContext())
         {
             // For valid guard value, can't cache cross-context objects
