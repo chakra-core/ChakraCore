@@ -164,6 +164,7 @@ namespace Js
         {
             this->Getter = nextPropertyIndex++;
         }
+        this->Attributes |= PropertyLetConstGlobal;
         Assert(GetDataPropertyIndex<false>() != NoSlots);
     }
 

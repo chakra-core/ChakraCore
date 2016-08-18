@@ -1706,16 +1706,16 @@ namespace Js
             {
                 bool addingLetConstGlobal = (attributes & PropertyLetConstGlobal) != 0;
 
-                descriptor->AddShadowedData(nextPropertyIndex, addingLetConstGlobal);
-
                 if (addingLetConstGlobal)
                 {
-                    descriptor->Attributes = descriptor->Attributes | (attributes & PropertyNoRedecl) | PropertyLetConstGlobal;
+                    descriptor->Attributes = descriptor->Attributes | (attributes & PropertyNoRedecl);
                 }
                 else
                 {
-                    descriptor->Attributes = attributes | (descriptor->Attributes & PropertyNoRedecl) | PropertyLetConstGlobal;
+                    descriptor->Attributes = attributes | (descriptor->Attributes & PropertyNoRedecl);
                 }
+
+                descriptor->AddShadowedData(nextPropertyIndex, addingLetConstGlobal);
 
                 if (this->GetSlotCapacity() <= nextPropertyIndex)
                 {
