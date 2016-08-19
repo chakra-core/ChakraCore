@@ -807,6 +807,10 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 
             regType = TyInt32;
         }
+        else if (asmType.which() == Js::AsmJsRetType::Int64)
+        {
+            regType = TyInt64;
+        }
         else if (asmType.which() == Js::AsmJsRetType::Float32x4)
         {
             regType = TySimd128F4;
@@ -1964,6 +1968,34 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
         case IR::OpndKindFloatConst:
             break; // assume for now that it always needs to be hoisted
 
+        case IR::OpndKindInt64Const:
+            if (forms & L_Ptr)
+            {
+                return;
+            }
+#ifdef _M_X64
+            {
+                IR::Int64ConstOpnd * int64Opnd = src->AsInt64ConstOpnd();
+                if ((forms & L_Imm32) && ((TySize[src->GetType()] != 8) ||
+                    (!instr->isInlineeEntryInstr && Math::FitsInDWord(int64Opnd->GetValue()))))
+                {
+                    // the immediate fits in 32-bit, no need to hoist
+                    return;
+                }
+                if (verify)
+                {
+                    AssertMsg(false, "Missing legalization");
+                    return;
+                }
+
+                IR::Opnd* regOpnd = IR::RegOpnd::New(src->GetType(), instr->m_func);
+                IR::Instr* moveToReg = IR::Instr::New(Js::OpCode::MOV, regOpnd, src, instr->m_func);
+                instr->InsertBefore(moveToReg);
+                instr->ReplaceSrc(src, regOpnd);
+                return;
+            }
+#endif
+            break;
         case IR::OpndKindAddr:
             if (forms & L_Ptr)
             {
@@ -2925,8 +2957,11 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     IR::Opnd * tmp = dst;
     bool isIntDst = dst->AsRegOpnd()->m_sym->IsInt32();
     bool isFloatSrc = src1->IsFloat();
+    bool isInt64Src = src1->IsInt64();
     Assert(!isFloatSrc || src2->IsFloat());
     Assert(!isFloatSrc || isIntDst);
+    Assert(!isInt64Src || src2->IsInt64());
+    Assert(!isInt64Src || isIntDst);
     Assert(!isFloatSrc || AutoSystemInfo::Data.SSE2Available());
     IR::Opnd *opnd;
     IR::Instr *newInstr;
@@ -5754,7 +5789,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
 void
 LowererMD::GenerateCtz(IR::Instr * instr)
 {
-    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
     if (AutoSystemInfo::Data.TZCntAvailable())
     {
@@ -5765,10 +5800,12 @@ LowererMD::GenerateCtz(IR::Instr * instr)
     {
         // dst = BSF src
         // dst = CMOVE dst, 32 // dst is src1 to help reg alloc
+        int instrSize = instr->GetSrc1()->GetSize();
+        IRType type = instrSize == 8 ? TyInt64 : TyInt8;
         instr->m_opcode = Js::OpCode::BSF;
         Legalize(instr);
 
-        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(32, TyInt8, m_func);
+        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(instrSize * 8, type, m_func);
         IR::Instr* cmove = IR::Instr::New(Js::OpCode::CMOVE, instr->GetDst(), instr->GetDst(), const32, this->m_func);
         instr->InsertAfter(cmove);
         Legalize(cmove);
@@ -5776,10 +5813,10 @@ LowererMD::GenerateCtz(IR::Instr * instr)
 }
 
 void
-LowererMD::GeneratePopCnt32(IR::Instr * instr)
+LowererMD::GeneratePopCnt(IR::Instr * instr)
 {
-    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
-    Assert(instr->GetDst()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32() || instr->GetDst()->IsInt64());
 
     if (AutoSystemInfo::Data.PopCntAvailable())
     {
@@ -5788,16 +5825,17 @@ LowererMD::GeneratePopCnt32(IR::Instr * instr)
     }
     else
     {
+        int instrSize = instr->GetSrc1()->GetSize();
         LoadHelperArgument(instr, instr->GetSrc1());
         instr->UnlinkSrc1();
-        this->ChangeToHelperCall(instr, IR::HelperPopCnt32);
+        this->ChangeToHelperCall(instr, instrSize == 8 ? IR::HelperPopCnt64 : IR::HelperPopCnt32);
     }
 }
 
 void
 LowererMD::GenerateClz(IR::Instr * instr)
 {
-    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
     if (AutoSystemInfo::Data.LZCntAvailable())
     {
@@ -5806,25 +5844,30 @@ LowererMD::GenerateClz(IR::Instr * instr)
     }
     else
     {
+
         // tmp = BSR src
         // JE $label32
         // dst = SUB 31, tmp
+            // dst = SUB 63, tmp; for int64
         // JMP $done
         // label32:
         // dst = mov 32;
+            // dst = mov 64; for int64
         // $done
+        int instrSize = instr->GetSrc1()->GetSize();
+        IRType type = instrSize == 8 ? TyInt64 : TyInt8;
         IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr->m_next);
         IR::Opnd * dst = instr->UnlinkDst();
-        IR::Opnd * tmpOpnd = IR::RegOpnd::New(TyInt8, m_func);
+        IR::Opnd * tmpOpnd = IR::RegOpnd::New(type, m_func);
         instr->SetDst(tmpOpnd);
         instr->m_opcode = Js::OpCode::BSR;
         Legalize(instr);
         IR::LabelInstr * label32 = Lowerer::InsertLabel(false, doneLabel);
         instr = IR::BranchInstr::New(Js::OpCode::JEQ, label32, m_func);
         label32->InsertBefore(instr);
-        Lowerer::InsertSub(false, dst, IR::IntConstOpnd::New(31, TyInt8, m_func), tmpOpnd, label32);
+        Lowerer::InsertSub(false, dst, IR::IntConstOpnd::New(instrSize == 8 ? 63 : 31, type, m_func), tmpOpnd, label32);
         Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, label32);
-        Lowerer::InsertMove(dst, IR::IntConstOpnd::New(32, TyInt8, m_func), doneLabel);
+        Lowerer::InsertMove(dst, IR::IntConstOpnd::New(instrSize == 8 ? 64 : 32, type, m_func), doneLabel);
     }
 }
 

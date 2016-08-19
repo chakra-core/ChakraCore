@@ -625,12 +625,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             GenerateCtz(instr);
             break;
 
-        case Js::OpCode::PopCnt32:
-            GeneratePopCnt32(instr);
+        case Js::OpCode::PopCnt:
+            GeneratePopCnt(instr);
             break;
 
-        case Js::OpCode::InlineMathClz32:
-            GenerateFastInlineMathClz32(instr);
+        case Js::OpCode::InlineMathClz:
+            GenerateFastInlineMathClz(instr);
             break;
 
         case Js::OpCode::InlineMathFround:
@@ -1544,25 +1544,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerBinaryHelperMem(instr, IR::HelperOp_IsIn);
             break;
 
-        case Js::OpCode::LdInt8ArrViewElem:
-        case Js::OpCode::LdUInt8ArrViewElem:
-        case Js::OpCode::LdInt16ArrViewElem:
-        case Js::OpCode::LdUInt16ArrViewElem:
-        case Js::OpCode::LdInt32ArrViewElem:
-        case Js::OpCode::LdUInt32ArrViewElem:
-        case Js::OpCode::LdFloat32ArrViewElem:
-        case Js::OpCode::LdFloat64ArrViewElem:
+        case Js::OpCode::LdArrViewElem:
             instrPrev = LowerLdArrViewElem(instr);
             break;
 
-        case Js::OpCode::StInt8ArrViewElem:
-        case Js::OpCode::StUInt8ArrViewElem:
-        case Js::OpCode::StInt16ArrViewElem:
-        case Js::OpCode::StUInt16ArrViewElem:
-        case Js::OpCode::StInt32ArrViewElem:
-        case Js::OpCode::StUInt32ArrViewElem:
-        case Js::OpCode::StFloat32ArrViewElem:
-        case Js::OpCode::StFloat64ArrViewElem:
+        case Js::OpCode::StArrViewElem:
             instrPrev = LowerStArrViewElem(instr);
             break;
 
@@ -1740,6 +1726,29 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerUnaryHelper(instr, IR::HelperOp_UnwrapWithObj);
             break;
 
+        case Js::OpCode::LdAsmJsFunc:
+            if (instr->GetSrc1()->IsIndirOpnd())
+            {
+                IR::IndirOpnd* indir = instr->GetSrc1()->AsIndirOpnd();
+                byte scale = m_lowererMD.GetDefaultIndirScale();
+                if (!indir->GetIndexOpnd())
+                {
+                    // If we have a constant offset, we need to apply the scale now
+                    int32 offset;
+                    if (Int32Math::Shl(1, scale, &offset) || Int32Math::Mul(offset, indir->GetOffset(), &offset))
+                    {
+                        // The constant is too big to offset this array. Throw out of range.
+                        // Todo:: throw a better error message for this scenario
+                        GenerateRuntimeError(instr, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+                    }
+                    indir->SetOffset(offset);
+                }
+                else
+                {
+                    indir->SetScale(scale);
+                }
+            }
+            // Fallthrough
         case Js::OpCode::Ld_A:
         case Js::OpCode::Ld_I4:
         case Js::OpCode::InitConst:
@@ -2501,14 +2510,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
         }
-
-        case Js::OpCode::LdAsmJsSlot:
-            this->LowerLdSlot(instr);
-            break;
-
-        case Js::OpCode::StAsmJsSlot:
-            this->LowerStSlot(instr);
-            break;
 
         case Js::OpCode::ChkUndecl:
             instrPrev = this->LowerChkUndecl(instr);
@@ -8478,14 +8479,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 #ifdef ASMJS_PLAT
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
     Assert(instr);
-    Assert(instr->m_opcode == Js::OpCode::LdInt8ArrViewElem ||
-        instr->m_opcode == Js::OpCode::LdUInt8ArrViewElem   ||
-        instr->m_opcode == Js::OpCode::LdInt16ArrViewElem   ||
-        instr->m_opcode == Js::OpCode::LdUInt16ArrViewElem  ||
-        instr->m_opcode == Js::OpCode::LdInt32ArrViewElem   ||
-        instr->m_opcode == Js::OpCode::LdUInt32ArrViewElem  ||
-        instr->m_opcode == Js::OpCode::LdFloat32ArrViewElem ||
-        instr->m_opcode == Js::OpCode::LdFloat64ArrViewElem);
+    Assert(instr->m_opcode == Js::OpCode::LdArrViewElem);
 
     IR::Instr * instrPrev = instr->m_prev;
 
@@ -8693,14 +8687,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
 #ifdef ASMJS_PLAT
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
     Assert(instr);
-    Assert(instr->m_opcode == Js::OpCode::StInt8ArrViewElem    ||
-           instr->m_opcode == Js::OpCode::StUInt8ArrViewElem   ||
-           instr->m_opcode == Js::OpCode::StInt16ArrViewElem   ||
-           instr->m_opcode == Js::OpCode::StUInt16ArrViewElem  ||
-           instr->m_opcode == Js::OpCode::StInt32ArrViewElem   ||
-           instr->m_opcode == Js::OpCode::StUInt32ArrViewElem  ||
-           instr->m_opcode == Js::OpCode::StFloat32ArrViewElem ||
-           instr->m_opcode == Js::OpCode::StFloat64ArrViewElem);
+    Assert(instr->m_opcode == Js::OpCode::StArrViewElem);
 
     IR::Instr * instrPrev = instr->m_prev;
 
@@ -17519,24 +17506,24 @@ Lowerer::GenerateFastInlineStringCharCodeAt(IR::Instr * instr, Js::BuiltinFuncti
 void
 Lowerer::GenerateCtz(IR::Instr* instr)
 {
-    Assert(instr->GetDst()->IsInt32());
-    Assert(instr->GetSrc1()->IsInt32());
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsInt64());
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsInt64());
     m_lowererMD.GenerateCtz(instr);
 }
 
 void
-Lowerer::GeneratePopCnt32(IR::Instr* instr)
+Lowerer::GeneratePopCnt(IR::Instr* instr)
 {
-    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
-    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32());
-    m_lowererMD.GeneratePopCnt32(instr);
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32() || instr->GetDst()->IsInt64());
+    m_lowererMD.GeneratePopCnt(instr);
 }
 
 void
-Lowerer::GenerateFastInlineMathClz32(IR::Instr* instr)
+Lowerer::GenerateFastInlineMathClz(IR::Instr* instr)
 {
-    Assert(instr->GetDst()->IsInt32());
-    Assert(instr->GetSrc1()->IsInt32());
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsInt64());
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsInt64());
     m_lowererMD.GenerateClz(instr);
 }
 
@@ -21700,20 +21687,25 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
     IR::LabelInstr * div0Label = InsertLabel(true, instr);
     IR::LabelInstr * divLabel = InsertLabel(false, instr);
     IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+    IR::Opnd * dst = instr->GetDst();
+    IR::Opnd * src1 = instr->GetSrc1();
+    IR::Opnd * src2 = instr->GetSrc2();
 
-    InsertTestBranch(instr->GetSrc2(), instr->GetSrc2(), Js::OpCode::BrEq_A, div0Label, div0Label);
+    InsertTestBranch(src2, src2, Js::OpCode::BrEq_A, div0Label, div0Label);
 
-    InsertMove(instr->GetDst(), IR::IntConstOpnd::New(0, TyInt32, m_func), divLabel);
+    InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
     InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
 
-    if (instr->GetSrc1()->GetType() == TyInt32)
+    if (instr->GetSrc1()->IsSigned())
     {
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
-        bool needsMinOverNeg1Check = !(instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != -1);
-        if (instr->GetSrc1()->IsIntConstOpnd())
+        
+        bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue() != -1);
+        int64 intMin = TySize[src1->GetType()] == 4 ? INT_MIN : LONGLONG_MIN;
+        if (src1->IsImmediateOpnd())
         {
-            if (needsMinOverNeg1Check && instr->GetSrc1()->AsIntConstOpnd()->GetValue() == INT_MIN)
+            if (needsMinOverNeg1Check && src1->GetImmediateValue() == intMin)
             {
                 minIntLabel = InsertLabel(true, divLabel);
                 InsertBranch(Js::OpCode::Br, minIntLabel, div0Label);
@@ -21726,17 +21718,17 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         else if(needsMinOverNeg1Check)
         {
             minIntLabel = InsertLabel(true, divLabel);
-            InsertCompareBranch(instr->GetSrc1(), IR::IntConstOpnd::New(INT_MIN, TyInt32, m_func), Js::OpCode::BrEq_A, minIntLabel, div0Label);
+            InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(intMin, src1->GetType(), m_func), Js::OpCode::BrEq_A, minIntLabel, div0Label);
         }
         if (needsMinOverNeg1Check)
         {
             Assert(minIntLabel);
-            Assert(!instr->GetSrc2()->IsIntConstOpnd() || instr->GetSrc2()->AsIntConstOpnd()->GetValue() == -1);
-            if (!instr->GetSrc2()->IsIntConstOpnd())
+            Assert(!src2->IsIntConstOpnd() || src2->AsIntConstOpnd()->GetValue() == -1);
+            if (!src2->IsIntConstOpnd())
             {
-                InsertCompareBranch(instr->GetSrc2(), IR::IntConstOpnd::New(-1, TyInt32, m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
+                InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
             }
-            InsertMove(instr->GetDst(), instr->m_opcode == Js::OpCode::Div_I4 ? instr->GetSrc1() : IR::IntConstOpnd::New(0, TyInt32, m_func), divLabel);
+            InsertMove(dst, instr->m_opcode == Js::OpCode::Div_I4 ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
             InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
         }
     }

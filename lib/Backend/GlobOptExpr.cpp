@@ -196,14 +196,7 @@ GlobOpt::CSEAddInstr(
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
-    case Js::OpCode::LdInt8ArrViewElem:
-    case Js::OpCode::LdUInt8ArrViewElem:
-    case Js::OpCode::LdInt16ArrViewElem:
-    case Js::OpCode::LdUInt16ArrViewElem:
-    case Js::OpCode::LdInt32ArrViewElem:
-    case Js::OpCode::LdUInt32ArrViewElem:
-    case Js::OpCode::LdFloat32ArrViewElem:
-    case Js::OpCode::LdFloat64ArrViewElem:
+    case Js::OpCode::LdArrViewElem:
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
     {
@@ -384,14 +377,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
     // For arrays, hash the value # of the baseOpnd and indexOpnd
     switch(instr->m_opcode)
     {
-        case Js::OpCode::LdInt8ArrViewElem:
-        case Js::OpCode::LdUInt8ArrViewElem:
-        case Js::OpCode::LdInt16ArrViewElem:
-        case Js::OpCode::LdUInt16ArrViewElem:
-        case Js::OpCode::LdInt32ArrViewElem:
-        case Js::OpCode::LdUInt32ArrViewElem:
-        case Js::OpCode::LdFloat32ArrViewElem:
-        case Js::OpCode::LdFloat64ArrViewElem:
+        case Js::OpCode::LdArrViewElem:
         case Js::OpCode::LdElemI_A:
         {
             if(intMathExprOnly)
@@ -729,14 +715,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
-    case Js::OpCode::StInt8ArrViewElem:
-    case Js::OpCode::StUInt8ArrViewElem:
-    case Js::OpCode::StInt16ArrViewElem:
-    case Js::OpCode::StUInt16ArrViewElem:
-    case Js::OpCode::StInt32ArrViewElem:
-    case Js::OpCode::StUInt32ArrViewElem:
-    case Js::OpCode::StFloat32ArrViewElem:
-    case Js::OpCode::StFloat64ArrViewElem:
+    case Js::OpCode::StArrViewElem:
     // These array helpers may change A.length (and A[i] could be A.length)...
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:

@@ -68,10 +68,11 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 typedef bool(*SectionProcessFunc)(WasmModuleGenerator*);
 typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 
-WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength) :
+WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc) :
     m_sourceInfo(sourceInfo),
     m_scriptContext(scriptContext),
-    m_recycler(scriptContext->GetRecycler())
+    m_recycler(scriptContext->GetRecycler()),
+    m_bufferSrc(bufferSrc)
 {
     m_module = RecyclerNewFinalizedLeaf(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
 
@@ -128,7 +129,7 @@ WasmModuleGenerator::GenerateModule()
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
-    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), index);
+    TRACE_WASM_DECODER(_u("GenerateFunction Header %u \n"), index);
     WasmFunctionInfo* wasmInfo = m_module->GetFunctionInfo(index);
     if (!wasmInfo)
     {
@@ -195,6 +196,8 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
+    // We need to keep a reference on the source of the binary buffer otherwise the recycler might collect it
+    readerInfo->m_bufferSrc = m_bufferSrc;
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
@@ -296,6 +299,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
 void
 WasmBytecodeGenerator::GenerateFunction()
 {
+    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), m_funcInfo->GetNumber());
     if (PHASE_OFF(Js::WasmBytecodePhase, GetFunctionBody()))
     {
         throw WasmCompilationException(_u("Compilation skipped"));
@@ -394,7 +398,8 @@ WasmBytecodeGenerator::EnregisterLocals()
                 m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, m_locals[i].location, 0);
                 break;
             case WasmTypes::I64:
-                throw WasmCompilationException(_u("I64 locals NYI"));
+                m_writer.AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, m_locals[i].location, 0);
+                break;
             default:
                 Assume(UNREACHED);
             }
@@ -1276,7 +1281,7 @@ WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo
     {
         info.yieldInfo = Anew(&m_alloc, BlockYieldInfo);
         info.yieldInfo->yieldLocs[WasmTypes::I32] = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
-        info.yieldInfo->yieldLocs[WasmTypes::I64] = Js::Constants::NoRegister; // NYI
+        info.yieldInfo->yieldLocs[WasmTypes::I64] = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
         info.yieldInfo->yieldLocs[WasmTypes::F32] = GetRegisterSpace(WasmTypes::F32)->AcquireTmpRegister();
         info.yieldInfo->yieldLocs[WasmTypes::F64] = GetRegisterSpace(WasmTypes::F64)->AcquireTmpRegister();
 

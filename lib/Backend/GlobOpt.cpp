@@ -5641,6 +5641,9 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         opnd->SetValueType(val->GetValueInfo()->Type());
         return val;
 
+    case IR::OpndKindInt64Const:
+        return nullptr;
+
     case IR::OpndKindFloatConst:
     {
         const FloatConstType floatValue = opnd->AsFloatConstOpnd()->m_value;
@@ -6373,6 +6376,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 const auto indir = src->AsIndirOpnd();
                 if(opnd == indir->GetIndexOpnd())
                 {
+                    Assert(indir->GetScale() == 0);
                     GOPT_TRACE_OPND(opnd, _u("Constant prop indir index into offset (value: %d)\n"), intConstantValue);
                     this->CaptureByteCodeSymUses(instr);
                     indir->SetOffset(intConstantValue);
@@ -7395,6 +7399,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::BytecodeArgOutCapture:
     case Js::OpCode::InitConst:
+    case Js::OpCode::LdAsmJsFunc:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
 
@@ -9462,7 +9467,7 @@ GlobOpt::OptConstFoldUnary(
         }
         break;
 
-    case Js::OpCode::InlineMathClz32:
+    case Js::OpCode::InlineMathClz:
         DWORD clz;
         if (_BitScanReverse(&clz, intConstantValue))
         {
@@ -9929,7 +9934,7 @@ GlobOpt::TypeSpecializeInlineBuiltInUnary(IR::Instr **pInstr, Value **pSrc1Val, 
             }
         }
     }
-    else if (instr->m_opcode == Js::OpCode::InlineMathClz32)
+    else if (instr->m_opcode == Js::OpCode::InlineMathClz)
     {
         Assert(this->DoAggressiveIntTypeSpec());
         Assert(this->DoLossyIntTypeSpec());
@@ -14234,6 +14239,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         // the sym has been proven to be an int, the likely-int value, after specialization, will be constant.
                         // Replace the index opnd in the indir with an offset.
                         Assert(opnd == indir->GetIndexOpnd());
+                        Assert(indir->GetScale() == 0);
                         indir->UnlinkIndexOpnd()->Free(instr->m_func);
                         opnd = nullptr;
                         indir->SetOffset(intConstantValue);
@@ -14451,6 +14457,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 if(indir)
                 {
                     Assert(opnd == indir->GetIndexOpnd());
+                    Assert(indir->GetScale() == 0);
                     indir->UnlinkIndexOpnd()->Free(instr->m_func);
                     indir->SetOffset(constOpnd->AsIntConstOpnd()->AsInt32());
                 }
@@ -18512,14 +18519,7 @@ swap_srcs:
     case Js::OpCode::IsInst:
     case Js::OpCode::BailOnEqual:
     case Js::OpCode::BailOnNotEqual:
-    case Js::OpCode::StInt8ArrViewElem:
-    case Js::OpCode::StUInt8ArrViewElem:
-    case Js::OpCode::StInt16ArrViewElem:
-    case Js::OpCode::StUInt16ArrViewElem:
-    case Js::OpCode::StInt32ArrViewElem:
-    case Js::OpCode::StUInt32ArrViewElem:
-    case Js::OpCode::StFloat32ArrViewElem:
-    case Js::OpCode::StFloat64ArrViewElem:
+    case Js::OpCode::StArrViewElem:
         return;
     }
 

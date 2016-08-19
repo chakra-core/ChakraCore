@@ -71,6 +71,7 @@ namespace Js
             exportObject = WasmLibrary::LoadWasmScript(
                 scriptContext,
                 (const char16*)buffer,
+                args[1],
                 nullptr, // source info
                 &se,
                 &utf8SourceInfo,
@@ -350,7 +351,8 @@ namespace Js
 
     Var WasmLibrary::LoadWasmScript(
         ScriptContext* scriptContext,
-        const char16* script,
+        const char16* buffer,
+        Js::Var bufferSrc,
         SRCINFO const * pSrcInfo,
         CompileScriptException * pse,
         Utf8SourceInfo** ppSourceInfo,
@@ -378,8 +380,8 @@ namespace Js
             *ppSourceInfo = nullptr;
             Wasm::WasmModule * wasmModule = nullptr;
 
-            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)script, lengthBytes);
+            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
+            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
             wasmModule = bytecodeGen->GenerateModule();
 
             Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, wasmModule->GetModuleEnvironmentSize());

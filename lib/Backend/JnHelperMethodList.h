@@ -529,6 +529,7 @@ HELPERCALL(DirectMath_NearestDb, nullptr, 0)
 HELPERCALL(DirectMath_NearestFlt, nullptr, 0)
 
 HELPERCALL(PopCnt32, Math::PopCnt32, 0)
+HELPERCALL(PopCnt64, Wasm::WasmMath::PopCnt<int64>, 0)
 
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)

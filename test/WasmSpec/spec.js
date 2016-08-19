@@ -39,8 +39,8 @@ if (typeof readbuffer == 'undefined') {
   readbuffer = function(path) { return read(path, 'binary'); };
 }
 
-if (arguments.length != 1) {
-  print('usage: <exe> spec.js -- <filename.json>');
+if (arguments.length < 1) {
+  print('usage: <exe> spec.js -args <filename.json> [start index] -endargs');
   quit(0);
 }
 
@@ -49,9 +49,9 @@ var failed = 0;
 
 var quiet = false;
 
-run(arguments[0]);
+run(arguments[0], arguments[1]|0);
 
-function run(inPath) {
+function run(inPath, iStart) {
   var lastSlash = Math.max(inPath.lastIndexOf('/'), inPath.lastIndexOf('\\'));
   var inDir = lastSlash == -1 ? '.' : inPath.slice(0, lastSlash);
   var data = read(inPath);
@@ -62,7 +62,7 @@ function run(inPath) {
     try {
       var moduleFile = readbuffer(inDir + '/' + module.filename);
       var m = createModule(moduleFile);
-      for (var j = 0; j < module.commands.length; ++j) {
+      for (var j = iStart; j < module.commands.length; ++j) {
         var command = module.commands[j];
         switch (command.type) {
           case 'invoke':
@@ -113,6 +113,7 @@ function assertReturn(m, name, file, line) {
 
   if (result == 1) {
     passed++;
+    //print(file + ":" + line + ": " + name + " passed.");
   } else {
     print(file + ":" + line + ": " + name + " failed.");
     failed++;

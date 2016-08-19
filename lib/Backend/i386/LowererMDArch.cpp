@@ -40,6 +40,7 @@ LowererMDArch::GetRegReturnAsmJs(IRType type)
     }
     else
     {
+        Assert(type == TyInt32);
         return RegEAX;
     }
 }

@@ -10,6 +10,7 @@ class Value;
 namespace IR {
 
 class IntConstOpnd;
+class Int64ConstOpnd;
 class FloatConstOpnd;
 class Simd128ConstOpnd;
 class HelperCallOpnd;
@@ -26,6 +27,7 @@ class RegBVOpnd;
 enum OpndKind : BYTE {
     OpndKindInvalid,
     OpndKindIntConst,
+    OpndKindInt64Const,
     OpndKindFloatConst,
     OpndKindSimd128Const,
     OpndKindHelperCall,
@@ -142,6 +144,8 @@ public:
     bool                IsMemoryOpnd() const;
     bool                IsIntConstOpnd() const;
     IntConstOpnd *      AsIntConstOpnd();
+    bool                IsInt64ConstOpnd() const;
+    Int64ConstOpnd *    AsInt64ConstOpnd();
     bool                IsFloatConstOpnd() const;
     FloatConstOpnd *    AsFloatConstOpnd();
     bool                IsSimd128ConstOpnd() const;
@@ -209,7 +213,7 @@ public:
     bool                IsWriteBarrierTriggerableValue();
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
-    intptr_t            GetImmediateValue();
+    int64               GetImmediateValue();
     BailoutConstantValue GetConstValue();
     bool                GetIsJITOptimizedReg() const { return m_isJITOptimizedReg; }
     void                SetIsJITOptimizedReg(bool value) { Assert(!value || !this->IsIndirOpnd()); m_isJITOptimizedReg = value; }
@@ -295,6 +299,7 @@ public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     static IntConstOpnd *   New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode = false);
 #endif
+    static IR::Opnd*        NewFromType(int64 value, IRType type, Func* func);
 
 public:
     //Note: type OpndKindIntConst
@@ -323,10 +328,6 @@ public:
     void SetValue(IntConstType value);
     int32 AsInt32();
     uint32 AsUint32();
-#if TARGET_64
-    int64 AsInt64();
-    uint64 AsUint64();
-#endif
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     IntConstType            decodedValue;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
@@ -342,11 +343,23 @@ private:
 /// class Int64ConstOpnd
 ///
 ///---------------------------------------------------------------------------
-#if TARGET_64
-typedef IntConstOpnd Int64ConstOpnd;
-#else
-// todo
-#endif
+class Int64ConstOpnd sealed : public Opnd
+{
+public:
+    static Int64ConstOpnd* New(int64 value, IRType type, Func *func);
+
+public:
+    //Note: type OpndKindIntConst
+    Int64ConstOpnd* CopyInternal(Func *func);
+    bool IsEqualInternal(Opnd *opnd);
+    void FreeInternal(Func * func) ;
+public:
+    int64 GetValue();
+
+private:
+    int64            m_value;
+};
+
 ///---------------------------------------------------------------------------
 ///
 /// class FloatConstOpnd

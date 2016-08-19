@@ -395,7 +395,7 @@ bool InliningDecider::GetBuiltInInfo(
         break;
 
     case Js::JavascriptBuiltInFunction::Math_Clz32:
-        *inlineCandidateOpCode = Js::OpCode::InlineMathClz32;
+        *inlineCandidateOpCode = Js::OpCode::InlineMathClz;
         break;
 
     case Js::JavascriptBuiltInFunction::Math_Random:

@@ -6508,7 +6508,7 @@ namespace Js
         case OpCode::InlineMathAbs:
             return BuiltinFunction::Math_Abs;
 
-        case OpCode::InlineMathClz32:
+        case OpCode::InlineMathClz:
             return BuiltinFunction::Math_Clz32;
 
         case OpCode::InlineMathCeil:

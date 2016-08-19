@@ -3391,6 +3391,7 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
             sym = StackSym::New(TyVar, this->func);
             sym->m_isConst = true;
             sym->m_isIntConst = oldSym->m_isIntConst;
+            sym->m_isInt64Const = oldSym->m_isInt64Const;
             sym->m_isTaggableIntConst = sym->m_isTaggableIntConst;
         }
     }

@@ -41,6 +41,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isSingleDef = true;
     stackSym->m_isEncodedConstant = false;
     stackSym->m_isFltConst = false;
+    stackSym->m_isInt64Const = false;
     stackSym->m_isStrConst = false;
     stackSym->m_isStrEmpty = false;
     stackSym->m_allocated = false;
@@ -213,6 +214,15 @@ StackSym::IsIntConst() const
 }
 
 bool
+StackSym::IsInt64Const() const
+{
+#if DBG
+    VerifyConstFlags();
+#endif
+    return m_isInt64Const;
+}
+
+bool
 StackSym::IsTaggableIntConst() const
 {
 #if DBG
@@ -254,6 +264,11 @@ StackSym::SetIsConst()
         Assert(this->m_instrDef->m_opcode == Js::OpCode::Ld_I4 ||  this->m_instrDef->m_opcode == Js::OpCode::LdC_A_I4 || LowererMD::IsAssign(this->m_instrDef));
         this->SetIsIntConst(src->AsIntConstOpnd()->GetValue());
     }
+    else if (src->IsInt64ConstOpnd())
+    {
+        Assert(this->m_instrDef->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(this->m_instrDef));
+        this->SetIsInt64Const();
+    }
     else if (src->IsFloatConstOpnd())
     {
         Assert(this->m_instrDef->m_opcode == Js::OpCode::LdC_A_R8);
@@ -293,6 +308,17 @@ StackSym::SetIsIntConst(IntConstType value)
     this->m_isConst = true;
     this->m_isIntConst = true;
     this->m_isTaggableIntConst = !Js::TaggedInt::IsOverflow(value);
+    this->m_isFltConst = false;
+}
+
+void StackSym::SetIsInt64Const()
+{
+    Assert(this->m_isSingleDef);
+    Assert(this->m_instrDef);
+    this->m_isConst = true;
+    this->m_isInt64Const = true;
+    this->m_isIntConst = false;
+    this->m_isTaggableIntConst = false;
     this->m_isFltConst = false;
 }
 
@@ -703,6 +729,11 @@ StackSym::GetConstOpnd() const
         {
             Assert(defInstr->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(defInstr) || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
         }
+    }
+    else if (src1->IsInt64ConstOpnd())
+    {
+        Assert(this->m_isInt64Const);
+        Assert(defInstr->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(defInstr));
     }
     else if (src1->IsFloatConstOpnd())
     {

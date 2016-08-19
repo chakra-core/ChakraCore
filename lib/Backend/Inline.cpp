@@ -1828,7 +1828,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         return callInstr->m_next;
     }
 
-    if(inlineCallOpCode == Js::OpCode::InlineMathClz32 && !GlobOpt::DoLossyIntTypeSpec(topFunc))
+    if(inlineCallOpCode == Js::OpCode::InlineMathClz && !GlobOpt::DoLossyIntTypeSpec(topFunc))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: lossy int type spec is off, it's required for Math.clz32 to do | 0 on src opnds\tInlinee: %s (#%d)\tCaller: %s (%s)\n"),
             Js::JavascriptLibrary::GetNameForBuiltIn(builtInId), (int)builtInId,
@@ -2144,7 +2144,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         Simd128FixLoadStoreInstr(builtInId, callInstr);
 #endif
 
-        if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz32)
+        if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz)
         {
             // Convert:
             //     s1 = InlineMathImul s2, s3
