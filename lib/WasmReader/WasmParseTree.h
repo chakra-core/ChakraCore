@@ -80,13 +80,11 @@ namespace Wasm
 
     struct WasmReturnNode
     {
-        uint32 arity;
     };
 
     struct WasmCallNode
     {
         uint32 num; // function id
-        uint32 arity;
     };
 
     struct WasmNode

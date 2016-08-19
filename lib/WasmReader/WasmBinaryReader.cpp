@@ -342,8 +342,6 @@ WasmBinaryReader::ReadExpr()
         BrTableNode();
         break;
     case wbReturn:
-        m_currentNode.ret.arity = ReadConst<UINT8>();
-        ++m_funcState.count;
         break;
     case wbI32Const:
         ConstNode<WasmTypes::I32>();
@@ -436,8 +434,6 @@ void
 WasmBinaryReader::CallIndirectNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;

@@ -355,12 +355,6 @@ WasmBytecodeGenerator::GenerateFunction()
             {
                 throw WasmCompilationException(_u("Last expression return type mismatch return type"));
             }
-            uint32 arity = 0;
-            if (returnType != Wasm::WasmTypes::Void)
-            {
-                arity = 1;
-            }
-            GetReader()->m_currentNode.ret.arity = arity;
             EmitReturnExpr();
         }
         ExitEvalStackScope();
@@ -1137,19 +1131,11 @@ WasmBytecodeGenerator::EmitReturnExpr()
 {
     if (m_funcInfo->GetResultType() == WasmTypes::Void)
     {
-        if (GetReader()->m_currentNode.ret.arity != 0)
-        {
-            throw WasmCompilationException(_u("Nonzero arity for return op in void function"));
-        }
         // TODO (michhol): consider moving off explicit 0 for return reg
         m_writer.AsmReg1(Js::OpCodeAsmJs::LdUndef, 0);
     }
     else
     {
-        if (GetReader()->m_currentNode.ret.arity != 1)
-        {
-            throw WasmCompilationException(_u("Unexpected arity for return op"));
-        }
         EmitInfo retExprInfo = PopEvalStack();
 
         if (m_funcInfo->GetResultType() != retExprInfo.type)
