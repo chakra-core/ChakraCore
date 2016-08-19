@@ -323,6 +323,10 @@ public:
     void SetValue(IntConstType value);
     int32 AsInt32();
     uint32 AsUint32();
+#if TARGET_64
+    int64 AsInt64();
+    uint64 AsUint64();
+#endif
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     IntConstType            decodedValue;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
@@ -333,6 +337,16 @@ private:
     IntConstType            m_value;
 };
 
+///---------------------------------------------------------------------------
+///
+/// class Int64ConstOpnd
+///
+///---------------------------------------------------------------------------
+#if TARGET_64
+typedef IntConstOpnd Int64ConstOpnd;
+#else
+// todo
+#endif
 ///---------------------------------------------------------------------------
 ///
 /// class FloatConstOpnd

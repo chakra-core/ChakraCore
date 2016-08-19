@@ -1452,6 +1452,35 @@ IntConstOpnd::AsUint32()
     Assert(m_value >= 0 && m_value <= UINT32_MAX);
     return (uint32)m_value;
 }
+#if TARGET_64
+///----------------------------------------------------------------------------
+///
+/// IntConstOpnd::AsInt64
+///
+///     Retrieves the value of the int const opnd as an signed 64-bit integer.
+///
+///----------------------------------------------------------------------------
+
+int64 IntConstOpnd::AsInt64()
+{
+    Assert(m_type == TyInt64);
+    return (int64)m_value;
+}
+
+///----------------------------------------------------------------------------
+///
+/// IntConstOpnd::AsUint64
+///
+///     Retrieves the value of the int const opnd as an unsigned 64-bit integer.
+///
+///----------------------------------------------------------------------------
+
+uint64 IntConstOpnd::AsUint64()
+{
+    Assert(m_type == TyInt64);
+    return (uint64)m_value;
+}
+#endif
 
 ///----------------------------------------------------------------------------
 ///

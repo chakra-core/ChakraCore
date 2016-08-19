@@ -6,6 +6,23 @@
 #include "Backend.h"
 #ifdef ASMJS_PLAT
 #include "ByteCode/OpCodeUtilAsmJs.h"
+#include "ByteCodeDumper.h"
+#include "AsmJsByteCodeDumper.h"
+
+#if DBG
+#define TraceIrBuilder(opcode, layoutName, layout) \
+    if (PHASE_TRACE(Js::IRBuilderPhase, m_func)) \
+    {\
+        Js::LayoutSize layoutSize = SizePolicy::LayoutEnum;\
+        Output::Print(_u("    %04x %2s"), offset, layoutSize == Js::LargeLayout ? _u("L-") : layoutSize == Js::MediumLayout ? _u("M-") : _u(""));\
+        Output::Print(_u("%-20s"), Js::OpCodeUtilAsmJs::GetOpCodeName(opcode));\
+        Js::AsmJsByteCodeDumper::Dump##layoutName(opcode, layout, m_func->GetJnFunction(), m_jnReader); \
+        Output::Print(_u("\n"));\
+        Output::Flush();\
+    }
+#else
+#define TraceIrBuilder(opcode, layoutName, layout)
+#endif
 
 void
 IRBuilderAsmJs::Build()
@@ -1001,8 +1018,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
         case Js::AsmJsVarType::Which::Int64:
             retSlot = GetRegSlotFromInt64Reg(0);
             regOpnd = BuildDstOpnd(retSlot, TyInt64);
-            Assert(false); //todo int64 valueType
-            regOpnd->SetValueType(ValueType::Float);
+            regOpnd->SetValueType(ValueType::GetInt(false));
             break;
 
         case Js::AsmJsRetType::Which::Void:
@@ -1040,6 +1056,7 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_ElementSlot<SizePolicy>>();
+    TraceIrBuilder(newOpcode, ElementSlot, layout);
     BuildElementSlot(newOpcode, offset, layout->SlotIndex, layout->Value, layout->Instance);
 }
 
@@ -1270,6 +1287,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmTypedArr<SizePolicy>>();
+    TraceIrBuilder(newOpcode, AsmTypedArr, layout);
     BuildAsmTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType);
 }
 
@@ -1459,6 +1477,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmCall<SizePolicy>>();
+    TraceIrBuilder(newOpcode, AsmCall, layout);
     BuildAsmCall(newOpcode, offset, layout->ArgCount, layout->Return, layout->Function, layout->ReturnType);
 }
 
@@ -1504,8 +1523,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         case Js::AsmJsRetType::Which::Int64:
             dstRegSlot = GetRegSlotFromInt64Reg(ret);
             dstOpnd = BuildDstOpnd(dstRegSlot, TyInt64);
-            Assert(false); // todo:: add int64 valuetype
-            //dstOpnd->SetValueType(ValueType::Float);
+            dstOpnd->SetValueType(ValueType::GetInt(false));
             break;
 
         case Js::AsmJsRetType::Which::Void:
@@ -1691,6 +1709,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmReg1<SizePolicy>>();
+    TraceIrBuilder(newOpcode, AsmReg1, layout);
     BuildAsmReg1(newOpcode, offset, layout->R0);
 }
 
@@ -1738,6 +1757,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
     { \
         Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));\
         auto _layout = m_jnReader.GetLayout<Js::OpLayoutT_##layout <SizePolicy>>();\
+        TraceIrBuilder(newOpcode, layout, _layout);\
         Build##layout(newOpcode, offset, __VA_ARGS__);\
     }
 
@@ -1798,6 +1818,17 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
 #undef Uint32x4Proc
 #undef Uint16x8Proc
 #undef Uint8x16Proc
+
+void IRBuilderAsmJs::BuildFromVar(uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, IRType irType, ValueType valueType)
+{
+    IR::RegOpnd * srcOpnd = BuildSrcOpnd(GetRegSlotFromVarReg(srcRegSlot), TyVar);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, irType);
+    dstOpnd->SetValueType(valueType);
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::FromVar, dstOpnd, srcOpnd, m_func);
+
+    AddInstr(instr, offset);
+}
 
 void
 IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
@@ -1897,46 +1928,21 @@ void
 IRBuilderAsmJs::BuildFloat1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Conv_VTF);
-
-    // We don't preprocess reg register
-    srcRegSlot = GetRegSlotFromVarReg(srcRegSlot);
-    IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyVar);
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
-    dstOpnd->SetValueType(ValueType::Float);
-
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::FromVar, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
+    BuildFromVar(offset, dstRegSlot, srcRegSlot, TyFloat32, ValueType::Float);
 }
 
 void
 IRBuilderAsmJs::BuildDouble1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Conv_VTD);
-
-    // We don't preprocess reg register
-    srcRegSlot = GetRegSlotFromVarReg(srcRegSlot);
-    IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyVar);
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat64);
-    dstOpnd->SetValueType(ValueType::Float);
-
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::FromVar, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
+    BuildFromVar(offset, dstRegSlot, srcRegSlot, TyFloat64, ValueType::Float);
 }
 
 void
 IRBuilderAsmJs::BuildInt1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Conv_VTI);
-
-    // We don't preprocess reg register
-    srcRegSlot = GetRegSlotFromVarReg(srcRegSlot);
-    IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyVar);
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-    dstOpnd->SetValueType(ValueType::GetInt(false));
-
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::FromVar, dstOpnd, srcOpnd, m_func);
-
-    AddInstr(instr, offset);
+    BuildFromVar(offset, dstRegSlot, srcRegSlot, TyInt32, ValueType::GetInt(false));
 }
 
 void
@@ -2693,6 +2699,7 @@ IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt1<SizePolicy>>();
+    TraceIrBuilder(newOpcode, BrInt1, layout);
     BuildBrInt1(newOpcode, offset, layout->RelativeJumpOffset, layout->I1);
 }
 
@@ -2727,6 +2734,7 @@ IRBuilderAsmJs::BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt2<SizePolicy>>();
+    TraceIrBuilder(newOpcode, BrInt2, layout);
     BuildBrInt2(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->I2);
 }
 
@@ -2736,6 +2744,7 @@ IRBuilderAsmJs::BuildBrInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt1Const1<SizePolicy>>();
+    TraceIrBuilder(newOpcode, BrInt1Const1, layout);
     BuildBrInt1Const1(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->C1);
 }
 
@@ -2789,6 +2798,107 @@ IRBuilderAsmJs::BuildBrCmp(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relat
         AddBranchInstr(branchInstr, offset, targetOffset);
     }
 }
+
+void
+IRBuilderAsmJs::BuildLong1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::Conv_VTL);
+    BuildFromVar(offset, dstRegSlot, src1RegSlot, TyInt64, ValueType::GetInt(false));
+}
+
+void
+IRBuilderAsmJs::BuildReg1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::I_ArgOut_Long);
+    IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt64);
+    srcOpnd->SetValueType(ValueType::Float);
+
+    IR::Instr * instr = nullptr;
+    IR::Opnd * dstOpnd = nullptr;
+    StackSym * symDst = StackSym::NewArgSlotSym((uint16)dstRegSlot, m_func, TyInt64);
+    symDst->m_allocated = true;
+    if ((uint16)(dstRegSlot) != (dstRegSlot))
+    {
+        AssertMsg(UNREACHED, "Arg count too big...");
+        Fatal();
+    }
+    dstOpnd = IR::SymOpnd::New(symDst, TyInt64, m_func);
+    dstOpnd->SetValueType(ValueType::GetInt(false));
+
+    instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
+    AddInstr(instr, offset);
+
+    m_argStack->Push(instr);
+}
+
+void
+IRBuilderAsmJs::BuildLong1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, int64 constInt64)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::Ld_LongConst);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt64);
+    dstOpnd->SetValueType(ValueType::GetInt(false));
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_I8, dstOpnd, IR::Int64ConstOpnd::New(constInt64, TyInt64, m_func), m_func);
+
+    if (dstOpnd->m_sym->IsSingleDef())
+    {
+#if TARGET_64
+        dstOpnd->m_sym->SetIsIntConst(constInt64);
+#else
+        dstOpnd->m_sym->SetIsIntConst(INT_MAX);
+#endif
+    }
+
+    AddInstr(instr, offset);
+}
+
+void
+IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildInt1Long2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildLong1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildInt1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildFloat1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+void
+IRBuilderAsmJs::BuildDouble1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
+{
+}
+
+
 
 ///Loop Body Code
 
@@ -2941,8 +3051,7 @@ IRBuilderAsmJs::GenerateLoopBodyStSlots(SymID loopParamSymId, uint offset)
         else if (RegIsInt64Var(regSlot))
         {
             type = IRType::TyInt64;
-            Assert(false); // todo int64 valuetype
-            //valueType = ValueType::Float;
+            valueType = ValueType::GetInt(false);
         }
         else if (RegIsSimd128Var(regSlot))
         {
@@ -5870,6 +5979,7 @@ void IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offs
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmSimdTypedArr<SizePolicy>>();
+    TraceIrBuilder(newOpcode, AsmSimdTypedArr, layout);
     BuildAsmSimdTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType, layout->DataWidth);
 }
 

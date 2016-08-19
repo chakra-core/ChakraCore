@@ -278,6 +278,7 @@ MACRO_WMS(              LdLocalObj,         Reg1,           OpCanCSE) // Load no
 MACRO_WMS(              LdInnerScope,       Reg1Unsigned1,  OpCanCSE) // Load non-stack inner scope
 MACRO_WMS(              LdC_A_Null,         Reg1,           OpByteCodeOnly|OpCanCSE)   // Load from 'null' as Var
 MACRO_BACKEND_ONLY(     Ld_I4,              Empty,          OpCanCSE)                  // Copy I4 register
+MACRO_BACKEND_ONLY(     Ld_I8,              Empty,          OpCanCSE)                  // Copy I8 register
 MACRO_BACKEND_ONLY(     LdC_A_I4,           Empty,          OpCanCSE)                  // Load from 'int32' as Var(C)
 MACRO_BACKEND_ONLY(     LdC_A_R8,           Empty,          OpCanCSE)                  // Load from 'double' constant
 MACRO_BACKEND_ONLY(     LdC_F8_R8,          Empty,          OpCanCSE)                  // Load 'double' constant

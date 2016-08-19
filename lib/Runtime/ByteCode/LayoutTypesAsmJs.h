@@ -162,8 +162,6 @@ LAYOUT_TYPE_WMS       ( BrInt1Const1  ) // Conditional branching with 1 int and 
 LAYOUT_TYPE_WMS       ( AsmUnsigned1  ) // 1 unsigned int register
 
 // Int64
-// Only use these layouts for frontend for now
-#ifndef EXCLUDE_FRONTEND_LAYOUT
 LAYOUT_TYPE_WMS_REG2  ( Long1Reg1   , Long, Reg)
 LAYOUT_TYPE_WMS_REG2  ( Reg1Long1   , Reg, Long)
 LAYOUT_TYPE_WMS_REG2  ( Long1Const1 , Long, LongConst)
@@ -176,7 +174,6 @@ LAYOUT_TYPE_WMS_REG2  ( Long1Float1 , Long, Float)
 LAYOUT_TYPE_WMS_REG2  ( Float1Long1 , Float, Long)
 LAYOUT_TYPE_WMS_REG2  ( Long1Double1, Long, Double)
 LAYOUT_TYPE_WMS_REG2  ( Double1Long1, Double, Long)
-#endif
 
 // Float32x4
 LAYOUT_TYPE_WMS_REG2  ( Float32x4_2                      , Float32x4, Float32x4)

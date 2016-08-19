@@ -105,6 +105,7 @@ private:
     BOOL                    RegIsDoubleVar(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::FLOAT64);}
     BOOL                    RegIsSimd128Var(Js::RegSlot reg) {return RegIsTypedVar(reg, WAsmJs::SIMD);}
 
+    void                    BuildFromVar(uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, IRType irType, ValueType valueType);
 #define LAYOUT_TYPE(layout) \
     void                    Build##layout(Js::OpCodeAsmJs newOpcode, uint32 offset);
 #define LAYOUT_TYPE_WMS(layout) \
@@ -179,38 +180,38 @@ private:
 #endif
 
 #define BUILD_LAYOUT_DEF(layout, ...) void Build##layout (Js::OpCodeAsmJs, uint32, __VA_ARGS__);
-#define RegType Js::RegSlot
-#define IntType Js::RegSlot
-#define LongType Js::RegSlot
-#define FloatType Js::RegSlot
-#define DoubleType Js::RegSlot
-#define IntConstType int
-#define LongConstType int64
-#define FloatConstType float
-#define DoubleConstType double
-#define Float32x4Type Js::RegSlot
-#define Bool32x4Type Js::RegSlot
-#define Int32x4Type Js::RegSlot
-#define Float64x2Type Js::RegSlot
-#define Int16x8Type Js::RegSlot
-#define Bool16x8Type Js::RegSlot
-#define Int8x16Type Js::RegSlot
-#define Bool8x16Type Js::RegSlot
-#define Uint32x4Type Js::RegSlot
-#define Uint16x8Type Js::RegSlot
-#define Uint8x16Type Js::RegSlot
-#define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type)
-#define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type)
-#define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type)
-#define LAYOUT_TYPE_WMS_REG5(layout, t0, t1, t2, t3, t4) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type)
-#define LAYOUT_TYPE_WMS_REG6(layout, t0, t1, t2, t3, t4, t5) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type)
-#define LAYOUT_TYPE_WMS_REG7(layout, t0, t1, t2, t3, t4, t5, t6) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type)
-#define LAYOUT_TYPE_WMS_REG9(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type)
-#define LAYOUT_TYPE_WMS_REG10(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type)
-#define LAYOUT_TYPE_WMS_REG11(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type)
-#define LAYOUT_TYPE_WMS_REG17(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type)
-#define LAYOUT_TYPE_WMS_REG18(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type, t17##Type)
-#define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18) BUILD_LAYOUT_DEF(layout, t0##Type, t1##Type, t2##Type, t3##Type, t4##Type, t5##Type, t6##Type, t7##Type, t8##Type, t9##Type, t10##Type, t11##Type, t12##Type, t13##Type, t14##Type, t15##Type, t16##Type, t17##Type, t18##Type)
+#define Reg_Type Js::RegSlot
+#define Int_Type Js::RegSlot
+#define Long_Type Js::RegSlot
+#define Float_Type Js::RegSlot
+#define Double_Type Js::RegSlot
+#define IntConst_Type int
+#define LongConst_Type int64
+#define FloatConst_Type float
+#define DoubleConst_Type double
+#define Float32x4_Type Js::RegSlot
+#define Bool32x4_Type Js::RegSlot
+#define Int32x4_Type Js::RegSlot
+#define Float64x2_Type Js::RegSlot
+#define Int16x8_Type Js::RegSlot
+#define Bool16x8_Type Js::RegSlot
+#define Int8x16_Type Js::RegSlot
+#define Bool8x16_Type Js::RegSlot
+#define Uint32x4_Type Js::RegSlot
+#define Uint16x8_Type Js::RegSlot
+#define Uint8x16_Type Js::RegSlot
+#define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type)
+#define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type)
+#define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type)
+#define LAYOUT_TYPE_WMS_REG5(layout, t0, t1, t2, t3, t4) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type)
+#define LAYOUT_TYPE_WMS_REG6(layout, t0, t1, t2, t3, t4, t5) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type)
+#define LAYOUT_TYPE_WMS_REG7(layout, t0, t1, t2, t3, t4, t5, t6) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type)
+#define LAYOUT_TYPE_WMS_REG9(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type)
+#define LAYOUT_TYPE_WMS_REG10(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type, t9##_Type)
+#define LAYOUT_TYPE_WMS_REG11(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type, t9##_Type, t10##_Type)
+#define LAYOUT_TYPE_WMS_REG17(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type, t9##_Type, t10##_Type, t11##_Type, t12##_Type, t13##_Type, t14##_Type, t15##_Type, t16##_Type)
+#define LAYOUT_TYPE_WMS_REG18(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type, t9##_Type, t10##_Type, t11##_Type, t12##_Type, t13##_Type, t14##_Type, t15##_Type, t16##_Type, t17##_Type)
+#define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18) BUILD_LAYOUT_DEF(layout, t0##_Type, t1##_Type, t2##_Type, t3##_Type, t4##_Type, t5##_Type, t6##_Type, t7##_Type, t8##_Type, t9##_Type, t10##_Type, t11##_Type, t12##_Type, t13##_Type, t14##_Type, t15##_Type, t16##_Type, t17##_Type, t18##_Type)
 #define EXCLUDE_FRONTEND_LAYOUT
 #include "LayoutTypesAsmJs.h"
 #undef BUILD_LAYOUT_DEF
