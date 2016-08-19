@@ -121,7 +121,15 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWS
 
     if (FAILED(hr)) return hr;
 
-    bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (bcFullPath != nullptr && *bcFullPath == '\0')
+    {
+        bcFileHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    }
+    else
+    {
+        bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    }
+
     if (bcFileHandle == INVALID_HANDLE_VALUE)
     {
         return E_FAIL;
@@ -554,19 +562,11 @@ HRESULT ExecuteTest(const char* fileName)
 
         if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
-            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
-            {
-                CHAR libraryName[_MAX_PATH];
-                CHAR ext[_MAX_EXT];
-                _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
+            CHAR libraryName[_MAX_PATH];
+            CHAR ext[_MAX_EXT];
+            _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
 
-                IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
-            }
-            else
-            {
-                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
-                IfFailGo(E_FAIL);
-            }
+            IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
         }
         else if (HostConfigFlags::flags.SerializedIsEnabled)
         {

@@ -211,7 +211,7 @@ goto :main
     set _Variants=disable_jit
     goto :ArgOk
   )
-  
+
   if /i "%1" == "-nightly" (
     set _nightly=1
     if "%_ExtraVariants%" == "" (
@@ -407,6 +407,8 @@ goto :main
   if "%_TESTCONFIG%"=="disable_jit" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
+  ) else (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -nottags:disable_jit
   )
   if "%_TESTCONFIG%"=="dynapogo"    (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceNative -off:simpleJit -bgJitDelay:0 %_dynamicprofileinput%

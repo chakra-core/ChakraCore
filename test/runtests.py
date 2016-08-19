@@ -363,14 +363,12 @@ class TestVariant(object):
         js_file = test.filename = self._check_file(folder, test.files)
         js_output = b''
 
-        working_path = os.path.dirname(js_file)
-
         flags = test.get('compile-flags')
         flags = self.compile_flags + (flags.split() if flags else [])
-        cmd = [binary] + flags + [os.path.basename(js_file)]
+        cmd = [binary] + flags + [js_file]
 
         test.start()
-        proc = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=working_path)
+        proc = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=folder)
         timeout_data = [proc, False]
         def timeout_func(timeout_data):
             timeout_data[0].kill()
@@ -408,7 +406,7 @@ class TestVariant(object):
             baseline = test.get('baseline')
             if baseline:
                 # perform baseline comparison
-                baseline = self._check_file(working_path, baseline)
+                baseline = self._check_file(folder, baseline)
                 with open(baseline, 'rb') as bs_file:
                     baseline_output = bs_file.read()
 
@@ -535,8 +533,9 @@ def main():
         args.folders = [f for f in sorted(files) if not os.path.isfile(f)]
 
     # Set the right timezone, the tests need Pacific Standard Time
-    os.environ['TZ'] = 'US/Pacific'
-    time.tzset()
+    if sys.platform != 'win32':
+        os.environ['TZ'] = 'US/Pacific'
+        time.tzset()
 
     # load all tests
     tests = []
