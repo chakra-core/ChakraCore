@@ -156,6 +156,18 @@ ServerScriptContext::GetLibraryAddr() const
 }
 
 intptr_t
+ServerScriptContext::GetGlobalObjectAddr() const
+{
+    return m_contextData.globalObjectAddr;
+}
+
+intptr_t
+ServerScriptContext::GetGlobalObjectThisAddr() const
+{
+    return m_contextData.globalObjectThisAddr;
+}
+
+intptr_t
 ServerScriptContext::GetNumberAllocatorAddr() const
 {
     return m_contextData.numberAllocatorAddr;

@@ -4412,6 +4412,60 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
     }
 
+    void ScriptContext::InitializeRemoteScriptContext()
+    {
+        Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+
+        ScriptContextDataIDL contextData;
+        contextData.nullAddr = (intptr_t)GetLibrary()->GetNull();
+        contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();
+        contextData.trueAddr = (intptr_t)GetLibrary()->GetTrue();
+        contextData.falseAddr = (intptr_t)GetLibrary()->GetFalse();
+        contextData.undeclBlockVarAddr = (intptr_t)GetLibrary()->GetUndeclBlockVar();
+        contextData.scriptContextAddr = (intptr_t)this;
+        contextData.emptyStringAddr = (intptr_t)GetLibrary()->GetEmptyString();
+        contextData.negativeZeroAddr = (intptr_t)GetLibrary()->GetNegativeZero();
+        contextData.numberTypeStaticAddr = (intptr_t)GetLibrary()->GetNumberTypeStatic();
+        contextData.stringTypeStaticAddr = (intptr_t)GetLibrary()->GetStringTypeStatic();
+        contextData.objectTypeAddr = (intptr_t)GetLibrary()->GetObjectType();
+        contextData.objectHeaderInlinedTypeAddr = (intptr_t)GetLibrary()->GetObjectHeaderInlinedType();
+        contextData.regexTypeAddr = (intptr_t)GetLibrary()->GetRegexType();
+        contextData.arrayConstructorAddr = (intptr_t)GetLibrary()->GetArrayConstructor();
+        contextData.arrayTypeAddr = (intptr_t)GetLibrary()->GetArrayType();
+        contextData.nativeIntArrayTypeAddr = (intptr_t)GetLibrary()->GetNativeIntArrayType();
+        contextData.nativeFloatArrayTypeAddr = (intptr_t)GetLibrary()->GetNativeFloatArrayType();
+        contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
+        contextData.libraryAddr = (intptr_t)GetLibrary();
+        contextData.globalObjectAddr = (intptr_t)GetLibrary()->GetGlobalObject();
+        contextData.globalObjectThisAddr = (intptr_t)GetLibrary()->GetGlobalObject()->ToThis();
+        contextData.builtinFunctionsBaseAddr = (intptr_t)GetLibrary()->GetBuiltinFunctions();
+        contextData.sideEffectsAddr = optimizationOverrides.GetAddressOfSideEffects();
+        contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
+        contextData.intArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable();
+        contextData.floatArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable();
+        contextData.recyclerAddr = (intptr_t)GetRecycler();
+        contextData.recyclerAllowNativeCodeBumpAllocation = GetRecycler()->AllowNativeCodeBumpAllocation();
+        contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
+#ifdef RECYCLER_MEMORY_VERIFY
+        contextData.isRecyclerVerifyEnabled = (boolean)recycler->VerifyEnabled();
+        contextData.recyclerVerifyPad = recycler->GetVerifyPad();
+#else
+        // TODO: OOP JIT, figure out how to have this only in debug build
+        contextData.isRecyclerVerifyEnabled = FALSE;
+        contextData.recyclerVerifyPad = 0;
+#endif
+        contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
+        contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
+        CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl when this changes
+
+        auto vtblAddresses = GetLibrary()->GetVTableAddresses();
+        for (unsigned int i = 0; i < VTableValue::Count; i++)
+        {
+            contextData.vtableAddresses[i] = vtblAddresses[i];
+        }
+        JITManager::GetJITManager()->InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
+    }
+
     intptr_t ScriptContext::GetNullAddr() const
     {
         return (intptr_t)GetLibrary()->GetNull();
@@ -4525,6 +4579,16 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     intptr_t ScriptContext::GetLibraryAddr() const
     {
         return (intptr_t)GetLibrary();
+    }
+
+    intptr_t ScriptContext::GetGlobalObjectAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetGlobalObject();
+    }
+
+    intptr_t ScriptContext::GetGlobalObjectThisAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetGlobalObject()->ToThis();
     }
 
     intptr_t ScriptContext::GetNumberAllocatorAddr() const

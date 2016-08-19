@@ -30,6 +30,8 @@ public:
     virtual intptr_t GetIntArraySetElementFastPathVtableAddr() const = 0;
     virtual intptr_t GetFloatArraySetElementFastPathVtableAddr() const = 0;
     virtual intptr_t GetLibraryAddr() const = 0;
+    virtual intptr_t GetGlobalObjectAddr() const = 0;
+    virtual intptr_t GetGlobalObjectThisAddr() const = 0;
     virtual intptr_t GetNumberAllocatorAddr() const = 0;
     virtual intptr_t GetRecyclerAddr() const = 0;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const = 0;

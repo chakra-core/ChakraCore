@@ -254,6 +254,8 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR arrayConstructorAddr;
     CHAKRA_PTR charStringCacheAddr;
     CHAKRA_PTR libraryAddr;
+    CHAKRA_PTR globalObjectAddr;
+    CHAKRA_PTR globalObjectThisAddr;
     CHAKRA_PTR sideEffectsAddr;
     CHAKRA_PTR arraySetElementFastPathVtableAddr;
     CHAKRA_PTR intArraySetElementFastPathVtableAddr;

@@ -716,7 +716,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
 
     for (uint i = 0; i < cachedFixedInlineeCount; i++)
     {
-        if(!inlineesDataArray[i]->HasBody())
+        if(!inlineesDataArray[i] || !inlineesDataArray[i]->HasBody())
         {
             POLYMORPHIC_INLINE_TESTTRACE(_u("INLINING (Polymorphic; Using Fixed Methods): Skip Inline: One of the inlinees doesn't have the corresponding object/prototype's type cached\tCaller: %s (%s)\n"),
                     inlinerData->GetBody()->GetDisplayName(), inlinerData->GetDebugNumberSet(debugStringBuffer));
@@ -4514,9 +4514,9 @@ Inline::MapFormals(Func *inlinee,
                             fUsesSafeThis = true;
                         }
                         // TODO: OOP JIT, const this
-                        else if (!topFunc->IsOOPJIT() && symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
+                        else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
-                            thisConstVar = symSrc->GetConstAddress();
+                            thisConstVar = symSrc->GetConstAddress(topFunc->IsOOPJIT());
                             fUsesConstThis = true;
                         }
                         else if(fixedFunctionSafeThis)
@@ -4720,16 +4720,19 @@ Inline::MapFormals(Func *inlinee,
                     if (Js::JavascriptOperators::IsObjectType(typeId) ||
                         Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
                     {
-                        Js::ScriptContext *scriptContext = inlinee->GetScriptContext();
+                        auto scriptContext = inlinee->GetScriptContextInfo();
                         if (instr->m_opcode == Js::OpCode::LdThis)
                         {
+                            int moduleId = instr->GetSrc2()->AsIntConstOpnd()->AsInt32();
+                            // TODO OOP JIT, create and use server copy of module roots
+                            Assert(!topFunc->IsOOPJIT() || moduleId == 0);
                             thisConstVar = Js::JavascriptOperators::OP_GetThis(
-                                thisConstVar, instr->GetSrc2()->AsIntConstOpnd()->AsInt32(), scriptContext);
+                                thisConstVar, moduleId, scriptContext);
                             instr->FreeSrc2();
                         }
                         else
                         {
-                            thisConstVar = Js::JavascriptOperators::OP_StrictGetThis(thisConstVar, scriptContext);
+                            thisConstVar = Js::JavascriptOperators::OP_StrictGetThis_JIT(thisConstVar, scriptContext);
                         }
                         IR::Opnd *thisOpnd = IR::AddrOpnd::New(thisConstVar, IR::AddrOpndKindDynamicVar, inlinee, true);
 

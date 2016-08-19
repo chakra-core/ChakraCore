@@ -32,6 +32,8 @@ public:
     virtual intptr_t GetIntArraySetElementFastPathVtableAddr() const override;
     virtual intptr_t GetFloatArraySetElementFastPathVtableAddr() const override;
     virtual intptr_t GetLibraryAddr() const override;
+    virtual intptr_t GetGlobalObjectAddr() const override;
+    virtual intptr_t GetGlobalObjectThisAddr() const override;
     virtual intptr_t GetNumberAllocatorAddr() const override;
     virtual intptr_t GetRecyclerAddr() const override;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;

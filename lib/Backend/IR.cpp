@@ -3463,7 +3463,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                 {
                     valueType = ValueType::GetObject(ObjectType::Object);
                 }
-                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true);
+                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true, varLocal);
                 instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {

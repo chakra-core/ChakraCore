@@ -336,11 +336,12 @@ namespace Js
         static BOOL OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext);
         static BOOL OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, int32 length, ScriptContext* scriptContext);
         static Var OP_GetLength(Var instance, ScriptContext* scriptContext);
-        static Var OP_GetThis(Var thisVar, int moduleID, ScriptContext* scriptContext);
+        static Var OP_GetThis(Var thisVar, int moduleID, ScriptContextInfo* scriptContext);
         static Var OP_GetThisNoFastPath(Var thisVar, int moduleID, ScriptContext* scriptContext);
         static Var OP_StrictGetThis(Var thisVar, ScriptContext* scriptContext);
+        static Var OP_StrictGetThis_JIT(Var thisVar, ScriptContextInfo* scriptContext);
         static bool IsThisSelf(TypeId typeId);
-        static Var GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContext *scriptContext);
+        static Var GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContextInfo *scriptContext);
         static Var GetThisFromModuleRoot(Var thisVar);
         static Var OP_GetThisScoped(FrameDisplay *pScope, Var defaultInstance, ScriptContext* scriptContext);
         static Var OP_UnwrapWithObj(Var aValue);
@@ -637,7 +638,7 @@ namespace Js
         static Var CanonicalizeAccessor(Var accessor, ScriptContext* scriptContext);
 
         static void BuildHandlerScope(Var argThis, RecyclableObject * hostObject, FrameDisplay * pScopes, ScriptContext * scriptContext);
-        static void TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContext* scriptContext);
+        static void TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContextInfo* scriptContext);
 
         template <bool unscopables>
         static BOOL GetProperty_Internal(Var instance, RecyclableObject* propertyObject, const bool isRoot, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info);

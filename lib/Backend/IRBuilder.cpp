@@ -1454,11 +1454,13 @@ IRBuilder::BuildConstantLoads()
             break;
         case Js::TypeIds_String:
             valueType = ValueType::String;
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg) : nullptr);
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, 
+                m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg) : nullptr);
             break;
         default:
             valueType = ValueType::FromTypeId(type, false);
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
+            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func,
+                m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::RecyclableObject>(reg) : nullptr);
             break;
         }        
         this->AddInstr(instr, Js::Constants::NoByteCodeOffset);

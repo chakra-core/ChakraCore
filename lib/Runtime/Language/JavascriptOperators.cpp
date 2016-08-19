@@ -4907,7 +4907,7 @@ CommonNumber:
         return thisVar;
     }
 
-    inline void JavascriptOperators::TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContext* scriptContext)
+    inline void JavascriptOperators::TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContextInfo* scriptContext)
     {
         bool loadRoot = false;
         if (JavascriptOperators::IsUndefinedOrNullType(typeId) || typeId == TypeIds_ActivationObject)
@@ -4929,16 +4929,17 @@ CommonNumber:
         if (loadRoot)
         {
             if (moduleID == 0)
-            {
-                thisVar = JavascriptOperators::OP_LdRoot(scriptContext)->ToThis();
+            {                
+                thisVar = (Js::Var)scriptContext->GetGlobalObjectThisAddr();
             }
             else
             {
-                Js::ModuleRoot * moduleRoot = JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
+                // TODO: OOP JIT, create a copy of module roots in server side
+                Js::ModuleRoot * moduleRoot = JavascriptOperators::GetModuleRoot(moduleID, (ScriptContext*)scriptContext);
                 if (moduleRoot == nullptr)
                 {
                     Assert(false);
-                    thisVar = scriptContext->GetLibrary()->GetUndefined();
+                    thisVar = (Js::Var)scriptContext->GetUndefinedAddr();
                 }
                 else
                 {
@@ -4948,7 +4949,7 @@ CommonNumber:
         }
     }
 
-    Var JavascriptOperators::OP_GetThis(Var thisVar, int moduleID, ScriptContext* scriptContext)
+    Var JavascriptOperators::OP_GetThis(Var thisVar, int moduleID, ScriptContextInfo* scriptContext)
     {
         //
         // if "this" is null or undefined
@@ -4983,7 +4984,7 @@ CommonNumber:
         return (JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsSpecialObjectType(typeId));
     }
 
-    Var JavascriptOperators::GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContext *scriptContext)
+    Var JavascriptOperators::GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContextInfo *scriptContext)
     {
         if (! JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsUndefinedOrNullType(typeId))
         {
@@ -4993,7 +4994,8 @@ CommonNumber:
             return JavascriptOperators::ToObject(
                 JavascriptNumber::BoxStackNumber(thisVar, scriptContext), scriptContext);
 #else
-            return JavascriptOperators::ToObject(thisVar, scriptContext);
+            // OOP JIT code path should not get here
+            return JavascriptOperators::ToObject(thisVar, (ScriptContext*)scriptContext);
 #endif
 
         }
@@ -5011,6 +5013,18 @@ CommonNumber:
         if (typeId == TypeIds_ActivationObject)
         {
             return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return thisVar;
+    }
+
+    Var JavascriptOperators::OP_StrictGetThis_JIT(Var thisVar, ScriptContextInfo* scriptContext)
+    {
+        TypeId typeId = JavascriptOperators::GetTypeId(thisVar);
+
+        if (typeId == TypeIds_ActivationObject)
+        {
+            return (Var)scriptContext->GetUndefinedAddr();
         }
 
         return thisVar;
