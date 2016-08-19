@@ -216,16 +216,7 @@ CommonNumber:
                 }
             }
             return false;
-        case TypeIds_Function:
-            switch (rightType)
-            {
-            case TypeIds_Function:
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    return true;
-                }
-            }
+        default:
             break;
         }
         return aLeft == aRight;

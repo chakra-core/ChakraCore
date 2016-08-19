@@ -65,17 +65,17 @@ function verifyDoesNotHaveRestrictedOwnProperties(obj, name) {
     assert.areEqual(undefined, Object.getOwnPropertyDescriptor(obj, 'arguments'), name + " does not have 'arguments' own property");
     assert.isFalse(obj.propertyIsEnumerable('arguments'), name + " says 'arguments' property is not enumerable");
 
-    assert.throws(function() { obj.caller; }, TypeError, name + " throws on access to 'caller' property", "Accessing the 'caller' property is restricted in this context");
-    assert.throws(function() { obj.arguments; }, TypeError, name + " throws on access to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+    assert.throws(function() { obj.caller; }, TypeError, name + " throws on access to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+    assert.throws(function() { obj.arguments; }, TypeError, name + " throws on access to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
-    assert.throws(function() { 'use strict'; obj.caller; }, TypeError, name + " throws on access to 'caller' property in strict mode", "Accessing the 'caller' property is restricted in this context");
-    assert.throws(function() { 'use strict'; obj.arguments; }, TypeError, name + " throws on access to 'arguments' property in strict mode", "Accessing the 'arguments' property is restricted in this context");
+    assert.throws(function() { 'use strict'; obj.caller; }, TypeError, name + " throws on access to 'caller' property in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+    assert.throws(function() { 'use strict'; obj.arguments; }, TypeError, name + " throws on access to 'arguments' property in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
-    assert.throws(function() { obj.caller = 'something'; }, TypeError, name + " throws trying to assign to 'caller' property", "Accessing the 'caller' property is restricted in this context");
-    assert.throws(function() { obj.arguments = 'something'; }, TypeError, name + " throws trying to assign to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+    assert.throws(function() { obj.caller = 'something'; }, TypeError, name + " throws trying to assign to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+    assert.throws(function() { obj.arguments = 'something'; }, TypeError, name + " throws trying to assign to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
-    assert.throws(function() { 'use strict'; obj.caller = 'something'; }, TypeError, name + " throws trying to assign to 'caller' property in strict mode", "Accessing the 'caller' property is restricted in this context");
-    assert.throws(function() { 'use strict'; obj.arguments = 'something'; }, TypeError, name + " throws trying to assign to 'arguments' property in strict mode", "Accessing the 'arguments' property is restricted in this context");
+    assert.throws(function() { 'use strict'; obj.caller = 'something'; }, TypeError, name + " throws trying to assign to 'caller' property in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+    assert.throws(function() { 'use strict'; obj.arguments = 'something'; }, TypeError, name + " throws trying to assign to 'arguments' property in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
     assert.isTrue(delete obj.arguments, name + " allows deleting own property named 'arguments' if that property doesn't exist");
     assert.doesNotThrow(function() { Object.defineProperty(obj, 'arguments', { value: 123, writable: true, enumerable: true, configurable: true }); }, name + " doesn't have own 'arguments' property");
@@ -151,11 +151,11 @@ var tests = [
             assert.areNotEqual(-1, names.findIndex((e) => { return e === 'arguments'; }), "Function.prototype has 'arguments' own property");
             assert.areNotEqual(-1, names.findIndex((e) => { return e === 'caller'; }), "Function.prototype has 'caller' own property");
 
-            assert.throws(function() { obj.caller; }, TypeError, "Function.prototype throws on access to 'caller' property", "Accessing the 'caller' property is restricted in this context");
-            assert.throws(function() { obj.arguments; }, TypeError, "Function.prototype throws on access to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+            assert.throws(function() { obj.caller; }, TypeError, "Function.prototype throws on access to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+            assert.throws(function() { obj.arguments; }, TypeError, "Function.prototype throws on access to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
-            assert.throws(function() { obj.caller = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'caller' property", "Accessing the 'caller' property is restricted in this context");
-            assert.throws(function() { obj.arguments = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+            assert.throws(function() { obj.caller = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+            assert.throws(function() { obj.arguments = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
             // TODO: These descriptors should have configurable set to true so remaining asserts in this test should actually succeed
             assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, "Function.prototype has 'arguments' property as non-configurable", "Cannot redefine non-configurable property 'arguments'");
@@ -247,7 +247,7 @@ var tests = [
             assert.areEqual('["caller","length","name","prototype"]', JSON.stringify(Object.getOwnPropertyNames(obj).sort()), "Class does not have 'caller' and 'arguments' own properties");
 
             assert.areEqual(42, obj.caller(), "Accessing the 'caller' property is not restricted");
-            assert.throws(function() { obj.arguments; }, TypeError, "Class throws on access to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+            assert.throws(function() { obj.arguments; }, TypeError, "Class throws on access to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
         }
     },
     {
@@ -264,7 +264,7 @@ var tests = [
             assert.areEqual('{"enumerable":false,"configurable":true}', JSON.stringify(Object.getOwnPropertyDescriptor(obj, 'arguments')), "Class has 'arguments' own property");
             assert.areEqual('["arguments","length","name","prototype"]', JSON.stringify(Object.getOwnPropertyNames(obj).sort()), "Class has 'arguments' own property, no 'caller' own property");
 
-            assert.throws(function() { obj.caller; }, TypeError, "Class method throws on access to 'caller' property", "Accessing the 'caller' property is restricted in this context");
+            assert.throws(function() { obj.caller; }, TypeError, "Class method throws on access to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
             assert.areEqual(42, obj.arguments, "Accessing the 'arguments' property is not restricted");
         }
     },
@@ -284,8 +284,8 @@ var tests = [
             assert.areEqual(undefined, JSON.stringify(Object.getOwnPropertyDescriptor(obj, 'arguments')), "Class has 'arguments' own property");
             assert.areEqual('["length","name","prototype"]', JSON.stringify(Object.getOwnPropertyNames(obj).sort()), "Class has 'arguments' own property, no 'caller' own property");
 
-            assert.throws(function() { obj.caller; }, TypeError, "Class method throws on access to 'caller' property", "Accessing the 'caller' property is restricted in this context");
-            assert.throws(function() { obj.arguments; }, TypeError, "Class method throws on access to 'arguments' property", "Accessing the 'arguments' property is restricted in this context");
+            assert.throws(function() { obj.caller; }, TypeError, "Class method throws on access to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+            assert.throws(function() { obj.arguments; }, TypeError, "Class method throws on access to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
             var a = new A();
 

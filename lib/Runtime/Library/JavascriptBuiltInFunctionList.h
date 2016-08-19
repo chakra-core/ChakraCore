@@ -8,10 +8,7 @@
 #endif
 
 BUILTIN(JavascriptExceptionOperators, StackTraceAccessor, StackTraceAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorAccessor, ThrowTypeErrorAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCallerAccessor, ThrowTypeErrorCallerAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCalleeAccessor, ThrowTypeErrorCalleeAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorArgumentsAccessor, ThrowTypeErrorArgumentsAccessor, FunctionInfo::DoNotProfile)
+BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorRestrictedPropertyAccessor, ThrowTypeErrorRestrictedPropertyAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptOperators, DefaultAccessor, DefaultAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(GlobalObject, Eval, EntryEval, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, ParseInt, EntryParseInt, FunctionInfo::ErrorOnNew)

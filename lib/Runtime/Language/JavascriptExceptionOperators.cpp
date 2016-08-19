@@ -1032,27 +1032,10 @@ namespace Js
         JavascriptError::ThrowReferenceError(scriptContext, MAKE_HR(messageId));
     }
 
-    Var JavascriptExceptionOperators::ThrowTypeErrorAccessor(RecyclableObject* function, CallInfo callInfo, ...)
+    // Throw type error on access 'arguments', 'callee' or 'caller' when in a restricted context
+    Var JavascriptExceptionOperators::ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        JavascriptError::ThrowTypeError(function->GetScriptContext(), VBSERR_ActionNotSupported);
-    }
-
-    // Throw type error on access caller when in a restricted context
-    Var JavascriptExceptionOperators::ThrowTypeErrorCallerAccessor(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        JavascriptError::ThrowTypeError(function->GetScriptContext(), JSERR_AccessCallerRestricted);
-    }
-
-    // Throw type error on access on callee when strict mode
-    Var JavascriptExceptionOperators::ThrowTypeErrorCalleeAccessor(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        JavascriptError::ThrowTypeError(function->GetScriptContext(), JSERR_AccessCallee);
-    }
-
-    // Throw type error on access arguments when in a restricted context
-    Var JavascriptExceptionOperators::ThrowTypeErrorArgumentsAccessor(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        JavascriptError::ThrowTypeError(function->GetScriptContext(), JSERR_AccessArgumentsRestricted);
+        JavascriptError::ThrowTypeError(function->GetScriptContext(), JSERR_AccessRestrictedProperty);
     }
 
     Var JavascriptExceptionOperators::StackTraceAccessor(RecyclableObject* function, CallInfo callInfo, ...)
