@@ -88,6 +88,7 @@ typedef struct ObjTypeSpecFldIDL
     unsigned short flags;
     unsigned short slotIndex;
     unsigned short fixedFieldCount;
+    unsigned short fixedFieldInfoArraySize; // 1 (when fixedFieldCount is 0) or fixedFieldCount
     int propertyId;
     int typeId;
     unsigned int id;
@@ -96,7 +97,7 @@ typedef struct ObjTypeSpecFldIDL
     EquivalentTypeSetIDL * typeSet;
     TypeIDL * initialType;
     JITTimeConstructorCacheIDL * ctorCache;
-    [size_is(fixedFieldCount)] FixedFieldIDL * fixedFieldInfoArray;
+    [size_is(fixedFieldInfoArraySize)] FixedFieldIDL * fixedFieldInfoArray;
 } ObjTypeSpecFldIDL;
 
 typedef struct PinnedTypeRefsIDL

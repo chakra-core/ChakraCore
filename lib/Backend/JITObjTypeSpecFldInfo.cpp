@@ -222,7 +222,8 @@ JITObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
 {
     Assert(HasFixedValue());
     Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
-    if (m_data.fixedFieldCount > 0 && m_data.fixedFieldInfoArray[0].funcInfoAddr != 0)
+    Assert(m_data.fixedFieldInfoArray);
+    if (m_data.fixedFieldInfoArray[0].funcInfoAddr != 0)
     {
         return (JITTimeFixedField *)&m_data.fixedFieldInfoArray[0];
     }
@@ -292,9 +293,14 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
             jitData[i]->typeSet = (EquivalentTypeSetIDL*)equivTypeSet;
         }
 
-        jitData[i]->fixedFieldInfoArray = AnewArrayZ(alloc, FixedFieldIDL, objTypeSpecInfo[i]->GetFixedFieldCount());
+        jitData[i]->fixedFieldInfoArraySize = jitData[i]->fixedFieldCount;
+        if (jitData[i]->fixedFieldInfoArraySize == 0)
+        {
+            jitData[i]->fixedFieldInfoArraySize = 1;
+        }
+        jitData[i]->fixedFieldInfoArray = AnewArrayZ(alloc, FixedFieldIDL, jitData[i]->fixedFieldInfoArraySize);
         Js::FixedFieldInfo * ffInfo = objTypeSpecInfo[i]->GetFixedFieldInfoArray();
-        for (uint16 j = 0; j< objTypeSpecInfo[i]->GetFixedFieldCount(); ++j)
+        for (uint16 j = 0; j < jitData[i]->fixedFieldInfoArraySize; ++j)
         {
             jitData[i]->fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
             jitData[i]->fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
