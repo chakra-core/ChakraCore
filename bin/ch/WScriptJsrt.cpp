@@ -4,6 +4,34 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
+#if defined(_X86_) || defined(_M_IX86)
+#define CPU_ARCH_TEXT "x86"
+#elif defined(_AMD64_) || defined(_IA64_) || defined(_M_AMD64) || defined(_M_IA64)
+#define CPU_ARCH_TEXT "x86_64"
+#elif defined(_ARM_) || defined(_M_ARM)
+#define CPU_ARCH_TEXT "ARM"
+#elif defined(_ARM64_) || defined(_M_ARM64)
+#define CPU_ARCH_TEXT "ARM64"
+#endif
+
+// do not change the order below
+// otherwise, i.e. android system can be marked as posix? etc..
+#ifdef _WIN32
+#define DEST_PLATFORM_TEXT "win32"
+#elif defined(__APPLE__)
+#ifdef __IOS__
+#define DEST_PLATFORM_TEXT "ios"
+#else
+#define DEST_PLATFORM_TEXT "darwin"
+#endif
+#elif defined(__ANDROID__)
+#define DEST_PLATFORM_TEXT "android"
+#elif defined(__linux__)
+#define DEST_PLATFORM_TEXT "posix"
+#elif defined(__FreeBSD__) || defined(__unix__)
+#define DEST_PLATFORM_TEXT "bsd"
+#endif
+
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
 std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
 DWORD_PTR WScriptJsrt::sourceContext = 0;
@@ -322,7 +350,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     JsValueRef errorObject = JS_INVALID_REFERENCE;
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.
-    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent, 
+    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
         (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
     if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE)
     {
@@ -708,6 +736,28 @@ bool WScriptJsrt::Initialize()
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
 
+    // Platform
+    JsValueRef platformObject;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&platformObject), false);
+    JsPropertyIdRef platformProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("Platform", &platformProperty), false);
+
+    // Set CPU arch
+    JsPropertyIdRef archProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("ARCH", &archProperty), false);
+    JsValueRef archValue;
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(CPU_ARCH_TEXT, strlen(CPU_ARCH_TEXT), &archValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, archProperty, archValue, true), false);
+
+    // Set destination OS
+    JsPropertyIdRef osProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("OS", &osProperty), false);
+    JsValueRef osValue;
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(DEST_PLATFORM_TEXT, strlen(DEST_PLATFORM_TEXT), &osValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, osProperty, osValue, true), false);
+
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, platformProperty, platformObject, true), false);
+
     JsValueRef argsObject;
 
     if (!CreateArgumentsObject(&argsObject))
@@ -993,7 +1043,7 @@ JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModu
     return errorCode;
 }
 
-// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully. 
+// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully.
 JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
 {
     if (exceptionVar != nullptr)
