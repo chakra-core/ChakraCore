@@ -6,11 +6,11 @@
 
 namespace Js
 {
-    enum JavascriptModuleStatusStage {
-        JavascriptModuleStatusStage_Invalid,
-        JavascriptModuleStatusStage_Fetch,
-        JavascriptModuleStatusStage_Translate,
-        JavascriptModuleStatusStage_Instantiate
+    enum class JavascriptModuleStatusStage {
+        Invalid,
+        Fetch,
+        Translate,
+        Instantiate
     };
 
     class JavascriptModuleStatusStageRecord : FinalizableObject

@@ -42,21 +42,21 @@ namespace Js
 
         if (stringStage->BufferEquals(_u("fetch"), 5))
         {
-            *result = JavascriptModuleStatusStage_Fetch;
+            *result = JavascriptModuleStatusStage::Fetch;
             return true;
         }
         else if (stringStage->BufferEquals(_u("instantiate"), 11))
         {
-            *result = JavascriptModuleStatusStage_Instantiate;
+            *result = JavascriptModuleStatusStage::Instantiate;
             return true;
         }
         else if (stringStage->BufferEquals(_u("translate"), 9))
         {
-            *result = JavascriptModuleStatusStage_Translate;
+            *result = JavascriptModuleStatusStage::Translate;
             return true;
         }
 
-        *result = JavascriptModuleStatusStage_Invalid;
+        *result = JavascriptModuleStatusStage::Invalid;
         return false;
     }
 
@@ -115,13 +115,13 @@ namespace Js
 
         switch (stage)
         {
-        case JavascriptModuleStatusStage_Fetch:
+        case JavascriptModuleStatusStage::Fetch:
             requestResult = RequestFetch(entry, scriptContext);
             break;
-        case JavascriptModuleStatusStage_Translate:
+        case JavascriptModuleStatusStage::Translate:
             requestResult = RequestTranslate(entry, scriptContext);
             break;
-        case JavascriptModuleStatusStage_Instantiate:
+        case JavascriptModuleStatusStage::Instantiate:
             requestResult = RequestInstantiate(entry, nullptr, scriptContext);
             break;
         default:
@@ -141,7 +141,7 @@ namespace Js
     JavascriptPromise* JavascriptModuleStatus::RequestFetch(JavascriptModuleStatus* entry, ScriptContext* scriptContext)
     {
         JavascriptModuleStatusStageRecord* fetchStageEntry = nullptr;
-        if (!GetStage(entry, JavascriptModuleStatusStage_Fetch, scriptContext, &fetchStageEntry))
+        if (!GetStage(entry, JavascriptModuleStatusStage::Fetch, scriptContext, &fetchStageEntry))
         {
             return JavascriptPromise::CreateResolvedPromise(scriptContext->GetLibrary()->GetUndefined(), scriptContext);
         }
@@ -178,7 +178,7 @@ namespace Js
             EntryUpgradeToStageFulfillmentHandler, 
             &JavascriptModuleStatus::EntryInfo::UpgradeToStageFulfillmentHandler, 
             entry, 
-            JavascriptModuleStatusStage_Translate, 
+            JavascriptModuleStatusStage::Translate, 
             nullptr);
         
         Var p = JavascriptPromise::CreateThenPromise(JavascriptPromise::FromVar(hookResult), fulfillmentHandler, throwerFunction, scriptContext);
@@ -202,7 +202,7 @@ namespace Js
     JavascriptPromise* JavascriptModuleStatus::RequestTranslate(JavascriptModuleStatus* entry, ScriptContext* scriptContext)
     {
         JavascriptModuleStatusStageRecord* translateStageEntry = nullptr;
-        if (!GetStage(entry, JavascriptModuleStatusStage_Fetch, scriptContext, &translateStageEntry))
+        if (!GetStage(entry, JavascriptModuleStatusStage::Fetch, scriptContext, &translateStageEntry))
         {
             return JavascriptPromise::CreateResolvedPromise(scriptContext->GetLibrary()->GetUndefined(), scriptContext);
         }
@@ -220,7 +220,7 @@ namespace Js
             EntryRequestTranslateOrInstantiateFulfillmentHandler,
             &JavascriptModuleStatus::EntryInfo::RequestTranslateOrInstantiateFulfillmentHandler,
             entry, 
-            JavascriptModuleStatusStage_Translate,
+            JavascriptModuleStatusStage::Translate,
             nullptr);
 
         Var p = JavascriptPromise::CreateThenPromise(requestFetchResult, fulfillmentHandler, library->GetThrowerFunction(), scriptContext);
@@ -243,7 +243,7 @@ namespace Js
     JavascriptPromise* JavascriptModuleStatus::RequestInstantiate(JavascriptModuleStatus* entry, Var instantiateSet, ScriptContext* scriptContext)
     {
         JavascriptModuleStatusStageRecord* instantiateStageEntry = nullptr;
-        if (!GetStage(entry, JavascriptModuleStatusStage_Instantiate, scriptContext, &instantiateStageEntry))
+        if (!GetStage(entry, JavascriptModuleStatusStage::Instantiate, scriptContext, &instantiateStageEntry))
         {
             return JavascriptPromise::CreateResolvedPromise(scriptContext->GetLibrary()->GetUndefined(), scriptContext);
         }
@@ -261,7 +261,7 @@ namespace Js
             EntryRequestTranslateOrInstantiateFulfillmentHandler,
             &JavascriptModuleStatus::EntryInfo::RequestTranslateOrInstantiateFulfillmentHandler,
             entry,
-            JavascriptModuleStatusStage_Instantiate,
+            JavascriptModuleStatusStage::Instantiate,
             instantiateSet);
 
         Var p = JavascriptPromise::CreateThenPromise(requestTranslateResult, fulfillmentHandler, library->GetThrowerFunction(), scriptContext);
@@ -391,9 +391,9 @@ namespace Js
             // TODO:
             //Let deps be undefined.
 
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage_Instantiate, nullptr, scriptContext));
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage_Translate, nullptr, scriptContext));
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage_Fetch, nullptr, scriptContext));
+            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, nullptr, scriptContext));
+            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Translate, nullptr, scriptContext));
+            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Fetch, nullptr, scriptContext));
         }
         else
         {
@@ -410,7 +410,7 @@ namespace Js
             //Let deps be a new empty List.
 
             JavascriptPromise* result = JavascriptPromise::CreateResolvedPromise(ns, scriptContext);
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage_Instantiate, result, scriptContext));
+            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, result, scriptContext));
         }
 
         this->loader = loader;
@@ -438,11 +438,11 @@ namespace Js
 
         switch (stageEntry->stage)
         {
-        case JavascriptModuleStatusStage_Instantiate:
+        case JavascriptModuleStatusStage::Instantiate:
             return library->CreateStringFromCppLiteral(_u("instantiate"));
-        case JavascriptModuleStatusStage_Fetch:
+        case JavascriptModuleStatusStage::Fetch:
             return library->CreateStringFromCppLiteral(_u("fetch"));
-        case JavascriptModuleStatusStage_Translate:
+        case JavascriptModuleStatusStage::Translate:
             return library->CreateStringFromCppLiteral(_u("translate"));
         default:
             Assert(false);
@@ -559,18 +559,18 @@ namespace Js
             }
 
             JavascriptModuleStatus* entry = JavascriptModuleStatus::FromVar(args[0]);
-            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage_Invalid;
+            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage::Invalid;
 
             if (args.Info.Count < 2 || JavascriptOperators::IsUndefined(args[1]))
             {
-                stage = JavascriptModuleStatusStage_Fetch;
+                stage = JavascriptModuleStatusStage::Fetch;
             }
             else if (!IsValidStageValue(args[1], scriptContext, &stage))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("stage"));
             }
 
-            Assert(stage != JavascriptModuleStatusStage_Invalid);
+            Assert(stage != JavascriptModuleStatusStage::Invalid);
 
             return LoadModule(entry, stage, scriptContext);
         }
@@ -601,14 +601,14 @@ namespace Js
             }
 
             JavascriptModuleStatus* entry = JavascriptModuleStatus::FromVar(args[0]);
-            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage_Invalid;
+            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage::Invalid;
 
             if (args.Info.Count < 2 || JavascriptOperators::IsUndefined(args[1]) || !IsValidStageValue(args[1], scriptContext, &stage))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("stage"));
             }
 
-            Assert(stage != JavascriptModuleStatusStage_Invalid);
+            Assert(stage != JavascriptModuleStatusStage::Invalid);
 
             JavascriptModuleStatusStageRecord* stageEntry = nullptr;
             if (!GetStage(entry, stage, scriptContext, &stageEntry)
@@ -648,7 +648,7 @@ namespace Js
             }
 
             JavascriptModuleStatus* entry = JavascriptModuleStatus::FromVar(args[0]);
-            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage_Invalid;
+            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage::Invalid;
             JavascriptPromise* result;
 
             if (args.Info.Count < 2 || JavascriptOperators::IsUndefined(args[1]) || !IsValidStageValue(args[1], scriptContext, &stage))
@@ -664,7 +664,7 @@ namespace Js
 
             result = JavascriptPromise::FromVar(args[2]);
 
-            Assert(stage != JavascriptModuleStatusStage_Invalid);
+            Assert(stage != JavascriptModuleStatusStage::Invalid);
 
             JavascriptModuleStatusStageRecord* stageEntry = nullptr;
 
@@ -744,7 +744,7 @@ namespace Js
             }
 
             JavascriptModuleStatus* entry = JavascriptModuleStatus::FromVar(args[0]);
-            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage_Invalid;
+            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage::Invalid;
             JavascriptPromise* error;
 
             if (args.Info.Count < 2 || JavascriptOperators::IsUndefined(args[1]) || !IsValidStageValue(args[1], scriptContext, &stage))
@@ -760,7 +760,7 @@ namespace Js
 
             error = JavascriptPromise::FromVar(args[2]);
 
-            Assert(stage != JavascriptModuleStatusStage_Invalid);
+            Assert(stage != JavascriptModuleStatusStage::Invalid);
 
             JavascriptModuleStatusStageRecord* stageEntry = nullptr;
 
@@ -847,7 +847,7 @@ namespace Js
         JavascriptModuleStatus* entry = fulfillmentHandler->GetModuleStatus();
         JavascriptModuleStatusStage stage = fulfillmentHandler->GetStage();
 
-        if (stage == JavascriptModuleStatusStage_Instantiate)
+        if (stage == JavascriptModuleStatusStage::Instantiate)
         {
             JavascriptPromise* pSatisfyInstance = SatisfyInstance(entry, value, nullptr, nullptr, scriptContext);
             JavascriptFunction* throwerFunction = library->GetThrowerFunction();
@@ -961,7 +961,7 @@ namespace Js
             EntryPostSatisfyInstanceSimpleFulfillmentHandler,
             &JavascriptModuleStatus::EntryInfo::PostSatisfyInstanceSimpleFulfillmentHandler,
             entry,
-            JavascriptModuleStatusStage_Invalid,
+            JavascriptModuleStatusStage::Invalid,
             optionalInstance);
 
         return JavascriptPromise::CreateThenPromise(result, fulfillmentHandler, library->GetThrowerFunction(), scriptContext);
@@ -1082,26 +1082,26 @@ namespace Js
         Var instantiateSet = fulfillmentHandler->GetValue();
         Js::PropertyId propertyId;
 
-        if (stage == JavascriptModuleStatusStage_Translate)
+        if (stage == JavascriptModuleStatusStage::Translate)
         {
             propertyId = Js::PropertyIds::_symbolTranslate;
             fulfillmentHandler = library->CreateModuleStatusFulfillmentHandlerFunction(
                 EntryUpgradeToStageFulfillmentHandler, 
                 &JavascriptModuleStatus::EntryInfo::UpgradeToStageFulfillmentHandler, 
                 entry, 
-                JavascriptModuleStatusStage_Instantiate, 
+                JavascriptModuleStatusStage::Instantiate, 
                 nullptr);
         }
         else
         {
-            Assert(stage == JavascriptModuleStatusStage_Instantiate);
+            Assert(stage == JavascriptModuleStatusStage::Instantiate);
 
             propertyId = Js::PropertyIds::_symbolInstantiate;
             fulfillmentHandler = library->CreateModuleStatusFulfillmentHandlerFunction(
                 EntrySatisfyInstanceWrapperFulfillmentHandler, 
                 &JavascriptModuleStatus::EntryInfo::SatisfyInstanceWrapperFulfillmentHandler, 
                 entry, 
-                JavascriptModuleStatusStage_Invalid, 
+                JavascriptModuleStatusStage::Invalid, 
                 payload);
             fulfillmentHandler->SetInstantiateSet(instantiateSet);
         }
@@ -1195,7 +1195,7 @@ namespace Js
 #endif
 
     JavascriptModuleStatusFulfillmentHandlerFunction::JavascriptModuleStatusFulfillmentHandlerFunction(DynamicType* type)
-        : RuntimeFunction(type, &Js::JavascriptModuleStatus::EntryInfo::ResolveFulfillmentHandler), entry(nullptr), stage(JavascriptModuleStatusStage_Invalid), value(nullptr)
+        : RuntimeFunction(type, &Js::JavascriptModuleStatus::EntryInfo::ResolveFulfillmentHandler), entry(nullptr), stage(JavascriptModuleStatusStage::Invalid), value(nullptr)
     { }
 
     JavascriptModuleStatusFulfillmentHandlerFunction::JavascriptModuleStatusFulfillmentHandlerFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptModuleStatus* entry, JavascriptModuleStatusStage stage, Var value)

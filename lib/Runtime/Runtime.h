@@ -118,7 +118,7 @@ namespace Js
     class JavascriptModuleStatusErrorHandlerFunction;
     class JavascriptModuleStatusFulfillmentHandlerFunction;
     class JavascriptLoaderFulfillmentHandlerFunction;
-    enum JavascriptModuleStatusStage;
+    enum class JavascriptModuleStatusStage;
     class ModuleNamespace;
     class JavascriptGenerator;
     class LiteralString;

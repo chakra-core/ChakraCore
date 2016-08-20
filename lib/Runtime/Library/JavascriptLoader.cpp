@@ -139,7 +139,7 @@ namespace Js
             EntryEnsureRegisteredAndEvaluatedFulfillmentHandler,
             &JavascriptLoader::EntryInfo::EnsureRegisteredAndEvaluatedFulfillmentHandler,
             loader,
-            JavascriptModuleStatusStage_Instantiate);
+            JavascriptModuleStatusStage::Instantiate);
 
         return JavascriptPromise::CreateThenPromise(result, fulfillmentHandler, library->GetThrowerFunction(), scriptContext);
     }
@@ -201,7 +201,7 @@ namespace Js
         {
             JavascriptLibrary* library = scriptContext->GetLibrary();
             JavascriptLoader* loader = JavascriptLoader::FromVar(args[0]);
-            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage_Invalid;
+            JavascriptModuleStatusStage stage = JavascriptModuleStatusStage::Invalid;
             Var name;
             Var referrer;
 
@@ -223,14 +223,14 @@ namespace Js
             }
             if (args.Info.Count < 4 || JavascriptOperators::IsUndefined(args[3]))
             {
-                stage = JavascriptModuleStatusStage_Instantiate;
+                stage = JavascriptModuleStatusStage::Instantiate;
             }
             if (!JavascriptModuleStatus::IsValidStageValue(args[1], scriptContext, &stage))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("stage"));
             }
 
-            Assert(stage != JavascriptModuleStatusStage_Invalid);
+            Assert(stage != JavascriptModuleStatusStage::Invalid);
 
             JavascriptPromise* result = Resolve(loader, name, referrer, scriptContext);
 
@@ -302,7 +302,7 @@ namespace Js
             JavascriptLoader::EntryEnsureEvaluatedFulfillmentHandler,
             &JavascriptLoader::EntryInfo::EnsureEvaluatedFulfillmentHandler,
             entry,
-            JavascriptModuleStatusStage_Invalid);
+            JavascriptModuleStatusStage::Invalid);
 
         return JavascriptPromise::CreateThenPromise(JavascriptPromise::FromVar(result), fulfillmentHandler, library->GetThrowerFunction(), scriptContext);
     }
@@ -355,7 +355,7 @@ namespace Js
     }
 
     JavascriptLoaderFulfillmentHandlerFunction::JavascriptLoaderFulfillmentHandlerFunction(DynamicType* type)
-        : RuntimeFunction(type, &Js::JavascriptLoader::EntryInfo::EnsureRegisteredAndEvaluatedFulfillmentHandler), loaderOrEntry(nullptr), stage(JavascriptModuleStatusStage_Invalid)
+        : RuntimeFunction(type, &Js::JavascriptLoader::EntryInfo::EnsureRegisteredAndEvaluatedFulfillmentHandler), loaderOrEntry(nullptr), stage(JavascriptModuleStatusStage::Invalid)
     { }
 
     JavascriptLoaderFulfillmentHandlerFunction::JavascriptLoaderFulfillmentHandlerFunction(DynamicType* type, FunctionInfo* functionInfo, Var loaderOrEntry, JavascriptModuleStatusStage stage)
