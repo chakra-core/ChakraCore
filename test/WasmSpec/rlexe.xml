@@ -130,6 +130,20 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines\chakra_i64.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\chakra_i64.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\chakra_i64.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\chakra_i64.json -endargs -on:wasmdeferred</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines\comments.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\comments.json -endargs</compile-flags>
     </default>
