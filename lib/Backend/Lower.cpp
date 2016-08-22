@@ -251,7 +251,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::InvalCachedScope:
             this->LowerBinaryHelper(instr, IR::HelperOP_InvalidateCachedScope);
             break;
-        
+
         case Js::OpCode::InitCachedScope:
             instrPrev = this->LowerInitCachedScope(instr);
             break;
@@ -622,6 +622,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::Ctz:
             GenerateCtz(instr);
+            break;
+
+        case Js::OpCode::PopCnt32:
+            GeneratePopCnt32(instr);
             break;
 
         case Js::OpCode::InlineMathClz32:
@@ -3589,10 +3593,8 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
         return LowerProfiledNewScArray(arrInstr->AsJitProfilingInstr());
     }
 
-
     IR::Instr *instrPrev = arrInstr->m_prev;
     IR::JnHelperMethod helperMethod = IR::HelperScrArr_OP_NewScArray;
-
 
     if (arrInstr->IsProfiledInstr() && arrInstr->m_func->HasProfileInfo())
     {
@@ -3603,7 +3605,6 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
         Js::FunctionBody *functionBody = arrInstr->m_func->GetJnFunction();
         Js::DynamicProfileInfo *profileInfo = functionBody->GetAnyDynamicProfileInfo();
         Js::ArrayCallSiteInfo *arrayInfo = profileInfo->GetArrayCallSiteInfo(functionBody, profileId);
-
 
         Assert(arrInstr->GetSrc1()->IsConstOpnd());
         GenerateProfiledNewScArrayFastPath(arrInstr, arrayInfo, weakFuncRef, arrInstr->GetSrc1()->AsIntConstOpnd()->AsUint32());
@@ -7937,7 +7938,6 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
         IR::IntConstOpnd::New(1, TyUint32, m_func),
         Js::OpCode::BrNeq_A, labelHelper, insertBeforeInstr);
 
-
     // if left->m_directCharLength == -1
     InsertCompareBranch(IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfDirectCharLength(), TyUint32, m_func),
         IR::IntConstOpnd::New(UINT32_MAX, TyUint32, m_func),
@@ -7956,20 +7956,17 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
     IR::RegOpnd *charResultOpnd = IR::RegOpnd::New(TyUint16, this->m_func);
     InsertMove(charResultOpnd, IR::IndirOpnd::New(pszValue0Opnd, 0, TyUint16, this->m_func), insertBeforeInstr);
 
-
     // lastBlockInfo.buffer[blockCharLength] = c;
     IR::RegOpnd *baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     InsertMove(baseOpnd, IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoBuffer(), TyMachPtr, m_func), insertBeforeInstr);
     IR::IndirOpnd *indirBufferToStore = IR::IndirOpnd::New(baseOpnd, charLengthOpnd, (byte)Math::Log2(sizeof(char16)), TyUint16, m_func);
     InsertMove(indirBufferToStore, charResultOpnd, insertBeforeInstr);
 
-
     // left->m_charLength++
     InsertAdd(false, indirLeftCharLengthOpnd, regLeftCharLengthOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), insertBeforeInstr);
 
     // lastBlockInfo.charLength++
     InsertAdd(false, indirCharLength, indirCharLength, IR::IntConstOpnd::New(1, TyUint32, this->m_func), insertBeforeInstr);
-
 
     InsertBranch(Js::OpCode::Br, labelFallThrough, insertBeforeInstr);
 
@@ -8505,7 +8502,7 @@ Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
     m_lowererMD.LoadHelperArgument(instr, baseOpnd);
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
     dst->Free(m_func);
-    
+
     return instrPrev;
 }
 
@@ -9461,7 +9458,6 @@ Lowerer::LowerStElemC(IR::Instr * stElem)
         return instrPrev;
     }
 
-
     IntConstType base;
     IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
     const ValueType baseValueType(baseOpnd->GetValueType());
@@ -9715,7 +9711,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     // ...
     //     s2 = assign param2
     // $done:
-    
+
     AnalysisAssert(instrArgIn);
 
     IR::Opnd *restDst = nullptr;
@@ -9850,7 +9846,6 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     instrInsert->InsertBefore(labelUndef);
     instrInsert->InsertBefore(labelNormal);
 
-
     //Adjustment for deadstore of ArgIn_A
     Js::ArgSlot highestSlotNum = instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
     Js::ArgSlot missingSlotNums = this->m_func->GetInParamsCount() - highestSlotNum;
@@ -9867,9 +9862,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     opndUndef =  IR::RegOpnd::New(TyMachPtr, this->m_func);
     LowererMD::CreateAssign(opndUndef, opndUndefAddress, labelNormal);
 
-
     BVSparse<JitArenaAllocator> *formalsBv = JitAnew(this->m_func->m_alloc, BVSparse<JitArenaAllocator>, this->m_func->m_alloc);
-    
+
     while (currArgInCount > 0)
     {
         dstOpnd = instrArgIn->GetDst();
@@ -9887,9 +9881,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         //     BrEq_A $Ln-1
 
         currArgInCount--;
-        
+
         labelInitNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-        
 
         // And insert the "normal" initialization before the "done" label
 
@@ -12655,7 +12648,6 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
         return false;
     });
 
-
     IR::Instr *argInsertInstr = inlineeStartInstr;
     uint i = 0;
     inlineeStartInstr->IterateMetaArgs( [&] (IR::Instr* metaArg)
@@ -14470,7 +14462,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     const bool needBailOutOnInvalidLength = !!(bailOutKind & (IR::BailOutOnInvalidatedArrayHeadSegment));
     const bool needBailOutToHelper = !!(bailOutKind & (IR::BailOutOnArrayAccessHelperCall | IR::BailOutOnInvalidatedArrayLength));
     const bool needBailOutOnSegmentLengthCompare = needBailOutToHelper || needBailOutOnInvalidLength;
-    
+
     if(indexIsLessThanHeadSegmentLength || needBailOutOnSegmentLengthCompare)
     {
         if (needBailOutOnSegmentLengthCompare)
@@ -15756,7 +15748,6 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 {
                     m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem);
                 }
-
 
             }
         }
@@ -17375,6 +17366,14 @@ Lowerer::GenerateCtz(IR::Instr* instr)
 }
 
 void
+Lowerer::GeneratePopCnt32(IR::Instr* instr)
+{
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32());
+    m_lowererMD.GeneratePopCnt32(instr);
+}
+
+void
 Lowerer::GenerateFastInlineMathClz32(IR::Instr* instr)
 {
     Assert(instr->GetDst()->IsInt32());
@@ -18318,7 +18317,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
         ldElem->InsertBefore(labelCreateHeapArgs);
         emittedFastPath = true;
     }
-    
+
     if (!emittedFastPath)
     {
         throw Js::RejitException(RejitReason::DisableStackArgOpt);
@@ -18610,7 +18609,6 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
 
     IR::RegOpnd * opndBase = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
     bool usePolymorphicInlineCache = !!propertySymOpnd->m_runtimePolymorphicInlineCache;
-
 
     IR::RegOpnd * opndInlineCache = IR::RegOpnd::New(TyMachPtr, this->m_func);
     if (usePolymorphicInlineCache)
@@ -20019,7 +20017,6 @@ Lowerer::GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntCo
 
     m_lowererMD.GenerateObjectTest(object, compare, target);
 
-
     // MOV typeRegOpnd, [object + offset(Type)]
     InsertMove(typeRegOpnd,
                IR::IndirOpnd::New(object, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func),
@@ -20467,7 +20464,6 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
     instrInsert->InsertBefore(labelDone);
     instrInsert->Remove();
 }
-
 
 void
 Lowerer::GenerateGetCurrentFunctionObject(IR::Instr * instr)
@@ -21048,7 +21044,6 @@ Lowerer::GenerateSimplifiedInt4Rem(
     return true;
 }
 
-
 #if DBG
 bool
 Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
@@ -21361,7 +21356,6 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
     // $div:
     // dst = IDIV src2, src1
     // $done:
-
 
     IR::LabelInstr * div0Label = InsertLabel(true, instr);
     IR::LabelInstr * divLabel = InsertLabel(false, instr);
@@ -21885,7 +21879,6 @@ void Lowerer::LowerBrFncCachedScopeEq(IR::Instr *instr)
 
     instr->Remove();
 }
-
 
 IR::Instr* Lowerer::InsertLoweredRegionStartMarker(IR::Instr* instrToInsertBefore)
 {

@@ -227,6 +227,7 @@ MACRO_EXTEND_WMS( Trunc_Db                   , Double2         , None           
 MACRO_EXTEND_WMS( Trunc_Flt                  , Float2          , None            )
 MACRO_EXTEND_WMS( Nearest_Db                 , Double2         , None            )
 MACRO_EXTEND_WMS( Nearest_Flt                , Float2          , None            )
+MACRO_EXTEND_WMS( PopCnt_Int                 , Int2            , None            ) 
 
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)

@@ -135,7 +135,6 @@ enum Forms : BYTE
 #define OPBYTE_ANDNPD   {0x55}                  // modrm
 #define OPBYTE_ANDNPS   {0x55}                  // modrm
 
-
 #define OPBYTE_ANDPD    {0x54}                   // modrm
 #define OPBYTE_ANDPS    {0x54}                   // modrm
 #define OPBYTE_SUB      {0x2c, 0x80, 0x28}       // binop, byte2=0x5
@@ -289,9 +288,10 @@ enum Forms : BYTE
 #define OPBYTE_POP      {0x58, 0, 0x8f}          // pshpop, byte2=0 immed not legal
 
 #define OPBYTE_POR      {0xeb}                  // modrm
+#define OPBYTE_POPCNT   {0xB8}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
-#define OPBYTE_PEXTRW   {0xc5}                  // special 
-#define OPBYTE_PINSRW   {0xc4}                  // special 
+#define OPBYTE_PEXTRW   {0xc5}                  // special
+#define OPBYTE_PINSRW   {0xc4}                  // special
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
 

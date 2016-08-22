@@ -80,7 +80,6 @@ inline T WasmMath::Nearest(T value)
     }
 }
 
-
 inline int
 WasmMath::Rol(int aLeft, int aRight)
 {

@@ -154,7 +154,7 @@ WASM_BINARY_OPCODE(I32GtU,            0x55, I_II, CmGt_UInt     , false)
 WASM_BINARY_OPCODE(I32GeU,            0x56, I_II, CmGe_UInt     , false)
 WASM_UNARY__OPCODE(I32Clz,            0x57, I_I , Clz32_Int      , false)
 WASM_UNARY__OPCODE(I32Ctz,            0x58, I_I , Ctz_Int        , false)
-WASM_UNARY__OPCODE(I32Popcnt,         0x59, I_I , Nop            , true)
+WASM_UNARY__OPCODE(I32Popcnt,         0x59, I_I , PopCnt_Int     , false)
 WASM_UNARY__OPCODE(I32Eqz,            0x5a, I_I , Eqz_Int        , false)
 WASM_BINARY_OPCODE(I64Add,            0x5b, L_LL, Nop            , true)
 WASM_BINARY_OPCODE(I64Sub,            0x5c, L_LL, Nop            , true)
@@ -249,7 +249,6 @@ WASM_UNARY__OPCODE(I32ReinterpretF32, 0xb4, I_F , Reinterpret_FTI, false)
 WASM_UNARY__OPCODE(I64ReinterpretF64, 0xb5, L_D , Nop            , true)
 WASM_BINARY_OPCODE(I32Ror,            0xb6, I_II, Ror_Int        , false)
 WASM_BINARY_OPCODE(I32Rol,            0xb7, I_II, Rol_Int        , false)
-
 
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE
