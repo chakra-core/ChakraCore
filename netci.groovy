@@ -261,7 +261,10 @@ CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+def isXPlatCompatibleBranch = branch.startsWith('linux') || branch.startsWith('master') ||
+    (branch.startsWith('release') && branch != 'release/1.1' && branch != 'release/1.2')
+
+if (isXPlatCompatibleBranch) {
     def osString = 'Ubuntu16.04'
 
     // PR and CI checks
@@ -281,7 +284,7 @@ if (branch.startsWith('linux') || branch.startsWith('master')) {
 // OSX BUILD TASKS
 // -----------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+if (isXPlatCompatibleBranch) {
     def osString = 'OSX'
 
     // PR and CI checks
