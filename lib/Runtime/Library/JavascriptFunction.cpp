@@ -292,11 +292,13 @@ namespace Js
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 
-        if (functionKind == FunctionKind::Generator)
+        if (functionKind == FunctionKind::Generator || functionKind == FunctionKind::Async)
         {
-            Assert(pfuncScript->GetFunctionInfo()->IsGenerator());
+            Assert(pfuncScript->GetFunctionInfo()->IsCoroutine());
             auto pfuncVirt = static_cast<GeneratorVirtualScriptFunction*>(pfuncScript);
-            auto pfuncGen = scriptContext->GetLibrary()->CreateGeneratorFunction(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation, pfuncVirt);
+            auto pfuncGen = functionKind == FunctionKind::Async ?
+                scriptContext->GetLibrary()->CreateAsyncFunction(JavascriptAsyncFunction::EntryAsyncFunctionImplementation, pfuncVirt) :
+                scriptContext->GetLibrary()->CreateGeneratorFunction(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation, pfuncVirt);
             pfuncVirt->SetRealGeneratorFunction(pfuncGen);
             pfuncScript = pfuncGen;
         }
@@ -2912,7 +2914,7 @@ LABEL1:
         FunctionProxy* proxy = this->GetFunctionProxy();
         JavascriptFunction* thisFunction = const_cast<JavascriptFunction*>(this);
 
-        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Is(thisFunction))
+        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Is(thisFunction) || JavascriptAsyncFunction::Is(thisFunction))
         {
             *name = GetDisplayNameImpl();
             return true;

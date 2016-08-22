@@ -2956,10 +2956,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
 
-        case Js::OpCode::AsyncSpawn:
-            this->LowerBinaryHelperMem(instr, IR::HelperAsyncSpawn);
-            break;
-
         case Js::OpCode::FrameDisplayCheck:
             instrPrev = this->LowerFrameDisplayCheck(instr);
             break;
@@ -5088,7 +5084,7 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
 void
 Lowerer::LowerPrologEpilog()
 {
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJnFunction()->IsCoroutine())
     {
         LowerGeneratorResumeJumpTable();
     }
@@ -5125,7 +5121,7 @@ Lowerer::LowerPrologEpilogAsmJs()
 void
 Lowerer::LowerGeneratorResumeJumpTable()
 {
-    Assert(m_func->GetJnFunction()->IsGenerator());
+    Assert(m_func->GetJnFunction()->IsCoroutine());
 
     IR::Instr * jumpTableInstr = m_func->m_headInstr;
     AssertMsg(jumpTableInstr->IsEntryInstr(), "First instr isn't an EntryInstr...");
@@ -7572,7 +7568,7 @@ Lowerer::LoadArgumentCount(IR::Instr *const instr)
         instr->SetSrc1(IR::IntConstOpnd::New(instr->m_func->actualCount, TyUint32, instr->m_func, true));
         LowererMD::ChangeToAssign(instr);
     }
-    else if (instr->m_func->GetJnFunction()->IsGenerator())
+    else if (instr->m_func->GetJnFunction()->IsCoroutine())
     {
         IR::SymOpnd* symOpnd = LoadCallInfo(instr);
         instr->SetSrc1(symOpnd);
@@ -9611,7 +9607,7 @@ IR::Instr *Lowerer::LowerRestParameter(IR::Opnd *formalsOpnd, IR::Opnd *dstOpnd,
 
     LoadScriptContext(helperCallInstr);
 
-    BOOL isGenerator = this->m_func->GetJnFunction()->IsGenerator();
+    BOOL isGenerator = this->m_func->GetJnFunction()->IsCoroutine();
 
     // Elements pointer = ebp + (formals count + formals offset + 1)*sizeof(Var)
     IR::RegOpnd *srcOpnd = isGenerator ? generatorArgsPtrOpnd : IR::Opnd::CreateFramePointerOpnd(this->m_func);
@@ -9719,7 +9715,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
             // $createRestArray
             instrArgIn->InsertBefore(createRestArrayLabel);
 
-            if (m_func->GetJnFunction()->IsGenerator())
+            if (m_func->GetJnFunction()->IsCoroutine())
             {
                 generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             }
@@ -9738,7 +9734,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     if (argIndex == 1)
     {
         // The "this" argument is not source-dependent and doesn't need to be checked.
-        if (m_func->GetJnFunction()->IsGenerator())
+        if (m_func->GetJnFunction()->IsCoroutine())
         {
             generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             ConvertArgOpndIfGeneratorFunction(instrArgIn, generatorArgsPtrOpnd);
@@ -9792,7 +9788,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
     // Now insert all the checks and undef-assigns.
 
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJnFunction()->IsCoroutine())
     {
         generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrInsert);
     }
@@ -9962,7 +9958,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 void
 Lowerer::ConvertArgOpndIfGeneratorFunction(IR::Instr *instrArgIn, IR::RegOpnd *generatorArgsPtrOpnd)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJnFunction()->IsCoroutine())
     {
         // Replace stack param operand with offset into arguments array held by
         // the generator object.
@@ -10668,7 +10664,7 @@ Lowerer::LoadCallInfo(IR::Instr * instrInsert)
     IR::SymOpnd * srcOpnd;
     Func * func = instrInsert->m_func;
 
-    if (func->GetJnFunction()->IsGenerator())
+    if (func->GetJnFunction()->IsCoroutine())
     {
         // Generator function arguments and ArgumentsInfo are not on the stack.  Instead they
         // are accessed off the generator object (which is prm1).
@@ -18115,7 +18111,7 @@ IR::IndirOpnd*
 Lowerer::GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd)
 {
     // Load argument set dst = [ebp + index] (or grab from the generator object if m_func is a generator function).
-    IR::RegOpnd *baseOpnd = m_func->GetJnFunction()->IsGenerator() ? LoadGeneratorArgsPtr(ldElem) : IR::Opnd::CreateFramePointerOpnd(m_func);
+    IR::RegOpnd *baseOpnd = m_func->GetJnFunction()->IsCoroutine() ? LoadGeneratorArgsPtr(ldElem) : IR::Opnd::CreateFramePointerOpnd(m_func);
     IR::IndirOpnd* argIndirOpnd = nullptr;
     // The stack looks like this:
     //       ...
@@ -18129,7 +18125,7 @@ Lowerer::GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd)
 
     //actual arguments offset is LowererMD::GetFormalParamOffset() + 1 (this)
 
-    uint16 actualOffset = m_func->GetJnFunction()->IsGenerator() ? 1 : GetFormalParamOffset() + 1; //5
+    uint16 actualOffset = m_func->GetJnFunction()->IsCoroutine() ? 1 : GetFormalParamOffset() + 1; //5
     Assert(actualOffset == 5 || m_func->GetJnFunction()->IsGenerator());
     if (valueOpnd->IsIntConstOpnd())
     {
@@ -20327,6 +20323,7 @@ Lowerer::GenerateSetHomeObj(IR::Instr* instrInsert)
     Func *func = instrInsert->m_func;
 
     IR::LabelInstr *labelScriptFunction = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelForGeneratorScriptFunction = IR::LabelInstr::New(Js::OpCode::Label, func, false);
 
     IR::Opnd *src2Opnd = instrInsert->UnlinkSrc2();
     IR::Opnd *src1Opnd = instrInsert->UnlinkSrc1();
@@ -20339,9 +20336,15 @@ Lowerer::GenerateSetHomeObj(IR::Instr* instrInsert)
 
     IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableJavascriptGeneratorFunction);
     InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
+        Js::OpCode::BrEq_A, true, labelForGeneratorScriptFunction, instrInsert);
+
+    vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableJavascriptAsyncFunction);
+    InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
         Js::OpCode::BrNeq_A, true, labelScriptFunction, instrInsert);
 
-    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::JavascriptGeneratorFunction::GetOffsetOfScriptFunction() , TyMachPtr, func);
+    instrInsert->InsertBefore(labelForGeneratorScriptFunction);
+
+    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::JavascriptGeneratorFunction::GetOffsetOfScriptFunction(), TyMachPtr, func);
     LowererMD::CreateAssign(funcObjRegOpnd, indirOpnd, instrInsert);
 
     instrInsert->InsertBefore(labelScriptFunction);
@@ -20363,7 +20366,7 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
 
     Assert(!func->IsInlinee());
 
-    if (func->GetJnFunction()->IsGenerator())
+    if (func->GetJnFunction()->IsCoroutine())
     {
         instrInsert->SetSrc1(opndUndefAddress);
         LowererMD::ChangeToAssign(instrInsert);
@@ -21098,7 +21101,7 @@ void Lowerer::GenerateNullOutGeneratorFrame(IR::Instr* insertInstr)
 
 void Lowerer::LowerFunctionExit(IR::Instr* funcExit)
 {
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJnFunction()->IsCoroutine())
     {
         GenerateNullOutGeneratorFrame(funcExit->m_prev);
     }

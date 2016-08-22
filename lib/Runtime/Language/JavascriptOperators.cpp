@@ -5428,7 +5428,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
-        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) ?
+        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
@@ -9694,35 +9694,6 @@ CommonNumber:
 
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
         throw yieldData->exceptionObj;
-    }
-
-    Var JavascriptOperators::OP_AsyncSpawn(Var aGenerator, Var aThis, ScriptContext* scriptContext)
-    {
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-
-        JavascriptExceptionObject* e = nullptr;
-        JavascriptPromiseResolveOrRejectFunction* resolve;
-        JavascriptPromiseResolveOrRejectFunction* reject;
-        JavascriptPromiseAsyncSpawnExecutorFunction* executor = library->CreatePromiseAsyncSpawnExecutorFunction(JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction, (JavascriptGenerator*)aGenerator, aThis);
-        JavascriptPromise* promise = library->CreatePromise();
-
-        JavascriptPromise::InitializePromise(promise, &resolve, &reject, scriptContext);
-
-        try
-        {
-            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
-        }
-        catch (JavascriptExceptionObject* ex)
-        {
-            e = ex;
-        }
-
-        if (e != nullptr)
-        {
-            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
-        }
-
-        return promise;
     }
 
     Js::Var

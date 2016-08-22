@@ -5022,19 +5022,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             }
         }
 
-        if (fAsync)
-        {
-            if (!buildAST || isTopLevelDeferredFunc)
-            {
-                // We increment m_nextFunctionId when there is an Async function to counterbalance the functionId because of the added generator to the AST with an async function that we use to keep deferred parsing in sync with non-deferred parsing
-                (*m_nextFunctionId)++;
-            }
-            // Same than before, we increment the nestedCount because we will have a Generator inside any async function.
-            pnodeFnc->sxFnc.nestedCount++;
-        }
-
         Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes ? pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope : nullptr;
-        if (paramScope != nullptr && !fAsync)
+        if (paramScope != nullptr)
         {
             if (CONFIG_FLAG(ForceSplitScope))
             {
@@ -5071,7 +5060,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         // If the param scope is merged with the body scope we want to use the param scope symbols in the body scope.
         // So add a pid ref for the body using the param scope symbol. Note that in this case the same symbol will occur twice
         // in the same pid ref stack.
-        if (paramScope != nullptr && paramScope->GetCanMergeWithBodyScope() && (isTopLevelDeferredFunc || !fAsync))
+        if (paramScope != nullptr && paramScope->GetCanMergeWithBodyScope())
         {
             paramScope->ForEachSymbol([this](Symbol* paramSym)
             {
@@ -5204,14 +5193,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
                 if (m_token.tk != tkLCurly && fLambda)
                 {
-                    if (fAsync)
-                    {
-                        TransformAsyncFncDeclAST(&pnodeFnc, true);
-                    }
-                    else
-                    {
-                        ParseExpressionLambdaBody<true>(pnodeFnc);
-                    }
+                    ParseExpressionLambdaBody<true>(pnodeFnc);
                     *pNeedScanRCurly = false;
                 }
                 else
@@ -6768,16 +6750,11 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
     {
         ChkCurTok(tkLCurly, ERRnoLcurly);
     }
-    if (pnodeFnc->sxFnc.IsAsync())
-    {
-        TransformAsyncFncDeclAST(&pnodeFnc->sxFnc.pnodeBody, false);
-    }
-    else
-    {
-        ParseStmtList<true>(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, SM_OnFunctionCode, true /* isSourceElementList */);
-        // Append an EndCode node.
-        AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
-    }
+
+    ParseStmtList<true>(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, SM_OnFunctionCode, true /* isSourceElementList */);
+    // Append an EndCode node.
+    AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
+
     if (!skipCurlyBraces)
     {
         ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
@@ -7529,193 +7506,6 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
     m_pscan->Scan();
 
     return pnodeStringTemplate;
-}
-
-void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
-{
-    StmtNest *pstmtSave;
-
-    ParseNodePtr pnodeReturn;
-    ParseNodePtr pnodeAsyncSpawn;
-    ParseNodePtr pnodeFncGenerator = nullptr;
-    ParseNodePtr pnodeFncSave = nullptr;
-    ParseNodePtr pnodeDeferredFncSave = nullptr;
-    ParseNodePtr pnodeInnerBlock = nullptr;
-    ParseNodePtr pnodeBlock = nullptr;
-    ParseNodePtr *lastNodeRef = nullptr;
-    ParseNodePtr *ppnodeScopeSave = nullptr;
-    ParseNodePtr *ppnodeExprScopeSave = nullptr;
-
-    AutoParsingSuperRestrictionStateRestorer restorer(this);
-
-    // Create the generator : function*() {}
-    uint tryCatchOrFinallyDepthSave = this->m_tryCatchOrFinallyDepth;
-    this->m_tryCatchOrFinallyDepth = 0;
-
-    uint scopeCountNoAstSave = m_scopeCountNoAst;
-    m_scopeCountNoAst = 0;
-
-    int32* pAstSizeSave = m_pCurrentAstSize;
-
-    pnodeFncSave = m_currentNodeFunc;
-    pnodeDeferredFncSave = m_currentNodeDeferredFunc;
-
-    bool hasNonSimpleParameterList = m_currentNodeFunc->sxFnc.HasNonSimpleParameterList();
-
-    pnodeFncGenerator = CreateAsyncSpawnGenerator();
-
-    pstmtSave = m_pstmtCur;
-    SetCurrentStatement(nullptr);
-
-    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(FALSE);
-    uint uDeferSave = m_grfscr & fscrDeferFncParse;
-
-    pnodeBlock = StartParseBlock<true>(PnodeBlockType::Parameter, ScopeType_Parameter);
-    pnodeFncGenerator->sxFnc.pnodeScopes = pnodeBlock;
-    m_ppnodeVar = &pnodeFncGenerator->sxFnc.pnodeParams;
-
-    ppnodeScopeSave = m_ppnodeScope;
-
-    m_ppnodeScope = &pnodeBlock->sxBlock.pnodeScopes;
-    pnodeBlock->sxBlock.pnodeStmt = pnodeFncGenerator;
-
-    ppnodeExprScopeSave = m_ppnodeExprScope;
-    m_ppnodeExprScope = nullptr;
-
-    // Push the formal parameter symbols again for the inner generator to get proper
-    // redeclaration semantics (error for let/const locals, merge for var locals)
-    Scope* paramScope = pnodeFncSave->sxFnc.pnodeScopes->sxBlock.scope;
-    paramScope->ForEachSymbol([this](Symbol* paramSym)
-    {
-        Symbol* sym = paramSym->GetPid()->GetTopRef()->GetSym();
-        PidRefStack* ref = PushPidRef(paramSym->GetPid());
-        ref->SetSym(sym);
-    });
-
-    pnodeInnerBlock = StartParseBlock<true>(PnodeBlockType::Function, ScopeType_FunctionBody);
-    *m_ppnodeScope = pnodeInnerBlock;
-    pnodeFncGenerator->sxFnc.pnodeBodyScope = pnodeInnerBlock;
-
-    m_ppnodeScope = &pnodeInnerBlock->sxBlock.pnodeScopes;
-    pnodeInnerBlock->sxBlock.pnodeStmt = pnodeFncGenerator;
-
-    Assert(*m_ppnodeVar == nullptr);
-
-    pnodeFncGenerator->sxFnc.pnodeVars = nullptr;
-    m_ppnodeVar = &pnodeFncGenerator->sxFnc.pnodeVars;
-
-    DeferredFunctionStub *saveCurrentStub = m_currDeferredStub;
-    if (pnodeFncSave && m_currDeferredStub)
-    {
-        m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->sxFnc.nestedCount - 1))->deferredStubs;
-    }
-
-    // It is an error if the async function contains a "use strict" directive and has
-    // a non simple parameter list.  Since we split the body from the parameters by the
-    // synthetic inner generator function, temporarily set the HasNonSimpleParameterList
-    // flag on the inner generator for the duration of parsing the body so that "use strict"
-    // will trigger the corresponding syntax error.  Unset it afterwards since it has
-    // meaning post-parsing that won't match the actual parameter list of the generator.
-    pnodeFncGenerator->sxFnc.SetHasNonSimpleParameterList(hasNonSimpleParameterList);
-
-    // We always merge the param scope and body scope for async methods right now.
-    // So adding an additional reference for the param symbols to the body.
-    paramScope->ForEachSymbol([this] (Symbol* param)
-    {
-        Symbol* sym = param->GetPid()->GetTopRef()->GetSym();
-        PidRefStack* ref = PushPidRef(param->GetPid());
-        ref->SetSym(sym);
-    });
-    pnodeFncGenerator->sxFnc.pnodeBody = nullptr;
-    if (fLambda)
-    {
-        // Parse and set the function body
-        ParseExpressionLambdaBody<true>(*pnodeBody);
-        AddToNodeList(&pnodeFncGenerator->sxFnc.pnodeBody, &lastNodeRef, (*pnodeBody)->sxFnc.pnodeScopes->sxBlock.pnodeStmt);
-    }
-    else
-    {
-        // Parse the function body
-        ParseStmtList<true>(&pnodeFncGenerator->sxFnc.pnodeBody, &lastNodeRef, SM_OnFunctionCode, true);
-        ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
-    }
-    AddToNodeList(&pnodeFncGenerator->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
-    lastNodeRef = NULL;
-
-    pnodeFncGenerator->sxFnc.SetHasNonSimpleParameterList(false);
-
-    pnodeFncGenerator->ichLim = m_pscan->IchLimTok();
-    pnodeFncGenerator->sxFnc.cbLim = m_pscan->IecpLimTok();
-
-    m_currDeferredStub = saveCurrentStub;
-
-    FinishParseBlock(pnodeInnerBlock, true);
-
-    this->AddArgumentsNodeToVars(pnodeFncGenerator);
-
-    Assert(m_ppnodeExprScope == nullptr || *m_ppnodeExprScope == nullptr);
-    m_ppnodeExprScope = ppnodeExprScopeSave;
-
-    AssertMem(m_ppnodeScope);
-    Assert(nullptr == *m_ppnodeScope);
-    m_ppnodeScope = ppnodeScopeSave;
-
-    FinishParseBlock(pnodeBlock, true);
-
-    Assert(nullptr == m_pstmtCur);
-    SetCurrentStatement(pstmtSave);
-
-    if (!m_stoppedDeferredParse)
-    {
-        m_grfscr |= uDeferSave;
-    }
-
-    m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
-
-    Assert(pnodeFncGenerator == m_currentNodeFunc);
-
-    m_currentNodeFunc = pnodeFncSave;
-    m_currentNodeDeferredFunc = pnodeDeferredFncSave;
-    m_pCurrentAstSize = pAstSizeSave;
-
-    m_inDeferredNestedFunc = false;
-
-    m_scopeCountNoAst = scopeCountNoAstSave;
-
-    this->m_tryCatchOrFinallyDepth = tryCatchOrFinallyDepthSave;
-
-    // Create the call : spawn(function*() {}, this)
-    pnodeAsyncSpawn = CreateBinNode(knopAsyncSpawn, pnodeFncGenerator, CreateNodeWithScanner<knopThis>());
-
-    // Create the return : return spawn(function*() {}, this)
-    pnodeReturn = CreateNodeWithScanner<knopReturn>();
-    pnodeReturn->sxStmt.grfnop = 0;
-    pnodeReturn->sxStmt.pnodeOuter = nullptr;
-    pnodeReturn->sxReturn.pnodeExpr = pnodeAsyncSpawn;
-    if (fLambda)
-    {
-        (*pnodeBody)->sxFnc.pnodeScopes->sxBlock.pnodeStmt = nullptr;
-        AddToNodeList(&(*pnodeBody)->sxFnc.pnodeScopes->sxBlock.pnodeStmt, &lastNodeRef, pnodeReturn);
-    }
-    else
-    {
-        *pnodeBody = nullptr;
-        AddToNodeList(pnodeBody, &lastNodeRef, pnodeReturn);
-        AddToNodeList(pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
-    }
-    if (pnodeFncGenerator->sxFnc.GetStrictMode())
-    {
-        GetCurrentFunctionNode()->sxFnc.SetStrictMode();
-    }
-    if (pnodeFncGenerator->sxFnc.UsesArguments())
-    {
-        GetCurrentFunctionNode()->sxFnc.SetUsesArguments();
-    }
-    if (pnodeFncGenerator->sxFnc.CallsEval() || pnodeFncGenerator->sxFnc.ChildCallsEval())
-    {
-        GetCurrentFunctionNode()->sxFnc.SetChildCallsEval();
-    }
-    lastNodeRef = NULL;
 }
 
 ParseNodePtr Parser::CreateAsyncSpawnGenerator()
