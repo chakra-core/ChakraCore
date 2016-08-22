@@ -158,6 +158,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegistry.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptModuleStatus.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -167,6 +170,9 @@
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptErrorDebug.h" />
     <ClInclude Include="JavascriptListIterator.h" />
+    <ClInclude Include="JavascriptLoader.h" />
+    <ClInclude Include="JavascriptRegistry.h" />
+    <ClInclude Include="JavascriptModuleStatus.h" />
     <ClInclude Include="JavascriptSimdObject.h" />
     <ClInclude Include="JavascriptSimdType.h" />
     <ClInclude Include="JavascriptSimdFloat32x4.h" />

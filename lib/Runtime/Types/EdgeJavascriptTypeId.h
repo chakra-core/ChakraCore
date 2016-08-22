@@ -110,17 +110,20 @@ enum TypeId
     TypeIds_JavascriptEnumeratorIterator = 67,
     TypeIds_Generator = 68,
     TypeIds_Promise = 69,
+    TypeIds_Registry = 70,
+    TypeIds_Loader = 71,
+    TypeIds_ModuleStatus = 72,
 
-    TypeIds_LastBuiltinDynamicObject = TypeIds_Promise,
-    TypeIds_GlobalObject = 70,
-    TypeIds_ModuleRoot = 71,
+    TypeIds_LastBuiltinDynamicObject = TypeIds_Loader,
+    TypeIds_GlobalObject = 73,
+    TypeIds_ModuleRoot = 74,
     TypeIds_LastTrueJavascriptObjectType = TypeIds_ModuleRoot,
 
-    TypeIds_HostObject = 72,
-    TypeIds_ActivationObject = 73,
-    TypeIds_SpreadArgument = 74,
-    TypeIds_ModuleNamespace = 75,
-    TypeIds_ListIterator = 76,
+    TypeIds_HostObject = 75,
+    TypeIds_ActivationObject = 76,
+    TypeIds_SpreadArgument = 77,
+    TypeIds_ModuleNamespace = 78,
+    TypeIds_ListIterator = 79,
 
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };

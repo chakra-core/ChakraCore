@@ -14,7 +14,7 @@ namespace Js
         typedef MapOrSetDataList<MapDataKeyValuePair> MapDataList;
         typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
 
-    private:
+    protected:
         MapDataList list;
         MapDataMap* map;
 

@@ -115,6 +115,11 @@ namespace Js
     class JavascriptPromiseAllResolveElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
+    class JavascriptModuleStatusErrorHandlerFunction;
+    class JavascriptModuleStatusFulfillmentHandlerFunction;
+    class JavascriptLoaderFulfillmentHandlerFunction;
+    enum class JavascriptModuleStatusStage;
+    class ModuleNamespace;
     class JavascriptGenerator;
     class LiteralString;
     class ArenaLiteralString;
@@ -202,6 +207,9 @@ namespace Js
     class JavascriptSet;
     class JavascriptWeakMap;
     class JavascriptWeakSet;
+    class JavascriptRegistry;
+    class JavascriptLoader;
+    class JavascriptModuleStatus;
     class DynamicObject;
     class HostObjectBase;
     class RootObjectBase;
@@ -432,6 +440,12 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/DynamicObjectEnumerator.h"
 #include "Types/DynamicObjectSnapshotEnumerator.h"
 #include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+
+#include "Types/PropertyIndexRanges.h"
+#include "Types/SimpleDictionaryPropertyDescriptor.h"
+#include "Types/SimpleDictionaryTypeHandler.h"
+#include "Types/NullTypeHandler.h"
+
 #include "Library/JavascriptObject.h"
 #include "Library/BuiltInFlags.h"
 #include "Library/ForInObjectEnumerator.h"

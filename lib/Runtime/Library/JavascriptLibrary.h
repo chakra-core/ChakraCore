@@ -295,6 +295,10 @@ namespace Js
         DynamicType * regexResultType;
         StaticType  * stringTypeStatic;
         DynamicType * stringTypeDynamic;
+        DynamicType * registryType;
+        DynamicType * loaderType;
+        DynamicType * moduleStatusType;
+        DynamicType * moduleType;
         DynamicType * mapType;
         DynamicType * setType;
         DynamicType * weakMapType;
@@ -400,6 +404,11 @@ namespace Js
         JavascriptSymbol* symbolReplace;
         JavascriptSymbol* symbolSearch;
         JavascriptSymbol* symbolSplit;
+
+        JavascriptSymbol* symbolResolve;
+        JavascriptSymbol* symbolFetch;
+        JavascriptSymbol* symbolTranslate;
+        JavascriptSymbol* symbolInstantiate;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
         JavascriptFunction* regexExecFunction;
@@ -559,6 +568,10 @@ namespace Js
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
         JavascriptSymbol* GetSymbolUnscopables() { return symbolUnscopables; }
+        JavascriptSymbol* GetSymbolResolve() { return symbolResolve; }
+        JavascriptSymbol* GetSymbolFetch() { return symbolFetch; }
+        JavascriptSymbol* GetSymbolTranslate() { return symbolTranslate; }
+        JavascriptSymbol* GetSymbolInstantiate() { return symbolInstantiate; }
         JavascriptString* GetNullString() { return nullString; }
         JavascriptString* GetEmptyString() const;
         JavascriptString* GetWhackString() { return whackString; }
@@ -773,6 +786,10 @@ namespace Js
         DynamicType * GetSetIteratorType() const { return setIteratorType; }
         DynamicType * GetStringIteratorType() const { return stringIteratorType; }
         DynamicType * GetListIteratorType() const { return listIteratorType; }
+        DynamicType * GetRegistryType() const { return registryType; }
+        DynamicType * GetLoaderType() const { return loaderType; }
+        DynamicType * GetModuleStatusType() const { return moduleStatusType; }
+        DynamicType * GetModuleType() const { return moduleType; }
         JavascriptFunction* GetDefaultAccessorFunction() const { return defaultAccessorFunction; }
         JavascriptFunction* GetStackTraceAccessorFunction() const { return stackTraceAccessorFunction; }
         JavascriptFunction* GetThrowTypeErrorRestrictedPropertyAccessorFunction() const { return throwTypeErrorRestrictedPropertyAccessorFunction; }
@@ -811,6 +828,26 @@ namespace Js
         int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
+
+        RuntimeFunction* registryConstructor;       // %Registry%
+        RuntimeFunction* loaderConstructor;         // %Loader%
+        RuntimeFunction* moduleStatusConstructor;   // %ModuleStatus%
+        RuntimeFunction* moduleConstructor;         // %Module%
+
+        DynamicObject* registryPrototype;           // %RegistryPrototype%
+        DynamicObject* loaderPrototype;             // %LoaderPrototype%
+        DynamicObject* moduleStatusPrototype;       // %ModuleStatusPrototype%
+        DynamicObject* modulePrototype;
+
+        JavascriptFunction* GetRegistryConstructor() const { return registryConstructor; }
+        JavascriptFunction* GetLoaderConstructor() const { return loaderConstructor; }
+        JavascriptFunction* GetModuleStatusConstructor() const { return moduleStatusConstructor; }
+        JavascriptFunction* GetModuleConstructor() const { return moduleConstructor; }
+
+        DynamicObject* GetRegistryPrototype() const { return registryPrototype; }
+        DynamicObject* GetLoaderPrototype() const { return loaderPrototype; }
+        DynamicObject* GetModuleStatusPrototype() const { return moduleStatusPrototype; }
+        DynamicObject* GetModulePrototype() const { return modulePrototype; }
 
         TypePath* GetRootPath() const { return rootPath; }
         void BindReference(void * addr);
@@ -915,6 +952,9 @@ namespace Js
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
         JavascriptPromise* CreatePromise();
         JavascriptGenerator* CreateGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
+        JavascriptRegistry* CreateRegistry();
+        JavascriptLoader* CreateLoader();
+        JavascriptModuleStatus* CreateModuleStatus();
         JavascriptFunction* CreateNonProfiledFunction(FunctionInfo * functionInfo);
         template <class MethodType>
         JavascriptExternalFunction* CreateIdMappedExternalFunction(MethodType entryPoint, DynamicType *pPrototypeType);
@@ -967,6 +1007,10 @@ namespace Js
         JavascriptPromiseReactionTaskFunction* CreatePromiseReactionTaskFunction(JavascriptMethod entryPoint, JavascriptPromiseReaction* reaction, Var argument);
         JavascriptPromiseResolveThenableTaskFunction* CreatePromiseResolveThenableTaskFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, RecyclableObject* thenable, RecyclableObject* thenFunction);
         JavascriptPromiseAllResolveElementFunction* CreatePromiseAllResolveElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements);
+        JavascriptModuleStatusErrorHandlerFunction* CreateModuleStatusErrorHandlerFunction(JavascriptMethod entryPoint, JavascriptModuleStatus* entry);
+        JavascriptModuleStatusFulfillmentHandlerFunction* CreateModuleStatusFulfillmentHandlerFunction(JavascriptMethod entryPoint, FunctionInfo* functionInfo, JavascriptModuleStatus* entry, JavascriptModuleStatusStage stage, Var value);
+        JavascriptLoaderFulfillmentHandlerFunction* CreateModuleLoaderFulfillmentHandlerFunction(JavascriptMethod entryPoint, FunctionInfo* functionInfo, Var loaderOrEntry, JavascriptModuleStatusStage stage);
+        
         JavascriptExternalFunction* CreateWrappedExternalFunction(JavascriptExternalFunction* wrappedFunction);
 
 #if ENABLE_NATIVE_CODEGEN
@@ -1253,6 +1297,17 @@ namespace Js
         static void __cdecl InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
+        static void __cdecl InitializeRegistryConstructor(DynamicObject* registryConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeRegistryPrototype(DynamicObject* registryPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeLoaderConstructor(DynamicObject* loaderConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeLoaderPrototype(DynamicObject* loaderPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeModuleStatusConstructor(DynamicObject* moduleStatusConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeModuleStatusPrototype(DynamicObject* moduleStatusPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeModuleConstructor(DynamicObject* moduleConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, Var nameId);
@@ -1335,6 +1390,9 @@ namespace Js
         HRESULT ProfilerRegisterReflect();
         HRESULT ProfilerRegisterGenerator();
         HRESULT ProfilerRegisterSIMD();
+        HRESULT ProfilerRegisterRegistry();
+        HRESULT ProfilerRegisterLoader();
+        HRESULT ProfilerRegisterModuleStatus();
 
 #ifdef IR_VIEWER
         HRESULT ProfilerRegisterIRViewer();

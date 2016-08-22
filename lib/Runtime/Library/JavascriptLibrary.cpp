@@ -280,7 +280,7 @@ namespace Js
             datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue, tempDynamicType);
         }
 
-        if(scriptContext->GetConfig()->IsES6PrototypeChain())
+        if (scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             errorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -388,21 +388,21 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
             DeferredTypeHandler<InitializeStringIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-        if(scriptContext->GetConfig()->IsES6PromiseEnabled())
+        if (scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
             promisePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if(scriptContext->GetConfig()->IsES6ProxyEnabled())
+        if (scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
             javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
                 DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
+        if (scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
             generatorFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
@@ -413,11 +413,30 @@ namespace Js
                 DeferredTypeHandler<InitializeGeneratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if(scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             asyncFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
                 DeferredTypeHandler<InitializeAsyncFunctionPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        }
+
+        if (scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            registryPrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeRegistryPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
+            loaderPrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeLoaderPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
+            moduleStatusPrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeModuleStatusPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
+            modulePrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
+                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true));
         }
     }
 
@@ -688,6 +707,18 @@ namespace Js
 
         weakSetType = DynamicType::New(scriptContext, TypeIds_WeakSet, weakSetPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+
+        if (config->IsES6ModuleEnabled())
+        {
+            registryType = DynamicType::New(scriptContext, TypeIds_Registry, registryPrototype, nullptr,
+                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+
+            loaderType = DynamicType::New(scriptContext, TypeIds_Loader, loaderPrototype, nullptr,
+                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+
+            moduleStatusType = DynamicType::New(scriptContext, TypeIds_ModuleStatus, moduleStatusPrototype, nullptr,
+                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        }
 
         TypePath *const iteratorResultPath = TypePath::New(recycler);
         iteratorResultPath->Add(BuiltInPropertyRecords::value);
@@ -1098,6 +1129,21 @@ namespace Js
             symbolSplit = nullptr;
         }
 
+        if (scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            symbolResolve = CreateSymbol(BuiltInPropertyRecords::_symbolResolve);
+            symbolFetch = CreateSymbol(BuiltInPropertyRecords::_symbolFetch);
+            symbolTranslate = CreateSymbol(BuiltInPropertyRecords::_symbolTranslate);
+            symbolInstantiate = CreateSymbol(BuiltInPropertyRecords::_symbolInstantiate);
+        }
+        else
+        {
+            symbolResolve = nullptr;
+            symbolFetch = nullptr;
+            symbolTranslate = nullptr;
+            symbolInstantiate = nullptr;
+        }
+
         debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(_u("[Uninitialized block variable]"));
         defaultAccessorFunction = CreateNonProfiledFunction(&JavascriptOperators::EntryInfo::DefaultAccessor);
 
@@ -1356,6 +1402,26 @@ namespace Js
         weakSetConstructor = CreateBuiltinConstructor(&JavascriptWeakSet::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeWeakSetConstructor>::GetDefaultInstance());
         AddFunction(globalObject, PropertyIds::WeakSet, weakSetConstructor);
+
+        registryConstructor = nullptr;
+        loaderConstructor = nullptr;
+        moduleStatusConstructor = nullptr;
+
+        if (scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            registryConstructor = CreateBuiltinConstructor(&JavascriptRegistry::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeRegistryConstructor>::GetDefaultInstance());
+
+            loaderConstructor = CreateBuiltinConstructor(&JavascriptLoader::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeLoaderConstructor>::GetDefaultInstance());
+
+            moduleStatusConstructor = CreateBuiltinConstructor(&JavascriptModuleStatus::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeModuleStatusConstructor>::GetDefaultInstance());
+
+            // TODO: This should construct something else
+            moduleConstructor = CreateBuiltinConstructor(&JavascriptModuleStatus::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeModuleConstructor>::GetDefaultInstance());
+        }
 
         generatorFunctionConstructor = nullptr;
 
@@ -2178,6 +2244,147 @@ namespace Js
         asyncFunctionPrototype->SetHasNoEnumerableProperties(true);
     }
 
+    void JavascriptLibrary::InitializeRegistryConstructor(DynamicObject* registryConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(registryConstructor, mode, 3);
+        JavascriptLibrary* library = registryConstructor->GetLibrary();
+        ScriptContext* scriptContext = registryConstructor->GetScriptContext();
+
+        library->AddMember(registryConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
+        library->AddMember(registryConstructor, PropertyIds::prototype, library->registryPrototype, PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(registryConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Registry")), PropertyConfigurable);
+        }
+
+        registryConstructor->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeRegistryPrototype(DynamicObject* registryPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(registryPrototype, mode, 9);
+        JavascriptLibrary* library = registryPrototype->GetLibrary();
+
+        library->AddMember(registryPrototype, PropertyIds::constructor, library->registryConstructor, PropertyConfigurable);
+
+        JavascriptFunction* entriesFunc = library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::entries, &JavascriptRegistry::EntryInfo::Entries, 0);
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::keys, &JavascriptRegistry::EntryInfo::Keys, 0);
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::values, &JavascriptRegistry::EntryInfo::Values, 0);
+        library->AddMember(registryPrototype, PropertyIds::_symbolIterator, entriesFunc);
+        
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::get, &JavascriptRegistry::EntryInfo::Get, 1);
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::set, &JavascriptRegistry::EntryInfo::Set, 2);
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::has, &JavascriptRegistry::EntryInfo::Has, 1);
+        library->AddFunctionToLibraryObject(registryPrototype, PropertyIds::delete_, &JavascriptRegistry::EntryInfo::Delete, 1);
+
+        registryPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeLoaderConstructor(DynamicObject* loaderConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(loaderConstructor, mode, 7);
+        JavascriptLibrary* library = loaderConstructor->GetLibrary();
+        ScriptContext* scriptContext = loaderConstructor->GetScriptContext();
+
+        library->AddMember(loaderConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
+        library->AddMember(loaderConstructor, PropertyIds::prototype, library->loaderPrototype, PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(loaderConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Loader")), PropertyConfigurable);
+        }
+
+        library->AddMember(loaderConstructor, PropertyIds::resolve, library->GetSymbolResolve(), PropertyNone);
+        library->AddMember(loaderConstructor, PropertyIds::fetch, library->GetSymbolFetch(), PropertyNone);
+        library->AddMember(loaderConstructor, PropertyIds::translate, library->GetSymbolTranslate(), PropertyNone);
+        library->AddMember(loaderConstructor, PropertyIds::instantiate, library->GetSymbolInstantiate(), PropertyNone);
+
+        loaderConstructor->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeLoaderPrototype(DynamicObject* loaderPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(loaderPrototype, mode, 5);
+        JavascriptLibrary* library = loaderPrototype->GetLibrary();
+        ScriptContext* scriptContext = loaderPrototype->GetScriptContext();
+
+        library->AddMember(loaderPrototype, PropertyIds::constructor, library->loaderConstructor, PropertyConfigurable);
+
+        library->AddFunctionToLibraryObject(loaderPrototype, PropertyIds::import, &JavascriptLoader::EntryInfo::Import, 1);
+        library->AddFunctionToLibraryObject(loaderPrototype, PropertyIds::resolve, &JavascriptLoader::EntryInfo::Resolve, 1);
+        library->AddFunctionToLibraryObject(loaderPrototype, PropertyIds::load, &JavascriptLoader::EntryInfo::Load, 1);
+
+        library->AddAccessorsToLibraryObject(loaderPrototype, PropertyIds::registry, &JavascriptLoader::EntryInfo::GetterRegistry, nullptr);
+
+        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            library->AddMember(loaderPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Object")), PropertyConfigurable);
+        }
+
+        loaderPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeModuleStatusConstructor(DynamicObject* moduleStatusConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(moduleStatusConstructor, mode, 3);
+        JavascriptLibrary* library = moduleStatusConstructor->GetLibrary();
+        ScriptContext* scriptContext = moduleStatusConstructor->GetScriptContext();
+
+        library->AddMember(moduleStatusConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
+        library->AddMember(moduleStatusConstructor, PropertyIds::prototype, library->moduleStatusPrototype, PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(moduleStatusConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("ModuleStatus")), PropertyConfigurable);
+        }
+
+        moduleStatusConstructor->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeModuleStatusPrototype(DynamicObject* moduleStatusPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(moduleStatusPrototype, mode, 10);
+        JavascriptLibrary* library = moduleStatusPrototype->GetLibrary();
+
+        library->AddMember(moduleStatusPrototype, PropertyIds::constructor, library->moduleStatusConstructor, PropertyConfigurable);
+
+        library->AddAccessorsToLibraryObject(moduleStatusPrototype, PropertyIds::stage, &JavascriptModuleStatus::EntryInfo::GetterStage, nullptr);
+        library->AddAccessorsToLibraryObject(moduleStatusPrototype, PropertyIds::originalKey, &JavascriptModuleStatus::EntryInfo::GetterOriginalKey, nullptr);
+        library->AddAccessorsToLibraryObject(moduleStatusPrototype, PropertyIds::module, &JavascriptModuleStatus::EntryInfo::GetterModule, nullptr);
+        library->AddAccessorsToLibraryObject(moduleStatusPrototype, PropertyIds::error, &JavascriptModuleStatus::EntryInfo::GetterError, nullptr);
+        library->AddAccessorsToLibraryObject(moduleStatusPrototype, PropertyIds::dependencies, &JavascriptModuleStatus::EntryInfo::GetterDependencies, nullptr);
+
+        library->AddFunctionToLibraryObject(moduleStatusPrototype, PropertyIds::load, &JavascriptModuleStatus::EntryInfo::Load, 1);
+        library->AddFunctionToLibraryObject(moduleStatusPrototype, PropertyIds::result, &JavascriptModuleStatus::EntryInfo::Result, 1);
+        library->AddFunctionToLibraryObject(moduleStatusPrototype, PropertyIds::resolve, &JavascriptModuleStatus::EntryInfo::Resolve, 2);
+        library->AddFunctionToLibraryObject(moduleStatusPrototype, PropertyIds::reject, &JavascriptModuleStatus::EntryInfo::Reject, 2);
+
+        moduleStatusPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeModuleConstructor(DynamicObject* moduleConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(moduleConstructor, mode, 5);
+        JavascriptLibrary* library = moduleConstructor->GetLibrary();
+        ScriptContext* scriptContext = moduleConstructor->GetScriptContext();
+
+        library->AddMember(moduleConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(moduleConstructor, PropertyIds::prototype, library->modulePrototype, PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(moduleConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Module")), PropertyConfigurable);
+        }
+
+        // TODO: Reference a different method
+        library->AddFunctionToLibraryObject(moduleConstructor, PropertyIds::evaluate, &JavascriptModuleStatus::EntryInfo::Load, 1);
+
+        library->AddMember(moduleConstructor, PropertyIds::Status, library->moduleStatusConstructor, PropertyConfigurable);
+
+        moduleConstructor->SetHasNoEnumerableProperties(true);
+    }
+
     void JavascriptLibrary::InitializeProxyConstructor(DynamicObject* proxyConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(proxyConstructor, mode, 4);
@@ -2986,7 +3193,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(reflectObject, mode, 12);
+        typeHandler->Convert(reflectObject, mode, 16);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterReflect
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = reflectObject->GetScriptContext();
@@ -3019,6 +3226,12 @@ namespace Js
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::apply, &JavascriptReflect::EntryInfo::Apply, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Construct.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::construct, &JavascriptReflect::EntryInfo::Construct, 2));
+
+        if (scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            library->AddMember(reflectObject, PropertyIds::Loader, library->loaderConstructor, PropertyConfigurable);
+            library->AddMember(reflectObject, PropertyIds::Module, library->moduleConstructor, PropertyConfigurable);
+        }
     }
 
     void JavascriptLibrary::InitializeStaticValues()
@@ -5625,6 +5838,24 @@ namespace Js
         return CreateDate(value);
     }
 
+    JavascriptRegistry* JavascriptLibrary::CreateRegistry()
+    {
+        AssertMsg(registryType, "Where's registryType?");
+        return RecyclerNew(this->GetRecycler(), JavascriptRegistry, registryType);
+    }
+
+    JavascriptLoader* JavascriptLibrary::CreateLoader()
+    {
+        AssertMsg(loaderType, "Where's loaderType?");
+        return RecyclerNew(this->GetRecycler(), JavascriptLoader, loaderType);
+    }
+
+    JavascriptModuleStatus* JavascriptLibrary::CreateModuleStatus()
+    {
+        AssertMsg(moduleStatusType, "Where's moduleStatusType?");
+        return RecyclerNew(this->GetRecycler(), JavascriptModuleStatus, moduleStatusType);
+    }
+
     JavascriptMap* JavascriptLibrary::CreateMap()
     {
         AssertMsg(mapType, "Where's mapType?");
@@ -5928,6 +6159,43 @@ namespace Js
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseAllResolveElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllResolveElementFunction, type, functionInfo, index, values, capabilities, remainingElements);
+
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+
+        return function;
+    }
+
+    JavascriptModuleStatusErrorHandlerFunction* JavascriptLibrary::CreateModuleStatusErrorHandlerFunction(JavascriptMethod entryPoint, JavascriptModuleStatus* entry)
+    {
+        Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
+
+        FunctionInfo* functionInfo = &Js::JavascriptModuleStatus::EntryInfo::ErrorHandler;
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptModuleStatusErrorHandlerFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptModuleStatusErrorHandlerFunction, type, functionInfo, entry);
+
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
+
+        return function;
+    }
+
+    JavascriptModuleStatusFulfillmentHandlerFunction* JavascriptLibrary::CreateModuleStatusFulfillmentHandlerFunction(JavascriptMethod entryPoint, FunctionInfo* functionInfo, JavascriptModuleStatus* entry, JavascriptModuleStatusStage stage, Var value)
+    {
+        Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
+
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptModuleStatusFulfillmentHandlerFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptModuleStatusFulfillmentHandlerFunction, type, functionInfo, entry, stage, value);
+
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+
+        return function;
+    }
+
+    JavascriptLoaderFulfillmentHandlerFunction* JavascriptLibrary::CreateModuleLoaderFulfillmentHandlerFunction(JavascriptMethod entryPoint, FunctionInfo* functionInfo, Var loaderOrEntry, JavascriptModuleStatusStage stage)
+    {
+        Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
+
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptLoaderFulfillmentHandlerFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptLoaderFulfillmentHandlerFunction, type, functionInfo, loaderOrEntry, stage);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
@@ -6638,6 +6906,13 @@ namespace Js
             REGISTER_OBJECT(Reflect);
         }
 
+        if (config.IsES6ModuleEnabled())
+        {
+            REGISTER_OBJECT(Registry);
+            REGISTER_OBJECT(Loader);
+            REGISTER_OBJECT(ModuleStatus);
+        }
+
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))
         {
@@ -7290,6 +7565,47 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(next, JavascriptGenerator::EntryNext);
         REG_OBJECTS_LIB_FUNC(return_, JavascriptGenerator::EntryReturn);
         REG_OBJECTS_LIB_FUNC(throw_, JavascriptGenerator::EntryThrow);
+
+        return hr;
+    }
+
+    HRESULT JavascriptLibrary::ProfilerRegisterRegistry()
+    {
+        HRESULT hr = S_OK;
+        DEFINE_OBJECT_NAME(Registry);
+
+        REG_OBJECTS_LIB_FUNC(entries, JavascriptRegistry::EntryEntries);
+        REG_OBJECTS_LIB_FUNC(keys, JavascriptRegistry::EntryKeys);
+        REG_OBJECTS_LIB_FUNC(values, JavascriptRegistry::EntryValues);
+        REG_OBJECTS_LIB_FUNC(get, JavascriptRegistry::EntryGet);
+        REG_OBJECTS_LIB_FUNC(set, JavascriptRegistry::EntrySet);
+        REG_OBJECTS_LIB_FUNC(has, JavascriptRegistry::EntryHas);
+        REG_OBJECTS_LIB_FUNC2(delete_, _u("delete"), JavascriptRegistry::EntryDelete);
+
+        return hr;
+    }
+
+    HRESULT JavascriptLibrary::ProfilerRegisterLoader()
+    {
+        HRESULT hr = S_OK;
+        DEFINE_OBJECT_NAME(Loader);
+
+        REG_OBJECTS_LIB_FUNC(import, JavascriptLoader::EntryImport);
+        REG_OBJECTS_LIB_FUNC(resolve, JavascriptLoader::EntryResolve);
+        REG_OBJECTS_LIB_FUNC(load, JavascriptLoader::EntryLoad);
+
+        return hr;
+    }
+
+    HRESULT JavascriptLibrary::ProfilerRegisterModuleStatus()
+    {
+        HRESULT hr = S_OK;
+        DEFINE_OBJECT_NAME(ModuleStatus);
+
+        REG_OBJECTS_LIB_FUNC(load, JavascriptModuleStatus::EntryLoad);
+        REG_OBJECTS_LIB_FUNC(result, JavascriptModuleStatus::EntryResult);
+        REG_OBJECTS_LIB_FUNC(resolve, JavascriptModuleStatus::EntryResolve);
+        REG_OBJECTS_LIB_FUNC(reject, JavascriptModuleStatus::EntryReject);
 
         return hr;
     }

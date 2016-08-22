@@ -112,6 +112,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegistry.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptModuleStatus.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -242,6 +245,9 @@
     <ClInclude Include="SimdBool16x8Lib.h" />
     <ClInclude Include="SimdBool8x16Lib.h" />
     <ClInclude Include="JavascriptListIterator.h" />
+    <ClInclude Include="JavascriptRegistry.h" />
+    <ClInclude Include="JavascriptLoader.h" />
+    <ClInclude Include="JavascriptModuleStatus.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

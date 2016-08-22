@@ -42,6 +42,8 @@
 #include "Library/JavascriptGenerator.h"
 #include "Library/StackScriptFunction.h"
 #include "Library/HostObjectBase.h"
+#include "Language/ModuleNamespace.h"
+#include "Language/ModuleNamespaceEnumerator.h"
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
 // REVIEW: ChakraCore Dependency

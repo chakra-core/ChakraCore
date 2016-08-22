@@ -357,3 +357,6 @@ RT_ERROR_MSG(JSERR_InvalidHint, 5658, "%s: invalid hint", "invalid hint", kjstTy
 
 RT_ERROR_MSG(JSERR_This_NeedNamespace, 5659, "%s: 'this' is not a Module Namespace object", "Module Namespace object expected", kjstTypeError, JSERR_This_NeedNamespace) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedListIterator, 5660, "%s: 'this' is not a List Iterator object", "List Iterator expected", kjstTypeError, 0) 
+RT_ERROR_MSG(JSERR_CannotCallOrConstruct, 5661, "%s is not intended to be called as a function or as a constructor", "Not intended to be called as a function or as a constructor", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ModuleNotFound, 5662, "", "Module could not be found", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidModuleStatusStage, 5663, "", "Invalid value for ModuleStatus stage", kjstTypeError, 0)
