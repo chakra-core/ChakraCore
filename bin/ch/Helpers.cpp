@@ -503,7 +503,7 @@ HANDLE CALLBACK Helpers::TTGetSnapshotStreamCallback(const char16* uri, const ch
     wcscat_s(snapfile, rlength, snapId);
     wcscat_s(snapfile, rlength, _u(".snp"));
 
-    HANDLE res = TTOpenStream_Helper(snapfile, read, write);
+    HANDLE res = INVALID_HANDLE_VALUE;//TTOpenStream_Helper(snapfile, read, write);
 
     delete[] snapfile;
     return res;
@@ -589,4 +589,3 @@ void CALLBACK Helpers::TTFlushAndCloseStreamCallback(HANDLE handle, bool read, b
     }
 #endif
 }
-
