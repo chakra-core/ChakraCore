@@ -1355,10 +1355,13 @@ public:
     AddrOpndKind            GetAddrOpndKind() const { return addrOpndKind; }
     void                    SetAddress(Js::Var address, AddrOpndKind addrOpndKind);
 public:
-    // TODO: OOP JIT, make this a union to be more transparent
-    void *                  m_metadata;
+
+    // TODO: OOP JIT, make this union more transparent
+    union {
+        void *                  m_metadata;
+        Js::Var                 m_localAddress;
+    };
     Js::Var                 m_address;
-    Js::Var                 m_localAddress;
     bool                    m_dontEncode: 1;
     bool                    m_isFunction: 1;
 private:

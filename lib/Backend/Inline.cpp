@@ -550,7 +550,7 @@ void Inline::FillInlineesDataArrayUsingFixedMethods(
             {
                 for (uint16 i = 0; i < cachedFixedInlineeCount; i++)
                 {
-                    if (inlineeFuncBody->GetAddr() == fixedFieldInfoArray[i].GetFuncBodyAddr())
+                    if (inlineeJitTimeData->GetFunctionInfoAddr() == fixedFieldInfoArray[i].GetFuncInfoAddr())
                     {
                         inlineesDataArray[i] = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeJitTimeData->GetFunctionInfoAddr());
                         break;

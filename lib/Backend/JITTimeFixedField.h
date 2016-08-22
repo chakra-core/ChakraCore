@@ -15,7 +15,6 @@ public:
     ValueType GetValueType() const;
     uint GetLocalFuncId() const;
     intptr_t GetFuncInfoAddr() const;
-    intptr_t GetFuncBodyAddr() const;
     intptr_t GetEnvironmentAddr() const;
     intptr_t GetFieldValue() const;
     JITType * GetType() const;

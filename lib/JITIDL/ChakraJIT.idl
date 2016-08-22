@@ -60,7 +60,6 @@ typedef struct FixedFieldIDL
     TypeIDL * type;
     CHAKRA_PTR fieldValue;
     CHAKRA_PTR funcInfoAddr;
-    CHAKRA_PTR funcBodyAddr;
     CHAKRA_PTR environmentAddr;
 } FixedFieldIDL;
 

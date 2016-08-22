@@ -3345,7 +3345,7 @@ public:
 
         if (!isPropertyIdArrayAvailable)
         {
-            return current;
+            goto Done;
         }
 
         uint32 count = 0;
@@ -3384,6 +3384,7 @@ public:
             propIds->elements[propIds->count + i] = id;
         }
 
+    Done:
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
         Assert(constant == magicEndOfPropIdsOfFormals);
@@ -3516,6 +3517,10 @@ public:
         if (exportsCount > 0)
         {
             PropertyIdArray * propArray = moduleInfo->GetExportsIdArray();
+
+            byte extraSlots;
+            current = ReadByte(current, &extraSlots);
+            propArray->extraSlots = extraSlots;
 
             bool boolVal;
             current = ReadBool(current, &boolVal);

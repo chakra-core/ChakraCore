@@ -51,12 +51,6 @@ JITTimeFixedField::GetFuncInfoAddr() const
 }
 
 intptr_t
-JITTimeFixedField::GetFuncBodyAddr() const
-{
-    return m_data.funcBodyAddr;
-}
-
-intptr_t
 JITTimeFixedField::GetEnvironmentAddr() const
 {
     return m_data.environmentAddr;

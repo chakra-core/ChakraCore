@@ -312,7 +312,6 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
                 jitData[i]->fixedFieldInfoArray[j].localFuncId = (intptr_t)funcObj->GetFunctionInfo()->GetLocalFunctionId();
                 if (Js::ScriptFunction::Is(ffInfo[j].fieldValue))
                 {
-                    jitData[i]->fixedFieldInfoArray[j].funcBodyAddr = (intptr_t)funcObj->GetFunctionBody();
                     jitData[i]->fixedFieldInfoArray[j].environmentAddr = (intptr_t)Js::ScriptFunction::FromVar(funcObj)->GetEnvironment();
                 }
             }
