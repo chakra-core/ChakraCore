@@ -49,7 +49,7 @@ namespace Js
 #endif
     };
 
-    typedef SList<JavascriptModuleStatusStageRecord,Recycler> JavascriptModuleStatusStageRecordList;
+    typedef SList<JavascriptModuleStatusStageRecord*, Recycler> JavascriptModuleStatusStageRecordList;
 
     class JavascriptModuleStatusErrorHandlerFunction : public RuntimeFunction
     {

@@ -67,10 +67,10 @@ namespace Js
 
         *result = nullptr;
 
-        entry->pipeline->MapUntil([=](JavascriptModuleStatusStageRecord stageEntry) {
-            if (stageEntry.stage == stage)
+        entry->pipeline->MapUntil([&](JavascriptModuleStatusStageRecord* stageEntry) {
+            if (stageEntry->stage == stage)
             {
-                *result = &stageEntry;
+                *result = stageEntry;
                 return true;
             }
             return false;
@@ -85,7 +85,7 @@ namespace Js
 
         if (!entry->pipeline->Empty())
         {
-            return &entry->pipeline->Head();
+            return entry->pipeline->Head();
         }
 
         // TODO: Assert here?
@@ -100,7 +100,7 @@ namespace Js
         {
             Assert(stageEntry != nullptr);
 
-            while (!entry->pipeline->Empty() && &entry->pipeline->Head() != stageEntry)
+            while (!entry->pipeline->Empty() && entry->pipeline->Head() != stageEntry)
             {
                 entry->pipeline->RemoveHead();
             }
@@ -391,9 +391,9 @@ namespace Js
             // TODO:
             //Let deps be undefined.
 
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, nullptr, scriptContext));
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Translate, nullptr, scriptContext));
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Fetch, nullptr, scriptContext));
+            this->pipeline->Prepend(JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, nullptr, scriptContext));
+            this->pipeline->Prepend(JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Translate, nullptr, scriptContext));
+            this->pipeline->Prepend(JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Fetch, nullptr, scriptContext));
         }
         else
         {
@@ -410,7 +410,7 @@ namespace Js
             //Let deps be a new empty List.
 
             JavascriptPromise* result = JavascriptPromise::CreateResolvedPromise(ns, scriptContext);
-            this->pipeline->Prepend(*JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, result, scriptContext));
+            this->pipeline->Prepend(JavascriptModuleStatusStageRecord::New(JavascriptModuleStatusStage::Instantiate, result, scriptContext));
         }
 
         this->loader = loader;
