@@ -38,9 +38,9 @@ public:
         __in int helper);
 
     HRESULT AddModuleRecordInfo(
-            /* [in] */ __int64 scriptContextInfoAddress,
+            /* [in] */ intptr_t scriptContextInfoAddress,
             /* [in] */ unsigned int moduleId,
-            /* [in] */ __int64 localExportSlotsAddr);
+            /* [in] */ intptr_t localExportSlotsAddr);
 
     HRESULT SetWellKnownHostTypeId(
         __in  intptr_t threadContextRoot,

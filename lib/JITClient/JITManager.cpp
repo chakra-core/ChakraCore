@@ -370,9 +370,9 @@ JITManager::AddDOMFastPathHelper(
 
 HRESULT 
 JITManager::AddModuleRecordInfo(
-    /* [in] */ __int64 scriptContextInfoAddress,
+    /* [in] */ intptr_t scriptContextInfoAddress,
     /* [in] */ unsigned int moduleId,
-    /* [in] */ __int64 localExportSlotsAddr)
+    /* [in] */ intptr_t localExportSlotsAddr)
 {
     Assert(JITManager::IsOOPJITEnabled());
 

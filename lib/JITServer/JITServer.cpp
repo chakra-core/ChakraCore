@@ -169,9 +169,9 @@ ServerAddDOMFastPathHelper(
 HRESULT
 ServerAddModuleRecordInfo(
     /* [in] */ handle_t binding,
-    /* [in] */ __int64 scriptContextInfoAddress,
+    /* [in] */ intptr_t scriptContextInfoAddress,
     /* [in] */ unsigned int moduleId,
-    /* [in] */ __int64 localExportSlotsAddr)
+    /* [in] */ intptr_t localExportSlotsAddr)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 

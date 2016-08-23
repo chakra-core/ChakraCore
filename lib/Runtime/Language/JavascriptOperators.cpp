@@ -4988,13 +4988,13 @@ CommonNumber:
     {
         if (! JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsUndefinedOrNullType(typeId))
         {
+            // OOP JIT code path should not get here
 #if !FLOATVAR
             // We allowed stack number to be used as the "this" for getter and setter activation of
             // n.x and n[prop], where n is the Javascript Number
             return JavascriptOperators::ToObject(
-                JavascriptNumber::BoxStackNumber(thisVar, scriptContext), scriptContext);
+                JavascriptNumber::BoxStackNumber(thisVar, (ScriptContext*)scriptContext), (ScriptContext*)scriptContext);
 #else
-            // OOP JIT code path should not get here
             return JavascriptOperators::ToObject(thisVar, (ScriptContext*)scriptContext);
 #endif
 
