@@ -10,6 +10,7 @@ typedef char16 TTDHostCharType;
 typedef struct _wfinddata_t TTDHostFileInfo;
 typedef intptr_t TTDHostFindHandle;
 typedef struct _stat TTDHostStatType;
+#include <sys/stat.h>
 
 #define TTDHostPathSeparator _u("\\")
 #define TTDHostPathSeparatorChar _u('\\')
@@ -193,7 +194,7 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 
 #ifdef __APPLE__
 #define TTDHostCWD(dst) nullptr
-#define TTDDoPathInit(dst) 
+#define TTDDoPathInit(dst)
 #define TTDHostTok(opath, TTDHostPathSeparator, context) nullptr
 #define TTDHostStat(cpath, statVal) 0
 
@@ -203,7 +204,7 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 
 #define TTDHostFindFirst(strPattern, FileInformation) nullptr
 #define TTDHostFindNext(hFile, FileInformation) TTDHostFindInvalid
-#define TTDHostFindClose(hFile) 
+#define TTDHostFindClose(hFile)
 
 #define TTDHostDirInfoName(FileInformation) ((const TTDHostCharType*)"\0")
 
