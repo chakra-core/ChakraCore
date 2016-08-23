@@ -22,8 +22,6 @@ JITManager JITManager::s_jitManager = JITManager();
 
 JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
-    m_rpcServerProcessHandle(nullptr),
-    m_jitProcessId(0),
     m_oopJitEnabled(false),
     m_jitConnectionId()
 {
@@ -46,24 +44,35 @@ JITManager::GetJITManager()
 HRESULT
 JITManager::CreateBinding(
     __in HANDLE serverProcessHandle,
+    __in void * serverSecurityDescriptor,
     __in UUID * connectionUuid,
     __out RPC_BINDING_HANDLE * bindingHandle)
 {
     Assert(JITManager::IsOOPJITEnabled());
 
     RPC_STATUS status;
-    RPC_SECURITY_QOS_V4 securityQOS; // TODO: V5???
     DWORD attemptCount = 0;
     DWORD sleepInterval = 100; // in milliseconds
     RPC_BINDING_HANDLE localBindingHandle;
     RPC_BINDING_HANDLE_TEMPLATE_V1 bindingTemplate;
     RPC_BINDING_HANDLE_SECURITY_V1_W bindingSecurity;
 
+#ifndef NTBUILD
+    RPC_SECURITY_QOS_V4 securityQOS;
     ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V4));
     securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
     securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
     securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
     securityQOS.Version = 4;
+#else
+    RPC_SECURITY_QOS_V5 securityQOS;
+    ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V5));
+    securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
+    securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
+    securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
+    securityQOS.Version = 5;
+    securityQOS.ServerSecurityDescriptor = serverSecurityDescriptor;
+#endif // NTBUILD
 
     ZeroMemory(&bindingTemplate, sizeof(bindingTemplate));
     bindingTemplate.Version = 1;
@@ -156,7 +165,7 @@ bool
 JITManager::IsConnected() const
 {
     Assert(JITManager::IsOOPJITEnabled());
-    return m_rpcBindingHandle != nullptr && m_rpcServerProcessHandle != nullptr && m_targetHandle != nullptr;
+    return m_rpcBindingHandle != nullptr && m_targetHandle != nullptr;
 }
 
 void
@@ -183,55 +192,33 @@ JITManager::GetJITTargetHandle() const
 }
 
 HRESULT
-JITManager::ConnectRpcServer(DWORD proccessId, UUID connectionUuid)
+JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(JITManager::IsOOPJITEnabled());
 
     HRESULT hr;
-    HANDLE localServerProcessHandle = nullptr;
-    WCHAR* connectionUuidString = nullptr;
     RPC_BINDING_HANDLE localBindingHandle;
 
-    if (IsConnected() && (proccessId != m_jitProcessId || connectionUuid != m_jitConnectionId))
+    if (IsConnected() && (connectionUuid != m_jitConnectionId))
     {
         return E_FAIL;
     }
 
-    hr = HRESULT_FROM_WIN32(UuidToStringW(&connectionUuid, (RPC_WSTR*)&connectionUuidString));
-    if (FAILED(hr))
-    {
-        return hr;
-    }
-
-    localServerProcessHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, proccessId);
-
-    hr = CreateBinding(localServerProcessHandle, &connectionUuid, &localBindingHandle);
-    if (FAILED(hr))
-    {
-        CloseHandle(localServerProcessHandle);
-        return hr;
-    }
+    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &localBindingHandle);
 
     HANDLE targetHandle;
-    HANDLE jitProcHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, proccessId);
     BOOL succeeded = DuplicateHandle(
         GetCurrentProcess(), GetCurrentProcess(),
-        jitProcHandle, &targetHandle,
+        jitProcessHandle, &targetHandle,
         NULL, FALSE, DUPLICATE_SAME_ACCESS);
 
     if (!succeeded)
     {
-        CloseHandle(localServerProcessHandle);
         return HRESULT_FROM_WIN32(GetLastError());
     }
-    if (!CloseHandle(jitProcHandle))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
+
     m_targetHandle = targetHandle;
     m_rpcBindingHandle = localBindingHandle;
-    m_rpcServerProcessHandle = localServerProcessHandle;
-    m_jitProcessId = proccessId;
     m_jitConnectionId = connectionUuid;
 
     return hr;
@@ -245,7 +232,6 @@ JITManager::DisconnectRpcServer()
     if (m_rpcBindingHandle == nullptr)
     {
         Assert(m_rpcBindingHandle == nullptr);
-        Assert(m_rpcServerProcessHandle == nullptr);
         Assert(m_targetHandle == nullptr);
         return hr;
     }
@@ -278,8 +264,6 @@ JITManager::DisconnectRpcServer()
 
     m_targetHandle = nullptr;
     m_rpcBindingHandle = nullptr;
-    m_rpcServerProcessHandle = nullptr;
-    m_jitProcessId = 0;
     m_jitConnectionId = {0};
 
     return hr;
