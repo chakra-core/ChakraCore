@@ -99,7 +99,12 @@ $PushDate = Get-Date $BuildPushDate -Format yyMMdd.HHmm
 
 $buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
 
-$VersionString = "${Env:VERSION_MAJOR}.${Env:VERSION_MINOR}.${buildPushIdString}"
+$VersionMajor = UseValueOrDefault "$Env:VERSION_MAJOR" "1"
+$VersionMinor = UseValueOrDefault "$Env:VERSION_MINOR" "2"
+$VersionPatch = UseValueOrDefault "$Env:VERSION_PATCH" "0"
+$VersionQFE   = UseValueOrDefault "$Env:VERSION_QFE"   "0"
+
+$VersionString = "${VersionMajor}.${VersionMinor}.${VersionPatch}.${VersionQFE}"
 $PreviewVersionString = "${VersionString}-preview"
 
 # unless it is a build branch, subdivide the output directory by month
