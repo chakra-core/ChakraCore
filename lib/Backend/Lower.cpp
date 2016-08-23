@@ -6027,10 +6027,9 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
 {
     Func * func = this->m_func;
     IR::Opnd * functionProxyOpnd;
-    //Js::FunctionProxy * functionProxy = *nestedProxy;
     IR::Opnd * typeOpnd = nullptr;
     bool doCheckTypeOpnd = true;
-    //if (functionProxy->IsDeferred())
+    if (m_func->IsOOPJIT() || (*(Js::FunctionProxy **)nestedProxy)->IsDeferred())
     {
         functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
         InsertMove(functionProxyOpnd, IR::MemRefOpnd::New(nestedProxy, TyMachPtr, func), insertBeforeInstr);
@@ -6038,10 +6037,9 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
         InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
             TyMachPtr, func), insertBeforeInstr);
     }
-#if 0
-    // TODO: oop jit, make this work
     else
     {
+        Js::FunctionProxy * functionProxy = *(Js::FunctionProxy **)nestedProxy;
         Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
         functionProxyOpnd = CreateFunctionBodyOpnd(functionBody);
         Js::ScriptFunctionType * type = functionProxy->GetDeferredPrototypeType();
@@ -6058,7 +6056,6 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
                 insertBeforeInstr);
         }
     }
-#endif
 
     if (doCheckTypeOpnd)
     {
@@ -21838,9 +21835,9 @@ IR::AddrOpnd *Lowerer::CreateFunctionBodyOpnd(Func *const func) const
 
 IR::AddrOpnd *Lowerer::CreateFunctionBodyOpnd(Js::FunctionBody *const functionBody) const
 {
-    // TODO: OOP JIT, we need to deal with this
-    Assert(UNREACHED);
-    return nullptr;
+    // TODO: OOP JIT, CreateFunctionBodyOpnd
+    Assert(!m_func->IsOOPJIT());
+    return IR::AddrOpnd::New(functionBody, IR::AddrOpndKindDynamicFunctionBody, m_func, true);
 }
 
 bool
