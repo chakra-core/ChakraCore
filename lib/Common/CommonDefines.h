@@ -100,7 +100,7 @@
 
 // GC features
 #define ENABLE_CONCURRENT_GC 1
-#define ENABLE_PARTIAL_GC 1  
+#define ENABLE_PARTIAL_GC 1
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
 #define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
 #define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
@@ -114,7 +114,7 @@
 #define ENABLE_NATIVE_CODEGEN 0
 #define ENABLE_PROFILE_INFO 0
 #define ENABLE_BACKGROUND_PARSING 0                 // Disable background parsing in this mode
-                                                    // We need to decouple the Jobs infrastructure out of 
+                                                    // We need to decouple the Jobs infrastructure out of
                                                     // Backend to make background parsing work with JIT disabled
 #define DYNAMIC_INTERPRETER_THUNK 0
 #define DISABLE_DYNAMIC_PROFILE_DEFER_PARSE
