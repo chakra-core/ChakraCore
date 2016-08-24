@@ -1052,7 +1052,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
 // Emits the code to allocate 'size' amount of space on stack. for values smaller than PAGE_SIZE
 // this will just emit sub rsp,size otherwise calls _chkstk.
 //
-void
+bool
 LowererMD::GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 probeSize)
 {
     IR::RegOpnd *       spOpnd         = IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, this->m_func);
@@ -1064,7 +1064,7 @@ LowererMD::GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 pr
         IR::IntConstOpnd *  stackSizeOpnd   = IR::IntConstOpnd::New(allocSize, TyMachReg, this->m_func, true);
         IR::Instr * subInstr = IR::Instr::New(Js::OpCode::SUB, spOpnd, spOpnd, stackSizeOpnd, this->m_func);
         instr->InsertBefore(subInstr);
-        return;
+        return false;
     }
 
     //__chkStk is a leaf function and hence alignment is not required.
@@ -1094,6 +1094,9 @@ LowererMD::GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 pr
 
     IR::Instr * subInstr = IR::Instr::New(Js::OpCode::SUB, spOpnd, spOpnd, r4Opnd, this->m_func);
     instr->InsertBefore(subInstr);
+
+    // return true to imply scratch register is trashed
+    return true;
 }
 
 void
@@ -1554,6 +1557,8 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
             insertInstr);
     }
 
+    bool isScratchRegisterThrashed = false;
+
     uint32 probeSize = stackAdjust;
     RegNum localsReg = this->m_func->GetLocalsPointer();
     if (localsReg != RegSP)
@@ -1563,7 +1568,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         uint32 localsSize = this->m_func->m_localStackHeight;
         if (localsSize != 0)
         {
-            GenerateStackAllocation(insertInstr, localsSize, localsSize);
+            isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, localsSize, localsSize);
             stackAdjust -= localsSize;
             if (!IsSmallStack(localsSize))
             {
@@ -1599,7 +1604,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // stack limit has a buffer of StackOverflowHandlingBufferPages pages and we are okay here
     if (stackAdjust != 0)
     {
-        GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
+        isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
     }
 
     //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
@@ -1608,9 +1613,9 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (this->m_func->GetMaxInlineeArgOutCount())
     {
         // This is done post prolog. so we don't have to emit unwind data.
-        if (r12Opnd == nullptr)
+        if (r12Opnd == nullptr || isScratchRegisterThrashed)
         {
-            r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+            r12Opnd = r12Opnd ? r12Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
             // mov r12, 0
             IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
             insertInstr->InsertBefore(instrMov);
