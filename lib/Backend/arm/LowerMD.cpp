@@ -1557,7 +1557,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
             insertInstr);
     }
 
-    bool trashScratchRegister = false;
+    bool isScratchRegisterThrashed = false;
 
     uint32 probeSize = stackAdjust;
     RegNum localsReg = this->m_func->GetLocalsPointer();
@@ -1568,7 +1568,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         uint32 localsSize = this->m_func->m_localStackHeight;
         if (localsSize != 0)
         {
-            trashScratchRegister = GenerateStackAllocation(insertInstr, localsSize, localsSize);
+            isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, localsSize, localsSize);
             stackAdjust -= localsSize;
             if (!IsSmallStack(localsSize))
             {
@@ -1604,7 +1604,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // stack limit has a buffer of StackOverflowHandlingBufferPages pages and we are okay here
     if (stackAdjust != 0)
     {
-        trashScratchRegister = GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
+        isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
     }
 
     //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
@@ -1613,7 +1613,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (this->m_func->GetMaxInlineeArgOutCount())
     {
         // This is done post prolog. so we don't have to emit unwind data.
-        if (r12Opnd == nullptr || trashScratchRegister)
+        if (r12Opnd == nullptr || isScratchRegisterThrashed)
         {
             r12Opnd = r12Opnd ? r12Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
             // mov r12, 0
