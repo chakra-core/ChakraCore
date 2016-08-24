@@ -911,7 +911,7 @@ namespace Js
         {
             ((JavascriptArray*)trapResult)->GetEnumerator(false, &enmeratorObj, scriptContext);
             JavascriptEnumerator* pEnumerator = JavascriptEnumerator::FromVar(enmeratorObj);
-            while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
+            while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
             {
                 PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, scriptContext);
                 Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, scriptContext);
