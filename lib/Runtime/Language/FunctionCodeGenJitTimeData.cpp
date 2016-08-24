@@ -15,6 +15,7 @@ namespace Js
         inlineCacheStats(nullptr),
 #endif
         next(0),
+        ldFldInlinees(nullptr),
         bodyData(nullptr)
     {
         if (GetFunctionInfo()->HasBody())
