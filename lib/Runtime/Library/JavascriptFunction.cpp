@@ -243,7 +243,7 @@ namespace Js
         {
             // Get the latest proxy
             FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsGenerator())
+            if (proxy->IsCoroutine())
             {
                 pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
             }
