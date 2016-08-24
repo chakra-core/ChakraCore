@@ -19,6 +19,7 @@ build_*.err
 buildchk.*
 buildfre.*
 Build/swum-cache.txt
+Build/clang_build
 BuildLinux/
 
 ComputedEnvironment.cmd
