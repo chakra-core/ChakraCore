@@ -348,7 +348,11 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     // TODO: OOP JIT, remove this
     Js::FunctionBody * GetJnFunction() const 
     {
-        return GetInProcJITEntryPointInfo()->GetFunctionBody(); 
+        if (this->IsOOPJIT()) 
+        {
+            return nullptr;
+        }
+        return (Js::FunctionBody *)this->m_workItem->GetWorkItemData()->jitData->functionInfoAddr;
     }
 
     const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }

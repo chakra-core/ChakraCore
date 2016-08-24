@@ -4203,10 +4203,10 @@ Instr::Dump(IRDumpFlags flags)
     if (this->m_opcode == Js::OpCode::NewScFunc || this->m_opcode == Js::OpCode::NewScGenFunc)
     {
         Assert(src1->IsIntConstOpnd());
-#if 0 // TODO: OOP JIT, enable dump
+//#if 0 // TODO: OOP JIT, enable dump
         Js::ParseableFunctionInfo *function = this->m_func->GetJnFunction()->GetNestedFunctionForExecution((uint)src1->AsIntConstOpnd()->GetValue())->GetParseableFunctionInfo();
-#endif
-        Js::ParseableFunctionInfo *function = nullptr;
+//#endif
+  
         Output::Print(_u("func:%s()"), function ? function->GetDisplayName() : _u("???"));
         Output::Print(_u(", env:"));
         this->GetSrc2()->AsRegOpnd()->m_sym->Dump(flags);
@@ -4321,12 +4321,16 @@ LabelInstr::Dump(IRDumpFlags flags)
 void
 PragmaInstr::Dump(IRDumpFlags flags)
 {
-#if 0 // TODO: michhol OOP JIT
+//#if 0 // TODO: michhol OOP JIT
     if (Js::Configuration::Global.flags.PrintSrcInDump && this->m_opcode == Js::OpCode::StatementBoundary)
     {
-        this->m_func->GetJnFunction()->PrintStatementSourceLine(this->m_statementIndex);
+        auto functionBody = this->m_func->GetJnFunction();
+        if (functionBody)
+        {
+            functionBody->PrintStatementSourceLine(this->m_statementIndex);
+        }
     }
-#endif
+//#endif
     __super::Dump(flags);
 }
 
