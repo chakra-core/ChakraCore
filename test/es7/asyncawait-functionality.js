@@ -22,16 +22,12 @@ var tests = [
                 echo(`Test #${index} - Success lambda expression with no argument called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error lambda expression with no argument called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch lambda expression with no argument called with err = ${err}`);
             });
 
             lambdaArgs(10, 20, 30).then(result => {
                 echo(`Test #${index} - Success lambda expression with several arguments called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error lambda expression with several arguments called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch lambda expression with several arguments called with err = ${err}`);
             });
         }
     },
@@ -46,16 +42,12 @@ var tests = [
                 echo(`Test #${index} - Success lambda expression with single argument and no paren called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error lambda expression with single argument and no paren called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch lambda expression with single argument and no paren called with err = ${err}`);
             });
 
             lambdaSingleArg(x).then(result => {
                 echo(`Test #${index} - Success lambda expression with a single argument a called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error lambda expression with a single argument called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch lambda expression with a single argument called with err = ${err}`);
             });
         }
     },
@@ -74,16 +66,12 @@ var tests = [
                     echo(`Test #${index} - Success function #2 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error function #2 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch function #2 called with err = ${err}`);
                 });
 
                 async(10, 20).then(result => {
                     echo(`Test #${index} - Success function #3 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error function #3 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch function #3 called with err = ${err}`);
                 });
             }
             {
@@ -93,8 +81,6 @@ var tests = [
                    echo(`Test #${index} - Success function #4 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error function #4 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch function #4 called with err = ${err}`);
                 });
             }
             {
@@ -127,8 +113,6 @@ var tests = [
                 echo(`Test #${index} - Success function in a object #1 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error function in a object #1 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch function in a object #1 called with err = ${err}`);
             });
 
             var result = object2.async();
@@ -138,32 +122,24 @@ var tests = [
                 echo(`Test #${index} - Success function in a object #3 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error function in a object #3 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch function in a object #3 called with err = ${err}`);
             });
 
             object3['0']().then(result => {
                 echo(`Test #${index} - Success function in a object #4 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error function in a object #4 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch function in a object #4 called with err = ${err}`);
             });
 
             object3['3.14']().then(result => {
                 echo(`Test #${index} - Success function in a object #5 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error function in a object #5 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch function in a object #5 called with err = ${err}`);
             });
 
             object3.else().then(result => {
                 echo(`Test #${index} - Success function in a object #6 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error function in a object #6 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch function in a object #6 called with err = ${err}`);
             });
         }
     },
@@ -201,56 +177,42 @@ var tests = [
                 echo(`Test #${index} - Success async in a class #1 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #1 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #1 called with err = ${err}`);
             });
 
             myClassInstance.async(10).then(result => {
                 echo(`Test #${index} - Success async in a class #2 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #2 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #2 called with err = ${err}`);
             });
 
             myClassInstance.a().then(result => {
                 echo(`Test #${index} - Success async in a class #3 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #3 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #3 called with err = ${err}`);
             });
 
             myClassInstance['0']().then(result => {
                 echo(`Test #${index} - Success async in a class #4 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #4 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #4 called with err = ${err}`);
             });
 
             myClassInstance['3.14']().then(result => {
                 echo(`Test #${index} - Success async in a class #5 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #5 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #5 called with err = ${err}`);
             });
 
             myClassInstance.else().then(result => {
                 echo(`Test #${index} - Success async in a class #6 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #6 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #6 called with err = ${err}`);
             });
 
             MyClass.staticAsyncMethod(10).then(result => {
                 echo(`Test #${index} - Success async in a class #7 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #7 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #7 called with err = ${err}`);
             });
 
             var result = mySecondClassInstance.async(10);
@@ -263,8 +225,6 @@ var tests = [
                 echo(`Test #${index} - Success async in a class #10 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error async in a class #10 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch async in a class #10 called with err = ${err}`);
             });
         }
     },
@@ -308,32 +268,24 @@ var tests = [
                 echo(`Test #${index} - Success await in an async function #1 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error await in an async function #1 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch await in an async function #1 called with err = ${err}`);
             });
 
             secondAsyncMethod(2).then(result => {
                 echo(`Test #${index} - Success await in an async function #2 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error await in an async function #2 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch await in an async function #2 called with err = ${err}`);
             });
 
             rejectAwaitMethod(2).then(result => {
                 echo(`Test #${index} - Failed await in an async function doesn't catch a rejected Promise. Result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Success await in an async function catch a rejected Promise in 'err'. Error = '${err}'`);
-            }).catch(err => {
-                echo(`Test #${index} - Success await in an async function catch a rejected Promise in 'catch'. Error = '${err}'`);
             });
 
             throwAwaitMethod(2).then(result => {
                 echo(`Test #${index} - Failed await in an async function doesn't catch an error. Result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Success await in an async function catch an error in 'err'. Error = '${err}'`);
-            }).catch(err => {
-                echo(`Test #${index} - Success await in an async function catch an error in 'catch'. Error = '${err}'`);
             });
         }
     },
@@ -351,8 +303,6 @@ var tests = [
                     echo(`Test #${index} - Success await keyword with a lambda expressions #1 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error await keyword with a lambda expressions #1 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch await keyword with a lambda expressions #1 called with err = ${err}`);
                 });
             };
             {
@@ -364,8 +314,6 @@ var tests = [
                     echo(`Test #${index} - Success await keyword with a lambda expressions #1 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error await keyword with a lambda expressions #1 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch await keyword with a lambda expressions #1 called with err = ${err}`);
                 });
             };
         }
@@ -390,8 +338,6 @@ var tests = [
                     echo(`Test #${index} - Success async function with default arguments's value overwritten #1 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error async function with default arguments's value overwritten #1 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch async function with default arguments's value overwritten #1 called with err = ${err}`);
                 });
 
                 // TODO:[aneeshd] Need to fix the default parameter evaluation order for both async functions and generators
@@ -399,16 +345,12 @@ var tests = [
                     echo(`Test #${index} - Failed async function with default arguments's value has not been rejected as expected #2 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = '${err}'`);
-                }).catch(err => {
-                    echo(`Test #${index} - Success async function with default arguments's value has been rejected as expected by 'catch' #2 called with err = '${err}'`);
                 });
 
                 secondAsyncMethod().then(result => {
                     echo(`Test #${index} - Success async function with default arguments's value #3 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error async function with default arguments's value #3 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch async function with default arguments's value #3 called with err = ${err}`);
                 });
             };
         }
@@ -449,24 +391,18 @@ var tests = [
                     echo(`Test #${index} - Success resolved promise in an async function #1 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error resolved promise in an async function #1 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch resolved promise in an async function #1 called with err = ${err}`);
                 });
 
                 asyncMethodResolvedWithAwait().then(result => {
                     echo(`Test #${index} - Success resolved promise in an async function #2 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Error resolved promise in an async function #2 called with err = ${err}`);
-                }).catch(err => {
-                    echo(`Test #${index} - Catch resolved promise in an async function #2 called with err = ${err}`);
                 });
 
                 asyncMethodRejected().then(result => {
                     echo(`Test #${index} - Failed promise in an async function has not been rejected as expected #3 called with result = '${result}'`);
                 }, err => {
                     echo(`Test #${index} - Success promise in an async function has been rejected as expected by 'err' #3 called with err = '${err}'`);
-                }).catch(err => {
-                    echo(`Test #${index} - Success promise in an async function has been rejected as expected by 'catch' #3 called with err = '${err}'`);
                 });
             };
         }
@@ -482,8 +418,6 @@ var tests = [
                 echo(`Test #${index} - Success %AsyncFunction% created async function #1 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error %AsyncFunction% created async function #1 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch %AsyncFunction% created async function #1 called with err = ${err}`);
             });
 
             af = new AsyncFunction('a', 'b', 'c', 'a = await a; b = await b; c = await c; return a + b + c;');
@@ -492,8 +426,6 @@ var tests = [
                 echo(`Test #${index} - Success %AsyncFunction% created async function #2 called with result = '${result}'`);
             }, err => {
                 echo(`Test #${index} - Error %AsyncFunction% created async function #2 called with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch %AsyncFunction% created async function #2 called with err = ${err}`);
             });
         }
     },
@@ -510,8 +442,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error var redeclaration with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch var redeclaration with err = ${err}`);
             });
 
             async function af2(x) { var xx = x(); function x() { return 'afx'; } return xx; }
@@ -524,8 +454,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch err = ${err}`);
             });
         }
     },
@@ -544,8 +472,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch err = ${err}`);
             });
 
             var o = {
@@ -561,8 +487,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch err = ${err}`);
             });
         }
     },
@@ -581,8 +505,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch err = ${err}`);
             });
         }
     },
@@ -611,8 +533,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch err = ${err}`);
             });
         }
     },
@@ -631,8 +551,6 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                print(`Test #${index} - Catch err = ${err}`);
             });  
         }
     },
@@ -651,8 +569,6 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                print(`Test #${index} - Catch err = ${err}`);
             });  
         }
     },
@@ -671,8 +587,6 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            }).catch(err => {
-                print(`Test #${index} - Catch err = ${err}`);
             });  
         }
     },
@@ -700,8 +614,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error in split scope with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in split scope with err = ${err}`);
             });
         }
     },
@@ -729,8 +641,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error in split scope with eval in the body with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in split scope with eval in the body with err = ${err}`);
             });
         }
     },
@@ -750,8 +660,261 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error in variable redeclaration with eval with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in variable redeclaration with eval with err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "Async function with duplicate variable decalration in the body with child having eval",
+        body: function (index) {
+            async function af1(a, b) {
+                var a = 10;
+                return function () { return eval("a + b"); };
+            }
+
+            af1(1, 2).then(result => {
+                if (result() === 12) {
+                    echo(`Test #${index} - Success inner variable decalration shadows the formal with eval in child function`);
+                } else {
+                    echo(`Test #${index} - Failure sum appears to have an unexpected value sum = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in variable redeclaration with eval with err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "Async function with more than one await",
+        body: function (index) {
+            async function af1() {
+                return 1;
+            }
+
+            async function af2() {
+                return 2;
+            }
+
+            async function af3() {
+                return await af1() + await af2();
+            }
+            af3().then(result => {
+                if (result === 3) {
+                    echo(`Test #${index} - Success functions completes both await calls`);
+                } else {
+                    echo(`Test #${index} - Failed function failed to complete both await calls and returned ${result}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in multiple awaits in a function err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "Async function with more than one await with branching",
+        body: function (index) {
+            async function af1() {
+                return 1;
+            }
+
+            async function af2() {
+                return 2;
+            }
+
+            async function af3(a) {
+                return a ? await af1() : await af2();
+            }
+
+            af3(1).then(result => {
+                if (result === 1) {
+                    echo(`Test #${index} - Success functions completes the first await call`);
+                } else {
+                    echo(`Test #${index} - Failed function failed to complete the first await call and returned ${result}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in multiple awaits with branching in a function err = ${err}`);
+            });
+            
+            af3().then(result => {
+                if (result === 2) {
+                    echo(`Test #${index} - Success functions completes the second await call`);
+                } else {
+                    echo(`Test #${index} - Failed function failed to complete the second await call and returned ${result}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in multiple awaits with branching in a function err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "Async function with an exception in an await expression",
+        body: function (index) {
+            var obj =  { x : 1 };
+            async function af1() {
+                throw obj;
+            }
+
+            async function af2() {
+                echo(`Failed : This function was not expected to be executed`);
+            }
+
+            async function af3() {
+                return await af1() + await af2();
+            }
+            af3().then(result => {
+                echo(`Test #${index} - Error an expected exception does not seem to be thrown`);
+            }, err => {
+                if (err === obj) {
+                    echo(`Test #${index} - Success caught the expected exception`);
+                } else {
+                    echo(`Test #${index} - Error an unexpected exception was thrown = ${err}`);
+                }
+            });
+        }
+    },
+    {
+        name: "Async functions throws on an await",
+        body: function (index) {
+            var obj =  { x : 1 };
+            async function af1() {
+                throw obj;
+            }
+
+            async function af2() {
+                echo(`Test #${index} Failed This function was not expected to be executed`);
+            }
+
+            async function af3() {
+                return await af1() + await af2();
+            }
+
+            af3().then(result => {
+                print(`Test #${index} Failed an expected exception does not seem to be thrown`);
+            }, err => {
+                if (err === obj) {
+                    print(`Test #${index} - Success caught the expected exception`);
+                } else {
+                    print(`Test #${index} - Failed an unexpected exception was thrown = ${err}`);
+                }
+            });
+        }  
+    },
+    {
+        name: "Awaiting a function with multiple awaits",
+        body: function (index) {
+            async function af1(a, b) {
+                return await af2();
+                
+                async function af2() {
+                    a = await a * a;
+                    b = await b * b;
+
+                    return a + b;
+                }
+            }
+
+            af1(1, 2).then(result => {
+                if (result === 5) {
+                    echo(`Test #${index} - Success Multiple awaits in the inner function completed`);
+                } else {
+                    echo(`Test #${index} - Failed function failed to complete the multiple awaits in the inner function ${result}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in multiple awaits in an inner function err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "Async function with nested try-catch in the body",
+        body: function (index) {
+            async function af1() {
+                throw 42;
+            }
+
+            async function af2() {
+                try {
+                    try {
+                        await af1();
+                    } catch (e) {
+                        echo(`Test #${index} - Success Caught the expected exception inside the inner catch in async body`);
+                        throw e;
+                    }
+                } catch (e) {
+                    echo(`Test #${index} - Success Caught the expected exception inside catch in async body`);
+                    throw e;
+                }
+                echo(`Test #${index} - Failed Didn't throw an expected exception`);
+            }
+
+            af2().then(result => {
+                echo(`Test #${index} - Failed an the expected was not thrown`);
+            }, err => {
+                if (err.x === obj.x) {
+                    echo(`Test #${index} - Success Caught the expected exception in the promise`);
+                } else {
+                    echo(`Test #${index} - Failed Caught an unexpected exception in the promise ${error}`);
+                }
+            });
+        }
+    },
+    {
+        name: "Async function with try-catch and try-finally in the body",
+        body: function (index) {
+            async function af1() {
+                throw 42;
+            }
+
+            async function af2() {
+                try {
+                    try {
+                        await af1();
+                    } catch (e) {
+                        echo(`Test #${index} - Success Caught the expected exception inside the inner catch in async body`);
+                        throw e;
+                    }
+                } finally {
+                    echo(`Test #${index} - Success finally block is executed in async body`);
+                }
+                echo(`Test #${index} - Failed Didn't throw an expected exception`);
+            }
+
+            af2().then(result => {
+                echo(`Test #${index} - Failed an the expected was not thrown`);
+            }, err => {
+                if (err.x === obj.x) {
+                    echo(`Test #${index} - Success Caught the expected exception in the promise`);
+                } else {
+                    echo(`Test #${index} - Failed Caught an unexpected exception in the promise ${error}`);
+                }
+            });
+        }
+    },
+    {
+        name: "Async function and with",
+        body: function (index) {
+            var obj = {
+                async af() {
+                    this.b = await this.a + 10;
+                    return this; 
+                },
+                a : 1,
+                b : 0
+            };
+
+            async function af(x) {
+                var x = 0;
+                with (obj) {
+                    x = await af();
+                }
+
+                return x;
+            }
+
+            af().then(result => {
+                if (result.a === 1 && result.b === 11) {
+                    echo(`Test #${index} - Success functions call inside with returns the right this object`);
+                } else {
+                    echo(`Test #${index} - Failed function failed to execute with inside an async function got ${result}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error in with construct inside an async method err = ${err}`);
             });
         }
     },

@@ -23,6 +23,15 @@ Executing test #17 - Async function with formal captured in eval
 Executing test #18 - Async function with formal capturing in param scope
 Executing test #19 - Async function with formal capturing in param scope with eval in the body
 Executing test #20 - Async function with duplicate variable decalration in the body with eval
+Executing test #21 - Async function with duplicate variable decalration in the body with child having eval
+Executing test #22 - Async function with more than one await
+Executing test #23 - Async function with more than one await with branching
+Executing test #24 - Async function with an exception in an await expression
+Executing test #25 - Async functions throws on an await
+Executing test #26 - Awaiting a function with multiple awaits
+Executing test #27 - Async function with nested try-catch in the body
+Executing test #28 - Async function with try-catch and try-finally in the body
+Executing test #29 - Async function and with
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
@@ -61,6 +70,11 @@ Test #18 - Success function defined in the param scope captures the param scope 
 Test #19 - Success inner function decalration captures the body variable with eval in the body
 Test #19 - Success function defined in the param scope captures the param scope variable with eval in the body
 Test #20 - Success inner variable decalration shadows the formal
+Test #21 - Success inner variable decalration shadows the formal with eval in child function
+Test #27 - Success Caught the expected exception inside the inner catch in async body
+Test #27 - Success Caught the expected exception inside catch in async body
+Test #28 - Success Caught the expected exception inside the inner catch in async body
+Test #28 - Success finally block is executed in async body
 Test #6 - Success await in an async function #1 called with result = '-4'
 Test #6 - Success await in an async function #2 called with result = '2'
 Test #6 - Success await in an async function catch a rejected Promise in 'err'. Error = 'Error: My Error'
@@ -69,7 +83,14 @@ Test #7 - Success await keyword with a lambda expressions #1 called with result 
 Test #7 - Success await keyword with a lambda expressions #1 called with result = '60'
 Test #9 - Success resolved promise in an async function #2 called with result = 'resolved'
 Test #10 - Success %AsyncFunction% created async function #1 called with result = '0'
+Test #23 - Success functions completes the first await call
+Test #23 - Success functions completes the second await call
+Test #24 - Success caught the expected exception
+Test #25 - Success caught the expected exception
 Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #9 - Success resolved promise in an async function #1 called with result = 'resolved'
 Test #9 - Success promise in an async function has been rejected as expected by 'err' #3 called with err = 'rejected'
+Test #22 - Success functions completes both await calls
+Test #29 - Success functions call inside with returns the right this object
 Test #10 - Success %AsyncFunction% created async function #2 called with result = '6'
+Test #26 - Success Multiple awaits in the inner function completed
