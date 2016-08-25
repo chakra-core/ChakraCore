@@ -133,6 +133,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     temporaryArenaAllocatorCount(0),
     temporaryGuestArenaAllocatorCount(0),
     crefSContextForDiag(0),
+    m_prereservedRegionAddr(0),
     scriptContextList(nullptr),
     scriptContextEverRegistered(false),
 #if DBG_DUMP || defined(PROFILE_EXEC)
@@ -1945,8 +1946,7 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 
-    JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
-
+    JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     // we may have populated propertyMap prior to initializing JIT connection
     if (m_propertyMap != nullptr)
     {
@@ -3758,6 +3758,14 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
     boolean result;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        if (PreReservedVirtualAllocWrapper::IsInRange((void*)m_prereservedRegionAddr, pCodeAddr))
+        {
+            return true;
+        }
+        if (IsAllJITCodeInPreReservedRegion())
+        {
+            return false;
+        }
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
         if (FAILED(hr))
         {

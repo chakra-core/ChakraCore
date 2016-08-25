@@ -83,6 +83,7 @@ typedef struct JITTimeConstructorCacheIDL
 
 typedef struct ObjTypeSpecFldIDL
 {
+    boolean inUse;
     // TODO: OOP JIT we may want to copy some of the data in these pointers
     unsigned short flags;
     unsigned short slotIndex;
@@ -502,16 +503,16 @@ typedef struct FunctionJITTimeDataIDL
     [size_is(sharedPropGuardCount)] int * sharedPropertyGuards;
 
     unsigned int globalObjTypeSpecFldInfoCount;
-    [size_is(globalObjTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** globalObjTypeSpecFldInfoArray;
+    [size_is(globalObjTypeSpecFldInfoCount)] ObjTypeSpecFldIDL * globalObjTypeSpecFldInfoArray;
 
     unsigned int inlineeCount;
-    [size_is(inlineeCount)] struct FunctionJITTimeDataIDL ** inlinees;
+    [size_is(inlineeCount)] struct FunctionJITTimeDataIDL * inlinees;
     [size_is(inlineeCount)] boolean * inlineesRecursionFlags;
     unsigned int ldFldInlineeCount;
-    [size_is(ldFldInlineeCount)] struct FunctionJITTimeDataIDL ** ldFldInlinees;
+    [size_is(ldFldInlineeCount)] struct FunctionJITTimeDataIDL * ldFldInlinees;
 
     unsigned int objTypeSpecFldInfoCount;
-    [size_is(objTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
+    [size_is(objTypeSpecFldInfoCount)] ObjTypeSpecFldIDL * objTypeSpecFldInfoArray;
 
     FunctionJITRuntimeIDL * profiledRuntimeData;
 
@@ -520,17 +521,14 @@ typedef struct FunctionJITTimeDataIDL
 
 typedef struct XProcNumberPageSegment
 {
+    unsigned int committedEnd;
+    unsigned int blockIntegratedSize;
     CHAKRA_PTR pageAddress;
     CHAKRA_PTR allocStartAddress;
     CHAKRA_PTR allocEndAddress;
     CHAKRA_PTR pageSegment;
     CHAKRA_PTR chunkAllocator;
     struct XProcNumberPageSegment* nextSegment;
-    unsigned int blockSize; // 2 pages
-    unsigned int committedEnd;
-    unsigned int pageCount; // REVIEW: don't actually need these two fields, they are constant
-    unsigned int sizeCat;
-    unsigned int blockIntegratedSize;
 } XProcNumberPageSegment;
 
 typedef struct PolymorphicInlineCacheIDL
@@ -561,7 +559,6 @@ typedef struct CodeGenWorkItemIDL
     XProcNumberPageSegment xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;
-    CHAKRA_PTR functionBodyAddr;
 
     unsigned int inlineeInfoCount;
     [size_is(inlineeInfoCount)] PolymorphicInlineCacheInfoIDL * inlineeInfo;
@@ -572,6 +569,7 @@ typedef struct CodeGenWorkItemIDL
 
     FunctionJITTimeDataIDL * jitData;
     CHAKRA_PTR jittedLoopIterationsSinceLastBailoutAddr;
+    CHAKRA_PTR functionBodyAddr;
     CHAKRA_PTR nativeDataAddr;
 } CodeGenWorkItemIDL;
 
@@ -709,7 +707,8 @@ interface IChakraJIT
     HRESULT InitializeThreadContext(
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
-        [out] CHAKRA_PTR * threadContextInfoAddress);
+        [out] CHAKRA_PTR * threadContextInfoAddress,
+        [out] CHAKRA_PTR * prereservedRegionAddr);
 
     HRESULT CleanupProcess(
         [in] handle_t binding,

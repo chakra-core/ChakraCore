@@ -272,14 +272,15 @@ JITManager::DisconnectRpcServer()
 HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
-    __out intptr_t * threadContextInfoAddress)
+    __out intptr_t * threadContextInfoAddress,
+    __out intptr_t * prereservedRegionAddr)
 {
     Assert(JITManager::IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress);
+        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr);
     }
         RpcExcept(1)
     {

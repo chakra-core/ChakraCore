@@ -20,7 +20,8 @@ public:
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-        __out intptr_t *threadContextInfoAddress);
+        __out intptr_t *threadContextInfoAddress,
+        __out intptr_t *prereservedRegionAddr);
 
     HRESULT CleanupProcess(
         __in intptr_t processHandle);

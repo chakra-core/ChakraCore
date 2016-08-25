@@ -532,6 +532,7 @@ public:
 
 private:
     intptr_t m_remoteThreadContextInfo;
+    intptr_t m_prereservedRegionAddr;
 
 public:
     void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);

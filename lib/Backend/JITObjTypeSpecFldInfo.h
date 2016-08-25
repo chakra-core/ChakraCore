@@ -58,7 +58,7 @@ public:
         __in ArenaAllocator * alloc,
         __in Js::ObjTypeSpecFldInfo ** objTypeSpecInfo,
         __in uint arrayLength,
-        __out ObjTypeSpecFldIDL ** jitData);
+        __out ObjTypeSpecFldIDL * jitData);
 
     // TODO: OOP JIT, implement this
     wchar_t* GetCacheLayoutString() { __debugbreak(); return nullptr; }

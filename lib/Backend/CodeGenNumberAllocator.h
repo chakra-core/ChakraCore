@@ -155,11 +155,15 @@ struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
 {
     XProcNumberPageSegmentImpl();
     Js::JavascriptNumber* AllocateNumber(HANDLE hProcess, double value, Js::StaticType* numberTypeStatic, void* javascriptNumberVtbl);
-    unsigned int GetTotalSize() { return this->pageCount * AutoSystemInfo::PageSize; }
-    void* GetEndAddress() { return (void*)(this->pageAddress + this->pageCount * AutoSystemInfo::PageSize); }
+    unsigned int GetTotalSize() { return PageCount * AutoSystemInfo::PageSize; }
+    void* GetEndAddress() { return (void*)(this->pageAddress + PageCount * AutoSystemInfo::PageSize); }
     void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
     // TODO: using CodeGenNumberThreadAllocator to allocate the chunks only, abstract chunk alloc code out of CodeGenNumberThreadAllocator
     CodeGenNumberThreadAllocator* GetChunkAllocator() { return (CodeGenNumberThreadAllocator*) this->chunkAllocator; }
+
+    static const uint BlockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
+    static const uint PageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
+    static uint GetSizeCat();
 };
 
 static_assert(sizeof(XProcNumberPageSegmentImpl) == sizeof(XProcNumberPageSegment), "should not have data member in XProcNumberPageSegmentImpl");

@@ -45,9 +45,11 @@ public:
     BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
 
     bool        IsInRange(void * address);
+    static bool IsInRange(void * regionStart, void * address);
     LPVOID      EnsurePreReservedRegion();
 
     LPVOID      GetPreReservedEndAddress();
+    static LPVOID GetPreReservedEndAddress(void * regionStart);
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     static int  NumPreReservedSegment() { return numPreReservedSegment; }

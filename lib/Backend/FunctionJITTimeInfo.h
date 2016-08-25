@@ -9,7 +9,12 @@ class FunctionJITTimeInfo
 {
 public:
     FunctionJITTimeInfo(FunctionJITTimeDataIDL * data);
-    static FunctionJITTimeDataIDL * BuildJITTimeData(ArenaAllocator * alloc, const Js::FunctionCodeGenJitTimeData * codeGenData, const Js::FunctionCodeGenRuntimeData * runtimeData, bool isInlinee = true);
+    static void BuildJITTimeData(
+        __in ArenaAllocator * alloc,
+        __in const Js::FunctionCodeGenJitTimeData * codeGenData,
+        __in const Js::FunctionCodeGenRuntimeData * runtimeData,
+        __inout FunctionJITTimeDataIDL * jitData,
+        bool isInlinee = true);
 
     uint GetInlineeCount() const;
     bool IsLdFldInlineePresent() const;

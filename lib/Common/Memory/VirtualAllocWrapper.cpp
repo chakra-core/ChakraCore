@@ -113,22 +113,34 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     {
         return false;
     }
-
-    if (address >= GetPreReservedStartAddress() && address < GetPreReservedEndAddress())
-    {
+    bool result = IsInRange(GetPreReservedStartAddress(), address);
 #if DBG
-        //Check if the region is in MEM_COMMIT state.
-        MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
-        if (bytes == 0 || memBasicInfo.State != MEM_COMMIT)
-        {
-            AssertMsg(false, "Memory not committed? Checking for uncommitted address region?");
-        }
+    //Check if the region is in MEM_COMMIT state.
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
+    if (bytes == 0 || memBasicInfo.State != MEM_COMMIT)
+    {
+        AssertMsg(false, "Memory not committed? Checking for uncommitted address region?");
+    }
 #endif
+    return result;
+}
+
+/* static */
+bool
+PreReservedVirtualAllocWrapper::IsInRange(void * regionStart, void * address)
+{
+    if (!regionStart)
+    {
+        return false;
+    }
+    if (address >= regionStart && address < GetPreReservedEndAddress(regionStart))
+    {
         return true;
     }
 
     return false;
+
 }
 
 LPVOID
@@ -142,8 +154,16 @@ LPVOID
 PreReservedVirtualAllocWrapper::GetPreReservedEndAddress()
 {
     Assert(IsPreReservedRegionPresent());
-    return (char*)preReservedStartAddress + (PreReservedAllocationSegmentCount * AutoSystemInfo::Data.GetAllocationGranularityPageCount() * AutoSystemInfo::PageSize);
+    return GetPreReservedEndAddress(preReservedStartAddress);
 }
+
+/* static */
+LPVOID
+PreReservedVirtualAllocWrapper::GetPreReservedEndAddress(void * regionStart)
+{
+    return (char*)regionStart + (PreReservedAllocationSegmentCount * AutoSystemInfo::Data.GetAllocationGranularityPageCount() * AutoSystemInfo::PageSize);
+}
+
 
 LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegion()
 {

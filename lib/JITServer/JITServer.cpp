@@ -100,13 +100,15 @@ HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
-    /* [out] */ __RPC__out __int3264 *threadContextRoot)
+    /* [out] */ __RPC__out __int3264 *threadContextRoot,
+    /* [out] */ __RPC__out __int3264 *prereservedRegionAddr)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * contextInfo = HeapNew(ServerThreadContext, threadContextData);
 
     *threadContextRoot = (intptr_t)contextInfo;
+    *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
     return S_OK;
 }
 
