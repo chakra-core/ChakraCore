@@ -603,7 +603,7 @@ var tests = [
 
             af1(1).then(result => {
                 if (result[0]() === 2) {
-                    echo(`Test #${index} - Success inner function decalration captures the body variable`);
+                    echo(`Test #${index} - Success inner function declaration captures the body variable`);
                 } else {
                     echo(`Test #${index} - Failure a appears to have an unexpected value a = '${result}'`);
                 }
@@ -630,7 +630,7 @@ var tests = [
 
             af1(1).then(result => {
                 if (result[0]() === 2) {
-                    echo(`Test #${index} - Success inner function decalration captures the body variable with eval in the body`);
+                    echo(`Test #${index} - Success inner function declaration captures the body variable with eval in the body`);
                 } else {
                     echo(`Test #${index} - Failure a appears to have an unexpected value a = '${result}'`);
                 }
@@ -645,7 +645,7 @@ var tests = [
         }
     },
     {
-        name: "Async function with duplicate variable decalration in the body with eval",
+        name: "Async function with duplicate variable declaration in the body with eval",
         body: function (index) {
             async function af1(a, b) {
                 var a = 10;
@@ -654,7 +654,7 @@ var tests = [
 
             af1(1, 2).then(result => {
                 if (result === 12) {
-                    echo(`Test #${index} - Success inner variable decalration shadows the formal`);
+                    echo(`Test #${index} - Success inner variable declaration shadows the formal`);
                 } else {
                     echo(`Test #${index} - Failure sum appears to have an unexpected value sum = '${result}'`);
                 }
@@ -664,7 +664,7 @@ var tests = [
         }
     },
     {
-        name: "Async function with duplicate variable decalration in the body with child having eval",
+        name: "Async function with duplicate variable declaration in the body with child having eval",
         body: function (index) {
             async function af1(a, b) {
                 var a = 10;
@@ -673,7 +673,7 @@ var tests = [
 
             af1(1, 2).then(result => {
                 if (result() === 12) {
-                    echo(`Test #${index} - Success inner variable decalration shadows the formal with eval in child function`);
+                    echo(`Test #${index} - Success inner variable declaration shadows the formal with eval in child function`);
                 } else {
                     echo(`Test #${index} - Failure sum appears to have an unexpected value sum = '${result}'`);
                 }
@@ -915,85 +915,6 @@ var tests = [
                 }
             }, err => {
                 echo(`Test #${index} - Error in with construct inside an async method err = ${err}`);
-            });
-        }
-    },
-    {
-        name: "Async function with formal capturing in param scope",
-        body: function (index) {
-            async function af1(a, b = () => a, c = b) {
-                function b() {
-                    return a;
-                }
-                var a = 2;
-                return [b, c];
-            }
-
-            af1(1).then(result => {
-                if (result[0]() === 2) {
-                    echo(`Test #${index} - Success inner function decalration captures the body variable`);
-                } else {
-                    echo(`Test #${index} - Failure a appears to have an unexpected value a = '${result}'`);
-                }
-                if (result[1]() === 1) {
-                    echo(`Test #${index} - Success function defined in the param scope captures the param scope variable`);
-                } else {
-                    echo(`Test #${index} - Failure a appears to have an unexpected value in the param scope function a = '${result}'`);
-                }
-            }, err => {
-                echo(`Test #${index} - Error in split scope with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in split scope with err = ${err}`);
-            });
-        }
-    },
-    {
-        name: "Async function with formal capturing in param scope with eval in the body",
-        body: function (index) {
-            async function af1(a, b = () => a, c = b) {
-                function b() {
-                    return a;
-                }
-                var a = 2;
-                return eval("[b, c]");
-            }
-
-            af1(1).then(result => {
-                if (result[0]() === 2) {
-                    echo(`Test #${index} - Success inner function decalration captures the body variable with eval in the body`);
-                } else {
-                    echo(`Test #${index} - Failure a appears to have an unexpected value a = '${result}'`);
-                }
-                if (result[1]() === 1) {
-                    echo(`Test #${index} - Success function defined in the param scope captures the param scope variable with eval in the body`);
-                } else {
-                    echo(`Test #${index} - Failure a appears to have an unexpected value in the param scope function a = '${result}'`);
-                }
-            }, err => {
-                echo(`Test #${index} - Error in split scope with eval in the body with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in split scope with eval in the body with err = ${err}`);
-            });
-        }
-    },
-    {
-        name: "Async function with duplicate variable decalration in the body with eval",
-        body: function (index) {
-            async function af1(a, b) {
-                var a = 10;
-                return eval("a + b");
-            }
-
-            af1(1, 2).then(result => {
-                if (result === 12) {
-                    echo(`Test #${index} - Success inner variable decalration shadows the formal`);
-                } else {
-                    echo(`Test #${index} - Failure sum appears to have an unexpected value sum = '${result}'`);
-                }
-            }, err => {
-                echo(`Test #${index} - Error in variable redeclaration with eval with err = ${err}`);
-            }).catch(err => {
-                echo(`Test #${index} - Catch in variable redeclaration with eval with err = ${err}`);
             });
         }
     },

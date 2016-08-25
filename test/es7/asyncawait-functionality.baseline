@@ -22,8 +22,8 @@ Executing test #16 - Async function with formal captured in a nested function
 Executing test #17 - Async function with formal captured in eval
 Executing test #18 - Async function with formal capturing in param scope
 Executing test #19 - Async function with formal capturing in param scope with eval in the body
-Executing test #20 - Async function with duplicate variable decalration in the body with eval
-Executing test #21 - Async function with duplicate variable decalration in the body with child having eval
+Executing test #20 - Async function with duplicate variable declaration in the body with eval
+Executing test #21 - Async function with duplicate variable declaration in the body with child having eval
 Executing test #22 - Async function with more than one await
 Executing test #23 - Async function with more than one await with branching
 Executing test #24 - Async function with an exception in an await expression
@@ -65,12 +65,12 @@ Test #14 - Success result is 'base derived' from derived method call
 Test #15 - Success lambda returns 1 when no arguments passed
 Test #16 - Success nested function returns 1 when no arguments passed
 Test #17 - Success eval returns 1 when no arguments passed
-Test #18 - Success inner function decalration captures the body variable
+Test #18 - Success inner function declaration captures the body variable
 Test #18 - Success function defined in the param scope captures the param scope variable
-Test #19 - Success inner function decalration captures the body variable with eval in the body
+Test #19 - Success inner function declaration captures the body variable with eval in the body
 Test #19 - Success function defined in the param scope captures the param scope variable with eval in the body
-Test #20 - Success inner variable decalration shadows the formal
-Test #21 - Success inner variable decalration shadows the formal with eval in child function
+Test #20 - Success inner variable declaration shadows the formal
+Test #21 - Success inner variable declaration shadows the formal with eval in child function
 Test #27 - Success Caught the expected exception inside the inner catch in async body
 Test #27 - Success Caught the expected exception inside catch in async body
 Test #28 - Success Caught the expected exception inside the inner catch in async body
