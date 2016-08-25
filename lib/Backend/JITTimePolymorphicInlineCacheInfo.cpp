@@ -59,16 +59,15 @@ JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
     if (runtimeInfo->GetPolymorphicInlineCaches()->HasInlineCaches())
     {
         jitInfo->polymorphicInlineCacheCount = runtimeInfo->GetFunctionBody()->GetInlineCacheCount();
-        jitInfo->polymorphicInlineCaches = RecyclerNewArrayZ(recycler, PolymorphicInlineCacheIDL*, jitInfo->polymorphicInlineCacheCount);
+        jitInfo->polymorphicInlineCaches = RecyclerNewArrayZ(recycler, PolymorphicInlineCacheIDL, jitInfo->polymorphicInlineCacheCount);
         for (uint j = 0; j < jitInfo->polymorphicInlineCacheCount; ++j)
         {
             Js::PolymorphicInlineCache * pic = runtimeInfo->GetPolymorphicInlineCaches()->GetInlineCache(j);
             if (pic != nullptr)
             {
-                jitInfo->polymorphicInlineCaches[j] = RecyclerNewStructLeaf(recycler, PolymorphicInlineCacheIDL);
-                jitInfo->polymorphicInlineCaches[j]->size = pic->GetSize();
-                jitInfo->polymorphicInlineCaches[j]->addr = (intptr_t)pic;
-                jitInfo->polymorphicInlineCaches[j]->inlineCachesAddr = (intptr_t)pic->GetInlineCaches();
+                jitInfo->polymorphicInlineCaches[j].size = pic->GetSize();
+                jitInfo->polymorphicInlineCaches[j].addr = (intptr_t)pic;
+                jitInfo->polymorphicInlineCaches[j].inlineCachesAddr = (intptr_t)pic->GetInlineCaches();
             }
         }
     }
@@ -78,7 +77,11 @@ JITTimePolymorphicInlineCache *
 JITTimePolymorphicInlineCacheInfo::GetInlineCache(uint index) const
 {
     Assert(index < m_data.polymorphicInlineCacheCount);
-    return (JITTimePolymorphicInlineCache *)m_data.polymorphicInlineCaches[index];
+    if (!m_data.polymorphicInlineCaches[index].addr)
+    {
+        return nullptr;
+    }
+    return (JITTimePolymorphicInlineCache *)&m_data.polymorphicInlineCaches[index];
 }
 
 bool

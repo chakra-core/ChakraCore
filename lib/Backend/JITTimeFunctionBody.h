@@ -103,10 +103,11 @@ public:
     T* GetConstAsT(Js::RegSlot location) const
     {
         Assert(m_bodyData.constTableContent != nullptr);
+        Assert(m_bodyData.constTableContent->content != nullptr);
         Assert(location < GetConstCount());
         Assert(location != 0);
 
-        auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+        auto obj = m_bodyData.constTableContent->content[location - Js::FunctionBody::FirstRegSlot];
         Assert(obj);
         obj->vtbl = VirtualTableInfo<T>::Address;
         //Assert(T::Is(obj));
@@ -117,11 +118,12 @@ public:
     Js::JavascriptNumber* GetConstAsT<Js::JavascriptNumber>(Js::RegSlot location) const
     {
         Assert(m_bodyData.constTableContent != nullptr);
+        Assert(m_bodyData.constTableContent->content != nullptr);
         Assert(location < GetConstCount());
         Assert(location != 0);
 
 #if !FLOATVAR
-        auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+        auto obj = m_bodyData.constTableContent->content[location - Js::FunctionBody::FirstRegSlot];
         if (!obj)
         {
 #endif

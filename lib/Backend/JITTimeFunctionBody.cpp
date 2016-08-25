@@ -28,13 +28,13 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
     {
-        // TODO (michhol): OOP JIT, will be different for asm.js
         jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
-
-        jitBody->constTableContent = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
-        // TODO: asm.js has const table structured differently and doesn't need type info, so don't allocate it
         if (!functionBody->GetIsAsmJsFunction())
         {
+            jitBody->constTableContent = RecyclerNewStructZ(recycler, ConstTableContentIDL);
+            jitBody->constTableContent->count = functionBody->GetConstantCount();
+            jitBody->constTableContent->content = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
+
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
@@ -59,7 +59,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                             || VirtualTableInfo<Js::PropertyString>::HasVirtualTable(varConst)
                             || VirtualTableInfo<Js::SingleCharString>::HasVirtualTable(varConst));
 
-                        jitBody->constTableContent[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
+                        jitBody->constTableContent->content[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
                     }
                 }
             }
@@ -803,10 +803,10 @@ Js::TypeId
 JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
 {
     Assert(m_bodyData.constTable != nullptr);
+    Assert(m_bodyData.constTableContent != nullptr);
     Assert(location < GetConstCount());
     Assert(location != 0);
-
-    auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+    auto obj = m_bodyData.constTableContent->content[location - Js::FunctionBody::FirstRegSlot];
 
     if (obj == nullptr)
     {
@@ -841,7 +841,7 @@ JITTimeFunctionBody::GetConstTable() const
 bool
 JITTimeFunctionBody::IsConstRegPropertyString(Js::RegSlot reg, ScriptContextInfo * context) const
 {
-    RecyclableObjectIDL * content = m_bodyData.constTableContent[reg - Js::FunctionBody::FirstRegSlot];
+    RecyclableObjectIDL * content = m_bodyData.constTableContent->content[reg - Js::FunctionBody::FirstRegSlot];
     if (content != nullptr && content->vtbl == context->GetVTableAddress(VtablePropertyString))
     {
         return true;

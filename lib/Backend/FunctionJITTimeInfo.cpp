@@ -238,16 +238,16 @@ FunctionJITTimeInfo::GetRuntimeInfo() const
 JITObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
-    if (m_data.objTypeSpecFldInfoArray == nullptr) 
-    {
-        return nullptr;
-    }
-
     Assert(index < GetBody()->GetInlineCacheCount());
     if (m_data.objTypeSpecFldInfoArray == nullptr)
     {
         return nullptr;
     }
+    if (!m_data.objTypeSpecFldInfoArray[index].inUse)
+    {
+        return nullptr;
+    }
+
     return reinterpret_cast<JITObjTypeSpecFldInfo *>(&m_data.objTypeSpecFldInfoArray[index]);
 }
 
@@ -255,6 +255,11 @@ JITObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfo(uint index) const
 {
     Assert(index < m_data.globalObjTypeSpecFldInfoCount);
+    if (!m_data.globalObjTypeSpecFldInfoArray[index].inUse)
+    {
+        return nullptr;
+    }
+
     return reinterpret_cast<JITObjTypeSpecFldInfo *>(&m_data.globalObjTypeSpecFldInfoArray[index]);
 }
 
@@ -282,6 +287,11 @@ FunctionJITTimeInfo::GetLdFldInlinee(Js::InlineCacheIndex inlineCacheIndex) cons
     }
     Assert(inlineCacheIndex < m_data.ldFldInlineeCount);
 
+    if (!m_data.ldFldInlinees[inlineCacheIndex].functionInfoAddr)
+    {
+        return nullptr;
+    }
+
     return reinterpret_cast<const FunctionJITTimeInfo*>(&m_data.ldFldInlinees[inlineCacheIndex]);
 }
 
@@ -294,6 +304,11 @@ FunctionJITTimeInfo::GetInlinee(Js::ProfileId profileId) const
         return nullptr;
     }
     Assert(profileId < m_data.inlineeCount);
+
+    if (!m_data.inlinees[profileId].functionInfoAddr)
+    {
+        return nullptr;
+    }
 
     auto inlinee = reinterpret_cast<const FunctionJITTimeInfo *>(&m_data.inlinees[profileId]);
     if (inlinee == nullptr && m_data.inlineesRecursionFlags[profileId]) 

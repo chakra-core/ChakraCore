@@ -365,6 +365,13 @@ typedef struct RecyclableObjectIDL
     [switch_is(*typeId)] RecyclableObjectContent x;
 } RecyclableObjectIDL;
 
+// to avoid rpc considering FunctionBodyDataIDL complex, move this to its own struct
+typedef struct ConstTableContentIDL
+{
+    unsigned int count;
+    [size_is(count)] RecyclableObjectIDL** content;
+} ConstTableContentIDL;
+
 // FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyDataIDL
 {
@@ -427,7 +434,7 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int constCount;
     [size_is(constCount)] CHAKRA_PTR * constTable;
-    [size_is(constCount)] RecyclableObjectIDL** constTableContent;
+    ConstTableContentIDL * constTableContent;
 
     unsigned int inlineCacheCount;
     [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
@@ -492,9 +499,6 @@ typedef struct FunctionJITTimeDataIDL
     boolean isAggressiveInliningEnabled;
     boolean isInlined;
     unsigned int localFuncId;
-    CHAKRA_PTR functionInfoAddr;
-    CHAKRA_PTR callsCountAddress;
-    CHAKRA_PTR weakFuncRef;
     FunctionBodyDataIDL * bodyData; // TODO: oop jit, can these repeat, should we share?
 
     BVFixedIDL * inlineesBv;
@@ -517,10 +521,16 @@ typedef struct FunctionJITTimeDataIDL
     FunctionJITRuntimeIDL * profiledRuntimeData;
 
     struct FunctionJITTimeDataIDL * next;
+
+    CHAKRA_PTR functionInfoAddr;
+    CHAKRA_PTR callsCountAddress;
+    CHAKRA_PTR weakFuncRef;
 } FunctionJITTimeDataIDL;
 
 typedef struct XProcNumberPageSegment
 {
+    struct XProcNumberPageSegment* nextSegment;
+
     unsigned int committedEnd;
     unsigned int blockIntegratedSize;
     CHAKRA_PTR pageAddress;
@@ -528,7 +538,6 @@ typedef struct XProcNumberPageSegment
     CHAKRA_PTR allocEndAddress;
     CHAKRA_PTR pageSegment;
     CHAKRA_PTR chunkAllocator;
-    struct XProcNumberPageSegment* nextSegment;
 } XProcNumberPageSegment;
 
 typedef struct PolymorphicInlineCacheIDL
@@ -542,7 +551,7 @@ typedef struct PolymorphicInlineCacheInfoIDL
 {
     unsigned int polymorphicInlineCacheCount;
     [size_is(polymorphicInlineCacheCount)] byte * polymorphicCacheUtilizationArray;
-    [size_is(polymorphicInlineCacheCount)] PolymorphicInlineCacheIDL ** polymorphicInlineCaches;
+    [size_is(polymorphicInlineCacheCount)] PolymorphicInlineCacheIDL * polymorphicInlineCaches;
 
     CHAKRA_PTR functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
@@ -556,7 +565,7 @@ typedef struct CodeGenWorkItemIDL
     char jitMode;
 
     unsigned int loopNumber;
-    XProcNumberPageSegment xProcNumberPageSegment;
+    XProcNumberPageSegment * xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;
 

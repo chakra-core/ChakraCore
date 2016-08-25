@@ -330,7 +330,7 @@ ServerRemoteCodeGen(
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
-    memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), &jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
+    memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
     Func::Codegen(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), threadContextInfo->GetCodeGenAllocators(), nullptr, nullptr, true);
 

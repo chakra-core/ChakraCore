@@ -181,7 +181,7 @@ struct XProcNumberPageSegmentManager
 
     ~XProcNumberPageSegmentManager();
 
-    void GetFreeSegment(XProcNumberPageSegment& seg);
+    void GetFreeSegment(XProcNumberPageSegment * seg);
     CodeGenNumberChunk* RegisterSegments(XProcNumberPageSegment* segments);
 
     void Integrate();

@@ -431,15 +431,13 @@ CodeGenNumberChunk* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumbe
     return chunk;
 }
 
-void XProcNumberPageSegmentManager::GetFreeSegment(XProcNumberPageSegment& seg)
+void XProcNumberPageSegmentManager::GetFreeSegment(XProcNumberPageSegment * seg)
 {
     AutoCriticalSection autoCS(&cs);
 
-    memset(&seg, 0, sizeof(seg));
-
     if (segmentsList == nullptr)
     {
-        new (&seg) XProcNumberPageSegmentImpl();
+        new (seg) XProcNumberPageSegmentImpl();
         return;
     }
 
@@ -452,7 +450,7 @@ void XProcNumberPageSegmentManager::GetFreeSegment(XProcNumberPageSegment& seg)
             *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
 
             // remove from the list
-            memcpy(&seg, temp, sizeof(seg));
+            memcpy(seg, temp, sizeof(XProcNumberPageSegment));
             midl_user_free(temp);
             return;
         }

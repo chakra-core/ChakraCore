@@ -262,6 +262,7 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
         {
             continue;
         }
+        jitData[i].inUse = TRUE;
         if (objTypeSpecInfo[i]->IsLoadedFromProto())
         {
             jitData[i].protoObjectAddr = (intptr_t)objTypeSpecInfo[i]->GetProtoObject();

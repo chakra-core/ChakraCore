@@ -889,7 +889,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
 
     JITOutputIDL jitWriteData = {0};
-
+    workItem->GetJITData()->xProcNumberPageSegment = AnewStructZ(&alloc, XProcNumberPageSegment);
     threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
     if (JITManager::GetJITManager()->IsOOPJITEnabled())

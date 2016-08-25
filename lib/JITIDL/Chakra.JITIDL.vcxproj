@@ -21,6 +21,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Midl>
       <HeaderFileName>%(Filename).h</HeaderFileName>
+      <AdditionalOptions>-savePP %(AdditionalOptions)</AdditionalOptions>
     </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
