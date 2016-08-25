@@ -1335,6 +1335,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::CmEq_A:
+        {
+            bool needHelper = true;
             if (instr->GetSrc1()->IsFloat())
             {
                 Assert(instr->GetSrc1()->GetType() == instr->GetSrc2()->GetType());
@@ -1347,13 +1349,26 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmEq_A);
                 }
             }
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            {
+                if (needHelper)
+                {
+                    this->LowerBinaryHelperMem(instr, IR::HelperOP_CmEq_A);
+                }
+                else
+                {
+                    instr->Remove();
+                }
+            }
             else if (PHASE_OFF(Js::BranchFastPathPhase, this->m_func) || noMathFastPath || !m_lowererMD.GenerateFastCmXxTaggedInt(instr))
             {
                 this->LowerBinaryHelperMem(instr, IR::HelperOP_CmEq_A);
             }
             break;
-
+        }
         case Js::OpCode::CmNeq_A:
+        {
+            bool needHelper = true;
             if (instr->GetSrc1()->IsFloat())
             {
                 Assert(instr->GetSrc1()->GetType() == instr->GetSrc2()->GetType());
@@ -1366,13 +1381,26 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmNeq_A);
                 }
             }
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            {
+                if (needHelper)
+                {
+                    this->LowerBinaryHelperMem(instr, IR::HelperOP_CmNeq_A);
+                }
+                else
+                {
+                    instr->Remove();
+                }
+            }
             else if (PHASE_OFF(Js::BranchFastPathPhase, this->m_func) || noMathFastPath || !m_lowererMD.GenerateFastCmXxTaggedInt(instr))
             {
                 this->LowerBinaryHelperMem(instr, IR::HelperOP_CmNeq_A);
             }
             break;
-
+        }
         case Js::OpCode::CmSrEq_A:
+        {
+            bool needHelper = true;
             if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && this->TryGenerateFastBrOrCmTypeOf(instr, &instrPrev, &fNoLower))
             {
                 if (!fNoLower)
@@ -1383,13 +1411,26 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && this->TryGenerateFastCmSrEq(instr))
             {
             }
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            {
+                if (needHelper)
+                {
+                    this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrEq_A);
+                }
+                else
+                {
+                    instr->Remove();
+                }
+            }
             else if (PHASE_OFF(Js::BranchFastPathPhase, this->m_func) || noMathFastPath || !m_lowererMD.GenerateFastCmXxTaggedInt(instr))
             {
                 this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrEq_A);
             }
             break;
-
+        }
         case Js::OpCode::CmSrNeq_A:
+        {
+            bool needHelper = true;
             if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && this->TryGenerateFastBrOrCmTypeOf(instr, &instrPrev, &fNoLower))
             {
                 if (!fNoLower)
@@ -1397,12 +1438,23 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrNeq_A);
                 }
             }
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            {
+                if (needHelper)
+                {
+                    this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrNeq_A);
+                }
+                else
+                {
+                    instr->Remove();
+                }
+            }
             else if (PHASE_OFF(Js::BranchFastPathPhase, this->m_func) || noMathFastPath || !m_lowererMD.GenerateFastCmXxTaggedInt(instr))
             {
                 this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrNeq_A);
             }
             break;
-
+        }
         case Js::OpCode::CmGt_A:
             if (instr->GetSrc1()->IsFloat())
             {
@@ -1943,7 +1995,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 else if (this->TryGenerateFastBrEq(instr))
                 {
                 }
-                else if (m_lowererMD.GenerateFastBrString(instr->AsBranchInstr()) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
                 {
                     if (needHelper)
                     {
@@ -2056,7 +2108,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 else if (this->TryGenerateFastBrNeq(instr))
                 {
                 }
-                else if (m_lowererMD.GenerateFastBrString(instr->AsBranchInstr()) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
                 {
                     this->LowerBrCMem(instr, IR::HelperOp_NotEqual, false);
                 }
@@ -2119,7 +2171,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 bool needHelper = true;
                 if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath)
                 {
-                    if (m_lowererMD.GenerateFastBrString(instr->AsBranchInstr()) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                    if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
                     {
                         if (needHelper)
                         {
@@ -2166,7 +2218,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 else if (this->GenerateFastBrSrNeq(instr, &instrPrev))
                 {
                 }
-                else if (m_lowererMD.GenerateFastBrString(instr->AsBranchInstr()) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
                 {
                     if (needHelper)
                     {
@@ -19088,100 +19140,18 @@ bool Lowerer::GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedH
     IR::Opnd *src2 = instrBranch->GetSrc2();
     IR::LabelInstr *targetInstr = instrBranch->GetTarget();
 
-    IR::LabelInstr *labelBooleanCmp = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    IR::LabelInstr *labelEqualLikely = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::LabelInstr *labelTrue = instrBranch->GetOrCreateContinueLabel();
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
-    bool isStrictBr = false;
-    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
     *pNeedHelper = true;
 
-    switch (instrBranch->m_opcode)
-    {
-    case Js::OpCode::BrSrEq_A:
-    case Js::OpCode::BrSrNotNeq_A:
-    case Js::OpCode::BrSrNeq_A:
-    case Js::OpCode::BrSrNotEq_A:
-        isStrictBr = true;
-        break;
-    }
-
-    if (src1->GetValueType().IsLikelyBoolean() && src2->GetValueType().IsLikelyBoolean())
-    {
-        //
-        // Booleans
-        //
-        if (isStrictBr)
-        {
-            if (!src1->GetValueType().IsBoolean() && !src2->GetValueType().IsBoolean())
-            {
-                this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instrBranch, labelHelper, false);
-                if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instrBranch, labelBooleanCmp, true))
-                {
-                    instrBranch->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
-                }
-            }
-            else
-            {
-                *pNeedHelper = false;
-            }
-        }
-        else
-        {
-            this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instrBranch, labelHelper, false);
-            this->m_lowererMD.GenerateJSBooleanTest(src1->AsRegOpnd(), instrBranch, labelHelper, false);
-            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instrBranch, labelHelper, false);
-            if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instrBranch, labelBooleanCmp, true))
-            {
-                instrBranch->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
-            }
-        }
-    }
-    else if (src1->GetValueType().IsLikelyObject() && src2->GetValueType().IsLikelyObject())
-    {
-        //
-        // Objects
-        //
-        IR::LabelInstr *labelTypeIdCheck = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-        if (!isStrictBr)
-        {
-            // If not strictBr, verify both sides are dynamic objects
-            this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instrBranch, labelHelper, false);
-            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instrBranch, labelHelper, false);
-            this->m_lowererMD.GenerateIsDynamicObject(src1->AsRegOpnd(), instrBranch, labelTypeIdCheck, false);
-        }
-        else
-        {
-            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instrBranch, labelHelper, false);
-        }
-        this->m_lowererMD.GenerateIsDynamicObject(src2->AsRegOpnd(), instrBranch, labelBooleanCmp, true);
-
-        instrBranch->InsertBefore(labelTypeIdCheck);
-
-        if (isStrictMode)
-        {
-            labelTypeIdCheck->isOpHelper = true;
-            IR::BranchInstr *branchToHelper = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func);
-            instrBranch->InsertBefore(branchToHelper);
-        }
-        else
-        {
-            if (!ExternalLowerer::TryGenerateFastExternalEqTest(src1, src2, instrBranch, labelHelper, labelBooleanCmp, this, isStrictBr))
-            {
-                if (!isStrictBr)
-                {
-                    GenerateIsBuiltinRecyclableObject(src1->AsRegOpnd(), instrBranch, labelHelper, false /*checkObjectAndDynamicObject*/);
-                }
-                GenerateIsBuiltinRecyclableObject(src2->AsRegOpnd(), instrBranch, labelHelper, false /*checkObjectAndDynamicObject*/);
-            }
-        }
-    }
-    else
+    if (!this->GenerateFastBooleanAndObjectEqLikely(instrBranch, src1, src2, labelHelper, labelEqualLikely, pNeedHelper))
     {
         return false;
     }
-    instrBranch->InsertBefore(labelBooleanCmp);
+
+    instrBranch->InsertBefore(labelEqualLikely);
 
     IR::BranchInstr *newBranch = IR::BranchInstr::New(instrBranch->m_opcode, targetInstr, src1, src2, this->m_func);
     instrBranch->InsertBefore(newBranch);
@@ -19192,6 +19162,184 @@ bool Lowerer::GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedH
     instrBranch->InsertBefore(newBranch);
 
     instrBranch->InsertBefore(labelHelper);
+
+    return true;
+}
+
+bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper)
+{
+    *pNeedHelper = true;
+
+    if (!src1 || !src2)
+    {
+        return false;
+    }
+
+    bool isStrictCompare = false;
+    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
+
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::CmSrNeq_A:
+        isStrictCompare = true;
+        break;
+    }
+
+    if (src1->GetValueType().IsLikelyBoolean() && src2->GetValueType().IsLikelyBoolean())
+    {
+        //
+        // Booleans
+        //
+        if (isStrictCompare)
+        {
+            if (!src1->GetValueType().IsBoolean() && !src2->GetValueType().IsBoolean())
+            {
+                this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
+                if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
+                {
+                    instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
+                }
+            }
+            else
+            {
+                *pNeedHelper = false;
+            }
+        }
+        else
+        {
+            this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instr, labelHelper, false);
+            this->m_lowererMD.GenerateJSBooleanTest(src1->AsRegOpnd(), instr, labelHelper, false);
+            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
+            if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
+            {
+                instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
+            }
+        }
+    }
+    else if (src1->GetValueType().IsLikelyObject() && src2->GetValueType().IsLikelyObject())
+    {
+        //
+        // Objects
+        //
+        IR::LabelInstr *labelTypeIdCheck = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+        if (!isStrictCompare)
+        {
+            // If not strictBr, verify both sides are dynamic objects
+            this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instr, labelHelper, false);
+            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
+            this->m_lowererMD.GenerateIsDynamicObject(src1->AsRegOpnd(), instr, labelTypeIdCheck, false);
+        }
+        else
+        {
+            this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
+        }
+        this->m_lowererMD.GenerateIsDynamicObject(src2->AsRegOpnd(), instr, labelEqualLikely, true);
+
+        instr->InsertBefore(labelTypeIdCheck);
+
+        if (isStrictMode)
+        {
+            labelTypeIdCheck->isOpHelper = true;
+            IR::BranchInstr *branchToHelper = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func);
+            instr->InsertBefore(branchToHelper);
+        }
+        else
+        {
+            if (!ExternalLowerer::TryGenerateFastExternalEqTest(src1, src2, instr, labelHelper, labelEqualLikely, this, isStrictCompare))
+            {
+                if (!isStrictCompare)
+                {
+                    GenerateIsBuiltinRecyclableObject(src1->AsRegOpnd(), instr, labelHelper, false /*checkObjectAndDynamicObject*/);
+                }
+                GenerateIsBuiltinRecyclableObject(src2->AsRegOpnd(), instr, labelHelper, false /*checkObjectAndDynamicObject*/);
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool Lowerer::GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper)
+{
+    *pNeedHelper = false;
+
+    Assert(instr->m_opcode == Js::OpCode::CmSrEq_A ||
+        instr->m_opcode == Js::OpCode::CmSrNeq_A   ||
+        instr->m_opcode == Js::OpCode::CmEq_A      ||
+        instr->m_opcode == Js::OpCode::CmNeq_A);
+
+    bool isNegOp = false;
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::CmSrNeq_A:
+    case Js::OpCode::CmNeq_A:
+        isNegOp = true;
+        break;
+    }
+
+    IR::Opnd *src1 = instr->GetSrc1();
+    IR::Opnd *src2 = instr->GetSrc2();
+
+    IR::LabelInstr *labelEqualLikely = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+
+    if (!this->GenerateFastBooleanAndObjectEqLikely(instr, src1, src2, labelHelper, labelEqualLikely, pNeedHelper))
+    {
+        return false;
+    }
+
+    instr->InsertBefore(labelEqualLikely);
+
+    // $labelEqualLikely
+    //
+    // Will only come here for
+    //   if src2 is dynamic object(matches Js::DynamicObject::`vtable'), for non strict cm both src1 and src2 should be dynamic object
+    //   or if src2 is builtin recyclableobject(typeId > TypeIds_LastStaticType && typeId <= TypeIds_LastBuiltinDynamicObject)
+    //   or if CustomExternalType with no operations usage flags
+    //
+    //  MOV DST SUCCESS
+    //  src1->IsEqual(src2)
+    //      JMP $DONE
+    //  CMP src1, src2
+    //      JEQ $DONE
+    //  MOV DST FAILURE
+    //      JMP $DONE
+
+    LibraryValue successValueType = !isNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
+    LibraryValue failureValueType = !isNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue;
+
+    IR::Instr *instrMovFailure = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->LoadLibraryValueOpnd(instr, failureValueType), m_func);
+    IR::Instr *instrMovSuccess = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->LoadLibraryValueOpnd(instr, successValueType), m_func);
+
+    instr->InsertBefore(instrMovSuccess);
+
+    if (src1->IsEqual(src2))
+    {
+        IR::BranchInstr *toDone = IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func);
+        instr->InsertBefore(toDone);
+    }
+    else
+    {
+        this->InsertCompareBranch(src1, src2, Js::OpCode::BrEq_A, labelDone, instr);
+        instr->InsertBefore(instrMovFailure);
+        
+        IR::BranchInstr *toDone = IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func);
+        instr->InsertBefore(toDone);
+    }
+
+    instr->InsertBefore(labelHelper);
+    instr->InsertAfter(labelDone);
 
     return true;
 }
