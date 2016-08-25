@@ -1179,6 +1179,7 @@ FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
+FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", true)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else

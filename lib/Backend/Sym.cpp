@@ -270,9 +270,24 @@ StackSym::SetIsConst()
                 this->m_isIntConst = true;
                 this->m_isTaggableIntConst = true;
             }
-            else if (var && Js::JavascriptNumber::Is(var) && Js::JavascriptNumber::IsInt32_NoChecks(var))
+            else if (var)
             {
-                this->m_isIntConst = true;
+#if !FLOATVAR
+                if (JITManager::GetJITManager()->IsOOPJITEnabled())
+                {
+                    if (addrOpnd->m_localAddress && Js::JavascriptNumber::Is(addrOpnd->m_localAddress) && Js::JavascriptNumber::IsInt32_NoChecks(addrOpnd->m_localAddress))
+                    {
+                        this->m_isIntConst = true;
+                    }
+                }
+                else
+#endif
+                {
+                    if (Js::JavascriptNumber::Is(var) && Js::JavascriptNumber::IsInt32_NoChecks(var))
+                    {
+                        this->m_isIntConst = true;
+                    }
+                }
             }
         }
     }

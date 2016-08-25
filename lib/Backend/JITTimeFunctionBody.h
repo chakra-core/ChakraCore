@@ -107,15 +107,41 @@ public:
         Assert(location != 0);
 
         auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
-
         Assert(obj);
-        Assert(T::Is(obj));
+        obj->vtbl = VirtualTableInfo<T>::Address;
+        //Assert(T::Is(obj));
         return (T*)obj;
     }
+
+    template<>
+    Js::JavascriptNumber* GetConstAsT<Js::JavascriptNumber>(Js::RegSlot location) const
+    {
+        Assert(m_bodyData.constTableContent != nullptr);
+        Assert(location < GetConstCount());
+        Assert(location != 0);
+
+#if !FLOATVAR
+        auto obj = m_bodyData.constTableContent[location - Js::FunctionBody::FirstRegSlot];
+        if (!obj)
+        {
+#endif
+            Js::JavascriptNumber* num = (Js::JavascriptNumber*)GetConstantVar(location);
+            Assert(Js::TaggedNumber::Is(num));
+            return num;
+#if !FLOATVAR
+        }
+        Assert(obj);
+        obj->vtbl = VirtualTableInfo<Js::JavascriptNumber>::Address;
+        Assert(Js::JavascriptNumber::Is(obj));
+        return (Js::JavascriptNumber*)obj;
+#endif
+    }
+
     intptr_t GetInlineCache(uint index) const;
     intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
     void * GetConstTable() const;
+    bool IsConstRegPropertyString(Js::RegSlot reg, ScriptContextInfo * context) const;
 
     intptr_t GetRootObject() const;
     intptr_t GetLoopHeaderAddr(uint loopNum) const;

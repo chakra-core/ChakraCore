@@ -476,8 +476,11 @@ void Opnd::DumpValueType()
 
                 // Tagged int might be encoded here, so check the type
                 if (addrOpnd->GetAddrOpndKind() == AddrOpndKindConstantVar
-                    || Js::TaggedInt::Is(address)
-                    || Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+                    || Js::TaggedInt::Is(address) || (
+#if !FLOATVAR
+                    !JITManager::GetJITManager()->IsOOPJITEnabled() &&
+#endif
+                    Js::JavascriptNumber::Is_NoTaggedIntCheck(address)))
                 {
                     return;
                 }
@@ -3135,7 +3138,11 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 #endif
                 WriteToBuffer(&buffer, &n, format, address, Js::TaggedInt::ToInt32(address));
             }
+#if FLOATVAR
             else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+#else
+            else if (!func->IsOOPJIT() && Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+#endif
             {
                 WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
             }

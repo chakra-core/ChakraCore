@@ -362,7 +362,6 @@ typedef struct RecyclableObjectIDL
     CHAKRA_PTR vtbl; // todo: this can be saved
     int* typeId; // first field of Js::Type is typeId, so this should work
     [switch_is(*typeId)] RecyclableObjectContent x;
-
 } RecyclableObjectIDL;
 
 // FunctionBody fields, read only in JIT, gathered in foreground
@@ -550,13 +549,6 @@ typedef struct PolymorphicInlineCacheInfoIDL
     CHAKRA_PTR functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
 
-typedef struct EntryPointPolymorphicInlineCacheInfoIDL
-{
-    PolymorphicInlineCacheInfoIDL selfInfo;
-    unsigned int inlineeInfoCount;
-    [size_is(inlineeInfoCount)] PolymorphicInlineCacheInfoIDL * inlineeInfo;
-} EntryPointPolymorphicInlineCacheInfoIDL;
-
 // CodeGenWorkItem fields, read only in JIT
 typedef struct CodeGenWorkItemIDL
 {
@@ -568,7 +560,11 @@ typedef struct CodeGenWorkItemIDL
     unsigned int loopNumber;
     XProcNumberPageSegment xProcNumberPageSegment;
 
-    EntryPointPolymorphicInlineCacheInfoIDL polymorphicInlineCacheInfo;
+    PolymorphicInlineCacheInfoIDL * selfInfo;
+    CHAKRA_PTR functionBodyAddr;
+
+    unsigned int inlineeInfoCount;
+    [size_is(inlineeInfoCount)] PolymorphicInlineCacheInfoIDL * inlineeInfo;
 
     // TODO: OOP JIT, move loop body data to separate struct
     unsigned int symIdToValueTypeMapCount;

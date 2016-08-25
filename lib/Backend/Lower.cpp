@@ -3455,7 +3455,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
 
     //#if 0 TODO: OOP JIT, obj literal types
     // should pass in isShared bit through RPC, enable for in-proc jit to see perf impact    
-    Js::DynamicType * literalType = func->IsOOPJIT() ? nullptr : *(Js::DynamicType **)literalTypeRef;
+    Js::DynamicType * literalType = func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts) ? nullptr : *(Js::DynamicType **)literalTypeRef;
 
     if (literalType == nullptr || !literalType->GetIsShared())
     {
@@ -6029,7 +6029,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     IR::Opnd * functionProxyOpnd;
     IR::Opnd * typeOpnd = nullptr;
     bool doCheckTypeOpnd = true;
-    if (m_func->IsOOPJIT() || (*(Js::FunctionProxy **)nestedProxy)->IsDeferred())
+    if (m_func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts) || (*(Js::FunctionProxy **)nestedProxy)->IsDeferred())
     {
         functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
         InsertMove(functionProxyOpnd, IR::MemRefOpnd::New(nestedProxy, TyMachPtr, func), insertBeforeInstr);
@@ -20681,7 +20681,7 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     IR::Opnd * srcLength;
 
     // TODO: OOP JIT, String Length
-    if (!func->IsOOPJIT() && srcOpnd->m_sym->m_isStrConst)
+    if (!func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) && srcOpnd->m_sym->m_isStrConst)
     {
         srcLength = IR::IntConstOpnd::New(Js::JavascriptString::FromVar(srcOpnd->m_sym->GetConstAddress())->GetLength(),
             TyUint32, func);

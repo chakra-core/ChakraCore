@@ -2870,14 +2870,14 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         END_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext);
 
 
-        auto& polymorphicInlineCacheInfo = workItem->GetJITData()->polymorphicInlineCacheInfo;
+        auto jitData = workItem->GetJITData();
 
         JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-            recycler, jitTimeData,
+            recycler,
             entryPoint->EnsurePolymorphicInlineCacheInfo(recycler, workItem->GetFunctionBody()),
-            &polymorphicInlineCacheInfo);
+            jitData);
 
-        jitTimeData->SetPolymorphicInlineInfo(polymorphicInlineCacheInfo.inlineeInfo, polymorphicInlineCacheInfo.selfInfo.polymorphicInlineCaches);
+        jitTimeData->SetPolymorphicInlineInfo(jitData->inlineeInfo, jitData->selfInfo, jitData->selfInfo->polymorphicInlineCaches);
 
         return RecyclerNew(recycler, Js::CodeGenRecyclableData, jitTimeData);
     }

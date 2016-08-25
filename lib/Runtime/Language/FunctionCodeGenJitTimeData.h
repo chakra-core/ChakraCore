@@ -35,6 +35,7 @@ namespace Js
         RecyclerWeakReference<FunctionBody> *weakFuncRef;
 
         PolymorphicInlineCacheInfoIDL* inlineeInfo;
+        PolymorphicInlineCacheInfoIDL* selfInfo;
         PolymorphicInlineCacheIDL** polymorphicInlineCaches;
 
         // Number of functions that are to be inlined (this is not the length of the 'inlinees' array above, includes getter setter inlinee count)
@@ -95,9 +96,10 @@ namespace Js
             this->weakFuncRef = weakFuncRef;
         }
 
-        void SetPolymorphicInlineInfo(PolymorphicInlineCacheInfoIDL* inlineeInfo, PolymorphicInlineCacheIDL** polymorphicInlineCaches)
+        void SetPolymorphicInlineInfo(PolymorphicInlineCacheInfoIDL* inlineeInfo, PolymorphicInlineCacheInfoIDL* selfInfo, PolymorphicInlineCacheIDL** polymorphicInlineCaches)
         {
             this->inlineeInfo = inlineeInfo;
+            this->selfInfo = selfInfo;
             this->polymorphicInlineCaches = polymorphicInlineCaches;
         }
 

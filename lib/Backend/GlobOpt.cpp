@@ -6936,7 +6936,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
 {
     bool isVar = addrOpnd->IsVar();
     // TODO: OOP JIT, fix string const stuff
-    bool isString = isVar && !func->IsOOPJIT() && Js::JavascriptString::Is(addrOpnd->m_address);
+    bool isString = isVar && !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) && Js::JavascriptString::Is(addrOpnd->m_address);
     Value *val = nullptr;
     Value *cachedValue;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
@@ -9132,7 +9132,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             return false;
         }
-        if (func->IsOOPJIT())
+        if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
         {
             // TODO: OOP JIT, const folding
             return false;
@@ -9145,7 +9145,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             return false;
         }
-        if (func->IsOOPJIT())
+        if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
         {
             // TODO: OOP JIT, const folding
             return false;
@@ -9181,7 +9181,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
-            if (func->IsOOPJIT())
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
                 return false;
@@ -9219,7 +9219,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
-            if (func->IsOOPJIT())
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
                 return false;
@@ -9244,7 +9244,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             break;
         }
 
-        if (func->IsOOPJIT())
+        if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
         {
             // TODO: OOP JIT, const folding
             return false;

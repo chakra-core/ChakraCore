@@ -103,17 +103,17 @@ JITTimeWorkItem::GetWorkItemData()
 JITTimePolymorphicInlineCacheInfo *
 JITTimeWorkItem::GetPolymorphicInlineCacheInfo()
 {
-    return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->polymorphicInlineCacheInfo.selfInfo;
+    return (JITTimePolymorphicInlineCacheInfo *)m_workItemData->selfInfo;
 }
 
 JITTimePolymorphicInlineCacheInfo *
 JITTimeWorkItem::GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr)
 {
-    for (uint i = 0; i < m_workItemData->polymorphicInlineCacheInfo.inlineeInfoCount; ++i)
+    for (uint i = 0; i < m_workItemData->inlineeInfoCount; ++i)
     {
-        if (m_workItemData->polymorphicInlineCacheInfo.inlineeInfo[i].functionBodyAddr == funcBodyAddr)
+        if (m_workItemData->inlineeInfo[i].functionBodyAddr == funcBodyAddr)
         {
-            return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->polymorphicInlineCacheInfo.inlineeInfo[i];
+            return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->inlineeInfo[i];
         }
     }
     return nullptr;

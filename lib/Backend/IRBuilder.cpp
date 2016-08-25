@@ -1453,10 +1453,28 @@ IRBuilder::BuildConstantLoads()
             );
             break;
         case Js::TypeIds_String:
+        {
             valueType = ValueType::String;
-            instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, 
-                m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::JavascriptString>(reg) : nullptr);
+            if (m_func->IsOOPJIT())
+            {
+                // must be either PropertyString or LiteralString
+                Js::JavascriptString * constStr;
+                if (m_func->GetJITFunctionBody()->IsConstRegPropertyString(reg, m_func->GetScriptContextInfo()))
+                {
+                    constStr = m_func->GetJITFunctionBody()->GetConstAsT<Js::PropertyString>(reg);
+                }
+                else
+                {
+                    constStr = m_func->GetJITFunctionBody()->GetConstAsT<Js::LiteralString>(reg);
+                }
+                instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, constStr);
+            }
+            else
+            {
+                instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
+            }
             break;
+        }
         case Js::TypeIds_Limit:
             valueType = ValueType::FromTypeId(type, false);
             instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);

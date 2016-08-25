@@ -50,11 +50,10 @@ private:
         DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * m_propertyMap;
 
-    Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
+    AllocationPolicyManager m_policyManager;
+    PageAllocator m_pageAlloc;
     PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
     CustomHeap::CodePageAllocators m_codePageAllocators;
-    PageAllocator m_pageAlloc;
-    AllocationPolicyManager m_policyManager;
     CodeGenAllocators m_codeGenAlloc;
 
     ThreadContextDataIDL m_threadContextData;

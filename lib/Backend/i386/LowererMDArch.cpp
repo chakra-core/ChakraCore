@@ -1787,9 +1787,9 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     exitInstr = LowerExitInstrCommon(exitInstr);
 
     // get asm.js return type
-    Js::AsmJsRetType asmRetType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+    Js::AsmJsRetType::Which asmRetType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType();
     IRType regType;
-    switch (asmRetType.which())
+    switch (asmRetType)
     {
     case Js::AsmJsRetType::Double:
         regType = TyFloat64;

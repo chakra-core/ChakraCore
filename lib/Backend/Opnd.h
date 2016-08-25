@@ -1357,10 +1357,10 @@ public:
 public:
 
     // TODO: OOP JIT, make this union more transparent
-    union {
+    //union {
         void *                  m_metadata;
         Js::Var                 m_localAddress;
-    };
+    //};
     Js::Var                 m_address;
     bool                    m_dontEncode: 1;
     bool                    m_isFunction: 1;

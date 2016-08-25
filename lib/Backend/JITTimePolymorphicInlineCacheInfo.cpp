@@ -14,9 +14,8 @@ JITTimePolymorphicInlineCacheInfo::JITTimePolymorphicInlineCacheInfo()
 void
 JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
     __in Recycler * recycler,
-    __in Js::FunctionCodeGenJitTimeData* jitTimeData,
     __in Js::EntryPointPolymorphicInlineCacheInfo * runtimeInfo,
-    __inout EntryPointPolymorphicInlineCacheInfoIDL * jitInfo)
+    __inout CodeGenWorkItemIDL * jitInfo)
 {
     if (runtimeInfo == nullptr)
     {
@@ -24,10 +23,10 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
     }
     Js::PolymorphicInlineCacheInfo * selfInfo = runtimeInfo->GetSelfInfo();
     SListCounted<Js::PolymorphicInlineCacheInfo*, Recycler> * inlineeList = runtimeInfo->GetInlineeInfo();
-    PolymorphicInlineCacheInfoIDL selfInfoIDL = { 0 };
+    PolymorphicInlineCacheInfoIDL* selfInfoIDL = RecyclerNewStructZ(recycler, PolymorphicInlineCacheInfoIDL);
     PolymorphicInlineCacheInfoIDL* inlineeInfoIDL = nullptr;
 
-    JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, selfInfo, &selfInfoIDL);        
+    JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, selfInfo, selfInfoIDL);
     
     if (!inlineeList->Empty())
     {
@@ -42,13 +41,8 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
         }
         Assert(i == inlineeList->Count());
     }
-
-    jitTimeData->SetPolymorphicInlineInfo(inlineeInfoIDL, selfInfoIDL.polymorphicInlineCaches);
-    jitInfo->selfInfo.functionBodyAddr = selfInfoIDL.functionBodyAddr;
-    jitInfo->selfInfo.polymorphicCacheUtilizationArray = selfInfoIDL.polymorphicCacheUtilizationArray;
-    jitInfo->selfInfo.polymorphicInlineCacheCount = selfInfoIDL.polymorphicInlineCacheCount;
-    jitInfo->selfInfo.polymorphicInlineCaches = selfInfoIDL.polymorphicInlineCaches;
     jitInfo->inlineeInfoCount = inlineeList->Count();
+    jitInfo->selfInfo = selfInfoIDL;
     jitInfo->inlineeInfo = inlineeInfoIDL;
 }
 
