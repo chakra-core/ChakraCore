@@ -50,16 +50,16 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAsyncSpawnExecutorFunction);
 
     public:
-        JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generatorFunction, Var target);
+        JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target);
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAsyncSpawnExecutorFunction* FromVar(Var var);
 
-        JavascriptGenerator* GetGeneratorFunction();
+        JavascriptGenerator* GetGenerator();
         Var GetTarget();
 
     private:
-        JavascriptGenerator* generatorFunction;
+        JavascriptGenerator* generator;
         Var target; // this
 
 #if ENABLE_TTD

@@ -1365,7 +1365,7 @@ IRBuilder::BuildImplicitArgIns()
 void
 IRBuilder::BuildGeneratorPreamble()
 {
-    if (!this->m_func->GetJnFunction()->IsGenerator())
+    if (!this->m_func->GetJnFunction()->IsCoroutine())
     {
         return;
     }

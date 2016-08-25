@@ -560,8 +560,6 @@ namespace Js
 
         static Var OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator);
 
-        static Var OP_AsyncSpawn(Js::Var aGenerator, Js::Var aThis, ScriptContext* scriptContext);
-
         template <typename T>
         static void * JitRecyclerAlloc(DECLSPEC_GUARD_OVERFLOW size_t size, Recycler* recycler)
         {
