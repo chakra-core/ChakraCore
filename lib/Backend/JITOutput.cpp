@@ -72,7 +72,7 @@ JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ush
 {
     BYTE *buffer;
 
-    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, !func->IsOOPJIT(), true);
+    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, true, true);
 
 #if DBG
     MEMORY_BASIC_INFORMATION memBasicInfo;
