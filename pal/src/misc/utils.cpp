@@ -236,15 +236,15 @@ LPWSTR UTIL_MBToWC_Alloc(LPCSTR lpMultiByteStr, int cbMultiByte)
         return NULL;
     }
 
-    /* allocate required buffer */
-    size_t fullsize;
-    if (!ClrSafeInt<size_t>::multiply(length,sizeof(WCHAR),fullsize))
+    if (length >= (INT_MAX / sizeof(WCHAR)))
     {
         ERROR("integer overflow! length = %d , sizeof(WCHAR) = (%d)\n", length,sizeof(WCHAR) );
         SetLastError(ERROR_ARITHMETIC_OVERFLOW);
         return NULL;
     }
 
+    /* allocate required buffer */
+    size_t fullsize = length * sizeof(WCHAR);
     lpWideCharStr = (LPWSTR)PAL_malloc(fullsize);
     if(NULL == lpWideCharStr)
     {
@@ -318,4 +318,3 @@ void UTIL_SetLastErrorFromMach(kern_return_t MachReturn)
     }
 }
 #endif //HAVE_VM_ALLOCATE
-
