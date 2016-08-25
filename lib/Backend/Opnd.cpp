@@ -58,10 +58,20 @@ Opnd::IsNotNumber() const
     {
         return true;
     }
-    if (this->IsRegOpnd() && this->AsRegOpnd()->m_sym->m_isNotInt)
+    if (this->IsRegOpnd())
     {
-        // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-        return true;
+        const IR::RegOpnd* regOpnd = this->AsRegOpnd();
+
+        if (regOpnd->m_sym == nullptr)
+        {
+            return true;
+        }
+
+        if (regOpnd->m_sym->m_isNotInt)
+        {
+            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
+            return true;
+        }
     }
     return false;
 }

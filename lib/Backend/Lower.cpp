@@ -13765,14 +13765,8 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
     IR::Instr *const instr = IR::Instr::New(Js::OpCode::Ld_A, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-    if (generateWriteBarrier)
-    {
-        LowererMD::ChangeToWriteBarrierAssign(instr);
-    }
-    else
-    {
-        LowererMD::ChangeToAssign(instr);
-    }
+
+    LowererMD::ChangeToWriteBarrierAssign(instr);
 
     return instr;
 }

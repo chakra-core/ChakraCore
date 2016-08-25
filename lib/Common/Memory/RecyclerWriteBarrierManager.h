@@ -14,7 +14,7 @@ namespace Memory
 #define RECYCLER_WRITE_BARRIER_BYTE
 
 // Controls whether the JIT is software write barrier aware
-// #define RECYCLER_WRITE_BARRIER_JIT
+#define RECYCLER_WRITE_BARRIER_JIT
 
 // Controls whether we can allocate SWB memory or not
 // Turning this on leaves the rest of the SWB infrastructure intact,
