@@ -4024,7 +4024,15 @@ CommonNumber:
 
         if (!hasProperty)
         {
-            JavascriptString* varName = JavascriptConversion::ToString(index, scriptContext);
+            JavascriptString* varName = nullptr;
+            if (indexType == IndexType_PropertyId && propertyRecord != nullptr && propertyRecord->IsSymbol())
+            {
+                varName = JavascriptSymbol::ToString(propertyRecord, scriptContext);
+            }
+            else
+            {
+                varName = JavascriptConversion::ToString(index, scriptContext);
+            }
 
             // ES5 11.2.3 #2: We evaluate the call target but don't throw yet if target member is missing. We need to evaluate argList
             // first (#3). Postpone throwing error to invoke time.
