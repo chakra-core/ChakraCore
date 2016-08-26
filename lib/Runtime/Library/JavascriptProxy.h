@@ -178,14 +178,17 @@ namespace Js
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord);
                 propertyId = propertyRecord->GetPropertyId();
 
-                if (propertyId != Constants::NoProperty)
+                if (!targetToTrapResultMap.ContainsKey(propertyId))
                 {
-                    targetToTrapResultMap.Add(propertyId, true);
-                }
+                    if (propertyId != Constants::NoProperty)
+                    {
+                        targetToTrapResultMap.Add(propertyId, true);
+                    }
 
-                if (fn(propertyRecord))
-                {
-                    trapResult->DirectSetItemAt(trapResultIndex++, element);
+                    if (fn(propertyRecord))
+                    {
+                        trapResult->DirectSetItemAt(trapResultIndex++, element);
+                    }
                 }
             }
         }

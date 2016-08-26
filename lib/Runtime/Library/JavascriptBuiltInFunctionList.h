@@ -945,7 +945,6 @@ BUILTIN(JavascriptPromise, AllResolveElementFunction, EntryAllResolveElementFunc
 BUILTIN(JavascriptPromise, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptReflect, DefineProperty, EntryDefineProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, DeleteProperty, EntryDeleteProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptReflect, Enumerate, EntryEnumerate, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Get, EntryGet, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetOwnPropertyDescriptor, EntryGetOwnPropertyDescriptor, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetPrototypeOf, EntryGetPrototypeOf, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
