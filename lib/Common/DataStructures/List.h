@@ -479,13 +479,9 @@ namespace JsUtil
 
         void Sort()
         {
-            // We can call QSort only if the remove policy for this list is CopyRemovePolicy
-            CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
-                (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if(this->count)
-            {
-                JsUtil::QuickSort<T, TComparerType>::Sort(this->buffer, this->buffer + (this->count - 1));
-            }
+            Sort([](void *, const void * a, const void * b) {
+                return TComparerType::Compare(*(T*)a, *(T*)b);
+            }, nullptr);
         }
 
         void Sort(int(__cdecl * _PtFuncCompare)(void *, const void *, const void *), void *_Context)
