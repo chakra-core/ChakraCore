@@ -143,20 +143,27 @@ namespace Js
     uint32 ArrayBuffer::GetByteLengthFromVar(ScriptContext* scriptContext, Var length)
     {
         Var firstArgument = length;
+        double returnValue;
+
         if (TaggedInt::Is(firstArgument))
         {
-            int32 byteCount = TaggedInt::ToInt32(firstArgument);
-            if (byteCount < 0)
+            returnValue = TaggedInt::ToInt32(firstArgument);
+        }
+        else
+        {
+            returnValue = JavascriptConversion::ToNumber(firstArgument, scriptContext);
+        }
+
+        if (returnValue < 0 || !NumberUtilities::IsFinite(returnValue))
+        {
+            if (!NumberUtilities::IsNan(returnValue))
             {
                 JavascriptError::ThrowRangeError(
                     scriptContext, JSERR_ArrayLengthConstructIncorrect);
             }
-            return byteCount;
         }
-        else
-        {
-            return JavascriptConversion::ToUInt32(firstArgument, scriptContext);
-        }
+
+        return (uint32)returnValue;
     }
 
     Var ArrayBuffer::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)

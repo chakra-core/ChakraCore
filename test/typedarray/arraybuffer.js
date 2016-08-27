@@ -41,6 +41,17 @@ for (i in d) {
 WScript.Echo(i); 
 }
 
+try {
+  var will_throw = new ArrayBuffer(Infinity);
+} catch(known_exception) {
+  WScript.Echo(known_exception.name + ":" + known_exception.message);
+}
+
+try {
+  var will_throw = new ArrayBuffer("-2");
+} catch(known_exception) {
+  WScript.Echo(known_exception.name + ":" + known_exception.message);
+}
 
 WScript.Echo("arraybuffer.prototype")
 var f = Object.getPrototypeOf(e);
