@@ -662,6 +662,11 @@ PAL_DeleteExecWatchpoint(
 
 #endif
 
+/******************* vcruntime.h Entrypoints *******************************/
+
+#ifndef _countof
+#define _countof(x) (sizeof(x) / sizeof(x[0]))
+#endif
 
 /******************* winuser.h Entrypoints *******************************/
 
