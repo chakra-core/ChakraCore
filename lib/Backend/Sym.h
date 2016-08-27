@@ -164,11 +164,11 @@ public:
     bool            IsTempReg(Func *const func) const;
     bool            IsFromByteCodeConstantTable() const { return m_isFromByteCodeConstantTable; }
     void            SetIsFromByteCodeConstantTable() { this->m_isFromByteCodeConstantTable = true; }
-    Js::ArgSlot     GetArgSlotNum() const { Assert(HasArgSlotNum() && m_slotNum); return m_slotNum; }
+    Js::ArgSlot     GetArgSlotNum() const { Assert(HasArgSlotNum()); return m_slotNum; }
     bool            HasArgSlotNum() const { return !!(m_isArgSlotSym | m_isArgSlotRegSym); }
     void            IncrementArgSlotNum();
     void            DecrementArgSlotNum();
-    Js::ArgSlot     GetParamSlotNum() const { Assert(IsParamSlotSym() && m_slotNum); return m_slotNum; }
+    Js::ArgSlot     GetParamSlotNum() const { Assert(IsParamSlotSym()); return m_slotNum; }
 
     IR::Instr *     GetInstrDef() const { return this->IsSingleDef() ? this->m_instrDef : nullptr; }
 
