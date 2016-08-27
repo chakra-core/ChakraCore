@@ -866,12 +866,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         throw Js::OperationAbortedException();
     }
 
-    // the number allocator needs to be on the stack so that if we are doing foreground JIT
-    // the chunk allocated from the recycler will be stacked pinned
-    CodeGenNumberAllocator numberAllocator(
-        foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
-        scriptContext->GetRecycler());
-
     workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
 
     // TODO: oop jit can we be more efficient here?
@@ -917,9 +911,19 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
+        CodeGenNumberAllocator* pNumberAllocator = nullptr;
+
+#if !FLOATVAR
+        // the number allocator needs to be on the stack so that if we are doing foreground JIT
+        // the chunk allocated from the recycler will be stacked pinned
+        CodeGenNumberAllocator numberAllocator(
+            foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
+            scriptContext->GetRecycler());
+        pNumberAllocator = &numberAllocator;
+#endif
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
-            allocators, nullptr, nullptr, !foreground);
+            allocators, pNumberAllocator, nullptr, !foreground);
     }
 
 
