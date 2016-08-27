@@ -1084,6 +1084,7 @@ namespace Js
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
         newInstance->isParamScopeDone = false;
+        newInstance->shouldCacheSP = true;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -6744,7 +6745,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
-            CacheSp();
+            if (shouldCacheSP)
+            {
+                CacheSp();
+            }
 
             if (this->IsInDebugMode())
             {
@@ -6772,10 +6776,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
         }
 
+        shouldCacheSP = !skipFinallyBlock;
+
         if (skipFinallyBlock)
         {
-            RestoreSp();
-
             // A leave occurred due to a yield
             return;
         }
