@@ -464,9 +464,6 @@ RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 		{
 			switch (paramSym->GetParamSlotNum())
 			{
-			case 10000:
-				reg = RegXMM0;
-				break;
 			case 1:
 				reg = RegXMM1;
 				break;

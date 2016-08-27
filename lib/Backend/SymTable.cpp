@@ -246,7 +246,7 @@ SymTable::GetArgSlotSym(Js::ArgSlot argSlotNum)
 StackSym *          
 SymTable::GetImplicitParam(Js::ArgSlot paramSlotNum)
 {
-	Assert(paramSlotNum - 1 <= this->k_maxImplicitParamSlot);
+	Assert(paramSlotNum - 1 < this->k_maxImplicitParamSlot);
 
 	if (this->m_implicitParams[paramSlotNum - 1])
 	{
