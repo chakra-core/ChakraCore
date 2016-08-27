@@ -13,25 +13,25 @@ JITOutput::JITOutput(JITOutputIDL * outputData) :
 void
 JITOutput::SetHasJITStackClosure()
 {
-    m_outputData->writeableEPData.hasJittedStackClosure = true;
+    m_outputData->hasJittedStackClosure = true;
 }
 
 void
 JITOutput::SetVarSlotsOffset(int32 offset)
 {
-    m_outputData->writeableEPData.localVarSlotsOffset = offset;
+    m_outputData->localVarSlotsOffset = offset;
 }
 
 void
 JITOutput::SetVarChangedOffset(int32 offset)
 {
-    m_outputData->writeableEPData.localVarChangedOffset = offset;
+    m_outputData->localVarChangedOffset = offset;
 }
 
 void
 JITOutput::SetHasBailoutInstr(bool val)
 {
-    m_outputData->writeableBodyData.hasBailoutInstr = val;
+    m_outputData->hasBailoutInstr = val;
 }
 
 void
@@ -39,13 +39,13 @@ JITOutput::SetArgUsedForBranch(uint8 param)
 {
     Assert(param > 0);
     Assert(param < Js::Constants::MaximumArgumentCountForConstantArgumentInlining);
-    m_outputData->writeableBodyData.argUsedForBranch |= (1 << (param - 1));
+    m_outputData->argUsedForBranch |= (1 << (param - 1));
 }
 
 void
 JITOutput::SetFrameHeight(uint val)
 {
-    m_outputData->writeableEPData.frameHeight = val;
+    m_outputData->frameHeight = val;
 }
 
 void
@@ -58,7 +58,7 @@ JITOutput::RecordThrowMap(Js::ThrowMapEntry * throwMap, uint mapCount)
 uint16
 JITOutput::GetArgUsedForBranch() const
 {
-    return m_outputData->writeableBodyData.argUsedForBranch;
+    return m_outputData->argUsedForBranch;
 }
 
 intptr_t

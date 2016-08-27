@@ -309,6 +309,11 @@ ServerRemoteCodeGen(
     UNREFERENCED_PARAMETER(binding);
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
+    LARGE_INTEGER start_time = { 0 };
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        QueryPerformanceCounter(&start_time);
+    }
     ServerThreadContext * threadContextInfo = reinterpret_cast<ServerThreadContext*>(threadContextInfoAddress);
     ServerScriptContext * scriptContextInfo = reinterpret_cast<ServerScriptContext*>(scriptContextInfoAddress);
 
@@ -329,6 +334,20 @@ ServerRemoteCodeGen(
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        LARGE_INTEGER freq;
+        LARGE_INTEGER end_time;
+        QueryPerformanceCounter(&end_time);
+        QueryPerformanceFrequency(&freq);
+
+        Output::Print(
+            L"BackendMarshal - function: %s time:%8.6f mSec\r\n",
+            jitWorkItem->GetJITFunctionBody()->GetDisplayName(),
+            (((double)((end_time.QuadPart - workItemData->startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
+        Output::Flush();
+    }
+
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
     memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
@@ -336,5 +355,20 @@ ServerRemoteCodeGen(
 
     scriptContextInfo->EndJIT();
     threadContextInfo->EndJIT();
+
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        LARGE_INTEGER freq;
+        LARGE_INTEGER end_time;
+        QueryPerformanceCounter(&end_time);
+        QueryPerformanceFrequency(&freq);
+
+        Output::Print(
+            L"EndBackEnd - function: %s time:%8.6f mSec\r\n",
+            jitWorkItem->GetJITFunctionBody()->GetDisplayName(),
+            (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
+        Output::Flush();
+
+    }
     return S_OK;
 }

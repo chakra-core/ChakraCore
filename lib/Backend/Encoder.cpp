@@ -526,8 +526,8 @@ Encoder::Encode()
         else
         {
             Func* func = this->m_func;
-            this->m_func->GetJITOutput()->GetOutputData()->typeGuardTransferData.propertyGuardCount = this->m_func->indexedPropertyGuardCount;
-            auto entry = &this->m_func->GetJITOutput()->GetOutputData()->typeGuardTransferData.entries;
+            this->m_func->GetJITOutput()->GetOutputData()->propertyGuardCount = this->m_func->indexedPropertyGuardCount;
+            auto entry = &this->m_func->GetJITOutput()->GetOutputData()->typeGuardEntries;
 
             this->m_func->propertyGuardsByPropertyId->Map([func, &entry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
             {
@@ -571,9 +571,9 @@ Encoder::Encode()
         if (m_func->IsOOPJIT())
         {
             Func* func = this->m_func;
-            m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.ctorCachesCount = propertyCount;
-            m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.entries = (CtorCacheTransferEntryIDL**)midl_user_allocate(propertyCount * sizeof(CtorCacheTransferEntryIDL*));
-            CtorCacheTransferEntryIDL** entries = m_func->GetJITOutput()->GetOutputData()->ctorCacheTransferData.entries;
+            m_func->GetJITOutput()->GetOutputData()->ctorCachesCount = propertyCount;
+            m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries = (CtorCacheTransferEntryIDL**)midl_user_allocate(propertyCount * sizeof(CtorCacheTransferEntryIDL*));
+            CtorCacheTransferEntryIDL** entries = m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries;
 
             uint propIndex = 0;
             m_func->ctorCachesByPropertyId->Map([func, entries, &propIndex](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void

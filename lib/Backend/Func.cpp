@@ -141,10 +141,10 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (this->IsTopFunc())
     {
-        outputData->writeableEPData.hasJittedStackClosure = false;
+        outputData->hasJittedStackClosure = false;
         // TODO: (michhol) validate initial values
-        outputData->writeableEPData.localVarSlotsOffset = 0;
-        outputData->writeableEPData.localVarChangedOffset = 0;
+        outputData->localVarSlotsOffset = 0;
+        outputData->localVarChangedOffset = 0;
     }
 
     if (this->IsInlined())

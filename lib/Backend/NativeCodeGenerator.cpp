@@ -854,9 +854,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     double startTime = threadContext->JITTelemetry.Now();
 #endif
 
-    LARGE_INTEGER start_time = { 0 };
-    NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
-
     // TODO: (michhol OOP JIT) I think this should be requisite to calling?
     if (body->GetScriptContext()->IsClosed())
     {
@@ -892,6 +889,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->xProcNumberPageSegment = AnewStructZ(&alloc, XProcNumberPageSegment);
     threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
+
+    LARGE_INTEGER start_time = { 0 };
+    NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
+    workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
@@ -926,11 +927,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
             allocators, pNumberAllocator, nullptr, !foreground);
     }
+    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 
-    workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
+    workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.frameHeight);
 
-    if (jitWriteData.writeableEPData.hasJittedStackClosure != FALSE)
+    if (jitWriteData.hasJittedStackClosure != FALSE)
     {
         workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
@@ -1013,8 +1015,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
 
         epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
-        epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData.typeGuardTransferData);
-        epInfo->GetJitTransferData()->SetCtorCacheTransferData(&jitWriteData.ctorCacheTransferData);
+        epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData);
+        epInfo->GetJitTransferData()->SetCtorCacheTransferData(&jitWriteData);
 
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
@@ -1028,12 +1030,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
 
-    if (jitWriteData.writeableBodyData.hasBailoutInstr != FALSE)
+    if (jitWriteData.hasBailoutInstr != FALSE)
     {
         body->SetHasBailoutInstrInJittedCode(true);
     }
 
-    body->m_argUsedForBranch |= jitWriteData.writeableBodyData.argUsedForBranch;
+    body->m_argUsedForBranch |= jitWriteData.argUsedForBranch;
 
     if (body->HasDynamicProfileInfo())
     {
@@ -1070,7 +1072,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         scriptContext->codeSize += workItem->GetEntryPoint()->GetCodeSize();
     }
 #endif
-    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef ENABLE_BASIC_TELEMETRY
     threadContext->JITTelemetry.LogTime(threadContext->JITTelemetry.Now() - startTime);

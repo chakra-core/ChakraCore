@@ -29,7 +29,7 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc, func->GetThreadContextInfo());
         m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
 #if 0
         // templatized JIT loop body

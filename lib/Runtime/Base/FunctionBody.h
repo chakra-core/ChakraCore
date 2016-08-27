@@ -348,6 +348,20 @@ namespace Js
     };
 
 
+    struct TypeGuardTransferData
+    {
+        unsigned int propertyGuardCount;
+        TypeGuardTransferEntryIDL* entries;
+    };
+
+    struct CtorCacheTransferData
+    {
+        unsigned int ctorCachesCount;
+        CtorCacheTransferEntryIDL ** entries;
+    };
+
+
+
     // Not thread safe.
     // Note that instances of this class are read from and written to from the
     // main and JIT threads.
@@ -433,14 +447,14 @@ namespace Js
             {
                 equivalentTypeGuardOffsets = offsets;
             }
-            void SetTypeGuardTransferData(TypeGuardTransferData* data)
+            void SetTypeGuardTransferData(JITOutputIDL* data)
             {
-                typeGuardTransferData.entries = data->entries;
+                typeGuardTransferData.entries = data->typeGuardEntries;
                 typeGuardTransferData.propertyGuardCount = data->propertyGuardCount;
             }
-            void SetCtorCacheTransferData(CtorCacheTransferData * data)
+            void SetCtorCacheTransferData(JITOutputIDL * data)
             {
-                ctorCacheTransferData.entries = data->entries;
+                ctorCacheTransferData.entries = data->ctorCacheEntries;
                 ctorCacheTransferData.ctorCachesCount = data->ctorCachesCount;
             }
             bool GetIsReady() { return this->isReady; }

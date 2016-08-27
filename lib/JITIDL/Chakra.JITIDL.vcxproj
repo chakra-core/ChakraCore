@@ -21,18 +21,30 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Midl>
       <HeaderFileName>%(Filename).h</HeaderFileName>
-      <AdditionalOptions>-savePP %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-savePP /protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
     </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
       <HeaderFileName>%(Filename).h</HeaderFileName>
+      <AdditionalOptions>-savePP %(AdditionalOptions)</AdditionalOptions>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalOptions>-savePP /protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <Midl>
+      <AdditionalOptions>-savePP /protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
     </Midl>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildingInsideVisualStudio)'=='true'">
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
-      <AdditionalOptions>%(AdditionalOptions) /target NT60 /prefix client "Client" server "Server"</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /target NT62 /prefix client "Client" server "Server"</AdditionalOptions>
       <HeaderFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).h</HeaderFileName>
     </Midl>
   </ItemGroup>

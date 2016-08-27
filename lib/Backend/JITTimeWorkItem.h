@@ -26,7 +26,7 @@ public:
 
     void InitializeReader(
         Js::ByteCodeReader * reader,
-        Js::StatementReader * statementReader, ArenaAllocator* alloc);
+        Js::StatementReader * statementReader, ArenaAllocator* alloc, ThreadContextInfo * context);
 
     JITTimeFunctionBody * GetJITFunctionBody();
 
@@ -43,6 +43,7 @@ public:
 
 private:
     CodeGenWorkItemIDL * m_workItemData;
+    byte * m_bytecodeBuffer;
     JITTimeFunctionBody m_jitBody;
     Js::SmallSpanSequence m_statementMap;
 

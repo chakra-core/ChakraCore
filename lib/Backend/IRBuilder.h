@@ -90,7 +90,7 @@ public:
         }
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc, func->GetThreadContextInfo());
     };
 
     ~IRBuilder() {
