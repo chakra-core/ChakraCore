@@ -73,6 +73,12 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
         clr_unknown_arch()
     endif()
     set(CLR_CMAKE_PLATFORM_DARWIN 1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -mmacosx-version-min=10.7")
 else()
     clr_unknown_arch()
 endif()
