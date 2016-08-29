@@ -322,7 +322,7 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
         {
             if (data == nullptr)
             {
-                summaries[i] = nullptr;
+                summaries[j] = nullptr;
                 continue;
             }
             localSummary = AnewStructZ(alloc, ArenaMemoryDataSummary);
@@ -343,7 +343,7 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
         {
             localSummary->arenaCount = localSummary->outstandingCount;
         }
-        summaries[i] = localSummary;
+        summaries[j] = localSummary;
     }
 
     return count;
