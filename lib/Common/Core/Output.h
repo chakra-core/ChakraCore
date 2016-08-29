@@ -89,6 +89,7 @@ public:
             retValue = Output::Print(_u("%s:"), Js::PhaseNames[static_cast<int>(phase)]);
             retValue += Output::VPrint(form, argptr);
             retValue += Output::Print(_u("%s"), callback());
+            va_end(argptr);
         }
 
         return retValue;
