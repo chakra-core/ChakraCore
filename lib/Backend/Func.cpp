@@ -1773,7 +1773,7 @@ Func::AllocateNumber(double value)
     }
     else // OOP JIT
     {
-        GetXProcNumberAllocator()->AllocateNumber(this->GetThreadContextInfo()->GetProcessHandle(),
+        number = GetXProcNumberAllocator()->AllocateNumber(this->GetThreadContextInfo()->GetProcessHandle(),
             value,
             (Js::StaticType*)this->GetScriptContextInfo()->GetNumberTypeStaticAddr(),
             (void*)this->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber));
