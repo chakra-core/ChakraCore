@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonDataStructuresPch.h"
 
+#ifdef _WIN32
 template <typename TBVIndex>
 BVSparseNode<TBVIndex>::BVSparseNode(TBVIndex beginIndex, BVSparseNode<TBVIndex> * nextNode) :
     startIndex(beginIndex),
@@ -19,7 +20,6 @@ void BVSparseNode<TBVIndex>::init(TBVIndex beginIndex, BVSparseNode * nextNode)
     this->next = nextNode;
 }
 
-#ifdef _WIN32
 template <typename TBVIndex>
 bool BVSparseNode<TBVIndex>::ToString(
     __out_ecount(strSize) char *const str,
