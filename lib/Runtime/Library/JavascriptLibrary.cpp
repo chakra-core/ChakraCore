@@ -798,6 +798,42 @@ namespace Js
         }
     }
 
+    DynamicType* JavascriptLibrary::GetErrorType(ErrorTypeEnum typeToFind) const
+    {
+        switch (typeToFind)
+        {
+        case kjstError:
+            return GetErrorType();
+            break;
+
+        case kjstEvalError:
+            return GetEvalErrorType();
+            break;
+
+        case kjstRangeError:
+            return GetRangeErrorType();
+            break;
+
+        case kjstReferenceError:
+            return GetReferenceErrorType();
+            break;
+
+        case kjstSyntaxError:
+            return GetSyntaxErrorType();
+            break;
+
+        case kjstTypeError:
+            return GetTypeErrorType();
+            break;
+
+        case kjstURIError:
+            return GetURIErrorType();
+            break;
+        }
+
+        return nullptr;
+    }
+
     template<bool isNameAvailable, bool isPrototypeAvailable>
     class InitializeFunctionDeferredTypeHandlerFilter
     {

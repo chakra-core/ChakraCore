@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 #include "errstr.h"
-#include "Library/JavascriptErrorDebug.h"
 
 #ifdef ERROR_TRACE
 #define TRACE_ERROR(...) { Trace(__VA_ARGS__); }
@@ -289,69 +288,38 @@ namespace Js
         JavascriptError::MapAndThrowError(scriptContext, hr, errorType, nullptr);
     }
 
-    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO* pei, IErrorInfo * perrinfo, RestrictedErrorStrings * proerrstr, bool useErrInfoDescription)
+    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO* pei)
     {
-        JavascriptError* pError = MapError(scriptContext, errorType, perrinfo, proerrstr);
-        MapAndThrowError(scriptContext, pError, hr, pei, useErrInfoDescription);
+        JavascriptError* pError = MapError(scriptContext, errorType);
+        SetMessageAndThrowError(scriptContext, pError, hr, pei);
     }
 
-    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei, bool useErrInfoDescription/* = false*/)
+    void __declspec(noreturn) JavascriptError::SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei)
     {
-        Assert(pError != nullptr);
-
         PCWSTR varName = (pei ? pei->bstrDescription : nullptr);
-#ifdef _WIN32
-        if (useErrInfoDescription)
+
+        JavascriptError::SetErrorMessage(pError, hCode, varName, scriptContext);
+
+        if (pei)
         {
-            JavascriptErrorDebug::SetErrorMessage(pError, hCode, varName, scriptContext);
+            FreeExcepInfo(pei);
         }
-        else
-#endif
-        {
-            Assert(!useErrInfoDescription);
-            JavascriptError::SetErrorMessage(pError, hCode, varName, scriptContext);
-        }
-        if (pei) FreeExcepInfo(pei);
+
         JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 
-#ifdef _WIN32
-#define CREATE_ERROR(create_method, get_type_method, err_type)   \
-    if (perrinfo) \
-    { \
-        JavascriptErrorDebug *pErrorDebug = RecyclerNewFinalized(library->GetRecycler(), JavascriptErrorDebug, perrinfo, library->get_type_method()); \
-        JavascriptError::SetErrorType(pErrorDebug, err_type); \
-        if (proerrstr) \
-        { \
-            pErrorDebug->SetRestrictedErrorStrings(proerrstr); \
-        } \
-        pError = static_cast<JavascriptError*>(pErrorDebug); \
-    } \
-    else \
-    { \
-        pError = library->create_method(); \
-    } 
-#else
-#define CREATE_ERROR(create_method, get_type_method, err_type)   \
-    { \
-        Assert(perrinfo == nullptr); \
-        pError = library->create_method(); \
-    }
-#endif
-
 #define THROW_ERROR_IMPL(err_method, create_method, get_type_method, err_type) \
-    static JavascriptError* create_method(ScriptContext* scriptContext, IErrorInfo* perrinfo, RestrictedErrorStrings * proerrstr) \
+    static JavascriptError* create_method(ScriptContext* scriptContext) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
-        JavascriptError *pError = nullptr; \
-        CREATE_ERROR(create_method, get_type_method, err_type);  \
+        JavascriptError *pError = library->create_method(); \
         return pError; \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei, IErrorInfo* perrinfo, RestrictedErrorStrings * proerrstr, bool useErrInfoDescription) \
+    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei) \
     { \
-        JavascriptError *pError = create_method(scriptContext, perrinfo, proerrstr); \
-        MapAndThrowError(scriptContext, pError, hCode, pei, useErrInfoDescription); \
+        JavascriptError *pError = create_method(scriptContext); \
+        SetMessageAndThrowError(scriptContext, pError, hCode, pei); \
     } \
     \
     void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName) \
@@ -390,34 +358,22 @@ namespace Js
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
 #undef THROW_ERROR_IMPL
 
-    JavascriptError* JavascriptError::MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType, IErrorInfo * perrinfo /*= nullptr*/, RestrictedErrorStrings * proerrstr /*= nullptr*/)
+    JavascriptError* JavascriptError::MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType)
     {
         switch (errorType)
         {
         case kjstError:
-          return CreateError(scriptContext, perrinfo, proerrstr);
+          return CreateError(scriptContext);
         case kjstTypeError:
-          return CreateTypeError(scriptContext, perrinfo, proerrstr);
+          return CreateTypeError(scriptContext);
         case kjstRangeError:
-          return CreateRangeError(scriptContext, perrinfo, proerrstr);
+          return CreateRangeError(scriptContext);
         case kjstSyntaxError:
-          return CreateSyntaxError(scriptContext, perrinfo, proerrstr);
+          return CreateSyntaxError(scriptContext);
         case kjstReferenceError:
-          return CreateReferenceError(scriptContext, perrinfo, proerrstr);
+          return CreateReferenceError(scriptContext);
         case kjstURIError:
-          return CreateURIError(scriptContext, perrinfo, proerrstr);
-#ifdef ENABLE_PROJECTION
-        case kjstWinRTError:
-          if (scriptContext->GetConfig()->IsWinRTEnabled())
-          {
-              return scriptContext->GetHostScriptContext()->CreateWinRTError(perrinfo, proerrstr);
-          }
-          else
-          {
-              return CreateError(scriptContext, perrinfo, proerrstr);
-          }
-          break;
-#endif
+          return CreateURIError(scriptContext);
         default:
             AssertMsg(FALSE, "Invalid error type");
             __assume(false);
@@ -691,7 +647,7 @@ namespace Js
         se->GetError(&hrParser, &ei);
 
         JavascriptError* pError = MapParseError(scriptContext, ei.scode);
-        JavascriptError::MapAndThrowError(scriptContext, pError, ei.scode, &ei);
+        JavascriptError::SetMessageAndThrowError(scriptContext, pError, ei.scode, &ei);
     }
 
     ErrorTypeEnum JavascriptError::MapParseError(int32 hCode)
@@ -859,11 +815,6 @@ namespace Js
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
             break;
-#ifdef ENABLE_PROJECTION
-        case kjstWinRTError:
-            jsNewError = targetJavascriptLibrary->GetScriptContext()->GetHostScriptContext()->CreateWinRTError(nullptr, nullptr);
-            break;
-#endif
 
         case kjstCustomError:
         default:
