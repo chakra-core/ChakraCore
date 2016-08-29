@@ -493,6 +493,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/ConcatString.h"
 #include "Library/CompoundString.h"
 #include "Library/PropertyString.h"
+#include "Library/SingleCharString.h"
 
 #include "Library/JavascriptTypedNumber.h"
 #include "Library/SparseArraySegment.h"

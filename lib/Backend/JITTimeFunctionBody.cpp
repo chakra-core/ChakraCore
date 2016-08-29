@@ -56,7 +56,8 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                         // irbuilder relies on this assertion
                         Assert(!Js::JavascriptString::Is(varConst)
                             || VirtualTableInfo<Js::LiteralString>::HasVirtualTable(varConst)
-                            || VirtualTableInfo<Js::PropertyString>::HasVirtualTable(varConst));
+                            || VirtualTableInfo<Js::PropertyString>::HasVirtualTable(varConst)
+                            || VirtualTableInfo<Js::SingleCharString>::HasVirtualTable(varConst));
 
                         jitBody->constTableContent[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
                     }
