@@ -8217,6 +8217,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
+    void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
+    {
+        Assert(playout->ViewType < 8);
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
+    }
+    template <class T>
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
     {
         const uint32 index = playout->SlotIndex;
@@ -8228,6 +8235,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < 8);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        (this->*StArrFunc[playout->ViewType])(index, playout->Value);
+    }
+    template <class T>
+    void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
+    {
+        Assert(playout->ViewType < 8);
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>

@@ -133,10 +133,7 @@ namespace Wasm
         EmitInfo EmitBr();
 
         template<WasmOp wasmOp, typename Signature>
-        EmitInfo EmitMemRead();
-
-        template<WasmOp wasmOp, typename Signature>
-        EmitInfo EmitMemStore();
+        EmitInfo EmitMemAccess(bool isStore);
 
         template<Js::OpCodeAsmJs op, typename Signature>
         EmitInfo EmitBinExpr();

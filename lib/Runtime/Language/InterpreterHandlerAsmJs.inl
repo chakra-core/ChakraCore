@@ -45,6 +45,8 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF4_WMS( TEMPLATE_ASMJS   , StSlot_Int   , OP_StSlotPrimitive           , ElementSlot, int    )
   DEF4_WMS( TEMPLATE_ASMJS   , StSlot_Flt   , OP_StSlotPrimitive           , ElementSlot, float  )
   DEF3_WMS( CUSTOM_ASMJS     , LdArr        , OP_LdArrGeneric              , AsmTypedArr         )
+  DEF3_WMS( CUSTOM_ASMJS     , LdArrWasm    , OP_LdArrWasm                 , AsmTypedArr         )
+  DEF3_WMS( CUSTOM_ASMJS     , StArrWasm    , OP_StArrWasm                 , AsmTypedArr         )
   DEF3_WMS( CUSTOM_ASMJS     , LdArrConst   , OP_LdArrConstIndex           , AsmTypedArr         )
   DEF3_WMS( CUSTOM_ASMJS     , StArr        , OP_StArrGeneric              , AsmTypedArr         )
   DEF3_WMS( CUSTOM_ASMJS     , StArrConst   , OP_StArrConstIndex           , AsmTypedArr         )
