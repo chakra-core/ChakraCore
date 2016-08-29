@@ -126,31 +126,42 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         }
         else // oop jit
         {
+            // [esp - 8]: original eax
+            // [esp - 4]: bailout record
+
+            IR::RegOpnd* esp = IR::RegOpnd::New(nullptr, RegESP, TyVar, this->func);
+            IR::RegOpnd* eax = IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func);
+
+            // sub esp, 8  ;To prevent recycler collect the var in eax
+            Lowerer::InsertSub(false, esp, esp, IR::IntConstOpnd::New(8, TyVar, this->func), instr);
+
+            // save eax
+            // mov [esp], eax
+            Lowerer::InsertMove(IR::IndirOpnd::New(esp, 0, TyInt32, func), eax, instr);
+
             // mov eax, dataAddr
-            Lowerer::InsertMove(
-                IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
-                IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func, true),
-                instr);
+            auto nativeDataAddr = func->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
+            Lowerer::InsertMove(eax, IR::AddrOpnd::New(nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func), instr);
 
             // mov eax, [eax]
-            Lowerer::InsertMove(
-                IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
-                IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), 0, TyMachPtr, func, true),
-                instr);
+            Lowerer::InsertMove(eax, IR::IndirOpnd::New(eax, 0, TyMachPtr, func), instr);
 
             // lea eax, [eax + bailoutRecord_offset]
             unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
-            Lowerer::InsertLea(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), 
-                IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), bailoutRecordOffset, TyUint32,
+            Lowerer::InsertLea(
+                eax,
+                IR::IndirOpnd::New(eax, bailoutRecordOffset, TyUint32,
 #if DBG
-                NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
+                    NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
 #endif
                 this->func), instr);
 
-            IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
-            newInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegEAX, TyUint32, func));
-            instr->InsertBefore(newInstr);
-            newInstr->CopyNumber(instr);
+            // mov [esp + 4], eax
+            Lowerer::InsertMove(IR::IndirOpnd::New(esp, 4, TyMachPtr, func), eax, instr);
+
+            // restore eax            
+            // pop eax
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::POP, eax, eax, func));
         }
     }
 
