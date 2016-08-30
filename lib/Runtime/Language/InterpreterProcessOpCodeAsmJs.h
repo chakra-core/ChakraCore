@@ -66,7 +66,16 @@
 
 #define PROCESS_CUSTOM_ASMJS(name, func, layout) PROCESS_CUSTOM_ASMJS_COMMON(name, func, layout,)
 
+#define PROCESS_VtoI1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+        PROCESS_READ_LAYOUT_ASMJS(name, AsmReg1, suffix); \
+        SetRegRawInt(playout->R0, \
+                func()); \
+        break; \
+    }
 
+#define PROCESS_VtoI1Mem(name, func) PROCESS_VtoI1Mem_COMMON(name, func,)
 
 #define PROCESS_I2toI1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \

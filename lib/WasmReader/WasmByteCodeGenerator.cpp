@@ -558,6 +558,13 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wb##opname: \
         info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
         break;
+    case wbCurrentMemory:
+        {
+        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
+        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        info = EmitInfo(tempReg, WasmTypes::I32);
+        }
+        break;
 #include "WasmBinaryOpCodes.h"
     default:
         throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);

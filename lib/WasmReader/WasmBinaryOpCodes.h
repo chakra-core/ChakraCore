@@ -125,8 +125,8 @@ WASM_MEMSTORE_OPCODE(F32StoreMem,     0x35,        F_IF, false)
 WASM_MEMSTORE_OPCODE(F64StoreMem,     0x36,        D_ID, false)
 
 // Memory operator
-WASM_MISC_OPCODE(MemorySize,      0x3b,        I_V, true)
-WASM_MISC_OPCODE(GrowMemory,      0x39,        I_I, true)
+WASM_MISC_OPCODE(CurrentMemory,      0x3b,        I_I, false)
+WASM_MISC_OPCODE(GrowMemory,         0x39,        I_I, true)
 
 // Expressions
 WASM_BINARY_OPCODE(I32Add,            0x40, I_II, Add_Int        , false)
