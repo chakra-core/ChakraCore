@@ -64,7 +64,7 @@ void LargeHeapBlock_Metadata_Corrupted(
 #endif
 
 void FromDOM_NoScriptScope_fatal_error();
-void Debugger_AttachDetach_fatal_error();
+void Debugger_AttachDetach_fatal_error(HRESULT hr);
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
