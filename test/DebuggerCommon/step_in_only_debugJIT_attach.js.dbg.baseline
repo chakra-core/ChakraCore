@@ -1,0 +1,24 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 12,
+        "sourceText": "y",
+        "function": "bar"
+      },
+      {
+        "line": 19,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 28,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  }
+]

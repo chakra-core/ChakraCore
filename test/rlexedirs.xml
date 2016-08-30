@@ -379,6 +379,12 @@
 </dir>
 <dir>
   <default>
+    <files>DebuggerCommon</files>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>TTExecuteBasic</files>
     <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,exclude_mac</tags>
   </default>

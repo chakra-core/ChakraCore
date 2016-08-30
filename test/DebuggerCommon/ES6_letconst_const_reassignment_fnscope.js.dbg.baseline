@@ -1,0 +1,12 @@
+[
+  {
+    "evaluate": {
+      "a++": "Error <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 1"
+    }
+  }
+]

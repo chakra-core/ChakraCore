@@ -1,0 +1,61 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 32,
+        "column": 4,
+        "sourceText": "}",
+        "function": "baz"
+      },
+      {
+        "line": 15,
+        "column": 8,
+        "sourceText": "baz(a,b)",
+        "function": "bar"
+      },
+      {
+        "line": 9,
+        "column": 8,
+        "sourceText": "bar(a)",
+        "function": "foo"
+      },
+      {
+        "line": 34,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      },
+      {
+        "line": 38,
+        "column": 0,
+        "sourceText": "Run()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "b = 'b1'": "string b1"
+    }
+  },
+  {
+    "evaluate": {
+      "a = 'a1'": "string a1"
+    }
+  },
+  {
+    "evaluate": {
+      "a + b + c": "string abbazab"
+    }
+  },
+  {
+    "evaluate": {
+      "b": "string b1"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "string a1"
+    }
+  }
+]

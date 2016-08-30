@@ -1,0 +1,32 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 8,
+        "column": 8,
+        "sourceText": "var foo = 1",
+        "function": "foo"
+      },
+      {
+        "line": 21,
+        "column": 12,
+        "sourceText": "foo()",
+        "function": "bar"
+      },
+      {
+        "line": 29,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 100",
+      "y": "number 100"
+    }
+  }
+]

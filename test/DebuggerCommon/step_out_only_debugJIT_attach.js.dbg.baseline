@@ -1,0 +1,24 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "}",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 8,
+        "column": 4,
+        "sourceText": "a.forEach(function () {\r\n        var x; /**loc(bp1):stack();resume('step_out')**/\r\n    })",
+        "function": "foo"
+      },
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  }
+]
