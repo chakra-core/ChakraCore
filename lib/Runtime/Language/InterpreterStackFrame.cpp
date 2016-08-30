@@ -7658,7 +7658,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     int InterpreterStackFrame::OP_GetMemorySize()
     {
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        return arr->GetByteLength() >> 16;
+        return arr ? arr->GetByteLength() >> 16 : 0;
     }
 
     template <class T>
