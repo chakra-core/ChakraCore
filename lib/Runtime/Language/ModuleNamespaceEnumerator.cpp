@@ -12,15 +12,15 @@
 
 namespace Js
 {
-    ModuleNamespaceEnumerator::ModuleNamespaceEnumerator(ModuleNamespace* _nsObject, ScriptContext* scriptContext, bool _enumNonEnumerable, bool _enumSymbols) :
+    ModuleNamespaceEnumerator::ModuleNamespaceEnumerator(ModuleNamespace* _nsObject, EnumeratorFlags flags, ScriptContext* scriptContext) :
         JavascriptEnumerator(scriptContext), nsObject(_nsObject), currentLocalMapIndex(Constants::NoBigSlot), currentNonLocalMapIndex(Constants::NoBigSlot), nonLocalMap(nullptr),
-        enumSymbols(_enumSymbols), enumNonEnumerable(_enumNonEnumerable), symbolEnumerator(nullptr)
+        flags(flags)
     {
     }
 
-    ModuleNamespaceEnumerator* ModuleNamespaceEnumerator::New(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols)
+    ModuleNamespaceEnumerator* ModuleNamespaceEnumerator::New(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext)
     {
-        ModuleNamespaceEnumerator* enumerator = RecyclerNew(scriptContext->GetRecycler(), ModuleNamespaceEnumerator, nsObject, scriptContext, enumNonEnumerable, enumSymbols);
+        ModuleNamespaceEnumerator* enumerator = RecyclerNew(scriptContext->GetRecycler(), ModuleNamespaceEnumerator, nsObject, flags, scriptContext);
         if (enumerator->Init())
         {
             return enumerator;
@@ -30,7 +30,7 @@ namespace Js
 
     BOOL ModuleNamespaceEnumerator::Init()
     {
-        if (!nsObject->DynamicObject::GetEnumerator(enumNonEnumerable, (Var*)&symbolEnumerator, GetScriptContext(), true, enumSymbols))
+        if (!nsObject->DynamicObject::GetEnumerator(&symbolEnumerator, flags, GetScriptContext()))
         {
             return FALSE;
         }
@@ -44,7 +44,7 @@ namespace Js
         currentLocalMapIndex = Constants::NoBigSlot;
         currentNonLocalMapIndex = Constants::NoBigSlot;
         doneWithLocalExports = false;
-        if (enumSymbols)
+        if (!!(flags & EnumeratorFlags::EnumSymbols))
         {
             doneWithSymbol = false;
         }
@@ -52,7 +52,7 @@ namespace Js
         {
             doneWithSymbol = true;
         }
-        symbolEnumerator->Reset();
+        symbolEnumerator.Reset();
     }
 
     // enumeration order: symbol first; local exports next; nonlocal exports last.
@@ -67,7 +67,7 @@ namespace Js
         }
         if (!doneWithSymbol)
         {
-            result = symbolEnumerator->MoveAndGetNext(propertyId, attributes);
+            result = symbolEnumerator.MoveAndGetNext(propertyId, attributes);
             if (result == nullptr)
             {
                 doneWithSymbol = true;
@@ -81,7 +81,7 @@ namespace Js
         {
             currentLocalMapIndex++;
             JavascriptString* propertyString = nullptr;
-            if (!nsObject->FindNextProperty(currentLocalMapIndex, &propertyString, &propertyId, attributes))
+            if (!nsObject->FindNextProperty(currentLocalMapIndex, &propertyString, &propertyId, attributes, this->GetScriptContext()))
             {
                 // we are done with the object part; 
                 this->doneWithLocalExports = true;

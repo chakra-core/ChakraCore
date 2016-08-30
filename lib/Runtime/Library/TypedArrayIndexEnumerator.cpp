@@ -6,18 +6,17 @@
 
 namespace Js
 {
-    TypedArrayEnumerator::TypedArrayEnumerator(BOOL enumNonEnumerable, TypedArrayBase* typedArrayBase, ScriptContext* scriptContext, bool enumSymbols) :
+    TypedArrayIndexEnumerator::TypedArrayIndexEnumerator(TypedArrayBase* typedArrayBase, EnumeratorFlags flags, ScriptContext* scriptContext) :
         JavascriptEnumerator(scriptContext),
         typedArrayObject(typedArrayBase),
-        enumNonEnumerable(enumNonEnumerable),
-        enumSymbols(enumSymbols)
-        {
-            Reset();
-        }
-
-    Var TypedArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+        flags(flags)
     {
-        // TypedArrayEnumerator follows the same logic in JavascriptArrayEnumerator,
+        Reset();
+    }
+
+    Var TypedArrayIndexEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    {
+        // TypedArrayIndexEnumerator follows the same logic in JavascriptArrayEnumerator,
         // but the implementation is slightly different as we don't have sparse array
         // in typed array, and typed array is a DynamicObject instead of JavascriptArray.
         propertyId = Constants::NoProperty;
@@ -44,25 +43,12 @@ namespace Js
                 return scriptContext->GetIntegerString(index);
             }
         }
-        if (!doneObject)
-        {
-            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (!currentIndex)
-            {
-                doneObject = true;
-            }
-            return currentIndex;
-        }
         return nullptr;
     }
 
-    void TypedArrayEnumerator::Reset()
+    void TypedArrayIndexEnumerator::Reset()
     {
         index = JavascriptArray::InvalidIndex;
         doneArray = false;
-        doneObject = false;
-        Var enumerator;
-        typedArrayObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), true, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

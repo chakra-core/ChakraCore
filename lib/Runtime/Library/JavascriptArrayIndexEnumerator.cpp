@@ -6,23 +6,23 @@
 
 namespace Js
 {
-    JavascriptArrayEnumerator::JavascriptArrayEnumerator(
-        JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols) :
-        JavascriptArrayEnumeratorBase(arrayObject, scriptContext, enumNonEnumerable, enumSymbols)
+    JavascriptArrayIndexEnumerator::JavascriptArrayIndexEnumerator(
+        JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext) :
+        JavascriptArrayIndexEnumeratorBase(arrayObject, flags, scriptContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayObject);
+#endif
         Reset();
     }
 
-    Var JavascriptArrayEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptArrayIndexEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        // TypedArrayEnumerator follow the same logic but implementation is slightly
+        // TypedArrayIndexEnumerator follow the same logic but implementation is slightly
         // different as we don't have sparse array in typed array, and typed array
         // is DynamicObject instead of JavascriptArray.
         propertyId = Constants::NoProperty;
 
-#if ENABLE_COPYONACCESS_ARRAY
-        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayObject);
-#endif
         if (!doneArray)
         {
             while (true)
@@ -41,28 +41,15 @@ namespace Js
                     *attributes = PropertyEnumerable;
                 }
 
-                return arrayObject->GetScriptContext()->GetIntegerString(index);
+                return this->GetScriptContext()->GetIntegerString(index);
             }
-        }
-        if (!doneObject)
-        {
-            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex)
-            {
-                return currentIndex;
-            }
-            doneObject = true;
         }
         return nullptr;
     }
 
-    void JavascriptArrayEnumerator::Reset()
+    void JavascriptArrayIndexEnumerator::Reset()
     {
         index = JavascriptArray::InvalidIndex;
         doneArray = false;
-        doneObject = false;
-        Var enumerator;
-        arrayObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), false, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

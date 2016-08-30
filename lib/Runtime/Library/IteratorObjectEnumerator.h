@@ -9,16 +9,13 @@ namespace Js
     class IteratorObjectEnumerator sealed : public JavascriptEnumerator
     {
     public:
-        static Var Create(ScriptContext* scriptContext, Var iteratorObject);
+        static IteratorObjectEnumerator * Create(ScriptContext* scriptContext, Var iteratorObject);
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
         virtual void Reset() override;
     protected:
         IteratorObjectEnumerator(ScriptContext* scriptContext, Var iteratorObject);
         DEFINE_VTABLE_CTOR(IteratorObjectEnumerator, JavascriptEnumerator);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) override
-        {
-            AssertMsg(false, "IteratorObjectEnumerator should never get marshaled");
-        }
+
     private:
         void EnsureIterator();
         RecyclableObject* iteratorObject;

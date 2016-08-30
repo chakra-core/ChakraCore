@@ -233,7 +233,6 @@ enum VTableValue {
     VtableInvalid,
     VtablePropertyString,
     VtableJavascriptBoolean,
-    VtableSmallDynamicObjectSnapshotEnumeratorWPCache,
     VtableJavascriptArray,
     VtableInt8Array,
     VtableUint8Array,

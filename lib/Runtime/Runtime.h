@@ -80,6 +80,9 @@ namespace Js
     struct ByteCodeDumper;
     struct ByteCodeReader;
     struct ByteCodeWriter;
+    enum class EnumeratorFlags : byte;
+    class JavascriptStaticEnumerator;
+    class ForInObjectEnumerator;
     class JavascriptConversion;
     class JavascriptDate;
     class JavascriptVariantDate;
@@ -143,13 +146,12 @@ namespace Js
     class ActivationObject;
     class JavascriptNumber;
     class JavascriptNumberObject;
-
-    class ES5ArgumentsObjectEnumerator;
+    
     class ScriptContextProfiler;
 
     struct RestrictedErrorStrings;
     class JavascriptError;
-    class NullEnumerator;
+    
 //SIMD_JS
     // SIMD
     class JavascriptSIMDObject;
@@ -390,7 +392,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/StaticType.h"
 #include "Base/CrossSite.h"
 #include "Base/CrossSiteObject.h"
-#include "Base/CrossSiteEnumerator.h"
 #include "Types/JavascriptEnumerator.h"
 #include "Types/DynamicObject.h"
 #include "Types/ArrayObject.h"
@@ -430,12 +431,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Base/CharStringCache.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/JavascriptObject.h"
 #include "Library/BuiltInFlags.h"
-#include "Library/ForInObjectEnumerator.h"
+#include "Types/DynamicObjectPropertyEnumerator.h"
+#include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
 #include "Library/JavascriptLibrary.h"

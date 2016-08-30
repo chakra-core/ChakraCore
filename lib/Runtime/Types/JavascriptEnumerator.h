@@ -10,7 +10,6 @@ namespace Js {
         friend class ExternalObject;
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptEnumerator, RecyclableObject);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
         JavascriptEnumerator() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
 
@@ -40,10 +39,6 @@ namespace Js {
         // seeing this comment please just consolidate the changes.
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) = 0;
 
-        virtual BOOL IsCrossSiteEnumerator()
-        {
-            return false;
-        }
 
         static bool Is(Var aValue);
         static JavascriptEnumerator* FromVar(Var varValue);

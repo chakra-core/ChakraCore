@@ -304,23 +304,15 @@ namespace Js
         return DynamicObject::Freeze();
     }
 
-    BOOL ES5Array::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ES5Array::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        // Pass this as originalInstance
-        return ES5Array::GetEnumerator(this, enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext);
     }
 
-    BOOL ES5Array::GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    JavascriptEnumerator * ES5Array::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext)
     {
         // ES5Array does not support compat mode, ignore preferSnapshotSemantics
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArrayEnumerator, originalInstance, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
-    }
-
-    BOOL ES5Array::GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext)
-    {
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArrayNonIndexEnumerator, this, this, requestContext, false);
-        return true;
+        return RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArrayIndexEnumerator, this, flags, requestContext);
     }
 
     BOOL ES5Array::IsItemEnumerable(uint32 index)

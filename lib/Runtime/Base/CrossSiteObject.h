@@ -28,7 +28,6 @@ namespace Js
         virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols = false) override;
         virtual Var GetHostDispatchVar() override;
 
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -237,17 +236,6 @@ namespace Js
     {
         newPrototype = (RecyclableObject*)CrossSite::MarshalVar(this->GetScriptContext(), newPrototype);
         __super::SetPrototype(newPrototype);
-    }
-
-    template <typename T>
-    BOOL CrossSiteObject<T>::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
-    {
-        BOOL result = __super::GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
-        if (result)
-        {
-            *enumerator = CrossSite::MarshalEnumerator(requestContext, *enumerator);
-        }
-        return result;
     }
 
     template <typename T>

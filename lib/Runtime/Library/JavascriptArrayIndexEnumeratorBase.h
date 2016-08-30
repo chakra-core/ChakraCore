@@ -6,20 +6,17 @@
 
 namespace Js
 {
-    class JavascriptArrayEnumeratorBase _ABSTRACT : public JavascriptEnumerator
+    class JavascriptArrayIndexEnumeratorBase _ABSTRACT : public JavascriptEnumerator
     {
     protected:
         JavascriptArray* arrayObject;
         uint32 index;
         bool doneArray;
-        bool doneObject;
-        BOOL enumNonEnumerable;
-        bool enumSymbols;
-        JavascriptEnumerator* objectEnumerator;
+        EnumeratorFlags flags;
 
-        DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptArrayEnumeratorBase, JavascriptEnumerator)
+        DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptArrayIndexEnumeratorBase, JavascriptEnumerator)
 
-        JavascriptArrayEnumeratorBase(JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols = false);
+        JavascriptArrayIndexEnumeratorBase(JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext);
         virtual uint32 GetCurrentItemIndex()  override { return index; }
     };
 }

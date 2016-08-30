@@ -13,6 +13,10 @@
 
 #include "ExternalLowerer.h"
 
+#include "Types/DynamicObjectPropertyEnumerator.h"
+#include "Types/JavascriptStaticEnumerator.h"
+#include "Library/ForInObjectEnumerator.h"
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::Lower
@@ -2247,7 +2251,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::BrOnNotEmpty:
             if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func))
             {
-                m_lowererMD.GenerateFastBrBReturn(instr);
+                this->GenerateFastBrBReturn(instr);
                 this->LowerBrBReturn(instr, IR::HelperOp_OP_BrOnEmpty, true);
             }
             else
@@ -8779,6 +8783,117 @@ Lowerer::LowerDeleteElemI(IR::Instr * instr, bool strictMode)
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
 
     return instrPrev;
+}
+
+void
+Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
+{
+    Assert(instr->m_opcode == Js::OpCode::BrOnEmpty || instr->m_opcode == Js::OpCode::BrOnNotEmpty);
+    AssertMsg(instr->GetSrc1() != nullptr && instr->GetSrc2() == nullptr, "Expected 1 src opnds on BrB");
+    Assert(instr->GetSrc1()->IsRegOpnd());
+
+    IR::RegOpnd * forInEnumeratorOpnd = instr->GetSrc1()->AsRegOpnd();
+    IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+
+    // MOV firstPrototypeOpnd, forInEnumerator->firstPrototype
+    // TEST firstPrototypeOpnd, firstPrototypeOpnd
+    // JNE $helper
+    IR::RegOpnd * firstPrototypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(firstPrototypeOpnd, 
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfFirstPrototype(), TyMachPtr, this->m_func), instr);
+    InsertTestBranch(firstPrototypeOpnd, firstPrototypeOpnd, Js::OpCode::BrNeq_A, labelHelper, instr);
+    
+    // MOV currentEnumeratorOpnd, forInEnumerator->enumerator.currentEnumerator
+    // TEST currentEnumeratorOpnd, currentEnumeratorOpnd
+    // JNE $helper
+    IR::RegOpnd * currentEnumeratorOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(currentEnumeratorOpnd,
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCurrentEnumerator(), TyMachPtr, this->m_func), instr);
+    InsertTestBranch(currentEnumeratorOpnd, currentEnumeratorOpnd, Js::OpCode::BrNeq_A, labelHelper, instr);
+
+    // MOV objectOpnd, forInEnumerator->enumerator.object
+    // TEST objectOpnd, objectOpnd
+    // JEQ $helper
+    IR::RegOpnd * objectOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(objectOpnd,
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObject(), TyMachPtr, this->m_func), instr);
+    InsertTestBranch(objectOpnd, objectOpnd, Js::OpCode::BrEq_A, labelHelper, instr);   
+
+    // MOV initialTypeOpnd, forInEnumerator->enumerator.initialType
+    // CMP initialTypeOpnd, objectOpnd->type
+    // JNE $helper
+    IR::RegOpnd * initialTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(initialTypeOpnd,
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCachedDataType(), TyMachPtr, this->m_func), instr);
+    InsertCompareBranch(initialTypeOpnd, IR::IndirOpnd::New(objectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, this->m_func),
+        Js::OpCode::BrNeq_A, labelHelper, instr);
+
+    // MOV enumeratedCountOpnd, forInEnumeratorOpnd->enumerator.enumeratedCount
+    // MOV cachedDataOpnd, forInEnumeratorOpnd->enumerator.cachedData
+    // CMP enumeratedCountOpnd, cachedDataOpnd->cachedCount
+    // JGE $helper
+    IR::RegOpnd * enumeratedCountOpnd = IR::RegOpnd::New(TyUint32, m_func);
+    InsertMove(enumeratedCountOpnd,
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorEnumeratedCount(), TyUint32, this->m_func), instr);
+    IR::RegOpnd * cachedDataOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(cachedDataOpnd,
+        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCachedData(), TyMachPtr, this->m_func), instr);
+    InsertCompareBranch(enumeratedCountOpnd,
+        IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataCachedCount(), TyUint32, this->m_func),
+        Js::OpCode::BrGe_A, labelHelper, instr);
+    
+    // MOV propertyAttributesOpnd, cachedData->attributes
+    // MOV objectPropertyAttributesOpnd, propertyAttributesOpnd[enumeratedCount]
+    // CMP objectPropertyAttributesOpnd & PropertyEnumerable, PropertyEnumerable
+    // JNE $helper
+    IR::RegOpnd * propertyAttributesOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(propertyAttributesOpnd,
+        IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataPropertyAttributes(), TyMachPtr, this->m_func), instr);
+    IR::RegOpnd * objectPropertyAttributesOpnd = IR::RegOpnd::New(TyUint8, m_func);
+    InsertMove(objectPropertyAttributesOpnd,
+        IR::IndirOpnd::New(propertyAttributesOpnd, enumeratedCountOpnd, IndirScale1, TyUint8, this->m_func), instr);
+
+    IR::Instr * andPropertyEnumerableInstr = Lowerer::InsertAnd(IR::RegOpnd::New(TyUint8, instr->m_func), objectPropertyAttributesOpnd, IR::IntConstOpnd::New(0x01, TyUint8, this->m_func), instr);
+
+    InsertCompareBranch(andPropertyEnumerableInstr->GetDst(), IR::IntConstOpnd::New(PropertyEnumerable, TyUint8, this->m_func),
+        Js::OpCode::BrNeq_A, labelHelper, instr);
+    
+    IR::Opnd * opndDst = instr->GetDst(); // ForIn result propertyString
+    Assert(opndDst->IsRegOpnd());
+
+    // MOV stringsOpnd, cachedData->strings
+    // MOV opndDst, stringsOpnd[enumeratedCount]
+    IR::RegOpnd * stringsOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(stringsOpnd,
+        IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataStrings(), TyMachPtr, this->m_func), instr);
+    InsertMove(opndDst,
+        IR::IndirOpnd::New(stringsOpnd, enumeratedCountOpnd, m_lowererMD.GetDefaultIndirScale(), TyVar, this->m_func), instr);
+
+    // MOV indexesOpnd, cachedData->indexes
+    // MOV objectIndexOpnd, indexesOpnd[enumeratedCount]
+    // MOV forInEnumeratorOpnd->enumerator.objectIndex, objectIndexOpnd
+    IR::RegOpnd * indexesOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(indexesOpnd,
+        IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataIndexes(), TyMachPtr, this->m_func), instr);
+    IR::RegOpnd * objectIndexOpnd = IR::RegOpnd::New(TyUint32, m_func);
+    InsertMove(objectIndexOpnd,
+        IR::IndirOpnd::New(indexesOpnd, enumeratedCountOpnd, IndirScale4, TyUint32, this->m_func), instr);
+    InsertMove(IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObjectIndex(), TyUint32, this->m_func),
+        objectIndexOpnd, instr);
+
+    // INC enumeratedCountOpnd
+    // MOV forInEnumeratorOpnd->enumerator.enumeratedCount, enumeratedCountOpnd
+    InsertAdd(false, enumeratedCountOpnd, enumeratedCountOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), instr);
+    InsertMove(IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorEnumeratedCount(), TyUint32, this->m_func),
+        enumeratedCountOpnd, instr);
+
+    // We know result propertyString (opndDst) != NULL
+    IR::LabelInstr * labelAfter = instr->GetOrCreateContinueLabel();
+    InsertBranch(Js::OpCode::Br, instr->m_opcode == Js::OpCode::BrOnNotEmpty ? instr->AsBranchInstr()->GetTarget() : labelAfter, instr);
+
+    // $helper
+    instr->InsertBefore(labelHelper);
+    // $after
 }
 
 ///----------------------------------------------------------------------------

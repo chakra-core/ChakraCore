@@ -15,11 +15,7 @@
 #include "Types/SimpleDictionaryPropertyDescriptor.h"
 #include "Types/SimpleDictionaryTypeHandler.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
-#include "Library/NullEnumerator.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 #include "Library/ThrowErrorObject.h"
@@ -1044,11 +1040,6 @@ namespace Js
         }
     }
 
-    JavascriptEnumerator * JavascriptLibrary::GetNullEnumerator() const
-    {
-        return nullEnumerator;
-    }
-
     void JavascriptLibrary::InitializeGlobal(GlobalObject * globalObject)
     {
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
@@ -1462,8 +1453,6 @@ namespace Js
             DeferredTypeHandler<InitializeURIErrorConstructor>::GetDefaultInstance(),
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
-
-        nullEnumerator = RecyclerNew(this->recycler, NullEnumerator, scriptContext);
     }
 
     void JavascriptLibrary::EnsureDebugObject(DynamicObject* newDebugObject)
@@ -3103,7 +3092,6 @@ namespace Js
         vtableAddresses[VTableValue::VtableInvalid] = Js::ScriptContextOptimizationOverrideInfo::InvalidVtable;
         vtableAddresses[VTableValue::VtablePropertyString] = VirtualTableInfo<Js::PropertyString>::Address;
         vtableAddresses[VTableValue::VtableJavascriptBoolean] = VirtualTableInfo<Js::JavascriptBoolean>::Address;
-        vtableAddresses[VTableValue::VtableSmallDynamicObjectSnapshotEnumeratorWPCache] = VirtualTableInfo<Js::DynamicObjectSnapshotEnumeratorWPCache<true,false>>::Address;
         vtableAddresses[VTableValue::VtableJavascriptArray] = VirtualTableInfo<Js::JavascriptArray>::Address;
         vtableAddresses[VTableValue::VtableInt8Array] = VirtualTableInfo<Js::Int8Array>::Address;
         vtableAddresses[VTableValue::VtableUint8Array] = VirtualTableInfo<Js::Uint8Array>::Address;

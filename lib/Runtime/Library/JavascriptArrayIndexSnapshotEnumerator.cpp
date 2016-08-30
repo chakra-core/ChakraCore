@@ -6,15 +6,15 @@
 
 namespace Js
 {
-    JavascriptArraySnapshotEnumerator::JavascriptArraySnapshotEnumerator(
-        JavascriptArray* arrayObject, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols) :
-        JavascriptArrayEnumeratorBase(arrayObject, scriptContext, enumNonEnumerable, enumSymbols),
+    JavascriptArrayIndexSnapshotEnumerator::JavascriptArrayIndexSnapshotEnumerator(
+        JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext) :
+        JavascriptArrayIndexEnumeratorBase(arrayObject, flags, scriptContext),
         initialLength(arrayObject->GetLength())
     {
         Reset();
     }
 
-    Var JavascriptArraySnapshotEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptArrayIndexSnapshotEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 
@@ -34,30 +34,16 @@ namespace Js
                     *attributes = PropertyEnumerable;
                 }
 
-                return arrayObject->GetScriptContext()->GetIntegerString(index);
+                return this->GetScriptContext()->GetIntegerString(index);
             }
-        }
-        if (!doneObject)
-        {
-            Var currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (!currentIndex)
-            {
-                doneObject = true;
-            }
-            return currentIndex;
         }
         return nullptr;
     }
 
-    void JavascriptArraySnapshotEnumerator::Reset()
+    void JavascriptArrayIndexSnapshotEnumerator::Reset()
     {
         index = JavascriptArray::InvalidIndex;
         doneArray = false;
-        doneObject = false;
-
-        Var enumerator;
-        arrayObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), true, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
         initialLength = arrayObject->GetLength();
     }
 }

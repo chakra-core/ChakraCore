@@ -52,7 +52,12 @@ namespace Js
 
     void PropertyString::UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled)
     {
-        Assert(type && type->GetScriptContext() == this->GetScriptContext());
+        Assert(type);
+        
+        if (type->GetScriptContext() != this->GetScriptContext())
+        {
+            return;
+        }
 
         if (this->IsArenaAllocPropertyString())
         {
