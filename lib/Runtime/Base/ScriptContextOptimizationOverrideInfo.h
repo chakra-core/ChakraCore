@@ -25,8 +25,9 @@ public:
     bool IsEnabledArraySetElementFastPath() const;
     void DisableArraySetElementFastPath();
     INT_PTR GetArraySetElementFastPathVtable() const;
-    INT_PTR GetIntArraySetElementFastPathVtable() const;
-    INT_PTR GetFloatArraySetElementFastPathVtable() const;
+    INT_PTR GetArraySetElementFastPathVtableAddr() const;
+    INT_PTR GetIntArraySetElementFastPathVtableAddr() const;
+    INT_PTR GetFloatArraySetElementFastPathVtableAddr() const;
     void * GetAddressOfArraySetElementFastPathVtable();
     void * GetAddressOfIntArraySetElementFastPathVtable();
     void * GetAddressOfFloatArraySetElementFastPathVtable();

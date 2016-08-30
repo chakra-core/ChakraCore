@@ -4558,17 +4558,17 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     intptr_t ScriptContext::GetArraySetElementFastPathVtableAddr() const
     {
-        return optimizationOverrides.GetArraySetElementFastPathVtable();
+        return optimizationOverrides.GetArraySetElementFastPathVtableAddr();
     }
 
     intptr_t ScriptContext::GetIntArraySetElementFastPathVtableAddr() const
     {
-        return optimizationOverrides.GetIntArraySetElementFastPathVtable();
+        return optimizationOverrides.GetIntArraySetElementFastPathVtableAddr();
     }
 
     intptr_t ScriptContext::GetFloatArraySetElementFastPathVtableAddr() const
     {
-        return optimizationOverrides.GetFloatArraySetElementFastPathVtable();
+        return optimizationOverrides.GetFloatArraySetElementFastPathVtableAddr();
     }
 
     intptr_t ScriptContext::GetBuiltinFunctionsBaseAddr() const

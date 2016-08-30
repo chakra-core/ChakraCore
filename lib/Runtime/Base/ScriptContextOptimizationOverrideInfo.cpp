@@ -208,17 +208,23 @@ ScriptContextOptimizationOverrideInfo::DisableArraySetElementFastPath()
 INT_PTR
 ScriptContextOptimizationOverrideInfo::GetArraySetElementFastPathVtable() const
 {
+    return arraySetElementFastPathVtable;
+}
+
+INT_PTR
+ScriptContextOptimizationOverrideInfo::GetArraySetElementFastPathVtableAddr() const
+{
     return (INT_PTR)&arraySetElementFastPathVtable;
 }
 
 INT_PTR
-ScriptContextOptimizationOverrideInfo::GetIntArraySetElementFastPathVtable() const
+ScriptContextOptimizationOverrideInfo::GetIntArraySetElementFastPathVtableAddr() const
 {
     return (INT_PTR)&intArraySetElementFastPathVtable;
 }
 
 INT_PTR
-ScriptContextOptimizationOverrideInfo::GetFloatArraySetElementFastPathVtable() const
+ScriptContextOptimizationOverrideInfo::GetFloatArraySetElementFastPathVtableAddr() const
 {
     return (INT_PTR)&floatArraySetElementFastPathVtable;
 }
