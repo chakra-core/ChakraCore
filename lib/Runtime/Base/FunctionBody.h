@@ -4,6 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+// In general, write-barriers are used only on non-Windows platforms
+// However, classes in this file have been allocated in software write-barrier
+// memory for historic reasons, because there is some small perf wins here
+// Forcing these classes to be in software write-barrier memory
+#define FORCE_USE_WRITE_BARRIER 1
+#include <Memory/WriteBarrierMacros.h>
+
 #include "AuxPtrs.h"
 #include "CompactCounters.h"
 
@@ -1343,7 +1350,7 @@ namespace Js
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
         friend AuxPtrsT;
-        WriteBarrierPtr<AuxPtrsT> auxPtrs;
+        Pointer(AuxPtrsT) auxPtrs;
         void* GetAuxPtr(AuxPointerType e) const;
         void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
@@ -1443,19 +1450,19 @@ namespace Js
 
     protected:
         // Static method(s)
-        static void SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
+        static void SetDisplayName(const char16* srcName, Pointer(const char16)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool SetDisplayName(const char16* srcName, const char16** destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool IsConstantFunctionName(const char16* srcName);
 
     protected:
-        NoWriteBarrierPtr<ScriptContext>  m_scriptContext;   // Memory context for this function body
-        WriteBarrierPtr<Utf8SourceInfo> m_utf8SourceInfo;
+        PointerNoBarrier(ScriptContext)  m_scriptContext;   // Memory context for this function body
+        Pointer(Utf8SourceInfo) m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
         FunctionProxyPtrPtr m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
-        WriteBarrierPtr<ScriptFunctionType> deferredPrototypeType;
-        WriteBarrierPtr<ProxyEntryPointInfo> m_defaultEntryPointInfo; // The default entry point info for the function proxy
+        Pointer(ScriptFunctionType) deferredPrototypeType;
+        Pointer(ProxyEntryPointInfo) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
-        NoWriteBarrierField<uint> m_functionNumber;  // Per thread global function number
+        Field(uint) m_functionNumber;  // Per thread global function number
 
         bool m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         bool m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
@@ -1760,12 +1767,12 @@ namespace Js
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
         // more and also fix our thunks to handle 8 bit offsets
 
-        NoWriteBarrierField<bool> m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
-        NoWriteBarrierField<uint> m_sourceIndex;             // index into the scriptContext's list of saved sources
+        Field(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
+        Field(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
 #if DYNAMIC_INTERPRETER_THUNK
         void* m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
 #endif
-        NoWriteBarrierField<uint> m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
+        Field(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
 
         // This is generally the same as m_cchStartOffset unless the buffer has a BOM
 
@@ -1775,18 +1782,18 @@ namespace Js
 
         ULONG m_lineNumber;
         ULONG m_columnNumber;
-        WriteBarrierPtr<const char16> m_displayName;  // Optional name
+        Pointer(const char16) m_displayName;  // Optional name
         uint m_displayNameLength;
-        WriteBarrierPtr<PropertyRecordList> m_boundPropertyRecords;
-        WriteBarrierPtr<NestedArray> nestedArray;
+        Pointer(PropertyRecordList) m_boundPropertyRecords;
+        Pointer(NestedArray) nestedArray;
 
     public:
 #if DBG
         bool m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
-        NoWriteBarrierField<Js::LocalFunctionId> deferredParseNextFunctionId;
+        Field(Js::LocalFunctionId) deferredParseNextFunctionId;
 #endif
 #if DBG
-        NoWriteBarrierField<UINT> scopeObjectSize; // If the scope is an activation object - its size
+        Field(UINT) scopeObjectSize; // If the scope is an activation object - its size
 #endif
     };
 
@@ -1984,12 +1991,12 @@ namespace Js
 
                 RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
                 RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                WriteBarrierPtr<ScopeObjectChain> pScopeObjectChain;
-                WriteBarrierPtr<ByteBlock> m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
+                Pointer(ScopeObjectChain) pScopeObjectChain;
+                Pointer(ByteBlock) m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
                 int32 m_probeCount;             // The number of installed probes (such as breakpoints).
 
                 // List of bytecode offset for the Branch bytecode.
-                WriteBarrierPtr<AuxStatementData> m_auxStatementData;
+                Pointer(AuxStatementData) m_auxStatementData;
 
                 SourceInfo():
                     frameDisplayRegister(0),
@@ -2004,18 +2011,18 @@ namespace Js
             };
 
     private:
-        WriteBarrierPtr<ByteBlock> byteCodeBlock;               // Function byte-code for script functions
-        WriteBarrierPtr<FunctionEntryPointList> entryPoints;
-        WriteBarrierPtr<Var> m_constTable;
-        WriteBarrierPtr<void*> inlineCaches;
+        Pointer(ByteBlock) byteCodeBlock;               // Function byte-code for script functions
+        Pointer(FunctionEntryPointList) entryPoints;
+        Pointer(Var) m_constTable;
+        Pointer(void*) inlineCaches;
         InlineCachePointerArray<PolymorphicInlineCache> polymorphicInlineCaches; // Contains the latest polymorphic inline caches
-        WriteBarrierPtr<PropertyId> cacheIdToPropertyIdMap;
+        Pointer(PropertyId) cacheIdToPropertyIdMap;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-            WriteBarrierPtr<byte> m_inlineCacheTypes;
+            Pointer(byte) m_inlineCacheTypes;
 #endif
     public:
         PropertyId * GetCacheIdToPropertyIdMap()
@@ -2030,9 +2037,9 @@ namespace Js
 #endif
 
 //#if ENABLE_DEBUG_CONFIG_OPTIONS //TODO: need this?
-        NoWriteBarrierField<uint> regAllocStoreCount;
-        NoWriteBarrierField<uint> regAllocLoadCount;
-        NoWriteBarrierField<uint> callCountStats;
+        Field(uint) regAllocStoreCount;
+        Field(uint) regAllocLoadCount;
+        Field(uint) callCountStats;
 //#endif
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
@@ -2043,9 +2050,9 @@ namespace Js
         SourceInfo m_sourceInfo; // position of the source
 
         // Data needed by profiler:
-        NoWriteBarrierField<uint> m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
+        Field(uint) m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
 #if DBG
-        NoWriteBarrierField<int> m_iProfileSession; // Script profile session the meta data of this function is reported to.
+        Field(int) m_iProfileSession; // Script profile session the meta data of this function is reported to.
 #endif // DEBUG
 
         // R0 is reserved for the return value, R1 for the root object
@@ -2141,26 +2148,26 @@ namespace Js
 #ifdef IR_VIEWER
         // whether IR Dump is enabled for this function (used by parseIR)
         bool m_isIRDumpEnabled : 1;
-        WriteBarrierPtr<Js::DynamicObject> m_irDumpBaseObject;
+        Pointer(Js::DynamicObject) m_irDumpBaseObject;
 #endif /* IR_VIEWER */
 
-        NoWriteBarrierField<uint8> bailOnMisingProfileCount;
-        NoWriteBarrierField<uint8> bailOnMisingProfileRejitCount;
+        Field(uint8) bailOnMisingProfileCount;
+        Field(uint8) bailOnMisingProfileRejitCount;
 
-        NoWriteBarrierField<byte> inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
+        Field(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
 
-        NoWriteBarrierField<ExecutionMode> executionMode;
-        NoWriteBarrierField<uint16> interpreterLimit;
-        NoWriteBarrierField<uint16> autoProfilingInterpreter0Limit;
-        NoWriteBarrierField<uint16> profilingInterpreter0Limit;
-        NoWriteBarrierField<uint16> autoProfilingInterpreter1Limit;
-        NoWriteBarrierField<uint16> simpleJitLimit;
-        NoWriteBarrierField<uint16> profilingInterpreter1Limit;
-        NoWriteBarrierField<uint16> fullJitThreshold;
-        NoWriteBarrierField<uint16> fullJitRequeueThreshold;
-        NoWriteBarrierField<uint16> committedProfiledIterations;
+        Field(ExecutionMode) executionMode;
+        Field(uint16) interpreterLimit;
+        Field(uint16) autoProfilingInterpreter0Limit;
+        Field(uint16) profilingInterpreter0Limit;
+        Field(uint16) autoProfilingInterpreter1Limit;
+        Field(uint16) simpleJitLimit;
+        Field(uint16) profilingInterpreter1Limit;
+        Field(uint16) fullJitThreshold;
+        Field(uint16) fullJitRequeueThreshold;
+        Field(uint16) committedProfiledIterations;
 
-        NoWriteBarrierField<uint> m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
+        Field(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
 
         uint32 interpretedCount;
         uint32 loopInterpreterLimit;
@@ -2173,22 +2180,22 @@ namespace Js
         // copied in FunctionBody::Clone
         //
 
-        NoWriteBarrierPtr<Js::ByteCodeCache> byteCodeCache;  // Not GC allocated so naked pointer
+        PointerNoBarrier(Js::ByteCodeCache) byteCodeCache;  // Not GC allocated so naked pointer
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         static bool shareInlineCaches;
 #endif
-        WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
+        Pointer(FunctionEntryPointInfo) defaultFunctionEntryPointInfo;
 
 #if ENABLE_PROFILE_INFO
-        WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
+        Pointer(DynamicProfileInfo) dynamicProfileInfo;
 #endif
 
 
         // select dynamic profile info saved off when we codegen and later
         // used for rejit decisions (see bailout.cpp)
-        NoWriteBarrierField<BYTE> savedInlinerVersion;
+        Field(BYTE) savedInlinerVersion;
 #if ENABLE_NATIVE_CODEGEN
-        NoWriteBarrierField<ImplicitCallFlags> savedImplicitCallsFlags;
+        Field(ImplicitCallFlags) savedImplicitCallsFlags;
 #endif
 
         FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount, Utf8SourceInfo* sourceInfo,
@@ -3769,3 +3776,5 @@ namespace Js
     };
 #pragma endregion
 } // namespace Js
+
+RESTORE_WRITE_BARRIER_MACROS();

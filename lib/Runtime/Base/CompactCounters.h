@@ -4,6 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+// In general, write-barriers are used only on non-Windows platforms
+// However, classes in this file have been allocated in software write-barrier
+// memory for historic reasons, because there is some small perf wins here
+// Forcing these classes to be in software write-barrier memory
+#define FORCE_USE_WRITE_BARRIER 1
+#include <Memory/WriteBarrierMacros.h>
+
 #pragma warning(push)
 #pragma warning(disable:6200) // C6200: Index is out of valid index range, compiler complains here we use variable length array
 
@@ -24,13 +31,13 @@ namespace Js
             Fields() {}
         };
 
-        uint8 fieldSize;
+        Field(uint8) fieldSize;
 #if DBG
 
-        mutable bool bgThreadCallStarted;
-        bool isCleaningUp;
+        mutable Field(bool) bgThreadCallStarted;
+        Field(bool) isCleaningUp;
 #endif
-        WriteBarrierPtr<Fields> fields;
+        Pointer(Fields) fields;
 
         CompactCounters() { }
         CompactCounters(T* host)
@@ -206,3 +213,5 @@ namespace Js
 }
 
 #pragma warning(pop)
+
+RESTORE_WRITE_BARRIER_MACROS();
