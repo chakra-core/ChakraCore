@@ -19394,9 +19394,15 @@ bool Lowerer::GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper)
         instr->m_opcode == Js::OpCode::CmNeq_A);
 
     bool isNegOp = false;
+    bool isStrict = false;
     switch (instr->m_opcode)
     {
+    case Js::OpCode::CmSrEq_A:
+        isStrict = true;
+        break;
+
     case Js::OpCode::CmSrNeq_A:
+        isStrict = true;
     case Js::OpCode::CmNeq_A:
         isNegOp = true;
         break;
@@ -19423,34 +19429,35 @@ bool Lowerer::GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper)
     //   or if src2 is builtin recyclableobject(typeId > TypeIds_LastStaticType && typeId <= TypeIds_LastBuiltinDynamicObject)
     //   or if CustomExternalType with no operations usage flags
     //
-    //  MOV DST SUCCESS
     //  src1->IsEqual(src2)
+    //      MOV DST SUCCESS
     //      JMP $DONE
     //  CMP src1, src2
+    //      MOV DST SUCCESS
     //      JEQ $DONE
-    //  MOV DST FAILURE
+    //      MOV DST FAILURE
     //      JMP $DONE
 
     LibraryValue successValueType = !isNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
     LibraryValue failureValueType = !isNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue;
 
-    IR::Instr *instrMovFailure = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->LoadLibraryValueOpnd(instr, failureValueType), m_func);
-    IR::Instr *instrMovSuccess = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->LoadLibraryValueOpnd(instr, successValueType), m_func);
-
-    instr->InsertBefore(instrMovSuccess);
-
     if (src1->IsEqual(src2))
     {
-        IR::BranchInstr *toDone = IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func);
-        instr->InsertBefore(toDone);
+        LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, successValueType), instr);
+        instr->InsertBefore(IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func));
     }
     else
     {
-        this->InsertCompareBranch(src1, src2, Js::OpCode::BrEq_A, labelDone, instr);
-        instr->InsertBefore(instrMovFailure);
-        
-        IR::BranchInstr *toDone = IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func);
-        instr->InsertBefore(toDone);
+        IR::LabelInstr *cmEqual = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        this->InsertCompareBranch(src1, src2, isStrict ? Js::OpCode::BrSrEq_A : Js::OpCode::BrEq_A, cmEqual, instr);
+        LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, failureValueType), instr);
+
+        instr->InsertBefore(IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func));
+
+        instr->InsertBefore(cmEqual);
+        LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, successValueType), instr);
+
+        instr->InsertBefore(IR::BranchInstr::New(this->m_lowererMD.MDUncondBranchOpcode, labelDone, this->m_func));
     }
 
     instr->InsertBefore(labelHelper);

@@ -3173,11 +3173,11 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
     if (!isBranch)
     {
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, instr->GetDst(), opndSuccess, m_func));
+        LowererMD::CreateAssign(instr->GetDst(), opndSuccess, instr);
         instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelFail, m_func));
 
         instr->InsertBefore(labelTarget);
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, instr->GetDst(), opndFailure, m_func));
+        LowererMD::CreateAssign(instr->GetDst(), opndFailure, instr);
         instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelFail, m_func));
     }
 
