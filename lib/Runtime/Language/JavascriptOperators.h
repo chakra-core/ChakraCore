@@ -200,6 +200,7 @@ namespace Js
         template<bool unscopables>
         static BOOL DeleteProperty_Impl(RecyclableObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
         static TypeId GetTypeId(Var instance);
+        static TypeId GetTypeIdNoCheck(Var instance);
         static BOOL IsObject(Var instance);
         static BOOL IsExposedType(TypeId typeId);
         static BOOL IsObjectType(TypeId typeId);

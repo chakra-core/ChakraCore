@@ -4716,7 +4716,7 @@ Inline::MapFormals(Func *inlinee,
                     // "this" is a constant, so map it now.
                     // Don't bother mapping if it's not an object, though, since we'd have to create a
                     // boxed value at JIT time, and that case doesn't seem worth it.
-                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(thisConstVar);
+                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeIdNoCheck(thisConstVar);
                     if (Js::JavascriptOperators::IsObjectType(typeId) ||
                         Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
                     {
@@ -4726,8 +4726,7 @@ Inline::MapFormals(Func *inlinee,
                             int moduleId = instr->GetSrc2()->AsIntConstOpnd()->AsInt32();
                             // TODO OOP JIT, create and use server copy of module roots
                             Assert(!topFunc->IsOOPJIT() || moduleId == 0);
-                            thisConstVar = Js::JavascriptOperators::OP_GetThis(
-                                thisConstVar, moduleId, scriptContext);
+                            thisConstVar = Js::JavascriptOperators::GetThisHelper(thisConstVar, typeId, moduleId, scriptContext);
                             instr->FreeSrc2();
                         }
                         else
