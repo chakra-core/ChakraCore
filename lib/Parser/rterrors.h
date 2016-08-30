@@ -267,7 +267,7 @@ RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String It
 RT_ERROR_MSG(JSERR_InvalidSpreadArgument, 5140, "%s: argument cannot be spread; expected Array or Object with a 'length' property", "Argument cannot be spread; expected Array or Object with a 'length' property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidSpreadLength, 5141, "%s: argument cannot be spread; the 'length' property must be a number or convert to a number", "Argument cannot be spread; the 'length' property must be a number or convert to a number", kjstTypeError, 0)
 
-RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "'super' can only be accessed from a subclass method", kjstReferenceError, 0)
+RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "Missing or invalid 'super' binding", kjstReferenceError, 0)
 RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s' which has a super reference", "Unable to delete property with a super reference", kjstReferenceError, 0)
 
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)

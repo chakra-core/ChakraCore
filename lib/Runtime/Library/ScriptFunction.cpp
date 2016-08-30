@@ -27,13 +27,13 @@ namespace Js
 
     ScriptFunction::ScriptFunction(DynamicType * type) :
         ScriptFunctionBase(type), environment((FrameDisplay*)&NullFrameDisplay),
-        cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false),
+        cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false), homeObj(nullptr),
         isActiveScript(false)
     {}
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy),
-        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
+        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
         hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
         Assert(proxy->GetFunctionProxy() == proxy);

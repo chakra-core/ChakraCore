@@ -4726,8 +4726,8 @@ Inline::MapFormals(Func *inlinee,
             }
             break;
 
-        case Js::OpCode::LdSuper:
-        case Js::OpCode::LdSuperCtor:
+        case Js::OpCode::LdHomeObj:
+        case Js::OpCode::LdFuncObj:
             if (instr->m_func == inlinee)
             {
                 instr->SetSrc1(funcObjOpnd);

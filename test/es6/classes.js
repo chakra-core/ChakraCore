@@ -418,9 +418,9 @@ var tests = [
       }
 
       // Test valid postfix operators in the wrong context
-      assert.throws(function () { eval("super();") },        ReferenceError, "Invalid use of super");
-      assert.throws(function () { eval("super[1];") },       ReferenceError, "Invalid use of super");
-      assert.throws(function () { eval("super.method();") }, ReferenceError, "Invalid use of super");
+      assert.throws(function () { eval("super();") },        ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
+      assert.throws(function () { eval("super[1];") },       ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
+      assert.throws(function () { eval("super.method();") }, ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
 
       // Syntax Error for base class constructor with direct super call
       assert.throws(function () { eval("class A { constructor() { super(); } }") }, SyntaxError, "Base class constructor cannot call super");

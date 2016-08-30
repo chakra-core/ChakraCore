@@ -1631,8 +1631,8 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         m_func->DisableCanDoInlineArgOpt();
         break;
     case Js::OpCode::LdEnv:
-    case Js::OpCode::LdSuper:
-    case Js::OpCode::LdSuperCtor:
+    case Js::OpCode::LdHomeObj:
+    case Js::OpCode::LdFuncObj:
         isNotInt = TRUE;
         break;
 
