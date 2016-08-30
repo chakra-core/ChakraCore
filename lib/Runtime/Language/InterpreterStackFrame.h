@@ -177,6 +177,7 @@ namespace Js
         void SetClosureInitDone(bool done) { closureInitDone = done; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
+        int OP_GetMemorySize();
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);

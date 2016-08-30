@@ -7655,6 +7655,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         m_localSimdSlots[localRegisterID] = bValue;
     }
 
+    int InterpreterStackFrame::OP_GetMemorySize()
+    {
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        return arr ? arr->GetByteLength() >> 16 : 0;
+    }
+
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {

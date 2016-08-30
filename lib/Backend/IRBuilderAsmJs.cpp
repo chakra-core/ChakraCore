@@ -1897,23 +1897,40 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::LdUndef);
+    Assert(newOpcode == Js::OpCodeAsmJs::LdUndef || newOpcode == Js::OpCodeAsmJs::CurrentMemory_Int);
 
-    Js::RegSlot dstRegSlot = GetRegSlotFromVarReg(dstReg);
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyVar);
-
-    if (dstOpnd->m_sym->m_isSingleDef)
+    if (newOpcode == Js::OpCodeAsmJs::LdUndef)
     {
-        dstOpnd->m_sym->m_isConst = true;
-        dstOpnd->m_sym->m_isNotInt = true;
+
+        Js::RegSlot dstRegSlot = GetRegSlotFromVarReg(dstReg);
+        IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyVar);
+
+        if (dstOpnd->m_sym->m_isSingleDef)
+        {
+            dstOpnd->m_sym->m_isConst = true;
+            dstOpnd->m_sym->m_isNotInt = true;
+        }
+
+        IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+        addrOpnd->SetValueType(ValueType::Undefined);
+
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, addrOpnd, m_func);
+        AddInstr(instr, offset);
+    }
+    else
+    {
+        Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dstReg);
+        IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        IR::IntConstOpnd* constZero = IR::IntConstOpnd::New(0, TyInt32, m_func);
+        IR::IntConstOpnd* constSixteen = IR::IntConstOpnd::New(16, TyUint8, m_func);
+ 	
+        IR::Instr * instr = m_asmFuncInfo->UsesHeapBuffer() ?
+            IR::Instr::New(Js::OpCode::ShrU_I4, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32), constSixteen, m_func) :
+            IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, constZero, m_func);
+
+        AddInstr(instr, offset);
     }
 
-    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
-    addrOpnd->SetValueType(ValueType::Undefined);
-
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, addrOpnd, m_func);
-    AddInstr(instr, offset);
 }
 
 template <typename SizePolicy>

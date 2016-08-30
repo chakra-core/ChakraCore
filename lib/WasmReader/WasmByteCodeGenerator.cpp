@@ -395,7 +395,7 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetFloatConstCount(ReservedRegisterCount);
     info->SetDoubleConstCount(ReservedRegisterCount);
 
-    const uint32 nbConst = 
+    const uint32 nbConst =
         ((info->GetDoubleConstCount() + 1) * WAsmJs::DOUBLE_SLOTS_SPACE)
         + (uint32)((info->GetFloatConstCount() + 1) * WAsmJs::FLOAT_SLOTS_SPACE + 0.5 /*ceil*/)
         + (uint32)((info->GetIntConstCount() + 1) * WAsmJs::INT_SLOTS_SPACE + 0.5/*ceil*/)
@@ -557,6 +557,13 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #define WASM_UNARY__OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
         info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
+        break;
+    case wbCurrentMemory:
+        {
+        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
+        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        info = EmitInfo(tempReg, WasmTypes::I32);
+        }
         break;
 #include "WasmBinaryOpCodes.h"
     default:
@@ -764,10 +771,17 @@ WasmBytecodeGenerator::EmitCall()
         throw WasmCompilationException(_u("Mismatch between call signature and arity"));
     }
 
-    int32 argsBytesLeft = argSize;
-    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; --i)
+    //copy args into a list so they could be generated in the right order (FIFO)
+    JsUtil::List<EmitInfo, ArenaAllocator> argsList(&m_alloc);
+    for (int i = 0; i < (int)calleeSignature->GetParamCount(); i++)
     {
-        EmitInfo info = PopEvalStack();
+        argsList.Add(PopEvalStack());
+    }
+
+    int32 argsBytesLeft = 0;
+    for (int i = calleeSignature->GetParamCount() - 1; i >= 0 ; i--)
+    {
+        EmitInfo info = argsList.Item(i);
         if (calleeSignature->GetParam(i) != info.type)
         {
             throw WasmCompilationException(_u("Call argument does not match formal type"));
@@ -799,15 +813,22 @@ WasmBytecodeGenerator::EmitCall()
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
-        argsBytesLeft -= wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
+        //argSize
+
         if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0)
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
         }
+        argsBytesLeft += wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
         Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
-        ReleaseLocation(&info);
+    }
+
+    //registers need to be released from higher ordinals to lower
+    for (int i = 0; i < argsList.Count(); i++)
+    {
+        ReleaseLocation(&(argsList.Item(i)));
     }
 
     // emit call
@@ -1285,7 +1306,6 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
         throw WasmCompilationException(_u("Could not match typed array name"));
     }
 }
-
 
 void
 WasmBytecodeGenerator::ReleaseLocation(EmitInfo * info)
