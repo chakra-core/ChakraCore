@@ -635,7 +635,7 @@ void InliningDecider::TraceInlining(Js::FunctionBody *const inliner, const char1
         inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
         inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetByteCodeCount(),
         inlinedByteCodeCount,
-        topFunc->GetByteCodeCount(), topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2),
+        topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetByteCodeCount(),
         callSiteId
         );
 
