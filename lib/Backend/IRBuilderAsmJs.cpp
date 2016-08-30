@@ -745,7 +745,7 @@ IRBuilderAsmJs::BuildConstantLoads()
 
         IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, IR::IntConstOpnd::New(intConst, TyInt32, m_func), m_func);
 
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsIntConst(intConst);
         }
@@ -774,7 +774,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(floatConst, TyFloat32, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsFloatConst();
         }
@@ -803,7 +803,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(doubleConst, TyFloat64, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsFloatConst();
         }
@@ -834,7 +834,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instrLdC = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsSimd128Const();
         }
