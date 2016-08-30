@@ -513,11 +513,11 @@ RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 		{
 			switch (paramSym->GetParamSlotNum())
 			{
-			case 2:
-				reg = RegRCX;
-				break;
 			case 1:
 				reg = RegRDX;
+				break;
+			case 2:
+				reg = RegRCX;
 				break;
 			}
 		}
