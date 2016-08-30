@@ -784,7 +784,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #ifdef PERF_HINT
             if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
             {
-                WritePerfHint(PerfHints::CallsEval, (Js::FunctionBody*)instr->m_func->GetJITFunctionBody()->GetAddr(), instr->GetByteCodeOffset());
+                WritePerfHint(PerfHints::CallsEval, this->m_func->GetJnFunction(), instr->GetByteCodeOffset());
             }
 #endif
             break;

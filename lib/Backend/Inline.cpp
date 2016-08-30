@@ -4733,7 +4733,7 @@ Inline::MapFormals(Func *inlinee,
                         {
                             thisConstVar = Js::JavascriptOperators::OP_StrictGetThis_JIT(thisConstVar, scriptContext);
                         }
-                        IR::Opnd *thisOpnd = IR::AddrOpnd::New(thisConstVar, IR::AddrOpndKindDynamicVar, inlinee, true);
+                        IR::Opnd *thisOpnd = IR::AddrOpnd::New((intptr_t)thisConstVar, IR::AddrOpndKindDynamicVar, inlinee, true);
 
                         instr->m_opcode = Js::OpCode::Ld_A;
                         instr->ReplaceSrc1(thisOpnd);

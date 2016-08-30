@@ -1891,7 +1891,7 @@ AddrOpnd::NewFromNumber(int32 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
+        return NewFromNumberVar(value, func, dontEncode);
     }
 }
 
@@ -1904,7 +1904,7 @@ AddrOpnd::NewFromNumber(int64 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
+        return NewFromNumberVar((double)value, func, dontEncode);
     }
 }
 
@@ -1941,8 +1941,23 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
         return New(Js::TaggedInt::ToVarUnchecked(nValue), AddrOpndKindConstantVar, func, dontEncode);
     }
 
-    return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
+    return NewFromNumberVar(value, func, dontEncode);
 }
+
+AddrOpnd *
+AddrOpnd::NewFromNumberVar(double value, Func *func, bool dontEncode /* = false */)
+{
+    Js::Var var = func->AllocateNumber((double)value);
+    AddrOpnd* addrOpnd = New((intptr_t)var, AddrOpndKindDynamicVar, func, dontEncode);
+    addrOpnd->m_valueType =
+        Js::JavascriptNumber::IsInt32(value)
+        ? ValueType::GetInt(false)
+        : ValueType::Float;
+    addrOpnd->SetValueTypeFixed();
+
+    return addrOpnd;
+}
+
 
 AddrOpnd *
 AddrOpnd::NewNull(Func *func)

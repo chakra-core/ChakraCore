@@ -4188,7 +4188,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 #ifdef PERF_HINT
                         if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsCreated, (Js::FunctionBody*)instr->m_func->GetJITFunctionBody()->GetAddr(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4206,7 +4206,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 #ifdef PERF_HINT
                         if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsCreated, (Js::FunctionBody*)instr->m_func->GetJITFunctionBody()->GetAddr(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4225,7 +4225,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 #ifdef PERF_HINT
                         if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsModification, (Js::FunctionBody*)instr->m_func->GetJITFunctionBody()->GetAddr(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4239,7 +4239,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 #ifdef PERF_HINT
                         if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsModification, (Js::FunctionBody*)instr->m_func->GetJITFunctionBody()->GetAddr(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();

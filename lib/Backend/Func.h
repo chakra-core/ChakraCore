@@ -986,3 +986,7 @@ private:
 #define BEGIN_CODEGEN_PHASE(func, phase) { AutoCodeGenPhase __autoCodeGen(func, phase);
 #define END_CODEGEN_PHASE(func, phase) __autoCodeGen.EndPhase(func, phase, true, true); }
 #define END_CODEGEN_PHASE_NO_DUMP(func, phase) __autoCodeGen.EndPhase(func, phase, false, true); }
+
+#ifdef PERF_HINT
+void WritePerfHint(PerfHints hint, Func* func, uint byteCodeOffset = Js::Constants::NoByteCodeOffset);
+#endif

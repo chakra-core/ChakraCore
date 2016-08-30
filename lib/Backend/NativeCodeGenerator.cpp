@@ -889,13 +889,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->xProcNumberPageSegment = AnewStructZ(&alloc, XProcNumberPageSegment);
     threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
-
+    HRESULT hr = E_FAIL;
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
+        hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
             scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
             scriptContext->GetRemoteScriptAddr(),

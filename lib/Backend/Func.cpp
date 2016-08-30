@@ -1902,3 +1902,13 @@ bool Func::DoRecordNativeMap() const
 #endif
 }
 #endif
+
+#ifdef PERF_HINT
+void WritePerfHint(PerfHints hint, Func* func, uint byteCodeOffset /*= Js::Constants::NoByteCodeOffset*/)
+{
+    if (!func->IsOOPJIT())
+    {
+        WritePerfHint(hint, func->GetJnFunction(), byteCodeOffset);
+    }
+}
+#endif

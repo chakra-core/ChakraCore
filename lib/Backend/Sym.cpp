@@ -586,7 +586,7 @@ Js::Var StackSym::GetFloatConstValueAsVar_PostGlobOpt() const
     }
 
     const Js::Var address = addrOpnd->m_address;
-    Assert(Js::JavascriptNumber::Is(address));
+    Assert(Js::JavascriptNumber::Is(addrOpnd->m_localAddress? addrOpnd->m_localAddress: addrOpnd->m_address));
     return address;
 }
 

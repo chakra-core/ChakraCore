@@ -1342,6 +1342,7 @@ public:
     static AddrOpnd *       NewFromNumber(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int32 value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int64 value, Func *func, bool dontEncode = false);
+    static AddrOpnd *       NewFromNumberVar(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewNull(Func * func);
 public:
     //Note type: OpndKindAddr
