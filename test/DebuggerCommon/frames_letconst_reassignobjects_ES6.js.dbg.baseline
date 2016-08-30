@@ -2,31 +2,31 @@
   {
     "callStack": [
       {
-        "line": 32,
+        "line": 37,
         "column": 4,
         "sourceText": "}",
         "function": "baz"
       },
       {
-        "line": 15,
+        "line": 20,
         "column": 8,
         "sourceText": "baz(a,b)",
         "function": "bar"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 8,
         "sourceText": "bar(a)",
         "function": "foo"
       },
       {
-        "line": 34,
+        "line": 39,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"
       },
       {
-        "line": 38,
+        "line": 43,
         "column": 0,
         "sourceText": "Run()",
         "function": "Global code"

@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 // native int array
 var arr1 = [1, 2, 3, 4, 5];
 arr1[arr1.length + 5] = 10;/**bp:evaluate('arr1[arr1.length + 3] == undefined')**/

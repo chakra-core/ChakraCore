@@ -2,19 +2,19 @@
   {
     "callStack": [
       {
-        "line": 22,
+        "line": 27,
         "column": 0,
         "sourceText": "}",
         "function": "bar"
       },
       {
-        "line": 8,
+        "line": 13,
         "column": 4,
         "sourceText": "bar()",
         "function": "foo"
       },
       {
-        "line": 30,
+        "line": 35,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"

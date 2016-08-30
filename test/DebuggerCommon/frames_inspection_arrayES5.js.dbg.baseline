@@ -2,13 +2,13 @@
   {
     "callStack": [
       {
-        "line": 13,
+        "line": 18,
         "column": 12,
         "sourceText": "key",
         "function": "Anonymous function"
       },
       {
-        "line": 12,
+        "line": 17,
         "column": 8,
         "sourceText": "arr.forEach(function (key, val, map) {\r\n            key;/**bp:stack();locals()**/\r\n        })",
         "function": "Global code"

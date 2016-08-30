@@ -2,13 +2,13 @@
   {
     "callStack": [
       {
-        "line": 2,
+        "line": 7,
         "column": 4,
         "sourceText": "return ++i",
         "function": "incrementI"
       },
       {
-        "line": 6,
+        "line": 11,
         "column": 0,
         "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack()**/}`)",
         "function": "Global code"
@@ -18,13 +18,13 @@
   {
     "callStack": [
       {
-        "line": 2,
+        "line": 7,
         "column": 4,
         "sourceText": "return ++i",
         "function": "incrementI"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 4,
         "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
         "function": "Global code"
@@ -39,13 +39,13 @@
   {
     "callStack": [
       {
-        "line": 2,
+        "line": 7,
         "column": 4,
         "sourceText": "return ++i",
         "function": "incrementI"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 4,
         "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
         "function": "Global code"
@@ -60,13 +60,13 @@
   {
     "callStack": [
       {
-        "line": 2,
+        "line": 7,
         "column": 4,
         "sourceText": "return ++i",
         "function": "incrementI"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 4,
         "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
         "function": "Global code"
@@ -81,13 +81,13 @@
   {
     "callStack": [
       {
-        "line": 14,
+        "line": 19,
         "column": 4,
         "sourceText": "WScript.Echo(substitutions)",
         "function": "tempHandler"
       },
       {
-        "line": 16,
+        "line": 21,
         "column": 0,
         "sourceText": "tempHandler`The count is\r\n${++i /**bp:stack();evaluate('tempHandler',3)**/}\r\n`",
         "function": "Global code"
@@ -97,13 +97,13 @@
   {
     "callStack": [
       {
-        "line": 22,
+        "line": 27,
         "column": 4,
         "sourceText": "return ++i",
         "function": "Anonymous function"
       },
       {
-        "line": 21,
+        "line": 26,
         "column": 0,
         "sourceText": "WScript.Echo(String.raw`The count is ${(function() {\r\n    return ++i; /**bp:stack();evaluate('String', 2)**/\r\n})()}`)",
         "function": "Global code"
@@ -205,7 +205,7 @@
   {
     "callStack": [
       {
-        "line": 21,
+        "line": 26,
         "column": 0,
         "sourceText": "WScript.Echo(String.raw`The count is ${(function() {\r\n    return ++i; /**bp:stack();evaluate('String', 2)**/\r\n})()}`)",
         "function": "Global code"

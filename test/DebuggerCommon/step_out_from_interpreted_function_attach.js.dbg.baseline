@@ -2,25 +2,25 @@
   {
     "callStack": [
       {
-        "line": 28,
+        "line": 33,
         "column": 4,
         "sourceText": "x",
         "function": "baz"
       },
       {
-        "line": 21,
+        "line": 26,
         "column": 8,
         "sourceText": "baz()",
         "function": "bar"
       },
       {
-        "line": 12,
+        "line": 17,
         "column": 4,
         "sourceText": "bar()",
         "function": "foo"
       },
       {
-        "line": 43,
+        "line": 48,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"
@@ -60,19 +60,19 @@
   {
     "callStack": [
       {
-        "line": 22,
+        "line": 27,
         "column": 0,
         "sourceText": "}",
         "function": "bar"
       },
       {
-        "line": 12,
+        "line": 17,
         "column": 4,
         "sourceText": "bar()",
         "function": "foo"
       },
       {
-        "line": 43,
+        "line": 48,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"

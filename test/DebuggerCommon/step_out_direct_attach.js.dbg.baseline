@@ -2,13 +2,13 @@
   {
     "callStack": [
       {
-        "line": 16,
+        "line": 21,
         "column": 4,
         "sourceText": "c",
         "function": "bar"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 4,
         "sourceText": "bar()",
         "function": "Run"
@@ -49,7 +49,7 @@
   {
     "callStack": [
       {
-        "line": 10,
+        "line": 15,
         "column": 0,
         "sourceText": "}",
         "function": "Run"
@@ -97,13 +97,13 @@
   {
     "callStack": [
       {
-        "line": 16,
+        "line": 21,
         "column": 4,
         "sourceText": "c",
         "function": "bar"
       },
       {
-        "line": 9,
+        "line": 14,
         "column": 4,
         "sourceText": "bar()",
         "function": "Run"
@@ -144,7 +144,7 @@
   {
     "callStack": [
       {
-        "line": 10,
+        "line": 15,
         "column": 0,
         "sourceText": "}",
         "function": "Run"

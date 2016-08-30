@@ -146,19 +146,19 @@
   {
     "callStack": [
       {
-        "line": 9,
+        "line": 14,
         "column": 8,
         "sourceText": "var x = 1",
         "function": "bar"
       },
       {
-        "line": 7,
+        "line": 12,
         "column": 4,
         "sourceText": "bar(map)",
         "function": "foo"
       },
       {
-        "line": 26,
+        "line": 31,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"
@@ -416,19 +416,19 @@
   {
     "callStack": [
       {
-        "line": 9,
+        "line": 14,
         "column": 8,
         "sourceText": "var x = 1",
         "function": "bar"
       },
       {
-        "line": 7,
+        "line": 12,
         "column": 4,
         "sourceText": "bar(map)",
         "function": "foo"
       },
       {
-        "line": 26,
+        "line": 31,
         "column": 4,
         "sourceText": "foo()",
         "function": "Run"
