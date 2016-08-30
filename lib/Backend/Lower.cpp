@@ -132,6 +132,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
     bool noMathFastPath;
     bool noFieldFastPath;
     bool fNoLower = false;
+    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
     noFieldFastPath = !defaultDoFastPath;
     noMathFastPath = !defaultDoFastPath;
 
@@ -442,7 +443,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::StSuperFld:
             instrPrev = GenerateCompleteStFld(instr, !noFieldFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic,
-                IR::HelperOp_PatchPutValueWithThisPtr, IR::HelperOp_PatchPutValueWithThisPtrPolymorphic, true, Js::PropertyOperation_None);
+                IR::HelperOp_PatchPutValueWithThisPtr, IR::HelperOp_PatchPutValueWithThisPtrPolymorphic, true, isStrictMode ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
             break;
 
         case Js::OpCode::StRootFld:
@@ -2878,20 +2879,28 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instr->Remove();
             break;
 
-        case Js::OpCode::LdSuper:
-            this->GenerateLdSuper(instr);
+        case Js::OpCode::LdHomeObj:
+            this->GenerateLdHomeObj(instr);
             break;
 
-        case Js::OpCode::LdSuperCtor:
-            this->GenerateLdSuperCtor(instr);
+        case Js::OpCode::LdHomeObjProto:
+            this->GenerateLdHomeObjProto(instr);
             break;
 
-        case Js::OpCode::ScopedLdSuper:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdSuper);
+        case Js::OpCode::LdFuncObj:
+            this->GenerateLdFuncObj(instr);
             break;
 
-        case Js::OpCode::ScopedLdSuperCtor:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdSuperCtor);
+        case Js::OpCode::LdFuncObjProto:
+            this->GenerateLdFuncObjProto(instr);
+            break;
+
+        case Js::OpCode::ScopedLdHomeObj:
+            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdHomeObj);
+            break;
+
+        case Js::OpCode::ScopedLdFuncObj:
+            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdFuncObj);
             break;
 
         case Js::OpCode::SetHomeObj:
@@ -20479,7 +20488,7 @@ Lowerer::GenerateRecyclableObjectIsElse(IR::Instr *instrInsert, IR::RegOpnd *ins
 }
 
 void
-Lowerer::GenerateLdSuper(IR::Instr* instrInsert)
+Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 {
     //  MOV dst, undefined
     //  MOV instance, functionObject  // functionObject through stack params or src1
@@ -20488,9 +20497,59 @@ Lowerer::GenerateLdSuper(IR::Instr* instrInsert)
     //  MOV instance, instance->homeObj
     //  TEST instance, instance
     //  JZ  $Done
+    //  MOV dst, instance
+    //  $Done:
+
+    Func *func = instr->m_func;
+
+    IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
+
+    IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+
+    IR::Opnd *dstOpnd = instr->GetDst();
+    Assert(dstOpnd->IsRegOpnd());
+    LowererMD::CreateAssign(dstOpnd, opndUndefAddress, instr);
+
+    IR::Opnd * functionObjOpnd = nullptr;
+    m_lowererMD.LoadFunctionObjectOpnd(instr, functionObjOpnd);
+    LowererMD::CreateAssign(instanceRegOpnd, functionObjOpnd, instr);
+
+    IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableStackScriptFunction);
+    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
+        Js::OpCode::BrEq_A, true, labelDone, instr);
+
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
+    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instr);
+
+    InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instr);
+
+    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instr);
+
+    instr->InsertBefore(labelDone);
+    instr->Remove();
+}
+
+void
+Lowerer::GenerateLdHomeObjProto(IR::Instr* instr)
+{
+    //  MOV dst, undefined
+    //  MOV instance, src1   // homeObj
+    //  TEST instance, instance
+    //  JZ  $Done
     //
     //  if (!RecyclableObject::Is(instance)) goto $Done
+    //  MOV type, [instance+Offset(type)]
+    //  MOV typeId, [type+Offset(typeId)]
+    //  CMP typeId, TypeIds_Null
+    //  JEQ $Err
+    //  CMP typeId, TypeIds_Undefined
+    //  JNE $NoErr
     //
+    //  $Err:
+    //  ThrowRuntimeReferenceError(JSERR_BadSuperReference);
+    //  
+    //  $NoErr:
     //  instance = ((RecyclableObject*)instance)->GetPrototype();
     //  if (instance == nullptr) goto $Done;
     //
@@ -20499,44 +20558,66 @@ Lowerer::GenerateLdSuper(IR::Instr* instrInsert)
     //  MOV dst, instance
     //  $Done:
 
-    Func *func = instrInsert->m_func;
+    Func *func = instr->m_func;
+    IR::Opnd *src1Opnd = instr->UnlinkSrc1();
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-    IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instrInsert, LibraryValue::ValueUndefined);
+    IR::LabelInstr *labelErr = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelNoErr = IR::LabelInstr::New(Js::OpCode::Label, func, false);
 
+    IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
     IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    IR::RegOpnd *typeRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    IR::RegOpnd *typeIdRegOpnd = IR::RegOpnd::New(TyUint32, func);
 
-    IR::Opnd *dstOpnd = instrInsert->GetDst();
+    IR::Opnd *dstOpnd = instr->GetDst();
     Assert(dstOpnd->IsRegOpnd());
-    LowererMD::CreateAssign(dstOpnd, opndUndefAddress, instrInsert);
+    LowererMD::CreateAssign(dstOpnd, opndUndefAddress, instr);
+    LowererMD::CreateAssign(instanceRegOpnd, src1Opnd, instr);
 
-    IR::Opnd * functionObjOpnd = nullptr;
-    m_lowererMD.LoadFunctionObjectOpnd(instrInsert, functionObjOpnd);
-    LowererMD::CreateAssign(instanceRegOpnd, functionObjOpnd, instrInsert);
+    InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instr);
+    this->GenerateRecyclableObjectIsElse(instr, instanceRegOpnd, labelDone);
 
-    IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableStackScriptFunction);
-    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
-        Js::OpCode::BrEq_A, true, labelDone, instrInsert);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, func);
+    LowererMD::CreateAssign(typeRegOpnd, indirOpnd, instr);
 
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
-    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instrInsert);
+    indirOpnd = IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyUint32, func);
+    LowererMD::CreateAssign(typeIdRegOpnd, indirOpnd, instr);
 
-    InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instrInsert);
+    InsertCompareBranch(typeIdRegOpnd, IR::IntConstOpnd::New(Js::TypeId::TypeIds_Null, TyUint32, func, true), Js::OpCode::BrEq_A, labelErr, instr);
+    InsertCompareBranch(typeIdRegOpnd, IR::IntConstOpnd::New(Js::TypeId::TypeIds_Undefined, TyUint32, func, true), Js::OpCode::BrNeq_A, labelNoErr, instr);
 
-    this->GenerateRecyclableObjectIsElse(instrInsert, instanceRegOpnd, labelDone);
-    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instrInsert, instanceRegOpnd, labelDone);
-    this->GenerateRecyclableObjectIsElse(instrInsert, instanceRegOpnd, labelDone);
+    instr->InsertBefore(labelErr);
+    this->GenerateRuntimeError(instr, JSERR_BadSuperReference, IR::HelperOp_RuntimeReferenceError);
 
-    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instrInsert);
+    instr->InsertBefore(labelNoErr);
 
-    instrInsert->InsertBefore(labelDone);
-    instrInsert->Remove();
+    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instr, instanceRegOpnd, labelDone);
+    this->GenerateRecyclableObjectIsElse(instr, instanceRegOpnd, labelDone);
+
+    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instr);
+
+    instr->InsertBefore(labelDone);
+    instr->Remove();
 }
 
 void
-Lowerer::GenerateLdSuperCtor(IR::Instr* instrInsert)
+Lowerer::GenerateLdFuncObj(IR::Instr* instr)
 {
-    //  MOV instance, functionObject  // functionObject through stack params or src1
+    //  MOV dst, functionObject  // functionObject through stack params or src1
+
+    IR::Opnd *dstOpnd = instr->GetDst();
+    IR::Opnd *functionObjOpnd = nullptr;
+
+    m_lowererMD.LoadFunctionObjectOpnd(instr, functionObjOpnd);
+    LowererMD::CreateAssign(dstOpnd, functionObjOpnd, instr);
+    instr->Remove();
+}
+
+void
+Lowerer::GenerateLdFuncObjProto(IR::Instr* instr)
+{
+    //  MOV instance, src1
     //
     //  instance = ((RecyclableObject*)instance)->GetPrototype();
     //  if (instance == nullptr) goto $ThrowTypeError;
@@ -20549,33 +20630,32 @@ Lowerer::GenerateLdSuperCtor(IR::Instr* instrInsert)
     //     goto $Done;
     //
     //  $helperLabelThrowTypeError:
-    //  ThrowRunTimeError(JSERR_NotAConstructor);
+    //  ThrowRuntimeTypeError(JSERR_NotAConstructor);
     //
     //  $Done:
 
-    Func *func = instrInsert->m_func;
+    Func *func = instr->m_func;
+    IR::Opnd *src1Opnd = instr->UnlinkSrc1();
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::LabelInstr *helperLabelThrowTypeError = IR::LabelInstr::New(Js::OpCode::Label, func, false);
 
     IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
-    IR::Opnd *dstOpnd = instrInsert->GetDst();
-    IR::Opnd * functionObjOpnd = nullptr;
+    IR::Opnd *dstOpnd = instr->GetDst();
 
-    m_lowererMD.LoadFunctionObjectOpnd(instrInsert, functionObjOpnd);
-    LowererMD::CreateAssign(instanceRegOpnd, functionObjOpnd, instrInsert);
+    LowererMD::CreateAssign(instanceRegOpnd, src1Opnd, instr);
 
-    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instrInsert, instanceRegOpnd, helperLabelThrowTypeError);
+    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instr, instanceRegOpnd, helperLabelThrowTypeError);
 
-    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instrInsert);
+    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instr);
 
-    this->GenerateJavascriptOperatorsIsConstructorGotoElse(instrInsert, instanceRegOpnd, labelDone, helperLabelThrowTypeError);
+    this->GenerateJavascriptOperatorsIsConstructorGotoElse(instr, instanceRegOpnd, labelDone, helperLabelThrowTypeError);
 
-    instrInsert->InsertBefore(helperLabelThrowTypeError);
-    this->GenerateRuntimeError(instrInsert, JSERR_NotAConstructor);
+    instr->InsertBefore(helperLabelThrowTypeError);
+    this->GenerateRuntimeError(instr, JSERR_NotAConstructor, IR::HelperOp_RuntimeTypeError);
 
-    instrInsert->InsertBefore(labelDone);
-    instrInsert->Remove();
+    instr->InsertBefore(labelDone);
+    instr->Remove();
 }
 
 void

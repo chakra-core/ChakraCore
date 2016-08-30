@@ -552,11 +552,13 @@ namespace Js
         static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);
-        static Var OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext);
-        static Var OP_LdSuperCtor(Var scriptFunction, ScriptContext * scriptContext);
-        static Var OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext);
-        static Var OP_ScopedLdSuperCtor(Var scriptFunction, ScriptContext * scriptContext);
-        static Var ScopedLdSuperHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext);
+        static Var OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext);
+        static Var OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext);
+        static Var OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext);
+        static Var OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext);
+        static Var ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext);
+        static Var OP_LdHomeObjProto(Var aRight, ScriptContext* scriptContext);
+        static Var OP_LdFuncObjProto(Var aRight, ScriptContext* scriptContext);
 
         static Var OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator);
 

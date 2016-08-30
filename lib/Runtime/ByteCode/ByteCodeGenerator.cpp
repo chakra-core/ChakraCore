@@ -4921,9 +4921,9 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             FuncInfo* parent = funcInfo;
             if (funcInfo->IsLambda())
             {
-                // If this is a lambda inside a class member, the class member will need to load super.
+                // If this is a lambda inside a method or a constructor, the enclosing function will need to load super.
                 parent = byteCodeGenerator->FindEnclosingNonLambda();
-                if (parent->root->sxFnc.IsClassMember())
+                if (parent->root->sxFnc.IsMethod() || parent->root->sxFnc.IsConstructor())
                 {
                     // Set up super reference
                     if (containsSuperReference)
@@ -4978,8 +4978,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 }
             }
 
-            // An eval call in a class member needs to load super.
-            if (funcInfo->root->sxFnc.IsClassMember())
+            // An eval call in a method or a constructor needs to load super.
+            if (funcInfo->root->sxFnc.IsMethod() || funcInfo->root->sxFnc.IsConstructor())
             {
                 funcInfo->AssignSuperRegister();
                 if (funcInfo->root->sxFnc.IsClassConstructor() && !funcInfo->root->sxFnc.IsBaseClassConstructor())

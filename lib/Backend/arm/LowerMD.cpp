@@ -2940,7 +2940,7 @@ LowererMD::LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd)
     }
     else
     {
-        // Inlinee LdSuper, use the function object opnd on the instruction
+        // Inlinee LdHomeObj, use the function object opnd on the instruction
         functionObjOpnd = instr->UnlinkSrc1();
         if (!functionObjOpnd->IsRegOpnd())
         {

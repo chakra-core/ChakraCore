@@ -9473,7 +9473,7 @@ CommonNumber:
         scriptFunction->SetHomeObj(homeObj);
     }
 
-    Var JavascriptOperators::OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // Ensure this is not a stack ScriptFunction
         if (!ScriptFunction::Is(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
@@ -9487,12 +9487,24 @@ CommonNumber:
         // since the prototype could change.
         Var homeObj = instance->GetHomeObj();
 
+        return (homeObj != nullptr) ? homeObj : scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    Var JavascriptOperators::OP_LdHomeObjProto(Var homeObj, ScriptContext* scriptContext)
+    {
         if (homeObj == nullptr || !RecyclableObject::Is(homeObj))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         RecyclableObject *thisObjPrototype = RecyclableObject::FromVar(homeObj);
+
+        TypeId typeId = thisObjPrototype->GetTypeId();
+
+        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
+        }
 
         Assert(thisObjPrototype != nullptr);
 
@@ -9506,14 +9518,18 @@ CommonNumber:
         return superBase;
     }
 
-    Var JavascriptOperators::OP_LdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // use self as value of [[FunctionObject]] - this is true only for constructors
 
         Assert(RecyclableObject::Is(scriptFunction));
-        Assert(JavascriptOperators::IsClassConstructor(scriptFunction));  // non-constructors cannot have direct super
 
-        RecyclableObject *superCtor = RecyclableObject::FromVar(scriptFunction)->GetPrototype();
+        return scriptFunction;
+    }
+
+    Var JavascriptOperators::OP_LdFuncObjProto(Var funcObj, ScriptContext* scriptContext)
+    {
+        RecyclableObject *superCtor = RecyclableObject::FromVar(funcObj)->GetPrototype();
 
         if (superCtor == nullptr || !IsConstructor(superCtor))
         {
@@ -9523,7 +9539,7 @@ CommonNumber:
         return superCtor;
     }
 
-    Var JavascriptOperators::ScopedLdSuperHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
+    Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
     {
         ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);
         Var superRef = nullptr;
@@ -9566,14 +9582,14 @@ CommonNumber:
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
     }
 
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
