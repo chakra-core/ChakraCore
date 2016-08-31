@@ -862,6 +862,11 @@ interface IChakraJIT
         [in] CHAKRA_PTR address,
         [out] boolean * result);
 
+    HRESULT SetIsPRNGSeeded(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] boolean value);
+
     HRESULT RemoteCodeGen(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,

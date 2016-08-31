@@ -289,6 +289,12 @@ ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slot
     return record->localExportSlotsAddr;
 }
 
+void
+ServerScriptContext::SetIsPRNGSeeded(bool value)
+{
+    m_isPRNGSeeded = value;
+}
+
 void 
 ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr)
 {

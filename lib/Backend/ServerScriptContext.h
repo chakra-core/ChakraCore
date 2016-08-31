@@ -57,6 +57,7 @@ public:
 
     virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
+    void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
 
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
@@ -73,7 +74,6 @@ private:
     ScriptContextDataIDL m_contextData;
     uint m_activeJITCount;
 
-    // TODO: OOP JIT, set this when we initialize PRNG
     bool m_isPRNGSeeded;
 
 };

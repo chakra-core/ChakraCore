@@ -58,6 +58,10 @@ public:
         __in intptr_t threadContextInfoAddress,
         __in intptr_t address);
 
+    HRESULT SetIsPRNGSeeded(
+        __in intptr_t scriptContextInfoAddress,
+        __in boolean value);
+
     HRESULT IsNativeAddr(
         __in intptr_t threadContextInfoAddress,
         __in intptr_t address,

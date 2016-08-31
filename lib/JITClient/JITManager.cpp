@@ -353,6 +353,26 @@ JITManager::AddDOMFastPathHelper(
     return hr;
 }
 
+HRESULT
+JITManager::SetIsPRNGSeeded(
+    __in intptr_t scriptContextInfoAddress,
+    __in boolean value)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientSetIsPRNGSeeded(m_rpcBindingHandle, scriptContextInfoAddress, value);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+
+}
+
 HRESULT 
 JITManager::AddModuleRecordInfo(
     /* [in] */ intptr_t scriptContextInfoAddress,

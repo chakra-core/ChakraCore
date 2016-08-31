@@ -100,8 +100,8 @@ HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
-    /* [out] */ __RPC__out __int3264 *threadContextRoot,
-    /* [out] */ __RPC__out __int3264 *prereservedRegionAddr)
+    /* [out] */ __RPC__out intptr_t *threadContextRoot,
+    /* [out] */ __RPC__out intptr_t *prereservedRegionAddr)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
@@ -115,7 +115,7 @@ ServerInitializeThreadContext(
 HRESULT
 ServerCleanupProcess(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 processHandle)
+    /* [in] */ intptr_t processHandle)
 {
     CloseHandle((HANDLE)processHandle);
     return S_OK;
@@ -124,7 +124,7 @@ ServerCleanupProcess(
 HRESULT
 ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextRoot)
+    /* [in] */ intptr_t threadContextRoot)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
@@ -143,7 +143,7 @@ ServerCleanupThreadContext(
 HRESULT
 ServerAddPropertyRecord(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextRoot,
+    /* [in] */ intptr_t threadContextRoot,
     /* [in] */ PropertyRecordIDL * propertyRecord)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -163,8 +163,8 @@ ServerAddPropertyRecord(
 HRESULT
 ServerAddDOMFastPathHelper(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 scriptContextRoot,
-    /* [in] */ __int3264 funcInfoAddr,
+    /* [in] */ intptr_t scriptContextRoot,
+    /* [in] */ intptr_t funcInfoAddr,
     /* [in] */ int helper)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -204,7 +204,7 @@ ServerAddModuleRecordInfo(
 HRESULT 
 ServerSetWellKnownHostTypeId(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextRoot,
+    /* [in] */ intptr_t threadContextRoot,
     /* [in] */ int typeId)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
@@ -222,7 +222,7 @@ HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
-    /* [out] */ __RPC__out __int3264 * scriptContextInfoAddress)
+    /* [out] */ __RPC__out intptr_t * scriptContextInfoAddress)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
@@ -234,7 +234,7 @@ ServerInitializeScriptContext(
 HRESULT
 ServerCleanupScriptContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 scriptContextRoot)
+    /* [in] */ intptr_t scriptContextRoot)
 {
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
 
@@ -259,8 +259,8 @@ ServerCleanupScriptContext(
 HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextInfo,
-    /* [in] */ __int3264 address)
+    /* [in] */ intptr_t threadContextInfo,
+    /* [in] */ intptr_t address)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
@@ -277,8 +277,8 @@ ServerFreeAllocation(
 HRESULT
 ServerIsNativeAddr(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextInfo,
-    /* [in] */ __int3264 address,
+    /* [in] */ intptr_t threadContextInfo,
+    /* [in] */ intptr_t address,
     /* [out] */ boolean * result)
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
@@ -307,10 +307,22 @@ ServerIsNativeAddr(
 }
 
 HRESULT
+ServerSetIsPRNGSeeded(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ boolean value)
+{
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+    scriptContextInfo->SetIsPRNGSeeded(value != FALSE);
+
+    return S_OK;
+}
+
+HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
-    /* [in] */ __int3264 threadContextInfoAddress,
-    /* [in] */ __int3264 scriptContextInfoAddress,
+    /* [in] */ intptr_t threadContextInfoAddress,
+    /* [in] */ intptr_t scriptContextInfoAddress,
     /* [in] */ CodeGenWorkItemIDL *workItemData,
     /* [out] */ JITOutputIDL *jitData)
 {

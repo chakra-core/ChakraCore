@@ -1019,7 +1019,7 @@ namespace Js
         bool IsPRNGSeeded() { return isPRNGSeeded; }
         uint64 GetRandSeed0() { return randSeed0; }
         uint64 GetRandSeed1() { return randSeed1; }
-        void SetIsPRNGSeeded(bool val) { isPRNGSeeded = val; }
+        void SetIsPRNGSeeded(bool val);
         void SetRandSeed0(uint64 rs) { randSeed0 = rs;}
         void SetRandSeed1(uint64 rs) { randSeed1 = rs; }
 

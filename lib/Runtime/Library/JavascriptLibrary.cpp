@@ -6511,6 +6511,14 @@ namespace Js
         return this->builtinFunctions;
     }
 
+    void JavascriptLibrary::SetIsPRNGSeeded(bool val)
+    {
+        this->isPRNGSeeded = val;
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
+        }
+    }
     INT_PTR* JavascriptLibrary::GetVTableAddresses()
     {
         AssertMsg(this->vtableAddresses, "vtableAddresses table must've been initialized as part of library initialization!");
