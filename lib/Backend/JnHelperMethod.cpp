@@ -286,7 +286,7 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 
 #ifdef _CONTROL_FLOW_GUARD
     case HelperGuardCheckCall:
-        return SHIFT_ADDR(context, __guard_check_icall_fptr);
+        return  (intptr_t)__guard_check_icall_fptr; // OOP JIT: ntdll load at same address across all process
 #endif
 
     case HelperOp_TryCatch:
