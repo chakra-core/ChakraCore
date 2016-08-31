@@ -14097,7 +14097,7 @@ void Lowerer::InsertFloatCheckForZeroOrNanBranch(
     IR::BranchInstr *const branchOnEqualOrNotEqual =
         InsertCompareBranch(
             src,
-            IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyFloat64, func),
+            IR::MemRefOpnd::New(func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, func),
             branchOnZeroOrNan ? Js::OpCode::BrEq_A : Js::OpCode::BrNeq_A,
             target,
             insertBeforeInstr,
@@ -15909,7 +15909,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                     // COMISD regSrc, FloatZero
                     // JB labelHandleNegative
-                    IR::MemRefOpnd * zeroOpnd = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyMachDouble, this->m_func);
+                    IR::MemRefOpnd * zeroOpnd = IR::MemRefOpnd::New(this->m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyMachDouble, this->m_func);
                     InsertCompareBranch(regSrc, zeroOpnd, Js::OpCode::BrNotGe_A, labelHandleNegative, stElem);
 
                     // MOV regOpnd, 255
