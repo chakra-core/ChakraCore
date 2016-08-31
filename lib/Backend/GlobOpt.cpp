@@ -4180,7 +4180,6 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
     case Js::OpCode::BailOnNotStackArgs:
     case Js::OpCode::ArgOut_A_FromStackArgs:
-    case Js::OpCode::LdArgumentsFromStack:
     case Js::OpCode::BytecodeArgOutUse:
         break;
 
@@ -18760,9 +18759,13 @@ GlobOpt::OptIsInvariant(
 
     switch(instr->m_opcode)
     {
-
         // Can't legally hoist these
     case Js::OpCode::LdLen_A:
+        return false;
+
+        //Can't Hoist BailOnNotStackArgs, as it is necessary as InlineArgsOptimization relies on this opcode 
+        //to decide whether to throw rejit exception or not.
+    case Js::OpCode::BailOnNotStackArgs:
         return false;
 
         // Usually not worth hoisting these

@@ -244,10 +244,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = m_lowererMD.LoadHeapArguments(instr);
             break;
 
-        case Js::OpCode::LdArgumentsFromStack:
-            instrPrev = this->LoadArgumentsFromStack(instr);
-            break;
-
         case Js::OpCode::LdHeapArgsCached:
         case Js::OpCode::LdLetHeapArgsCached:
             m_lowererMD.LoadHeapArgsCached(instr);
@@ -10818,25 +10814,6 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
     return m_lowererMD.LowerCondBranch(branchInstr);
 }
 
-IR::Instr *
-Lowerer::LoadArgumentsFromStack(IR::Instr * instr)
-{
-    IR::Instr * prevInstr = instr->m_prev;
-
-    Assert(instr->GetDst()->IsRegOpnd());
-    if (instr->m_func->IsInlinee())
-    {
-        instr->ReplaceSrc1(instr->m_func->GetInlineeArgumentsObjectSlotOpnd());
-    }
-    else
-    {
-        instr->ReplaceSrc1(this->m_lowererMD.CreateStackArgumentsSlotOpnd());
-    }
-    this->m_lowererMD.ChangeToAssign(instr);
-
-    return prevInstr;
-}
-
 IR::SymOpnd *
 Lowerer::LoadCallInfo(IR::Instr * instrInsert)
 {
@@ -10903,28 +10880,24 @@ Lowerer::LowerBailOnNotStackArgs(IR::Instr * instr)
         instr->InsertAfter(continueLabelInstr);
     }
 
-    IR::LabelInstr * helperLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     if (!instr->m_func->IsInlinee())
     {
-        //BailOut if it is not stack args or the number of actuals (except "this" argument) is greater than or equal to 15.
-        IR::Opnd* stackArgs = instr->UnlinkSrc1();
-        InsertCompareBranch(stackArgs, instr->UnlinkSrc2(), Js::OpCode::BrNeq_A, helperLabelInstr, instr);
-
+        //BailOut if the number of actuals (except "this" argument) is greater than or equal to 15.
         IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyUint32, instr->m_func);
-        IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, stackArgs, instr->m_func);
+        IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, instr->m_func);
         ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); //LdLen_A works only on stack arguments
         instr->InsertBefore(ldLen);
         this->GenerateFastRealStackArgumentsLdLen(ldLen);
         this->InsertCompareBranch(ldLenDstOpnd, IR::IntConstOpnd::New(Js::InlineeCallInfo::MaxInlineeArgoutCount, TyUint32, m_func, true),  Js::OpCode::BrLt_A, true, continueLabelInstr, instr);
+        this->GenerateBailOut(instr, nullptr, nullptr);
     }
     else
     {
         //For Inlined functions, we are sure actuals can't exceed Js::InlineeCallInfo::MaxInlineeArgoutCount (15).
-        InsertCompareBranch(instr->UnlinkSrc1(), instr->UnlinkSrc2(), Js::OpCode::BrEq_A, continueLabelInstr, instr);
+        //No need to bail out.
+        instr->Remove();
     }
 
-    instr->InsertBefore(helperLabelInstr);
-    this->GenerateBailOut(instr, nullptr, nullptr);
     return prevInstr;
 }
 

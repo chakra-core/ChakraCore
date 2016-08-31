@@ -2288,10 +2288,6 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
 IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::Instr * argsObjectArgInstr, Js::FunctionInfo * funcInfo)
 {
     IR::Instr* ldHeapArguments = argsObjectArgInstr->GetSrc1()->GetStackSym()->GetInstrDef();
-    IR::RegOpnd* argumentsObj = IR::RegOpnd::New(TyVar, callInstr->m_func);
-    IR::Instr *assignInstr = IR::Instr::New(Js::OpCode::LdArgumentsFromStack, argumentsObj, ldHeapArguments->GetDst(), callInstr->m_func);
-    assignInstr->SetByteCodeOffset(argsObjectArgInstr);
-    argsObjectArgInstr->InsertBefore(assignInstr);
     argsObjectArgInstr->ReplaceSrc1(ldHeapArguments->GetDst());
 
     IR::Opnd * linkOpnd = callInstr->GetSrc2()->AsSymOpnd();
@@ -2337,8 +2333,6 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
         bailOutOnNotStackArgsInsertionPoint = primaryBailoutInstr;
     }
 
-    bailOutOnNotStackArgs->SetSrc1(argumentsObj);
-    bailOutOnNotStackArgs->SetSrc2(IR::AddrOpnd::NewNull(callInstr->m_func));
     bailOutOnNotStackArgsInsertionPoint->InsertBefore(bailOutOnNotStackArgs);
 
     // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after
@@ -2568,15 +2562,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
         {
             safeThis = false;
         }
-    }
-
-    IR::Opnd *src1 = argumentsObjArgOut->GetSrc1();
-    IR::Instr* ldHeapArguments = src1->AsRegOpnd()->m_sym->m_instrDef;
-
-    IR::RegOpnd* argumentsObj = IR::RegOpnd::New(TyVar, callInstr->m_func);
-    IR::Instr *assignInstr = IR::Instr::New(Js::OpCode::LdArgumentsFromStack, argumentsObj, ldHeapArguments->GetDst(), callInstr->m_func);
-    assignInstr->SetByteCodeOffset(argumentsObjArgOut);
-    argumentsObjArgOut->InsertBefore(assignInstr);
+    }   
 
     IR::Instr* argObjByteCodeArgoutCapture = argumentsObjArgOut->GetBytecodeArgOutCapture();
     argObjByteCodeArgoutCapture->GetDst()->GetStackSym()->m_nonEscapingArgObjAlias = true;
@@ -2589,8 +2575,6 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
 
     IR::Instr *  bailOutOnNotStackArgs = IR::BailOutInstr::New(Js::OpCode::BailOnNotStackArgs, IR::BailOutOnInlineFunction,
         callInstr, callInstr->m_func);
-    bailOutOnNotStackArgs->SetSrc1(argumentsObj);
-    bailOutOnNotStackArgs->SetSrc2(IR::AddrOpnd::NewNull(callInstr->m_func));
     argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
 
     IR::Instr* byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
@@ -5139,7 +5123,6 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
                     }
 
                 case Js::OpCode::BailOnNotStackArgs:
-                case Js::OpCode::LdArgumentsFromStack:
                 case Js::OpCode::ArgOut_A_InlineBuiltIn:
                 case Js::OpCode::BytecodeArgOutCapture:
                 case Js::OpCode::BytecodeArgOutUse:

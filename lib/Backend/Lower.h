@@ -425,8 +425,6 @@ private:
     void            LowerInlineeStart(IR::Instr * instr);
     void            LowerInlineeEnd(IR::Instr * instr);
 
-    IR::Instr*      LoadArgumentsFromStack(IR::Instr * instr);
-
     static
     IR::SymOpnd*    LoadCallInfo(IR::Instr * instrInsert);
 
