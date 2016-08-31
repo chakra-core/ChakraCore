@@ -221,18 +221,16 @@ DECLSPEC_GUARDIGNORE _NOINLINE void * const GetNonTableMethodAddress(JnHelperMet
         return (float(*)(float))ceil;
 
     case HelperDirectMath_TruncDb:
-        //return (double(*)(double))trunc;
+        return (double(*)(double)) Wasm::WasmMath::Trunc<double>;
 
     case HelperDirectMath_TruncFlt:
-        //return (float(*)(float))trunc;
+        return (float(*)(float)) Wasm::WasmMath::Trunc<float>;
 
     case HelperDirectMath_NearestDb:
-        //return (double(*)(double))round;
+        return (double(*)(double)) Wasm::WasmMath::Nearest<double>;
 
     case HelperDirectMath_NearestFlt:
-        //return (float(*)(float))round;
-        // todo:: change for the right helper
-        return (float(*)(float))ceil;
+        return (float(*)(float)) Wasm::WasmMath::Nearest<float>;
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
