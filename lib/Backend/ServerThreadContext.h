@@ -39,7 +39,7 @@ public:
     CodeGenAllocators * GetCodeGenAllocators();
     AllocationPolicyManager * GetAllocationPolicyManager();
     CustomHeap::CodePageAllocators * GetCodePageAllocators();
-
+    PageAllocator* GetPageAllocator();
     void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
 private:
@@ -51,7 +51,7 @@ private:
     PropertyMap * m_propertyMap;
 
     AllocationPolicyManager m_policyManager;
-    PageAllocator m_pageAlloc;
+    JsUtil::BaseDictionary<DWORD, PageAllocator*, HeapAllocator> m_pageAllocs;
     PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
     CustomHeap::CodePageAllocators m_codePageAllocators;
     CodeGenAllocators m_codeGenAlloc;

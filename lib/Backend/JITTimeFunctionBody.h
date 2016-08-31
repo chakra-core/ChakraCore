@@ -93,7 +93,7 @@ public:
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
 
-    intptr_t GetByteCodeBufferAddr() const;
+    const byte * GetByteCodeBuffer() const;
 
     void * ReadFromAuxData(uint offset) const;
     void * ReadFromAuxContextData(uint offset) const;

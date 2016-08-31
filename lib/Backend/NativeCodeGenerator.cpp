@@ -923,9 +923,29 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             scriptContext->GetRecycler());
         pNumberAllocator = &numberAllocator;
 #endif
+        Js::ScriptContextProfiler *const codeGenProfiler =
+#ifdef PROFILE_EXEC
+            foreground ? EnsureForegroundCodeGenProfiler() : GetBackgroundCodeGenProfiler(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
+#else
+            nullptr;
+#endif
+
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
-            allocators, pNumberAllocator, nullptr, !foreground);
+            allocators, pNumberAllocator, codeGenProfiler, !foreground);
+    }
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        LARGE_INTEGER freq;
+        LARGE_INTEGER end_time;
+        QueryPerformanceCounter(&end_time);
+        QueryPerformanceFrequency(&freq);
+
+        Output::Print(
+            L"BackendMarshalOut - function: %s time:%8.6f mSec\r\n",
+            workItem->GetFunctionBody()->GetDisplayName(),
+            (((double)((end_time.QuadPart - jitWriteData.startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
+        Output::Flush();
     }
     NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 

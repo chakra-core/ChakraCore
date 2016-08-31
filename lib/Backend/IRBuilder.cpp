@@ -476,6 +476,8 @@ IRBuilder::Build()
 
     m_switchBuilder.Init(m_func, m_tempAlloc, false);
 
+    this->LoadNativeCodeData();
+
     this->BuildConstantLoads();
     this->BuildGeneratorPreamble();
 
@@ -1423,6 +1425,18 @@ IRBuilder::BuildGeneratorPreamble()
     this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
 
     this->AddInstr(labelInstr, Js::Constants::NoByteCodeOffset);
+}
+
+void
+IRBuilder::LoadNativeCodeData()
+{
+    if (m_func->IsOOPJIT() && m_func->IsTopFunc())
+    {
+        IR::RegOpnd * nativeDataOpnd = IR::RegOpnd::New(TyVar, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::LdNativeCodeData, nativeDataOpnd, m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        m_func->SetNativeCodeDataSym(nativeDataOpnd->GetStackSym());
+    }
 }
 
 void

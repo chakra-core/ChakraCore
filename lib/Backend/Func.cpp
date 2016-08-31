@@ -99,6 +99,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     isGetterSetter(isGetterSetter),
     frameInfo(nullptr),
     isTJLoopBody(false),
+    m_nativeCodeDataSym(nullptr),
     isFlowGraphValid(false),
 #if DBG
     m_callSiteCount(0),
@@ -513,7 +514,6 @@ Func::TryCodegen()
 #endif /* IR_VIEWER */
 
     }
-    END_CODEGEN_PHASE(this, Js::BackEndPhase);
 
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.IsEnabled(Js::AsmDumpModeFlag))
@@ -538,6 +538,7 @@ Func::TryCodegen()
 #endif
     if (this->IsOOPJIT())
     {
+        BEGIN_CODEGEN_PHASE(this, Js::NativeCodeDataPhase);
 
         auto dataAllocator = this->GetNativeCodeDataAllocator();
         if (dataAllocator->allocCount > 0)
@@ -604,8 +605,10 @@ Func::TryCodegen()
             }
 #endif
         }
+        END_CODEGEN_PHASE(this, Js::NativeCodeDataPhase);
     }
 
+    END_CODEGEN_PHASE(this, Js::BackEndPhase);
 }
 
 ///----------------------------------------------------------------------------
@@ -1576,6 +1579,20 @@ Func::SetScopeObjSym(StackSym * sym)
 {
     EnsureStackArgWithFormalsTracker();
     stackArgWithFormalsTracker->SetScopeObjSym(sym);
+}
+
+StackSym *
+Func::GetNativeCodeDataSym() const
+{
+    Assert(IsOOPJIT());
+    return m_nativeCodeDataSym;
+}
+
+void
+Func::SetNativeCodeDataSym(StackSym * opnd)
+{
+    Assert(IsOOPJIT());
+    m_nativeCodeDataSym = opnd;
 }
 
 StackSym* 

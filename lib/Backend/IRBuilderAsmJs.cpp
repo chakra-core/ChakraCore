@@ -125,6 +125,8 @@ IRBuilderAsmJs::Build()
 #endif
     m_offsetToInstruction = JitAnewArrayZ(m_tempAlloc, IR::Instr *, offsetToInstructionCount);
 
+    LoadNativeCodeData();
+
     BuildConstantLoads();
     if (!this->IsLoopBody() && m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
@@ -204,6 +206,19 @@ IRBuilderAsmJs::Build()
     if (m_func->IsTopFunc())
     {
         m_func->SetDoFastPaths();
+    }
+}
+
+void
+IRBuilderAsmJs::LoadNativeCodeData()
+{
+    Assert(m_func->IsTopFunc());
+    if (m_func->IsOOPJIT())
+    {
+        IR::RegOpnd * nativeDataOpnd = IR::RegOpnd::New(TyVar, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::LdNativeCodeData, nativeDataOpnd, m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        m_func->SetNativeCodeDataSym(nativeDataOpnd->GetStackSym());
     }
 }
 

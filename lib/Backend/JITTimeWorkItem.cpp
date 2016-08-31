@@ -6,7 +6,7 @@
 #include "Backend.h"
 
 JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemIDL * workItemData) :
-    m_workItemData(workItemData), m_jitBody(workItemData->jitData->bodyData), m_bytecodeBuffer(nullptr)
+    m_workItemData(workItemData), m_jitBody(workItemData->jitData->bodyData)
 {
 }
 
@@ -76,34 +76,16 @@ JITTimeWorkItem::GetLoopHeaderAddr() const
 void
 JITTimeWorkItem::InitializeReader(
     Js::ByteCodeReader * reader,
-    Js::StatementReader * statementReader, ArenaAllocator* alloc, ThreadContextInfo * context)
+    Js::StatementReader * statementReader, ArenaAllocator* alloc)
 {
-    if (m_bytecodeBuffer == nullptr)
-    {
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
-        {
-            m_bytecodeBuffer = AnewArray(alloc, byte, m_jitBody.GetByteCodeLength());
-            size_t bytesRead;
-            ReadProcessMemory(context->GetProcessHandle(), (byte*)m_jitBody.GetByteCodeBufferAddr(), m_bytecodeBuffer, m_jitBody.GetByteCodeLength(), &bytesRead);
-            if (bytesRead != m_jitBody.GetByteCodeLength())
-            {
-                Js::Throw::FatalInternalError();
-            }
-            m_jitBody.GetByteCodeBufferAddr();
-        }
-        else
-        {
-            m_bytecodeBuffer = (byte*)m_jitBody.GetByteCodeBufferAddr();
-        }
-    }
     uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
 #if DBG
-    reader->Create(m_bytecodeBuffer, startOffset, m_jitBody.GetByteCodeLength());
+    reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
 #else
-    reader->Create(m_bytecodeBuffer, startOffset);
+    reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif
     m_jitBody.InitializeStatementMap(&m_statementMap, alloc);
-    statementReader->Create(m_bytecodeBuffer, startOffset, &m_statementMap);
+    statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, &m_statementMap);
 }
 
 JITTimeFunctionBody *

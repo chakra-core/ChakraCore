@@ -6271,18 +6271,13 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         else
         {
             int offset = NativeCodeData::GetDataTotalOffset(pDouble);
-            IR::RegOpnd * addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-
-            Lowerer::InsertMove(
-                addressRegOpnd,
-                IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-                insertInstr);
-
-            doubleRef = IR::IndirOpnd::New(addressRegOpnd, offset, TyMachDouble,
+            doubleRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, TyMachDouble,
 #if DBG
                 NativeCodeData::GetDataDescription(pDouble, m_func->m_alloc),
 #endif
                 m_func);
+
+            GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
 #else
         IR::MemRefOpnd *doubleRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func,
@@ -7100,11 +7095,12 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
             IR::MemRefOpnd::New((void*)instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
             instrInsert);
 
-        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32, 
+        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32,
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
             instrInsert->m_func);
+
         // movsd xmm, [reg+offset]
         auto instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
         instrInsert->InsertBefore(instr);

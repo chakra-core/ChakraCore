@@ -29,7 +29,7 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc, func->GetThreadContextInfo());
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
         m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
 #if 0
         // templatized JIT loop body
@@ -49,6 +49,7 @@ public:
 
 private:
 
+    void                    LoadNativeCodeData();
     void                    AddInstr(IR::Instr * instr, uint32 offset);
     bool                    IsLoopBody()const;
     uint                    GetLoopBodyExitInstrOffset() const;

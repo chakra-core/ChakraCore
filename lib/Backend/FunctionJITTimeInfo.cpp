@@ -112,7 +112,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
                 }
             }
         }
-        if (codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
+        if (!isInlinee && codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
         {
             Js::ObjTypeSpecFldInfo ** globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
             Assert(globObjTypeSpecInfo != nullptr);

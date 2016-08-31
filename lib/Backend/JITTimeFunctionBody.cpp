@@ -22,7 +22,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     // bytecode
     jitBody->byteCodeLength = functionBody->GetByteCode()->GetLength();
-    jitBody->byteCodeBufferAddr = (intptr_t)functionBody->GetByteCode()->GetBuffer();
+    jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
 
     // const table
     jitBody->constCount = functionBody->GetConstantCount();
@@ -707,10 +707,10 @@ JITTimeFunctionBody::NeedScopeObjectForArguments(bool hasNonSimpleParams) const
         && !dontNeedScopeObject;
 }
 
-intptr_t
-JITTimeFunctionBody::GetByteCodeBufferAddr() const
+const byte *
+JITTimeFunctionBody::GetByteCodeBuffer() const
 {
-    return m_bodyData.byteCodeBufferAddr;
+    return m_bodyData.byteCodeBuffer;
 }
 
 intptr_t

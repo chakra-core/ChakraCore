@@ -522,7 +522,7 @@ typedef struct FunctionBodyDataIDL
 #endif
     SmallSpanSequenceIDL statementMap;
 
-    CHAKRA_PTR byteCodeBufferAddr;
+    [size_is(byteCodeLength)] byte * byteCodeBuffer;
 
     [size_is(constCount)] CHAKRA_PTR * constTable;
     ConstTableContentIDL * constTableContent;
@@ -795,6 +795,7 @@ typedef struct JITOutputIDL
 
     __int64 codeAddress;
     __int64 xdataAddr;
+    __int64 startTime;
 } JITOutputIDL;
 
 [

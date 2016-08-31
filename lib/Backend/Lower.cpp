@@ -1094,6 +1094,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
 
+        case Js::OpCode::LdNativeCodeData:
+            Assert(m_func->IsOOPJIT());
+            instrPrev = LowerLdNativeCodeData(instr);
+            break;
         case Js::OpCode::StrictLdThis:
             if (noFieldFastPath)
             {
@@ -6785,18 +6789,13 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 
         if (this->m_func->IsOOPJIT())
         {
-            auto regNativeCodeData = IR::RegOpnd::New(TyMachPtr, func);
-            Lowerer::InsertMove(
-                regNativeCodeData,
-                IR::MemRefOpnd::New((void*)func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-                instrChk);
-
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
-            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr,
+            expectedTypeOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), typeCheckGuardOffset, TyMachPtr,
 #if DBG
                 NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
 #endif
                 func);
+            this->addToLiveOnBackEdgeSyms->Set(func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
         {
@@ -6856,20 +6855,18 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         if (this->m_func->IsOOPJIT())
         {
             typeCheckGuardOpnd = IR::RegOpnd::New(TyMachPtr, func);
-            Lowerer::InsertMove(
-                typeCheckGuardOpnd,
-                IR::MemRefOpnd::New((void*)func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-                instrChk);
 
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
             Lowerer::InsertLea(
                 typeCheckGuardOpnd->AsRegOpnd(),
-                IR::IndirOpnd::New(typeCheckGuardOpnd->AsRegOpnd(), typeCheckGuardOffset, TyMachPtr,
+                IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), typeCheckGuardOffset, TyMachPtr,
 #if DBG
                     NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
 #endif
                     func, true),
                 instrChk);
+
+            this->addToLiveOnBackEdgeSyms->Set(func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
         {
@@ -6964,18 +6961,14 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
 
         if (this->m_func->IsOOPJIT())
         {
-            auto regNativeCodeData = IR::RegOpnd::New(TyMachPtr, this->m_func);
-            Lowerer::InsertMove(
-                regNativeCodeData,
-                IR::MemRefOpnd::New((void*)this->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-                instrInsert);
-
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typePropertyGuard);
-            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr,
+            expectedTypeOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), typeCheckGuardOffset, TyMachPtr,
 #if DBG
                 NativeCodeData::GetDataDescription(typePropertyGuard, this->m_func->m_alloc),
 #endif
                 this->m_func);
+
+            this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
         {
@@ -8827,17 +8820,14 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
         auto dictionaryOffset = NativeCodeData::GetDataTotalOffset(dictionary);
         auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
 
-        Lowerer::InsertMove(
-            addressRegOpnd,
-            IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-            instr);
-
         Lowerer::InsertLea(addressRegOpnd,
-            IR::IndirOpnd::New(addressRegOpnd, dictionaryOffset, TyMachPtr,
+            IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), dictionaryOffset, TyMachPtr,
 #if DBG
                 NativeCodeData::GetDataDescription(dictionary, this->m_func->m_alloc),
 #endif
                 this->m_func), instr);
+
+        this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
 
         m_lowererMD.LoadHelperArgument(instr, addressRegOpnd);
     }
@@ -12302,22 +12292,17 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         IR::Opnd * indexOpndForBailOutKind = nullptr;
 
         int bailOutRecordOffset = 0;
-        IR::RegOpnd* addressRegOpnd = nullptr;
         if (this->m_func->IsOOPJIT())
         {
             bailOutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
-            addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
 
-            Lowerer::InsertMove(
-                addressRegOpnd,
-                IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
-                instr);
-
-            indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32,
+            indexOpndForBailOutKind = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32,
 #if DBG
                 NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, this->m_func->m_alloc),
 #endif
                 m_func);
+
+            this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
         {
@@ -12340,7 +12325,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
 
             if (this->m_func->IsOOPJIT())
             {
-                indexOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
+                indexOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
             }
             else
             {
@@ -12356,7 +12341,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             IR::Opnd *functionBodyOpnd;
             if (this->m_func->IsOOPJIT())
             {
-                functionBodyOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + SharedBailOutRecord::GetOffsetOfFunctionBody()), TyMachPtr, m_func);
+                functionBodyOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), (int)(bailOutRecordOffset + SharedBailOutRecord::GetOffsetOfFunctionBody()), TyMachPtr, m_func);
             }
             else
             {
@@ -22390,6 +22375,19 @@ Lowerer::LowerLdAsmJsEnv(IR::Instr * instr)
     instr->SetSrc1(indirOpnd);
 
     LowererMD::ChangeToAssign(instr);
+    return instrPrev;
+}
+
+IR::Instr *
+Lowerer::LowerLdNativeCodeData(IR::Instr * instr)
+{
+    Assert(!instr->GetSrc1());
+    Assert(m_func->IsTopFunc());
+    IR::Instr * instrPrev = instr->m_prev;
+    instr->SetSrc1(IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef));
+
+    LowererMD::ChangeToAssign(instr);
+
     return instrPrev;
 }
 

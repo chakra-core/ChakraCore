@@ -471,6 +471,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"
+#include "Base/ScriptContextProfiler.h"
 
 #include "Language/EvalMapRecord.h"
 #include "Base/RegexPatternMruMap.h"

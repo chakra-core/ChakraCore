@@ -90,7 +90,7 @@ public:
         }
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc, func->GetThreadContextInfo());
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
     };
 
     ~IRBuilder() {
@@ -114,6 +114,7 @@ private:
 #endif
     BranchReloc *       CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
     void                BuildGeneratorPreamble();
+    void                LoadNativeCodeData();
     void                BuildConstantLoads();
     void                BuildImplicitArgIns();
 

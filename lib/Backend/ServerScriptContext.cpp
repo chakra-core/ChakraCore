@@ -9,8 +9,17 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
     m_contextData(*contextData),
     m_isPRNGSeeded(false),
     m_moduleRecords(&HeapAllocator::Instance),
+#ifdef PROFILE_EXEC
+    m_codeGenProfiler(nullptr),
+#endif
     m_activeJITCount(0)
 {
+#ifdef PROFILE_EXEC
+    if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
+    {
+        m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
+    }
+#endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 
@@ -21,6 +30,13 @@ ServerScriptContext::~ServerScriptContext()
     {
         HeapDelete(record);
     });
+
+#ifdef PROFILE_EXEC
+    if (m_codeGenProfiler)
+    {
+        HeapDelete(m_codeGenProfiler);
+    }
+#endif
 }
 
 intptr_t
@@ -280,4 +296,14 @@ ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExp
     record->moduleId = moduleId;
     record->localExportSlotsAddr = (Js::Var*)localExportSlotsAddr;
     m_moduleRecords.Add(moduleId, record);
+}
+
+Js::ScriptContextProfiler *
+ServerScriptContext::GetCodeGenProfiler() const
+{
+#ifdef PROFILE_EXEC
+    return m_codeGenProfiler;
+#else
+    return nullptr;
+#endif
 }

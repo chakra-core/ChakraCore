@@ -59,11 +59,16 @@ public:
 
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
 
+    Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
+
     void BeginJIT();
     void EndJIT();
     bool IsJITActive();
 private:
     JITDOMFastPathHelperMap * m_domFastPathHelperMap;
+#ifdef PROFILE_EXEC
+    Js::ScriptContextProfiler * m_codeGenProfiler;
+#endif
 
     ScriptContextDataIDL m_contextData;
     uint m_activeJITCount;

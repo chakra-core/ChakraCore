@@ -902,6 +902,8 @@ public:
 
     IR::LabelInstr *    m_bailOutNoSaveLabel;
 
+    StackSym * GetNativeCodeDataSym() const;
+    void SetNativeCodeDataSym(StackSym * sym);
 private:
 
     Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only
@@ -940,7 +942,7 @@ private:
     IR::SymOpnd *GetInlineeOpndAtOffset(int32 offset);
     bool HasLocalVarSlotCreated() const { return m_localVarSlotsOffset != Js::Constants::InvalidOffset; }
     void EnsureLocalVarSlots();
-
+    StackSym * m_nativeCodeDataSym;
     SList<IR::RegOpnd *> constantAddressRegOpnd;
     IR::Instr * lastConstantAddressRegLoadInstr;
     bool canHoistConstantAddressLoad;

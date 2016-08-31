@@ -243,6 +243,14 @@ ServerCleanupScriptContext(
         return RPC_S_INVALID_ARG;
     }
 
+#ifdef PROFILE_EXEC
+    auto profiler = scriptContextInfo->GetCodeGenProfiler();
+    if (profiler && profiler->IsInitialized())
+    {
+        profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+    }
+#endif
+
     while (scriptContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(scriptContextInfo);
     return S_OK;
@@ -322,12 +330,7 @@ ServerRemoteCodeGen(
         return RPC_S_INVALID_ARG;
     }
 
-    PageAllocator backgroundPageAllocator(threadContextInfo->GetAllocationPolicyManager(), Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
-            PageAllocator::DefaultLowMaxFreePageCount :
-            PageAllocator::DefaultMaxFreePageCount));
-
-    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);    
+    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
 
     scriptContextInfo->BeginJIT(); // TODO: OOP JIT, improve how we do this
     threadContextInfo->BeginJIT();
@@ -342,19 +345,46 @@ ServerRemoteCodeGen(
         QueryPerformanceFrequency(&freq);
 
         Output::Print(
-            L"BackendMarshal - function: %s time:%8.6f mSec\r\n",
+            L"BackendMarshalIn - function: %s time:%8.6f mSec\r\n",
             jitWorkItem->GetJITFunctionBody()->GetDisplayName(),
             (((double)((end_time.QuadPart - workItemData->startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
     }
 
+    auto profiler = scriptContextInfo->GetCodeGenProfiler();
+#ifdef PROFILE_EXEC
+    if (profiler && !profiler->IsInitialized())
+    {
+        profiler->Initialize(threadContextInfo->GetPageAllocator(), nullptr);
+    }
+#endif
+
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
     memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
-    Func::Codegen(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), threadContextInfo->GetCodeGenAllocators(), nullptr, nullptr, true);
+    Func::Codegen(
+        &jitArena,
+        jitWorkItem,
+        threadContextInfo,
+        scriptContextInfo,
+        jitData,
+        nullptr,
+        nullptr,
+        jitWorkItem->GetPolymorphicInlineCacheInfo(),
+        threadContextInfo->GetCodeGenAllocators(),
+        nullptr,
+        profiler,
+        true);
 
     scriptContextInfo->EndJIT();
     threadContextInfo->EndJIT();
+
+#ifdef PROFILE_EXEC
+    if (profiler && profiler->IsInitialized())
+    {
+        profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+    }
+#endif
 
     if (PHASE_TRACE1(Js::BackEndPhase))
     {
@@ -369,6 +399,12 @@ ServerRemoteCodeGen(
             (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
 
+    }
+    LARGE_INTEGER out_time = { 0 };
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        QueryPerformanceCounter(&out_time);
+        jitData->startTime = out_time.QuadPart;
     }
     return S_OK;
 }

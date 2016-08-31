@@ -8,10 +8,7 @@
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_policyManager(true),
-    m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-        AutoSystemInfo::Data.IsLowMemoryProcess() ?
-        PageAllocator::DefaultLowMaxFreePageCount :
-        PageAllocator::DefaultMaxFreePageCount),
+    m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
@@ -34,6 +31,10 @@ ServerThreadContext::~ServerThreadContext()
         HeapDelete(m_propertyMap);
         this->m_propertyMap = nullptr;
     }
+    this->m_pageAllocs.Map([](DWORD thread, PageAllocator* alloc)
+    {
+        HeapDelete(alloc);
+    });
 }
 
 PreReservedVirtualAllocWrapper *
@@ -41,6 +42,26 @@ ServerThreadContext::GetPreReservedVirtualAllocator()
 {
     return &m_preReservedVirtualAllocator;
 }
+
+PageAllocator*
+ServerThreadContext::GetPageAllocator()
+{
+    PageAllocator * alloc;
+
+    if (!m_pageAllocs.TryGetValue(GetCurrentThreadId(), &alloc))
+    {
+        alloc = HeapNew(PageAllocator,
+            &m_policyManager,
+            Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+            AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount);
+
+        m_pageAllocs.Add(GetCurrentThreadId(), alloc);
+    }
+    return alloc;
+}
+
 
 intptr_t
 ServerThreadContext::GetBailOutRegisterSaveSpaceAddr() const
@@ -177,7 +198,6 @@ ServerThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
 void
 ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
 {
-
     size_t allocLength = origRecord->byteCount + sizeof(char16) + (origRecord->isNumeric ? sizeof(uint32) : 0);
     Js::PropertyRecord * record = HeapNewPlus(allocLength, Js::PropertyRecord, origRecord->byteCount, origRecord->isNumeric, origRecord->hash, origRecord->isSymbol);
     record->isBound = origRecord->isBound;
