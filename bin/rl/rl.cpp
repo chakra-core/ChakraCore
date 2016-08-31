@@ -273,6 +273,7 @@ const char * const TestInfoKindName[] =
    "env",
    "command",
    "timeout",
+   "sourcepath",
    NULL
 };
 
@@ -2369,6 +2370,7 @@ WriteEnvLst
              NULL,
              NULL,
              NULL,
+             NULL,
              NULL
          };
 
@@ -2443,6 +2445,28 @@ IsRelativePath(
    return FALSE;
 }
 
+char*
+MakeFullPath(const char* absFilePath, const char* relPath)
+{
+    char drive[MAX_PATH], dir[MAX_PATH];
+    _splitpath_s(absFilePath, drive, ARRAYLEN(drive), dir, ARRAYLEN(dir), NULL, 0, NULL, 0);
+
+    char makepath[MAX_PATH + 1];
+    makepath[MAX_PATH] = '\0';
+    _makepath_s(makepath, drive, dir, relPath, NULL);
+
+    char fullpath[MAX_PATH + 1];
+    fullpath[MAX_PATH] = '\0';
+    if (_fullpath(fullpath, makepath, MAX_PATH) == NULL)
+    {
+        return NULL;
+    }
+
+    char* fullPathBuf = (char*)malloc(sizeof(fullpath));
+    sprintf_s(fullPathBuf, sizeof(fullpath), "%s", fullpath);
+
+    return fullPathBuf;
+}
 
 BOOL
 VerifyOrCreateDir(
@@ -3427,7 +3451,14 @@ GetTestInfoFromNode
 
             if (childNode->Data != NULL && childNode->Data[0] != '\0')
             {
-               testInfo->data[i] = childNode->Data;
+                char * data = childNode->Data;
+                if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
+                {
+                    // Make sure sourcepath is not relative, if relative make it full path
+                    data = MakeFullPath(fileName, data);
+                    ASSERT(data != NULL);
+                }
+                testInfo->data[i] = data;
             }
             else
             {
@@ -3444,6 +3475,8 @@ GetTestInfoFromNode
                   return FALSE;
                }
             }
+
+            
          }
       }
    }

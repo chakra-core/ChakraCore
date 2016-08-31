@@ -1,0 +1,62 @@
+[
+  {
+    "evaluate": {
+      "c": {
+        "#__proto__": {
+          "#__proto__": {
+            "#__proto__": {
+              "#__proto__": {
+                "#__proto__": "Array []",
+                "length": "number 0"
+              },
+              "x": "number 2"
+            },
+            "y": "number 2"
+          }
+        },
+        "length": "number 0"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "d": {
+        "#__proto__": {
+          "#__proto__": {
+            "#__proto__": {
+              "#__proto__": "Array []",
+              "length": "number 0"
+            },
+            "x": "number 2"
+          },
+          "y": "number 2"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "b": {
+        "#__proto__": {
+          "#__proto__": {
+            "#__proto__": "Array []",
+            "length": "number 0"
+          },
+          "x": "number 2"
+        },
+        "y": "number 2"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "a": {
+        "#__proto__": {
+          "#__proto__": "Array []",
+          "length": "number 0"
+        },
+        "x": "number 2"
+      }
+    }
+  }
+]

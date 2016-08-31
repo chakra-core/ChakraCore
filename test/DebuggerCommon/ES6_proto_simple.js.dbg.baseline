@@ -1,0 +1,75 @@
+[
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "a": {
+        "#__proto__": "Object {...}",
+        "x": "number 2"
+      },
+      "b": {
+        "#__proto__": "Object {...}",
+        "y": "number 2"
+      }
+    },
+    "locals": {
+      "console": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "log": {
+          "#__proto__": "function <large string>",
+          "prototype": "Object {...}",
+          "name": "string log",
+          "caller": "object null",
+          "arguments": "object null"
+        }
+      },
+      "a": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2"
+      },
+      "b": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "x": "number 2"
+        },
+        "y": "number 2"
+      }
+    },
+    "globals": {}
+  }
+]

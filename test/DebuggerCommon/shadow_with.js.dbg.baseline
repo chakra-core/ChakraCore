@@ -1,0 +1,17 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "a": "number 1"
+    },
+    "locals": {
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "a": "number 1"
+    },
+    "globals": {}
+  }
+]
