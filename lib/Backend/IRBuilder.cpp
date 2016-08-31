@@ -6898,9 +6898,9 @@ IRBuilder::BuildBr(Js::OpCode newOpcode, uint32 offset)
         return;
     }
 #ifdef PERF_HINT
-    else if (PHASE_TRACE1(Js::PerfHintPhase) && (newOpcode == Js::OpCode::TryCatch || newOpcode == Js::OpCode::TryFinally) )
+    else if (PHASE_TRACE1(Js::PerfHintPhase) && !m_func->IsOOPJIT() && (newOpcode == Js::OpCode::TryCatch || newOpcode == Js::OpCode::TryFinally) )
     {
-        WritePerfHint(PerfHints::HasTryBlock, this->m_func->GetJnFunction(), offset);
+        WritePerfHint(PerfHints::HasTryBlock, (Js::FunctionBody*)this->m_func->GetJITFunctionBody()->GetAddr(), offset);
     }
 #endif
 

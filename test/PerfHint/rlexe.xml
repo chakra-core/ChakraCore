@@ -4,7 +4,7 @@
     <default>
       <files>try_with_eval_perfhint.js</files>
       <baseline>try_with_eval_perfhint.baseline</baseline>
-      <compile-flags>-trace:PerfHint -off:simplejit</compile-flags>
+      <compile-flags>-enableoutofprocjit- -trace:PerfHint -off:simplejit</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
     </default>
   </test>
@@ -12,7 +12,7 @@
     <default>
       <files>try_with_eval_perfhint.js</files>
       <baseline>try_with_eval_perfhint_l2.baseline</baseline>
-      <compile-flags>-trace:PerfHint -off:simplejit -perfhintlevel:2</compile-flags>
+      <compile-flags>-enableoutofprocjit- -trace:PerfHint -off:simplejit -perfhintlevel:2</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
     </default>
   </test>
@@ -20,7 +20,7 @@
     <default>
       <files>arguments1.js</files>
       <baseline>arguments1.baseline</baseline>
-      <compile-flags>-trace:PerfHint -off:simplejit</compile-flags>
+      <compile-flags>-enableoutofprocjit- -trace:PerfHint -off:simplejit</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
     </default>
   </test>
@@ -28,7 +28,7 @@
     <default>
       <files>polymorphictest.js</files>
       <baseline>polymorphictest.baseline</baseline>
-      <compile-flags>-trace:PerfHint -off:simplejit</compile-flags>
+      <compile-flags>-enableoutofprocjit- -trace:PerfHint -off:simplejit</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
     </default>
   </test>
