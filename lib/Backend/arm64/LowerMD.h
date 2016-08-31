@@ -98,6 +98,7 @@ public:
               void            GenerateClz(IR::Instr * instr) { __debugbreak(); }
               void            GenerateCtz(IR::Instr * instr) { __debugbreak(); }
               void            GeneratePopCnt32(IR::Instr * instr) { __debugbreak(); }
+              void            GenerateThrowUnreachable(IR::Instr * instr) { __debugbreak(); }
               void            GenerateFastDivByPow2(IR::Instr *instr) { __debugbreak(); }
               bool            GenerateFastAdd(IR::Instr * instrAdd) { __debugbreak(); return 0; }
               bool            GenerateFastSub(IR::Instr * instrSub) { __debugbreak(); return 0; }

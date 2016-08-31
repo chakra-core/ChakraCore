@@ -3063,6 +3063,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
+
+        case Js::OpCode::Unreachable_Void:
+            GenerateThrowUnreachable(instr);
+            break;
+
 #endif //ENABLE_WASM
 
         default:
@@ -17522,6 +17527,11 @@ Lowerer::GenerateCtz(IR::Instr* instr)
     Assert(instr->GetDst()->IsInt32());
     Assert(instr->GetSrc1()->IsInt32());
     m_lowererMD.GenerateCtz(instr);
+}
+
+void Lowerer::GenerateThrowUnreachable(IR::Instr* instr)
+{
+    m_lowererMD.GenerateThrowUnreachable(instr);
 }
 
 void
