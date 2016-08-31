@@ -212,72 +212,72 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
     //
     case HelperMemCmp:
-        return SHIFT_ADDR(context, (int(*)(void *, void *, size_t))memcmp);
+        return SHIFT_CRT_ADDR(context, (int(*)(void *, void *, size_t))memcmp);
 
     case HelperMemCpy:
-        return SHIFT_ADDR(context, (int(*)(void *, void *, size_t))memcpy);
+        return SHIFT_CRT_ADDR(context, (int(*)(void *, void *, size_t))memcpy);
 
     case HelperDirectMath_FloorFlt:
-        return SHIFT_ADDR(context, (float(*)(float))floor);
+        return SHIFT_CRT_ADDR(context, (float(*)(float))floor);
 
     case HelperDirectMath_CeilFlt:
-        return SHIFT_ADDR(context, (float(*)(float))ceil);
+        return SHIFT_CRT_ADDR(context, (float(*)(float))ceil);
 
 #if defined(_M_X64)
     case HelperDirectMath_Acos:
-        return SHIFT_ADDR(context, (double(*)(double))acos);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))acos);
 
     case HelperDirectMath_Asin:
-        return SHIFT_ADDR(context, (double(*)(double))asin);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))asin);
 
     case HelperDirectMath_Atan:
-        return SHIFT_ADDR(context, (double(*)(double))atan);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))atan);
 
     case HelperDirectMath_Atan2:
-        return SHIFT_ADDR(context, (double(*)(double, double))atan2);
+        return SHIFT_CRT_ADDR(context, (double(*)(double, double))atan2);
 
     case HelperDirectMath_Cos:
-        return SHIFT_ADDR(context, (double(*)(double))cos);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))cos);
 
     case HelperDirectMath_Exp:
-        return SHIFT_ADDR(context, (double(*)(double))exp);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))exp);
 
     case HelperDirectMath_Log:
-        return SHIFT_ADDR(context, (double(*)(double))log);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))log);
 
     case HelperDirectMath_Sin:
-        return SHIFT_ADDR(context, (double(*)(double))sin);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))sin);
 
     case HelperDirectMath_Tan:
-        return SHIFT_ADDR(context, (double(*)(double))tan);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))tan);
 
 #elif defined(_M_ARM32_OR_ARM64)
     case HelperDirectMath_Acos:
-        return SHIFT_ADDR(context, (double(*)(double))acos);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))acos);
 
     case HelperDirectMath_Asin:
-        return SHIFT_ADDR(context, (double(*)(double))asin);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))asin);
 
     case HelperDirectMath_Atan:
-        return SHIFT_ADDR(context, (double(*)(double))atan);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))atan);
 
     case HelperDirectMath_Atan2:
-        return SHIFT_ADDR(context, (double(*)(double, double))atan2);
+        return SHIFT_CRT_ADDR(context, (double(*)(double, double))atan2);
 
     case HelperDirectMath_Cos:
-        return SHIFT_ADDR(context, (double(*)(double))cos);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))cos);
 
     case HelperDirectMath_Exp:
-        return SHIFT_ADDR(context, (double(*)(double))exp);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))exp);
 
     case HelperDirectMath_Log:
-        return SHIFT_ADDR(context, (double(*)(double))log);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))log);
 
     case HelperDirectMath_Sin:
-        return SHIFT_ADDR(context, (double(*)(double))sin);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))sin);
 
     case HelperDirectMath_Tan:
-        return SHIFT_ADDR(context, (double(*)(double))tan);
+        return SHIFT_CRT_ADDR(context, (double(*)(double))tan);
 #endif
 
     //

@@ -112,8 +112,23 @@ private:
 };
 
 // TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
-#define SHIFT_ADDR(context, address) \
-    (intptr_t)address + context->GetChakraBaseAddressDifference()
+template<typename T>
+intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
+{
+    Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
+    return (intptr_t)address + context->GetChakraBaseAddressDifference();
+}
 
-#define SHIFT_CRT_ADDR(context, address) \
-    (intptr_t)address + context->GetCRTBaseAddressDifference()
+template<typename T>
+intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
+{
+    if (AutoSystemInfo::Data.IsJscriptModulePointer((void*)address))
+    {
+        // the function is compiled to chakra.dll, or statically linked to crt 
+        return SHIFT_ADDR(context, address);
+    }
+    return (intptr_t)address + context->GetCRTBaseAddressDifference();
+}
+
+intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
+intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);

@@ -345,3 +345,19 @@ ThreadContextInfo::IsJITActive()
 {
     return m_activeJITCount != 0;
 }
+
+intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
+{
+    Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
+    return (intptr_t)address + context->GetChakraBaseAddressDifference();
+}
+
+intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address)
+{
+    if (AutoSystemInfo::Data.IsJscriptModulePointer((void*)address))
+    {
+        // the function is compiled to chakra.dll, or statically linked to crt 
+        return SHIFT_ADDR(context, address);
+    }
+    return (intptr_t)address + context->GetCRTBaseAddressDifference();
+}
