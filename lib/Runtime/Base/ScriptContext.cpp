@@ -1700,7 +1700,7 @@ if (!sourceList)
 
         if((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
         {
-            grfscr |= (fscrNoAsmJs | fscrNoPreJit);
+            grfscr |= fscrNoPreJit;
         }
 
         if(((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
