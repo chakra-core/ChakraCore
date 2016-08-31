@@ -43,6 +43,7 @@ public:
     static void SaveAllRegistersNoSse2AndBailOut(BailOutRecord *const bailOutRecord);
     static void SaveAllRegistersAndBranchBailOut(BranchBailOutRecord *const bailOutRecord, const BOOL condition);
     static void SaveAllRegistersNoSse2AndBranchBailOut(BranchBailOutRecord *const bailOutRecord, const BOOL condition);
+	static RegNum GetParamReg(IR::SymOpnd *symOpnd, Func *func);
 
 public:
     static uint GetRegisterSaveSlotCount() {

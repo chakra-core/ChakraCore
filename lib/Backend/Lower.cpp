@@ -2937,7 +2937,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             // This is the value the bytecode expects to be in the dst register of the Yield opcode after resumption.
             // Load it here after the bail-in.
 
-            StackSym *resumeYieldDataSym = StackSym::NewParamSlotSym(2, m_func);
+            StackSym *resumeYieldDataSym = StackSym::NewImplicitParamSym(4, m_func);
             m_func->SetArgOffset(resumeYieldDataSym, (LowererMD::GetFormalParamOffset() + 1) * MachPtr);
             IR::SymOpnd * resumeYieldDataOpnd = IR::SymOpnd::New(resumeYieldDataSym, TyMachPtr, m_func);
 
@@ -10007,7 +10007,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     LowererMD::CreateAssign(opndUndef, opndUndefAddress, labelNormal);
 
 
-    BVSparse<JitArenaAllocator> *formalsBv = JitAnew(this->m_func->m_alloc, BVSparse<JitArenaAllocator>, this->m_func->m_alloc);
+    BVSparse<JitArenaAllocator> *formalsBv = JitAnew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
     
     while (currArgInCount > 0)
     {
@@ -10128,6 +10128,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         this->m_lowererMD.ChangeToAssign(instrArgIn);
     }
 
+	JitAdelete(this->m_alloc, formalsBv);
+
     return instrResume;
 }
 
@@ -10164,11 +10166,12 @@ Lowerer::LoadGeneratorArgsPtr(IR::Instr *instrInsert)
 IR::Instr *
 Lowerer::LoadGeneratorObject(IR::Instr * instrInsert)
 {
-    StackSym * generatorSym = StackSym::NewParamSlotSym(1, instrInsert->m_func);
+    StackSym * generatorSym = StackSym::NewImplicitParamSym(3, instrInsert->m_func);
     instrInsert->m_func->SetArgOffset(generatorSym, LowererMD::GetFormalParamOffset() * MachPtr);
     IR::SymOpnd * generatorSymOpnd = IR::SymOpnd::New(generatorSym, TyMachPtr, instrInsert->m_func);
     IR::RegOpnd * generatorRegOpnd = IR::RegOpnd::New(TyMachPtr, instrInsert->m_func);
-    return LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
+	instrInsert->m_func->SetHasImplicitParamLoad();
+	return LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
 }
 
 IR::Instr *
@@ -10844,12 +10847,8 @@ Lowerer::LoadCallInfo(IR::Instr * instrInsert)
     {
         // Generator function arguments and ArgumentsInfo are not on the stack.  Instead they
         // are accessed off the generator object (which is prm1).
-        StackSym * generatorSym = StackSym::NewParamSlotSym(1, func);
-        func->SetArgOffset(generatorSym, LowererMD::GetFormalParamOffset() * MachPtr);
-        IR::SymOpnd * generatorSymOpnd = IR::SymOpnd::New(generatorSym, TyMachPtr, func);
-        IR::RegOpnd * generatorRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
-        func->SetHasImplicitParamLoad();
+		IR::Instr *genLoadInstr = LoadGeneratorObject(instrInsert);
+        IR::RegOpnd * generatorRegOpnd = genLoadInstr->GetDst()->AsRegOpnd();
 
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(generatorRegOpnd, Js::JavascriptGenerator::GetCallInfoOffset(), TyMachPtr, func);
         IR::Instr * instr = LowererMD::CreateAssign(IR::RegOpnd::New(TyMachPtr, func), indirOpnd, instrInsert);
@@ -21438,7 +21437,7 @@ void Lowerer::GenerateNullOutGeneratorFrame(IR::Instr* insertInstr)
     // null out frame pointer on generator object to signal completion to JavascriptGenerator::CallGenerator
     // s = MOV prm1
     // s[offset of JavascriptGenerator::frame] = MOV nullptr
-    StackSym *symSrc = StackSym::NewParamSlotSym(1, m_func);
+    StackSym *symSrc = StackSym::NewImplicitParamSym(3, m_func);
     m_func->SetArgOffset(symSrc, LowererMD::GetFormalParamOffset() * MachPtr);
     IR::SymOpnd *srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, m_func);
     IR::RegOpnd *dstOpnd = IR::RegOpnd::New(TyMachReg, m_func);
