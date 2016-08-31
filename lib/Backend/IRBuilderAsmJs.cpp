@@ -1020,6 +1020,10 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     Js::RegSlot retSlot;
     switch (newOpcode)
     {
+    case Js::OpCodeAsmJs::Unreachable_Void:
+        instr = IR::Instr::New(Js::OpCode::Unreachable_Void, m_func);
+        AddInstr(instr, offset);
+        break;
     case Js::OpCodeAsmJs::Ret:
         instr = IR::Instr::New(Js::OpCode::Ret, m_func);
 
