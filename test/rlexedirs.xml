@@ -17,6 +17,11 @@
 </dir>
 <dir>
   <default>
+    <files>ByteCode</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>es5</files>
   </default>
 </dir>

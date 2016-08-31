@@ -534,9 +534,11 @@ int
     // If we have a baseline test, we need to check the baseline file.
     if (pTestVariant->testInfo.data[TIK_BASELINE]) {
         char baseline_file[_MAX_PATH];
+        char *baselinePtr = pTestVariant->testInfo.data[TIK_BASELINE];
 
-        sprintf_s(baseline_file, "%s\\%s", pDir->GetDirectoryPath(),
-            pTestVariant->testInfo.data[TIK_BASELINE]);
+        sprintf_s(baseline_file, "%s\\%s", pDir->GetDirectoryPath(), baselinePtr);
+
+        printf("%s\n", baseline_file);
         if (DoCompare(baseline_file, full)) {
             reason = "diffs from baseline";
             sprintf_s(optReportBuf, "%s", baseline_file);
@@ -1294,41 +1296,15 @@ int
 
     for (StringList * pFile = pTest->files; pFile != NULL; pFile = pFile->next)
     {
-        // Get a pointer to the filename sans path, if present.
-
-        p = GetFilenamePtr(pFile->string);
-
-        // If we have no pathname, use the current directory.
-
-        if (p == pFile->string) {
-            sprintf_s(full, "%s\\", pDir->GetDirectoryPath());
-        }
-        else {
-
-            // Look for %REGRESS% specifier.
-
-            if (!_strnicmp(pFile->string, "%REGRESS%",
-                strlen("%REGRESS%"))) {
-
-                    // Temporarily truncate the filename.
-
-                    ASSERT(p[-1] == '\\');
-                    p[-1] = '\0';
-                    sprintf_s(full, "%s%s\\",
-                        REGRESS, pFile->string + strlen("%REGRESS%"));
-                    p[-1] = '\\';
-            }
-            else {
-                *p = '\0';
-            }
-        }
-
-        strcat_s(full, p);
+        // Concat the directory to the path. This should handle relative paths.
+        sprintf_s(full, "%s\\%s", pDir->GetDirectoryPath(), pFile->string);
 
         if (GetFileAttributes(full) == INVALID_FILE_ATTRIBUTES) {
             LogError("ERROR: '%s' does not exist", pFile->string);
             return -1;
         }
+
+        p = GetFilenamePtr(full);
     }
 
     const char* ext = GetFilenameExt(p);

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <tags>exclude_dynapogo,exclude_amd64,exclude_arm,require_backend</tags>
+      <compile-flags>-GenerateLibraryByteCodeHeader</compile-flags>
+      <files>..\..\lib\Runtime\Library\InJavascript\Intl.js</files>
+      <baseline>..\..\lib\Runtime\Library\InJavascript\Intl.js.bc.32b.h</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <tags>exclude_dynapogo,exclude_x86,exclude_arm,require_backend</tags>
+      <compile-flags>-GenerateLibraryByteCodeHeader</compile-flags>
+      <files>..\..\lib\Runtime\Library\InJavascript\Intl.js</files>
+      <baseline>..\..\lib\Runtime\Library\InJavascript\Intl.js.bc.64b.h</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <tags>exclude_dynapogo,exclude_amd64,exclude_arm,disable_jit</tags>
+      <compile-flags>-GenerateLibraryByteCodeHeader</compile-flags>
+      <files>..\..\lib\Runtime\Library\InJavascript\Intl.js</files>
+      <baseline>..\..\lib\Runtime\Library\InJavascript\Intl.nojit.js.bc.32b.h</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <tags>exclude_dynapogo,exclude_x86,exclude_arm,disable_jit</tags>
+      <compile-flags>-GenerateLibraryByteCodeHeader</compile-flags>
+      <files>..\..\lib\Runtime\Library\InJavascript\Intl.js</files>
+      <baseline>..\..\lib\Runtime\Library\InJavascript\Intl.js.nojit.bc.64b.h</baseline>
+    </default>
+  </test>
+</regress-exe>
