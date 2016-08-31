@@ -84,6 +84,9 @@ namespace Js
         static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
         static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
 
+        //HELPERCALL needs a non-overloaded function pointer
+        static void __declspec(noreturn) ThrowUnreachable(ScriptContext* scriptContext, int32 hCode) { ThrowError(scriptContext, hCode); }
+
 #define THROW_ERROR_DECL(err_method) \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \

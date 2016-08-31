@@ -543,6 +543,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitInfo(tempReg, WasmTypes::I32);
         }
         break;
+    case wbUnreachable:
+        m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
+        break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
