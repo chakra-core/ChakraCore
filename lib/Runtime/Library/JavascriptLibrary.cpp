@@ -4834,6 +4834,15 @@ namespace Js
         return arrayObj;
     }
 
+    void JavascriptLibrary::SetLengthWritableES5Array_TTD(Js::RecyclableObject* es5Array, bool isLengthWritable)
+    {
+        Js::ES5Array* es5a = Js::ES5Array::FromVar(es5Array);
+        if(es5a->IsLengthWritable() != isLengthWritable)
+        {
+            es5a->SetWritable(Js::PropertyIds::length, isLengthWritable ? TRUE : FALSE);
+        }
+    }
+
     Js::RecyclableObject* JavascriptLibrary::CreateSet_TTD()
     {
         return JavascriptSet::CreateForSnapshotRestore(this->scriptContext);
@@ -4903,7 +4912,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateRevokeFunction_TTD(RecyclableObject* proxy)
     {
-        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthAndPrototypeType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
+        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);

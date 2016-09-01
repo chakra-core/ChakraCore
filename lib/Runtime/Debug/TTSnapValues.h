@@ -77,6 +77,7 @@ namespace TTD
         TTDVar ParseTTDVar(bool readSeperator, FileReader* reader);
 
 #if ENABLE_SNAPSHOT_COMPARE 
+        bool CheckSnapEquivTTDDouble(double d1, double d2);
         void AssertSnapEquivTTDVar_Helper(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next);
 
         void AssertSnapEquivTTDVar_Property(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, Js::PropertyId pid);

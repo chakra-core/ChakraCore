@@ -2667,7 +2667,7 @@ namespace Js
                 continue;
             }
 
-            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            T dIndex = descriptor.template GetDataPropertyIndex<false>();
             if(dIndex != NoSlots)
             {
                 Js::Var dValue = obj->GetSlot(dIndex);
@@ -2675,14 +2675,14 @@ namespace Js
             }
             else
             {
-                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                T gIndex = descriptor.GetGetterPropertyIndex();
                 if(gIndex != NoSlots)
                 {
                     Js::Var gValue = obj->GetSlot(gIndex);
                     extractor->MarkVisitVar(gValue);
                 }
 
-                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                T sIndex = descriptor.GetSetterPropertyIndex();
                 if(sIndex != NoSlots)
                 {
                     Js::Var sValue = obj->GetSlot(sIndex);
@@ -2695,38 +2695,40 @@ namespace Js
     template <typename T>
     uint32 DictionaryTypeHandlerBase<T>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
     {
-        uint32 maxSlot = 0;
+        T maxSlot = 0;
 
         for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
 
-            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            T dIndex = descriptor.template GetDataPropertyIndex<false>();
             if(dIndex != NoSlots)
             {
                 maxSlot = max(maxSlot, dIndex);
 
-                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Uninitialized;
                 TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, tag);
             }
             else
             {
-                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                AssertMsg(descriptor.IsInitialized, "How can this not be initialized?");
+
+                T gIndex = descriptor.GetGetterPropertyIndex();
                 if(gIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, gIndex);
 
-                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Getter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = TTD::NSSnapType::SnapEntryDataKindTag::Getter;
                     TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, tag);
                 }
 
-                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                T sIndex = descriptor.GetSetterPropertyIndex();
                 if(sIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, sIndex);
 
-                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Setter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = TTD::NSSnapType::SnapEntryDataKindTag::Setter;
                     TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, tag);
                 }
             }
@@ -2738,31 +2740,26 @@ namespace Js
         }
         else
         {
-            return maxSlot + 1;
+            return (uint32)(maxSlot + 1);
         }
     }
 
     template <typename T>
-    Js::PropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
-        T index = NoSlots;
-        for(index = 0; index < this->propertyMap->Count(); index++)
+        for(Js::BigPropertyIndex index = 0; index < this->propertyMap->Count(); index++)
         {
             Js::PropertyId pid = this->propertyMap->GetKeyAt(index)->GetPropertyId();
             const DictionaryPropertyDescriptor<T>& idescriptor = propertyMap->GetValueAt(index);
 
             if(pid == pRecord->GetPropertyId() && !(idescriptor.Attributes & PropertyDeleted))
             {
-                break;
+                return index;
             }
         }
-        AssertMsg(index != NoSlots, "We found this and not accessor but noslots for index?");
 
-        if(index <= Constants::PropertyIndexMax)
-        {
-            return (PropertyIndex)index;
-        }
-        return Constants::NoSlot;
+        AssertMsg(false, "We found this and not accessor but noslots for index?");
+        return Js::Constants::NoBigSlot;
     }
 #endif
 

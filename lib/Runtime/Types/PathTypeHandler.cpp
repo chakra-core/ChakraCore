@@ -1933,10 +1933,10 @@ namespace Js
         return plength;
     }
 
-    Js::PropertyIndex PathTypeHandlerBase::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex PathTypeHandlerBase::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
         //The regular LookupInline is fine for path types
-        return this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
+        return (Js::BigPropertyIndex)this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
     }
 #endif
 

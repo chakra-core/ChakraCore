@@ -700,9 +700,11 @@ namespace Js
     }
 
 #if ENABLE_TTD
-    Js::PropertyIndex DynamicTypeHandler::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex DynamicTypeHandler::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
-        return Constants::NoSlot;
+        AssertMsg(false, "Should never be called.");
+
+        return Js::Constants::NoBigSlot;
     }
 
     void DynamicTypeHandler::ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const

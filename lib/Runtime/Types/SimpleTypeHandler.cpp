@@ -1114,17 +1114,18 @@ namespace Js
     }
 
     template<size_t size>
-    Js::PropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
         int index;
         if(this->GetDescriptor(pRecord->GetPropertyId(), &index))
         {
             AssertMsg(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
 
-            return (PropertyIndex)index;
+            return (Js::BigPropertyIndex)index;
         }
 
-        return Constants::NoSlot;
+        AssertMsg(false, "We found this during enum so what is going on here?");
+        return Js::Constants::NoBigSlot;
     }
 
 #endif

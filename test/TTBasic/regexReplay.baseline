@@ -1,3 +1,9 @@
+re.global == false
+re.multiline == false
+re.ignoreCase == true
+re1.global == true
+re1.multiline == true
+re1.ignoreCase == false
 y.lastIndex: 3
 z.lastIndex: -1
 m.index: 6
