@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "ChakraJIT.h"
+#include "JITTypes.h"
 
 [
     uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),

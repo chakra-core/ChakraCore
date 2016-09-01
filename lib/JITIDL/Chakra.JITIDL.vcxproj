@@ -55,7 +55,7 @@
     </Midl>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ChakraJIT.h" />
+    <ClInclude Include="JITTypes.h" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
