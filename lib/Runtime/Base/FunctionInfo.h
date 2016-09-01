@@ -58,6 +58,7 @@ namespace Js
         bool IsClassMethod() const { return ((this->attributes & ClassMethod) != 0); }
         bool IsModule() const { return ((this->attributes & Module) != 0); }
         bool HasSuperReference() const { return ((this->attributes & SuperReference) != 0); }
+        bool IsCoroutine() const { return ((this->attributes & (Async | Generator)) != 0); }
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }
         BOOL HasParseableInfo() const { return this->HasBody() && !this->IsDeferredDeserializeFunction(); }

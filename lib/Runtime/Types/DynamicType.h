@@ -80,7 +80,7 @@ namespace Js
 
         bool GetHasNoEnumerableProperties() const { return hasNoEnumerableProperties; }
         bool SetHasNoEnumerableProperties(bool value);
-        void PrepareForTypeSnapshotEnumeration();
+        bool PrepareForTypeSnapshotEnumeration();
 
         static bool Is(TypeId typeId);
         static DynamicType * New(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked = false, bool isShared = false);

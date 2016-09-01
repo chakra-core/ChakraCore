@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>arguments_mapES6_attach.js</files>
+      <compile-flags>-dbgbaseline:arguments_mapES6_attach.js.dbg.baseline</compile-flags>
+      <baseline>arguments_mapES6_attach.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>blockscope_fastdebug_ES5.js</files>
+      <compile-flags>-dbgbaseline:blockscope_fastdebug_ES5.js.dbg.baseline</compile-flags>
+      <baseline>blockscope_fastdebug_ES5.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>blockscope_fastdebug_ES6.js</files>
+      <compile-flags>-dbgbaseline:blockscope_fastdebug_ES6.js.dbg.baseline</compile-flags>
+      <baseline>blockscope_fastdebug_ES6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>blockscope_func_insidescopes.js</files>
+      <compile-flags>-dbgbaseline:blockscope_func_insidescopes.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>blockscope_func_insidescopes.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_intl_stepinto.js</files>
+      <compile-flags>-dbgbaseline:ES6_intl_stepinto.js.dbg.baseline -Intl</compile-flags>
+      <baseline>ES6_intl_stepinto.js.baseline</baseline>
+      <tags>fail_mutators,exclude_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_const_reassignment_fnscope.js</files>
+      <compile-flags>-dbgbaseline:ES6_letconst_const_reassignment_fnscope.js.dbg.baseline</compile-flags>
+      <baseline>ES6_letconst_const_reassignment_fnscope.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_eval_strict_fn.js</files>
+      <compile-flags>-dbgbaseline:ES6_letconst_eval_strict_fn.js.dbg.baseline</compile-flags>
+      <baseline>ES6_letconst_eval_strict_fn.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_redeclaration_indebugger.js</files>
+      <compile-flags>-dbgbaseline:ES6_letconst_redeclaration_indebugger.js.dbg.baseline</compile-flags>
+      <baseline>ES6_letconst_redeclaration_indebugger.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_shadow_evaluation.js</files>
+      <compile-flags>-dbgbaseline:ES6_letconst_shadow_evaluation.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_shadow_eval_with.js</files>
+      <compile-flags>-dbgbaseline:ES6_letconst_shadow_eval_with.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>ES6_letconst_shadow_eval_with.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl-2.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl-2.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl-2.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl-3.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl-3.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl-3.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl-4.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl-4.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl-4.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl-5.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl-5.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl-5.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es6_forof_decl-6.js</files>
+      <compile-flags>-debuglaunch -ES6 -dbgbaseline:es6_forof_decl-6.js.dbg.baseline</compile-flags>
+      <baseline>es6_forof_decl-6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>frames_values_mapES6.js</files>
+      <compile-flags>-dbgbaseline:frames_values_mapES6.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>frames_values_mapES6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_in_ES6_attach.js</files>
+      <compile-flags>-dbgbaseline:step_in_ES6_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_in_from_interpreted_function_attach.js</files>
+      <compile-flags>-dbgbaseline:step_in_from_interpreted_function_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_in_from_JITted_function_attach.js</files>
+      <compile-flags>-dbgbaseline:step_in_from_JITted_function_attach.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_in_only_debugJIT_attach.js</files>
+      <compile-flags>-dbgbaseline:step_in_only_debugJIT_attach.js.dbg.baseline -maxinterpretcount:1 -off:simpleJit</compile-flags>
+      <baseline>step_in_only_debugJIT_attach.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_direct_attach.js</files>
+      <compile-flags>-dbgbaseline:step_out_direct_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_ES5.js</files>
+      <compile-flags>-dbgbaseline:step_out_ES5.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_ES6.js</files>
+      <compile-flags>-InspectMaxStringLength:33 -dbgbaseline:step_out_ES6.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>step_out_ES6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_from_catch_attach.js</files>
+      <compile-flags>-dbgbaseline:step_out_from_catch_attach.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>step_out_from_catch_attach.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_from_interpreted_function_attach.js</files>
+      <compile-flags>-dbgbaseline:step_out_from_interpreted_function_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_from_JITted_function_attach.js</files>
+      <compile-flags>-dbgbaseline:step_out_from_JITted_function_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_out_only_debugJIT_attach.js</files>
+      <compile-flags>-dbgbaseline:step_out_only_debugJIT_attach.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_over_ES6_attach.js</files>
+      <compile-flags>-dbgbaseline:step_over_ES6_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>step_over_JITd_fn_from_Intrprt_fn_attach.js</files>
+      <compile-flags>-dbgbaseline:step_over_JITd_fn_from_Intrprt_fn_attach.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>TempStrExpr.js</files>
+      <compile-flags>-debuglaunch -ES6 -ES6ObjectLiterals -dbgbaseline:TempStrExpr.js.dbg.baseline</compile-flags>
+      <baseline>TempStrExpr.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_intl_simple_attach.js</files>
+      <compile-flags>-dbgbaseline:ES6_intl_simple_attach.js.dbg.baseline -Intl</compile-flags>
+      <baseline>ES6_intl_simple_attach.js.baseline</baseline>
+      <tags>fail_mutators,exclude_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>frames_inspection_arrayES5.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:frames_inspection_arrayES5.js.dbg.baseline</compile-flags>
+      <baseline>frames_inspection_arrayES5.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>shadow_with.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:shadow_with.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>shadow_with.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>blockscope_func_declaration_ES6.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:blockscope_func_declaration_ES6.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>blockscope_func_declaration_ES6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>blockscope_func_expression_ES6.js</files>
+      <compile-flags>-debuglaunch -es6functionnamefull -dbgbaseline:blockscope_func_expression_ES6.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>blockscope_func_expression_ES6.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_eval_nonstrict.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_eval_nonstrict.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>ES6_letconst_eval_nonstrict.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_for.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_for.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_trycatch_simple_fast.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_trycatch_simple_fast.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_proto_chained.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_proto_chained.js.dbg.baseline -Intl- -disableDebugObject</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_proto_simple.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_proto_simple.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_proto_userDefinedObject.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_proto_userDefinedObject.js.dbg.baseline -Intl-</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_intl_stepinto_libexpandos.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_intl_stepinto_libexpandos.js.dbg.baseline -Intl</compile-flags>
+      <tags>fail_mutators,exclude_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_forin.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_forin.js.dbg.baseline -Intl</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_const_usebeforedeclaration.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_const_usebeforedeclaration.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_proto_invalidation.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_proto_invalidation.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>frames_letconst_reassignobjects_ES6.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:frames_letconst_reassignobjects_ES6.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_const_reassignment_globalscope.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_const_reassignment_globalscope.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>ES6_letconst_const_reassignment_globalscope.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_letconst_redcl.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_letconst_redcl.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>ES6_letconst_redcl.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>native_array.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:native_array.js.dbg.baseline</compile-flags>
+      <baseline>native_array.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>argument_disp.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:argument_disp.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>argument_disp.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>multiple_argumentsdisp_safeguard.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:multiple_argumentsdisp_safeguard.js.dbg.baseline -Intl-</compile-flags>
+      <baseline>multiple_argumentsdisp_safeguard.js.baseline</baseline>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>level_1.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:level_1.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_spread.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:ES6_spread.js.dbg.baseline -es6spread -nonative</compile-flags>
+      <tags>fail_mutators,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>specialproperties_fn.js</files>
+      <compile-flags>-debuglaunch -inspectmaxstringlength:100 -dbgbaseline:specialproperties_fn.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_RegExp_specialproperties.js</files>
+      <compile-flags>-ES6Unicode- -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_default.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_RegExp_specialproperties.js</files>
+      <compile-flags>-ES6Unicode -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_unicode.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_RegExp_specialproperties.js</files>
+      <compile-flags>-ES6Unicode- -ES6RegExSticky -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_sticky.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6_RegExp_specialproperties.js</files>
+      <compile-flags>-ES6Unicode -ES6RegExSticky -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_all.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>specialproperties_level2.js</files>
+      <compile-flags>-debuglaunch -es6functionnamefull -inspectmaxstringlength:256 -dbgbaseline:specialproperties_level2.js.dbg.baseline</compile-flags>
+      <tags>fail_mutators,exclude_dynapogo</tags>
+    </default>
+  </test>
+</regress-exe>

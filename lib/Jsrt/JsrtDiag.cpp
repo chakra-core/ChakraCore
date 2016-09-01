@@ -87,9 +87,10 @@ CHAKRA_API JsDiagStartDebugging(
                 debugContext->SetHostDebugContext(jsrtDebugManager);
             }
 
-            if (FAILED(scriptContext->OnDebuggerAttached()))
+            HRESULT hr;
+            if (FAILED(hr = scriptContext->OnDebuggerAttached()))
             {
-                Debugger_AttachDetach_fatal_error(); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 
@@ -129,9 +130,10 @@ CHAKRA_API JsDiagStopDebugging(
         {
             Assert(scriptContext->IsScriptContextInDebugMode());
 
-            if (FAILED(scriptContext->OnDebuggerDetached()))
+            HRESULT hr;
+            if (FAILED(hr = scriptContext->OnDebuggerDetached()))
             {
-                Debugger_AttachDetach_fatal_error(); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 

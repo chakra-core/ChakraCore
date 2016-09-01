@@ -2,7 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
     <metadata>
         <id>Microsoft.ChakraCore</id>
-        <version>1.2</version>
+        <!-- Note: actual version number is overridden by the NuGet package creation command. -->
+        <version>1.2.1</version>
         <authors>Chakra Team</authors>
         <owners>Chakra Team</owners>
         <licenseUrl>https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt</licenseUrl>
@@ -10,12 +11,10 @@
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <developmentDependency>true</developmentDependency>
         <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
-        <!--
-        <releaseNotes>**** TODO: need link</releaseNotes>
-        -->
+        <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Release-Notes</releaseNotes>
         <copyright>Copyright (C) 2016 Microsoft</copyright>
         <language>en-US</language>
-        <tags>Chakra,ChakraCore</tags>
+        <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
     </metadata>
     <files>
         <file src="..\x86_release\ChakraCore.dll" target="x86\ChakraCore.dll" />
@@ -26,5 +25,9 @@
         <file src="..\x64_release\ChakraCore.pdb" target="x64\ChakraCore.pdb" />
         <file src="..\x64_release\ch.exe" target="x64\ch.exe" />
         <file src="..\x64_release\ch.pdb" target="x64\ch.pdb" />
+        <file src="..\arm_release\ChakraCore.dll" target="arm\ChakraCore.dll" />
+        <file src="..\arm_release\ChakraCore.pdb" target="arm\ChakraCore.pdb" />
+        <file src="..\arm_release\ch.exe" target="arm\ch.exe" />
+        <file src="..\arm_release\ch.pdb" target="arm\ch.pdb" />
     </files>
 </package>

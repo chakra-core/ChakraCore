@@ -728,6 +728,8 @@ private:
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);
     void BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
+    void MarkEscapingRef(ParseNodePtr pnode, IdentToken *pToken);
+    void SetNestedFuncEscapes() const;
     void SetSymHasNonLocalReference(Symbol *sym);
     void PushScope(Scope *scope);
     void PopScope(Scope *scope);
@@ -769,7 +771,6 @@ private:
     void CheckStrictFormalParameters();
     void AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
     void UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *formals);
-    void TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda);
     ParseNodePtr CreateAsyncSpawnGenerator();
 
     LPCOLESTR GetFunctionName(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint);

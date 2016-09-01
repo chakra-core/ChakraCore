@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    Var IteratorObjectEnumerator::Create(ScriptContext* scriptContext, Var iterator)
+    IteratorObjectEnumerator * IteratorObjectEnumerator::Create(ScriptContext* scriptContext, Var iterator)
     {
         return RecyclerNew(scriptContext->GetRecycler(), IteratorObjectEnumerator, scriptContext, iterator);
     }

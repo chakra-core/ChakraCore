@@ -1,0 +1,61 @@
+[
+  {
+    "this": "Object {...}",
+    "locals": {
+      "y": "string <large string>",
+      "console": "Object {...}",
+      "x": "number 1"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "x": "number 1"
+    },
+    "locals": {
+      "z": "number 1",
+      "y": "number 0",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "x": "number 1"
+    },
+    "globals": {}
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "x": "number 1"
+    },
+    "locals": {
+      "z": "number 1",
+      "y": "number 1",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "x": "number 1"
+    },
+    "globals": {}
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "x": "number 1"
+    },
+    "locals": {
+      "z": "number 1",
+      "y": "number 2",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "x": "number 1"
+    },
+    "globals": {}
+  }
+]

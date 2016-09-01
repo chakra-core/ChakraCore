@@ -1,0 +1,40 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "x": "number 2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "x": "number 2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 1"
+    }
+  }
+]

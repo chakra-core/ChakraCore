@@ -5,8 +5,10 @@
 
 var x = /World/;
 var y = new RegExp("l", "g");
+var z = new RegExp("l", "g");
 
 y.exec("Hello World");
+z.lastIndex = -1;
 
 WScript.SetTimeout(testFunction, 50);
 
@@ -15,6 +17,7 @@ WScript.SetTimeout(testFunction, 50);
 function testFunction()
 {
     telemetryLog(`y.lastIndex: ${y.lastIndex}`, true); //3
+    telemetryLog(`z.lastIndex: ${z.lastIndex}`, true); //3
 
     ////
     var m = "Hello World".match(x);

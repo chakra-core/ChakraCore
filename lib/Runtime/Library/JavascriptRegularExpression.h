@@ -206,6 +206,8 @@ namespace Js
     public:
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        void SetLastIndexInfo_TTD(CharCount lastIndex, Js::Var lastVar);
 #endif
     };
 

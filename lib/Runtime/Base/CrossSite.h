@@ -17,7 +17,6 @@ namespace Js
         static Var DefaultThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var ProfileThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper = false);
-        static Var MarshalEnumerator(ScriptContext* scriptContext, Var value);
         static void MarshalDynamicObjectAndPrototype(ScriptContext * scriptContext, DynamicObject * object);
         static void ForceCrossSiteThunkOnPrototypeChain(RecyclableObject* object);
 

@@ -84,7 +84,7 @@
     <default>
       <files>argout_escape.js</files>
       <baseline>argout_escape.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -Off:Deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -Off:Deferparse -on:stackfunc -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre</tags>
     </default>
   </test>
@@ -535,7 +535,7 @@
     <default>
       <files>recurse.js</files>
       <baseline>recurse.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>
@@ -552,7 +552,7 @@
       <files>box_bailout.js</files>
       <baseline>box_bailout.deferparse.baseline</baseline>
       <!--Top Level function parsing on first call to script is turned off here, as this tests order of functions executed-->
-      <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
     </default>
   </test>
@@ -561,7 +561,7 @@
       <files>box_inline_bailout.js</files>
       <baseline>box_inline_bailout.deferparse.baseline</baseline>
       <!--Top Level function parsing on first call to script is turned off here, as this tests order of functions executed-->
-      <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
     </default>
   </test>
@@ -585,7 +585,7 @@
     <default>
       <files>funcexpr_2.js</files>
       <baseline>funcexpr_2.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm</tags>
     </default>
   </test>
@@ -593,7 +593,7 @@
     <default>
       <files>funcexpr_2.js</files>
       <baseline>funcexpr_2.deferparse.native.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -on:stackfunc -force:deferparse -forceNative -off:simpleJit</compile-flags>
+      <compile-flags>-testtrace:stackfunc -on:stackfunc -force:deferparse -forceNative -off:simpleJit -off:disablestackfuncondeferredescape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo,exclude_arm</tags>
     </default>
   </test>
