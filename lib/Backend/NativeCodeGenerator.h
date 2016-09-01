@@ -285,6 +285,7 @@ private:
             else
             {
                 Assert(this->waitingForStackJob);
+                this->waitingForStackJob = false;
                 this->stackJobProcessed = true;
             }
         }
