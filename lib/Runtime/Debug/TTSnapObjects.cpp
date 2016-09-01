@@ -1297,7 +1297,9 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             SnapRegexInfo* regexInfo = SnapObjectGetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(snpObject);
 
-            return ctx->GetLibrary()->CreateRegex_TTD(regexInfo->RegexStr.Contents, regexInfo->RegexStr.Length, regexInfo->Flags, regexInfo->LastIndexOrFlag);
+            Js::Var lastVar = (regexInfo->LastIndexVar != nullptr) ? inflator->InflateTTDVar(regexInfo->LastIndexVar) : nullptr;
+
+            return ctx->GetLibrary()->CreateRegex_TTD(regexInfo->RegexStr.Contents, regexInfo->RegexStr.Length, regexInfo->Flags, regexInfo->LastIndexOrFlag, lastVar);
         }
 
         void EmitAddtlInfo_SnapRegexInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -1308,6 +1310,9 @@ namespace TTD
 
             writer->WriteTag<UnifiedRegex::RegexFlags>(NSTokens::Key::attributeFlags, regexInfo->Flags, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::u32Val, regexInfo->LastIndexOrFlag, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::ttdVarTag, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(regexInfo->LastIndexVar, writer, NSTokens::Separator::NoSeparator);
         }
 
         void ParseAddtlInfo_SnapRegexInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
@@ -1318,6 +1323,9 @@ namespace TTD
 
             regexInfo->Flags = reader->ReadTag<UnifiedRegex::RegexFlags>(NSTokens::Key::attributeFlags, true);
             regexInfo->LastIndexOrFlag = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+
+            reader->ReadKey(NSTokens::Key::ttdVarTag, true);
+            regexInfo->LastIndexVar = NSSnapValues::ParseTTDVar(false, reader);
 
             SnapObjectSetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(snpObject, regexInfo);
         }

@@ -112,6 +112,7 @@ namespace Js
 
         bool closureInitDone : 1;
         bool isParamScopeDone : 1;
+        bool shouldCacheSP : 1; // Helps in determining if we need to cache the sp in ProcessTryFinally
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -660,10 +661,10 @@ namespace Js
         inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
         template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
-        inline Var OP_LdSuper(ScriptContext * scriptContext);
-        inline Var OP_LdSuperCtor(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuper(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuperCtor(ScriptContext * scriptContext);
+        inline Var OP_LdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_LdFuncObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);
         template <typename T> void OP_LdLocalElementUndefined(const unaligned OpLayoutT_ElementRootU<T>* playout);
         template <typename T> void OP_LdElementUndefinedScoped(const unaligned OpLayoutT_ElementScopedU<T>* playout);

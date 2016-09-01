@@ -8,7 +8,6 @@
 
 namespace TTD
 {
-#ifdef WIN32
     class TTDTimer
     {
     private:
@@ -30,21 +29,7 @@ namespace TTD
         {
             return this->m_timer.Now();
         }
-
     };
-#else
-    //
-    //TODO: x-plat workaround need to link in with timer when it is done.
-    //
-    class TTDTimer
-    {
-    public:
-        double Now()
-        {
-            return 0.0;
-        }
-    };
-#endif
 
     namespace JsSupport
     {
@@ -157,13 +142,17 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             Js::PropertyId* DebugPIDArray;
+
+            int32 OptDiagDebugScopeBegin;
+            int32 OptDiagDebugScopeEnd;
 #endif
 
             //The meta-data for the slot array
             bool isFunctionBodyMetaData;
 
             TTD_PTR_ID OptFunctionBodyId;
-            //TODO: add debugger scope meta-data info
+            TTD_PTR_ID OptDebugScopeId;
+            TTD_WELLKNOWN_TOKEN OptWellKnownDbgScope;
         };
 
         Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator);
@@ -254,6 +243,27 @@ namespace TTD
 
         //////////////////
 
+        //Information on the scopechain for a function body
+        struct SnapFunctionBodyScopeChain
+        {
+            //The number of scopes associated with this function body
+            uint32 ScopeCount;
+
+            //The Ids of the scopes
+            TTD_PTR_ID* ScopeArray;
+        };
+
+        void ExtractSnapFunctionBodyScopeChain(bool isWellKnownFunction, SnapFunctionBodyScopeChain& scopeChain, Js::FunctionBody* fb, SlabAllocator& alloc);
+
+        void EmitSnapFunctionBodyScopeChain(const SnapFunctionBodyScopeChain& scopeChain, FileWriter* writer);
+        void ParseSnapFunctionBodyScopeChain(SnapFunctionBodyScopeChain& scopeChain, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapFunctionBodyScopeChain& chain1, const SnapFunctionBodyScopeChain& chain2, TTDCompareMap& compareMap);
+#endif
+
+        //////////////////
+
         //Information that is common to all top-level bodies
         struct TopLevelCommonBodyResolveInfo
         {
@@ -277,6 +287,9 @@ namespace TTD
             bool IsUtf8;
             uint32 ByteLength;
             byte* SourceBuffer;
+
+            //The (possibly empty) scope chain info
+            SnapFunctionBodyScopeChain ScopeChainInfo;
 
             //The number of bytes (or -1 if not set) and the buffer for the serialized bytecode
             mutable DWORD DbgSerializedBytecodeSize;
@@ -375,6 +388,9 @@ namespace TTD
 
             //The column number the function is def starts on
             int64 OptColumn;
+
+            //The (possibly empty) scope chain info
+            SnapFunctionBodyScopeChain ScopeChainInfo;
         };
 
         void ExtractFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, bool isWellKnown, SlabAllocator& alloc);

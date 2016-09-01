@@ -875,11 +875,10 @@ namespace Js
     }
 
     // No change to foreign enumerator, just forward
-    BOOL JavascriptProxy::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        ScriptContext* scriptContext = GetScriptContext();
         // Reject implicit call
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        ThreadContext* threadContext = requestContext->GetThreadContext();
         if (threadContext->IsDisableImplicitCall())
         {
             threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
@@ -894,40 +893,58 @@ namespace Js
             // the proxy has been revoked; TypeError.
             if (!threadContext->RecordImplicitException())
                 return FALSE;
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("enumerate"));
-        }
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
+        }    
+        
+        Var propertyName = nullptr;
+        PropertyId propertyId;
+        int index = 0;
+        JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(requestContext->GetRecycler());
+        JavascriptArray* arrResult = requestContext->GetLibrary()->CreateArray();
 
-        //4. Let trap be the result of GetMethod(handler, "enumerate").
-        //5. ReturnIfAbrupt(trap).
-        //6. If trap is undefined, then
-        //a.Return the result of calling the[[Enumerate]] internal method of target.
-        //7. Let trapResult be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target.
-        //8. ReturnIfAbrupt(trapResult).
-        //9. If Type(trapResult) is not Object, then throw a TypeError exception.
-        //10. Return trapResult.
-        JavascriptFunction* getEnumeratorMethod = GetMethodHelper(PropertyIds::enumerate, scriptContext);
-        Assert(!GetScriptContext()->IsHeapEnumInProgress());
-        if (nullptr == getEnumeratorMethod)
+        // 13.7.5.15 EnumerateObjectProperties(O) (https://tc39.github.io/ecma262/#sec-enumerate-object-properties)
+        // for (let key of Reflect.ownKeys(obj)) {    
+        Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, requestContext);
+        if (JavascriptArray::Is(trapResult))
         {
-            return target->GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
+            JavascriptStaticEnumerator trapEnumerator;
+            if (!((JavascriptArray*)trapResult)->GetEnumerator(&trapEnumerator, EnumeratorFlags::SnapShotSemantics, requestContext))
+            {
+                return FALSE;
+            }
+            while ((propertyName = trapEnumerator.MoveAndGetNext(propertyId)) != NULL)
+            {
+                PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, requestContext);
+                Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, requestContext);
+                // if (typeof key === "string") {
+                if (JavascriptString::Is(prop))
+                {
+                    Js::PropertyDescriptor desc;
+                    JavascriptString* str = JavascriptString::FromVar(prop);
+                    // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
+                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, requestContext, &desc);
+                    // if (desc && !visited.has(key)) {
+                    if (ret && !dict.ContainsKey(str->GetSz()))
+                    {
+                        dict.Add(str->GetSz(), prop);
+                        // if (desc.enumerable) yield key;
+                        if (desc.IsEnumerable())
+                        {
+                            ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
+                            Assert(ret);
+                        }
+                    }
+                }
+            }
         }
-
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handler;
-        varArgs[1] = target;
-
-        Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var trapResult = getEnumeratorMethod->CallFunction(arguments);
-        threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
-
-        if (!JavascriptOperators::IsObject(trapResult))
+        else
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("enumerate"));
+            AssertMsg(false, "Expect GetOwnPropertyNames result to be array");
         }
-        *enumerator = IteratorObjectEnumerator::Create(scriptContext, trapResult);
-        return TRUE;
+
+        return enumerator->Initialize(IteratorObjectEnumerator::Create(requestContext,
+            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), requestContext)), nullptr, nullptr, flags, requestContext);
+
     }
 
     BOOL JavascriptProxy::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)

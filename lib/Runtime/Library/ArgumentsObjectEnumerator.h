@@ -6,37 +6,35 @@
 
 namespace Js
 {
-    class ArgumentsObjectEnumerator : public JavascriptEnumerator
+    class ArgumentsObjectPrefixEnumerator : public JavascriptEnumerator
     {
     protected:
         ArgumentsObject* argumentsObject;
         uint32 formalArgIndex;
         bool doneFormalArgs;
-        JavascriptEnumerator* objectEnumerator;
-        BOOL enumNonEnumerable;
-        bool enumSymbols;
+        EnumeratorFlags flags;
 
     protected:
-        DEFINE_VTABLE_CTOR(ArgumentsObjectEnumerator, JavascriptEnumerator);
-        DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(ArgumentsObjectEnumerator);
+        DEFINE_VTABLE_CTOR(ArgumentsObjectPrefixEnumerator, JavascriptEnumerator);
 
     public:
-        ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols = false);
+        ArgumentsObjectPrefixEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
         virtual void Reset() override;
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
-    class ES5ArgumentsObjectEnumerator : public ArgumentsObjectEnumerator
+    class ES5ArgumentsObjectEnumerator : public ArgumentsObjectPrefixEnumerator
     {
     protected:
-        DEFINE_VTABLE_CTOR(ES5ArgumentsObjectEnumerator, ArgumentsObjectEnumerator);
-        DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(ES5ArgumentsObjectEnumerator);
-
+        DEFINE_VTABLE_CTOR(ES5ArgumentsObjectEnumerator, ArgumentsObjectPrefixEnumerator);
+        ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
+        BOOL Init();
     public:
-        ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols = false);
+        static ES5ArgumentsObjectEnumerator * New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
         virtual void Reset() override;
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     private:
+        JavascriptStaticEnumerator objectEnumerator;
         uint enumeratedFormalsInObjectArrayCount;  // The number of enumerated formals for far.
     };
 }

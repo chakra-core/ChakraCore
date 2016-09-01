@@ -1,0 +1,30 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "caller": "Error <large string>",
+        "callee": "Error <large string>",
+        "length": "number 0",
+        "Symbol.iterator": "function <large string>"
+      },
+      "a": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 1"
+    }
+  }
+]

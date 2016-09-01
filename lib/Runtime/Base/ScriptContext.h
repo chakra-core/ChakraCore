@@ -1337,6 +1337,7 @@ private:
         void SetDisposeDisposeByFaultInjectionEventHandler(EventHandler eventHandler);
 #endif
         EnumeratedObjectCache* GetEnumeratedObjectCache() { return &(cache->enumObjCache); }
+        PropertyString* TryGetPropertyString(PropertyId propertyId);
         PropertyString* GetPropertyString(PropertyId propertyId);
         void InvalidatePropertyStringCache(PropertyId propertyId, Type* type);
         JavascriptString* GetIntegerString(Var aValue);

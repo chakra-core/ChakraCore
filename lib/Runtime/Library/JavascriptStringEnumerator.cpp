@@ -29,59 +29,12 @@ namespace Js
                 *attributes = PropertyEnumerable;
             }
 
-            return stringObject->GetScriptContext()->GetIntegerString(index);
+            return this->GetScriptContext()->GetIntegerString(index);
         }
         else
         {
             index = stringObject->GetLength();
             return nullptr;
         }
-    }
-
-    JavascriptStringObjectEnumerator::JavascriptStringObjectEnumerator(JavascriptStringObject* stringObject,
-        ScriptContext* scriptContext,
-        BOOL enumNonEnumerable,
-        bool enumSymbols) :
-        JavascriptEnumerator(scriptContext),
-        stringObject(stringObject),
-        enumNonEnumerable(enumNonEnumerable),
-        enumSymbols(enumSymbols)
-    {
-        Reset();
-    }
-
-    Var JavascriptStringObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
-    {
-        Var currentIndex;
-        if (stringEnumerator != nullptr)
-        {
-            currentIndex = stringEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            stringEnumerator = nullptr;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            objectEnumerator = nullptr;
-        }
-        return nullptr;
-    }
-
-
-    void JavascriptStringObjectEnumerator::Reset()
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
-        stringEnumerator = RecyclerNew(recycler, JavascriptStringEnumerator, JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, stringObject->Unwrap())), scriptContext);
-        Var enumerator;
-        stringObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, scriptContext, true, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

@@ -1,0 +1,571 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "x": "undefined undefined"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "coll": {
+        "#__proto__": "Object {...}"
+      },
+      "numFormat": {
+        "#__proto__": "Object {...}"
+      },
+      "dttmFormat": {
+        "#__proto__": "Object {...}"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "coll": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "prototype": "Object {...}",
+              "name": "string Object",
+              "defineProperty": "function <large string>",
+              "getOwnPropertyDescriptor": "function <large string>",
+              "getOwnPropertyDescriptors": "function <large string>",
+              "defineProperties": "function <large string>",
+              "create": "function <large string>",
+              "seal": "function <large string>",
+              "freeze": "function <large string>",
+              "preventExtensions": "function <large string>",
+              "isSealed": "function <large string>",
+              "isFrozen": "function <large string>",
+              "isExtensible": "function <large string>",
+              "getPrototypeOf": "function <large string>",
+              "keys": "function <large string>",
+              "getOwnPropertyNames": "function <large string>",
+              "setPrototypeOf": "function <large string>",
+              "getOwnPropertySymbols": "function <large string>",
+              "is": "function <large string>",
+              "assign": "function <large string>",
+              "values": "function <large string>",
+              "entries": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "hasOwnProperty": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string hasOwnProperty",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "propertyIsEnumerable": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "isPrototypeOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string isPrototypeOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toLocaleString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toLocaleString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "valueOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string valueOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "#__proto__": "object null",
+            "__defineGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__defineSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            }
+          },
+          "constructor": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "prototype": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "resolvedOptions": "function <large string>",
+              "compare": "function <large string>"
+            },
+            "name": "string Collator",
+            "supportedLocalesOf": {
+              "#__proto__": "function <large string>",
+              "name": "string <large string>",
+              "length": "number 1"
+            },
+            "length": "number 0"
+          },
+          "resolvedOptions": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "name": "string resolvedOptions",
+            "length": "number 0"
+          },
+          "compare": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "length": "number 2"
+          }
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "numFormat": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "prototype": "Object {...}",
+              "name": "string Object",
+              "defineProperty": "function <large string>",
+              "getOwnPropertyDescriptor": "function <large string>",
+              "getOwnPropertyDescriptors": "function <large string>",
+              "defineProperties": "function <large string>",
+              "create": "function <large string>",
+              "seal": "function <large string>",
+              "freeze": "function <large string>",
+              "preventExtensions": "function <large string>",
+              "isSealed": "function <large string>",
+              "isFrozen": "function <large string>",
+              "isExtensible": "function <large string>",
+              "getPrototypeOf": "function <large string>",
+              "keys": "function <large string>",
+              "getOwnPropertyNames": "function <large string>",
+              "setPrototypeOf": "function <large string>",
+              "getOwnPropertySymbols": "function <large string>",
+              "is": "function <large string>",
+              "assign": "function <large string>",
+              "values": "function <large string>",
+              "entries": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "hasOwnProperty": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string hasOwnProperty",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "propertyIsEnumerable": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "isPrototypeOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string isPrototypeOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toLocaleString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toLocaleString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "valueOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string valueOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "#__proto__": "object null",
+            "__defineGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__defineSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            }
+          },
+          "constructor": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "prototype": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "resolvedOptions": "function <large string>",
+              "format": "function <large string>"
+            },
+            "name": "string NumberFormat",
+            "supportedLocalesOf": {
+              "#__proto__": "function <large string>",
+              "name": "string <large string>",
+              "length": "number 1"
+            },
+            "length": "number 0"
+          },
+          "resolvedOptions": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "name": "string resolvedOptions",
+            "length": "number 0"
+          },
+          "format": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "length": "number 1"
+          }
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "dttmFormat": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "prototype": "Object {...}",
+              "name": "string Object",
+              "defineProperty": "function <large string>",
+              "getOwnPropertyDescriptor": "function <large string>",
+              "getOwnPropertyDescriptors": "function <large string>",
+              "defineProperties": "function <large string>",
+              "create": "function <large string>",
+              "seal": "function <large string>",
+              "freeze": "function <large string>",
+              "preventExtensions": "function <large string>",
+              "isSealed": "function <large string>",
+              "isFrozen": "function <large string>",
+              "isExtensible": "function <large string>",
+              "getPrototypeOf": "function <large string>",
+              "keys": "function <large string>",
+              "getOwnPropertyNames": "function <large string>",
+              "setPrototypeOf": "function <large string>",
+              "getOwnPropertySymbols": "function <large string>",
+              "is": "function <large string>",
+              "assign": "function <large string>",
+              "values": "function <large string>",
+              "entries": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "hasOwnProperty": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string hasOwnProperty",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "propertyIsEnumerable": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "isPrototypeOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string isPrototypeOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toLocaleString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toLocaleString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toString": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string toString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "valueOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 0",
+              "name": "string valueOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "#__proto__": "object null",
+            "__defineGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__defineSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 2",
+              "name": "string __defineSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupGetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupGetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "__lookupSetter__": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string __lookupSetter__",
+              "caller": "object null",
+              "arguments": "object null"
+            }
+          },
+          "constructor": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "prototype": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "format": "function <large string>",
+              "resolvedOptions": "function <large string>"
+            },
+            "name": "string DateTimeFormat",
+            "__relevantExtensionKeys": {
+              "#__proto__": "Array []",
+              "length": "number 2",
+              "[0]": "string \"ca\"",
+              "[1]": "string \"nu\""
+            },
+            "supportedLocalesOf": {
+              "#__proto__": "function <large string>",
+              "name": "string <large string>",
+              "length": "number 1"
+            },
+            "length": "number 0"
+          },
+          "format": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "length": "number 0"
+          },
+          "resolvedOptions": {
+            "#__proto__": {
+              "#__proto__": "Object {...}",
+              "constructor": "function <large string>",
+              "length": "number 0",
+              "name": "string ",
+              "apply": "function <large string>",
+              "bind": "function <large string>",
+              "call": "function <large string>",
+              "toString": "function <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "name": "string resolvedOptions",
+            "length": "number 0"
+          }
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "coll.compare.toString() == 'function() {\\n    [native code]\\n}'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "coll.resolvedOptions.toString() == 'function() {\\n    [native code]\\n}'": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "numFormat.format.toString() == 'function() {\\n    [native code]\\n}'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "numFormat.resolvedOptions.toString() == 'function() {\\n    [native code]\\n}'": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "dttmFormat.format.toString() == 'function() {\\n    [native code]\\n}'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "dttmFormat.resolvedOptions.toString() == 'function() {\\n    [native code]\\n}'": "boolean false"
+    }
+  }
+]

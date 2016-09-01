@@ -24,6 +24,10 @@ namespace TTD
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FrameDisplay*> m_environmentMap;
         TTDIdentifierDictionary<TTD_PTR_ID, Js::Var*> m_slotArrayMap;
 
+        //The maps for resolving debug scopes
+        TTDIdentifierDictionary<TTD_PTR_ID, Js::FunctionBody*> m_debuggerScopeHomeBodyMap;
+        TTDIdentifierDictionary<TTD_PTR_ID, int32> m_debuggerScopeChainIndexMap;
+
         //A dictionary for the Promise related bits (not typesafe and a bit ugly but I prefer it to creating multiple additional collections)
         JsUtil::BaseDictionary<TTD_PTR_ID, void*, HeapAllocator> m_promiseDataMap;
 
@@ -45,8 +49,8 @@ namespace TTD
         InflateMap();
         ~InflateMap();
 
-        void PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount);
-        void PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount);
+        void PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount);
+        void PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount);
         void CleanupAfterInflate();
 
         bool IsObjectAlreadyInflated(TTD_PTR_ID objid) const;
@@ -67,6 +71,8 @@ namespace TTD
         Js::FrameDisplay* LookupEnvironment(TTD_PTR_ID envid) const;
         Js::Var* LookupSlotArray(TTD_PTR_ID slotid) const;
 
+        void LookupInfoForDebugScope(TTD_PTR_ID dbgScopeId, Js::FunctionBody** homeBody, int32* chainIndex) const;
+
         ////
 
         void AddDynamicHandler(TTD_PTR_ID handlerId, Js::DynamicTypeHandler* value);
@@ -78,6 +84,8 @@ namespace TTD
         void AddInflationFunctionBody(TTD_PTR_ID functionId, Js::FunctionBody* value);
         void AddEnvironment(TTD_PTR_ID envId, Js::FrameDisplay* value);
         void AddSlotArray(TTD_PTR_ID slotId, Js::Var* value);
+
+        void UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb);
 
         ////
 

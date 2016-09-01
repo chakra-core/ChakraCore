@@ -123,19 +123,18 @@ namespace JSON
             Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(value);
             if (typeId == Js::TypeIds_Object || typeId == Js::TypeIds_Arguments)
             {
-                Js::Var enumeratorVar;
+                Js::JavascriptStaticEnumerator enumerator;
 
                 // normally we should have a JSON object here and the enumerator should be always be successful. However, the objects can be
                 // modified by user code. It is better to skip a damaged object. ES5 spec doesn't specify an error here.
-                if(Js::RecyclableObject::FromVar(value)->GetEnumerator(FALSE, &enumeratorVar, scriptContext))
+                if(Js::RecyclableObject::FromVar(value)->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
                 {
-                    Js::JavascriptEnumerator* enumerator = static_cast<Js::JavascriptEnumerator*>(enumeratorVar);
                     Js::Var propertyNameVar;
 
                     while (true)
                     {
                         Js::PropertyId idMember = Js::Constants::NoProperty;
-                        propertyNameVar = enumerator->MoveAndGetNext(idMember);
+                        propertyNameVar = enumerator.MoveAndGetNext(idMember);
                         if (propertyNameVar == nullptr)
                         {
                             break;
@@ -161,7 +160,7 @@ namespace JSON
                         // Numerals do not have property Ids so we need to set and delete items
                         else
                         {
-                            uint32 propertyIndex = enumerator->GetCurrentItemIndex();
+                            uint32 propertyIndex = enumerator.GetCurrentItemIndex();
                             AssertMsg(Js::JavascriptArray::InvalidIndex != propertyIndex, "Not a numeric type");
                             Js::Var newElement = Walk(Js::JavascriptString::FromVar(propertyNameVar), idMember, value, propertyIndex);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))

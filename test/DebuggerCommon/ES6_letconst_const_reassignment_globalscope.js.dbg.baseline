@@ -1,0 +1,22 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "number 2",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      }
+    },
+    "globals": {}
+  },
+  {
+    "evaluate": {
+      "b++": "Error <large string>"
+    }
+  }
+]

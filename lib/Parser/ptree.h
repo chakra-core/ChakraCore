@@ -267,6 +267,11 @@ private:
         return (fncFlags & flags) == flags;
     }
 
+    bool HasAnyFlags(uint flags) const
+    {
+        return (fncFlags & flags) != 0;
+    }
+
     bool HasNoFlags(uint flags) const
     {
         return (fncFlags & flags) == 0;
@@ -338,6 +343,7 @@ public:
     bool IsDeclaration() const { return HasFlags(kFunctionDeclaration); }
     bool IsGeneratedDefault() const { return HasFlags(kFunctionIsGeneratedDefault); }
     bool IsGenerator() const { return HasFlags(kFunctionIsGenerator); }
+    bool IsCoroutine() const { return HasAnyFlags(kFunctionIsGenerator | kFunctionIsAsync); }
     bool IsLambda() const { return HasFlags(kFunctionIsLambda); }
     bool IsMethod() const { return HasFlags(kFunctionIsMethod); }
     bool IsNested() const { return HasFlags(kFunctionNested); }

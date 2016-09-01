@@ -1,0 +1,299 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 27,
+        "column": 0,
+        "sourceText": "}",
+        "function": "bar"
+      },
+      {
+        "line": 13,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 35,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "bar": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Run": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string Run",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      }
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[Date returned]": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "getDate": "function <large string>",
+          "getDay": "function <large string>",
+          "getFullYear": "function <large string>",
+          "getHours": "function <large string>",
+          "getMilliseconds": "function <large string>",
+          "getMinutes": "function <large string>",
+          "getMonth": "function <large string>",
+          "getSeconds": "function <large string>",
+          "getTime": "function <large string>",
+          "getTimezoneOffset": "function <large string>",
+          "getUTCDate": "function <large string>",
+          "getUTCDay": "function <large string>",
+          "getUTCFullYear": "function <large string>",
+          "getUTCHours": "function <large string>",
+          "getUTCMilliseconds": "function <large string>",
+          "getUTCMinutes": "function <large string>",
+          "getUTCMonth": "function <large string>",
+          "getUTCSeconds": "function <large string>",
+          "getVarDate": "function <large string>",
+          "getYear": "function <large string>",
+          "setDate": "function <large string>",
+          "setFullYear": "function <large string>",
+          "setHours": "function <large string>",
+          "setMilliseconds": "function <large string>",
+          "setMinutes": "function <large string>",
+          "setMonth": "function <large string>",
+          "setSeconds": "function <large string>",
+          "setTime": "function <large string>",
+          "setUTCDate": "function <large string>",
+          "setUTCFullYear": "function <large string>",
+          "setUTCHours": "function <large string>",
+          "setUTCMilliseconds": "function <large string>",
+          "setUTCMinutes": "function <large string>",
+          "setUTCMonth": "function <large string>",
+          "setUTCSeconds": "function <large string>",
+          "setYear": "function <large string>",
+          "toDateString": "function <large string>",
+          "toISOString": "function <large string>",
+          "toJSON": "function <large string>",
+          "toLocaleDateString": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toLocaleTimeString": "function <large string>",
+          "toString": "function <large string>",
+          "toTimeString": "function <large string>",
+          "toUTCString": "function <large string>",
+          "toGMTString": "function <large string>",
+          "valueOf": "function <large string>"
+        }
+      }
+    },
+    "locals": {
+      "a": "string bar",
+      "b": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 0"
+        },
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "getDate": "function <large string>",
+          "getDay": "function <large string>",
+          "getFullYear": "function <large string>",
+          "getHours": "function <large string>",
+          "getMilliseconds": "function <large string>",
+          "getMinutes": "function <large string>",
+          "getMonth": "function <large string>",
+          "getSeconds": "function <large string>",
+          "getTime": "function <large string>",
+          "getTimezoneOffset": "function <large string>",
+          "getUTCDate": "function <large string>",
+          "getUTCDay": "function <large string>",
+          "getUTCFullYear": "function <large string>",
+          "getUTCHours": "function <large string>",
+          "getUTCMilliseconds": "function <large string>",
+          "getUTCMinutes": "function <large string>",
+          "getUTCMonth": "function <large string>",
+          "getUTCSeconds": "function <large string>",
+          "getVarDate": "function <large string>",
+          "getYear": "function <large string>",
+          "setDate": "function <large string>",
+          "setFullYear": "function <large string>",
+          "setHours": "function <large string>",
+          "setMilliseconds": "function <large string>",
+          "setMinutes": "function <large string>",
+          "setMonth": "function <large string>",
+          "setSeconds": "function <large string>",
+          "setTime": "function <large string>",
+          "setUTCDate": "function <large string>",
+          "setUTCFullYear": "function <large string>",
+          "setUTCHours": "function <large string>",
+          "setUTCMilliseconds": "function <large string>",
+          "setUTCMinutes": "function <large string>",
+          "setUTCMonth": "function <large string>",
+          "setUTCSeconds": "function <large string>",
+          "setYear": "function <large string>",
+          "toDateString": "function <large string>",
+          "toISOString": "function <large string>",
+          "toJSON": "function <large string>",
+          "toLocaleDateString": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toLocaleTimeString": "function <large string>",
+          "toString": "function <large string>",
+          "toTimeString": "function <large string>",
+          "toUTCString": "function <large string>",
+          "toGMTString": "function <large string>",
+          "valueOf": "function <large string>"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "bar": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Run": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string Run",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      }
+    }
+  }
+]

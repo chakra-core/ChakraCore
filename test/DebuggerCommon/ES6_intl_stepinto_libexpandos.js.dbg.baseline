@@ -1,0 +1,50 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 1,
+        "sourceText": "comp",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "function () {\r\n    var comp = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tcomp;\r\n    var numFormat = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tnumFormat;\r\n    var date = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n    date;\r\n    WScript.Echo('PASSED');\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 13,
+        "column": 1,
+        "sourceText": "numFormat",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "function () {\r\n    var comp = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tcomp;\r\n    var numFormat = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tnumFormat;\r\n    var date = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n    date;\r\n    WScript.Echo('PASSED');\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "date",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "function () {\r\n    var comp = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tcomp;\r\n    var numFormat = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n\tnumFormat;\r\n    var date = Intl.Collator();/**bp:resume('step_into');stack()**/\r\n    date;\r\n    WScript.Echo('PASSED');\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

@@ -77,8 +77,8 @@ namespace JSON
         void StringifyMemberObject( Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result,
             Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty );
 
-        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator);
-        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* isPrecise);
+        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator);
+        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator, bool* isPrecise);
 
         JSONStack *objectStack;
 

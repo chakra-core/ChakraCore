@@ -418,9 +418,9 @@ var tests = [
       }
 
       // Test valid postfix operators in the wrong context
-      assert.throws(function () { eval("super();") },        ReferenceError, "Invalid use of super");
-      assert.throws(function () { eval("super[1];") },       ReferenceError, "Invalid use of super");
-      assert.throws(function () { eval("super.method();") }, ReferenceError, "Invalid use of super");
+      assert.throws(function () { eval("super();") },        ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
+      assert.throws(function () { eval("super[1];") },       ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
+      assert.throws(function () { eval("super.method();") }, ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
 
       // Syntax Error for base class constructor with direct super call
       assert.throws(function () { eval("class A { constructor() { super(); } }") }, SyntaxError, "Base class constructor cannot call super");
@@ -949,8 +949,8 @@ var tests = [
         name: "Extends expression of a class declaration or expression is strict mode",
         body: function() {
             var BadClass = class extends function() { arguments.caller; } {};
-            assert.throws(function() { Object.getPrototypeOf(BadClass).arguments; }, TypeError, "The extends expression of a class expression should be parsed in strict mode", "Accessing the 'arguments' property is restricted in this context");
-            assert.throws(function() { new BadClass(); }, TypeError, "New'ing a class with a parent constructor that throws in strict mode, should throw", "Accessing the 'caller' property is restricted in this context");
+            assert.throws(function() { Object.getPrototypeOf(BadClass).arguments; }, TypeError, "The extends expression of a class expression should be parsed in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
+            assert.throws(function() { new BadClass(); }, TypeError, "New'ing a class with a parent constructor that throws in strict mode, should throw", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
             assert.throws(function() { eval('class WorseClass extends (function foo() { with ({}); return foo; }()) {};'); }, SyntaxError, "The extends expression of a class decl should be parsed in strict mode", "'with' statements are not allowed in strict mode");
         }
