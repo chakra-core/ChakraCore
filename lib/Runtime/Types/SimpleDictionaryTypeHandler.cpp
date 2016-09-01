@@ -3192,9 +3192,10 @@ namespace Js
 
             TMapKey key = iter.CurrentKey();
             const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
-            TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.isInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+            PropertyId pid = pRecord->GetPropertyId();
+            TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.isInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Uninitialized;
 
-            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, tag);
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pid, descriptor.Attributes, tag);
         }
 
         if(this->propertyMap->Count() == 0)
@@ -3208,17 +3209,18 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    Js::PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
         SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
         if(propertyMap->TryGetReference(pRecord, &descriptor))
         {
             AssertMsg(!(descriptor->Attributes & PropertyDeleted), "We found this during enum so what is going on here?");
 
-            return DisallowBigPropertyIndex(descriptor->propertyIndex);
+            return (Js::BigPropertyIndex)descriptor->propertyIndex;
         }
 
-        return Constants::NoSlot;
+        AssertMsg(false, "We found this during enum so what is going on here?");
+        return Js::Constants::NoBigSlot;
     }
 #endif
 

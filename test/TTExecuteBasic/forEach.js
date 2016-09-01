@@ -44,21 +44,21 @@ function testFunction()
     idx = 0;
     for(var xname in x)
     {
-        telemetryLog(`xname: ${xname}`, true); //xo[idx]
+        telemetryLog(`xname: ${xname === xo[idx]}`, true); //true
         idx++;    
     }
     
     idx = 0;
     for(var yname in y)
     {
-        telemetryLog(`yname: ${yname}`, true); //yo[idx]
+        telemetryLog(`yname: ${yname === yo[idx]}`, true); //true
         idx++;    
     }
     
     idx = 0;
     for(var zname in z)
     {
-        telemetryLog(`zname: ${zname}`, true); //zo[idx]
+        telemetryLog(`zname: ${zname === zo[idx]}`, true); //true
         idx++;    
     }
 }

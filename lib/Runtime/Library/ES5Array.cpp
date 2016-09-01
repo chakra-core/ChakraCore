@@ -405,6 +405,7 @@ namespace Js
 
         uint32 length = this->GetLength();
 
+        es5ArrayInfo->IsLengthWritable = this->IsLengthWritable();
         es5ArrayInfo->GetterSetterCount = 0;
         es5ArrayInfo->GetterSetterEntries = alloc.SlabReserveArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(length + 1); //ensure we don't do a 0 reserve
 

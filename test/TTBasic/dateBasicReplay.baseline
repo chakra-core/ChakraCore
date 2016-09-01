@@ -4,5 +4,7 @@ y.foo: 3
 x.foo: 3
 w - z > 0: true
 x - y: 0
+Infinity Date toISOString : RangeError  : Number expected
+Infinity Date toJSON : null
 
 Reached end of Execution -- Exiting.

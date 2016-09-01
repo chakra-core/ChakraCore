@@ -1,0 +1,11 @@
+Object.isExtensible(x1): false
+Object.isExtensible(y1): true
+y2["p02_2"]: undefined
+Object.isExtensible(x3): false
+y3["p03"]: 3
+y5["p05"]: 200
+[x6["p06"], y6["p06"], z6["p06"]]: 0,2,3
+x9[0]: 2
+x9[1]: undefined
+
+Reached end of Execution -- Exiting.

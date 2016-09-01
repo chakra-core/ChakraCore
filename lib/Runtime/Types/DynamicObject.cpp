@@ -386,10 +386,8 @@ namespace Js
         if(this->GetScriptContext()->ShouldPerformDebugAction())
         {
             BOOL res = FALSE;
-            int32 pIndex = -1;
             PropertyAttributes tmpAttributes = PropertyNone;
-            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, &tmpAttributes, propertyString);
-            index = (Js::BigPropertyIndex)pIndex;
+            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(&res, &index, this, propertyId, &tmpAttributes, propertyString);
 
             if(attributes != nullptr)
             {

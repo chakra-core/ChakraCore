@@ -231,6 +231,18 @@ namespace TTD
         }
 
 #if ENABLE_SNAPSHOT_COMPARE
+        bool CheckSnapEquivTTDDouble(double d1, double d2)
+        {
+            if(Js::JavascriptNumber::IsNan(d1) || Js::JavascriptNumber::IsNan(d2))
+            {
+                return (Js::JavascriptNumber::IsNan(d1) && Js::JavascriptNumber::IsNan(d2));
+            }
+            else
+            {
+                return (d1 == d2);
+            }
+        }
+
         void AssertSnapEquivTTDVar_Helper(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next)
         {
             if(v1 == nullptr || v2 == nullptr)
@@ -250,14 +262,7 @@ namespace TTD
                 }
                 else
                 {
-                    if(Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v1)) || Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v2)))
-                    {
-                        compareMap.DiagnosticAssert(Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v1)) && Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v2)));
-                    }
-                    else
-                    {
-                        compareMap.DiagnosticAssert(Js::JavascriptNumber::GetValue(v1) == Js::JavascriptNumber::GetValue(v2));
-                    }
+                    compareMap.DiagnosticAssert(CheckSnapEquivTTDDouble(Js::JavascriptNumber::GetValue(v1), Js::JavascriptNumber::GetValue(v2)));
                 }
 #endif
             }
