@@ -6517,6 +6517,10 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
+            if (!GetScriptContext()->GetRemoteScriptAddr())
+            {
+                GetScriptContext()->InitializeRemoteScriptContext();
+            }
             JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
         }
 #endif

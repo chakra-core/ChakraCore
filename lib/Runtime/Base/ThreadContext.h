@@ -538,6 +538,7 @@ private:
 public:
 
     void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+    void InitJITThreadContext();
 
     intptr_t GetRemoteThreadContextAddr() const
     {

@@ -154,7 +154,7 @@ private:
     IR::Instr *             m_lastInstr;
     IR::Instr **            m_offsetToInstruction;
     Js::ByteCodeReader      m_jnReader;
-    Js::StatementReader     m_statementReader;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
     SList<IR::Instr *> *    m_argStack;
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;

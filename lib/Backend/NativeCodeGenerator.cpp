@@ -2837,6 +2837,11 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
     } autoProfile(foregroundCodeGenProfiler);
 #endif
 
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && !scriptContext->GetRemoteScriptAddr())
+    {
+        scriptContext->InitializeRemoteScriptContext();
+    }
+
     const auto recycler = scriptContext->GetRecycler();
     {
         const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);

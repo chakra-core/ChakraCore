@@ -1876,6 +1876,7 @@ namespace Js
                 bool GetIsEnterBlock();
             };
 
+            typedef JsUtil::List<Js::FunctionBody::StatementMap*, ArenaAllocator> ArenaStatementMapList;
             typedef JsUtil::List<Js::FunctionBody::StatementMap*> StatementMapList;
 
             // Note: isLeaf = true template param below means that recycler should not be used to dispose the items.
@@ -2464,7 +2465,8 @@ namespace Js
         FunctionCodeGenRuntimeData ** GetCodeGenRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
-        static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
+        template <typename TStatementMapList>
+        static StatementMap * GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
         void RecordStatementAdjustment(uint offset, StatementAdjustmentType adjType);
         void RecordCrossFrameEntryExitRecord(uint byteCodeOffset, bool isEnterBlock);

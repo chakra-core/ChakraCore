@@ -41,7 +41,6 @@ public:
     virtual void DumpNativeOffsetMaps() = 0;
     virtual void DumpNativeThrowSpanSequence() = 0;
 #endif
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) = 0;
 
     uint GetFunctionNumber() const
     {
@@ -289,12 +288,6 @@ public:
         this->GetEntryPoint()->DumpNativeThrowSpanSequence();
     }
 #endif
-
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) override
-    {
-        reader.Create(this->functionBody, 0, IsJitInDebugMode());
-        statementReader.Create(this->functionBody, 0, IsJitInDebugMode());
-    }
 };
 
 struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
@@ -360,12 +353,6 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
     void Delete() override
     {
         HeapDelete(this);
-    }
-
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) override
-    {
-        reader.Create(this->functionBody, this->loopHeader->startOffset, IsJitInDebugMode());
-        statementReader.Create(this->functionBody, this->loopHeader->startOffset, IsJitInDebugMode());
     }
 
     ~JsLoopBodyCodeGen()

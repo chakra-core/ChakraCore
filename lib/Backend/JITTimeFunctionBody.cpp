@@ -68,18 +68,45 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     // statement map
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
 
-    jitBody->statementMap.baseValue = statementMap->baseValue;
 
-    if (statementMap->pActualOffsetList)
+    if (statementMap)
     {
-        jitBody->statementMap.actualOffsetLength = statementMap->pActualOffsetList->Count();
-        jitBody->statementMap.actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
+        jitBody->statementMap = RecyclerNewStructZ(recycler, SmallSpanSequenceIDL);
+        jitBody->statementMap->baseValue = statementMap->baseValue;
+
+        if (statementMap->pActualOffsetList)
+        {
+            jitBody->statementMap->actualOffsetLength = statementMap->pActualOffsetList->Count();
+            jitBody->statementMap->actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
+        }
+
+        if (statementMap->pStatementBuffer)
+        {
+            jitBody->statementMap->statementLength = statementMap->pStatementBuffer->Count();
+            jitBody->statementMap->statementBuffer = statementMap->pStatementBuffer->GetBuffer();
+        }
     }
 
-    if (statementMap->pStatementBuffer)
+    // REVIEW: OOP JIT, is it possible for this to not match with isJitInDebugMode?
+    if (functionBody->IsInDebugMode())
     {
-        jitBody->statementMap.statementLength = statementMap->pStatementBuffer->Count();
-        jitBody->statementMap.statementBuffer = statementMap->pStatementBuffer->GetBuffer();
+        Assert(!statementMap);
+        auto fullStatementMaps = functionBody->GetStatementMaps();
+        jitBody->fullStatementMapCount = fullStatementMaps->Count();
+        jitBody->fullStatementMaps = RecyclerNewArrayZ(recycler, StatementMapIDL, jitBody->fullStatementMapCount);
+        fullStatementMaps->Map([jitBody](int index, Js::FunctionBody::StatementMap * map) {
+            jitBody->fullStatementMaps[index].byteCodeSpanBegin = map->byteCodeSpan.Begin();
+            jitBody->fullStatementMaps[index].byteCodeSpanEnd = map->byteCodeSpan.End();
+            jitBody->fullStatementMaps[index].sourceSpanBegin = map->sourceSpan.Begin();
+            jitBody->fullStatementMaps[index].sourceSpanEnd = map->sourceSpan.End();
+            jitBody->fullStatementMaps[index].isSubExpression = map->isSubexpression;
+        });
+
+        if (functionBody->GetPropertyIdOnRegSlotsContainer())
+        {
+            jitBody->propertyIdsForRegSlotsCount = functionBody->GetPropertyIdOnRegSlotsContainer()->length;
+            jitBody->propertyIdsForRegSlots = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots;
+        }
     }
 
     jitBody->inlineCacheCount = functionBody->GetInlineCacheCount();
@@ -713,6 +740,18 @@ JITTimeFunctionBody::GetByteCodeBuffer() const
     return m_bodyData.byteCodeBuffer;
 }
 
+StatementMapIDL *
+JITTimeFunctionBody::GetFullStatementMap() const
+{
+    return m_bodyData.fullStatementMaps;
+}
+
+uint
+JITTimeFunctionBody::GetFullStatementMapCount() const
+{
+    return m_bodyData.fullStatementMapCount;
+}
+
 intptr_t
 JITTimeFunctionBody::GetScriptIdAddr() const
 {
@@ -903,6 +942,28 @@ JITTimeFunctionBody::HasProfileInfo() const
     return m_bodyData.profileData != nullptr;
 }
 
+bool
+JITTimeFunctionBody::HasPropIdToFormalsMap() const
+{
+    return m_bodyData.propertyIdsForRegSlotsCount > 0 && GetFormalsPropIdArray() != nullptr;
+}
+
+bool
+JITTimeFunctionBody::IsRegSlotFormal(Js::RegSlot reg) const
+{
+    Assert(reg < m_bodyData.propertyIdsForRegSlotsCount);
+    Js::PropertyId propId = (Js::PropertyId)m_bodyData.propertyIdsForRegSlots[reg];
+    Js::PropertyIdArray * formalProps = GetFormalsPropIdArray();
+    for (uint32 i = 0; i < formalProps->count; i++)
+    {
+        if (formalProps->elements[i] == propId)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* static */
 bool
 JITTimeFunctionBody::LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2)
@@ -954,13 +1015,17 @@ JITTimeFunctionBody::GetFormalsPropIdArray() const
     return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
 }
 
-void
+bool
 JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const
 {
-    const uint statementsLength = m_bodyData.statementMap.statementLength;
-    const uint offsetsLength = m_bodyData.statementMap.actualOffsetLength;
+    if (!m_bodyData.statementMap)
+    {
+        return false;
+    }
+    const uint statementsLength = m_bodyData.statementMap->statementLength;
+    const uint offsetsLength = m_bodyData.statementMap->actualOffsetLength;
 
-    statementMap->baseValue = m_bodyData.statementMap.baseValue;
+    statementMap->baseValue = m_bodyData.statementMap->baseValue;
 
     // TODO: (leish OOP JIT) using arena to prevent memory leak, fix to really implement GrowingUint32ArenaArray::Create()
     // or find other way to reuse like michhol's comments
@@ -974,7 +1039,7 @@ JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statem
         js_memcpy_s(
             statementMap->pStatementBuffer->GetBuffer(),
             statementMap->pStatementBuffer->Count() * sizeof(uint32),
-            m_bodyData.statementMap.statementBuffer,
+            m_bodyData.statementMap->statementBuffer,
             statementsLength * sizeof(uint32));
     }
 
@@ -985,9 +1050,10 @@ JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statem
         js_memcpy_s(
             statementMap->pActualOffsetList->GetBuffer(),
             statementMap->pActualOffsetList->Count() * sizeof(uint32),
-            m_bodyData.statementMap.actualOffsetList,
+            m_bodyData.statementMap->actualOffsetList,
             offsetsLength * sizeof(uint32));
     }
+    return true;
 }
 
 wchar_t*

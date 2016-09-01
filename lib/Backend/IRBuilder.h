@@ -316,7 +316,7 @@ private:
     IR::Instr **        m_offsetToInstruction;
     uint32              m_functionStartOffset;
     Js::ByteCodeReader  m_jnReader;
-    Js::StatementReader m_statementReader;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
     SList<IR::Instr *> *m_argStack;
     SList<BranchReloc*> *branchRelocList;
     SList<uint>         *catchOffsetStack;

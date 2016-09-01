@@ -90,6 +90,11 @@ void ThreadContextTLSEntry::SetThreadContext(ThreadContextTLSEntry * entry, Thre
     entry->threadContext = threadContext;
     threadContext->SetStackProber(&entry->prober);
     threadContext->SetCurrentThreadId(::GetCurrentThreadId());
+
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
+    {
+        threadContext->InitJITThreadContext();
+    }
 }
 
 bool ThreadContextTLSEntry::ClearThreadContext(bool isValid)

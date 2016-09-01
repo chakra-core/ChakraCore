@@ -2208,7 +2208,9 @@ namespace Js
 
     // SourceInfo methods
 
-    /* static */ FunctionBody::StatementMap * FunctionBody::GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex)
+    /* static */
+    template <typename TStatementMapList>
+    FunctionBody::StatementMap * FunctionBody::GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex)
     {
         AssertMsg(statementMapList != nullptr, "Must have valid statementMapList to execute");
 
@@ -2223,6 +2225,11 @@ namespace Js
         }
         return map;
     }
+    // explicitly instantiate template
+    template FunctionBody::StatementMap *
+    FunctionBody::GetNextNonSubexpressionStatementMap<FunctionBody::ArenaStatementMapList>(FunctionBody::ArenaStatementMapList *statementMapList, int & startingAtIndex);
+    template FunctionBody::StatementMap *
+    FunctionBody::GetNextNonSubexpressionStatementMap<FunctionBody::StatementMapList>(FunctionBody::StatementMapList *statementMapList, int & startingAtIndex);
 
     /* static */ FunctionBody::StatementMap * FunctionBody::GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex)
     {

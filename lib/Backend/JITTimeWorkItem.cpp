@@ -6,7 +6,9 @@
 #include "Backend.h"
 
 JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemIDL * workItemData) :
-    m_workItemData(workItemData), m_jitBody(workItemData->jitData->bodyData)
+    m_workItemData(workItemData),
+    m_jitBody(workItemData->jitData->bodyData),
+    m_fullStatementList(nullptr)
 {
 }
 
@@ -76,16 +78,30 @@ JITTimeWorkItem::GetLoopHeaderAddr() const
 void
 JITTimeWorkItem::InitializeReader(
     Js::ByteCodeReader * reader,
-    Js::StatementReader * statementReader, ArenaAllocator* alloc)
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> * statementReader, ArenaAllocator* alloc)
 {
     uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
+
+    if (IsJitInDebugMode())
+    {
+        // TODO: OOP JIT, directly use the array rather than making a list
+        m_fullStatementList = Js::FunctionBody::ArenaStatementMapList::New(alloc);
+        CompileAssert(sizeof(StatementMapIDL) == sizeof(Js::FunctionBody::StatementMap));
+
+        StatementMapIDL * fullArr = m_jitBody.GetFullStatementMap();
+        for (uint i = 0; i < m_jitBody.GetFullStatementMapCount(); ++i)
+        {
+            m_fullStatementList->Add((Js::FunctionBody::StatementMap*)&fullArr[i]);
+        }
+    }
 #if DBG
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
 #else
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif
-    m_jitBody.InitializeStatementMap(&m_statementMap, alloc);
-    statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, &m_statementMap);
+    bool hasSpanSequenceMap = m_jitBody.InitializeStatementMap(&m_statementMap, alloc);
+    Js::SmallSpanSequence * spanSeq = hasSpanSequenceMap ? &m_statementMap : nullptr;
+    statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, spanSeq, m_fullStatementList);
 }
 
 JITTimeFunctionBody *

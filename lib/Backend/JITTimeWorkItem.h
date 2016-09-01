@@ -9,6 +9,7 @@
 class JITTimeWorkItem
 {
 public:
+
     JITTimeWorkItem(CodeGenWorkItemIDL * workItemData);
 
     CodeGenWorkItemType Type() const;
@@ -26,7 +27,7 @@ public:
 
     void InitializeReader(
         Js::ByteCodeReader * reader,
-        Js::StatementReader * statementReader, ArenaAllocator* alloc);
+        Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> * statementReader, ArenaAllocator* alloc);
 
     JITTimeFunctionBody * GetJITFunctionBody();
 
@@ -42,10 +43,11 @@ public:
     bool HasSymIdToValueTypeMap() const;
 
 private:
+    Js::FunctionBody::ArenaStatementMapList * m_fullStatementList;
+
     CodeGenWorkItemIDL * m_workItemData;
     JITTimeFunctionBody m_jitBody;
     Js::SmallSpanSequence m_statementMap;
-
 
 public: // TODO: (michhol) remove these. currently needed to compile
     Js::EntryPointInfo * GetEntryPoint() { __debugbreak(); return nullptr; }

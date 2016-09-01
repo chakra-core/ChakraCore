@@ -1616,17 +1616,11 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
     if (this->func->IsJitInDebugMode())
     {
-        Js::FunctionBody* functionBody = this->func->GetJnFunction();
-        Assert(functionBody);
-
         // Need to allow filling the formal args slots.
 
-        Js::PropertyIdOnRegSlotsContainer *propertyIdContainer = functionBody->GetPropertyIdOnRegSlotsContainerWithLock();
-        bool hasFormalArgs = propertyIdContainer != nullptr && propertyIdContainer->propertyIdsForFormalArgs != nullptr;
-
-        if (hasFormalArgs)
+        if (func->GetJITFunctionBody()->HasPropIdToFormalsMap())
         {
-            Assert(functionBody->GetInParamsCount() > 0);
+            Assert(func->GetJITFunctionBody()->GetInParamsCount() > 0);
             uint32 endIndex = min(func->GetJITFunctionBody()->GetFirstNonTempLocalIndex() + func->GetJITFunctionBody()->GetInParamsCount() - 1, func->GetJITFunctionBody()->GetEndNonTempLocalIndex());
             for (uint32 index = func->GetJITFunctionBody()->GetFirstNonTempLocalIndex(); index < endIndex; index++)
             {
@@ -1638,7 +1632,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     Js::RegSlot regSlotId = stackSym->GetByteCodeRegSlot();
                     if (func->IsNonTempLocalVar(regSlotId))
                     {
-                        if (!propertyIdContainer->IsRegSlotFormal(regSlotId - func->GetJITFunctionBody()->GetFirstNonTempLocalIndex()))
+                        if (!func->GetJITFunctionBody()->IsRegSlotFormal(regSlotId - func->GetJITFunctionBody()->GetFirstNonTempLocalIndex()))
                         {
                             continue;
                         }

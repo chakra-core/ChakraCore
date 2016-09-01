@@ -205,7 +205,6 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ char
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         runtime->SetSerializeByteCodeForLibrary((attributes & JsRuntimeAttributeSerializeLibraryByteCode) != 0);
 #endif
-
         return JsNoError;
     });
 }

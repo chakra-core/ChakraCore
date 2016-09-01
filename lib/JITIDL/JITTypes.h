@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #ifdef __midl
@@ -332,6 +337,18 @@ typedef struct JITLoopHeaderIDL
     unsigned int endOffset;
 } JITLoopHeaderIDL;
 
+
+typedef struct StatementMapIDL
+{
+    boolean isSubExpression;
+    IDL_PAD1(1)
+    IDL_PAD2(0)
+    int sourceSpanBegin;
+    int sourceSpanEnd;
+    int byteCodeSpanBegin;
+    int byteCodeSpanEnd;
+} StatementMapIDL;
+
 typedef struct AsmJsDataIDL
 {
     boolean isHeapBufferConst;
@@ -491,9 +508,16 @@ typedef struct FunctionBodyDataIDL
     unsigned int auxDataCount;
     unsigned int auxContextDataCount;
 
+    unsigned int fullStatementMapCount;
+    unsigned int propertyIdsForRegSlotsCount;
+
     IDL_PAD4(1)
 
-    SmallSpanSequenceIDL statementMap;
+    IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
+
+    SmallSpanSequenceIDL * statementMap;
+
+    IDL_DEF([size_is(fullStatementMapCount)]) StatementMapIDL * fullStatementMaps;
 
     IDL_DEF([size_is(byteCodeLength)]) byte * byteCodeBuffer;
 

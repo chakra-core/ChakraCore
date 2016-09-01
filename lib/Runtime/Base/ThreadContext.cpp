@@ -1933,6 +1933,14 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
             Js::Throw::InternalError();
         }
     }
+    InitJITThreadContext();
+}
+void
+ThreadContext::InitJITThreadContext()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    Assert(JITManager::GetJITManager()->IsConnected());
+
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
     // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll

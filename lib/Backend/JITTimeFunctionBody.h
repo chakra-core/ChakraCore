@@ -94,7 +94,8 @@ public:
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
 
     const byte * GetByteCodeBuffer() const;
-
+    StatementMapIDL * GetFullStatementMap() const;
+    uint GetFullStatementMapCount() const;
     void * ReadFromAuxData(uint offset) const;
     void * ReadFromAuxContextData(uint offset) const;
     intptr_t GetNestedFuncRef(uint index) const;
@@ -162,6 +163,8 @@ public:
     const JITTimeProfileInfo * GetReadOnlyProfileInfo() const;
     JITTimeProfileInfo * GetProfileInfo() const;
     bool HasProfileInfo() const;
+    bool IsRegSlotFormal(Js::RegSlot reg) const;
+    bool HasPropIdToFormalsMap() const;
 
     static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);
 
@@ -171,7 +174,7 @@ public:
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
 
-    void InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;
+    bool InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;
     Js::FunctionBody::FunctionBodyFlags GetFlags() const;

@@ -1220,6 +1220,7 @@ if (!sourceList)
             this->threadContext->GetRecycler()->SetProfiler(profiler->GetProfiler(), profiler->GetBackgroundRecyclerProfiler());
         }
 #endif
+
 #if DBG
         this->javascriptLibrary->DumpLibraryByteCode();
 
