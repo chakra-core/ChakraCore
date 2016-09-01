@@ -34,6 +34,9 @@ test a single file:
     runtests.py Basics/hello.js
 ''')
 
+DEFAULT_TIMEOUT = 60
+SLOW_TIMEOUT = 180
+
 parser.add_argument('folders', metavar='folder', nargs='*',
                     help='folder subset to run tests')
 parser.add_argument('-b', '--binary', metavar='bin', help='ch full path')
@@ -41,7 +44,7 @@ parser.add_argument('-d', '--debug', action='store_true',
                     help='use debug build');
 parser.add_argument('-t', '--test', action='store_true', help='use test build')
 parser.add_argument('--include-slow', action='store_true',
-                    help='include slow tests')
+                    help='include slow tests (timeout ' + str(SLOW_TIMEOUT) + ' seconds)')
 parser.add_argument('--only-slow', action='store_true',
                     help='run only slow tests')
 parser.add_argument('--nightly', action='store_true',
@@ -50,8 +53,8 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
-parser.add_argument('--timeout', type=int, default=60,
-                    help='test timeout (default 60 seconds)')
+parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
+                    help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true', help='use x86 build')
 parser.add_argument('--x64', action='store_true', help='use x64 build')
@@ -102,6 +105,8 @@ if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:
     not_tags.add('Slow')
+elif args.include_slow and args.timeout == DEFAULT_TIMEOUT:
+    args.timeout = SLOW_TIMEOUT
 
 not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 

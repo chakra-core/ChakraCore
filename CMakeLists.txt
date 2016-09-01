@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+# Keep CMake from caching static/shared library
+# option. Otherwise, CMake fails to update cached
+# references
+if(SHARED_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY CACHE)
+  set(SHARED_LIBRARY 1)
+endif()
+
+if(STATIC_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(SHARED_LIBRARY CACHE)
+  set(STATIC_LIBRARY 1)
+endif()
 
 function(clr_unknown_arch)
     if (WIN32)
@@ -57,6 +73,12 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
         clr_unknown_arch()
     endif()
     set(CLR_CMAKE_PLATFORM_DARWIN 1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -mmacosx-version-min=10.7")
 else()
     clr_unknown_arch()
 endif()
@@ -125,6 +147,8 @@ endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-deprecated-declarations\
+        -Wno-parentheses-equality\
         -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\

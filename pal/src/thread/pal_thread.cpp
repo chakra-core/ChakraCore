@@ -2590,12 +2590,13 @@ CPalThread::GetStackBase()
 
 #if HAVE_PTHREAD_ATTR_GET_NP
         status = pthread_attr_get_np(thread, &attr);
+        _ASSERT_MSG(status != 0, "pthread_attr_get_np call failed");
 #elif HAVE_PTHREAD_GETATTR_NP
         status = pthread_getattr_np(thread, &attr);
+        _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 #else
 #error Dont know how to get thread attributes on this platform!
 #endif
-        _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 
         status = pthread_attr_getstack(&attr, &stackAddr, &stackSize);
         _ASSERT_MSG(status == 0, "pthread_attr_getstack call failed");
@@ -2635,12 +2636,13 @@ CPalThread::GetStackLimit()
 
 #if HAVE_PTHREAD_ATTR_GET_NP
         status = pthread_attr_get_np(thread, &attr);
+        _ASSERT_MSG(status != 0, "pthread_attr_get_np call failed");
 #elif HAVE_PTHREAD_GETATTR_NP
         status = pthread_getattr_np(thread, &attr);
+        _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 #else
 #error Dont know how to get thread attributes on this platform!
 #endif
-        _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 
         status = pthread_attr_getstack(&attr, &m_stackLimit, &stackSize);
         _ASSERT_MSG(status == 0, "pthread_attr_getstack call failed");
@@ -2860,12 +2862,13 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 
 #if HAVE_PTHREAD_ATTR_GET_NP
     status = pthread_attr_get_np(currentThreadHandle, &attr);
+    _ASSERT_MSG(status != 0, "pthread_attr_get_np call failed");
 #elif HAVE_PTHREAD_GETATTR_NP
     status = pthread_getattr_np(currentThreadHandle, &attr);
+    _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 #else
 #   error "Dont know how to get thread attributes on this platform!"
 #endif
-    _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
     
     status = pthread_attr_getstack(&attr, &stackend, &stacksize);
     _ASSERT_MSG(status == 0, "pthread_attr_getstack call failed");

@@ -3,24 +3,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information. 
 //
 
-/*++
-
-
-
-Module Name:
-
-    cruntime/random.cpp
-
-Abstract:
-
-    Implementation of C runtime functions to do random number generation
-
---*/
-
+#include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <mutex>
+#include <pthread.h>
 
 typedef int errno_t;
 #define RANDOM_CACHE_SIZE 8
@@ -30,11 +18,39 @@ static union {
     unsigned int result[RANDOM_CACHE_SIZE];
 } random_cache;
 static unsigned cache_index(RANDOM_CACHE_SIZE);
-static std::mutex random_generator_mutex;
+
+class Lock{
+    static pthread_mutex_t random_generator_mutex;
+public:
+  __attribute__((noinline))
+  static bool Init()
+  {
+      return pthread_mutex_init(&random_generator_mutex, NULL) == 0;
+  } 
+
+  __attribute__((noinline))
+  Lock() {
+     pthread_mutex_lock(&random_generator_mutex);
+  }
+
+  __attribute__((noinline))
+  ~Lock() {
+     pthread_mutex_unlock(&random_generator_mutex);
+  }
+};
+
+pthread_mutex_t Lock::random_generator_mutex;
 
 static bool GetRandom(unsigned int *result) noexcept
 {
-    std::lock_guard<std::mutex> guard(random_generator_mutex);
+    static bool mutex_initialized = Lock::Init();
+    // Do not put the `if check` into `Init` or replace it with Assert
+    if(!mutex_initialized) {
+      fprintf(stderr, "pthread_mutex_init has failed");
+      abort();
+    }
+    Lock lock;
+
     if (cache_index < RANDOM_CACHE_SIZE) {
         *result = random_cache.result[cache_index++];
         return true;
@@ -74,4 +90,3 @@ errno_t __cdecl rand_s(unsigned int* randomValue) noexcept
         return 1;
     }
 }
-

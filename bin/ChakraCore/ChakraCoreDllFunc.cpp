@@ -16,6 +16,16 @@
 #include "Base/VTuneChakraProfile.h"
 #endif
 
+#ifdef __APPLE__
+// dummy usage of JSRT to force export JSRT on dylib
+#include "ChakraCore.h"
+void DummyJSRTCall() {
+    JsRuntimeHandle *runtime;
+    JsRuntimeAttributes attr;
+    JsCreateRuntime(attr, nullptr, runtime);
+}
+#endif
+
 extern HANDLE g_hInstance;
 #ifdef _WIN32
 static ATOM  lockedDll = 0;
@@ -61,7 +71,7 @@ static BOOL AttachProcess(HANDLE hmod)
 #endif
 #ifdef VTUNE_PROFILING
     VTuneChakraProfile::Register();
-#endif 
+#endif
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
@@ -166,7 +176,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 #endif
 #ifdef VTUNE_PROFILING
         VTuneChakraProfile::UnRegister();
-#endif 
+#endif
 
         // don't do anything if we are in forceful shutdown
         // try to clean up handles in graceful shutdown
