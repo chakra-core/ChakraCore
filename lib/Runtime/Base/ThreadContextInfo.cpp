@@ -12,6 +12,7 @@ ThreadContextInfo::ThreadContextInfo() :
 {
 }
 
+#if ENABLE_NATIVE_CODEGEN
 intptr_t
 ThreadContextInfo::GetNullFrameDisplayAddr() const
 {
@@ -287,6 +288,7 @@ ThreadContextInfo::GetStringMatchNameAddr() const
 {
     return SHIFT_ADDR(this, Js::Constants::StringMatch);
 }
+#endif
 
 bool
 ThreadContextInfo::IsAllJITCodeInPreReservedRegion() const
@@ -331,13 +333,13 @@ ThreadContextInfo::IsCFGEnabled()
 void
 ThreadContextInfo::BeginJIT()
 {
-    InterlockedExchangeAdd(&m_activeJITCount, 1);
+    InterlockedExchangeAdd(&m_activeJITCount, (uint)1);
 }
 
 void
 ThreadContextInfo::EndJIT()
 {
-    InterlockedExchangeSubtract(&m_activeJITCount, 1);
+    InterlockedExchangeSubtract(&m_activeJITCount, (uint)1);
 }
 
 bool
@@ -346,6 +348,7 @@ ThreadContextInfo::IsJITActive()
     return m_activeJITCount != 0;
 }
 
+#if ENABLE_NATIVE_CODEGEN
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 {
     Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
@@ -361,3 +364,4 @@ intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address)
     }
     return (intptr_t)address + context->GetCRTBaseAddressDifference();
 }
+#endif

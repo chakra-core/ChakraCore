@@ -534,13 +534,17 @@ private:
     intptr_t m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
+#if ENABLE_NATIVE_CODEGEN
 public:
+
     void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
 
     intptr_t GetRemoteThreadContextAddr() const
     {
         return m_remoteThreadContextInfo;
     }
+#endif
+
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
     typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
@@ -1057,11 +1061,12 @@ public:
 
     void ShutdownThreads()
     {
+#if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
         }
-#if ENABLE_NATIVE_CODEGEN
+
         if (jobProcessor)
         {
             jobProcessor->Close();
@@ -1279,7 +1284,9 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
+#if ENABLE_NATIVE_CODEGEN
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
+#endif
 
     virtual intptr_t GetDisableImplicitFlagsAddr() const override;
     virtual intptr_t GetImplicitCallFlagsAddr() const override;

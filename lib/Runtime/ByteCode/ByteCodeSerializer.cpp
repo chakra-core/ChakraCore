@@ -3343,48 +3343,44 @@ public:
         bool isPropertyIdArrayAvailable = false;
         current = ReadBool(current, &isPropertyIdArrayAvailable);
 
-        if (!isPropertyIdArrayAvailable)
+        if (isPropertyIdArrayAvailable)
         {
-            goto Done;
+            uint32 count = 0;
+            current = ReadUInt32(current, &count);
+
+            byte extraSlotCount = 0;
+            current = ReadByte(current, &extraSlotCount);
+
+            PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId), count, extraSlotCount);
+            propIds->count = count;
+
+            bool hadDuplicates = false;
+            current = ReadBool(current, &hadDuplicates);
+            propIds->hadDuplicates = hadDuplicates;
+
+            bool has__proto__ = false;
+            current = ReadBool(current, &has__proto__);
+            propIds->has__proto__ = has__proto__;
+
+            bool hasNonSimpleParams = false;
+            current = ReadBool(current, &hasNonSimpleParams);
+            propIds->hasNonSimpleParams = hasNonSimpleParams;
+
+            int id = 0;
+            for (uint i = 0; i < propIds->count; ++i)
+            {
+                current = ReadInt32(current, &id);
+                PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
+                propIds->elements[i] = propertyId;
+            }
+
+            for (int i = 0; i < extraSlotCount; ++i)
+            {
+                current = ReadInt32(current, &id);
+                propIds->elements[propIds->count + i] = id;
+            }
         }
 
-        uint32 count = 0;
-        current = ReadUInt32(current, &count);
-
-        byte extraSlotCount = 0;
-        current = ReadByte(current, &extraSlotCount);
-
-        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId),count, extraSlotCount);
-        propIds->count = count;
-        
-
-        bool hadDuplicates = false;
-        current = ReadBool(current, &hadDuplicates);
-        propIds->hadDuplicates = hadDuplicates;
-
-        bool has__proto__ = false;
-        current = ReadBool(current, &has__proto__);
-        propIds->has__proto__ = has__proto__;
-
-        bool hasNonSimpleParams = false;
-        current = ReadBool(current, &hasNonSimpleParams);
-        propIds->hasNonSimpleParams = hasNonSimpleParams;
-
-        int id = 0;
-        for (uint i = 0; i < propIds->count; ++i)
-        {
-            current = ReadInt32(current, &id);
-            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
-            propIds->elements[i] = propertyId;
-        }
-
-        for (int i = 0; i < extraSlotCount; ++i)
-        {
-            current = ReadInt32(current, &id);
-            propIds->elements[propIds->count + i] = id;
-        }
-
-    Done:
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
         Assert(constant == magicEndOfPropIdsOfFormals);

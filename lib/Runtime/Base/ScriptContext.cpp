@@ -326,7 +326,10 @@ namespace Js
         intConstPropsOnGlobalObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
         intConstPropsOnGlobalUserObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
 
+#if ENABLE_NATIVE_CODEGEN
         m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
+#endif
+
         this->debugContext = HeapNew(DebugContext, this);
     }
 
@@ -378,6 +381,7 @@ namespace Js
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
+#if ENABLE_NATIVE_CODEGEN
         if (m_domFastPathHelperMap != nullptr)
         {
             HeapDelete(m_domFastPathHelperMap);
@@ -387,6 +391,7 @@ namespace Js
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
             JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
         }
+#endif
 
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
@@ -4412,6 +4417,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void ScriptContext::InitializeRemoteScriptContext()
     {
         Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
@@ -4465,6 +4471,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
         JITManager::GetJITManager()->InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
     }
+#endif
 
     intptr_t ScriptContext::GetNullAddr() const
     {
@@ -4621,6 +4628,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (intptr_t)this;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void ScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
     {
         m_domFastPathHelperMap->Add(funcInfoAddr, helper);
@@ -4637,6 +4645,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Assert(found);
         return helper;
     }
+#endif
 
     intptr_t ScriptContext::GetVTableAddress(VTableValue vtableType) const
     {

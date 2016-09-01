@@ -3829,9 +3829,29 @@ VirtualAlloc(
          IN DWORD flProtect);
 
 PALIMPORT
+LPVOID
+PALAPI
+VirtualAllocEx(
+         IN HANDLE hProcess,
+         IN LPVOID lpAddress,
+         IN SIZE_T dwSize,
+         IN DWORD flAllocationType,
+         IN DWORD flProtect);
+
+PALIMPORT
 BOOL
 PALAPI
 VirtualFree(
+        IN LPVOID lpAddress,
+        IN SIZE_T dwSize,
+        IN DWORD dwFreeType);
+
+
+PALIMPORT
+BOOL
+PALAPI
+VirtualFreeEx(
+        IN HANDLE hProcess,
         IN LPVOID lpAddress,
         IN SIZE_T dwSize,
         IN DWORD dwFreeType);
@@ -3840,6 +3860,16 @@ PALIMPORT
 BOOL
 PALAPI
 VirtualProtect(
+           IN LPVOID lpAddress,
+           IN SIZE_T dwSize,
+           IN DWORD flNewProtect,
+           OUT PDWORD lpflOldProtect);
+
+PALIMPORT
+BOOL
+PALAPI
+VirtualProtectEx(
+           IN HANDLE hProcess,
            IN LPVOID lpAddress,
            IN SIZE_T dwSize,
            IN DWORD flNewProtect,
@@ -3877,6 +3907,15 @@ PALIMPORT
 SIZE_T
 PALAPI
 VirtualQuery(
+         IN LPCVOID lpAddress,
+         OUT PMEMORY_BASIC_INFORMATION lpBuffer,
+         IN SIZE_T dwLength);
+
+PALIMPORT
+SIZE_T
+PALAPI
+VirtualQueryEx(
+         IN HANDLE hProcess,
          IN LPCVOID lpAddress,
          OUT PMEMORY_BASIC_INFORMATION lpBuffer,
          IN SIZE_T dwLength);

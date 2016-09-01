@@ -175,10 +175,12 @@ namespace Js
         void SetHasFixedValue() { this->hasFixedValue = true; }
         bool HasFixedValue() const { return this->hasFixedValue; }
 
+#if ENABLE_NATIVE_CODEGEN
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
             Assert(false); // not implemented yet
         }
+#endif
     };
 
     class JitEquivalentTypeGuard : public JitIndexedPropertyGuard
@@ -214,10 +216,12 @@ namespace Js
             this->cache = cache;
         }
 
+#if ENABLE_NATIVE_CODEGEN
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
             // cache will be recycler allocated pointer
         }
+#endif
     };
 
 #pragma region Inline Cache Info class declarations
@@ -409,7 +413,9 @@ namespace Js
             // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
+#if ENABLE_NATIVE_CODEGEN
             NativeCodeData* jitTransferRawData;
+#endif
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
             TypeGuardTransferData typeGuardTransferData;
             CtorCacheTransferData ctorCacheTransferData;
@@ -425,7 +431,9 @@ namespace Js
                 equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), jitTransferRawData(nullptr),
                 falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0){}
 
+#if ENABLE_NATIVE_CODEGEN
             void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
+#endif
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
             int GetRuntimeTypeRefCount() { return this->runtimeTypeRefs ? this->runtimeTypeRefs->count : 0; }
@@ -463,9 +471,10 @@ namespace Js
         private:
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
-
+#if ENABLE_NATIVE_CODEGEN
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
+#endif
         CodeGenNumberChunk * numberChunks;
 
         SmallSpanSequence *nativeThrowSpanSequence;
@@ -525,11 +534,12 @@ namespace Js
         };
         uint frameHeight;
 
+#if ENABLE_NATIVE_CODEGEN
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
         void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
-
         void SetNumberChunks(CodeGenNumberChunk * chunks) { numberChunks = chunks; }
+#endif
 
     private:
 #if ENABLE_NATIVE_CODEGEN

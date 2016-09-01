@@ -11,6 +11,7 @@ class ThreadContextInfo
 public:
     ThreadContextInfo();
 
+#if ENABLE_NATIVE_CODEGEN
     intptr_t GetNullFrameDisplayAddr() const;
     intptr_t GetStrictNullFrameDisplayAddr() const;
 
@@ -61,6 +62,7 @@ public:
 
     intptr_t GetStringReplaceNameAddr() const;
     intptr_t GetStringMatchNameAddr() const;
+#endif
 
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
@@ -73,11 +75,14 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const = 0;
 
-    virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
-
     virtual intptr_t GetDisableImplicitFlagsAddr() const = 0;
     virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
+
+#if ENABLE_NATIVE_CODEGEN
+    virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
+    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
+#endif
 
     virtual intptr_t GetDebuggingFlagsAddr() const = 0;
     virtual intptr_t GetDebugStepTypeAddr() const = 0;
@@ -86,7 +91,6 @@ public:
 
     virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
     virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
-    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
 
@@ -111,6 +115,7 @@ private:
     
 };
 
+#if ENABLE_NATIVE_CODEGEN
 // TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 template<typename T>
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
@@ -130,5 +135,7 @@ intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
     return (intptr_t)address + context->GetCRTBaseAddressDifference();
 }
 
+
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);
+#endif

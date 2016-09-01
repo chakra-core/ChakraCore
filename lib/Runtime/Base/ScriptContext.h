@@ -442,7 +442,9 @@ namespace Js
             return isInvalidatedForHostObjects;
         }
 
+#if ENABLE_NATIVE_CODEGEN
         void InitializeRemoteScriptContext();
+#endif
 
 #ifdef ENABLE_JS_ETW
         void EmitStackTraceEvent(__in UINT64 operationID, __in USHORT maxFrameCount, bool emitV2AsyncStackEvent);
@@ -1686,8 +1688,10 @@ private:
         virtual bool IsPRNGSeeded() const override;
         virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
+#if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
         virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
+#endif
 
         virtual intptr_t GetAddr() const override;
 
@@ -1709,7 +1713,9 @@ private:
     private:
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
 
+#if ENABLE_NATIVE_CODEGEN
         JITDOMFastPathHelperMap * m_domFastPathHelperMap;
+#endif
 
 #ifdef RECYCLER_PERF_COUNTERS
         size_t bindReferenceCount;

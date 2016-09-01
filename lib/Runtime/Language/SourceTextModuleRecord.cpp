@@ -804,6 +804,7 @@ namespace Js
                 localSlotCount = 0;
             }
 
+#if ENABLE_NATIVE_CODEGEN
             if (JITManager::GetJITManager()->IsOOPJITEnabled())
             {
                 JITManager::GetJITManager()->AddModuleRecordInfo(
@@ -811,6 +812,7 @@ namespace Js
                     this->GetModuleId(),
                     (intptr_t)this->GetLocalExportSlots());
             }
+#endif
         }
     }
 

@@ -319,11 +319,13 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
+#if ENABLE_NATIVE_CODEGEN
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
     return (intptr_t)&X86_TEMP_SIMD[tempIndex];
 }
+#endif
 
 intptr_t 
 ThreadContext::GetDisableImplicitFlagsAddr() const
@@ -1091,11 +1093,14 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // Add to the map
     m_propertyMap->Add(propertyRecord);
 
+#if ENABLE_NATIVE_CODEGEN
     // add to OOP JIT process if the context has already been initialized
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
     {
         JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
     }
+#endif
+
     PropertyRecordTrace(_u("Added property '%s' at 0x%08x, pid = %d\n"), propertyName, propertyRecord, propertyId);
 
     // Do not store the pid for symbols in the direct property name table.
@@ -1910,6 +1915,7 @@ ThreadContext::IsInAsyncHostOperation() const
 }
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
 void
 ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
 {
@@ -1957,6 +1963,8 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
         });
     }
 }
+#endif
+
 #if ENABLE_TTD
 
 bool ThreadContext::IsTTDInitialized() const
@@ -2177,10 +2185,12 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
     if (WellKnownHostType_HTMLAllCollection == wellKnownType)
     {
         this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId;
+#if ENABLE_NATIVE_CODEGEN
         if (this->m_remoteThreadContextInfo != 0)
         {
             JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
         }
+#endif
     }
 }
 

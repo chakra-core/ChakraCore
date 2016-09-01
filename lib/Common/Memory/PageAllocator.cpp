@@ -190,7 +190,7 @@ PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool commi
 
 template<typename T>
 PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, void* address, uint pageCount, uint committedCount) :
-    SegmentBase(allocator, allocator->maxAllocPageCount), decommitPageCount(0), freePageCount(0)
+    SegmentBase<T>(allocator, allocator->maxAllocPageCount), decommitPageCount(0), freePageCount(0)
 {
     this->address = (char*)address;
     this->segmentPageCount = pageCount;
@@ -345,7 +345,7 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
                 }
             }
 
-            void * ret = GetAllocator()->GetVirtualAllocator()->Alloc(pages, pageCount * AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator(), this->allocator->processHandle);
+            void * ret = this->GetAllocator()->GetVirtualAllocator()->Alloc(pages, pageCount * AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator(), this->allocator->processHandle);
             if (ret != nullptr)
             {
                 Assert(ret == pages);
@@ -463,7 +463,7 @@ PageSegmentBase<T>::DecommitPages(__in void * address, uint pageCount)
     if (!onlyUpdateState)
     {
 #pragma warning(suppress: 6250)
-        GetAllocator()->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
+        this->GetAllocator()->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
     }
 
     Assert(decommitPageCount == (uint)this->GetCountOfDecommitPages());
@@ -484,7 +484,7 @@ PageSegmentBase<T>::DecommitFreePages(size_t pageToDecommit)
             this->ClearBitInFreePagesBitVector(i);
             this->SetBitInDecommitPagesBitVector(i);
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(currentAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
+            this->GetAllocator()->GetVirtualAllocator()->Free(currentAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
             decommitCount++;
         }
         currentAddress += AutoSystemInfo::PageSize;

@@ -6514,10 +6514,12 @@ namespace Js
     void JavascriptLibrary::SetIsPRNGSeeded(bool val)
     {
         this->isPRNGSeeded = val;
+#if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
         }
+#endif
     }
     INT_PTR* JavascriptLibrary::GetVTableAddresses()
     {

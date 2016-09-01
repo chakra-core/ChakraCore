@@ -9110,7 +9110,6 @@ namespace Js
             {
                 this->constructorCaches->Clear();
             }
-#endif
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
             if (this->xdataInfo != nullptr)
@@ -9120,6 +9119,8 @@ namespace Js
                 this->xdataInfo = nullptr;
             }
 #endif
+#endif
+
             // This is how we set the CleanedUp state
             this->workItem = nullptr;
             this->nativeAddress = nullptr;

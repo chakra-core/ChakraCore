@@ -31,7 +31,7 @@ add_library (Chakra.Runtime.Language OBJECT
     JavascriptOperators.cpp
     JavascriptStackWalker.cpp
     ProfilingHelpers.cpp
-    ReadOnlyDynamicProfileInfo.cpp
+    #ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
     # SimdBool16x8Operation.cpp
     # SimdBool16x8OperationX86X64.cpp
