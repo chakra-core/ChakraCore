@@ -379,7 +379,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
 		IR::SymOpnd *symOpnd = src->AsSymOpnd();
 		RegNum reg = LinearScanMD::GetParamReg(symOpnd, this->func);
 
-		if (reg != RegNOREG && !PHASE_OFF(Js::LivenessPhase, this->func))
+		if (reg != RegNOREG && PHASE_ON(Js::RegParamsPhase, this->func))
 		{
 			StackSym *stackSym = symOpnd->m_sym->AsStackSym();
 			Lifetime *lifetime = stackSym->scratch.linearScan.lifetime;
