@@ -1,0 +1,4 @@
+this.prop1 valueOf
+ary.length = 10
+this.prop1 setter
+done

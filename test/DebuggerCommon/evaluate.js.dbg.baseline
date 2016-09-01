@@ -1,0 +1,1033 @@
+[
+  {
+    "evaluate": {
+      "\"=========== not supported\"": "string =========== not supported"
+    }
+  },
+  {
+    "evaluate": {
+      "1 + 2": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "1 - 2": "number -1"
+    }
+  },
+  {
+    "evaluate": {
+      "-2": "number -2"
+    }
+  },
+  {
+    "evaluate": {
+      "1*2": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "1/2": "number 0.5"
+    }
+  },
+  {
+    "evaluate": {
+      "\"\"\"": "Error Unterminated string constant"
+    }
+  },
+  {
+    "evaluate": {
+      "a.x = 1": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "(1)": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "1;": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "{": "Error Expected '}'"
+    }
+  },
+  {
+    "evaluate": {
+      "": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "  ": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "Object.prototype.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "\"=========== this\"": "string =========== this"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "object null"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "Error Unable to get property 'length' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "Error Unable to get property '1' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "Error Unable to get property '8' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "Error Unable to get property 'hasOwnProperty' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "telemetryLog": "function function telemetryLog() { [native code] }",
+        "console": "Object {...}",
+        "not_used": "number 0"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "Error Unable to get property 'length' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "Error Unable to get property '1' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "Error Unable to get property '8' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "Error Unable to get property 'hasOwnProperty' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "telemetryLog": "function function telemetryLog() { [native code] }",
+        "console": "Object {...}",
+        "not_used": "number 0"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "number 12"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "string Number.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Number 12"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {}
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "string Number.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "string Boolean.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {}
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "string Boolean.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "string abc"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "string b"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "String \"abc\""
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "length": "number 3"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "string b"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "String \"def\""
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "string e"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "String \"def\""
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "length": "number 3"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "string e"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "Array [3,4,5]"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Array [3,4,5]"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "length": "number 3",
+        "[0]": "string 3",
+        "[1]": "string 4",
+        "[2]": "string 5"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "Int8Array [object Int8Array]"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "number 8"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Int8Array [object Int8Array]"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "[0]": "string 0",
+        "[1]": "string 1",
+        "[2]": "string 2",
+        "[3]": "string 3",
+        "[4]": "string 0",
+        "[5]": "string -1",
+        "[6]": "string -2",
+        "[7]": "string -3"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "v.length": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v[1]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "v.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "this": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "  this  ": {
+        "thisp": "string thisv"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "this . thisp": "string thisv"
+    }
+  },
+  {
+    "evaluate": {
+      "this[1]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "this[8]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "\"=========== arguments\"": "string =========== arguments"
+    }
+  },
+  {
+    "evaluate": {
+      " arguments ": {
+        "#__proto__": "Object {...}",
+        "length": "number 2",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 12",
+        "[1]": "string 13"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "arguments.length": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[0]": "number 12"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[1]": "number 13"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[2]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x": "number 12"
+    }
+  },
+  {
+    "evaluate": {
+      " x . nump ": "string numv"
+    }
+  },
+  {
+    "evaluate": {
+      "x[1]": "string Number.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "x.nop": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x.nop[1]": "Error Unable to get property '1' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "x[3]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x[3].nop": "Error Unable to get property 'nop' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      " arguments ": {
+        "#__proto__": "Object {...}",
+        "length": "number 2",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 12"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "arguments.length": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[0]": "number 12"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[1]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[2]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x": "number 12"
+    }
+  },
+  {
+    "evaluate": {
+      " x . nump ": "string numv"
+    }
+  },
+  {
+    "evaluate": {
+      "x[1]": "string Number.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "x.nop": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x.nop[1]": "Error Unable to get property '1' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "x[3]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "x[3].nop": "Error Unable to get property 'nop' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "\"=========== local var\"": "string =========== local var"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a1": "string a1"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a2.a21": "string a21"
+    }
+  },
+  {
+    "evaluate": {
+      "a.b": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a.b.c": "Error Unable to get property 'c' of undefined or null reference"
+    }
+  },
+  {
+    "evaluate": {
+      "a[0]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a[1]": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "a[1].b": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a[1][0]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a[1][1]": "string Number.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "a[\"a1\"]": "string a1"
+    }
+  },
+  {
+    "evaluate": {
+      "a[a.a1]": "string a1"
+    }
+  },
+  {
+    "evaluate": {
+      "a[a.a1[ 2] ]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a[ \"a1\"[2]] ": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a[\"1\"]": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "a[a.a2[1]]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a[1[2]]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a3": "Array [0,1,2,,4]"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a3.length": "number 5"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a3[0]": "number 0"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a3[3]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a.a3[a.a3[1[2]]]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a.true": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "a.undefined": "string undef"
+    }
+  },
+  {
+    "evaluate": {
+      "a[true]": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "a[a.true]": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "a[true[2]]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "123": "number 123"
+    }
+  },
+  {
+    "evaluate": {
+      "123[1[2]]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "true": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "this.true": "string this_true"
+    }
+  },
+  {
+    "evaluate": {
+      "true[0]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "true[1]": "string Boolean.p[1]"
+    }
+  },
+  {
+    "evaluate": {
+      "a.ah": "string non-enum"
+    }
+  },
+  {
+    "evaluate": {
+      "a.ap": "string ap"
+    }
+  },
+  {
+    "evaluate": {
+      "a.aph": "string non-enum"
+    }
+  },
+  {
+    "evaluate": {
+      "a.getn": "string getv"
+    }
+  },
+  {
+    "evaluate": {
+      "a.getn.length": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[a.getn]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "\"=========== scoped lookup\"": "string =========== scoped lookup"
+    }
+  },
+  {
+    "evaluate": {
+      "a[i]": "number 0"
+    }
+  },
+  {
+    "evaluate": {
+      "a[i]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a[i]": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a[i]": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "Object.prototype.hasOwnProperty": "function function hasOwnProperty() { [native code] }"
+    }
+  },
+  {
+    "evaluate": {
+      "\"=========== builtins\"": "string =========== builtins"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "Array [0,,2,3]"
+    }
+  },
+  {
+    "evaluate": {
+      "a.length": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[3]": "number 3"
+    }
+  },
+  {
+    "evaluate": {
+      "a[99]": "string Object.p[99]"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "string abcd"
+    }
+  },
+  {
+    "evaluate": {
+      "a.length": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[3]": "string d"
+    }
+  },
+  {
+    "evaluate": {
+      "a[99]": "string Object.p[99]"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "String \"efgh\""
+    }
+  },
+  {
+    "evaluate": {
+      "a.length": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[3]": "string h"
+    }
+  },
+  {
+    "evaluate": {
+      "a[11]": "number 11"
+    }
+  },
+  {
+    "evaluate": {
+      "a[99]": "string Object.p[99]"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "Uint8Array [object Uint8Array]"
+    }
+  },
+  {
+    "evaluate": {
+      "a.length": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[3]": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a[99]": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a.byteLength": "number 4"
+    }
+  },
+  {
+    "evaluate": {
+      "a.byteOffset": "number 0"
+    }
+  },
+  {
+    "evaluate": {
+      "a.BYTES_PER_ELEMENT": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "a.buffer": "ArrayBuffer [object ArrayBuffer]"
+    }
+  }
+]

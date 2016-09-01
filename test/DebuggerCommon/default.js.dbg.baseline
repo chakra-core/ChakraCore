@@ -1,0 +1,3231 @@
+[
+  {
+    "log": "Stepping on default params - formals on regslot"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "a = 11": "number 11"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 11"
+    }
+  },
+  {
+    "log": "Stepping on default params - formals on regslot and slot array"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "undefined undefined",
+      "c": "undefined undefined",
+      "a": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "undefined undefined",
+      "c": "undefined undefined",
+      "a": "number 1"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "a = 11": "number 11"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 1"
+    }
+  },
+  {
+    "log": "Stepping on default params - formals on activation object"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "a = 11": "number 11"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 11"
+    }
+  },
+  {
+    "log": "Stepping on default params - has mixed destructuring patterns"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "string <large string>",
+      "c": "string <large string>",
+      "b": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "c": "string <large string>",
+      "b": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - one formal has function as default"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - one formal has function as default but formals on slot array"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - one formal has function as default but formals on activation object"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - break at function at formals and do setframe"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "log": "Stepping on default params - split scope due to function at formals"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "number 3",
+      "m": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - split scope due to function at formals and few var captured in inner function"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "function <large string>",
+      "c": "undefined undefined",
+      "a": "number 1",
+      "m": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - split scope and body has eval"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined",
+      "arguments": "Object {...}",
+      "m": "undefined undefined"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "log": "Stepping on default params - split scope and body has eval inside inner function"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined",
+      "m": "undefined undefined"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 13,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 18,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 21,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 30,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 33,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 39,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 7,
+        "line": 42,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 8,
+        "line": 47,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 9,
+        "line": 50,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 10,
+        "line": 55,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 11,
+        "line": 58,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 12,
+        "line": 65,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 13,
+        "line": 68,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 14,
+        "line": 76,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 15,
+        "line": 79,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 16,
+        "line": 82,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 17,
+        "line": 89,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 18,
+        "line": 94,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 19,
+        "line": 97,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 20,
+        "line": 106,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 21,
+        "line": 109,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 22,
+        "line": 117,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 23,
+        "line": 120,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 24,
+        "line": 128,
+        "column": 4,
+        "scriptId": 2
+      }
+    ]
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 18,
+        "column": 2,
+        "sourceText": "var y = 1",
+        "function": "test_objectNoArg"
+      },
+      {
+        "line": 36,
+        "column": 0,
+        "sourceText": "test_objectNoArg()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 32,
+        "column": 2,
+        "sourceText": "Array = oldArray",
+        "function": "test_arrayNoArg"
+      },
+      {
+        "line": 37,
+        "column": 0,
+        "sourceText": "test_arrayNoArg()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

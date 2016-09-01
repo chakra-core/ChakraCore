@@ -1,0 +1,27 @@
+typeof varProp == 'undefined' : true
+typeof letProp == 'undefined' : true
+typeof constProp == 'undefined' : true
+typeof func == 'undefined' : true
+typeof nonVarProp == 'undefined' : true
+typeof class1 == 'undefined' : true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+typeof letProp2 == 'undefined' : true
+typeof constProp2 == 'undefined' : true
+true
+true
+true
+true
+true
+true
+true
