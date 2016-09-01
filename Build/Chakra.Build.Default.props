@@ -7,5 +7,8 @@
 
     <!-- Always use Platform SDK for core builds -->
     <EventManifestXmlPath>$(WindowsSDK80Path)Include\um</EventManifestXmlPath>    
+    <!-- Unless indicated otherwise, statically link the C++ Runtime into ChakraCore.dll -->
+    <RuntimeLib Condition="'$(RuntimeLib)'==''">static_library</RuntimeLib>
+
   </PropertyGroup>    
 </Project>

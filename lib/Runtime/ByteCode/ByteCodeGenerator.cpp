@@ -1392,13 +1392,6 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         paramScope->SetMustInstantiate(true);
     }
 
-    if (pnode->sxFnc.IsAsync())
-    {
-        // For async methods we use the same parameter symbols in the inner function too.
-        // So mark them as having non local reference here.
-        funcInfo->paramScope->ForceAllSymbolNonLocalReference(this);
-    }
-
     PushFuncInfo(_u("StartBindFunction"), funcInfo);
 
     if (funcExprScope)
@@ -1704,7 +1697,9 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     Assert(!funcInfo->IsGlobalFunction());
-    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator() && !funcInfo->byteCodeFunction->IsModule();
+    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode()
+        && !funcInfo->byteCodeFunction->IsCoroutine()
+        && !funcInfo->byteCodeFunction->IsModule();
     if (!doStackNestedFunc)
     {
         return false;
@@ -2368,7 +2363,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                     }
 #endif
                 }
-                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsGenerator() && doStackArgsOpt /*= Optimize arguments in backend*/);
+                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsCoroutine() && doStackArgsOpt /*= Optimize arguments in backend*/);
                 if (funcInfo->inArgsCount == 0)
                 {
                     // If no formals to function, no need to create the propertyid array
@@ -2435,8 +2430,7 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 byteCodeGenerator->AssignRegister(sym);
                 pnode->location = sym->GetLocation();
 
-                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc() ||
-                    sym->GetScope()->GetFunc()->root->sxFnc.IsAsync());
+                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
                 if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
                 {
                     Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
@@ -4169,7 +4163,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         // VisitFunctionsInScope has already done binding within the declared function. Here, just record the fact
         // that the parent function has a local/global declaration in it.
         BindFuncSymbol(pnode, byteCodeGenerator);
-        if (pnode->sxFnc.IsGenerator())
+        if (pnode->sxFnc.IsCoroutine())
         {
             // Always assume generator functions escape since tracking them requires tracking
             // the resulting generators in addition to the function.
@@ -4681,7 +4675,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopFncDecl:
         if (!byteCodeGenerator->TopFuncInfo()->IsGlobalFunction())
         {
-            if (pnode->sxFnc.IsGenerator())
+            if (pnode->sxFnc.IsCoroutine())
             {
                 // Assume generators always escape; otherwise need to analyze if
                 // the return value of calls to generator function, the generator
@@ -4927,9 +4921,9 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             FuncInfo* parent = funcInfo;
             if (funcInfo->IsLambda())
             {
-                // If this is a lambda inside a class member, the class member will need to load super.
+                // If this is a lambda inside a method or a constructor, the enclosing function will need to load super.
                 parent = byteCodeGenerator->FindEnclosingNonLambda();
-                if (parent->root->sxFnc.IsClassMember())
+                if (parent->root->sxFnc.IsMethod() || parent->root->sxFnc.IsConstructor())
                 {
                     // Set up super reference
                     if (containsSuperReference)
@@ -4984,8 +4978,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 }
             }
 
-            // An eval call in a class member needs to load super.
-            if (funcInfo->root->sxFnc.IsClassMember())
+            // An eval call in a method or a constructor needs to load super.
+            if (funcInfo->root->sxFnc.IsMethod() || funcInfo->root->sxFnc.IsConstructor())
             {
                 funcInfo->AssignSuperRegister();
                 if (funcInfo->root->sxFnc.IsClassConstructor() && !funcInfo->root->sxFnc.IsBaseClassConstructor())
@@ -5034,18 +5028,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         {
             sym = pnode->sxVar.sym;
             Assert(sym != nullptr);
-
-            if (sym->GetScope()->GetEnclosingFunc() != byteCodeGenerator->TopFuncInfo())
-            {
-                FuncInfo* parentFunc = GetParentFuncInfo(byteCodeGenerator->TopFuncInfo());
-                Assert(parentFunc == sym->GetScope()->GetEnclosingFunc());
-                if (parentFunc->root->sxFnc.IsAsync())
-                {
-                    // async functions produce a situation where a var decl can have a symbol
-                    // declared from an enclosing function.  In this case just no-op the vardecl.
-                    return;
-                }
-            }
 
             Assert(sym->GetScope()->GetEnclosingFunc() == byteCodeGenerator->TopFuncInfo());
 

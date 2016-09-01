@@ -29,6 +29,7 @@ namespace TTD
         struct SnapPrimitiveValue;
         struct SlotArrayInfo;
         struct ScriptFunctionScopeInfo;
+        struct SnapFunctionBodyScopeChain;
         struct TopLevelScriptLoadFunctionBodyResolveInfo;
         struct TopLevelNewFunctionBodyResolveInfo;
         struct TopLevelEvalFunctionBodyResolveInfo;
@@ -79,6 +80,7 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_CONVERT_ENV_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_SLOTARRAY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_SCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 
 //Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
 #define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)

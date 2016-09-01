@@ -333,7 +333,7 @@ namespace Js
         virtual BOOL Seal() override;
         virtual BOOL Freeze() override;
 
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
@@ -347,10 +347,10 @@ namespace Js
         virtual BOOL SetItemAttributes(uint32 index, PropertyAttributes attributes) override;
         virtual BOOL SetItemAccessors(uint32 index, Var getter, Var setter) override;
         virtual BOOL IsObjectArrayFrozen() override;
-        virtual BOOL GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext) override;
 
         // Get non-index enumerator for SCA
-        virtual BOOL GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext);
+        BOOL GetNonIndexEnumerator(JavascriptStaticEnumerator * enumerator, ScriptContext* requestContext);
         virtual BOOL IsItemEnumerable(uint32 index);
 
         template<typename Func>

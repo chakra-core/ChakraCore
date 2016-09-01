@@ -1,0 +1,12 @@
+test1: nested setter without getter
+in nested setter1
+val is undefined
+test2: nested setter and setter
+in nested setter2
+val is [object Object]
+val is 11
+test3: nested setter and setter from this
+val is [object Object]
+val is 12
+
+Reached end of Execution -- Exiting.

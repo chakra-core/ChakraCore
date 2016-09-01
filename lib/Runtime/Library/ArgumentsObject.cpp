@@ -4,17 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#include "Library/ArgumentsObjectEnumerator.h"
+
 namespace Js
 {
-    BOOL ArgumentsObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
-        {
-            *enumerator = nullptr;
-            return false;
-        }
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ArgumentsObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+        return GetEnumeratorWithPrefix(
+            RecyclerNew(GetScriptContext()->GetRecycler(), ArgumentsObjectPrefixEnumerator, this, flags, requestContext),
+            enumerator, flags, requestContext);
     }
 
     BOOL ArgumentsObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
@@ -670,15 +668,15 @@ namespace Js
         return this->DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
     }
 
-    BOOL ES5HeapArgumentsObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ES5HeapArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
+        ES5ArgumentsObjectEnumerator * es5HeapArgumentsObjectEnumerator = ES5ArgumentsObjectEnumerator::New(this, flags, requestContext);
+        if (es5HeapArgumentsObjectEnumerator == nullptr)
         {
-            *enumerator = nullptr;
-            return FALSE;
+            return false;
         }
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArgumentsObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+
+        return enumerator->Initialize(es5HeapArgumentsObjectEnumerator, nullptr, nullptr, flags, requestContext);
     }
 
     BOOL ES5HeapArgumentsObject::PreventExtensions()

@@ -1099,7 +1099,7 @@ FlowGraph::Destroy(void)
                 // Skipping Try blocks as we have dependency on blocks to get the last instr(see below in this function)
                 if (!fHasTry)
                 {
-                    if (this->func->GetJnFunction()->IsGenerator())
+                    if (this->func->GetJnFunction()->IsCoroutine())
                     {
                         // the label could be a yield resume label, in which case we also need to remove it from the YieldOffsetResumeLabels list
                         this->func->MapUntilYieldOffsetResumeLabels([this, &labelInstr](int i, const YieldOffsetResumeLabel& yorl)

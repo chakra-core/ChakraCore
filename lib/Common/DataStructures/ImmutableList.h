@@ -704,7 +704,9 @@ namespace regex
                 return this;
             }
             auto arr = ToReferenceArrayInHeap(size);
-            QuickSort<T *, true>::Sort(arr, arr+(size-1), comparer);
+            qsort_s(arr, size, sizeof(T*), [](void* comparer, const void* a, const void* b) {
+                return ((regex::Comparer<T *> *)comparer)->Compare(*(T**)a, *(T**)b);
+            }, comparer);
 
             // Convert the reference Array into the List
             auto result = (ImmutableList<T>*)(arr[0] - offsetof(ImmutableList<T>, value));
@@ -729,7 +731,9 @@ namespace regex
                 return this;
             }
             auto arr = ToReferenceArrayInHeap(size);
-            QuickSort<T *, true>::Sort(arr, arr+(size-1), comparer);
+            qsort_s(arr, size, sizeof(T*), [](void* comparer, const void* a, const void* b) {
+                return ((regex::Comparer<T *> *)comparer)->Compare(*(T**)a, *(T**)b);
+            }, comparer);
 
             // Convert the reference Array into the List
             auto result = (ImmutableList<T>*)(arr[0] - offsetof(ImmutableList<T>, value));

@@ -1346,7 +1346,7 @@ namespace Js
         bool IsJitLoopBodyPhaseEnabled() const
         {
             // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
-            return !PHASE_OFF(JITLoopBodyPhase, this) && DoFullJit() && !this->IsGenerator();
+            return !PHASE_OFF(JITLoopBodyPhase, this) && DoFullJit() && !this->IsCoroutine();
         }
 
         bool IsJitLoopBodyPhaseForced() const
@@ -3171,7 +3171,7 @@ namespace Js
 
         bool IsGeneratorAndJitIsDisabled()
         {
-            return this->IsGenerator() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry());
+            return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry());
         }
 
         FunctionBodyFlags * GetAddressOfFlags() { return &this->flags; }
@@ -3602,6 +3602,10 @@ namespace Js
 #if DBG
         void Dump();
         PCWSTR GetDebuggerScopeTypeString(DiagExtraScopesType scopeType);
+#endif
+
+#if ENABLE_TTD
+        Js::PropertyId GetPropertyIdForSlotIndex_TTD(uint32 slotIndex) const;
 #endif
 
     public:

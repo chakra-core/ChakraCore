@@ -85,6 +85,8 @@ You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 o
 
 More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
 
+Alternatively, you can get pre-built ChakraCore binaries from our [NuGet Packages](https://github.com/Microsoft/ChakraCore/wiki/NuGet-Packages).
+
 ## Using ChakraCore
 
 Once built, you have a few options for how you can use ChakraCore:
@@ -109,7 +111,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
 
-### License
+## License
 
 Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
 

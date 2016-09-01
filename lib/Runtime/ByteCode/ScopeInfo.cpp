@@ -69,6 +69,7 @@ namespace Js
         // Add argsPlaceHolder which includes same name args and destructuring patterns on parameters
         AddSlotCount(count, scope->GetFunc()->argsPlaceHolderSlotCount);
         AddSlotCount(count, scope->GetFunc()->thisScopeSlot != Js::Constants::NoRegister ? 1 : 0);
+        AddSlotCount(count, scope->GetFunc()->superScopeSlot != Js::Constants::NoRegister ? 1 : 0);
         AddSlotCount(count, scope->GetFunc()->newTargetScopeSlot != Js::Constants::NoRegister ? 1 : 0);
 
         ScopeInfo* scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(),

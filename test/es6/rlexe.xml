@@ -309,15 +309,33 @@
   <test>
     <default>
       <files>classes_bugfixes.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6Super.js</files>
+      <compile-flags>-nonative -off:dynamicprofile -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6Super.js</files>
+      <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ES6Super.js</files>
+      <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -707,7 +725,7 @@
   </test>
   <test>
     <default>
-      <files>proxyenumbug.js</files>
+      <files>proxyenumremoval.js</files>
     </default>
   </test>
   <test>

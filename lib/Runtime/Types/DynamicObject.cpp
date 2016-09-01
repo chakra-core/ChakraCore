@@ -374,7 +374,8 @@ namespace Js
     }
 
     BOOL
-    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols) const
+    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
+        DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const
     {
         if(index == Constants::NoBigSlot)
         {
@@ -385,10 +386,8 @@ namespace Js
         if(this->GetScriptContext()->ShouldPerformDebugAction())
         {
             BOOL res = FALSE;
-            int32 pIndex = -1;
             PropertyAttributes tmpAttributes = PropertyNone;
-            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, &tmpAttributes, propertyString);
-            index = (Js::BigPropertyIndex)pIndex;
+            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(&res, &index, this, propertyId, &tmpAttributes, propertyString);
 
             if(attributes != nullptr)
             {
@@ -399,7 +398,7 @@ namespace Js
         }
         else if(this->GetScriptContext()->ShouldPerformRecordAction())
         {
-            BOOL res = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+            BOOL res = this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
 
             PropertyAttributes tmpAttributes = (attributes != nullptr) ? *attributes : PropertyNone;
             this->GetScriptContext()->GetThreadContext()->TTDLog->RecordPropertyEnumEvent(res, *propertyId, tmpAttributes, *propertyString);
@@ -407,10 +406,10 @@ namespace Js
         }
         else
         {
-            return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+            return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
         }
 #else
-        return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+        return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
 #endif
     }
 

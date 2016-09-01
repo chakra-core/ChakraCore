@@ -3986,6 +3986,10 @@ CHAKRA_API JsTTDPreExecuteSnapShotInterval(_In_ int64_t startSnapTime, _In_ int6
     }
     catch(TTD::TTDebuggerAbortException abortException)
     {
+        //
+        //TODO: we need to clear out the exception state if needed otherwise when we try to re-enter execution we will fail
+        //
+
         //If we hit the end of the log or we hit a terminal exception that is fine -- anything else is a problem
         if(!abortException.IsEndOfLog() && !abortException.IsTopLevelException())
         {
@@ -4196,6 +4200,10 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Inout_ int64_t
 
             if(abortException.IsTopLevelException())
             {
+                //
+                //TODO: we need to clear out the exception state if needed otherwise when we try to re-enter execution we will fail
+                //
+
                 bool markedAsJustMyCode = false;
                 TTD::TTDebuggerSourceLocation throwLocation;
                 elog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, throwLocation);

@@ -13,9 +13,6 @@
 #include "Library/ThrowErrorObject.h"
 #include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 
@@ -1016,19 +1013,6 @@ CommonNumber:
             }
             break;
 
-        case TypeIds_Function:
-            if (rightType == TypeIds_Function)
-            {
-                // In ES5 in certain cases (ES5 10.6.14(strict), 13.2.19(strict), 15.3.4.5.20-21) we return a function that throws type error.
-                // For different scenarios we return different instances of the function, which differ by exception/error message.
-                // According to ES5, this is the same [[ThrowTypeError]] (thrower) internal function, thus they should be equal.
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    return true;
-                }
-            }
-            break;
 #ifdef ENABLE_SIMDJS
         case TypeIds_SIMDBool8x16:
         case TypeIds_SIMDInt8x16:
@@ -1075,10 +1059,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext *requestContext)
     {
-        BOOL result;
         if (TaggedNumber::Is(instance))
         {
-            result = false;
+            return FALSE;
         }
         else
         {
@@ -1091,10 +1074,22 @@ CommonNumber:
             }
             else
             {
+                PropertyString *propString = requestContext->TryGetPropertyString(propertyId);
+                if (propString != nullptr)
+                {
+                    const PropertyCache *propCache = propString->GetPropertyCache();
+                    if (object->GetType() == propCache->type)
+                    {
+                        // The type cached for the property was the same as the type of this object
+                        // (i.e. obj in obj.hasOwnProperty), so we know the answer is "true".
+                        Assert(TRUE == (object && object->HasOwnProperty(propertyId))); // sanity check on the fastpath result
+                        return TRUE;
+                    }
+                }
+
                 return object && object->HasOwnProperty(propertyId);
             }
         }
-        return result;
     }
 
     BOOL JavascriptOperators::GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
@@ -5430,7 +5425,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
-        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) ?
+        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
@@ -6893,11 +6888,10 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
-            argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
+            JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
+            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
-            JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
+            argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
         else
@@ -8197,6 +8191,8 @@ CommonNumber:
             return false;
         }
 
+        AssertMsg(type && type->GetScriptContext(), "type and it's ScriptContext should be valid.");
+
         if (!guard->IsInvalidatedDuringSweep() && guard->GetType()->GetScriptContext() != type->GetScriptContext())
         {
             // For valid guard value, can't cache cross-context objects
@@ -9477,7 +9473,7 @@ CommonNumber:
         scriptFunction->SetHomeObj(homeObj);
     }
 
-    Var JavascriptOperators::OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // Ensure this is not a stack ScriptFunction
         if (!ScriptFunction::Is(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
@@ -9491,12 +9487,24 @@ CommonNumber:
         // since the prototype could change.
         Var homeObj = instance->GetHomeObj();
 
+        return (homeObj != nullptr) ? homeObj : scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    Var JavascriptOperators::OP_LdHomeObjProto(Var homeObj, ScriptContext* scriptContext)
+    {
         if (homeObj == nullptr || !RecyclableObject::Is(homeObj))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         RecyclableObject *thisObjPrototype = RecyclableObject::FromVar(homeObj);
+
+        TypeId typeId = thisObjPrototype->GetTypeId();
+
+        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
+        }
 
         Assert(thisObjPrototype != nullptr);
 
@@ -9510,14 +9518,18 @@ CommonNumber:
         return superBase;
     }
 
-    Var JavascriptOperators::OP_LdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // use self as value of [[FunctionObject]] - this is true only for constructors
 
         Assert(RecyclableObject::Is(scriptFunction));
-        Assert(JavascriptOperators::IsClassConstructor(scriptFunction));  // non-constructors cannot have direct super
 
-        RecyclableObject *superCtor = RecyclableObject::FromVar(scriptFunction)->GetPrototype();
+        return scriptFunction;
+    }
+
+    Var JavascriptOperators::OP_LdFuncObjProto(Var funcObj, ScriptContext* scriptContext)
+    {
+        RecyclableObject *superCtor = RecyclableObject::FromVar(funcObj)->GetPrototype();
 
         if (superCtor == nullptr || !IsConstructor(superCtor))
         {
@@ -9527,7 +9539,7 @@ CommonNumber:
         return superCtor;
     }
 
-    Var JavascriptOperators::ScopedLdSuperHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
+    Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
     {
         ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);
         Var superRef = nullptr;
@@ -9570,14 +9582,14 @@ CommonNumber:
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
     }
 
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
@@ -9695,35 +9707,6 @@ CommonNumber:
 
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
         throw yieldData->exceptionObj;
-    }
-
-    Var JavascriptOperators::OP_AsyncSpawn(Var aGenerator, Var aThis, ScriptContext* scriptContext)
-    {
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-
-        JavascriptExceptionObject* e = nullptr;
-        JavascriptPromiseResolveOrRejectFunction* resolve;
-        JavascriptPromiseResolveOrRejectFunction* reject;
-        JavascriptPromiseAsyncSpawnExecutorFunction* executor = library->CreatePromiseAsyncSpawnExecutorFunction(JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction, (JavascriptGenerator*)aGenerator, aThis);
-        JavascriptPromise* promise = library->CreatePromise();
-
-        JavascriptPromise::InitializePromise(promise, &resolve, &reject, scriptContext);
-
-        try
-        {
-            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
-        }
-        catch (JavascriptExceptionObject* ex)
-        {
-            e = ex;
-        }
-
-        if (e != nullptr)
-        {
-            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
-        }
-
-        return promise;
     }
 
     Js::Var

@@ -257,18 +257,35 @@ if (!branch.endsWith('-ci')) {
 CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
 CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
 
+// --------------
+// XPLAT BRANCHES
+// --------------
+
+// Explicitly enumerate xplat-incompatible branches, because we don't anticipate any future incompatible branches
+def isXPlatCompatibleBranch = !(branch in ['release/1.1', 'release/1.1-ci', 'release/1.2', 'release/1.2-ci'])
+
+// Include these explicitly-named branches
+def isXPlatDailyBranch = branch in ['master', 'linux', 'xplat']
+// Include some release/* branches
+if (branch.startsWith('release')) {
+    // Allows all current and future release/* branches on which we should run daily builds of XPlat configs.
+    // RegEx matches e.g. release/1.1, release/1.2, release/1.3-ci, but not e.g. release/2.0, release/1.3, or release/1.10
+    includeReleaseBranch = !(branch =~ /^release\/((1\.[12](\D.*)?)|(\d+\.\d+\D.*))$/)
+    isXPlatDailyBranch |= includeReleaseBranch
+}
+
 // -----------------
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+if (isXPlatCompatibleBranch) {
     def osString = 'Ubuntu16.04'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null)
 
-    // daily builds - explicit branch names only
-    if (branch in ['linux', 'master']) {
+    // daily builds
+    if (isXPlatDailyBranch) {
         CreateXPlatBuildTasks(osString, "linux", "daily_ubuntu", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
@@ -277,18 +294,18 @@ if (branch.startsWith('linux') || branch.startsWith('master')) {
     }
 }
 
-// -----------------
+// ---------------
 // OSX BUILD TASKS
-// -----------------
+// ---------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+if (isXPlatCompatibleBranch) {
     def osString = 'OSX'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, null)
 
-    // daily builds - explicit branch names only
-    if (branch in ['linux', 'master']) {
+    // daily builds
+    if (isXPlatDailyBranch) {
         CreateXPlatBuildTasks(osString, "osx", "daily_osx", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,

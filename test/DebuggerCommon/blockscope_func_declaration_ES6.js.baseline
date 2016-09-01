@@ -1,0 +1,5 @@
+undefined
+undefined
+function foo() { return 'foo'; }
+function bar() { return 'bar'; }
+PASSED

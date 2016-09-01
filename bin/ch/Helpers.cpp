@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
+#include <sys/stat.h>
+
 //TODO: x-plat definitions
 #ifdef _WIN32
 typedef char16 TTDHostCharType;
@@ -112,8 +114,6 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 #include <libgen.h>
 #include <dirent.h>
 
-#include <sys/stat.h>
-
 typedef utf8char_t TTDHostCharType;
 typedef struct dirent* TTDHostFileInfo;
 typedef DIR* TTDHostFindHandle;
@@ -193,7 +193,7 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 
 #ifdef __APPLE__
 #define TTDHostCWD(dst) nullptr
-#define TTDDoPathInit(dst) 
+#define TTDDoPathInit(dst)
 #define TTDHostTok(opath, TTDHostPathSeparator, context) nullptr
 #define TTDHostStat(cpath, statVal) 0
 
@@ -203,7 +203,7 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 
 #define TTDHostFindFirst(strPattern, FileInformation) nullptr
 #define TTDHostFindNext(hFile, FileInformation) TTDHostFindInvalid
-#define TTDHostFindClose(hFile) 
+#define TTDHostFindClose(hFile)
 
 #define TTDHostDirInfoName(FileInformation) ((const TTDHostCharType*)"\0")
 

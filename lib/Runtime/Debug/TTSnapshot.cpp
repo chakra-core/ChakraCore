@@ -309,6 +309,17 @@ namespace TTD
         return this->m_slotArrayEntries.Count();
     }
 
+    uint32 SnapShot::GetDbgScopeCountNonTopLevel() const
+    {
+        uint32 dbgScopeCount = 0;
+        for(auto iter = this->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext()) 
+        {
+            dbgScopeCount += iter.Current()->ScopeChainInfo.ScopeCount;
+        }
+
+        return dbgScopeCount;
+    }
+
     UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& SnapShot::GetContextList()
     {
         return this->m_ctxList;

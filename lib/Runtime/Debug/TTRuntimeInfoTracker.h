@@ -118,10 +118,12 @@ namespace TTD
         //A dictionary which contains the paths for "core" image objects and function bodies
         JsUtil::BaseDictionary<Js::RecyclableObject*, UtilSupport::TTAutoString*, HeapAllocator> m_coreObjToPathMap;
         JsUtil::BaseDictionary<Js::FunctionBody*, UtilSupport::TTAutoString*, HeapAllocator> m_coreBodyToPathMap;
-        
+        JsUtil::BaseDictionary<Js::DebuggerScope*, UtilSupport::TTAutoString*, HeapAllocator> m_coreDbgScopeToPathMap;
+
         JsUtil::List<Js::RecyclableObject*, HeapAllocator> m_sortedObjectList;
         JsUtil::List<Js::FunctionBody*, HeapAllocator> m_sortedFunctionBodyList;
-        
+        JsUtil::List<Js::DebuggerScope*, HeapAllocator> m_sortedDbgScopeList;
+
         //Build a path string based on a given name
         void BuildPathString(UtilSupport::TTAutoString, const char16* name, const char16* optaccessortag, UtilSupport::TTAutoString& into);
 
@@ -140,10 +142,12 @@ namespace TTD
         //Get the path name for a known path object (or function body)
         TTD_WELLKNOWN_TOKEN ResolvePathForKnownObject(Js::RecyclableObject* obj) const;
         TTD_WELLKNOWN_TOKEN ResolvePathForKnownFunctionBody(Js::FunctionBody* fbody) const;
+        TTD_WELLKNOWN_TOKEN ResolvePathForKnownDbgScopeIfExists(Js::DebuggerScope* dbgScope) const;
 
         //Given a path name string lookup the coresponding object
         Js::RecyclableObject* LookupKnownObjectFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
         Js::FunctionBody* LookupKnownFunctionBodyFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
+        Js::DebuggerScope* LookupKnownDebuggerScopeFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
 
         //Walk the "known names" we use and fill the map with the objects at said names
         void GatherKnownObjectToPathMap(Js::ScriptContext* ctx);
@@ -159,6 +163,9 @@ namespace TTD
 
         //Enqueue a child object that is stored at a special named location in the parent object
         void EnqueueNewFunctionBodyObject(Js::RecyclableObject* parent, Js::FunctionBody* fbody, const char16* name);
+
+        //Add a well known token for a debugger scope object (in a slot array)
+        void AddWellKnownDebuggerScopePath(Js::RecyclableObject* parent, Js::DebuggerScope* dbgScope, uint32 index);
 
         //Build a path string based on a root path and an array index
         void BuildArrayIndexBuffer(uint32 arrayidx, UtilSupport::TTAutoString& res);

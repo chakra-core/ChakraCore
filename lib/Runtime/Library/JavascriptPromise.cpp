@@ -51,7 +51,7 @@ namespace Js
         }
         RecyclableObject* executor = RecyclableObject::FromVar(args[1]);
 
-        // 3. Let promise be ? OrdinaryCreateFromConstructor(NewTarget, "%PromisePrototype%", «[[PromiseState]], [[PromiseResult]], [[PromiseFulfillReactions]], [[PromiseRejectReactions]], [[PromiseIsHandled]] »).
+        // 3. Let promise be ? OrdinaryCreateFromConstructor(NewTarget, "%PromisePrototype%", <<[[PromiseState]], [[PromiseResult]], [[PromiseFulfillReactions]], [[PromiseRejectReactions]], [[PromiseIsHandled]] >>).
         JavascriptPromise* promise = library->CreatePromise();
         if (isCtorSuperCall)
         {
@@ -70,7 +70,7 @@ namespace Js
 
         JavascriptExceptionObject* exception = nullptr;
         
-        // 9. Let completion be Call(executor, undefined, « resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] »).
+        // 9. Let completion be Call(executor, undefined, << resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] >>).
         try
         {
             CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3),
@@ -86,7 +86,7 @@ namespace Js
         if (exception != nullptr)
         {
             // 10. If completion is an abrupt completion, then
-            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, « completion.[[Value]] »).
+            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, << completion.[[Value]] >>).
             TryRejectWithExceptionObject(exception, reject, scriptContext);
         }
         
@@ -453,7 +453,7 @@ namespace Js
         // 3. Let promiseCapability be NewPromiseCapability(C).
         JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
 
-        // 4. Perform ? Call(promiseCapability.[[Reject]], undefined, « r »).
+        // 4. Perform ? Call(promiseCapability.[[Reject]], undefined, << r >>).
         TryCallResolveOrRejectHandler(promiseCapability->GetReject(), r, scriptContext);
 
         // 5. Return promiseCapability.[[Promise]].
@@ -507,7 +507,7 @@ namespace Js
         // 4. Let promiseCapability be NewPromiseCapability(C).
         JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
 
-        // 5. Perform ? Call(promiseCapability.[[Resolve]], undefined, « x »).
+        // 5. Perform ? Call(promiseCapability.[[Resolve]], undefined, << x >>).
         TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), x, scriptContext);
 
         // 6. Return promiseCapability.[[Promise]].
@@ -946,11 +946,11 @@ namespace Js
 
         Assert(JavascriptPromiseAsyncSpawnExecutorFunction::Is(function));
         JavascriptPromiseAsyncSpawnExecutorFunction* asyncSpawnExecutorFunction = JavascriptPromiseAsyncSpawnExecutorFunction::FromVar(function);
-        JavascriptGenerator* genF = asyncSpawnExecutorFunction->GetGeneratorFunction();
         Var self = asyncSpawnExecutorFunction->GetTarget();
 
-        JavascriptGenerator* gen = JavascriptGenerator::FromVar(CALL_FUNCTION(genF, CallInfo(CallFlags_Value, 2), undefinedVar, self));
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, undefinedVar);
+        Var varCallArgs[] = { undefinedVar, self };
+        JavascriptGenerator* gen = asyncSpawnExecutorFunction->GetGenerator();
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, varCallArgs);
 
         Assert(JavascriptFunction::Is(resolve) && JavascriptFunction::Is(reject));
         AsyncSpawnStep(nextFunction, gen, JavascriptFunction::FromVar(resolve), JavascriptFunction::FromVar(reject));
@@ -965,7 +965,7 @@ namespace Js
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
         Var argument = asyncSpawnStepArgumentExecutorFunction->GetArgument();
 
-        JavascriptFunction* next = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::next, function->GetScriptContext()));
+        JavascriptFunction* next = function->GetScriptContext()->GetLibrary()->EnsureGeneratorNextFunction();
         return CALL_FUNCTION(next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
     }
 
@@ -974,7 +974,7 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
-        JavascriptFunction* throw_ = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::throw_, function->GetScriptContext()));
+        JavascriptFunction* throw_ = function->GetScriptContext()->GetLibrary()->EnsureGeneratorThrowFunction();
         return CALL_FUNCTION(throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
     }
 
@@ -1324,8 +1324,8 @@ namespace Js
     }
 #endif
 
-    JavascriptPromiseAsyncSpawnExecutorFunction::JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generatorFunction, Var target)
-        : RuntimeFunction(type, functionInfo), generatorFunction(generatorFunction), target(target)
+    JavascriptPromiseAsyncSpawnExecutorFunction::JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target)
+        : RuntimeFunction(type, functionInfo), generator(generator), target(target)
     { }
 
     bool JavascriptPromiseAsyncSpawnExecutorFunction::Is(Var var)
@@ -1348,9 +1348,9 @@ namespace Js
         return static_cast<JavascriptPromiseAsyncSpawnExecutorFunction*>(var);
     }
 
-    JavascriptGenerator* JavascriptPromiseAsyncSpawnExecutorFunction::GetGeneratorFunction()
+    JavascriptGenerator* JavascriptPromiseAsyncSpawnExecutorFunction::GetGenerator()
     {
-        return this->generatorFunction;
+        return this->generator;
     }
 
     Var JavascriptPromiseAsyncSpawnExecutorFunction::GetTarget()

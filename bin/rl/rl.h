@@ -203,6 +203,7 @@ enum TestInfoKind
    TIK_ENV,
    TIK_COMMAND,
    TIK_TIMEOUT,
+   TIK_SOURCE_PATH,
    _TIK_COUNT
 };
 
@@ -631,6 +632,10 @@ public:
     char* GetDirectoryName() { return _pDir->name; }
     char* GetDirectoryPath() { return _pDir->fullPath; }
     int GetDirectoryNumber() { return _pDir->num; }
+
+    BOOL HasTestInfoData(TestInfoKind testInfoKind) { return _pDir->defaultTestInfo.hasData[testInfoKind]; }
+    char* GetTestInfoData(TestInfoKind testInfoKind) { return _pDir->defaultTestInfo.data[testInfoKind]; }
+    char* GetFullPathFromSourceOrDirectory() { return HasTestInfoData(TIK_SOURCE_PATH) ? GetTestInfoData(TIK_SOURCE_PATH) : GetDirectoryPath(); }
 
     bool IsBaseline() { return !_isDiffDirectory; }
     void SetDiffFlag() { _isDiffDirectory = true; }

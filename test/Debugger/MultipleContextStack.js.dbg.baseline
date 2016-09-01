@@ -66,6 +66,7 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "console": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
       "Func1": "function <large string>",
@@ -84,6 +85,7 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "console": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
       "Func1": "function <large string>",

@@ -13,9 +13,9 @@ function WriteCommonArguments() {
 }
 
 function GetBuildInfo($oauth, $commitHash) {
-    # Get the git remote path and construct the rest API URI
+    # Get the git remote path and construct the REST API URI
     $gitExe = GetGitPath
-    $remote = (iex "$gitExe remote -v")[0].split()[1].replace("_git", "_apis/git/repositories")
+    $remote = (iex "$gitExe remote -v" | ? { $_.contains("_git") })[0].split()[1].replace("_git", "_apis/git/repositories")
     $remote = $remote.replace("mshttps", "https")
 
     # Get the pushId and push date time to use that for build number and build date time
