@@ -494,7 +494,7 @@ bool JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptContext, const ch
 
         if (resolvedObject.obj != nullptr)
         {
-            resolvedObject.scriptContext = scriptContext;
+            resolvedObject.scriptContext = frameScriptContext;
 
             charcount_t len = Js::JavascriptString::GetBufferLength(source);
             resolvedObject.name = AnewNoThrowArray(this->debuggerObjectsManager->GetDebugObjectArena(), WCHAR, len + 1);
