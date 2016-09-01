@@ -146,8 +146,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "prototype": {
               "#__proto__": "Object {...}",
@@ -173,8 +173,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "name": "string resolvedOptions",
             "length": "number 0"
@@ -189,8 +189,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "length": "number 2"
           }
@@ -313,8 +313,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "prototype": {
               "#__proto__": "Object {...}",
@@ -340,8 +340,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "name": "string resolvedOptions",
             "length": "number 0"
@@ -356,8 +356,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "length": "number 1"
           }
@@ -480,8 +480,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "prototype": {
               "#__proto__": "Object {...}",
@@ -513,8 +513,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "length": "number 0"
           },
@@ -528,8 +528,8 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "caller": "Error <large string>",
+              "arguments": "Error <large string>"
             },
             "name": "string resolvedOptions",
             "length": "number 0"
