@@ -473,7 +473,8 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -ES6DefaultArgs -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6 -ES6DefaultArgs -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -481,7 +482,8 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.enable_disable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -489,7 +491,8 @@
   <test>
     <default>
       <files>es6_all.js</files>
-      <compile-flags>-verbose -es6all -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6all -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_all.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
