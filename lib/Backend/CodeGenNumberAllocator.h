@@ -173,9 +173,10 @@ struct XProcNumberPageSegmentManager
     CriticalSection cs;
     XProcNumberPageSegmentImpl* segmentsList;
     Recycler* recycler;
+    JsUtil::List<CodeGenNumberThreadAllocator*, HeapAllocator> chunkAllocators;
     unsigned int integratedSegmentCount;
     XProcNumberPageSegmentManager(Recycler* recycler)
-        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0)
+        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0), chunkAllocators(&HeapAllocator::Instance)
     {
     }
 

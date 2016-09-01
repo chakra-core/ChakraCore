@@ -393,6 +393,7 @@ CodeGenNumberChunk* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumbe
         if (temp->GetChunkAllocator() == nullptr)
         {
             temp->chunkAllocator = (intptr_t)HeapNew(CodeGenNumberThreadAllocator, this->recycler);
+            chunkAllocators.Add(temp->GetChunkAllocator());
         }
 
         while (start < temp->allocEndAddress)
@@ -500,7 +501,11 @@ void XProcNumberPageSegmentManager::Integrate()
         {
             // all pages are integrated, don't need this segment any more
             *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
-            HeapDelete(temp->GetChunkAllocator());
+            if (chunkAllocators.Contains(temp->GetChunkAllocator()))
+            {
+                chunkAllocators.Remove(temp->GetChunkAllocator());
+                HeapDelete(temp->GetChunkAllocator());
+            }
             midl_user_free(temp);
             temp = *prev;
         }
@@ -519,9 +524,13 @@ XProcNumberPageSegmentManager::~XProcNumberPageSegmentManager()
     while (temp)
     {
         auto next = temp->nextSegment;
-        if (temp->chunkAllocator)
+        if (temp->GetChunkAllocator())
         {
-            HeapDelete((CodeGenNumberThreadAllocator*)temp->chunkAllocator);
+            if (chunkAllocators.Contains(temp->GetChunkAllocator()))
+            {
+                chunkAllocators.Remove(temp->GetChunkAllocator());
+                HeapDelete(temp->GetChunkAllocator());
+            }
         }
         midl_user_free(temp);
         temp = (XProcNumberPageSegmentImpl*)next;

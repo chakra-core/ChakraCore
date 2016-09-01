@@ -20,6 +20,7 @@ CodeGenWorkItem::CodeGenWorkItem(
     , isAllocationCommitted(false)
     , queuedFullJitWorkItem(nullptr)
     , allocation(nullptr)
+    , codeGenResult(0)
 #ifdef IR_VIEWER
     , isRejitIRViewerFunction(false)
     , irViewerOutput(nullptr)

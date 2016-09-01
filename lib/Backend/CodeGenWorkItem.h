@@ -26,6 +26,9 @@ protected:
     ushort xdataSize;
 
 public:
+    HRESULT codeGenResult;
+
+public:
     virtual uint GetByteCodeCount() const = 0;
     virtual size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) = 0;
     virtual void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) = 0;
