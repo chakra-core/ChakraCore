@@ -54,6 +54,9 @@
       <AdditionalOptions>%(AdditionalOptions) /prefix client "Client" server "Server"</AdditionalOptions>
     </Midl>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ChakraJIT.h" />
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
