@@ -257,6 +257,7 @@
         "DumpFunctionPosition": "function <large string>",
         "RequestAsyncBreak": "function <large string>",
         "Edit": "function Edit",
+        "Platform": "Object {...}",
         "Arguments": "Array []"
       },
       "print": {
