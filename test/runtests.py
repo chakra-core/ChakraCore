@@ -549,8 +549,10 @@ def main():
         args.folders = [f for f in sorted(files) if not os.path.isfile(f)]
 
     # Set the right timezone, the tests need Pacific Standard Time
-    os.environ['TZ'] = 'US/Pacific'
-    time.tzset()
+    # TODO: Windows. time.tzset only supports Unix
+    if hasattr(time, 'tzset'):
+        os.environ['TZ'] = 'US/Pacific'
+        time.tzset()
 
     # load all tests
     tests, sequential_tests = [], []
