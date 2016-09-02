@@ -61,10 +61,16 @@ typedef BYTE* ChakraBytePtr;
 #define CHAKRA_CALLBACK
 #endif // __i386__
 
-#ifdef __cplusplus
-#define CHAKRA_API extern "C" JsErrorCode
+#ifndef _WIN32
+#define SET_API_VISIBILITY __attribute__((visibility("default")))
 #else
-#define CHAKRA_API JsErrorCode
+#define SET_API_VISIBILITY
+#endif
+
+#ifdef __cplusplus
+#define CHAKRA_API SET_API_VISIBILITY extern "C" JsErrorCode
+#else
+#define CHAKRA_API SET_API_VISIBILITY extern JsErrorCode
 #endif
 
 #include <stddef.h>  // for size_t
@@ -78,6 +84,7 @@ typedef uint32_t UINT32;
 typedef int64_t INT64;
 typedef void* HANDLE;
 typedef unsigned char BYTE;
+typedef BYTE byte;
 typedef UINT32 DWORD;
 #endif
 

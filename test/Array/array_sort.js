@@ -18,6 +18,13 @@ write(x.sort());
 
 write(x.sort(c));
 
+function sort_func(x, y) {
+  return (x > y) ? 1 : ((x < y) ? -1 : 0);
+}
+
+var sorted = x.sort(sort_func);
+if (sorted[0] != 2 || sorted[9] != 120) write("Array `sort` failed!");
+
 
 //Sort numerically and ascending:
 var myarray=[25, 8, 7, 41]

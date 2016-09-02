@@ -42,7 +42,3 @@ bar();
 bar();
 //Only bar is JITted
 WScript.Attach(Run);
-
-
-
-

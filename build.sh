@@ -53,7 +53,7 @@ CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
 ICU_PATH=""
-STATIC_LIBRARY=""
+STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 WITHOUT_FEATURES=""
 CREATE_DEB=0
 
@@ -125,7 +125,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --static)
-        STATIC_LIBRARY="-DSTATIC_LIBRARY=1"
+        STATIC_LIBRARY="-DSTATIC_LIBRARY_SH=1"
         ;;
 
     --without=*)
@@ -244,7 +244,7 @@ else
         mkdir -p $DEB_FOLDER/usr/local/bin
         mkdir -p $DEB_FOLDER/DEBIAN
         cp $DEB_FOLDER/../ch $DEB_FOLDER/usr/local/bin/
-        if [[ $STATIC_LIBRARY == "" ]]; then
+        if [[ $STATIC_LIBRARY == "-DSHARED_LIBRARY_SH=1" ]]; then
             cp $DEB_FOLDER/../*.so $DEB_FOLDER/usr/local/bin/
         fi
         echo -e "Package: ChakraCore"\
