@@ -91,7 +91,6 @@ namespace Js
         static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
 
         THROW_ERROR_DECL(ThrowError)
-        THROW_ERROR_DECL(ThrowEvalError)    //this is unused and should be removed
         THROW_ERROR_DECL(ThrowRangeError)
         THROW_ERROR_DECL(ThrowReferenceError)
         THROW_ERROR_DECL(ThrowSyntaxError)
