@@ -469,6 +469,12 @@ namespace Js
             varStmts = ParserWrapper::GetBinaryRight(varStmts);
         }
         Assert(!varStmts->CapturesSyms());
+
+        // if last statement isn't return, type must be void
+        if (varStmts->nop != knopReturn)
+        {
+            mFunction->CheckAndSetReturnType(AsmJsRetType::Void);
+        }
         EmitTopLevelStatement(varStmts);
     }
 
