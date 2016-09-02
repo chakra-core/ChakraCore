@@ -951,6 +951,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.frameHeight);
 
+    if (workItem->Type() == JsFunctionType)
+    {
+        Js::FunctionEntryPointInfo * funcEP = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
+        funcEP->localVarSlotsOffset = jitWriteData.localVarSlotsOffset;
+        funcEP->localVarChangedOffset = jitWriteData.localVarChangedOffset;
+    }
+
     if (jitWriteData.hasJittedStackClosure != FALSE)
     {
         workItem->GetEntryPoint()->SetHasJittedStackClosure();

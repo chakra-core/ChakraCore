@@ -143,9 +143,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     if (this->IsTopFunc())
     {
         outputData->hasJittedStackClosure = false;
-        // TODO: (michhol) validate initial values
-        outputData->localVarSlotsOffset = 0;
-        outputData->localVarChangedOffset = 0;
+        outputData->localVarSlotsOffset = m_localVarSlotsOffset;
+        outputData->localVarChangedOffset = m_hasLocalVarChangedOffset;
     }
 
     if (this->IsInlined())

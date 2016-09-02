@@ -96,6 +96,19 @@ JITTimeWorkItem::InitializeReader(
     }
 #if DBG
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        Js::FunctionBody::StatementMapList * runtimeMap = ((Js::FunctionBody*)m_jitBody.GetAddr())->GetStatementMaps();
+        Assert(!m_fullStatementList || ((int)m_jitBody.GetFullStatementMapCount() == runtimeMap->Count() && runtimeMap->Count() >= 0));
+        for (uint i = 0; i < m_jitBody.GetFullStatementMapCount(); ++i)
+        {
+            Assert(runtimeMap->Item(i)->byteCodeSpan.begin == m_fullStatementList->Item(i)->byteCodeSpan.begin);
+            Assert(runtimeMap->Item(i)->byteCodeSpan.end == m_fullStatementList->Item(i)->byteCodeSpan.end);
+            Assert(runtimeMap->Item(i)->sourceSpan.begin == m_fullStatementList->Item(i)->sourceSpan.begin);
+            Assert(runtimeMap->Item(i)->sourceSpan.end == m_fullStatementList->Item(i)->sourceSpan.end);
+            Assert(runtimeMap->Item(i)->isSubexpression == m_fullStatementList->Item(i)->isSubexpression);
+        }
+    }
 #else
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif

@@ -20,10 +20,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 {
     Assert(functionBody != nullptr);
 
-    // bytecode
-    jitBody->byteCodeLength = functionBody->GetByteCode()->GetLength();
-    jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
-
     // const table
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
@@ -65,12 +61,44 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             }
         }
     }
-    // statement map
+
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
 
-
-    if (statementMap)
+    // REVIEW: OOP JIT, is it possible for this to not match with isJitInDebugMode?
+    if (functionBody->IsInDebugMode())
     {
+        Assert(!statementMap);
+
+        jitBody->byteCodeLength = functionBody->GetOriginalByteCode()->GetLength();
+        jitBody->byteCodeBuffer = functionBody->GetOriginalByteCode()->GetBuffer();
+
+        auto fullStatementMaps = functionBody->GetStatementMaps();
+        jitBody->fullStatementMapCount = fullStatementMaps->Count();
+        jitBody->fullStatementMaps = RecyclerNewArrayZ(recycler, StatementMapIDL, jitBody->fullStatementMapCount);
+        fullStatementMaps->Map([jitBody](int index, Js::FunctionBody::StatementMap * map) {
+
+            jitBody->fullStatementMaps[index] = *(StatementMapIDL*)map;
+
+            Assert(jitBody->fullStatementMaps[index].byteCodeSpanBegin == map->byteCodeSpan.Begin());
+            Assert(jitBody->fullStatementMaps[index].byteCodeSpanEnd == map->byteCodeSpan.End());
+            Assert(jitBody->fullStatementMaps[index].sourceSpanBegin == map->sourceSpan.Begin());
+            Assert(jitBody->fullStatementMaps[index].sourceSpanEnd == map->sourceSpan.End());
+            Assert((jitBody->fullStatementMaps[index].isSubExpression != FALSE) == map->isSubexpression);
+        });
+
+        if (functionBody->GetPropertyIdOnRegSlotsContainer())
+        {
+            jitBody->propertyIdsForRegSlotsCount = functionBody->GetPropertyIdOnRegSlotsContainer()->length;
+            jitBody->propertyIdsForRegSlots = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots;
+        }
+    }
+    else
+    {
+        Assert(statementMap);
+
+        jitBody->byteCodeLength = functionBody->GetByteCode()->GetLength();
+        jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
+
         jitBody->statementMap = RecyclerNewStructZ(recycler, SmallSpanSequenceIDL);
         jitBody->statementMap->baseValue = statementMap->baseValue;
 
@@ -85,28 +113,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             jitBody->statementMap->statementLength = statementMap->pStatementBuffer->Count();
             jitBody->statementMap->statementBuffer = statementMap->pStatementBuffer->GetBuffer();
         }
-    }
 
-    // REVIEW: OOP JIT, is it possible for this to not match with isJitInDebugMode?
-    if (functionBody->IsInDebugMode())
-    {
-        Assert(!statementMap);
-        auto fullStatementMaps = functionBody->GetStatementMaps();
-        jitBody->fullStatementMapCount = fullStatementMaps->Count();
-        jitBody->fullStatementMaps = RecyclerNewArrayZ(recycler, StatementMapIDL, jitBody->fullStatementMapCount);
-        fullStatementMaps->Map([jitBody](int index, Js::FunctionBody::StatementMap * map) {
-            jitBody->fullStatementMaps[index].byteCodeSpanBegin = map->byteCodeSpan.Begin();
-            jitBody->fullStatementMaps[index].byteCodeSpanEnd = map->byteCodeSpan.End();
-            jitBody->fullStatementMaps[index].sourceSpanBegin = map->sourceSpan.Begin();
-            jitBody->fullStatementMaps[index].sourceSpanEnd = map->sourceSpan.End();
-            jitBody->fullStatementMaps[index].isSubExpression = map->isSubexpression;
-        });
-
-        if (functionBody->GetPropertyIdOnRegSlotsContainer())
-        {
-            jitBody->propertyIdsForRegSlotsCount = functionBody->GetPropertyIdOnRegSlotsContainer()->length;
-            jitBody->propertyIdsForRegSlots = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots;
-        }
     }
 
     jitBody->inlineCacheCount = functionBody->GetInlineCacheCount();

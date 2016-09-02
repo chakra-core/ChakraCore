@@ -340,13 +340,13 @@ typedef struct JITLoopHeaderIDL
 
 typedef struct StatementMapIDL
 {
-    boolean isSubExpression;
-    IDL_PAD1(1)
-    IDL_PAD2(0)
     int sourceSpanBegin;
     int sourceSpanEnd;
     int byteCodeSpanBegin;
     int byteCodeSpanEnd;
+    boolean isSubExpression;
+    IDL_PAD1(1)
+    IDL_PAD2(0)
 } StatementMapIDL;
 
 typedef struct AsmJsDataIDL
