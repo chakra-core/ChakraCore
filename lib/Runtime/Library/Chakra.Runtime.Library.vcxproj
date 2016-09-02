@@ -35,11 +35,6 @@
         $(ManifestsInboxIncludeDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-      <!-- For mscorlib.tlb used in JavascriptErrorDebug.cpp -->
-      <AdditionalIncludeDirectories>
-        %(AdditionalIncludeDirectories);
-        $(SdkLibPath)\clr45
-      </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>RuntimeLibraryPch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -155,7 +150,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -164,7 +158,6 @@
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
-    <ClInclude Include="JavascriptErrorDebug.h" />
     <ClInclude Include="JavascriptListIterator.h" />
     <ClInclude Include="JavascriptSimdObject.h" />
     <ClInclude Include="JavascriptSimdType.h" />

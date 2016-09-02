@@ -694,6 +694,7 @@ namespace Js
         DynamicType * GetDebugFuncExecutorInDisposeObjectType() { return debugFuncExecutorInDisposeObjectType; }
 #endif
 
+        DynamicType* GetErrorType(ErrorTypeEnum typeToCreate) const;
         StaticType  * GetBooleanTypeStatic() const { return booleanTypeStatic; }
         DynamicType * GetBooleanTypeDynamic() const { return booleanTypeDynamic; }
         DynamicType * GetDateType() const { return dateType; }

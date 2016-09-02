@@ -80,18 +80,18 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
 
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr, bool useErrInfoDescription = false);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei, bool useErrInfoDescription = false);
-        static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr);
+        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
+        static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
+        static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
 
 #define THROW_ERROR_DECL(err_method) \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei, IErrorInfo* perrinfo = nullptr, RestrictedErrorStrings* proerrstr = nullptr, bool useErrInfoDescription = false); \
+        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName); \
         static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
 
         THROW_ERROR_DECL(ThrowError)
-        THROW_ERROR_DECL(ThrowEvalError)
+        THROW_ERROR_DECL(ThrowEvalError)    //this is unused and should be removed
         THROW_ERROR_DECL(ThrowRangeError)
         THROW_ERROR_DECL(ThrowReferenceError)
         THROW_ERROR_DECL(ThrowSyntaxError)
@@ -139,7 +139,7 @@ namespace Js
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
 
-        JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
+        virtual JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
         static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse);

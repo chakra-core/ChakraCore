@@ -95,7 +95,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NullEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdType.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt16x8.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8Lib.cpp" />
@@ -223,7 +222,6 @@
     <ClInclude Include="RuntimeLibraryPch.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
-    <ClInclude Include="JavascriptErrorDebug.h" />
     <ClInclude Include="JavascriptStringObject.h" />
     <ClInclude Include="NullEnumerator.h" />
     <ClInclude Include="JavascriptSimdType.h" />
