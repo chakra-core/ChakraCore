@@ -787,7 +787,7 @@ namespace Js
         ~InterpreterThunkStackCountTracker() { --s_count; }
         static int GetCount() { return s_count; }
     private:
-        __declspec(thread) static int s_count;
+        THREAD_LOCAL static int s_count;
     };
 #endif
 

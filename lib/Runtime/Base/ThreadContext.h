@@ -784,7 +784,7 @@ private:
 
     Js::ImplicitCallFlags implicitCallFlags;
 
-    __declspec(thread) static uint activeScriptSiteCount;
+    THREAD_LOCAL static uint activeScriptSiteCount;
     bool isScriptActive;
 
     // To synchronize with ETW rundown, which needs to walk scriptContext/functionBody/entryPoint lists.

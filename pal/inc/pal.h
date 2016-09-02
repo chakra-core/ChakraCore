@@ -47,6 +47,19 @@ Abstract:
 #include <ctype.h>
 #endif
 
+#if defined(__APPLE__)
+#ifndef __IOS__
+#include "TargetConditionals.h"
+#if TARGET_IPHONE_SIMULATOR
+#define __IOS__
+#elif TARGET_OS_IPHONE
+#define __IOS__
+#elif TARGET_OS_MAC
+// macOS
+#endif
+#endif // __IOS__ ?
+#endif // __APPLE__ ?
+
 #ifdef  __cplusplus
 extern "C" {
 #endif

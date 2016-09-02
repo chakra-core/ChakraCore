@@ -8,7 +8,7 @@
 #include "Memory/AutoPtr.h"
 #include "Core/ProfileMemory.h"
 
-__declspec(thread) MemoryProfiler * MemoryProfiler::Instance = nullptr;
+THREAD_LOCAL MemoryProfiler * MemoryProfiler::Instance = nullptr;
 
 CriticalSection MemoryProfiler::s_cs;
 AutoPtr<MemoryProfiler, NoCheckHeapAllocator> MemoryProfiler::profilers(nullptr);
