@@ -252,6 +252,7 @@ class TestVariant(object):
 
         self.msg_queue = Manager().Queue() # messages from multi processes
         self.test_result = TestResult()
+        self.test_count = 0
         self._print_lines = [] # _print lines buffer
         self._last_len = 0
 
@@ -441,7 +442,7 @@ class TestVariant(object):
 
         # filter tests to run
         tests = [x for x in tests if self._should_test(x)]
-        self.test_count = len(tests)
+        self.test_count += len(tests)
 
         # run tests in parallel
         result = pool.map_async(run_one, [(self,test) for test in tests])
@@ -484,14 +485,22 @@ class FolderTags(object):
             self._folder_tags[key] = \
                 split_tags(tags.text) if tags != None else _empty_set
 
+    # get folder tags if any
+    def _tags(self, folder):
+        key = os.path.basename(os.path.normpath(folder)).lower()
+        return self._folder_tags.get(key)
+
     # check if should test a given folder
     def should_test(self, folder):
-        key = os.path.basename(os.path.normpath(folder)).lower()
-        ftags = self._folder_tags.get(key)
+        ftags = self._tags(folder)
 
         # folder listed in rlexedirs.xml and not exlucded by global not_tags
         return ftags != None and ftags.isdisjoint(not_tags)
 
+    # check if a given folder is tagged sequential
+    def is_sequential(self, folder):
+        ftags = self._tags(folder)
+        return ftags and 'sequential' in ftags
 
 # load all tests in folder using rlexe.xml file
 def load_tests(folder, file):
@@ -540,11 +549,13 @@ def main():
         args.folders = [f for f in sorted(files) if not os.path.isfile(f)]
 
     # Set the right timezone, the tests need Pacific Standard Time
-    os.environ['TZ'] = 'US/Pacific'
-    time.tzset()
+    # TODO: Windows. time.tzset only supports Unix
+    if hasattr(time, 'tzset'):
+        os.environ['TZ'] = 'US/Pacific'
+        time.tzset()
 
     # load all tests
-    tests = []
+    tests, sequential_tests = [], []
     folder_tags = FolderTags()
     for path in args.folders:
         if os.path.isfile(path):
@@ -552,7 +563,9 @@ def main():
         else:
             folder, file = path, None
         if folder_tags.should_test(folder):
-            tests += load_tests(folder, file)
+            dest = sequential_tests if folder_tags.is_sequential(folder) \
+                    else tests
+            dest += load_tests(folder, file)
 
     # test variants
     variants = [
@@ -561,10 +574,13 @@ def main():
     ]
 
     # run each variant
-    pool = Pool(1) # Use a multiprocessing process Pool -- TODO: forcing this to single threaded until we have support for sequential tag
+    pool, sequential_pool = Pool(), Pool(1)
     start_time = datetime.now()
     for variant in variants:
-        variant.run(tests, pool)
+        if tests:
+            variant.run(tests, pool)
+        if sequential_tests:
+            variant.run(sequential_tests, sequential_pool)
     elapsed_time = datetime.now() - start_time
 
     # print summary
