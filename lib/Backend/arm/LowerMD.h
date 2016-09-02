@@ -77,7 +77,7 @@ public:
 
             IR::Instr *     LoadArgumentCount(IR::Instr * instr);
             IR::Instr *     LoadStackArgPtr(IR::Instr * instr);
-            IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs, bool force = false, IR::Opnd *opndInputParamCount = nullptr);
+            IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs);
             IR::Instr *     LoadHeapArgsCached(IR::Instr * instr);
             IR::Instr *     LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstOpnd = nullptr);
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);

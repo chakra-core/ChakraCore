@@ -3944,7 +3944,7 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
 
     if (instr->m_opcode == Js::OpCode::Ld_A && src1->IsRegOpnd())
     {
-        AssertMsg(!src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
+        AssertMsg(!instr->m_func->IsStackArgsEnabled() || !src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
     }
 
     // The following is to track formals array for Stack Arguments optimization with Formals
@@ -4063,7 +4063,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 StackSym * scopeObjSym = instr->GetSrc1()->GetStackSym();
                 Assert(scopeObjSym);
                 Assert(scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::InitCachedScope || scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::NewScopeObject);
-                instr->m_func->SetScopeObjSym(scopeObjSym);
+                Assert(instr->m_func->GetScopeObjSym() == scopeObjSym);
 
                 if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                 {
@@ -4134,6 +4134,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         {
             instr->usesStackArgumentsObject = true;
         }
+
         break;
     }
     case Js::OpCode::LdLen_A:
@@ -4147,6 +4148,11 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
     case Js::OpCode::ArgOut_A_InlineBuiltIn:
     {
+        if (IsArgumentsOpnd(src1))
+        {
+            instr->usesStackArgumentsObject = true;
+        }
+
         if (IsArgumentsOpnd(src1) &&
             src1->AsRegOpnd()->m_sym->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture)
         {
@@ -4180,7 +4186,14 @@ GlobOpt::OptArguments(IR::Instr *instr)
     case Js::OpCode::BailOnNotStackArgs:
     case Js::OpCode::ArgOut_A_FromStackArgs:
     case Js::OpCode::BytecodeArgOutUse:
+    {
+        if (src1 && IsArgumentsOpnd(src1))
+        {
+            instr->usesStackArgumentsObject = true;
+        }
+        
         break;
+    }
 
     default:
         {

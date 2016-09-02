@@ -291,13 +291,13 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */, IR::Opnd *opndInputParamCount /* = nullptr */)
+LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
 {
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
 
     IR::Instr *instrPrev = instrArgs->m_prev;
-    if (!force && func->IsStackArgsEnabled())
+    if (func->IsStackArgsEnabled())
     {
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
@@ -374,11 +374,9 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s2 = actual argument count (without counting "this")
-            if (opndInputParamCount == nullptr)
-            {
-                instr = this->lowererMD->LoadInputParamCount(instrArgs, -1);
-                opndInputParamCount = instr->GetDst();
-            }
+            instr = this->lowererMD->LoadInputParamCount(instrArgs, -1);
+            IR::Opnd * opndInputParamCount = instr->GetDst();
+            
             this->LoadHelperArgument(instrArgs, opndInputParamCount);
 
             // s1 = current function

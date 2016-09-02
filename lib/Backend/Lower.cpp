@@ -249,12 +249,79 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::InitCachedScope:
-            instrPrev = this->LowerInitCachedScope(instr);
+            if (instr->m_func->GetJITFunctionBody()->GetDoScopeObjectCreation() || !instr->m_func->IsStackArgsEnabled())
+            {
+                instrPrev = this->LowerInitCachedScope(instr);
+            }
+            else
+            {
+                instr->ReplaceSrc1(this->LoadLibraryValueOpnd(instr, LibraryValue::ValueNull));
+                instr->m_opcode = Js::OpCode::Ld_A;
+                instrPrev = instr;
+
+                if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
+                    Output::Flush();
+                }
+            }
             break;
         case Js::OpCode::NewScopeObject:
-            m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObject);
-            break;
+        {
+            Func * currFunc = instr->m_func;
+            if (currFunc->GetJITFunctionBody()->GetDoScopeObjectCreation() || !currFunc->IsStackArgsEnabled())
+            {
+                //Call Helper that creates scope object and does type transition for the formals
+                if (currFunc->IsStackArgsEnabled() && currFunc->GetJITFunctionBody()->GetInParamsCount() != 1)
+                {
+                    // s3 = formals are let decls
+                    this->m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(currFunc->GetHasNonSimpleParams() ? TRUE : FALSE, TyUint8, currFunc));
 
+                    if (currFunc->IsInlinee())
+                    {
+                        // s2 = current function.
+                        this->m_lowererMD.LoadHelperArgument(instr, currFunc->GetInlineeFunctionObjectSlotOpnd());
+                    }
+                    else
+                    {
+                        // s2 = current function
+                        StackSym * paramSym = StackSym::New(TyMachReg, currFunc);
+                        currFunc->SetArgOffset(paramSym, 2 * MachPtr);
+                        IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, currFunc);
+
+                        if (currFunc->GetJITFunctionBody()->IsCoroutine())
+                        {
+                            // the function object for generator calls is a GeneratorVirtualScriptFunction object
+                            // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
+                            IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, currFunc);
+                            LowererMD::CreateAssign(tmpOpnd, srcOpnd, instr);
+
+                            srcOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, currFunc);
+                        }
+
+                        this->m_lowererMD.LoadHelperArgument(instr, srcOpnd);
+                    }
+                    m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObjectWithFormals);
+                }
+                else
+                {
+                    m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObject);
+                }
+            }
+            else
+            {
+                instr->SetSrc1(this->LoadLibraryValueOpnd(instr, LibraryValue::ValueNull));
+                instr->m_opcode = Js::OpCode::Ld_A;
+                instrPrev = instr;
+
+                if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. \n"), currFunc->GetJITFunctionBody()->GetDisplayName(), currFunc->GetFunctionNumber());
+                    Output::Flush();
+                }
+            }
+            break;
+        }
         case Js::OpCode::NewStackScopeSlots:
             this->LowerNewScopeSlots(instr, m_func->DoStackScopeSlots());
             break;
@@ -3177,7 +3244,7 @@ Lowerer::LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueT
 }
 
 IR::Opnd *
-Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum regNum)
+Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType)
 {
     ScriptContextInfo *scriptContextInfo = instr->m_func->GetScriptContextInfo();
     switch (valueType)
@@ -19067,7 +19134,7 @@ Lowerer::GenerateFastRealStackArgumentsLdLen(IR::Instr *ldLen)
     else
     {
         IR::Instr *loadInputParamCountInstr = this->m_lowererMD.LoadInputParamCount(ldLen, -1);
-        IR::RegOpnd *actualCountOpnd          = loadInputParamCountInstr->GetDst()->AsRegOpnd();
+        IR::RegOpnd *actualCountOpnd = loadInputParamCountInstr->GetDst()->AsRegOpnd();
         LowererMD::CreateAssign(ldLen->GetDst(), actualCountOpnd, ldLen);
     }
     ldLen->Remove();

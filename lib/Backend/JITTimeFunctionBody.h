@@ -97,6 +97,7 @@ public:
     bool IsParamAndBodyScopeMerged() const;
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
+    bool GetDoScopeObjectCreation() const;
 
     const byte * GetByteCodeBuffer() const;
     StatementMapIDL * GetFullStatementMap() const;

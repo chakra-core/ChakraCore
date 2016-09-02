@@ -641,9 +641,9 @@ LowererMD::LoadArgumentCount(IR::Instr * instr)
 }
 
 IR::Instr *
-LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force, IR::Opnd* opndInputParamCount)
+LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
 {
-    return this->lowererMDArch.LoadHeapArguments(instrArgs, force, opndInputParamCount);
+    return this->lowererMDArch.LoadHeapArguments(instrArgs);
 }
 
 IR::Instr *

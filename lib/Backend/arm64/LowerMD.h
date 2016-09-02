@@ -72,7 +72,7 @@ public:
 
             IR::Instr *     LoadArgumentCount(IR::Instr * instr) { __debugbreak(); return 0; }
             IR::Instr *     LoadStackArgPtr(IR::Instr * instr) { __debugbreak(); return 0; }
-              IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs, bool force = false, IR::Opnd *opndInputParamCount = nullptr) { __debugbreak(); return 0; }
+              IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs) { __debugbreak(); return 0; }
               IR::Instr *     LoadHeapArgsCached(IR::Instr * instr) { __debugbreak(); return 0; }
               IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false) { __debugbreak(); return 0; }
               IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr) { __debugbreak(); return 0; }

@@ -2170,13 +2170,13 @@ LowererMD::LoadArgumentCount(IR::Instr * instr)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR::Opnd *opndInputParamCount /* = nullptr */)
+LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
 {
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
     IR::Instr * instrPrev = instrArgs->m_prev;
 
-    if (!force && func->IsStackArgsEnabled())
+    if (func->IsStackArgsEnabled())
     {
         // The initial args slot value is zero.
         instrArgs->m_opcode = Js::OpCode::MOV;
@@ -2246,11 +2246,9 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s2 = actual argument count (without counting "this")
-            if (opndInputParamCount == nullptr)
-            {
-                instr = this->LoadInputParamCount(instrArgs, -1);
-                opndInputParamCount = instr->GetDst();
-            }
+            instr = this->LoadInputParamCount(instrArgs, -1);
+            IR::Opnd * opndInputParamCount = instr->GetDst();
+            
             this->LoadHelperArgument(instrArgs, opndInputParamCount);
 
             // s1 = current function

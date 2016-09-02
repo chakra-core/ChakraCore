@@ -296,6 +296,23 @@ BackwardPass::InsertArgInsForFormals()
 }
 
 void
+BackwardPass::MarkScopeObjSymUseForStackArgOpt()
+{
+    IR::Instr * instr = this->currentInstr;
+    if (tag == Js::DeadStorePhase)
+    {
+        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr)
+        {
+            if (this->currentBlock->byteCodeUpwardExposedUsed == nullptr)
+            {
+                this->currentBlock->byteCodeUpwardExposedUsed = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+            }
+            this->currentBlock->byteCodeUpwardExposedUsed->Set(instr->m_func->GetScopeObjSym()->m_id);
+        }
+    }
+}
+
+void
 BackwardPass::ProcessBailOnStackArgsOutOfActualsRange()
 {
     IR::Instr * instr = this->currentInstr;
@@ -1912,17 +1929,6 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
             if (byteCodeUpwardExposedUsed != nullptr)
             {
-                //Stack Args for Formals optimization.
-                //We will restore the scope object in the bail out path, when we restore Heap arguments object.
-                //So we don't to mark the sym for scope object separately for restoration.
-                //When StackArgs for formal opt is ON , Scope object sym is used by formals access only, which will be replaced by ArgIns and Ld_A 
-                //So it is ok to clear the bit here.
-                //Clearing the bit in byteCodeUpwardExposedUsed here.
-                if (instr->m_func->IsStackArgsEnabled() && instr->m_func->GetScopeObjSym())
-                {
-                    byteCodeUpwardExposedUsed->Clear(instr->m_func->GetScopeObjSym()->m_id);
-                }
-
                 this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
 #if DBG
                 FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUpwardExposedUsed)
@@ -2540,6 +2546,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
+        MarkScopeObjSymUseForStackArgOpt();
         ProcessBailOnStackArgsOutOfActualsRange();
         
         if (ProcessNoImplicitCallUses(instr) || this->ProcessBailOutInfo(instr))
@@ -2554,7 +2561,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
-        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval())
+        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev))
         {
             continue;
         }
@@ -2636,7 +2643,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             {
                 case Js::OpCode::LdSlot:
                 {
-                    DeadStoreOrChangeInstrForScopeObjRemoval();
+                    DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev);
                     break;
                 }
                 case Js::OpCode::InlineArrayPush:
@@ -2889,19 +2896,17 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
     if (tag == Js::DeadStorePhase && this->currentInstr->m_func->IsStackArgsEnabled())
     {
         Func * currFunc = this->currentInstr->m_func;
+        bool doScopeObjCreation = currFunc->GetJITFunctionBody()->GetDoScopeObjectCreation();
         switch (this->currentInstr->m_opcode)
         {
-            case Js::OpCode::LdHeapArguments:
-            case Js::OpCode::LdHeapArgsCached:
-            case Js::OpCode::LdLetHeapArguments:
-            case Js::OpCode::LdLetHeapArgsCached:
+            case Js::OpCode::InitCachedScope:
             {
-                if (this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                if(!doScopeObjCreation && this->currentInstr->GetDst()->IsScopeObjOpnd(currFunc))
                 {
                     /*
-                    *   We don't really dead store these instructions. We just want the source sym of these instructions (which is the scope object)
+                    *   We don't really dead store this instruction. We just want the source sym of this instruction
                     *   to NOT be tracked as USED by this instruction.
-                    *   In case of LdXXHeapArgsXXX opcodes, they will effectively be lowered to dest = MOV NULL, in the lowerer phase.
+                    *   This instr will effectively be lowered to dest = MOV NULLObject, in the lowerer phase.
                     */
                     return true;
                 }
@@ -2916,13 +2921,23 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
                 break;
             }
             case Js::OpCode::CommitScope:
+            case Js::OpCode::GetCachedFunc:
             {
-                return this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
             }
             case Js::OpCode::BrFncCachedScopeEq:
             case Js::OpCode::BrFncCachedScopeNeq:
             {
-                return this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+            }
+            case Js::OpCode::CallHelper:
+            {
+                if (!doScopeObjCreation && this->currentInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = this->currentInstr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    return scopeObjOpnd->IsScopeObjOpnd(currFunc);
+                }
+                break;
             }
         }
     }
@@ -2933,7 +2948,7 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
 * This is for Eliminating Scope Object Creation during Heap arguments optimization.
 */
 bool
-BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
+BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
 {
     IR::Instr * instr = this->currentInstr;
     Func * currFunc = instr->m_func;
@@ -2996,6 +3011,54 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                 }
                 break;
             }
+            case Js::OpCode::CallHelper:
+            {
+                //Remove the CALL and all its Argout instrs.
+                if (instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = instr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    if (scopeObjOpnd->IsScopeObjOpnd(currFunc))
+                    {
+                        IR::Instr * instrDef = instr;
+                        IR::Instr * nextInstr = instr->m_next;
+
+                        while (instrDef != nullptr)
+                        {
+                            IR::Instr * instrToDelete = instrDef;
+                            if (instrDef->GetSrc2() != nullptr)
+                            {
+                                instrDef = instrDef->GetSrc2()->GetStackSym()->GetInstrDef();
+                                Assert(instrDef->m_opcode == Js::OpCode::ArgOut_A);
+                            }
+                            else
+                            {
+                                instrDef = nullptr;
+                            }
+                            instrToDelete->Remove();
+                        }
+                        Assert(nextInstr != nullptr);
+                        *pInstrPrev = nextInstr->m_prev;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Js::OpCode::GetCachedFunc:
+            {
+                // <dst> = GetCachedFunc <scopeObject>, <functionNum>
+                // is converted to 
+                // <dst> = NewScFunc <functionNum>, <env: FrameDisplay>
+
+                if (instr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                {
+                    instr->m_opcode = Js::OpCode::NewScFunc;
+                    IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+
+                    instr->ReplaceSrc1(intConstOpnd);
+                    instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
+                }
+                break;
+            }
         }
     }
     return false;
@@ -3005,7 +3068,7 @@ IR::Instr *
 BackwardPass::TryChangeInstrForStackArgOpt()
 {
     IR::Instr * instr = this->currentInstr;
-    if (instr->DoStackArgsOpt(this->func))
+    if (tag == Js::DeadStorePhase && instr->DoStackArgsOpt(this->func))
     {
         switch (instr->m_opcode)
         {
@@ -3035,6 +3098,22 @@ BackwardPass::TryChangeInstrForStackArgOpt()
             }
         }
     }
+
+    /*
+    *   Scope Object Sym is kept alive in all code paths.
+    *   -This is to facilitate Bailout to record the live Scope object Sym, whenever required.
+    *   -Reason for doing is this because - Scope object has to be implicitly live whenever Heap Arguments object is live.
+    *   -When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
+    *   -We do not know detailed information about Heap arguments obj syms(aliasing etc.) until we complete Forward Pass. 
+    *   -And we want to avoid dead sym clean up (in this case, scope object though not explicitly live, it is live implicitly) during Block merging in the forward pass. 
+    *   -Hence this is the optimal spot to do this.
+    */
+
+    if (tag == Js::BackwardPhase && instr->m_func->GetScopeObjSym() != nullptr)
+    {
+        this->currentBlock->upwardExposedUses->Set(instr->m_func->GetScopeObjSym()->m_id);
+    }
+
     return nullptr;
 }
 
@@ -6610,13 +6689,8 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
 #endif
         PropertySym *unusedPropertySym = nullptr;
         
-        // Do not track the Scope Obj - we will be restoring it in the bailout path while restoring Heap arguments object.
-        // See InterpreterStackFrame::TrySetFrameObjectInHeapArgObj
-        if (!(instr->m_func->IsStackArgsEnabled() && instr->m_opcode == Js::OpCode::LdSlotArr &&
-            instr->GetSrc1() && instr->GetSrc1()->IsScopeObjOpnd(instr->m_func)))
-        {
-            GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
-        }
+        GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
+        
 #if DBG
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
         tempBv2.Copy(this->currentBlock->byteCodeUpwardExposedUsed);

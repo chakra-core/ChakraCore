@@ -541,7 +541,7 @@ private:
     IR::Opnd *          LoadFunctionBodyOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueType);
-    IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum regNum = RegNOREG);
+    IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType);
     IR::Opnd *          LoadVTableValueOpnd(IR::Instr * instr, VTableValue vtableType);
     IR::Opnd *          LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverridesValue valueType);
     IR::Opnd *          LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue valueType);

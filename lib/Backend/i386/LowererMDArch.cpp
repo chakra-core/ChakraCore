@@ -234,13 +234,13 @@ LowererMDArch::LoadStackArgPtr(IR::Instr * instrArgPtr)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opndInputParamCount)
+LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
 {
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
 
     IR::Instr * instrPrev = instrArgs->m_prev;
-    if (!force && func->IsStackArgsEnabled()) //both inlinee & inliner has stack args. We don't support other scenarios.
+    if (func->IsStackArgsEnabled()) //both inlinee & inliner has stack args. We don't support other scenarios.
     {
         // The initial args slot value is zero. (TODO: it should be possible to dead-store the LdHeapArgs in this case.)
         instrArgs->m_opcode = Js::OpCode::MOV;
@@ -325,11 +325,9 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s2 = actual argument count (without counting "this")
-            if (opndInputParamCount == nullptr)
-            {
-                instr = this->lowererMD->LoadInputParamCount(instrArgs, -1);
-                opndInputParamCount = instr->GetDst();
-            }
+            instr = this->lowererMD->LoadInputParamCount(instrArgs, -1);
+            IR::Opnd* opndInputParamCount = instr->GetDst();
+            
             this->LoadHelperArgument(instrArgs, opndInputParamCount);
 
             // s1 = current function

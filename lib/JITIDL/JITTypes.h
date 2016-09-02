@@ -466,6 +466,13 @@ typedef struct FunctionBodyDataIDL
     boolean isParamAndBodyScopeMerged;
     boolean hasFinally;
     boolean usesArgumentsObject;
+    boolean doScopeObjectCreation;
+#if defined(_M_IX86) || defined(_M_ARM)
+    IDL_PAD1(0)
+#else
+    IDL_PAD1(0)
+    IDL_PAD2(1)
+#endif
 
     unsigned short envDepth;
     unsigned short inParamCount;
