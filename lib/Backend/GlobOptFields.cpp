@@ -2200,7 +2200,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
         isObjTypeSpecialized = ProcessPropOpInTypeCheckSeq<true>(instr, opnd, block, updateExistingValue, emitsTypeCheckOut, changesTypeValueOut, &isObjTypeChecked);
     }
 
-    if (opnd == instr->GetDst() && this->objectTypeSyms && !isObjTypeChecked)
+    if (opnd == instr->GetDst() && this->objectTypeSyms)
     {
         if (block == nullptr)
         {
@@ -2210,26 +2210,29 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
         // This is a property store that may change the layout of the object that it stores to. This means that
         // it may change any aliased object. Do two things to address this:
         // - Add all object types in this function to the set that may have had a property added. This will prevent
-        //   final type optimization across this instruction.
+        //   final type optimization across this instruction. (Only needed here for non-specialized stores.)
         // - Kill all type symbols that currently hold object-header-inlined types. Any of them may have their layout
         //   changed by the addition of a property.
 
         SymID opndId = opnd->HasObjectTypeSym() ? opnd->GetObjectTypeSym()->m_id : -1;
-        if (block->globOptData.maybeWrittenTypeSyms == nullptr)
+        if (!isObjTypeChecked)
         {
-            block->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        }
-        if (isObjTypeSpecialized)
-        {
-            // The current object will be protected by a type check, unless no further accesses to it are
-            // protected by this access.
-            Assert(this->objectTypeSyms->Test(opndId));
-            this->objectTypeSyms->Clear(opndId);
-        }
-        block->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
-        if (isObjTypeSpecialized)
-        {
-            this->objectTypeSyms->Set(opndId);
+            if (block->globOptData.maybeWrittenTypeSyms == nullptr)
+            {
+                block->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+            }
+            if (isObjTypeSpecialized)
+            {
+                // The current object will be protected by a type check, unless no further accesses to it are
+                // protected by this access.
+                Assert(this->objectTypeSyms->Test(opndId));
+                this->objectTypeSyms->Clear(opndId);
+            }
+            block->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
+            if (isObjTypeSpecialized)
+            {
+                this->objectTypeSyms->Set(opndId);
+            }
         }
 
         if (!isObjTypeSpecialized || opnd->ChangesObjectLayout())
