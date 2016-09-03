@@ -262,10 +262,10 @@ Encoder::Encode()
         {
             auto entryPointInfo = m_func->GetInProcJITEntryPointInfo();
             auto functionBody = entryPointInfo->GetFunctionBody();
+            Js::SmallSpanSequenceIter iter;
             for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
             {
                 IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
-                Js::SmallSpanSequenceIter iter;
                 functionBody->RecordNativeThrowMap(iter, inst->m_offsetInBuffer, inst->m_statementIndex, entryPointInfo, Js::LoopHeader::NoLoop);
             }
         }
