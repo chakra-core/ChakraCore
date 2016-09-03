@@ -4954,7 +4954,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->currentBlock->RemoveInstr(instr);
         return instrNext;
     }
-    else if (instr->m_opcode == Js::OpCode::GetNewScObject && src1Val->GetValueInfo()->IsPrimitive())
+    else if (instr->m_opcode == Js::OpCode::GetNewScObject && !this->IsLoopPrePass() && src1Val->GetValueInfo()->IsPrimitive())
     {
         // Constructor returned (src1) a primitive value, so fold this into "dst = Ld_A src2", where src2 is the new object that
         // was passed into the constructor as its 'this' parameter
