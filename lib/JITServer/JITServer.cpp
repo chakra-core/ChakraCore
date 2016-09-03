@@ -6,7 +6,7 @@
 #include "JITServerPch.h"
 
 __declspec(dllexport)
-HRESULT JsInitializeRpcServer(
+HRESULT JsInitializeJITServer(
     __in UUID* connectionUuid,
     __in_opt void* securityDescriptor,
     __in_opt void* alpcSecurityDescriptor)
