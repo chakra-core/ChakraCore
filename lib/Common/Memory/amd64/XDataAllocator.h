@@ -24,6 +24,8 @@ struct XDataAllocation : public SecondaryAllocation
     {
         address = nullptr;
     }
+    RUNTIME_FUNCTION pdata;
+    FunctionTableHandle functionTable;
 };
 
 //
@@ -65,11 +67,10 @@ public:
     void Delete();
     bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
     void Release(const SecondaryAllocation& address);
-    void ReleaseAll();
     bool CanAllocate();
 
-    static XDataInfo * XDataAllocator::Register(ULONG_PTR xdataAddr, ULONG_PTR functionStart, DWORD functionSize);
-    static void Unregister(XDataInfo* xdataInfo);
+    static void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize);
+    static void Unregister(XDataAllocation * xdataInfo);
 
 // -------- Private helpers ---------/
 private:

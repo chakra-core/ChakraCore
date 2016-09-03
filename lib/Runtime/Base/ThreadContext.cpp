@@ -319,7 +319,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -1943,8 +1943,13 @@ ThreadContext::InitJITThreadContext()
 
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
+
     // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
+#ifdef NTBUILD
     contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
+#else
+    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"ChakraCore.dll");
+#endif
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;

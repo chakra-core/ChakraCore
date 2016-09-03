@@ -41,6 +41,7 @@ public:
     intptr_t GetMantissaMaskAddr() const;
     intptr_t GetExponentMaskAddr() const;
 
+#if _M_IX86 || _M_AMD64
     intptr_t GetX86AbsMaskF4Addr() const;
     intptr_t GetX86AbsMaskD2Addr() const;
     intptr_t GetX86NegMaskF4Addr() const;
@@ -59,6 +60,7 @@ public:
     intptr_t GetX86TwoPower31I4Addr() const;
     intptr_t GetX86NegTwoPower31F4Addr() const;
     intptr_t GetX86FourLanesMaskAddr(uint8 minorityLane) const;
+#endif
 
     intptr_t GetStringReplaceNameAddr() const;
     intptr_t GetStringMatchNameAddr() const;
@@ -79,7 +81,9 @@ public:
     virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
 
 #if ENABLE_NATIVE_CODEGEN
+#if defined(_M_IX86) || defined(_M_X64)
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
+#endif
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
     virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif

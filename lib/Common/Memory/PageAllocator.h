@@ -82,10 +82,17 @@ struct SecondaryAllocation
     }
 };
 
-#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#if defined(_M_X64)
 struct XDataInfo
 {
     RUNTIME_FUNCTION pdata;
+    FunctionTableHandle functionTable;
+};
+#elif defined(_M_ARM32_OR_ARM64)
+struct XDataInfo
+{
+    ushort pdataCount;
+    ushort xdataSize;
     FunctionTableHandle functionTable;
 };
 #endif

@@ -21,6 +21,11 @@ public:
 
     uint16 GetArgUsedForBranch() const;
     intptr_t GetCodeAddress() const;
+    size_t GetCodeSize() const;
+    ushort GetPdataCount() const;
+    ushort GetXdataSize() const;
+
+    void SetCodeAddress(intptr_t addr);
 
     EmitBufferAllocation * RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
     void RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc);

@@ -67,12 +67,42 @@ JITOutput::GetCodeAddress() const
     return (intptr_t)m_outputData->codeAddress;
 }
 
+void
+JITOutput::SetCodeAddress(intptr_t addr)
+{
+    m_outputData->codeAddress = addr;
+}
+
+size_t
+JITOutput::GetCodeSize() const
+{
+    return (size_t)m_outputData->codeSize;
+}
+
+ushort
+JITOutput::GetPdataCount() const
+{
+    return m_outputData->pdataCount;
+}
+
+ushort
+JITOutput::GetXdataSize() const
+{
+    return m_outputData->xdataSize;
+}
+
 EmitBufferAllocation *
 JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize)
 {
     BYTE *buffer;
 
-    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, true, true);
+#if defined(_M_ARM32_OR_ARM64)
+    bool canAllocInPreReservedHeapPageSegment = false;
+#else
+    bool canAllocInPreReservedHeapPageSegment = func->CanAllocInPreReservedHeapPageSegment();
+#endif
+
+    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
 
 #if DBG
     MEMORY_BASIC_INFORMATION memBasicInfo;

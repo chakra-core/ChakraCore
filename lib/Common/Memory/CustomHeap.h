@@ -117,14 +117,6 @@ struct Allocation
         return allocator;
     }
 
-#if defined(_M_ARM32_OR_ARM64)
-    void RegisterPdata(ULONG_PTR functionStart, DWORD length)
-    {
-        Assert(this->xdata.pdataCount > 0);
-        XDataAllocator* xdataAllocator = GetXDataAllocator();
-        xdataAllocator->Register(this->xdata, functionStart, length);
-    }
-#endif
 #endif
 
 };

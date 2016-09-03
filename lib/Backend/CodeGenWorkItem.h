@@ -22,8 +22,6 @@ protected:
     Js::FunctionBody *const functionBody;
     size_t codeAddress;
     ptrdiff_t codeSize;
-    ushort pdataCount;
-    ushort xdataSize;
 
 public:
     HRESULT codeGenResult;
@@ -75,12 +73,6 @@ public:
     void SetCodeSize(ptrdiff_t codeSize) { this->codeSize = codeSize; }
     ptrdiff_t GetCodeSize() { return codeSize; }
 
-    void SetPdataCount(ushort pdataCount) { this->pdataCount = pdataCount; }
-    ushort GetPdataCount() { return pdataCount; }
-
-    void SetXdataSize(ushort xdataSize) { this->xdataSize = xdataSize; }
-    ushort GetXdataSize() { return xdataSize; }
-
 protected:
     virtual uint GetLoopNumber() const
     {
@@ -123,11 +115,6 @@ public:
     }
 #endif
 private:
-
-    void SetAllocation(EmitBufferAllocation *allocation)
-    {
-        this->allocation = allocation;
-    }
     EmitBufferAllocation *GetAllocation() { return allocation; }
 
 public:
@@ -191,20 +178,6 @@ public:
     {
         return jitData.isJitInDebugMode != 0;
     }
-
-#if _M_ARM
-    void RecordPdataEntry(int index, DWORD beginAddress, DWORD unwindData)
-    {
-        RUNTIME_FUNCTION *function = GetAllocation()->allocation->xdata.GetPdataArray() + index;
-        function->BeginAddress = beginAddress;
-        function->UnwindData = unwindData;
-    }
-
-    void FinalizePdata()
-    {
-        GetAllocation()->allocation->RegisterPdata((ULONG_PTR)GetCodeAddress(), GetCodeSize());
-    }
-#endif
 
     void OnWorkItemProcessFail(NativeCodeGenerator *codeGen);
 

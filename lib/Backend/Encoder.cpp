@@ -324,8 +324,8 @@ Encoder::Encode()
         alloc->allocation->xdata.address,
         m_func->GetThreadContextInfo()->GetProcessHandle());
 #elif _M_ARM
-    m_func->m_unwindInfo.EmitUnwindInfo(workItem);
-    workItem->SetCodeAddress(workItem->GetCodeAddress() | 0x1); // Set thumb mode
+    m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), alloc);
+    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
 
     const bool isSimpleJit = m_func->IsSimpleJit();
@@ -333,7 +333,6 @@ Encoder::Encode()
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-        // TODO: OOP JIT, inlinee frame map
         if (!m_func->IsOOPJIT()) // in-proc JIT
         {
             m_func->GetInProcJITEntryPointInfo()->RecordInlineeFrameMap(m_inlineeFrameMap);

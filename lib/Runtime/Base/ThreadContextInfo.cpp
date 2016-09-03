@@ -169,6 +169,8 @@ ThreadContextInfo::GetMantissaMaskAddr() const
     return SHIFT_ADDR(this, &Js::Constants::MantissaMask);
 }
 
+#if _M_IX86 || _M_AMD64
+
 intptr_t
 ThreadContextInfo::GetX86AbsMaskF4Addr() const
 {
@@ -276,6 +278,7 @@ ThreadContextInfo::GetX86FourLanesMaskAddr(uint8 minorityLane) const
 {
     return SHIFT_ADDR(this, &X86_4LANES_MASKS[minorityLane]);
 }
+#endif
 
 intptr_t
 ThreadContextInfo::GetStringReplaceNameAddr() const

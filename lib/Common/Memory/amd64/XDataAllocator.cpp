@@ -95,15 +95,6 @@ bool XDataAllocator::CanAllocate()
     return ((End() - current) >= XDATA_SIZE) || this->freeList;
 }
 
-void XDataAllocator::ReleaseAll()
-{
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
-#endif
-    this->current = this->start;
-    ClearFreeList();
-}
-
 void XDataAllocator::ClearFreeList()
 {
     XDataAllocationEntry* next = this->freeList;
@@ -118,14 +109,12 @@ void XDataAllocator::ClearFreeList()
 }
 
 /* static */
-XDataInfo * XDataAllocator::Register(ULONG_PTR xdataAddr, ULONG_PTR functionStart, DWORD functionSize)
+void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize)
 {
-    XDataInfo * xdataInfo = HeapNewStructZ(XDataInfo);
-
     ULONG_PTR baseAddress = functionStart;
     xdataInfo->pdata.BeginAddress = (DWORD)(functionStart - baseAddress);
     xdataInfo->pdata.EndAddress = (DWORD)(xdataInfo->pdata.BeginAddress + functionSize);
-    xdataInfo->pdata.UnwindInfoAddress = (DWORD)(xdataAddr - baseAddress);
+    xdataInfo->pdata.UnwindInfoAddress = (DWORD)((intptr_t)xdataInfo->address - baseAddress);
 
     BOOLEAN success = FALSE;
     if (AutoSystemInfo::Data.IsWin8OrLater())
@@ -154,11 +143,10 @@ XDataInfo * XDataAllocator::Register(ULONG_PTR xdataAddr, ULONG_PTR functionStar
     RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)functionStart, &imageBase, nullptr);
     Assert(runtimeFunction != NULL);
 #endif
-    return xdataInfo;
 }
 
 /* static */
-void XDataAllocator::Unregister(XDataInfo* xdataInfo)
+void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
     // Delete the table
     if (AutoSystemInfo::Data.IsWin8OrLater())

@@ -766,6 +766,9 @@ typedef struct JITOutputIDL
 
     unsigned int propertyGuardCount;
     unsigned int ctorCachesCount;
+
+    CHAKRA_PTR codeAddress;
+    CHAKRA_PTR xdataAddr;
     TypeGuardTransferEntryIDL* typeGuardEntries;
 
     IDL_DEF([size_is(ctorCachesCount)]) CtorCacheTransferEntryIDL ** ctorCacheEntries;
@@ -776,7 +779,5 @@ typedef struct JITOutputIDL
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
     XProcNumberPageSegment* numberPageSegments;
 
-    __int64 codeAddress;
-    __int64 xdataAddr;
     __int64 startTime;
 } JITOutputIDL;

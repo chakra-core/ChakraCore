@@ -12,7 +12,12 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")), // TODO: OOP JIT, don't hardcode name
+    // TODO: OOP JIT, don't hardcode name
+#ifdef NTBUILD
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")),
+#else
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"ChakraCore.dll")),
+#endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
     m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
@@ -117,12 +122,14 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
+#if defined(_M_IX86) || defined(_M_X64)
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
     Assert(tempIndex < SIMD_TEMP_SIZE);
     return m_threadContextData.simdTempAreaBaseAddr + tempIndex * sizeof(_x86_SIMDValue);
 }
+#endif
 
 intptr_t
 ServerThreadContext::GetThreadStackLimitAddr() const

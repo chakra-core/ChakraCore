@@ -7079,11 +7079,6 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     {
         opnd = IR::MemRefOpnd::New((void*)pValue, isFloat64 ? TyMachDouble : TyFloat32,
             instrInsert->m_func, isFloat64 ? IR::AddrOpndKindDynamicDoubleRef : IR::AddrOpndKindDynamicFloatRef);
-
-        IR::Instr * instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
-        instrInsert->InsertBefore(instr);
-        Legalize(instr);
-        return instr;
     }
     else // OOP JIT
     {
@@ -7092,7 +7087,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 
         Lowerer::InsertMove(
             addressRegOpnd,
-            IR::MemRefOpnd::New((void*)instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+            IR::MemRefOpnd::New(instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
             instrInsert);
 
         opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32,
@@ -7100,13 +7095,14 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
             instrInsert->m_func);
-
-        // movsd xmm, [reg+offset]
-        auto instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
-        instrInsert->InsertBefore(instr);
-        Legalize(instr);
-        return instr;
     }
+
+    // movsd xmm, [reg+offset]
+    IR::Instr * instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
+
+    instrInsert->InsertBefore(instr);
+    Legalize(instr);
+    return instr;
 
 }
 

@@ -1048,7 +1048,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
-    XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
+    XDataAllocation * xdataInfo = HeapNew(XDataAllocation);
+    xdataInfo->address = (byte*)jitWriteData.xdataAddr;
+#if defined(_M_ARM32_OR_ARM64)
+    xdataInfo->pdataCount = jitWriteData.pdataCount;
+    xdataInfo->xdataSize = jitWriteData.xdataSize;
+#endif
+    XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
     epInfo->SetXDataInfo(xdataInfo);
 #endif
     scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);

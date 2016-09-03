@@ -60,6 +60,7 @@ DWORD UnwindInfoManager::RelativeRegEncoding(RegNum reg, RegNum baseReg) const
 void UnwindInfoManager::Init(Func * func)
 {
     this->SetFunc(func);
+    this->processHandle = func->GetThreadContextInfo()->GetProcessHandle();
 }
 
 DWORD UnwindInfoManager::GetPDataCount(DWORD length)
@@ -95,15 +96,17 @@ DWORD UnwindInfoManager::GetPDataCount(DWORD length)
     return count;
 }
 
-void UnwindInfoManager::EmitUnwindInfo(CodeGenWorkItem *workItem)
+void UnwindInfoManager::EmitUnwindInfo(JITOutput *jitOutput, EmitBufferAllocation * alloc)
 {
-    this->workItem = workItem;
+    this->jitOutput = jitOutput;
+    this->alloc = alloc;
+    this->processHandle = processHandle;
 
     // First handle the main function, which we may have to emit in multiple
     // fragments depending on its length.
     DWORD remainingLength = this->GetEpilogEndOffset();
     this->fragmentHasProlog = true;
-    this->fragmentStart = workItem->GetCodeAddress();
+    this->fragmentStart = jitOutput->GetCodeAddress();
 
     this->pdataIndex = 0;
     this->xdataTotal = 0;
@@ -115,15 +118,15 @@ void UnwindInfoManager::EmitUnwindInfo(CodeGenWorkItem *workItem)
     this->fragmentHasEpilog = true;
     this->EmitPdata();
 
-    Assert(workItem->GetCodeSize() >= (ptrdiff_t)this->GetEpilogEndOffset());
+    Assert(jitOutput->GetCodeSize() >= (ptrdiff_t)this->GetEpilogEndOffset());
 
-    if (workItem->GetCodeSize() > (ptrdiff_t)this->GetEpilogEndOffset())
+    if (jitOutput->GetCodeSize() > (ptrdiff_t)this->GetEpilogEndOffset())
     {
         // Set the start/end pointers to indicate the boundaries of the fragment.
         // Almost identical to the code above, except that all chunks have neither prolog nor epilog.
-        this->fragmentStart = workItem->GetCodeAddress() + this->GetEpilogEndOffset();
+        this->fragmentStart = jitOutput->GetCodeAddress() + this->GetEpilogEndOffset();
         this->fragmentHasProlog = false;
-        remainingLength = workItem->GetCodeSize() - this->GetEpilogEndOffset();
+        remainingLength = jitOutput->GetCodeSize() - this->GetEpilogEndOffset();
 
         while (remainingLength > MaxXdataFuncLength)
         {
@@ -133,9 +136,8 @@ void UnwindInfoManager::EmitUnwindInfo(CodeGenWorkItem *workItem)
         this->fragmentHasEpilog = false;
         this->EmitPdata();
     }
-    AssertMsg(this->pdataIndex == workItem->GetPdataCount(), "The length of pdata array is not in sync with the usage");
-    AssertMsg(this->xdataTotal <= workItem->GetXdataSize(), "We under-allocated the size of the xdata");
-    this->workItem->FinalizePdata();
+    AssertMsg(this->pdataIndex == jitOutput->GetPdataCount(), "The length of pdata array is not in sync with the usage");
+    AssertMsg(this->xdataTotal <= jitOutput->GetXdataSize(), "We under-allocated the size of the xdata");
 }
 
 DWORD UnwindInfoManager::EmitLongUnwindInfoChunk(DWORD remainingLength)
@@ -287,7 +289,7 @@ void UnwindInfoManager::EncodePackedUnwindData()
     Assert((depth & ~PackedStackDepthMask) == 0);
     dwFlags |= depth << PackedStackDepthShift;
 
-    this->workItem->RecordPdataEntry(this->pdataIndex, ((DWORD)this->GetFragmentStart()) | 1, dwFlags);
+    RecordPdataEntry(((DWORD)this->GetFragmentStart()) | 1, dwFlags);
 }
 
 void UnwindInfoManager::EncodeExpandedUnwindData()
@@ -491,9 +493,9 @@ void UnwindInfoManager::EncodeExpandedUnwindData()
 
     size_t totalSize = (xDataDwordCount * 4);
 
-    size_t xdataFinal = this->workItem->RecordUnwindInfo(this->xdataTotal, xData, totalSize);
+    size_t xdataFinal = this->jitOutput->RecordUnwindInfo(this->xdataTotal, xData, totalSize, this->alloc->allocation->xdata.address, this->processHandle);
     this->xdataTotal += totalSize;
-    this->workItem->RecordPdataEntry(this->pdataIndex, (DWORD)(this->GetFragmentStart() + this->GetPrologOffset()) | 1, (DWORD)xdataFinal);
+    RecordPdataEntry((DWORD)(this->GetFragmentStart() + this->GetPrologOffset()) | 1, (DWORD)xdataFinal);
 }
 
 DWORD UnwindInfoManager::EmitXdataStackAlloc(BYTE xData[], DWORD byte, DWORD stack)
@@ -533,6 +535,15 @@ DWORD UnwindInfoManager::EmitXdataStackAlloc(BYTE xData[], DWORD byte, DWORD sta
 
     encoding |= this->XdataTemplate(op);
     return this->WriteXdataBytes(xData, byte, encoding, this->XdataLength(op));
+}
+
+void UnwindInfoManager::RecordPdataEntry(DWORD beginAddress, DWORD unwindData)
+{
+    RUNTIME_FUNCTION *function = this->alloc->allocation->xdata.GetPdataArray() + this->pdataIndex;
+    RUNTIME_FUNCTION localFunc;
+    localFunc.BeginAddress = beginAddress;
+    localFunc.UnwindData = unwindData;
+    ChakraMemCopy(function, sizeof(RUNTIME_FUNCTION), &localFunc, sizeof(RUNTIME_FUNCTION), this->processHandle);
 }
 
 DWORD UnwindInfoManager::EmitXdataHomeParams(BYTE xData[], DWORD byte)
@@ -772,11 +783,6 @@ bool UnwindInfoManager::IsR4SavedRegRange(bool saveR11) const
 bool UnwindInfoManager::IsR4SavedRegRange(DWORD savedRegMask)
 {
     return ((savedRegMask + (1 << RegEncode[RegR4])) & savedRegMask) == 0;
-}
-
-bool UnwindInfoManager::IsPdataPacked(const DWORD *pdata) const
-{
-    return (pdata[1] & PackedPdataFlagMask) != ExpandedPdataFlag;
 }
 
 bool UnwindInfoManager::GetHasChkStk() const

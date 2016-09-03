@@ -557,7 +557,7 @@ namespace Js
         void **runtimeTypeRefs;
 
 #if _M_AMD64 || _M_ARM32_OR_ARM64
-        XDataInfo * xdataInfo;
+        XDataAllocation * xdataInfo;
 #endif
 
         uint32 pendingPolymorphicCacheState;
@@ -628,8 +628,8 @@ namespace Js
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
-        XDataInfo* GetXDataInfo() { return this->xdataInfo; }
-        void SetXDataInfo(XDataInfo* xdataInfo) { this->xdataInfo = xdataInfo; }
+        XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
+        void SetXDataInfo(XDataAllocation* xdataInfo) { this->xdataInfo = xdataInfo; }
 #endif
 
 #ifdef FIELD_ACCESS_STATS
