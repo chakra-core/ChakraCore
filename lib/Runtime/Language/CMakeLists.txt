@@ -1,10 +1,4 @@
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
-    set( ARCH_CHAKRA_RUNTIME_LANGUAGE
-        amd64/JavascriptOperatorsA.S
-        )
-endif()
-
-add_library (Chakra.Runtime.Language OBJECT
+set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     AsmJs.cpp
     AsmJsByteCodeGenerator.cpp
     AsmJsCodeGenerator.cpp
@@ -63,14 +57,22 @@ add_library (Chakra.Runtime.Language OBJECT
     StackTraceArguments.cpp
     TaggedInt.cpp
     ValueType.cpp
-    amd64/AsmJsJitTemplate.cpp
-    amd64/StackFrame.SystemV.cpp
-    # arm64/StackFrame.cpp
-    # arm/StackFrame.cpp
-    # i386/AsmJsJitTemplate.cpp
-    # i386/StackFrame.cpp
-    ${ARCH_CHAKRA_RUNTIME_LANGUAGE}
     )
+
+if(CC_TARGETS_AMD64)
+    set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
+        amd64/AsmJsJitTemplate.cpp
+        amd64/StackFrame.SystemV.cpp
+        amd64/JavascriptOperatorsA.S
+    )
+elseif(CC_TARGETS_X86)
+    set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
+        i386/AsmJsJitTemplate.cpp
+        i386/StackFrame.cpp
+    )
+endif()
+
+add_library (Chakra.Runtime.Language OBJECT ${CRL_SOURCE_FILES})
 
 include_directories (
     ../Math

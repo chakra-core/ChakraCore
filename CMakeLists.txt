@@ -18,6 +18,21 @@ if(STATIC_LIBRARY_SH)
   set(STATIC_LIBRARY 1)
 endif()
 
+if(CC_TARGETS_AMD64_SH)
+  unset(CC_TARGETS_X86 CACHE)
+  unset(CC_TARGETS_X86_SH CACHE)
+  unset(CC_TARGETS_AMD64_SH CACHE)
+  set(CC_TARGETS_AMD64 1)
+endif()
+
+if(CC_TARGETS_X86_SH)
+  unset(CC_TARGETS_X86_SH CACHE)
+  unset(CC_TARGETS_AMD64_SH CACHE)
+  unset(CC_TARGETS_AMD64 CACHE)
+  set(CC_TARGETS_X86 1)
+  set(CMAKE_SYSTEM_PROCESSOR "i386")
+endif()
+
 if(ICU_SETTINGS_RESET)
   unset(ICU_SETTINGS_RESET CACHE)
   unset(ICU_INCLUDE_PATH CACHE)
@@ -52,7 +67,7 @@ function(clr_unknown_arch)
   if (WIN32)
       message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
   else()
-      message(FATAL_ERROR "Only AMD64 and ARM are supported")
+      message(FATAL_ERROR "Only AMD64 and I386 are supported")
   endif()
 endfunction()
 
@@ -82,6 +97,23 @@ elseif(CC_EMBED_ICU)
     )
  endif()
 
+set(CLR_CMAKE_PLATFORM_XPLAT 1)
+if(CC_TARGETS_AMD64)
+    add_definitions(-D_M_X64_OR_ARM64)
+    add_compile_options(-msse4.1)
+elseif(CC_TARGETS_X86)
+    add_definitions(-D__i686__)
+    add_definitions(-D_M_IX86_OR_ARM32)
+    add_compile_options(-arch i386)
+    add_compile_options(-msse3)
+
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -m32"
+    )
+else()
+    clr_unknown_arch()
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     if(NOT ICULIB)
       if(NOT NO_ICU_PATH_GIVEN)
@@ -92,12 +124,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
       endif()
     endif()
 
-    set(CLR_CMAKE_PLATFORM_UNIX 1)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
-        set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
-    else()
-        clr_unknown_arch()
-    endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
@@ -117,26 +143,17 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
       endif()
     endif()
 
-    set(CLR_CMAKE_PLATFORM_UNIX 1)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
-        set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
-    else()
-        clr_unknown_arch()
+    if(NOT CC_XCODE_PROJECT)
+        set(CLR_CMAKE_PLATFORM_DARWIN 1)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+            -mmacosx-version-min=10.7")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -mmacosx-version-min=10.7")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+            -mmacosx-version-min=10.7")
     endif()
-    set(CLR_CMAKE_PLATFORM_DARWIN 1)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-        -mmacosx-version-min=10.7")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -mmacosx-version-min=10.7")
-    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
-        -mmacosx-version-min=10.7")
 else()
     message(FATAL_ERROR "This OS is not supported")
-endif()
-
-if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
-    add_definitions(-D_M_X64_OR_ARM64)
-    set(CLR_CMAKE_PLATFORM_ARCH_AMD64 1)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
@@ -150,23 +167,20 @@ if(STATIC_LIBRARY)
     add_definitions(-DCHAKRA_STATIC_LIBRARY=1)
 endif()
 
-if(CLR_CMAKE_PLATFORM_UNIX)
+if(CLR_CMAKE_PLATFORM_XPLAT)
     add_definitions(-DPLATFORM_UNIX=1)
 
     if(CLR_CMAKE_PLATFORM_LINUX)
         add_definitions(-D__LINUX__=1)
-        if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
-            message("Detected Linux x86_64")
+        if(CC_TARGETS_AMD64)
             add_definitions(-DLINUX64)
-        else()
-            clr_unknown_arch()
-        endif(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
+        endif(CC_TARGETS_AMD64)
     endif(CLR_CMAKE_PLATFORM_LINUX)
 
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
+    if(CC_TARGETS_AMD64)
         set(IS_64BIT_BUILD 1)
         add_definitions(-D_M_X64 -D_M_AMD64 -D_AMD64_)
-    endif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
+    endif(CC_TARGETS_AMD64)
 
     add_definitions(
         -DUNICODE
@@ -198,6 +212,7 @@ endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-ignored-attributes\
         -Wno-deprecated-declarations\
         -Wno-parentheses-equality\
         -Wno-missing-braces\
@@ -229,8 +244,6 @@ endif()
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
 
-    # CXX COMPILER FLAGS
-
     # xplat-todo for release build
     # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
     # Release Builds: Not sure if this has to be as strict as the debug/test?
@@ -243,10 +256,10 @@ endif()
 
     # CXX / CC COMPILER FLAGS
     add_compile_options(
+        -fasm-blocks
         -fms-extensions
-        -msse4.1
     )
-endif(CLR_CMAKE_PLATFORM_UNIX)
+endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(
@@ -274,9 +287,9 @@ if(IS_64BIT_BUILD)
     )
 endif(IS_64BIT_BUILD)
 
-if(CLR_CMAKE_PLATFORM_UNIX)
+if(CLR_CMAKE_PLATFORM_XPLAT)
    add_definitions(-DFEATURE_PAL)
-endif(CLR_CMAKE_PLATFORM_UNIX)
+endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if(WITHOUT_FEATURES)
    add_definitions(${WITHOUT_FEATURES})

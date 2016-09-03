@@ -419,7 +419,10 @@
 #ifdef _WIN32
 #define PROFILE_EXEC
 #endif
+#if !(defined(__clang__) && defined(_M_IX86))
+// todo: implement this for clang x86
 #define PROFILE_MEM
+#endif
 #define PROFILE_TYPES
 #define PROFILE_EVALMAP
 #define PROFILE_OBJECT_LITERALS

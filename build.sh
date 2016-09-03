@@ -28,6 +28,7 @@ PRINT_USAGE() {
     echo "build.sh [options]"
     echo ""
     echo "options:"
+    echo "  --arch=[*]           Set target arch (x86)"
     echo "      --cxx=PATH       Path to Clang++ (see example below)"
     echo "      --cc=PATH        Path to Clang   (see example below)"
     echo "  -d, --debug          Debug build (by default Release build)"
@@ -65,6 +66,7 @@ ICU_PATH="-DICU_SETTINGS_RESET=1"
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 WITHOUT_FEATURES=""
 CREATE_DEB=0
+ARCH="-DCC_TARGETS_AMD64_SH=1"
 OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
@@ -82,6 +84,11 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+    --arch=*)
+        ARCH=$1
+        ARCH="${ARCH:7}"
+        ;;
+
     --cxx=*)
         _CXX=$1
         _CXX=${_CXX:6}
@@ -291,8 +298,15 @@ fi
 
 pushd $build_directory > /dev/null
 
+if [ $ARCH = "x86" ]; then
+    ARCH="-DCC_TARGETS_X86_SH=1"
+    echo "Compile Target : x86"
+else
+    echo "Compile Target : amd64"
+fi
+
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then

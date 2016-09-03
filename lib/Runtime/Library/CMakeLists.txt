@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Library OBJECT
+set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
     ArrayBuffer.cpp
@@ -111,8 +111,17 @@ add_library (Chakra.Runtime.Library OBJECT
     TypedArray.cpp
     TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
-    amd64/JavascriptFunctionA.S
     )
+
+if(CC_TARGETS_AMD64)
+    set (CRLIB_SOURCE_CODES ${CRLIB_SOURCE_CODES}
+        amd64/JavascriptFunctionA.S
+    )
+elseif(CC_TARGETS_X86)
+    # x86 here
+endif()
+
+add_library (Chakra.Runtime.Library OBJECT ${CRLIB_SOURCE_CODES})
 
 target_include_directories (
     Chakra.Runtime.Library PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
