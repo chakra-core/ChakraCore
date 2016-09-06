@@ -70,10 +70,7 @@ namespace Js
         static void __declspec(noreturn) ThrowStackOverflow(ScriptContext* scriptContext, PVOID returnAddress);
 
         static uint64 GetStackTraceLimit(Var thrownObject, ScriptContext* scriptContext);
-        static Var ThrowTypeErrorAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorCallerAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorCalleeAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorArgumentsAccessor(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StackTraceAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static void WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException = true, bool resetSatck = false);
         static void AddStackTraceToObject(Var obj, JavascriptExceptionContext::StackTrace* stackTrace, ScriptContext& scriptContext, bool isThrownException = true, bool resetSatck = false);
@@ -82,13 +79,10 @@ namespace Js
         class EntryInfo
         {
         public:
-            static FunctionInfo ThrowTypeErrorAccessor;
             static FunctionInfo StackTraceAccessor;
 
             // For strict mode
-            static FunctionInfo ThrowTypeErrorCallerAccessor;
-            static FunctionInfo ThrowTypeErrorCalleeAccessor;
-            static FunctionInfo ThrowTypeErrorArgumentsAccessor;
+            static FunctionInfo ThrowTypeErrorRestrictedPropertyAccessor;
         };
 
       private:

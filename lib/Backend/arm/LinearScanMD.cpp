@@ -346,3 +346,9 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 {
     return (RegNum)(offset >= RegD0 ? (offset - RegD0) / 2  + RegD0 : offset);
 }
+
+RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
+{
+	/* TODO - Add ARM32 support according to register calling convention */
+	return RegNOREG;
+}

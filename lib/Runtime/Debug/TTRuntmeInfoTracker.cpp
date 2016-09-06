@@ -10,7 +10,7 @@ namespace TTD
 {
     ScriptContextTTD::ScriptContextTTD(Js::ScriptContext* ctx)
         : m_ctx(ctx),
-        m_ttdRootSet(nullptr), m_ttdLocalRootSet(nullptr), m_ttdRootTagIdMap(&HeapAllocator::Instance),
+        m_ttdRootSet(nullptr), m_ttdLocalRootSet(nullptr), m_ttdRootTagIdMap(&HeapAllocator::Instance), m_ttdPendingAsyncModList(&HeapAllocator::Instance),
         m_ttdTopLevelScriptLoad(&HeapAllocator::Instance), m_ttdTopLevelNewFunction(&HeapAllocator::Instance), m_ttdTopLevelEval(&HeapAllocator::Instance),
         m_ttdPinnedRootFunctionSet(nullptr), m_ttdFunctionBodyParentMap(&HeapAllocator::Instance),
         TTDWeakReferencePinSet(nullptr)
@@ -45,6 +45,8 @@ namespace TTD
         }
 
         this->m_ttdRootTagIdMap.Clear();
+
+        this->m_ttdPendingAsyncModList.Clear();
 
         this->m_ttdTopLevelScriptLoad.Clear();
         this->m_ttdTopLevelNewFunction.Clear();
@@ -99,7 +101,12 @@ namespace TTD
     void ScriptContextTTD::AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
     {
         this->m_ttdLocalRootSet->AddNew(newRoot);
-        this->m_ttdRootTagIdMap.Item(origId, newRoot);
+
+        //if the pinned root set already has an entry then don't overwrite that one with a local entry (e.g. we will keep the current value)
+        if(!this->m_ttdRootSet->ContainsKey(newRoot))
+        {
+            this->m_ttdRootTagIdMap.Item(origId, newRoot);
+        }
     }
 
     void ScriptContextTTD::ClearLocalRootsAndRefreshMap()
@@ -159,6 +166,56 @@ namespace TTD
         this->m_ttdLocalRootSet->Clear();
 
         this->m_ttdRootTagIdMap.Clear();
+    }
+
+    void ScriptContextTTD::AddToAsyncPendingList(Js::ArrayBuffer* trgt, uint32 index)
+    {
+        TTDPendingAsyncBufferModification pending = { trgt, index };
+        this->m_ttdPendingAsyncModList.Add(pending);
+    }
+
+    void ScriptContextTTD::GetFromAsyncPendingList(TTDPendingAsyncBufferModification* pendingInfo, byte* finalModPos)
+    {
+        pendingInfo->ArrayBufferVar = nullptr;
+        pendingInfo->Index = 0;
+
+        const byte* currentBegin = nullptr;
+        int32 pos = -1;
+        for(int32 i = 0; i < this->m_ttdPendingAsyncModList.Count(); ++i)
+        {
+            const TTDPendingAsyncBufferModification& pi = this->m_ttdPendingAsyncModList.Item(i);
+            const Js::ArrayBuffer* pbuff = Js::ArrayBuffer::FromVar(pi.ArrayBufferVar);
+            const byte* pbuffBegin = pbuff->GetBuffer() + pi.Index;
+            const byte* pbuffMax = pbuff->GetBuffer() + pbuff->GetByteLength();
+
+            //if the final mod is less than the start of this buffer + index or off then end then this definitely isn't it so skip
+            if(pbuffBegin > finalModPos || pbuffMax < finalModPos)
+            {
+                continue;
+            }
+
+            //it is in the right range so now we assume non-overlapping so we see if this pbuffBegin is closer than the current best
+            AssertMsg(finalModPos != currentBegin, "We have something strange!!!");
+            if(currentBegin == nullptr || finalModPos < currentBegin)
+            {
+                currentBegin = pbuffBegin;
+                pos = (int32)i;
+            }
+        }
+        AssertMsg(pos != -1, "Missing matching register!!!");
+
+        *pendingInfo = this->m_ttdPendingAsyncModList.Item(pos);
+        this->m_ttdPendingAsyncModList.RemoveAt(pos);
+    }
+
+    const JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator>& ScriptContextTTD::GetPendingAsyncModListForSnapshot() const
+    {
+        return this->m_ttdPendingAsyncModList;
+    }
+
+    void ScriptContextTTD::ClearPendingAsyncModListForSnapRestore()
+    {
+        this->m_ttdPendingAsyncModList.Clear();
     }
 
     void ScriptContextTTD::GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
@@ -227,7 +284,7 @@ namespace TTD
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
-    Js::FunctionBody* ScriptContextTTD::FindFunctionBodyByFileName(LPCWSTR filename) const
+    Js::FunctionBody* ScriptContextTTD::FindFunctionBodyByFileName(const char16* filename) const
     {
         AssertMsg(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
 
@@ -235,7 +292,7 @@ namespace TTD
         {
             Js::FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
 
-            LPCWSTR curi = cfb->GetSourceContextInfo()->url;
+            const char16* curi = cfb->GetSourceContextInfo()->url;
             if(curi != nullptr && wcscmp(filename, curi) == 0)
             {
                 return cfb;
@@ -246,9 +303,20 @@ namespace TTD
         return nullptr;
     }
 
+    void ScriptContextTTD::ClearLoadedSourcesForSnapshotRestore()
+    {
+        this->m_ttdTopLevelScriptLoad.Clear();
+        this->m_ttdTopLevelNewFunction.Clear();
+        this->m_ttdTopLevelEval.Clear();
+
+        this->m_ttdPinnedRootFunctionSet->Clear();
+
+        this->m_ttdFunctionBodyParentMap.Clear();
+    }
+
     //////////////////
 
-    void RuntimeContextInfo::BuildPathString(UtilSupport::TTAutoString rootpath, LPCWSTR name, LPCWSTR optaccessortag, UtilSupport::TTAutoString& into)
+    void RuntimeContextInfo::BuildPathString(UtilSupport::TTAutoString rootpath, const char16* name, const char16* optaccessortag, UtilSupport::TTAutoString& into)
     {
         into.Append(rootpath);
         into.Append(_u("."));
@@ -320,8 +388,8 @@ namespace TTD
     
     RuntimeContextInfo::RuntimeContextInfo()
         : m_worklist(&HeapAllocator::Instance), m_nullString(),
-        m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
-        m_sortedObjectList(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT)
+        m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT), m_coreDbgScopeToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
+        m_sortedObjectList(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT), m_sortedDbgScopeList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT)
     {
         ;
     }
@@ -330,12 +398,17 @@ namespace TTD
     {
         for(auto iter = this->m_coreObjToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            HeapDelete(iter.CurrentValue());
+            TT_HEAP_DELETE(UtilSupport::TTAutoString, iter.CurrentValue());
         }
 
         for(auto iter = this->m_coreBodyToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            HeapDelete(iter.CurrentValue());
+            TT_HEAP_DELETE(UtilSupport::TTAutoString, iter.CurrentValue());
+        }
+
+        for(auto iter = this->m_coreDbgScopeToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            TT_HEAP_DELETE(UtilSupport::TTAutoString, iter.CurrentValue());
         }
     }
 
@@ -371,6 +444,18 @@ namespace TTD
         return res->GetStrValue();
     }
 
+    TTD_WELLKNOWN_TOKEN RuntimeContextInfo::ResolvePathForKnownDbgScopeIfExists(Js::DebuggerScope* dbgScope) const
+    {
+        const UtilSupport::TTAutoString* res = this->m_coreDbgScopeToPathMap.LookupWithKey(dbgScope, nullptr);
+
+        if(res == nullptr)
+        {
+            return nullptr;
+        }
+
+        return res->GetStrValue();
+    }
+
     Js::RecyclableObject* RuntimeContextInfo::LookupKnownObjectFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
     {
         int32 pos = LookupPositionInDictNameList<Js::RecyclableObject*, true>(pathIdString, this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
@@ -387,6 +472,14 @@ namespace TTD
         return (pos != -1) ? this->m_sortedFunctionBodyList.Item(pos) : nullptr;
     }
 
+    Js::DebuggerScope* RuntimeContextInfo::LookupKnownDebuggerScopeFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
+    {
+        int32 pos = LookupPositionInDictNameList<Js::DebuggerScope*, true>(pathIdString, this->m_coreDbgScopeToPathMap, this->m_sortedDbgScopeList, this->m_nullString);
+        AssertMsg(pos != -1, "Missing debug scope.");
+
+        return (pos != -1) ? this->m_sortedDbgScopeList.Item(pos) : nullptr;
+    }
+
     void RuntimeContextInfo::GatherKnownObjectToPathMap(Js::ScriptContext* ctx)
     {
         JsUtil::List<const Js::PropertyRecord*, HeapAllocator> propertyRecordList(&HeapAllocator::Instance);
@@ -397,10 +490,7 @@ namespace TTD
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
         this->EnqueueRootPathObject(_u("_stackTraceAccessor"), ctx->GetLibrary()->GetStackTraceAccessorFunction());
-        this->EnqueueRootPathObject(_u("_throwTypeErrorAccessor"), ctx->GetLibrary()->GetThrowTypeErrorAccessorFunction());
-        this->EnqueueRootPathObject(_u("_throwTypeErrorCallerAccessor"), ctx->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction());
-        this->EnqueueRootPathObject(_u("_throwTypeErrorCalleeAccessor"), ctx->GetLibrary()->GetThrowTypeErrorCalleeAccessorFunction());
-        this->EnqueueRootPathObject(_u("_throwTypeErrorArgumentsAccessor"), ctx->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction());
+        this->EnqueueRootPathObject(_u("_throwTypeErrorRestrictedPropertyAccessor"), ctx->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction());
 
         //DEBUG
         uint32 counter = 0;
@@ -464,26 +554,27 @@ namespace TTD
 
         SortDictIntoListOnNames<Js::RecyclableObject*>(this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
         SortDictIntoListOnNames<Js::FunctionBody*>(this->m_coreBodyToPathMap, this->m_sortedFunctionBodyList, this->m_nullString);
+        SortDictIntoListOnNames<Js::DebuggerScope*>(this->m_coreDbgScopeToPathMap, this->m_sortedDbgScopeList, this->m_nullString);
     }
 
     ////
 
-    void RuntimeContextInfo::EnqueueRootPathObject(LPCWSTR rootName, Js::RecyclableObject* obj)
+    void RuntimeContextInfo::EnqueueRootPathObject(const char16* rootName, Js::RecyclableObject* obj)
     {
         this->m_worklist.Enqueue(obj);
 
-        UtilSupport::TTAutoString* rootStr = HeapNew(UtilSupport::TTAutoString, rootName);
+        UtilSupport::TTAutoString* rootStr = TT_HEAP_NEW(UtilSupport::TTAutoString, rootName);
 
         AssertMsg(!this->m_coreObjToPathMap.ContainsKey(obj), "Already in map!!!");
         this->m_coreObjToPathMap.AddNew(obj, rootStr);
     }
 
-    void RuntimeContextInfo::EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, const Js::PropertyRecord* prop, LPCWSTR optacessortag)
+    void RuntimeContextInfo::EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, const Js::PropertyRecord* prop, const char16* optacessortag)
     {
         this->EnqueueNewPathVarAsNeeded(parent, val, prop->GetBuffer(), optacessortag);
     }
 
-    void RuntimeContextInfo::EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, LPCWSTR propName, LPCWSTR optacessortag)
+    void RuntimeContextInfo::EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, const char16* propName, const char16* optacessortag)
     {
         if(JsSupport::IsVarTaggedInline(val))
         {
@@ -502,7 +593,7 @@ namespace TTD
 
             this->m_worklist.Enqueue(obj);
 
-            UtilSupport::TTAutoString* tpath = HeapNew(UtilSupport::TTAutoString, *ppath);
+            UtilSupport::TTAutoString* tpath = TT_HEAP_NEW(UtilSupport::TTAutoString, *ppath);
             tpath->Append(_u("."));
             tpath->Append(propName);
 
@@ -516,19 +607,35 @@ namespace TTD
         }
     }
 
-    void RuntimeContextInfo::EnqueueNewFunctionBodyObject(Js::RecyclableObject* parent, Js::FunctionBody* fbody, LPCWSTR name)
+    void RuntimeContextInfo::EnqueueNewFunctionBodyObject(Js::RecyclableObject* parent, Js::FunctionBody* fbody, const char16* name)
     {
         if(!this->m_coreBodyToPathMap.ContainsKey(fbody))
         {
+            fbody->EnsureDeserialized();
             const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
 
-            UtilSupport::TTAutoString* fpath = HeapNew(UtilSupport::TTAutoString, *ppath);
+            UtilSupport::TTAutoString* fpath = TT_HEAP_NEW(UtilSupport::TTAutoString, *ppath);
 
             fpath->Append(_u("."));
             fpath->Append(name);
 
-            AssertMsg(!this->m_coreBodyToPathMap.ContainsKey(fbody), "Already in map!!!");
             this->m_coreBodyToPathMap.AddNew(fbody, fpath);
+        }
+    }
+
+    void RuntimeContextInfo::AddWellKnownDebuggerScopePath(Js::RecyclableObject* parent, Js::DebuggerScope* dbgScope, uint32 index)
+    {
+        if(!this->m_coreDbgScopeToPathMap.ContainsKey(dbgScope))
+        {
+            const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
+
+            UtilSupport::TTAutoString* scpath = TT_HEAP_NEW(UtilSupport::TTAutoString, *ppath);
+
+            scpath->Append(_u(".!scope["));
+            scpath->Append(index);
+            scpath->Append(_u("]"));
+
+            this->m_coreDbgScopeToPathMap.AddNew(dbgScope, scpath);
         }
     }
 

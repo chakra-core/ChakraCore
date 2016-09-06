@@ -80,17 +80,16 @@ namespace Js
         virtual BOOL Seal() override;
         virtual BOOL Freeze() override;
 
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext) override;
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
         virtual BOOL SetItemAttributes(uint32 index, PropertyAttributes attributes) override;
         virtual BOOL SetItemAccessors(uint32 index, Var getter, Var setter) override;
         virtual BOOL IsObjectArrayFrozen() override;
-        virtual BOOL GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext) override;
 
-        // Get non-index enumerator for SCA
-        virtual BOOL GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext) override;
+        // for SCA
         virtual BOOL IsItemEnumerable(uint32 index) override;
 
 #if ENABLE_TTD

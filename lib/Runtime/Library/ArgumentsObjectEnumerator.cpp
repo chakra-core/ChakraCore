@@ -4,83 +4,66 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#include "Library/ArgumentsObjectEnumerator.h"
+
 namespace Js
 {
-    ArgumentsObjectEnumerator::ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestContext, BOOL enumNonEnumerable, bool enumSymbols)
+    ArgumentsObjectPrefixEnumerator::ArgumentsObjectPrefixEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext)
         : JavascriptEnumerator(requestContext),
         argumentsObject(argumentsObject),
-        enumNonEnumerable(enumNonEnumerable),
-        enumSymbols(enumSymbols)
+        flags(flags)
     {
         Reset();
     }
 
-    Var ArgumentsObjectEnumerator::GetCurrentIndex()
+    Var ArgumentsObjectPrefixEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (!doneFormalArgs)
         {
-            return argumentsObject->GetScriptContext()->GetIntegerString(formalArgIndex);
-        }
-        return objectEnumerator->GetCurrentIndex();
-    }
-
-    Var ArgumentsObjectEnumerator::GetCurrentValue()
-    {
-        if (!doneFormalArgs)
-        {
-            Var value = nullptr;
-            argumentsObject->GetItem(argumentsObject, formalArgIndex, &value, argumentsObject->GetScriptContext());
-            return value;
-        }
-        return objectEnumerator->GetCurrentValue();
-    }
-
-    BOOL ArgumentsObjectEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        if (!doneFormalArgs)
-        {
-            formalArgIndex = argumentsObject->GetNextFormalArgIndex(formalArgIndex, this->enumNonEnumerable, attributes);
+            formalArgIndex = argumentsObject->GetNextFormalArgIndex(formalArgIndex, !!(flags & EnumeratorFlags::EnumNonEnumerable), attributes);
             if (formalArgIndex != JavascriptArray::InvalidIndex
                 && formalArgIndex < argumentsObject->GetNumberOfArguments())
             {
-                return true;
+                propertyId = Constants::NoProperty;
+                return this->GetScriptContext()->GetIntegerString(formalArgIndex);
             }
 
             doneFormalArgs = true;
         }
-        return objectEnumerator->MoveNext(attributes);
-    }
+        return nullptr;
+    }   
 
-    void ArgumentsObjectEnumerator::Reset()
+    void ArgumentsObjectPrefixEnumerator::Reset()
     {
         formalArgIndex = JavascriptArray::InvalidIndex;
         doneFormalArgs = false;
-
-        Var enumerator;
-        argumentsObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, GetScriptContext(), true, enumSymbols);
-        objectEnumerator = (Js::JavascriptEnumerator*)enumerator;
-    }
-
-    bool ArgumentsObjectEnumerator::GetCurrentPropertyId(PropertyId *pPropertyId)
-    {
-        if (!doneFormalArgs)
-        {
-            *pPropertyId = Constants::NoProperty;
-            return false;
-        }
-        return objectEnumerator->GetCurrentPropertyId(pPropertyId);
     }
 
     //---------------------- ES5ArgumentsObjectEnumerator -------------------------------
-
-    ES5ArgumentsObjectEnumerator::ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, ScriptContext* requestcontext, BOOL enumNonEnumerable, bool enumSymbols)
-        : ArgumentsObjectEnumerator(argumentsObject, requestcontext, enumNonEnumerable, enumSymbols),
-        enumeratedFormalsInObjectArrayCount(0)
+    ES5ArgumentsObjectEnumerator * ES5ArgumentsObjectEnumerator::New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        this->Reset();
+        ES5ArgumentsObjectEnumerator * enumerator = RecyclerNew(requestContext->GetRecycler(), ES5ArgumentsObjectEnumerator, argumentsObject, flags, requestContext);
+        if (!enumerator->Init())
+        {
+            return nullptr;
+        }
+        return enumerator;
     }
 
-    BOOL ES5ArgumentsObjectEnumerator::MoveNext(PropertyAttributes* attributes)
+    ES5ArgumentsObjectEnumerator::ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestcontext)
+        : ArgumentsObjectPrefixEnumerator(argumentsObject, flags, requestcontext),
+        enumeratedFormalsInObjectArrayCount(0)
+    {
+    }
+
+    BOOL ES5ArgumentsObjectEnumerator::Init()
+    {
+        __super::Reset();
+        this->enumeratedFormalsInObjectArrayCount = 0;
+        return argumentsObject->DynamicObject::GetEnumerator(&objectEnumerator, flags, GetScriptContext());
+    }
+
+    Var ES5ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // Formals:
         // - deleted => not in objectArray && not connected -- do not enum, do not advance
@@ -90,30 +73,29 @@ namespace Js
         if (!doneFormalArgs)
         {
             ES5HeapArgumentsObject* es5HAO = static_cast<ES5HeapArgumentsObject*>(argumentsObject);
-            formalArgIndex = es5HAO->GetNextFormalArgIndexHelper(formalArgIndex, this->enumNonEnumerable, attributes);
-            if (formalArgIndex != JavascriptArray::InvalidIndex)
-            {
-                if (formalArgIndex < argumentsObject->GetNumberOfArguments())
+            formalArgIndex = es5HAO->GetNextFormalArgIndexHelper(formalArgIndex, !!(flags & EnumeratorFlags::EnumNonEnumerable), attributes);
+            if (formalArgIndex != JavascriptArray::InvalidIndex
+                && formalArgIndex < argumentsObject->GetNumberOfArguments())
+            {                
+                if (argumentsObject->HasObjectArrayItem(formalArgIndex))
                 {
-                    if (argumentsObject->HasObjectArrayItem(formalArgIndex))
-                    {
-                        BOOL tempResult = objectEnumerator->MoveNext(attributes);
-                        AssertMsg(tempResult, "We advanced objectEnumerator->MoveNext() too many times.");
-                    }
-
-                    return TRUE;
+                    PropertyId tempPropertyId;
+                    Var tempIndex = objectEnumerator.MoveAndGetNext(tempPropertyId, attributes);
+                    AssertMsg(tempIndex, "We advanced objectEnumerator->MoveNext() too many times.");
                 }
+
+                propertyId = Constants::NoProperty;
+                return this->GetScriptContext()->GetIntegerString(formalArgIndex);
             }
 
             doneFormalArgs = true;
         }
 
-        return objectEnumerator->MoveNext(attributes);
+        return objectEnumerator.MoveAndGetNext(propertyId, attributes);
     }
 
     void ES5ArgumentsObjectEnumerator::Reset()
     {
-        __super::Reset();
-        this->enumeratedFormalsInObjectArrayCount = 0;
+        Init();
     }
 }

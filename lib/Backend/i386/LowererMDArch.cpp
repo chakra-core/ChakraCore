@@ -137,7 +137,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJITFunctionBody()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -340,7 +340,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd *srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJITFunctionBody()->IsGenerator())
+            if (this->m_func->GetJITFunctionBody()->IsCoroutine())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -507,7 +507,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
     }
 
-    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsGenerator())
+    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before
@@ -1142,6 +1142,9 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
 {
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
+
+    // This is required here due to calls created during lowering
+    callInstr->m_func->SetHasCalls();
 
     if (callInstr->GetDst())
     {

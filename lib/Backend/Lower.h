@@ -70,6 +70,7 @@ public:
 
     StackSym *      GetTempNumberSym(IR::Opnd * opnd, bool isTempTransferred);
     static bool     HasSideEffects(IR::Instr *instr);
+    static bool     IsArgSaveRequired(Func *func);
 
 #if DBG
     static bool     ValidOpcodeAfterLower(IR::Instr* instr, Func * func);
@@ -246,6 +247,8 @@ private:
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
     bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper);
+    bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper);
+    bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper);
     bool            GenerateFastBrBool(IR::BranchInstr *const instr);
     static IR::Instr *LoadFloatFromNonReg(IR::Opnd * opndOrig, IR::Opnd * regOpnd, IR::Instr * instrInsert);
     void            LoadInt32FromUntaggedVar(IR::Instr *const instrLoad);
@@ -294,6 +297,7 @@ private:
 
     void            InsertBitTestBranch(IR::Opnd * bitMaskOpnd, IR::Opnd * bitIndex, bool jumpIfBitOn, IR::LabelInstr * targetLabel, IR::Instr * insertBeforeInstr);
     void            GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resultOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * doneLabel, IR::Instr * instr, bool isCodePoint);
+    void            GenerateFastBrBReturn(IR::Instr * instr);
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
@@ -421,8 +425,6 @@ private:
     void            LowerInlineeStart(IR::Instr * instr);
     void            LowerInlineeEnd(IR::Instr * instr);
 
-    IR::Instr*      LoadArgumentsFromStack(IR::Instr * instr);
-
     static
     IR::SymOpnd*    LoadCallInfo(IR::Instr * instrInsert);
 
@@ -461,8 +463,10 @@ private:
     void            GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelTrue, IR::LabelInstr *labelFalse);
     void            GenerateRecyclableObjectGetPrototypeNullptrGoto(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnNullptr);
     void            GenerateRecyclableObjectIsElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelFalse);
-    void            GenerateLdSuper(IR::Instr* instrInsert);
-    void            GenerateLdSuperCtor(IR::Instr* instrInsert);
+    void            GenerateLdHomeObj(IR::Instr* instr);
+    void            GenerateLdHomeObjProto(IR::Instr* instr);
+    void            GenerateLdFuncObj(IR::Instr* instr);
+    void            GenerateLdFuncObjProto(IR::Instr* instr);
     void            GenerateSetHomeObj(IR::Instr* instrInsert);
     void            GenerateLoadNewTarget(IR::Instr* instrInsert);
     void            GenerateCheckForCallFlagNew(IR::Instr* instrInsert);
@@ -485,9 +489,9 @@ private:
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>
-    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed);
+    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool containMissingValues = false);
 
-    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length);
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone);
     void            GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, uint32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);

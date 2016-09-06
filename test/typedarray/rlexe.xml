@@ -9,25 +9,16 @@
   </test>
   <test>
     <default>
-      <files>arraybufferType_v5.js</files>
-      <baseline>arraybufferType_v5.baseline</baseline>
-      <tags>typedarray</tags>
-      <compile-flags>-ES6- </compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>arraybufferType.js</files>
       <baseline>arraybufferType.baseline</baseline>
       <tags>typedarray</tags>
-      <compile-flags>-ES6TypedArrayExtensions</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>TypedArrayBuiltins.js</files>
       <tags>typedarray</tags>
-      <compile-flags>-ES6TypedArrayExtensions -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -216,12 +207,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
       <files>allocation.js</files>
       <tags>typedarray,exclude_arm,xplatslow</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
       <files>allocation2.js</files>
       <tags>typedarray,exclude_arm,xplatslow</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>

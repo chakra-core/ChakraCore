@@ -574,7 +574,6 @@ void JsrtDebugManager::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::Script
 
     probeContainer->MapProbes([&](int i, Js::Probe* pProbe)
     {
-
         Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
         Js::DynamicObject* bpObject = scriptContext->GetLibrary()->CreateObject();
 
@@ -588,6 +587,47 @@ void JsrtDebugManager::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::Script
         Js::JavascriptOperators::OP_SetElementI((Js::Var)(*bpsArray), Js::JavascriptNumber::ToVar((*bpsArray)->GetLength(), arrayScriptContext), marshaledObj, arrayScriptContext);
     });
 }
+
+#if ENABLE_TTD_DEBUGGING
+Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, bool* isNewBP)
+{
+    *isNewBP = false;
+    Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
+    if(debugDocument != nullptr && SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()) && lineNumber < utf8SourceInfo->GetLineCount())
+    {
+        charcount_t charPosition = 0;
+        charcount_t byteOffset = 0;
+        utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)lineNumber, &charPosition, &byteOffset);
+        long ibos = charPosition + columnNumber + 1;
+
+        Js::StatementLocation statement;
+        if(!debugDocument->GetStatementLocation(ibos, &statement))
+        {
+            return nullptr;
+        }
+
+        // Don't see a use case for supporting multiple breakpoints at same location.
+        // If a breakpoint already exists, just return that
+        Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
+        if(probe == nullptr)
+        {
+            probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+
+            if(probe == nullptr)
+            {
+                return nullptr;
+            }
+
+            *isNewBP = true;
+            this->GetDebugDocumentManager()->AddDocument(probe->GetId(), debugDocument);
+        }
+
+        return probe;
+    }
+
+    return nullptr;
+}
+#endif
 
 JsrtDebuggerObjectsManager* JsrtDebugManager::GetDebuggerObjectsManager()
 {

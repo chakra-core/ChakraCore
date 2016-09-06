@@ -48,6 +48,7 @@ typedef BYTE* ChakraBytePtr;
 #define _Pre_writable_byte_size_(byteLength)
 #define _Outptr_result_buffer_(byteLength)
 #define _Outptr_result_bytebuffer_(byteLength)
+#define _Outptr_result_maybenull_
 #define _Outptr_result_z_
 #define _Ret_maybenull_
 #define _Out_writes_(size)
@@ -60,16 +61,33 @@ typedef BYTE* ChakraBytePtr;
 #define CHAKRA_CALLBACK
 #endif // __i386__
 
-#ifdef __cplusplus
-#define CHAKRA_API extern "C" JsErrorCode
+#ifndef _WIN32
+#define SET_API_VISIBILITY __attribute__((visibility("default")))
 #else
-#define CHAKRA_API JsErrorCode
+#define SET_API_VISIBILITY
+#endif
+
+#ifdef __cplusplus
+#define CHAKRA_API SET_API_VISIBILITY extern "C" JsErrorCode
+#else
+#define CHAKRA_API SET_API_VISIBILITY extern JsErrorCode
 #endif
 
 #include <stddef.h>  // for size_t
 #include <stdint.h>  // for uintptr_t
 typedef uintptr_t ChakraCookie;
 typedef unsigned char* ChakraBytePtr;
+
+// xplat-todo: try reduce usage of following types
+#if !defined(__MSTYPES_DEFINED)
+typedef uint32_t UINT32;
+typedef int64_t INT64;
+typedef void* HANDLE;
+typedef unsigned char BYTE;
+typedef BYTE byte;
+typedef UINT32 DWORD;
+#endif
+
 #endif //  defined(_WIN32) && defined(_MSC_VER)
 
     /// <summary>

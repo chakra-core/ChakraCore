@@ -247,6 +247,11 @@ namespace Js
         //The allowed values for hint are "default", "number", and "string"
         if (args.Info.Count == 2)
         {
+            if (!JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(args[0])))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Date[Symbol.toPrimitive]"));
+            }
+
             if (JavascriptString::Is(args[1]))
             {
                 JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
@@ -267,13 +272,8 @@ namespace Js
                 //anything else should throw a type error
             }
         }
-        else if (args.Info.Count == 1)
-        {
-            //7.1.1 ToPrimitive Note: Date objects treat no hint as if the hint were String.
-            return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintString/*tryFirst*/, scriptContext);
-        }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("Date[Symbol.toPrimitive]"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidHint, _u("Date[Symbol.toPrimitive]"));
     }
 
     Var JavascriptDate::EntryGetDate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -829,11 +829,10 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        double dblRetVal = DateImplementation::DateFncUTC(scriptContext,args);
-        return JavascriptNumber::ToVarNoCheck(dblRetVal,scriptContext);
+        double dblRetVal = DateImplementation::DateFncUTC(scriptContext, args);
+        return JavascriptNumber::ToVarNoCheck(dblRetVal, scriptContext);
     }
 
     double JavascriptDate::ParseHelper(ScriptContext *scriptContext, JavascriptString *str)

@@ -1,0 +1,192 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "c",
+        "function": "bar"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "a": "string bar",
+      "b": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "Date Invalid Date"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "}",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[bar returned]": "undefined undefined"
+    },
+    "locals": {
+      "a": "string foo",
+      "b": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "c": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "c",
+        "function": "bar"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "a": "string bar",
+      "b": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "Date Invalid Date"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "}",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[bar returned]": "undefined undefined"
+    },
+    "locals": {
+      "a": "string foo",
+      "b": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "c": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>",
+      "bar": "function <large string>"
+    }
+  }
+]

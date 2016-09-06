@@ -80,7 +80,6 @@
     <ClInclude Include="KeyValuePair.h" />
     <ClInclude Include="LargeStack.h" />
     <ClInclude Include="List.h" />
-    <ClInclude Include="quicksort.h" />
     <ClInclude Include="SimpleHashTable.h" />
     <ClInclude Include="SList.h" />
     <ClInclude Include="SparseArray.h" />

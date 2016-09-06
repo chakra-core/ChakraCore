@@ -12,6 +12,8 @@ y.foo = 3;
 
 var w = Date.now();
 
+var dinfty = new Date(Infinity);
+
 WScript.SetTimeout(testFunction, 50);
 
 /////////////////
@@ -26,4 +28,14 @@ function testFunction()
 
     telemetryLog(`w - z > 0: ${w - z.valueOf() > 0}`, true); //true
     telemetryLog(`x - y: ${x.valueOf() - y.valueOf()}`, true); //0
+
+    try 
+    {
+        telemetryLog(dinfty.toISOString(), true);
+    } 
+    catch(e) 
+    {
+        telemetryLog(`Infinity Date toISOString : ${e.name}  : ${e.message}`, true);
+    }
+    telemetryLog(`Infinity Date toJSON : ${dinfty.toJSON()}`, true);
 }

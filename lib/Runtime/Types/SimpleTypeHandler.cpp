@@ -196,7 +196,7 @@ namespace Js
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -205,12 +205,12 @@ namespace Js
         for( ; index < propertyCount; ++index )
         {
             PropertyAttributes attribs = descriptors[index].Attributes;
-            if( !(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)))
+            if( !(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)))
             {
                 const PropertyRecord* propertyRecord = descriptors[index].Id;
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }
@@ -221,7 +221,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
                 if (attribs & PropertyWritable)
                 {
@@ -1112,6 +1112,22 @@ namespace Js
 
         return plength;
     }
+
+    template<size_t size>
+    Js::BigPropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        int index;
+        if(this->GetDescriptor(pRecord->GetPropertyId(), &index))
+        {
+            AssertMsg(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
+
+            return (Js::BigPropertyIndex)index;
+        }
+
+        AssertMsg(false, "We found this during enum so what is going on here?");
+        return Js::Constants::NoBigSlot;
+    }
+
 #endif
 
     template class SimpleTypeHandler<1>;

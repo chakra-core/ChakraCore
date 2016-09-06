@@ -78,6 +78,7 @@ namespace Js
         Var* m_inParams;                // Range of 'in' parameters
         Var* m_outParams;               // Range of 'out' parameters (offset in m_localSlots)
         Var* m_outSp;                   // Stack pointer for next outparam
+        Var* m_outSpCached;             // Stack pointer for caching previos SP (in order to assist in try..finally)
         Var  m_arguments;               // Dedicated location for this frame's arguments object
         StackScriptFunction * stackNestedFunctions;
         FrameDisplay * localFrameDisplay;
@@ -111,6 +112,7 @@ namespace Js
 
         bool closureInitDone : 1;
         bool isParamScopeDone : 1;
+        bool shouldCacheSP : 1; // Helps in determining if we need to cache the sp in ProcessTryFinally
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -167,6 +169,8 @@ namespace Js
         void SetOut(ArgSlot_OneByte outRegisterID, Var bValue);
         void PushOut(Var aValue);
         void PopOut(ArgSlot argCount);
+        void CacheSp();
+        void RestoreSp();
 
         FrameDisplay * GetLocalFrameDisplay() const;
         FrameDisplay * GetFrameDisplayForNestedFunc() const;
@@ -657,10 +661,10 @@ namespace Js
         inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
         template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
-        inline Var OP_LdSuper(ScriptContext * scriptContext);
-        inline Var OP_LdSuperCtor(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuper(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuperCtor(ScriptContext * scriptContext);
+        inline Var OP_LdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_LdFuncObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);
         template <typename T> void OP_LdLocalElementUndefined(const unaligned OpLayoutT_ElementRootU<T>* playout);
         template <typename T> void OP_LdElementUndefinedScoped(const unaligned OpLayoutT_ElementScopedU<T>* playout);

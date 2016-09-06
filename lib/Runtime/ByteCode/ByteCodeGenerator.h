@@ -181,6 +181,7 @@ public:
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
+    void InitSpecialScopeSlots(FuncInfo* funcInfo);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);
@@ -195,6 +196,17 @@ public:
     {
         return this->parentScopeInfo != nullptr;
     }
+
+    Js::RegSlot EmitLdObjProto(Js::OpCode op, Js::RegSlot objReg, FuncInfo *funcInfo)
+    {
+        // LdHomeObjProto protoReg, objReg
+        // LdFuncObjProto protoReg, objReg
+        Js::RegSlot protoReg = funcInfo->AcquireTmpRegister();
+        this->Writer()->Reg2(op, protoReg, objReg);
+        funcInfo->ReleaseTmpRegister(protoReg);
+        return protoReg;
+    }
+
     void RestoreScopeInfo(Js::FunctionBody* funcInfo);
     FuncInfo *StartBindGlobalStatements(ParseNode *pnode);
     void AssignPropertyId(Symbol *sym, Js::ParseableFunctionInfo* functionInfo);

@@ -377,7 +377,6 @@ namespace Js
 
     ScriptContext::~ScriptContext()
     {
-        Assert(isFinalized || !isInitialized);
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
@@ -570,13 +569,13 @@ namespace Js
 #if ENABLE_TTD
         if(this->TTDWellKnownInfo != nullptr)
         {
-            HeapDelete(this->TTDWellKnownInfo);
+            TT_HEAP_DELETE(TTD::RuntimeContextInfo, this->TTDWellKnownInfo);
             this->TTDWellKnownInfo = nullptr;
         }
 
         if(this->TTDContextInfo != nullptr)
         {
-            HeapDelete(this->TTDContextInfo);
+            TT_HEAP_DELETE(TTD::ScriptContextTTD, this->TTDContextInfo);
             this->TTDContextInfo = nullptr;
         }
 #endif
@@ -1469,21 +1468,32 @@ if (!sourceList)
         return NULL;
     }
 
-
-    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    PropertyString* ScriptContext::TryGetPropertyString(PropertyId propertyId)
     {
         PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
-        PropertyString *string;
         RecyclerWeakReference<PropertyString>* stringReference;
         if (propertyStringMap->TryGetValue(propertyId, &stringReference))
         {
-            string = stringReference->Get();
+            PropertyString *string = stringReference->Get();
             if (string != nullptr)
             {
                 return string;
             }
         }
+
+        return nullptr;
+    }
+
+    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    {
+        PropertyString *string = TryGetPropertyString(propertyId);
+        if (string != nullptr)
+        {
+            return string;
+        }
+
+        PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
         const Js::PropertyRecord* propertyName = this->GetPropertyName(propertyId);
         string = this->GetLibrary()->CreatePropertyString(propertyName);
@@ -1704,7 +1714,7 @@ if (!sourceList)
 
         if((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
         {
-            grfscr |= (fscrNoAsmJs | fscrNoPreJit);
+            grfscr |= fscrNoPreJit;
         }
 
         if(((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
@@ -1989,12 +1999,6 @@ if (!sourceList)
         Utf8SourceInfo* newSource = Utf8SourceInfo::Clone(this, sourceInfo);
 
         return SaveSourceNoCopy(newSource, cchLength, isCesu8);
-    }
-
-
-    Utf8SourceInfo* ScriptContext::CloneSourceCrossContext(Utf8SourceInfo* crossContextSourceInfo, SRCINFO const* srcInfo)
-    {
-        return Utf8SourceInfo::CloneNoCopy(this, crossContextSourceInfo, srcInfo);
     }
 
 
@@ -2340,7 +2344,7 @@ if (!sourceList)
     {
         AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
-        this->TTDWellKnownInfo = HeapNew(TTD::RuntimeContextInfo);
+        this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
         bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
         BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
@@ -2352,7 +2356,7 @@ if (!sourceList)
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-        this->TTDContextInfo = HeapNew(TTD::ScriptContextTTD, this);
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
 
         this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
@@ -4753,6 +4757,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::SaveStartupProfileAndRelease(bool isSaveOnClose)
     {
+        // No need to save profiler info in JSRT scenario at this time.
+        if (GetThreadContext()->IsJSRT())
+        {
+            return;
+        }
         if (!startupComplete && this->cache->sourceContextInfoMap)
         {
 #if ENABLE_PROFILE_INFO
@@ -4767,7 +4776,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 }
             });
 #endif
-    }
+        }
         startupComplete = true;
     }
 
@@ -5779,7 +5788,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Assert(moduleRecord != nullptr);
 
         // Require caller to also provide the intended access slot so we can do bounds check now.
-        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        if (moduleRecord->GetLocalExportCount() + 1 <= slotIndex)
         {
             Js::Throw::FatalInternalError();
         }
@@ -5789,20 +5798,3 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
 } // End namespace Js
 
-SRCINFO* SRCINFO::Clone(Js::ScriptContext* scriptContext) const
-{
-    SRCINFO* srcInfo;
-    if (this->sourceContextInfo->dwHostSourceContext == Js::Constants::NoHostSourceContext  &&
-        this->dlnHost == 0 && this->ulColumnHost == 0 && this->ulCharOffset == 0 &&
-        this->ichMinHost == 0 && this->ichLimHost == 0 && this->grfsi == 0)
-    {
-        srcInfo = const_cast<SRCINFO*>(scriptContext->GetModuleSrcInfo(this->moduleID));
-    }
-    else
-    {
-        SourceContextInfo* sourceContextInfo = this->sourceContextInfo->Clone(scriptContext);
-        srcInfo = SRCINFO::Copy(scriptContext->GetRecycler(), this);
-        srcInfo->sourceContextInfo = sourceContextInfo;
-    }
-    return srcInfo;
-}

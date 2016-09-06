@@ -6,11 +6,6 @@
 #include "Backend.h"
 #include "Language/JavascriptFunctionArgIndex.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library/ForInObjectEnumerator.h"
-
 const Js::OpCode LowererMD::MDUncondBranchOpcode = Js::OpCode::JMP;
 const Js::OpCode LowererMD::MDTestOpcode = Js::OpCode::TEST;
 const Js::OpCode LowererMD::MDOrOpcode = Js::OpCode::OR;
@@ -2048,6 +2043,7 @@ LowererMD::LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd)
         instr->InsertBefore(mov1);
         functionObjOpnd = mov1->GetDst()->AsRegOpnd();
         instrPrev = mov1;
+        instr->m_func->SetHasImplicitParamLoad();
     }
     else
     {
@@ -2268,41 +2264,180 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instr)
 }
 
 bool
-LowererMD::GenerateFastBrString(IR::BranchInstr *branchInstr)
+LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 {
-    Assert(branchInstr->m_opcode == Js::OpCode::BrSrEq_A     ||
-           branchInstr->m_opcode == Js::OpCode::BrSrNeq_A    ||
-           branchInstr->m_opcode == Js::OpCode::BrEq_A       ||
-           branchInstr->m_opcode == Js::OpCode::BrNeq_A      ||
-           branchInstr->m_opcode == Js::OpCode::BrSrNotEq_A  ||
-           branchInstr->m_opcode == Js::OpCode::BrSrNotNeq_A ||
-           branchInstr->m_opcode == Js::OpCode::BrNotEq_A    ||
-           branchInstr->m_opcode == Js::OpCode::BrNotNeq_A
-           );
+    IR::RegOpnd *srcReg1 = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
+    IR::RegOpnd *srcReg2 = instr->GetSrc2()->IsRegOpnd() ? instr->GetSrc2()->AsRegOpnd() : nullptr;
 
-    IR::Instr* instrInsert = branchInstr;
-    IR::RegOpnd *srcReg1 = branchInstr->GetSrc1()->IsRegOpnd() ? branchInstr->GetSrc1()->AsRegOpnd() : nullptr;
-    IR::RegOpnd *srcReg2 = branchInstr->GetSrc2()->IsRegOpnd() ? branchInstr->GetSrc2()->AsRegOpnd() : nullptr;
-
-    if (srcReg1 && srcReg2)
-    {
-        if (srcReg1->IsTaggedInt() || srcReg2->IsTaggedInt())
-        {
-            return false;
-        }
-
-        bool isSrc1String = srcReg1->GetValueType().IsLikelyString();
-        bool isSrc2String = srcReg2->GetValueType().IsLikelyString();
-        //Left and right hand are both LikelyString
-        if (!isSrc1String || !isSrc2String)
-        {
-            return false;
-        }
-    }
-    else
+    if (!srcReg1 ||
+        !srcReg2 ||
+        srcReg1->IsTaggedInt() ||
+        srcReg2->IsTaggedInt() ||
+        !srcReg1->GetValueType().IsLikelyString() ||
+        !srcReg2->GetValueType().IsLikelyString())
     {
         return false;
     }
+
+    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+    IR::LabelInstr *labelBranchFail = nullptr;
+    IR::LabelInstr *labelBranchSuccess = nullptr;
+    IR::Instr *instrMovSuccess = nullptr;
+    IR::Instr *instrMovFailure = nullptr;
+
+    bool isEqual = false;
+    bool isStrict = false;
+    bool isBranch = true;
+    bool isCmNegOp = false;
+
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+        isStrict = true;
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrNotNeq_A:
+        labelBranchFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchSuccess = instr->AsBranchInstr()->GetTarget();
+        instr->InsertAfter(labelBranchFail);
+        isEqual = true;
+        break;
+
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+        isStrict = true;
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNotEq_A:
+        labelBranchSuccess = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchFail = instr->AsBranchInstr()->GetTarget();
+        instr->InsertAfter(labelBranchSuccess);
+        isEqual = false;
+        break;
+
+    case Js::OpCode::CmSrEq_A:
+        isStrict = true;
+    case Js::OpCode::CmEq_A:
+        isEqual = true;
+        isBranch = false;
+        break;
+
+    case Js::OpCode::CmSrNeq_A:
+        isStrict = true;
+    case Js::OpCode::CmNeq_A:
+        isEqual = false;
+        isBranch = false;
+        isCmNegOp = true;
+        break;
+
+    default:
+        Assert(UNREACHED);
+        __assume(0);
+    }
+
+    if (!isBranch)
+    {
+        labelBranchSuccess = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+        LibraryValue successValueType = !isCmNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
+        LibraryValue failureValueType = !isCmNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue;
+
+        instrMovFailure = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->m_lowerer->LoadLibraryValueOpnd(instr, failureValueType), m_func);
+        instrMovSuccess = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), this->m_lowerer->LoadLibraryValueOpnd(instr, successValueType), m_func);
+    }
+
+    this->GenerateFastStringCheck(instr, srcReg1, srcReg2, isEqual, isStrict, labelHelper, labelBranchSuccess, labelBranchFail);
+
+    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+    if (!isBranch)
+    {
+        instr->InsertBefore(labelBranchSuccess);
+        instr->InsertBefore(instrMovSuccess);
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelFallthrough, this->m_func));
+
+        instr->InsertBefore(labelBranchFail);
+        instr->InsertBefore(instrMovFailure);
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelFallthrough, this->m_func));
+    }
+
+    instr->InsertBefore(labelHelper);
+
+    instr->InsertAfter(labelFallthrough);
+
+#if DBG
+    // The fast-path for strings assumes the case where 2 strings are equal is rare, and marks that path as 'helper'.
+    // This breaks the helper label dbchecks as it can result in non-helper blocks be reachable only from helper blocks.
+    // Use m_isHelperToNonHelperBranch and m_noHelperAssert to fix this.
+    IR::Instr *blockEndInstr;
+
+    if (isEqual)
+    {
+        blockEndInstr = labelHelper->GetNextBranchOrLabel();
+    }
+    else
+    {
+        blockEndInstr = instr->GetNextBranchOrLabel();
+    }
+
+    if (blockEndInstr->IsBranchInstr())
+    {
+        blockEndInstr->AsBranchInstr()->m_isHelperToNonHelperBranch = true;
+    }
+
+    labelFallthrough->m_noHelperAssert = true;
+#endif
+
+    return true;
+}
+
+bool
+LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail)
+{
+    Assert(instr->m_opcode == Js::OpCode::BrSrEq_A  ||
+        instr->m_opcode == Js::OpCode::BrSrNeq_A    ||
+        instr->m_opcode == Js::OpCode::BrEq_A       ||
+        instr->m_opcode == Js::OpCode::BrNeq_A      ||
+        instr->m_opcode == Js::OpCode::BrSrNotEq_A  ||
+        instr->m_opcode == Js::OpCode::BrSrNotNeq_A ||
+        instr->m_opcode == Js::OpCode::BrNotEq_A    ||
+        instr->m_opcode == Js::OpCode::BrNotNeq_A   ||
+        instr->m_opcode == Js::OpCode::CmEq_A       ||
+        instr->m_opcode == Js::OpCode::CmNeq_A      ||
+        instr->m_opcode == Js::OpCode::CmSrEq_A     ||
+        instr->m_opcode == Js::OpCode::CmSrNeq_A    );
+
+    // if src1 is not string
+    // generate object test, if not equal jump to $helper
+    // compare type check to string, if not jump to $helper
+    // 
+    // if strict mode generate string test as above for src1 and jump to $failure if failed any time
+    // else if not strict generate string test as above for src1 and jump to $helper if failed any time
+    // 
+    // Compare length of src1 and src2 if not equal goto $failure
+    // 
+    // if src1 is not flat string jump to $helper
+    // 
+    // if src1 and src2 m_pszValue pointer match goto $success
+    // 
+    // if src2 is not flat string jump to $helper
+    // 
+    // if first character of src1 and src2 doesn't match goto $failure
+    // 
+    // shift left by 1 length of src1 (length*2)
+    // 
+    // memcmp src1 and src2 flat strings till length * 2
+    // 
+    // test eax (result of memcmp)
+    // if equal jump to $success else to $failure
+    // 
+    // $success
+    //     jmp to $fallthrough
+    // $failure
+    //     jmp to $fallthrough
+    // $helper
+    // 
+    // $fallthrough
 
     // Generates:
     //      GenerateObjectTest(src1);
@@ -2333,42 +2468,7 @@ LowererMD::GenerateFastBrString(IR::BranchInstr *branchInstr)
     //      JEQ $success
     //      JMP $fail
 
-
-    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    IR::LabelInstr *labelTarget   = branchInstr->GetTarget();
-    IR::LabelInstr *labelBranchFail = nullptr;
-    IR::LabelInstr *labelBranchSuccess = nullptr;
-    bool isEqual = false;
-    bool isStrict = false;
-
-    switch (branchInstr->m_opcode)
-    {
-        case Js::OpCode::BrSrEq_A:
-        case Js::OpCode::BrSrNotNeq_A:
-            isStrict = true;
-        case Js::OpCode::BrEq_A:
-        case Js::OpCode::BrNotNeq_A:
-            labelBranchFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-            labelBranchSuccess = labelTarget;
-            branchInstr->InsertAfter(labelBranchFail);
-            isEqual = true;
-            break;
-
-        case Js::OpCode::BrSrNeq_A:
-        case Js::OpCode::BrSrNotEq_A:
-            isStrict = true;
-        case Js::OpCode::BrNeq_A:
-        case Js::OpCode::BrNotEq_A:
-            labelBranchSuccess = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-            labelBranchFail = labelTarget;
-            branchInstr->InsertAfter(labelBranchSuccess);
-            isEqual = false;
-            break;
-
-        default:
-            Assert(UNREACHED);
-            __assume(0);
-    }
+    IR::Instr* instrInsert = instr;
 
     this->m_lowerer->GenerateStringTest(srcReg1, instrInsert, labelHelper);
 
@@ -2458,12 +2558,12 @@ LowererMD::GenerateFastBrString(IR::BranchInstr *branchInstr)
 
     // eax = memcmp(src1String, src2String, length*2)
 
-    this->LoadHelperArgument(branchInstr, src1LengthOpnd);
-    this->LoadHelperArgument(branchInstr, src1FlatString);
-    this->LoadHelperArgument(branchInstr, src2FlatString);
+    this->LoadHelperArgument(instr, src1LengthOpnd);
+    this->LoadHelperArgument(instr, src1FlatString);
+    this->LoadHelperArgument(instr, src2FlatString);
     IR::RegOpnd *dstOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
     IR::Instr *instrCall = IR::Instr::New(Js::OpCode::CALL, dstOpnd, IR::HelperCallOpnd::New(IR::HelperMemCmp, this->m_func), this->m_func);
-    branchInstr->InsertBefore(instrCall);
+    instr->InsertBefore(instrCall);
     this->LowerCall(instrCall, 3);
 
     // TEST eax, eax
@@ -2471,37 +2571,11 @@ LowererMD::GenerateFastBrString(IR::BranchInstr *branchInstr)
     instrTest->SetSrc1(instrCall->GetDst());
     instrTest->SetSrc2(instrCall->GetDst());
     instrInsert->InsertBefore(instrTest);
+
     // JEQ success
-    instrInsert->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelBranchSuccess, this->m_func));
+    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelBranchSuccess, this->m_func));
     // JMP fail
-    instrInsert->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelBranchFail, this->m_func));
-
-    branchInstr->InsertBefore(labelHelper);
-    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    branchInstr->InsertAfter(labelFallthrough);
-
-#if DBG
-    // The fast-path for strings assumes the case where 2 strings are equal is rare, and marks that path as 'helper'.
-    // This breaks the helper label dbchecks as it can result in non-helper blocks be reachable only from helper blocks.
-    // Use m_isHelperToNonHelperBranch and m_noHelperAssert to fix this.
-    IR::Instr *blockEndInstr;
-
-    if (isEqual)
-    {
-        blockEndInstr = labelHelper->GetNextBranchOrLabel();
-    }
-    else
-    {
-        blockEndInstr = branchInstr->GetNextBranchOrLabel();
-    }
-
-    if (blockEndInstr->IsBranchInstr())
-    {
-        blockEndInstr->AsBranchInstr()->m_isHelperToNonHelperBranch = true;
-    }
-
-    labelFallthrough->m_noHelperAssert = true;
-#endif
+    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelBranchFail, this->m_func));
 
     return true;
 }
@@ -5078,149 +5152,6 @@ LowererMD::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isSt
 
     // return [slotOpnd + offsetOpnd * PtrSize]
     return IR::IndirOpnd::New(slotOpnd, offsetOpnd, this->GetDefaultIndirScale(), TyVar, this->m_func);
-}
-
-void
-LowererMD::GenerateFastBrBReturn(IR::Instr *instr)
-{
-    Assert(instr->m_opcode == Js::OpCode::BrOnEmpty || instr->m_opcode == Js::OpCode::BrOnNotEmpty);
-    AssertMsg(instr->GetSrc1() != nullptr && instr->GetSrc2() == nullptr, "Expected 1 src opnds on BrB");
-    Assert(instr->GetSrc1()->IsRegOpnd());
-
-    IR::RegOpnd * forInEnumeratorOpnd = instr->GetSrc1()->AsRegOpnd();
-    IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-
-    // MOV firstPrototypeOpnd, forInEnumerator->firstPrototype
-    // TEST firstPrototypeOpnd, firstPrototypeOpnd
-    // JNE $helper
-    IR::RegOpnd * firstPrototypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, firstPrototypeOpnd,
-        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfFirstPrototype(), TyMachPtr, this->m_func), this->m_func));
-    IR::Instr * checkFirstPrototypeNullInstr = IR::Instr::New(Js::OpCode::TEST, this->m_func);
-    checkFirstPrototypeNullInstr->SetSrc1(firstPrototypeOpnd);
-    checkFirstPrototypeNullInstr->SetSrc2(firstPrototypeOpnd);
-    instr->InsertBefore(checkFirstPrototypeNullInstr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
-
-    typedef Js::DynamicObjectSnapshotEnumeratorWPCache<Js::BigPropertyIndex, true, false> SmallDynamicObjectSnapshotEnumeratorWPCache;
-
-    // MOV currentEnumeratorOpnd, forInEnumerator->currentEnumerator
-    // CMP currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::`vtable
-    // JNE $helper
-    IR::RegOpnd * currentEnumeratorOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, currentEnumeratorOpnd,
-        IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfCurrentEnumerator(), TyMachPtr, this->m_func), this->m_func));
-
-    this->m_lowerer->InsertCompareBranch(
-        IR::IndirOpnd::New(currentEnumeratorOpnd, 0, TyMachPtr, this->m_func),
-        m_lowerer->LoadVTableValueOpnd(instr, VTableValue::VtableSmallDynamicObjectSnapshotEnumeratorWPCache),
-        Js::OpCode::BrNeq_A, labelHelper, instr);
-
-    // MOV arrayEnumeratorOpnd, currentEnumerator->arrayEnumerator
-    // TEST arrayEnumeratorOpnd, arrayEnumeratorOpnd
-    // JNE $helper
-    IR::RegOpnd * arrayEnumeratorOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, arrayEnumeratorOpnd,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfArrayEnumerator(), TyMachPtr, this->m_func), this->m_func));
-    IR::Instr * checkArrayEnumeratorNullInstr = IR::Instr::New(Js::OpCode::TEST, this->m_func);
-    checkArrayEnumeratorNullInstr->SetSrc1(arrayEnumeratorOpnd);
-    checkArrayEnumeratorNullInstr->SetSrc2(arrayEnumeratorOpnd);
-    instr->InsertBefore(checkArrayEnumeratorNullInstr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
-
-    // MOV objectOpnd, currentEnumerator->object
-    // MOV initialTypeOpnd, currentEnumerator->initialType
-    // CMP initialTypeOpnd, objectOpnd->type
-    // JNE $helper
-    IR::RegOpnd * objectOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, objectOpnd,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfObject(), TyMachPtr, this->m_func), this->m_func));
-    IR::RegOpnd * initialTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, initialTypeOpnd,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfInitialType(), TyMachPtr, this->m_func), this->m_func));
-
-    IR::Instr * checkTypeInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    checkTypeInstr->SetSrc1(initialTypeOpnd);
-    checkTypeInstr->SetSrc2(IR::IndirOpnd::New(objectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, this->m_func));
-    instr->InsertBefore(checkTypeInstr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
-
-    // MOV enumeratedCountOpnd, currentEnumeratorOpnd->enumeratedCount
-    // MOV cachedDataOpnd, currentEnumeratorOpnd->cachedData
-    // CMP enumeratedCountOpnd, cachedDataOpnd->cachedCount
-    // JGE $helper
-    IR::RegOpnd * enumeratedCountOpnd = IR::RegOpnd::New(TyUint32, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, enumeratedCountOpnd,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfEnumeratedCount(), TyUint32, this->m_func), this->m_func));
-    IR::RegOpnd * cachedDataOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, cachedDataOpnd,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfCachedData(), TyMachPtr, this->m_func), this->m_func));
-
-    IR::Instr * checkEnumeratedCountInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    checkEnumeratedCountInstr->SetSrc1(enumeratedCountOpnd);
-    checkEnumeratedCountInstr->SetSrc2(IR::IndirOpnd::New(cachedDataOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfCachedDataCachedCount(), TyUint32, this->m_func));
-    instr->InsertBefore(checkEnumeratedCountInstr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JGE, labelHelper, this->m_func));
-
-    // MOV propertyAttributesOpnd, cachedData->attributes
-    // MOV objectPropertyAttributesOpnd, propertyAttributesOpnd[enumeratedCount]
-    // CMP objectPropertyAttributesOpnd & PropertyEnumerable, PropertyEnumerable
-    // JNE $helper
-    IR::RegOpnd * propertyAttributesOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, propertyAttributesOpnd,
-        IR::IndirOpnd::New(cachedDataOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfCachedDataPropertyAttributes(), TyMachPtr, this->m_func), this->m_func));
-    IR::RegOpnd * objectPropertyAttributesOpnd = IR::RegOpnd::New(TyUint8, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, objectPropertyAttributesOpnd,
-        IR::IndirOpnd::New(propertyAttributesOpnd, enumeratedCountOpnd, IndirScale1, TyUint8, this->m_func), this->m_func));
-
-    IR::Instr * andPropertyEnumerableInstr = Lowerer::InsertAnd(IR::RegOpnd::New(TyUint8, instr->m_func), objectPropertyAttributesOpnd, IR::IntConstOpnd::New(0x01, TyUint8, this->m_func), instr);
-
-    IR::Instr * checkEnumerableInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    checkEnumerableInstr->SetSrc1(andPropertyEnumerableInstr->GetDst());
-    checkEnumerableInstr->SetSrc2(IR::IntConstOpnd::New(0x01, TyUint8, this->m_func));
-    instr->InsertBefore(checkEnumerableInstr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
-
-    IR::Opnd * opndDst = instr->GetDst(); // ForIn result propertyString
-    Assert(opndDst->IsRegOpnd());
-
-    // MOV stringsOpnd, cachedData->strings
-    // MOV opndDst, stringsOpnd[enumeratedCount]
-    IR::RegOpnd * stringsOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, stringsOpnd,
-        IR::IndirOpnd::New(cachedDataOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfCachedDataStrings(), TyMachPtr, this->m_func), this->m_func));
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, opndDst,
-        IR::IndirOpnd::New(stringsOpnd, enumeratedCountOpnd, this->GetDefaultIndirScale(), TyVar, this->m_func), this->m_func));
-
-    // MOV indexesOpnd, cachedData->indexes
-    // MOV objectIndexOpnd, indexesOpnd[enumeratedCount]
-    // MOV currentEnumeratorOpnd->objectIndex, objectIndexOpnd
-    IR::RegOpnd * indexesOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, indexesOpnd,
-        IR::IndirOpnd::New(cachedDataOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfCachedDataIndexes(), TyMachPtr, this->m_func), this->m_func));
-    IR::RegOpnd * objectIndexOpnd = IR::RegOpnd::New(TyUint32, m_func);
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, objectIndexOpnd,
-        IR::IndirOpnd::New(indexesOpnd, enumeratedCountOpnd, IndirScale4, TyUint32, this->m_func), this->m_func));
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfObjectIndex(), TyUint32, this->m_func),
-        objectIndexOpnd, this->m_func));
-
-    // INC enumeratedCountOpnd
-    // MOV currentEnumeratorOpnd->enumeratedCount, enumeratedCountOpnd
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::INC, enumeratedCountOpnd, enumeratedCountOpnd, this->m_func));
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
-        IR::IndirOpnd::New(currentEnumeratorOpnd, SmallDynamicObjectSnapshotEnumeratorWPCache::GetOffsetOfEnumeratedCount(), TyUint32, this->m_func),
-        enumeratedCountOpnd, this->m_func));
-
-    // We know result propertyString (opndDst) != NULL
-    IR::LabelInstr * labelAfter = instr->GetOrCreateContinueLabel();
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP,
-        instr->m_opcode == Js::OpCode::BrOnNotEmpty ? instr->AsBranchInstr()->GetTarget() : labelAfter,
-        this->m_func));
-
-    // $helper
-    instr->InsertBefore(labelHelper);
-    // $after
 }
 
 // Inlines fast-path for int Mul/Add or int Mul/Sub.  If not int, call MulAdd/MulSub helper
@@ -8080,8 +8011,9 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     // Stack looks like (EBP chain)+0, (return addr)+4, (function object)+8, (arg count)+12, (this)+16, actual args
     // Pass in the EBP+8 to start at the function object, the start of the implicit param slots
 
-    StackSym * stackSym = StackSym::NewParamSlotSym(argSlot, func);
+    StackSym * stackSym = StackSym::NewImplicitParamSym(argSlot, func);
     func->SetArgOffset(stackSym, (2 + argSlot) * MachPtr);
+    func->SetHasImplicitParamLoad();
     return stackSym;
 }
 
@@ -8815,6 +8747,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Instr *floatCall = IR::Instr::New(Js::OpCode::CALL, floatCallDst, s1, this->m_func);
             instr->InsertBefore(floatCall);
 #endif
+            instr->m_func->SetHasCalls();
             // Save the result.
             instr->m_opcode = Js::OpCode::MOVSD;
             instr->SetSrc1(floatCall->GetDst());

@@ -27,6 +27,13 @@
     #define __forceinline inline
 #endif
 
+// Only VC compiler support overflow guard
+#if defined(__GNUC__) || defined(__clang__)
+#define DECLSPEC_GUARD_OVERFLOW
+#else // Windows
+#define DECLSPEC_GUARD_OVERFLOW __declspec(guard(overflow))
+#endif
+
 #ifdef __clang__
 #define CLANG_WNO_BEGIN_(x) \
     _Pragma("clang diagnostic push")\
@@ -384,15 +391,7 @@ inline __int64 _abs64(__int64 n)
     return n < 0 ? -n : n;
 }
 
-// xplat-todo: implement these for JIT and Concurrent/Partial GC
-uintptr_t _beginthreadex(
-   void *security,
-   unsigned stack_size,
-   unsigned ( __stdcall *start_address )( void * ),
-   void *arglist,
-   unsigned initflag,
-   unsigned *thrdaddr);
-
+// xplat-todo: implement this for JIT and Concurrent/Partial GC
 BOOL WINAPI GetModuleHandleEx(
   _In_     DWORD   dwFlags,
   _In_opt_ LPCTSTR lpModuleName,
@@ -651,3 +650,4 @@ namespace PlatformAgnostic
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/Numbers.h"
 #include "PlatformAgnostic/SystemInfo.h"
+#include "PlatformAgnostic/Thread.h"

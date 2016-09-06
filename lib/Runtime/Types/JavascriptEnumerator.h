@@ -10,7 +10,6 @@ namespace Js {
         friend class ExternalObject;
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptEnumerator, RecyclableObject);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
         JavascriptEnumerator() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
 
@@ -22,21 +21,6 @@ namespace Js {
         //optional override
         //
         virtual uint32 GetCurrentItemIndex() { return Constants::InvalidSourceIndex; }
-
-        //
-        // Returns the current index
-        //
-        virtual Var GetCurrentIndex() = 0;
-
-        //
-        // Returns the current value
-        //
-        virtual Var GetCurrentValue() = 0;
-
-        //
-        // Moves to next element
-        //
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) = 0;
 
         //
         // Sets the enumerator to its initial position
@@ -53,40 +37,8 @@ namespace Js {
         // If that code is added in this base class use JavaScriptRegExpEnumerator.h/cpp
         // as a reference and then remove it. If you have already made the edits before
         // seeing this comment please just consolidate the changes.
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
-        {
-            propertyId = Constants::NoProperty;
-            if (MoveNext(attributes))
-            {
-                Var currentIndex = GetCurrentIndex();
-                return currentIndex;
-            }
-            return NULL;
-        }
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) = 0;
 
-        virtual Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var* currentValueRef)
-        {
-            propertyId = Constants::NoProperty;
-
-            if (MoveNext())
-            {
-                Var currentIndex = GetCurrentIndex();
-                *currentValueRef = GetCurrentValue();
-                return currentIndex;
-            }
-            return NULL;
-        }
-
-        virtual bool GetCurrentPropertyId(PropertyId *propertyId)
-        {
-           *propertyId = Constants::NoProperty;
-            return false;
-        };
-
-        virtual BOOL IsCrossSiteEnumerator()
-        {
-            return false;
-        }
 
         static bool Is(Var aValue);
         static JavascriptEnumerator* FromVar(Var varValue);

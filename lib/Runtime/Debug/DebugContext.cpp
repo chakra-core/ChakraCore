@@ -148,11 +148,18 @@ namespace Js
             return hr;
         }
 
-        // VSO 6707388 - Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
+        // Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
         Js::ScriptContext* cachedScriptContext = this->scriptContext;
 
         utf8SourceInfoList->MapUntil([&](int index, Js::Utf8SourceInfo * sourceInfo) -> bool
         {
+            if (cachedScriptContext->IsClosed())
+            {
+                // ScriptContext could be closed in previous iteration
+                hr = E_FAIL;
+                return true;
+            }
+
             OUTPUT_TRACE(Js::DebuggerPhase, _u("DebugContext::RundownSourcesAndReparse scriptContext 0x%p, sourceInfo 0x%p, HasDebugDocument %d\n"),
                 this->scriptContext, sourceInfo, sourceInfo->HasDebugDocument());
 
@@ -200,12 +207,20 @@ namespace Js
 
             if (this->hostDebugContext != nullptr && sourceInfo->GetSourceContextInfo())
             {
+                // This call goes out of engine
                 this->hostDebugContext->SetThreadDescription(sourceInfo->GetSourceContextInfo()->url); // the HRESULT is omitted.
             }
 
             bool fHasDoneSourceRundown = false;
             for (int i = 0; i < pFunctionsToRegister->Count(); i++)
             {
+                if (cachedScriptContext->IsClosed())
+                {
+                    // ScriptContext could be closed in previous iteration
+                    hr = E_FAIL;
+                    return true;
+                }
+
                 Js::FunctionBody* pFuncBody = pFunctionsToRegister->Item(i);
                 if (pFuncBody == nullptr)
                 {
@@ -214,12 +229,6 @@ namespace Js
 
                 if (shouldReparseFunctions)
                 {
-                    if (cachedScriptContext->IsClosed())
-                    {
-                        // scriptContext can be closed in previous call
-                        hr = E_FAIL;
-                        return true;
-                    }
 
                     BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(cachedScriptContext, false)
                     {
@@ -235,7 +244,7 @@ namespace Js
                     DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
                 }
 
-                if (!fHasDoneSourceRundown && shouldPerformSourceRundown)
+                if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !cachedScriptContext->IsClosed())
                 {
                     BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
                     {
@@ -263,12 +272,13 @@ namespace Js
 
         if (!cachedScriptContext->IsClosed())
         {
-            if (shouldPerformSourceRundown && cachedScriptContext->HaveCalleeSources())
+            if (shouldPerformSourceRundown && cachedScriptContext->HaveCalleeSources() && this->hostDebugContext != nullptr)
             {
                 cachedScriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
                 {
-                    if (this->hostDebugContext != nullptr)
+                    if (!cachedScriptContext->IsClosed())
                     {
+                        // This call goes out of engine
                         this->hostDebugContext->ReParentToCaller(calleeSourceInfo);
                     }
                 });

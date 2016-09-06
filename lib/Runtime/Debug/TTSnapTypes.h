@@ -52,6 +52,7 @@ namespace TTD
         enum class SnapEntryDataKindTag : uint8
         {
             Clear = 0x0,
+            Uninitialized,
             Data,   //the value in the location is a data entry
             Getter, //the value in the location is a getter function entry
             Setter  //the value in the location is a setter function entry

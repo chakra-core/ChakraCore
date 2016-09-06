@@ -33,7 +33,7 @@ namespace TTD
 
         const Js::PropertyRecord* InflatePropertyRecord_CreateNew(const SnapPropertyRecord* pRecord, ThreadContext* threadContext)
         {
-            LPCWSTR pname = pRecord->PropertyName.Contents;
+            const char16* pname = pRecord->PropertyName.Contents;
             int32 plen = pRecord->PropertyName.Length;
 
             const Js::PropertyRecord* newPropertyRecord = nullptr;
@@ -221,6 +221,7 @@ namespace TTD
                 uint32 h1Idx = h1Dict.LookupWithKey(locationTag, 0);
                 uint32 h2Idx = h2Dict.LookupWithKey(locationTag, 0);
                 compareMap.DiagnosticAssert(h1->PropertyInfoArray[h1Idx].AttributeInfo == h2->PropertyInfoArray[h2Idx].AttributeInfo);
+                compareMap.DiagnosticAssert(h1->PropertyInfoArray[h1Idx].DataKind == h2->PropertyInfoArray[h2Idx].DataKind);
             }
         }
 #endif

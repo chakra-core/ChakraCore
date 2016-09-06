@@ -229,19 +229,19 @@ namespace Js
     }
 
     DynamicTypeHandler *
-        DynamicTypeHandler::GetCurrentTypeHandler(DynamicObject * instance)
+    DynamicTypeHandler::GetCurrentTypeHandler(DynamicObject * instance)
     {
         return instance->GetTypeHandler();
     }
 
     void
-        DynamicTypeHandler::ReplaceInstanceType(DynamicObject * instance, DynamicType * type)
+    DynamicTypeHandler::ReplaceInstanceType(DynamicObject * instance, DynamicType * type)
     {
         instance->ReplaceType(type);
     }
 
     void
-        DynamicTypeHandler::ResetTypeHandler(DynamicObject * instance)
+    DynamicTypeHandler::ResetTypeHandler(DynamicObject * instance)
     {
         // just reuse the current type handler.
         this->SetInstanceTypeHandler(instance);
@@ -249,14 +249,14 @@ namespace Js
 
     BOOL
     DynamicTypeHandler::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         // Type handlers that support big property indexes override this function, so if we're here then this type handler does
         // not support big property indexes. Forward the call to the small property index version.
         Assert(GetSlotCapacity() <= PropertyIndexRanges<PropertyIndex>::MaxValue);
         PropertyIndex smallIndex = static_cast<PropertyIndex>(index);
         Assert(static_cast<BigPropertyIndex>(smallIndex) == index);
-        const BOOL found = FindNextProperty(scriptContext, smallIndex, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        const BOOL found = FindNextProperty(scriptContext, smallIndex, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
         index = smallIndex;
         return found;
     }
@@ -700,6 +700,13 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    Js::BigPropertyIndex DynamicTypeHandler::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    {
+        AssertMsg(false, "Should never be called.");
+
+        return Js::Constants::NoBigSlot;
+    }
+
     void DynamicTypeHandler::ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
     {
         handler->HandlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
@@ -730,19 +737,12 @@ namespace Js
         }
 
         //The kind of type this snaptype record is associated with and the extensible flag
-        handler->IsExtensibleFlag = this->GetFlags() & IsExtensibleFlag;
+        handler->IsExtensibleFlag = this->GetFlags() & Js::DynamicTypeHandler::IsExtensibleFlag;
     }
 
-    void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)
+    void DynamicTypeHandler::SetExtensible_TTD()
     {
-        if(extensibleFlag == IsExtensibleFlag)
-        {
-            this->flags |= extensibleFlag;
-        }
-        else
-        {
-            this->flags = (this->flags & ~IsExtensibleFlag);
-        }
+        this->flags |= Js::DynamicTypeHandler::IsExtensibleFlag;
     }
 #endif
 }

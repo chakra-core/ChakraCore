@@ -26,9 +26,9 @@
 /// - X: Nothing
 ///
 /// Examples:
-/// - "A2toA1" reads two registers, each storing a Var, and writes a single
+/// - "A2toA1" reads two registers, each storing an Var, and writes a single
 ///   register with a new Var.
-/// - "A1I1toA2" reads two registers, first a Var and second an Int32, then
+/// - "A1I1toA2" reads two registers, first an Var and second an Int32, then
 ///   writes two Var registers.
 ///
 /// Although these could use lookup tables to standard OpLayout types, this
@@ -1073,6 +1073,7 @@ namespace Js
         newInstance->m_callFlags    = this->callFlags;
         newInstance->m_outParams    = newInstance->m_localSlots + localCount;
         newInstance->m_outSp        = newInstance->m_outParams;
+        newInstance->m_outSpCached  = nullptr;
         newInstance->m_arguments    = NULL;
         newInstance->function       = this->function;
         newInstance->m_functionBody = this->executeFunction;
@@ -1083,6 +1084,7 @@ namespace Js
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
         newInstance->isParamScopeDone = false;
+        newInstance->shouldCacheSP = true;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -1180,6 +1182,7 @@ namespace Js
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
+                    ScopeSlots((Var*)nextAllocBytes).SetCount(scopeSlots);
                     newInstance->localClosure = nextAllocBytes;
                     nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
@@ -1802,7 +1805,7 @@ namespace Js
         InterpreterStackFrame* newInstance = nullptr;
         Var* allocation = nullptr;
 
-        if (!isAsmJs && executeFunction->IsGenerator())
+        if (!isAsmJs && executeFunction->IsCoroutine())
         {
             // If the FunctionBody is a generator then this call is being made by one of the three
             // generator resuming methods: next(), throw(), or return().  They all pass the generator
@@ -2168,7 +2171,7 @@ namespace Js
 
     inline void InterpreterStackFrame::OP_SetOutAsmDb( RegSlot outRegisterID, double val )
     {
-        Assert( m_outParams + outRegisterID < m_outSp );
+        Assert(m_outParams + outRegisterID < m_outSp);
         m_outParams[outRegisterID] = JavascriptNumber::NewWithCheck( val, scriptContext );
     }
 
@@ -2202,6 +2205,36 @@ namespace Js
         *(AsmJsSIMDValue*)(&(m_outParams[outRegisterID])) = val;
     }
 
+    // This will be called in the beginning of the try_finally.
+    inline void InterpreterStackFrame::CacheSp()
+    {
+        // Before caching the current m_outSp, we will be storing the previous the previously stored value in the m_outSpCached.
+        *m_outSp++ = (Var)m_outSpCached;
+        *m_outSp++ = (Var)m_outParams;
+        m_outSpCached = m_outSp - 2;
+    }
+
+    inline void InterpreterStackFrame::RestoreSp()
+    {
+        // This will be called in the Finally block to restore from the previous SP cached.
+
+        // m_outSpCached can be null if the catch block is called.
+        if (m_outSpCached != nullptr)
+        {
+            Assert(m_outSpCached < m_outSp);
+            m_outSp = m_outSpCached;
+
+            m_outSpCached = (Var*)*m_outSp;
+            Assert(m_outSpCached == nullptr || m_outSpCached <= m_outSp);
+
+            m_outParams = (Var*)*(m_outSp + 1);
+        }
+        else
+        {
+            ResetOut();
+        }
+    }
+
     inline void InterpreterStackFrame::PushOut(Var aValue)
     {
         *m_outSp++ = aValue;
@@ -2225,6 +2258,7 @@ namespace Js
         m_outParams    = m_localSlots + this->m_functionBody->GetLocalsCount();
 
         m_outSp        = m_outParams;
+        m_outSpCached  = nullptr;
     }
 
     _NOINLINE
@@ -2302,7 +2336,7 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
         if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
@@ -2339,7 +2373,7 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
         if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
@@ -4408,7 +4442,8 @@ namespace Js
     template <class T>
     inline void InterpreterStackFrame::DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
-        DoSetSuperProperty_NoFastPath(playout, instance, flags);
+        DoSetSuperProperty_NoFastPath(playout, instance, m_functionBody->GetIsStrictMode() ?
+            (PropertyOperationFlags)(flags | PropertyOperation_StrictMode) : flags);
     }
 
     template <class T>
@@ -4499,7 +4534,8 @@ namespace Js
             GetInlineCache(playout->PropertyIdIndex),
             playout->PropertyIdIndex,
             GetReg(playout->Value),
-            flags,
+            m_functionBody->GetIsStrictMode() ?
+                (PropertyOperationFlags)(flags | PropertyOperation_StrictMode ) : flags,
             GetJavascriptFunction(),
             thisInstance);
     }
@@ -5174,12 +5210,16 @@ namespace Js
         Assert(arrayInfo);
 
         JavascriptArray *arr;
-        JavascriptLibrary *lib = scriptContext->GetLibrary();
-
         if (arrayInfo && arrayInfo->IsNativeIntArray())
         {
 #if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary *lib = scriptContext->GetLibrary();
+
+#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
+            if(JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
+#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count))
+#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
@@ -6483,7 +6523,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         //Clear any previous Exception Info
         if(this->scriptContext->ShouldPerformDebugAction())
         {
-            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrame();
+            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrames();
         }
 #endif
 
@@ -6707,6 +6747,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
+            if (shouldCacheSP)
+            {
+                CacheSp();
+            }
+
             if (this->IsInDebugMode())
             {
                 result = this->ProcessWithDebugging();
@@ -6732,6 +6777,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // unmark the stackFrame as 'in try block'
             this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
         }
+
+        shouldCacheSP = !skipFinallyBlock;
 
         if (skipFinallyBlock)
         {
@@ -6768,7 +6815,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // Call into the finally by setting the IP, consuming the Finally, and letting the interpreter recurse.
         m_reader.SetCurrentRelativeOffset(ip, jumpOffset);
 
-        ResetOut();
+        RestoreSp();
 
         newOffset = this->ProcessFinally();
 
@@ -7368,24 +7415,24 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->scriptContext->GetDebugContext()->GetProbeContainer()->SetCurrentTmpRegCount(playout->C1);
     }
 
-    Var InterpreterStackFrame::OP_LdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuper(function, scriptContext);
+        return JavascriptOperators::OP_LdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_LdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_LdFuncObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuper(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdFuncObj(function, scriptContext);
     }
 
     void InterpreterStackFrame::ValidateRegValue(Var value, bool allowStackVar, bool allowStackVarOnDisabledStackNestedFunc) const
@@ -7422,6 +7469,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
         {
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
 #endif
     }
@@ -7519,6 +7573,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
         }
 #endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
+        }
+#endif
     }
 
     template <typename RegSlotType>
@@ -7540,6 +7601,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
         {
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
 #endif
     }
@@ -7664,7 +7732,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         SetRegRawSimd(playout->I4_0, result);
     }
-
     // handler for SIMD.Uint32x4.FromFloat32x4
     template <class T>
     void InterpreterStackFrame::OP_SimdUint32x4FromFloat32x4(const unaligned T* playout)

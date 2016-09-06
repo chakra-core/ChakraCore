@@ -9,8 +9,7 @@ namespace Js
     class ForInObjectEnumerator : public WeakReferenceCache<ForInObjectEnumerator>
     {
     private:
-        DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, true, false> embeddedEnumerator;
-        JavascriptEnumerator * currentEnumerator;
+        JavascriptStaticEnumerator enumerator;
         RecyclableObject *object;
         RecyclableObject *baseObject;
         BVSparse<Recycler>* propertyIds;
@@ -22,7 +21,7 @@ namespace Js
         bool enumSymbols;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);
-        BOOL GetCurrentEnumerator();
+        BOOL InitializeCurrentEnumerator();
 
         // Only used by the vtable ctor for ForInObjectEnumeratorWrapper
         friend class ForInObjectEnumeratorWrapper;
@@ -37,15 +36,17 @@ namespace Js
         void Initialize(RecyclableObject* currentObject, ScriptContext * scriptContext);
         void Clear();
         Var GetCurrentIndex();
-        Var GetCurrentValue();
         BOOL MoveNext();
         void Reset();
-        Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var *currentValueRef);
-        Var GetCurrentAndMoveNext(PropertyId& propertyId);
+        Var MoveAndGetNext(PropertyId& propertyId);
 
-        static uint32 GetOffsetOfCurrentEnumerator() { return offsetof(ForInObjectEnumerator, currentEnumerator); }
         static uint32 GetOffsetOfFirstPrototype() { return offsetof(ForInObjectEnumerator, firstPrototype); }
-
+        static uint32 GetOffsetOfEnumeratorCurrentEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCurrentEnumerator(); }
+        static uint32 GetOffsetOfEnumeratorObject() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObject(); }
+        static uint32 GetOffsetOfEnumeratorCachedDataType() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCachedDataType(); }
+        static uint32 GetOffsetOfEnumeratorEnumeratedCount() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfEnumeratedCount(); }
+        static uint32 GetOffsetOfEnumeratorCachedData() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCachedData(); }     
+        static uint32 GetOffsetOfEnumeratorObjectIndex() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObjectIndex(); }
         static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object);
     };
 
@@ -58,25 +59,14 @@ namespace Js
         {
         }
 
-        virtual Var GetCurrentIndex() override { return forInObjectEnumerator.GetCurrentIndex(); }
-        virtual Var GetCurrentValue() override { return forInObjectEnumerator.GetCurrentValue(); }
-        virtual BOOL MoveNext(PropertyAttributes* attributes = nullptr) override { return forInObjectEnumerator.MoveNext(); }
         virtual void Reset() override { forInObjectEnumerator.Reset(); }
-        virtual Var GetCurrentBothAndMoveNext(PropertyId& propertyId, Var *currentValueRef) override
+        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
         {
-            return forInObjectEnumerator.GetCurrentBothAndMoveNext(propertyId, currentValueRef);
-        }
-        virtual Var GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
-        {
-            return forInObjectEnumerator.GetCurrentAndMoveNext(propertyId);
+            return forInObjectEnumerator.MoveAndGetNext(propertyId);
         }
     protected:
         DEFINE_VTABLE_CTOR(ForInObjectEnumeratorWrapper, JavascriptEnumerator);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) override
-        {
-            // Currently this wrapper is only used by ExtensionEnumeratorObject and doesn't support marshaling cross script context.
-            AssertMsg(false, "ForInObjectEnumeratorWrapper should never get marshaled");
-        }
+
     private:
         ForInObjectEnumerator forInObjectEnumerator;
     };

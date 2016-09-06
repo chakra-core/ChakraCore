@@ -87,7 +87,8 @@ public:
               void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = NULL) { __debugbreak(); }
               void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget) { __debugbreak(); }
               bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false) { __debugbreak(); return false; }
-              bool            GenerateFastBrString(IR::BranchInstr* instr) { __debugbreak(); return 0; }
+              bool            GenerateFastBrOrCmString(IR::Instr* instr) { __debugbreak(); return 0; }
+              bool            GenerateFastStringCheck(IR::Instr* instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail) { __debugbreak(); return 0; }
               bool            GenerateFastCmSrEqConst(IR::Instr *instr) { __debugbreak(); return 0; }
               bool            GenerateFastCmXxI4(IR::Instr *instr) { __debugbreak(); return 0; }
               bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return NULL; }
@@ -121,7 +122,6 @@ public:
               IR::Instr *     GenerateFastScopedLdFld(IR::Instr * instrLdFld) { __debugbreak(); return 0; }
               IR::Instr *     GenerateFastScopedStFld(IR::Instr * instrStFld) { __debugbreak(); return 0; }
               bool            GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false) { __debugbreak(); return 0; }
-              void            GenerateFastBrBReturn(IR::Instr *instr) { __debugbreak(); }
               bool            TryGenerateFastFloatOp(IR::Instr * instr, IR::Instr ** pInsertHelper, bool *pfNoLower) { __debugbreak(); return 0; }
               bool            GenerateFastFloatCall(IR::Instr * instr, IR::Instr ** pInsertHelper, bool noFieldFastPath, bool *pfNoLower, IR::Instr **pInstrPrev) { __debugbreak(); return 0; }
               bool            GenerateFastFloatBranch(IR::BranchInstr * instr, IR::Instr ** pInsertHelper, bool *pfNoLower) { __debugbreak(); return 0; }

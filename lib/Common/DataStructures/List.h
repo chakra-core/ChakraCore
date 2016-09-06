@@ -64,7 +64,7 @@ namespace JsUtil
         }
 
         template<class TAllocator>
-        static ReadOnlyList * New(TAllocator* alloc, __in_ecount(count) T* buffer, int count)
+        static ReadOnlyList * New(TAllocator* alloc, __in_ecount(count) T* buffer, DECLSPEC_GUARD_OVERFLOW int count)
         {
             return AllocatorNew(TAllocator, alloc, ReadOnlyList, buffer, count, alloc);
         }
@@ -213,7 +213,7 @@ namespace JsUtil
         int increment;
         TRemovePolicyType removePolicy;
 
-        T * AllocArray(int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
+        T * AllocArray(DECLSPEC_GUARD_OVERFLOW int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
         void FreeArray(T * oldBuffer, int oldBufferSize) { AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);  }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
@@ -234,7 +234,7 @@ namespace JsUtil
             EnsureArray(0);
         }
 
-        void EnsureArray(int32 requiredCapacity)
+        void EnsureArray(DECLSPEC_GUARD_OVERFLOW int32 requiredCapacity)
         {
             if (this->buffer == nullptr)
             {
@@ -479,13 +479,9 @@ namespace JsUtil
 
         void Sort()
         {
-            // We can call QSort only if the remove policy for this list is CopyRemovePolicy
-            CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
-                (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if(this->count)
-            {
-                JsUtil::QuickSort<T, TComparerType>::Sort(this->buffer, this->buffer + (this->count - 1));
-            }
+            Sort([](void *, const void * a, const void * b) {
+                return TComparerType::Compare(*(T*)a, *(T*)b);
+            }, nullptr);
         }
 
         void Sort(int(__cdecl * _PtFuncCompare)(void *, const void *, const void *), void *_Context)

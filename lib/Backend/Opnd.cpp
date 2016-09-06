@@ -835,17 +835,40 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
-    JITTypeHolder finalType = this->GetFinalType();
-    if (finalType.t == nullptr || !Js::DynamicType::Is(finalType.t->GetTypeId()))
-    {
-        return false;
-    }
-
     JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+
+    JITTypeHolder finalType = this->GetFinalType();
+    if (finalType.t && Js::DynamicType::Is(finalType.t->GetTypeId()))
+    {
+        // This is the case where final type opt may cause pro-active type transition to take place.
+
     Assert(cachedType.t != nullptr && Js::DynamicType::Is(cachedType.t->GetTypeId()));
 
     return cachedType.t->GetTypeHandler()->GetInlineSlotCapacity() != finalType.t->GetTypeHandler()->GetInlineSlotCapacity() ||
         cachedType.t->GetTypeHandler()->GetOffsetOfInlineSlots() != finalType.t->GetTypeHandler()->GetOffsetOfInlineSlots();
+    }
+
+    if (!this->HasInitialType())
+    {
+        return false;
+    }
+
+    JITTypeHolder initialType = this->GetInitialType();
+    if (initialType.t && Js::DynamicType::Is(initialType.t->GetTypeId()))
+    {
+        // This is the case where the type transition actually occurs. (This is the only case that's detectable
+        // during the loop pre-pass, since final types are not in place yet.)
+
+        Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+
+        auto cachedTypeHandler = cachedType.t->GetTypeHandler();
+        auto initialTypeHandler = initialType.t->GetTypeHandler();
+
+        return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
+            cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
+    }
+
+    return false;
 }
 
 void

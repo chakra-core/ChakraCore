@@ -358,10 +358,9 @@ namespace Js
 #if defined(_M_IX86) || defined(_M_X64)
             if (AutoSystemInfo::Data.SSE4_1Available())
             {
-                __m128d input, output;
+				__m128d input, output;
                 input = _mm_load_sd(&x);
-#pragma prefast(suppress:6001, "Signature of _mm_ceil_sd intrinsic confuses prefast, output in the parameter list is not used, it is the dst of the intrinsic")
-                output = _mm_ceil_sd(output, input);
+                output = _mm_ceil_sd(input, input);
                 int intResult = _mm_cvtsd_si32(output);
 
                 if (TaggedInt::IsOverflow(intResult) || intResult == 0 || intResult == 0x80000000)
@@ -569,8 +568,7 @@ namespace Js
             }
             else
             {
-#pragma prefast(suppress:6001, "Signature of _mm_floor_sd intrinsic confuses prefast, output in the parameter list is not used, it is the dst of the intrinsic")
-                output = _mm_floor_sd(output, input);
+                output = _mm_floor_sd(input, input);
             }
             intResult = _mm_cvttsd_si32(output);
 

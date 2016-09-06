@@ -66,7 +66,7 @@ bool Symbol::NeedsSlotAlloc(FuncInfo *funcInfo)
 
 bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 {
-    if (this->GetIsGlobal())
+    if (this->GetIsGlobal() || this->GetIsModuleExportStorage())
     {
         return false;
     }
@@ -83,7 +83,7 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
         return true;
     }
     // If body and param scopes are not merged then an inner scope slot is used
-    if (!this->GetIsArguments() && this->scope->GetScopeType() == ScopeType_Parameter && !this->scope->GetCanMergeWithBodyScope())
+    if (this->scope->GetScopeType() == ScopeType_Parameter && !this->scope->GetCanMergeWithBodyScope())
     {
         return true;
     }
@@ -93,6 +93,10 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
 
 bool Symbol::GetIsCommittedToSlot() const
 {
+    if (!PHASE_ON1(Js::DelayCapturePhase))
+    {
+        return true;
+    }
     return isCommittedToSlot || this->scope->GetFunc()->GetCallsEval() || this->scope->GetFunc()->GetChildCallsEval();
 }
 
@@ -195,21 +199,6 @@ Symbol * Symbol::GetFuncScopeVarSym() const
         // We couldn't find the sym in the body scope, try finding it in the parameter scope.
         Scope* paramScope = parentFuncInfo->GetParamScope();
         fncScopeSym = paramScope->FindLocalSymbol(this->GetName());
-        if (fncScopeSym == nullptr)
-        {
-            FuncInfo* parentParentFuncInfo = paramScope->GetEnclosingScope()->GetFunc();
-            if (parentParentFuncInfo->root->sxFnc.IsAsync())
-            {
-                // In the case of async functions the func-scope var sym might have
-                // come from the parent function parameter scope due to the syntax
-                // desugaring implementation of async functions.
-                fncScopeSym = parentParentFuncInfo->GetBodyScope()->FindLocalSymbol(this->GetName());
-                if (fncScopeSym == nullptr)
-                {
-                    fncScopeSym = parentParentFuncInfo->GetParamScope()->FindLocalSymbol(this->GetName());
-                }
-            }
-        }
     }
     Assert(fncScopeSym);
     // Parser should have added a fake var decl node for block scoped functions in non-strict mode

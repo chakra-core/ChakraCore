@@ -50,21 +50,22 @@ namespace Js
         PropertyIndex propertyIndex = (PropertyIndex)-1;
         JavascriptString* propertyString = nullptr;
         PropertyId propertyId = Constants::NoProperty;
-        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, true));
+        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None));
 #endif
 
         this->hasNoEnumerableProperties = true;
         return true;
     }
 
-    void DynamicType::PrepareForTypeSnapshotEnumeration()
+    bool DynamicType::PrepareForTypeSnapshotEnumeration()
     {
-        if(!GetIsLocked() && CONFIG_FLAG(TypeSnapshotEnumeration))
+        if (CONFIG_FLAG(TypeSnapshotEnumeration))
         {
             // Lock the type and handler, enabling us to enumerate properties of the type snapshotted
             // at the beginning of enumeration, despite property changes made by script during enumeration.
-            LockType(); // Note: this only works for type handlers that support locking.
+            return LockType(); // Note: this only works for type handlers that support locking.
         }
+        return false;
     }
 
     void DynamicObject::InitSlots(DynamicObject* instance)
@@ -117,6 +118,8 @@ namespace Js
         return GetTypeHandler()->HasProperty(this, propertyId);
     }
 
+    // HasOwnProperty and HasProperty is the same for most objects except globalobject (moduleroot as well in legacy)
+    // Note that in GlobalObject, HasProperty and HasRootProperty is not quite the same as it's handling let/const global etc.
     BOOL DynamicObject::HasOwnProperty(PropertyId propertyId)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
@@ -318,95 +321,23 @@ namespace Js
         return false;
     }
 
-    BOOL DynamicObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL DynamicObject::GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
+        Js::ArrayObject * arrayObject = nullptr;
+        if (this->HasObjectArray())
         {
-            *enumerator = nullptr;
-            return FALSE;
+            arrayObject = this->GetObjectArrayOrFlagsAsArray();
+            Assert(arrayObject->GetPropertyCount() == 0);
         }
+        return enumerator->Initialize(prefixEnumerator, arrayObject, this, flags, requestContext);
+    }
 
-        // Create the appropriate enumerator object.
-        if (preferSnapshotSemantics)
-        {
-            if (this->GetTypeHandler()->GetPropertyCount() == 0 && !this->HasObjectArray())
-            {
-                *enumerator = requestContext->GetLibrary()->GetNullEnumerator();
-            }
-            else
-            {
-                GetDynamicType()->PrepareForTypeSnapshotEnumeration();
-                if (this->GetDynamicType()->GetIsLocked())
-                {
-                    if (enumSymbols)
-                    {
-                        if (enumNonEnumerable)
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                        else
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                    }
-                    else if (enumNonEnumerable)
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                    else
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                }
-                else
-                {
-                    if (enumSymbols)
-                    {
-                        if (enumNonEnumerable)
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                        else
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                    }
-                    else if (enumNonEnumerable)
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                    else
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                }
-            }
-        }
-        else if (enumSymbols)
-        {
-            if (enumNonEnumerable)
-            {
-                *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
-            }
-            else
-            {
-                *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
-            }
-        }
-        else if (enumNonEnumerable)
-        {
-            *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
-        }
-        else
-        {
-            *enumerator = DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
-        }
-
-        return true;
+    BOOL DynamicObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext)
+    {
+        return GetEnumeratorWithPrefix(nullptr, enumerator, flags, requestContext);
     }
 
     BOOL DynamicObject::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
-
     {
         return GetTypeHandler()->SetAccessors(this, propertyId, getter, setter, flags);
     }

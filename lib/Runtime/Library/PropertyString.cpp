@@ -16,7 +16,7 @@ namespace Js
 
     PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena)
     {
-        PropertyString * propertyString = (PropertyString *)Anew(arena, AreanaAllocPropertyString, type, propertyRecord);
+        PropertyString * propertyString = (PropertyString *)Anew(arena, ArenaAllocPropertyString, type, propertyRecord);
         propertyString->propCache = AllocatorNewStructZ(InlineCacheAllocator, type->GetScriptContext()->GetInlineCacheAllocator(), PropertyCache);
         return propertyString;
     }
@@ -52,9 +52,14 @@ namespace Js
 
     void PropertyString::UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled)
     {
-        Assert(type && type->GetScriptContext() == this->GetScriptContext());
+        Assert(type);
+        
+        if (type->GetScriptContext() != this->GetScriptContext())
+        {
+            return;
+        }
 
-        if (this->IsAreanaAllocPropertyString())
+        if (this->IsArenaAllocPropertyString())
         {
             this->GetScriptContext()->SetHasUsedInlineCache(true);
         }
@@ -67,7 +72,7 @@ namespace Js
         this->propCache->isStoreFieldEnabled = isStoreFieldEnabled;
     }
 
-    AreanaAllocPropertyString::AreanaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
+    ArenaAllocPropertyString::ArenaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
         :PropertyString(type, propertyRecord)
     {}
 }

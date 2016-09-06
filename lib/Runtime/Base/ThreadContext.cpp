@@ -185,14 +185,12 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     m_remoteThreadContextInfo(0),
     debugManager(nullptr)
 #if ENABLE_TTD
-    , IsTTRequested(false)
     , IsTTRecordRequested(false)
     , IsTTDebugRequested(false)
-    , TTDUri(nullptr)
+    , TTDUri()
     , TTSnapInterval(2000)
     , TTSnapHistoryLength(UINT32_MAX)
     , TTDLog(nullptr)
-    , TTDInitializeTTDUriFunction(nullptr)
     , m_propertyMap(nullptr)
     , TTDWriteInitializeFunction(nullptr)
     , TTDStreamFunctions({ 0 })
@@ -408,15 +406,9 @@ ThreadContext::~ThreadContext()
     }
 
 #if ENABLE_TTD
-    if(this->TTDUri != nullptr)
-    {
-        HeapDeleteArray(wcslen(this->TTDUri) + 1, this->TTDUri);
-        this->TTDUri = nullptr;
-    }
-
     if(this->TTDLog != nullptr)
     {
-        HeapDelete(this->TTDLog);
+        TT_HEAP_DELETE(TTD::EventLog, this->TTDLog);
         this->TTDLog = nullptr;
     }
 #endif
@@ -1979,18 +1971,12 @@ ThreadContext::InitJITThreadContext()
 #endif
 
 #if ENABLE_TTD
-
-bool ThreadContext::IsTTDInitialized() const
-{
-    return (this->TTDLog != nullptr);
-}
-
-void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength)
+void ThreadContext::InitTimeTravel(bool doRecord, bool doReplay)
 {
     AssertMsg(this->TTDLog == nullptr, "We should only init once.");
     AssertMsg((doRecord & !doReplay) || (!doRecord && doReplay), "Should be exactly 1 of record or replay.");
 
-    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory, snapInterval, snapHistoryLength);
+    this->TTDLog = HeapNewNoThrow(TTD::EventLog, this);
 
     if(doRecord)
     {
@@ -2073,9 +2059,29 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
             }
         }
 
+#if ENABLE_TTD
+        //
+        //TODO: We leak any references that are JsReleased by the host in collection callbacks. Later we should defer these events to the end of the 
+        //      top-level call or the next external call and then append them to the log.
+        //
+
+        bool preventRecording = (this->entryExitRecord != nullptr) && this->entryExitRecord->scriptContext->ShouldPerformRecordAction();
+        if(preventRecording)
+        {
+            this->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+        }
+#endif
+
         this->LeaveScriptStart<false>(frameAddr);
         ret = this->ExecuteRecyclerCollectionFunctionCommon(recycler, function, flags);
         this->LeaveScriptEnd<false>(frameAddr);
+
+#if ENABLE_TTD
+        if(preventRecording)
+        {
+            this->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+        }
+#endif
 
         if (this->callRootLevel != 0)
         {

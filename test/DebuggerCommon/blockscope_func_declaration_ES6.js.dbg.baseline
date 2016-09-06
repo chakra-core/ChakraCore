@@ -1,0 +1,54 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "x": "undefined undefined",
+      "foo": "undefined undefined",
+      "bar": "undefined undefined"
+    },
+    "locals": {
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "x": "undefined undefined",
+      "foo": "undefined undefined",
+      "bar": "undefined undefined"
+    },
+    "globals": {}
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "x": "number 1",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "locals": {
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "x": "number 1",
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "globals": {}
+  }
+]

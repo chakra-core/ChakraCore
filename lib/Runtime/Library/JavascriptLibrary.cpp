@@ -15,11 +15,7 @@
 #include "Types/SimpleDictionaryPropertyDescriptor.h"
 #include "Types/SimpleDictionaryTypeHandler.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
-#include "Library/NullEnumerator.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 #include "Library/ThrowErrorObject.h"
@@ -39,6 +35,12 @@ namespace Js
         SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolToStringTag, PropertyConfigurable),
+        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolIterator, PropertyConfigurable)
+    };
+
     SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(BuiltInPropertyRecords::constructor, PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(BuiltInPropertyRecords::name, PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(BuiltInPropertyRecords::prototype, PropertyWritable);
@@ -46,6 +48,7 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(BuiltInPropertyRecords::prototype);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(BuiltInPropertyRecords::length);
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(FunctionWithLengthAndNameTypeDescriptors);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(ModuleNamespaceTypeDescriptors);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -120,8 +123,6 @@ namespace Js
         nullValue->GetType()->SetHasSpecialPrototype(true);
         this->rootPath = TypePath::New(recycler);
 
-        ArrayBuffer* baseArrayBuffer;
-
         // The prototype property of the object prototype is null.
         objectPrototype = ObjectPrototypeObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
@@ -132,177 +133,73 @@ namespace Js
 
         constructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
 
-        if(scriptContext->GetConfig()->IsTypedArrayEnabled())
-        {
-            if(scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-            {
-                arrayBufferPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeArrayBufferPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        arrayBufferPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeArrayBufferPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
-                    SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-                dataViewPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeDataViewPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        dataViewPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeDataViewPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                typedArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeTypedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        typedArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeTypedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Int8ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Int8ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeInt8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Uint8ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Uint8ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeUint8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                // If ES6 TypedArrays are enabled, we have Khronos Interop mode enabled
-                Uint8ClampedArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        // If ES6 TypedArrays are enabled, we have Khronos Interop mode enabled
+        Uint8ClampedArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeUint8ClampedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Int16ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Int16ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeInt16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Uint16ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Uint16ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeUint16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Int32ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Int32ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeInt32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Uint32ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Uint32ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeUint32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Float32ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Float32ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeFloat32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Float64ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Float64ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeFloat64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Int64ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Int64ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeInt64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                Uint64ArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        Uint64ArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeUint64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                BoolArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeBoolArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        BoolArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeBoolArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-                CharArrayPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeCharArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            }
-            else
-            {
-                arrayBufferPrototype = JavascriptArrayBuffer::Create(0,
-                    DynamicType::New(scriptContext, TypeIds_ArrayBuffer, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeArrayBufferPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-                arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
-                    SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int8ArrayPrototype = RecyclerNew(recycler, Int8Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint8ArrayPrototype = RecyclerNew(recycler, Uint8Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                dataViewPrototype = DynamicObject::New(recycler,
-                    DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeDataViewPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint8ClampedArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint8ClampedArrayPrototype = RecyclerNew(recycler, Uint8ClampedArray, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int16ArrayPrototype = RecyclerNew(recycler, Int16Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint16ArrayPrototype = RecyclerNew(recycler, Uint16Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int32ArrayPrototype = RecyclerNew(recycler, Int32Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint32ArrayPrototype = RecyclerNew(recycler, Uint32Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Float32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Float32ArrayPrototype = RecyclerNew(recycler, Float32Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Float64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Float64ArrayPrototype = RecyclerNew(recycler, Float64Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int64ArrayPrototype = RecyclerNew(recycler, Int64Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint64ArrayPrototype = RecyclerNew(recycler, Uint64Array, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_BoolArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeBoolArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                BoolArrayPrototype = RecyclerNew(recycler, BoolArray, baseArrayBuffer, 0, 0, tempDynamicType);
-
-                tempDynamicType = DynamicType::New(scriptContext, TypeIds_CharArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeCharArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-                baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                CharArrayPrototype = RecyclerNew(recycler, CharArray, baseArrayBuffer, 0, 0, tempDynamicType);
-            }
-        }
-        else
-        {
-            arrayBufferType = nullptr;
-
-            arrayBufferPrototype = nullptr;
-            dataViewPrototype = nullptr;
-            Int8ArrayPrototype = nullptr;
-            Uint8ArrayPrototype = nullptr;
-            Uint8ClampedArrayPrototype = nullptr;
-            Int16ArrayPrototype = nullptr;
-            Uint16ArrayPrototype = nullptr;
-            Int32ArrayPrototype = nullptr;
-            Uint32ArrayPrototype = nullptr;
-            Float32ArrayPrototype = nullptr;
-            Float64ArrayPrototype = nullptr;
-            Int64ArrayPrototype = nullptr;
-            Uint64ArrayPrototype = nullptr;
-            BoolArrayPrototype = nullptr;
-            CharArrayPrototype = nullptr;
-        }
+        CharArrayPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
+                DeferredTypeHandler<InitializeCharArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
         arrayPrototype = JavascriptArray::New<Var, JavascriptArray, 0>(0,
             DynamicType::New(scriptContext, TypeIds_Array, objectPrototype, nullptr,
@@ -531,10 +428,6 @@ namespace Js
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
 
-        DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
-        heapArgumentsTypeStrictMode = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
-            dictTypeHandlerForArgumentsInStrictMode, false, false);
-
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -599,6 +492,7 @@ namespace Js
         withType    = nullptr;
         proxyType   = nullptr;
         promiseType = nullptr;
+        moduleNamespaceType = nullptr;
         javascriptEnumeratorIteratorType = nullptr;
 
         // Initialize boolean types
@@ -627,13 +521,17 @@ namespace Js
             proxyType = DynamicType::New(scriptContext, TypeIds_Proxy, GetNull(), nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
             javascriptEnumeratorIteratorType = DynamicType::New(scriptContext, TypeIds_JavascriptEnumeratorIterator, javascriptEnumeratorIteratorPrototype, nullptr,
-
                 SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         }
 
         if (config->IsES6PromiseEnabled())
         {
             promiseType = DynamicType::New(scriptContext, TypeIds_Promise, promisePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+        }
+
+        if (config->IsES6ModuleEnabled())
+        {
+            moduleNamespaceType = DynamicType::New(scriptContext, TypeIds_ModuleNamespace, nullValue, nullptr, &SharedNamespaceSymbolTypeHandler);
         }
 
         // Initialize Date types
@@ -801,6 +699,8 @@ namespace Js
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         stringIteratorType = DynamicType::New(scriptContext, TypeIds_StringIterator, stringIteratorPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        listIteratorType = DynamicType::New(scriptContext, TypeIds_ListIterator, iteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
 
         if (config->IsES6GeneratorsEnabled())
         {
@@ -836,6 +736,21 @@ namespace Js
         }
     }
 
+    void JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        bool isAnonymousFunction = JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction();
+
+        JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
+        typeHandler->Convert(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionTypeHandler : javascriptLibrary->functionTypeHandler);
+
+        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !isAnonymousFunction)
+        {
+            JavascriptString * functionName = nullptr;
+            DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);
+            Assert(status);
+            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+        }
+    }
 
     template<bool addPrototype>
     void JavascriptLibrary::InitializeFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -883,6 +798,42 @@ namespace Js
         }
     }
 
+    DynamicType* JavascriptLibrary::GetErrorType(ErrorTypeEnum typeToFind) const
+    {
+        switch (typeToFind)
+        {
+        case kjstError:
+            return GetErrorType();
+            break;
+
+        case kjstEvalError:
+            return GetEvalErrorType();
+            break;
+
+        case kjstRangeError:
+            return GetRangeErrorType();
+            break;
+
+        case kjstReferenceError:
+            return GetReferenceErrorType();
+            break;
+
+        case kjstSyntaxError:
+            return GetSyntaxErrorType();
+            break;
+
+        case kjstTypeError:
+            return GetTypeErrorType();
+            break;
+
+        case kjstURIError:
+            return GetURIErrorType();
+            break;
+        }
+
+        return nullptr;
+    }
+
     template<bool isNameAvailable, bool isPrototypeAvailable>
     class InitializeFunctionDeferredTypeHandlerFilter
     {
@@ -913,9 +864,21 @@ namespace Js
         return DeferredTypeHandler<InitializeGeneratorFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable>>::GetDefaultInstance();
     }
 
+    template<bool isNameAvailable>
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase()
+    {
+        // Async functions do not have the prototype property
+        return DeferredTypeHandler<InitializeAsyncFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, /* isPrototypeAvailable */ false>>::GetDefaultInstance();
+    }
+
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler()
     {
         return JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase</*isNameAvailable*/ false>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext)
@@ -928,7 +891,18 @@ namespace Js
         {
             return JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase</*isNameAvailable*/ false>();
         }
+    }
 
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext)
+    {
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
+        }
+        else
+        {
+            return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ false>();
+        }
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
@@ -985,6 +959,12 @@ namespace Js
     {
         return DynamicType::New(scriptContext, TypeIds_Function, generatorFunctionPrototype, entrypoint,
             isAnonymousFunction ? GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler() : GetDeferredPrototypeGeneratorFunctionTypeHandler(scriptContext), isShared, isShared);
+    }
+
+    DynamicType * JavascriptLibrary::CreateDeferredPrototypeAsyncFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared)
+    {
+        return DynamicType::New(scriptContext, TypeIds_Function, asyncFunctionPrototype, entrypoint,
+            isAnonymousFunction ? GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler() : GetDeferredPrototypeAsyncFunctionTypeHandler(scriptContext), isShared, isShared);
     }
 
     DynamicType * JavascriptLibrary::CreateDeferredPrototypeFunctionType(JavascriptMethod entrypoint)
@@ -1096,16 +1076,6 @@ namespace Js
         }
     }
 
-    JavascriptEnumerator * JavascriptLibrary::GetNullEnumerator() const
-    {
-        return nullEnumerator;
-    }
-
-#define  ADD_TYPEDARRAY_CONSTRUCTOR(typedarrayConstructor, TypedArray) \
-    typedarrayConstructor = CreateBuiltinConstructor(&TypedArray##::EntryInfo::NewInstance, \
-    DeferredTypeHandler<Initialize##TypedArray##Constructor>::GetDefaultInstance()); \
-            AddFunction(globalObject, PropertyIds::TypedArray, typedarrayConstructor); \
-
     void JavascriptLibrary::InitializeGlobal(GlobalObject * globalObject)
     {
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
@@ -1152,7 +1122,10 @@ namespace Js
         functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
+        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
         promiseResolveFunction = nullptr;
+        generatorNextFunction = nullptr;
+        generatorThrowFunction = nullptr;
 
 #ifdef ENABLE_SIMDJS
         if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
@@ -1207,17 +1180,8 @@ namespace Js
             stackTraceAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
         }
 
-        throwTypeErrorAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorAccessor);
-        throwTypeErrorAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
-
-        throwTypeErrorCallerAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorCallerAccessor);
-        throwTypeErrorCallerAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
-
-        throwTypeErrorCalleeAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorCalleeAccessor);
-        throwTypeErrorCalleeAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
-
-        throwTypeErrorArgumentsAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorArgumentsAccessor);
-        throwTypeErrorArgumentsAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        throwTypeErrorRestrictedPropertyAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorRestrictedPropertyAccessor);
+        throwTypeErrorRestrictedPropertyAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
 
         __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
         __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
@@ -1364,94 +1328,61 @@ namespace Js
         regexConstructor = RecyclerNewEnumClass(recycler, EnumFunctionClass, JavascriptRegExpConstructor, regexConstructorType);
         AddFunction(globalObject, PropertyIds::RegExp, regexConstructor);
 
-        if (scriptContext->GetConfig()->IsTypedArrayEnabled())
-        {
-            arrayBufferConstructor = CreateBuiltinConstructor(&ArrayBuffer::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeArrayBufferConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::ArrayBuffer, arrayBufferConstructor);
-            dataViewConstructor = CreateBuiltinConstructor(&DataView::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeDataViewConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::DataView, dataViewConstructor);
+        arrayBufferConstructor = CreateBuiltinConstructor(&ArrayBuffer::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeArrayBufferConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::ArrayBuffer, arrayBufferConstructor);
+        dataViewConstructor = CreateBuiltinConstructor(&DataView::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeDataViewConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::DataView, dataViewConstructor);
 
-            if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-            {
-                typedArrayConstructor = CreateBuiltinConstructor(&TypedArrayBase::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeTypedArrayConstructor, DefaultDeferredTypeFilter, true>::GetDefaultInstance(),
-                    functionPrototype);
+        typedArrayConstructor = CreateBuiltinConstructor(&TypedArrayBase::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeTypedArrayConstructor, DefaultDeferredTypeFilter, true>::GetDefaultInstance(),
+            functionPrototype);
 
-                Int8ArrayConstructor = CreateBuiltinConstructor(&Int8Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeInt8ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Int8Array, Int8ArrayConstructor);
+        Int8ArrayConstructor = CreateBuiltinConstructor(&Int8Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeInt8ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Int8Array, Int8ArrayConstructor);
 
-                Uint8ArrayConstructor = CreateBuiltinConstructor(&Uint8Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeUint8ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Uint8Array, Uint8ArrayConstructor);
+        Uint8ArrayConstructor = CreateBuiltinConstructor(&Uint8Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeUint8ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Uint8Array, Uint8ArrayConstructor);
 
-                Uint8ClampedArrayConstructor = CreateBuiltinConstructor(&Uint8ClampedArray::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Uint8ClampedArray, Uint8ClampedArrayConstructor);
+        Uint8ClampedArrayConstructor = CreateBuiltinConstructor(&Uint8ClampedArray::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeUint8ClampedArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Uint8ClampedArray, Uint8ClampedArrayConstructor);
 
-                Int16ArrayConstructor = CreateBuiltinConstructor(&Int16Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeInt16ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Int16Array, Int16ArrayConstructor);
+        Int16ArrayConstructor = CreateBuiltinConstructor(&Int16Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeInt16ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Int16Array, Int16ArrayConstructor);
 
-                Uint16ArrayConstructor = CreateBuiltinConstructor(&Uint16Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeUint16ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Uint16Array, Uint16ArrayConstructor);
+        Uint16ArrayConstructor = CreateBuiltinConstructor(&Uint16Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeUint16ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Uint16Array, Uint16ArrayConstructor);
 
-                Int32ArrayConstructor = CreateBuiltinConstructor(&Int32Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeInt32ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Int32Array, Int32ArrayConstructor);
+        Int32ArrayConstructor = CreateBuiltinConstructor(&Int32Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeInt32ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Int32Array, Int32ArrayConstructor);
 
-                Uint32ArrayConstructor = CreateBuiltinConstructor(&Uint32Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeUint32ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Uint32Array, Uint32ArrayConstructor);
+        Uint32ArrayConstructor = CreateBuiltinConstructor(&Uint32Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeUint32ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Uint32Array, Uint32ArrayConstructor);
 
-                Float32ArrayConstructor = CreateBuiltinConstructor(&Float32Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeFloat32ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Float32Array, Float32ArrayConstructor);
+        Float32ArrayConstructor = CreateBuiltinConstructor(&Float32Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeFloat32ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Float32Array, Float32ArrayConstructor);
 
-                Float64ArrayConstructor = CreateBuiltinConstructor(&Float64Array::EntryInfo::NewInstance,
-                    DeferredTypeHandler<InitializeFloat64ArrayConstructor>::GetDefaultInstance(),
-                    typedArrayConstructor);
-                AddFunction(globalObject, PropertyIds::Float64Array, Float64ArrayConstructor);
-            }
-            else
-            {
-                ADD_TYPEDARRAY_CONSTRUCTOR(Int8ArrayConstructor, Int8Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Uint8ArrayConstructor, Uint8Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Uint8ClampedArrayConstructor, Uint8ClampedArray);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Int16ArrayConstructor, Int16Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Uint16ArrayConstructor, Uint16Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Int32ArrayConstructor, Int32Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Uint32ArrayConstructor, Uint32Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Float32ArrayConstructor, Float32Array);
-                ADD_TYPEDARRAY_CONSTRUCTOR(Float64ArrayConstructor, Float64Array);
-            }
-        }
-        else
-        {
-            arrayBufferConstructor = nullptr;
-            Int8ArrayConstructor = nullptr;
-            Uint8ArrayConstructor = nullptr;
-            Uint8ClampedArrayConstructor = nullptr;
-            Int16ArrayConstructor = nullptr;
-            Uint16ArrayConstructor = nullptr;
-            Int32ArrayConstructor = nullptr;
-            Uint32ArrayConstructor = nullptr;
-            Float32ArrayConstructor = nullptr;
-            Float64ArrayConstructor = nullptr;
-            dataViewConstructor = nullptr;
-        }
-
+        Float64ArrayConstructor = CreateBuiltinConstructor(&Float64Array::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeFloat64ArrayConstructor>::GetDefaultInstance(),
+            typedArrayConstructor);
+        AddFunction(globalObject, PropertyIds::Float64Array, Float64ArrayConstructor);
 
         JSONObject = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -1558,8 +1489,6 @@ namespace Js
             DeferredTypeHandler<InitializeURIErrorConstructor>::GetDefaultInstance(),
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
-
-        nullEnumerator = RecyclerNew(this->recycler, NullEnumerator, scriptContext);
     }
 
     void JavascriptLibrary::EnsureDebugObject(DynamicObject* newDebugObject)
@@ -1629,12 +1558,8 @@ namespace Js
         }
         builtinFuncs[BuiltinFunction::JavascriptArray_IsArray] = library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::isArray, &JavascriptArray::EntryInfo::IsArray, 1);
 
-        // Array.from and Array.of are implemented as part of the ES6 TypedArray feature
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::from, &JavascriptArray::EntryInfo::From, 1);
-            library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::of, &JavascriptArray::EntryInfo::Of, 0);
-        }
+        library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::from, &JavascriptArray::EntryInfo::From, 1);
+        library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::of, &JavascriptArray::EntryInfo::Of, 0);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -1731,12 +1656,8 @@ namespace Js
             library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopablesList, PropertyConfigurable);
         }
 
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled()) // This is not a typo, Array.prototype.fill and .copyWithin are part of the ES6 TypedArray feature
-        {
-            /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
-            /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
-        }
-
+        /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
+        /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
 
         builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
 
@@ -1782,11 +1703,7 @@ namespace Js
         library->AddMember(arrayBufferPrototype, PropertyIds::constructor, library->arrayBufferConstructor);
 
         library->AddFunctionToLibraryObject(arrayBufferPrototype, PropertyIds::slice, &ArrayBuffer::EntryInfo::Slice, 2);
-
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            library->AddAccessorsToLibraryObject(arrayBufferPrototype, PropertyIds::byteLength, &ArrayBuffer::EntryInfo::GetterByteLength, nullptr);
-        }
+        library->AddAccessorsToLibraryObject(arrayBufferPrototype, PropertyIds::byteLength, &ArrayBuffer::EntryInfo::GetterByteLength, nullptr);
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
@@ -1854,8 +1771,6 @@ namespace Js
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext();
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary();
 
-        Assert(scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled());
-
         library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -1879,8 +1794,6 @@ namespace Js
 
         ScriptContext* scriptContext = typedarrayPrototype->GetScriptContext();
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary();
-
-        Assert(scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled());
 
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->typedArrayConstructor);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &TypedArrayBase::EntryInfo::Set, 2);
@@ -1915,6 +1828,10 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
+            // ES2017 22.2.3.32 get %TypedArray%.prototype[@@toStringTag]
+            // %TypedArray%.prototype[@@toStringTag] is an accessor property whose set accessor function is undefined.
+            // This property has the attributes { [[Enumerable]]: false, [[Configurable]]: true }.
+            // The initial value of the name property of this function is "get [Symbol.toStringTag]".
             library->AddAccessorsToLibraryObjectWithName(typedarrayPrototype, PropertyIds::_symbolToStringTag,
                 PropertyIds::_RuntimeFunctionNameId_toStringTag, &TypedArrayBase::EntryInfo::GetterSymbolToStringTag, nullptr);
         }
@@ -1944,17 +1861,10 @@ namespace Js
         typeHandler->Convert(typedArrayConstructor, mode, 4); \
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext(); \
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary(); \
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled()) \
+        library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone); \
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
         { \
-            library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone); \
-            if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
-            { \
-                library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
-            } \
-        } \
-        else \
-        { \
-            library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone); \
+            library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
         } \
         library->AddMember(typedArrayConstructor, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
         library->AddMember(typedArrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->##typedarrayPrototype##, PropertyNone); \
@@ -1975,18 +1885,9 @@ namespace Js
     void JavascriptLibrary::Initialize##typedarrayPrototype##(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(typedarrayPrototype, mode, 2); \
-        ScriptContext* scriptContext = typedarrayPrototype->GetScriptContext(); \
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary(); \
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->##typedArray##Constructor); \
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled()) \
-        { \
-            library->AddMember(typedarrayPrototype, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
-        } \
-        else \
-        { \
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &##typedArray##::EntryInfo::Set, 2); \
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::subarray, &##typedArray##::EntryInfo::Subarray, 2); \
-        } \
+        library->AddMember(typedarrayPrototype, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
         typedarrayPrototype->SetHasNoEnumerableProperties(true); \
     } \
 
@@ -2129,7 +2030,6 @@ namespace Js
             library->AddFunctionToLibraryObject(booleanPrototype, PropertyIds::valueOf, &JavascriptBoolean::EntryInfo::ValueOf, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptBoolean::EntryInfo::ToString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(booleanPrototype, PropertyIds::toString, &JavascriptBoolean::EntryInfo::ToString, 0));
-
         booleanPrototype->SetHasNoEnumerableProperties(true);
     }
 
@@ -2314,11 +2214,29 @@ namespace Js
         {
             library->AddMember(generatorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Generator")), PropertyConfigurable);
         }
-        library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::next, &JavascriptGenerator::EntryInfo::Next, 1);
         library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::return_, &JavascriptGenerator::EntryInfo::Return, 1);
-        library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::throw_, &JavascriptGenerator::EntryInfo::Throw, 1);
+        library->AddMember(generatorPrototype, PropertyIds::next, library->EnsureGeneratorNextFunction(), PropertyBuiltInMethodDefaults);
+        library->AddMember(generatorPrototype, PropertyIds::throw_, library->EnsureGeneratorThrowFunction(), PropertyBuiltInMethodDefaults);
 
         generatorPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsureGeneratorNextFunction()
+    {
+        if (generatorNextFunction == nullptr)
+        {
+            generatorNextFunction = DefaultCreateFunction(&JavascriptGenerator::EntryInfo::Next, 1, nullptr, nullptr, PropertyIds::next);
+        }
+        return generatorNextFunction;
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsureGeneratorThrowFunction()
+    {
+        if (generatorThrowFunction == nullptr)
+        {
+            generatorThrowFunction = DefaultCreateFunction(&JavascriptGenerator::EntryInfo::Throw, 1, nullptr, nullptr, PropertyIds::throw_);
+        }
+        return generatorThrowFunction;
     }
 
     void JavascriptLibrary::InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3163,8 +3081,6 @@ namespace Js
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::defineProperty, &JavascriptReflect::EntryInfo::DefineProperty, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::DeleteProperty.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::deleteProperty, &JavascriptReflect::EntryInfo::DeleteProperty, 2));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Enumerate.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(reflectObject, PropertyIds::enumerate, &JavascriptReflect::EntryInfo::Enumerate, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Get.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::get, &JavascriptReflect::EntryInfo::Get, 2));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::GetOwnPropertyDescriptor.GetOriginalEntryPoint(),
@@ -3211,7 +3127,6 @@ namespace Js
         vtableAddresses[VTableValue::VtableInvalid] = Js::ScriptContextOptimizationOverrideInfo::InvalidVtable;
         vtableAddresses[VTableValue::VtablePropertyString] = VirtualTableInfo<Js::PropertyString>::Address;
         vtableAddresses[VTableValue::VtableJavascriptBoolean] = VirtualTableInfo<Js::JavascriptBoolean>::Address;
-        vtableAddresses[VTableValue::VtableSmallDynamicObjectSnapshotEnumeratorWPCache] = VirtualTableInfo<Js::DynamicObjectSnapshotEnumeratorWPCache<Js::BigPropertyIndex,true,false>>::Address;
         vtableAddresses[VTableValue::VtableJavascriptArray] = VirtualTableInfo<Js::JavascriptArray>::Address;
         vtableAddresses[VTableValue::VtableInt8Array] = VirtualTableInfo<Js::Int8Array>::Address;
         vtableAddresses[VTableValue::VtableUint8Array] = VirtualTableInfo<Js::Uint8Array>::Address;
@@ -3247,6 +3162,7 @@ namespace Js
         vtableAddresses[VTableValue::VtableStackScriptFunction] = VirtualTableInfo<Js::StackScriptFunction>::Address;
         vtableAddresses[VTableValue::VtableScriptFunction] = VirtualTableInfo<Js::ScriptFunction>::Address;
         vtableAddresses[VTableValue::VtableJavascriptGeneratorFunction] = VirtualTableInfo<Js::JavascriptGeneratorFunction>::Address;
+        vtableAddresses[VTableValue::VtableJavascriptAsyncFunction] = VirtualTableInfo<Js::JavascriptAsyncFunction>::Address;
         vtableAddresses[VTableValue::VtableConcatStringMulti] = VirtualTableInfo<Js::ConcatStringMulti>::Address;
         vtableAddresses[VTableValue::VtableCompoundString] = VirtualTableInfo<Js::CompoundString>::Address;
 
@@ -4901,44 +4817,43 @@ namespace Js
         return this->CreateSymbol(str);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateBooleanObject_TTD(Var value)
+    Js::RecyclableObject* JavascriptLibrary::CreateDefaultBoxedObject_TTD(Js::TypeId kind)
     {
-        if(value == nullptr)
+        switch(kind)
         {
+        case Js::TypeIds_BooleanObject:
             return this->CreateBooleanObject();
-        }
-        else
-        {
-            return this->CreateBooleanObject(JavascriptBoolean::FromVar(value)->GetValue());
-        }
-    }
-
-    Js::RecyclableObject* JavascriptLibrary::CreateNumberObject_TTD(Var value)
-    {
-        return this->CreateNumberObject(value);
-    }
-
-    Js::RecyclableObject* JavascriptLibrary::CreateStringObject_TTD(Var value)
-    {
-        if(value == nullptr)
-        {
+        case Js::TypeIds_NumberObject:
+            return this->CreateNumberObject(Js::TaggedInt::ToVarUnchecked(0));
+        case Js::TypeIds_StringObject:
             return this->CreateStringObject(nullptr);
-        }
-        else
-        {
-            return this->CreateStringObject(JavascriptString::FromVar(value));
+        case Js::TypeIds_SymbolObject:
+            return this->CreateSymbolObject(nullptr);
+        default:
+            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            return nullptr;
         }
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateSymbolObject_TTD(Var value)
+    void JavascriptLibrary::SetBoxedObjectValue_TTD(Js::RecyclableObject* obj, Js::Var value)
     {
-        if(value == nullptr)
+        switch(obj->GetTypeId())
         {
-            return this->CreateSymbolObject(nullptr);
-        }
-        else
-        {
-            return this->CreateSymbolObject(JavascriptSymbol::FromVar(value));
+        case Js::TypeIds_BooleanObject:
+            Js::JavascriptBooleanObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_NumberObject:
+            Js::JavascriptNumberObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_StringObject:
+            Js::JavascriptStringObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        case Js::TypeIds_SymbolObject:
+            Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
+            break;
+        default:
+            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            break;
         }
     }
 
@@ -4947,10 +4862,10 @@ namespace Js
         return this->CreateDate(value);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
+    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex, Js::Var lastVar)
     {
         Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(patternSource, patternLength, flags, this->scriptContext);
-        re->SetLastIndex(lastIndex);
+        re->SetLastIndexInfo_TTD(lastIndex, lastVar);
 
         return re;
     }
@@ -4966,6 +4881,15 @@ namespace Js
         arrayObj->GetTypeHandler()->ConvertToTypeWithItemAttributes(arrayObj);
 
         return arrayObj;
+    }
+
+    void JavascriptLibrary::SetLengthWritableES5Array_TTD(Js::RecyclableObject* es5Array, bool isLengthWritable)
+    {
+        Js::ES5Array* es5a = Js::ES5Array::FromVar(es5Array);
+        if(es5a->IsLengthWritable() != isLengthWritable)
+        {
+            es5a->SetWritable(Js::PropertyIds::length, isLengthWritable ? TRUE : FALSE);
+        }
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateSet_TTD()
@@ -5037,7 +4961,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateRevokeFunction_TTD(RecyclableObject* proxy)
     {
-        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthAndPrototypeType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
+        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
@@ -5613,7 +5537,7 @@ namespace Js
 
     HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
-        AssertMsg(heapArgumentsType && heapArgumentsTypeStrictMode, "Where's heapArgumentsType?");
+        AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
 
         Recycler *recycler = this->GetRecycler();
 
@@ -5623,7 +5547,10 @@ namespace Js
 
         if (isStrictMode)
         {
-            argumentsType = heapArgumentsTypeStrictMode;
+            //TODO: Make DictionaryTypeHandler shareable - So that Arguments' type can be cached on the javascriptLibrary.
+            DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
+            argumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
+                dictTypeHandlerForArgumentsInStrictMode, false, false);
         }
         else
         {
@@ -5837,11 +5764,11 @@ namespace Js
         return RecyclerNew(this->GetRecycler(), JavascriptPromise, promiseType);
     }
 
-    JavascriptPromiseAsyncSpawnExecutorFunction* JavascriptLibrary::CreatePromiseAsyncSpawnExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generatorFunction, Var target)
+    JavascriptPromiseAsyncSpawnExecutorFunction* JavascriptLibrary::CreatePromiseAsyncSpawnExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var target)
     {
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(this->inDispatchProfileMode ? ProfileEntryThunk : entryPoint);
-        JavascriptPromiseAsyncSpawnExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnExecutorFunction, type, functionInfo, generatorFunction, target);
+        JavascriptPromiseAsyncSpawnExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnExecutorFunction, type, functionInfo, generator, target);
 
         return function;
     }
@@ -6040,6 +5967,13 @@ namespace Js
         DynamicType* type = CreateDeferredPrototypeGeneratorFunctionType(entryPoint, scriptFunction->IsAnonymousFunction());
 
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptGeneratorFunction, type, scriptFunction);
+    }
+
+    JavascriptAsyncFunction* JavascriptLibrary::CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction)
+    {
+        DynamicType* type = CreateDeferredPrototypeAsyncFunctionType(entryPoint, scriptFunction->IsAnonymousFunction());
+
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptAsyncFunction, type, scriptFunction);
     }
 
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, PropertyId nameId, void *callbackState)
@@ -6432,6 +6366,14 @@ namespace Js
         return iteratorResult;
     }
 
+    JavascriptListIterator* JavascriptLibrary::CreateListIterator(ListForListIterator* list)
+    {
+        JavascriptListIterator* iterator = RecyclerNew(this->GetRecycler(), JavascriptListIterator, listIteratorType, list);
+        RuntimeFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
+        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, RuntimeFunction::FromVar(nextFunction), GetScriptContext(), PropertyOperation_None);
+        return iterator;
+    }
+
     DynamicObject* JavascriptLibrary::CreateIteratorResultObjectValueFalse(Var value)
     {
         return CreateIteratorResultObject(value, GetFalse());
@@ -6813,10 +6755,7 @@ namespace Js
         REGISTER_OBJECT(StringIterator);
         REGISTER_OBJECT(EnumeratorIterator);
 
-        if (config.IsES6TypedArrayExtensionsEnabled())
-        {
-            REGISTER_OBJECT(TypedArray);
-        }
+        REGISTER_OBJECT(TypedArray);
 
         if (config.IsES6PromiseEnabled())
         {
@@ -6954,13 +6893,10 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(values, JavascriptArray::EntryValues)
         // _symbolIterator is just an alias for values on Array.prototype so do not register it as its own function
 
-        if (config.IsES6TypedArrayExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(fill, JavascriptArray::EntryFill)
-            REG_OBJECTS_LIB_FUNC(copyWithin, JavascriptArray::EntryCopyWithin)
-            REG_OBJECTS_LIB_FUNC(from, JavascriptArray::EntryFrom);
-            REG_OBJECTS_LIB_FUNC(of, JavascriptArray::EntryOf);
-        }
+        REG_OBJECTS_LIB_FUNC(fill, JavascriptArray::EntryFill)
+        REG_OBJECTS_LIB_FUNC(copyWithin, JavascriptArray::EntryCopyWithin)
+        REG_OBJECTS_LIB_FUNC(from, JavascriptArray::EntryFrom);
+        REG_OBJECTS_LIB_FUNC(of, JavascriptArray::EntryOf);
 
         REG_OBJECTS_LIB_FUNC(includes, JavascriptArray::EntryIncludes);
 
@@ -7460,7 +7396,6 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(defineProperty, JavascriptReflect::EntryDefineProperty);
         REG_OBJECTS_LIB_FUNC(deleteProperty, JavascriptReflect::EntryDeleteProperty);
-        REG_OBJECTS_LIB_FUNC(enumerate, JavascriptReflect::EntryEnumerate);
         REG_OBJECTS_LIB_FUNC(get, JavascriptReflect::EntryGet);
         REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptor, JavascriptReflect::EntryGetOwnPropertyDescriptor);
         REG_OBJECTS_LIB_FUNC(getPrototypeOf, JavascriptReflect::EntryGetPrototypeOf);

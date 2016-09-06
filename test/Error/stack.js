@@ -78,8 +78,8 @@ function DoSomething()
 
 try
 {
-    var count = 20000; // Keep this unrealistic number as we do not
-                       // limit stack memory to a particular capacity
+    var count = 200000; // Keep this unrealistic number as we do (osx)
+                        // and do not limit stack memory to a particular capacity
 
     var a = {};
     var b = a;

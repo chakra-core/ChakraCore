@@ -199,6 +199,7 @@ GlobOpt::GlobOpt(Func * func)
     updateInductionVariableValueNumber(false),
     isPerformingLoopBackEdgeCompensation(false),
     currentRegion(nullptr),
+    changedSymsAfterIncBailoutCandidate(nullptr),
     doTypeSpec(
         !IsTypeSpecPhaseOff(func)),
     doAggressiveIntTypeSpec(
@@ -450,6 +451,10 @@ GlobOpt::ForwardPass()
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->byteCodeUses = nullptr;
     this->propertySymUse = nullptr;
+
+    // changedSymsAfterIncBailoutCandidate helps track building incremental bailout in ForwardPass
+    this->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+
 #if DBG
     this->byteCodeUsesBeforeOpt = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) && this->DoFunctionFieldCopyProp())
@@ -525,6 +530,9 @@ GlobOpt::ForwardPass()
 
     // Make sure we free most of them.
     Assert(freedCount >= spilledCount);
+
+    // this->alloc will be freed right after return, no need to free it here
+    this->changedSymsAfterIncBailoutCandidate = nullptr;
 
     END_CODEGEN_PHASE(this->func, Js::ForwardPhase);
 }
@@ -1645,7 +1653,6 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
     toData->changedSyms = fromData->changedSyms;
-    toData->changedSyms->ClearAll();
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     toData->OnDataReused(fromData);
@@ -2351,6 +2358,7 @@ GlobOpt::DeleteBlockData(GlobOptBlockData *data)
     }
 
     JitAdelete(alloc, data->changedSyms);
+    data->changedSyms = nullptr;
 
     data->OnDataDeleted();
 }
@@ -4169,7 +4177,6 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
     case Js::OpCode::BailOnNotStackArgs:
     case Js::OpCode::ArgOut_A_FromStackArgs:
-    case Js::OpCode::LdArgumentsFromStack:
     case Js::OpCode::BytecodeArgOutUse:
         break;
 
@@ -5162,9 +5169,29 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
-        this->currentBlock->globOptData.changedSyms->ClearAll();
-        this->currentBlock->globOptData.capturedValues = 
-            this->currentBlock->globOptData.capturedValuesCandidate;
+        GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
+        globOptData->changedSyms->ClearAll();
+
+        if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
+        {
+            //
+            // some symbols are changed after the values for current bailout have been
+            // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
+            // for following incremental bailout construction, or we will miss capturing
+            // values for later bailout
+            //
+
+            // swap changedSyms and changedSymsAfterIncBailoutCandidate
+            // because both are from this->alloc
+            BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
+            globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
+            this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
+        }
+
+        globOptData->capturedValues = globOptData->capturedValuesCandidate;
+
+        // null out capturedValuesCandicate to stop tracking symbols change for it
+        globOptData->capturedValuesCandidate = nullptr;
     }
 
     return instrNext;
@@ -7180,10 +7207,29 @@ GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
     if (prevSymStore && prevSymStore->IsStackSym() &&
         prevSymStore->AsStackSym()->HasByteCodeRegSlot())
     {
-        Assert(this->blockData.changedSyms != nullptr);
-        this->blockData.changedSyms->Set(prevSymStore->m_id);
+        this->SetChangedSym(prevSymStore->m_id);
     }
     valueInfo->SetSymStore(sym);
+}
+
+void
+GlobOpt::SetChangedSym(SymID symId)
+{
+    // this->currentBlock might not be the one which contain the changing symId,
+    // like hoisting invariant, but more changed symId is overly conservative and safe.
+    // symId in the hoisted to block is marked as JITOptimizedReg so it does't affect bailout.
+    GlobOptBlockData * globOptData = &this->currentBlock->globOptData;
+    if (globOptData->changedSyms)
+    {
+        globOptData = &this->currentBlock->globOptData;
+
+        globOptData->changedSyms->Set(symId);
+        if (globOptData->capturedValuesCandidate != nullptr)
+        {
+            this->changedSymsAfterIncBailoutCandidate->Set(symId);
+        }
+    }
+    // else could be hit only in MergeValues and it is handled by MergeCapturedValues
 }
 
 void
@@ -7205,8 +7251,7 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
         SetValueToHashTable(blockData->symToValueMap, val, sym);
         if (isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
         {
-            Assert(blockData->changedSyms != nullptr);
-            blockData->changedSyms->Set(sym->m_id);
+            this->SetChangedSym(sym->m_id);
         }
     }
 }
@@ -18736,9 +18781,13 @@ GlobOpt::OptIsInvariant(
 
     switch(instr->m_opcode)
     {
-
         // Can't legally hoist these
     case Js::OpCode::LdLen_A:
+        return false;
+
+        //Can't Hoist BailOnNotStackArgs, as it is necessary as InlineArgsOptimization relies on this opcode 
+        //to decide whether to throw rejit exception or not.
+    case Js::OpCode::BailOnNotStackArgs:
         return false;
 
         // Usually not worth hoisting these
@@ -21415,7 +21464,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
                 case TyInt16:
                 case TyInt32:
                 case TyInt64:
-                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("lld%") : _u("%d"), candidate->constant.u.intConst.value);
+                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("%lld") : _u("%d"), candidate->constant.u.intConst.value);
                     break;
                 case TyFloat32:
                 case TyFloat64:

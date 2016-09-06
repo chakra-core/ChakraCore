@@ -1212,6 +1212,8 @@ private:
 
     GlobOptBlockData            blockData;
 
+    BVSparse<JitArenaAllocator> *   changedSymsAfterIncBailoutCandidate;
+
     JitArenaAllocator *             alloc;
     JitArenaAllocator *             tempAlloc;
 
@@ -1384,6 +1386,7 @@ private:
     StackSym *              GetOrCreateTaggedIntConstantStackSym(const int32 intConstantValue) const;
     Sym *                   SetSymStore(ValueInfo *valueInfo, Sym *sym);
     void                    SetSymStoreDirect(ValueInfo *valueInfo, Sym *sym);
+    void                    SetChangedSym(SymID symId);
     Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
     Value *                 InsertNewValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
     Value *                 SetValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);

@@ -5,60 +5,12 @@
 #include "RuntimeLibraryPch.h"
 namespace Js
 {
-    JavascriptRegExpEnumerator::JavascriptRegExpEnumerator(JavascriptRegExpConstructor* regExpObject, ScriptContext * requestContext, BOOL enumNonEnumerable) :
+    JavascriptRegExpEnumerator::JavascriptRegExpEnumerator(JavascriptRegExpConstructor* regExpObject, EnumeratorFlags flags, ScriptContext * requestContext) :
         JavascriptEnumerator(requestContext),
-        regExpObject(regExpObject),
-        enumNonEnumerable(enumNonEnumerable)
+        flags(flags),
+        regExpObject(regExpObject)        
     {
         index = (uint)-1;
-    }
-
-    Var JavascriptRegExpEnumerator::GetCurrentIndex()
-    {
-        ScriptContext *scriptContext = regExpObject->GetScriptContext();
-
-        if (index != (uint)-1 && index < regExpObject->GetSpecialEnumerablePropertyCount())
-        {
-            return scriptContext->GetIntegerString(index);
-        }
-        else
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-    }
-
-    Var JavascriptRegExpEnumerator::GetCurrentValue()
-    {
-        ScriptContext* scriptContext = regExpObject->GetScriptContext();
-
-        if (index != -1 && index < regExpObject->GetSpecialEnumerablePropertyCount())
-        {
-            Var item;
-            if (regExpObject->GetSpecialEnumerablePropertyName(index, &item, scriptContext))
-            {
-                return item;
-            }
-        }
-
-        return scriptContext->GetLibrary()->GetUndefined();
-    }
-
-    BOOL JavascriptRegExpEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        if (++index < regExpObject->GetSpecialEnumerablePropertyCount())
-        {
-            if (attributes != nullptr)
-            {
-                *attributes = PropertyEnumerable;
-            }
-
-            return true;
-        }
-        else
-        {
-            index = regExpObject->GetSpecialEnumerablePropertyCount();
-            return false;
-        }
     }
 
     void JavascriptRegExpEnumerator::Reset()
@@ -66,142 +18,22 @@ namespace Js
         index = (uint)-1;
     }
 
-    Var JavascriptRegExpEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    Var JavascriptRegExpEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
-        ScriptContext* scriptContext = regExpObject->GetScriptContext();
-        if (++index < regExpObject->GetSpecialEnumerablePropertyCount())
+        ScriptContext* scriptContext = this->GetScriptContext();
+
+        Var item;
+        if (regExpObject->GetSpecialEnumerablePropertyName(++index, &item, scriptContext))
         {
             if (attributes != nullptr)
             {
                 *attributes = PropertyEnumerable;
             }
-
-            Var item;
-            if (regExpObject->GetSpecialEnumerablePropertyName(index, &item, scriptContext))
-            {
-                return item;
-            }
-            return regExpObject->GetScriptContext()->GetIntegerString(index);
-        }
-        else
-        {
-            index = regExpObject->GetSpecialEnumerablePropertyCount();
-            return nullptr;
-        }
-    }
-
-    JavascriptRegExpObjectEnumerator::JavascriptRegExpObjectEnumerator(JavascriptRegExpConstructor* regExpObject,
-        ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols) :
-        JavascriptEnumerator(scriptContext),
-        regExpObject(regExpObject),
-        enumNonEnumerable(enumNonEnumerable),
-        enumSymbols(enumSymbols)
-    {
-        Reset();
-    }
-
-    Var JavascriptRegExpObjectEnumerator::GetCurrentIndex()
-    {
-        if (regExpEnumerator != nullptr)
-        {
-            return regExpEnumerator->GetCurrentIndex();
-        }
-        else if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentIndex();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
-    Var JavascriptRegExpObjectEnumerator::GetCurrentValue()
-    {
-        if (regExpEnumerator != nullptr)
-        {
-            return regExpEnumerator->GetCurrentValue();
-        }
-        else if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentValue();
-        }
-        else
-        {
-            return GetLibrary()->GetUndefined();
-        }
-    }
-
-    BOOL JavascriptRegExpObjectEnumerator::MoveNext(PropertyAttributes* attributes)
-    {
-        if (regExpEnumerator != nullptr)
-        {
-            if (regExpEnumerator->MoveNext(attributes))
-            {
-                return true;
-            }
-            regExpEnumerator = nullptr;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            if (objectEnumerator->MoveNext(attributes))
-            {
-                return true;
-            }
-            objectEnumerator = nullptr;
-        }
-        return false;
-    }
-
-    bool JavascriptRegExpObjectEnumerator::GetCurrentPropertyId(PropertyId *pPropertyId)
-    {
-        if (regExpEnumerator != nullptr)
-        {
-            *pPropertyId = Constants::NoProperty;
-            return false;
+            return item;
         }
 
-        if (objectEnumerator != nullptr)
-        {
-            return objectEnumerator->GetCurrentPropertyId(pPropertyId);
-        }
-
-        *pPropertyId = Constants::NoProperty;
-        return false;
-    }
-
-    Var JavascriptRegExpObjectEnumerator::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
-    {
-        Var currentIndex;
-        if (regExpEnumerator != nullptr)
-        {
-            currentIndex = regExpEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            regExpEnumerator = nullptr;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            currentIndex = objectEnumerator->GetCurrentAndMoveNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            objectEnumerator = nullptr;
-        }
+        index = regExpObject->GetSpecialEnumerablePropertyCount();
         return nullptr;
-    }
-
-    void JavascriptRegExpObjectEnumerator::Reset()
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
-        regExpEnumerator = RecyclerNew(recycler, JavascriptRegExpEnumerator, regExpObject, scriptContext, enumNonEnumerable);
-        Var enumerator;
-        regExpObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, scriptContext, false, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

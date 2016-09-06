@@ -38,6 +38,7 @@ public:
 public:
     static void SaveAllRegistersAndBailOut(BailOutRecord *const bailOutRecord) { __debugbreak(); }
     static void SaveAllRegistersAndBranchBailOut(BranchBailOutRecord *const bailOutRecord, const BOOL condition) { __debugbreak(); }
+	static RegNum GetParamReg(IR::SymOpnd *symOpnd, Func *func) { /* TODO */ return RegNOREG; }
 
     bool        IsAllocatable(RegNum reg, Func *func) const { __debugbreak(); return 0; }
     static uint GetRegisterSaveSlotCount() {

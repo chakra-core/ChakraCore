@@ -599,10 +599,12 @@ namespace Js
         if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
+
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
             }
+
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
             Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
@@ -887,7 +889,8 @@ namespace Js
 
             grfscr = grfscr | fscrDynamicCode;
 
-            hrParser = parser.ParseCesu8Source(&parseTree, utf8Source, cbSource, grfscr, &se, &sourceContextInfo->nextLocalFunctionId,
+            // fscrEval signifies direct eval in parser
+            hrParser = parser.ParseCesu8Source(&parseTree, utf8Source, cbSource, isIndirect ? grfscr & ~fscrEval : grfscr, &se, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
             sourceInfo->SetParseFlags(grfscr);
 
@@ -992,7 +995,7 @@ namespace Js
                 funcBody = funcBody->GetParseableFunctionInfo(); // RegisterFunction may parse and update function body
             }
 
-            ScriptFunction* pfuncScript = funcBody->IsGenerator() ?
+            ScriptFunction* pfuncScript = funcBody->IsCoroutine() ?
                 scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(funcBody) :
                 scriptContext->GetLibrary()->CreateScriptFunction(funcBody);
 
@@ -1648,6 +1651,7 @@ LHexError:
             //TODO: the host should give us a print callback which we can use here
             //
             wprintf(_u("%ls\n"), jsString->GetSz());
+            fflush(stdout);
         }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
@@ -2204,11 +2208,11 @@ LHexError:
         return TRUE;
     }
 
-    BOOL GlobalObject::StrictEquals(Js::Var other, BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::StrictEquals(__in Js::Var other, __out BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {
-            *value = true;
+            *value = TRUE;
             return TRUE;
         }
         else if (this->directHostObject)
@@ -2219,14 +2223,15 @@ LHexError:
         {
             return this->hostObject->StrictEquals(other, value, requestContext);
         }
+        *value = FALSE;
         return FALSE;
     }
 
-    BOOL GlobalObject::Equals(Js::Var other, BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::Equals(__in Js::Var other, __out BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {
-            *value = true;
+            *value = TRUE;
             return TRUE;
         }
         else if (this->directHostObject)
@@ -2238,7 +2243,7 @@ LHexError:
             return this->hostObject->Equals(other, value, requestContext);
         }
 
-        *value = false;
+        *value = FALSE;
         return TRUE;
     }
 

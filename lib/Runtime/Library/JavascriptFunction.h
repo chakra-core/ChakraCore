@@ -191,8 +191,6 @@ namespace Js
         virtual bool IsBoundFunction() const { return false; }
         virtual bool IsGeneratorFunction() const { return false; }
 
-        BOOL IsThrowTypeErrorFunction();
-
         void SetEntryPoint(JavascriptMethod method);
 #if DBG
         void VerifyEntryPoint();

@@ -1533,6 +1533,10 @@ EncoderMD::FixMaps(uint32 brOffset, uint32 bytesSaved, uint32 *inlineeFrameRecor
 void
 EncoderMD::ApplyRelocs(size_t codeBufferAddress_)
 {
+    if (m_relocList == nullptr)
+    {
+        return;
+    }
 
     for (int32 i = 0; i < m_relocList->Count(); i++)
     {
@@ -1600,6 +1604,11 @@ void
 EncoderMD::VerifyRelocList(BYTE *buffStart, BYTE *buffEnd)
 {
     BYTE *last_pc = 0, *pc;
+
+    if (m_relocList == nullptr)
+    {
+        return;
+    }
 
     for (int32 i = 0; i < m_relocList->Count(); i ++)
     {

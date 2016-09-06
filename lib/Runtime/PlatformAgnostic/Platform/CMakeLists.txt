@@ -7,16 +7,18 @@ set(PL_SOURCE_FILES
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Linux/SystemInfo.cpp
+  Linux/Thread.cpp
   Common/UnicodeText.Common.cpp
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 set(PL_SOURCE_FILES
   # xplat-todo: implement them for unix! or carry them into common
   Linux/UnicodeText.ICU.cpp
-  Linux/DateTime.cpp
+  Unix/DateTime.cpp
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Unix/SystemInfo.cpp
+  Linux/Thread.cpp
   Common/UnicodeText.Common.cpp
   )
 endif()

@@ -33,6 +33,8 @@ namespace Js
         bool ResolveImport(PropertyId localName, ModuleNameRecord** importRecord);
         void ModuleDeclarationInstantiation() override;
         Var ModuleEvaluation() override;
+        virtual ModuleNamespace* GetNamespace();
+        virtual void SetNamespace(ModuleNamespace* moduleNamespace);
 
         void Finalize(bool isShutdown) override;
         void Dispose(bool isShutdown) override { return; }
@@ -87,8 +89,11 @@ namespace Js
         uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
         Var* GetLocalExportSlots() const { return localExportSlots; }
         Var* GetLocalExportSlotAddr(uint slotIndex) const { return &localExportSlots[slotIndex]; }
-        uint GetLocalExportCount() const { return localSlotCount; }
+        uint GetLocalExportSlotCount() const { return localSlotCount; }
         uint GetModuleId() const { return moduleId; }
+        uint GetLocalExportCount() const { return localExportCount; }
+
+        ModuleNameRecord* GetNamespaceNameRecord() { return &namespaceRecord; }
 
         SourceTextModuleRecord* GetChildModuleRecord(LPCOLESTR specifier) const;
 #if DBG
@@ -122,7 +127,7 @@ namespace Js
         LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
         LocalExportMap* localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
         LocalExportIndexList* localExportIndexList; // from index to propertyId: for typehandler.
-        uint numUnParsedChildrenModule;
+        uint numUnInitializedChildrenModule;
         ExportedNames* exportedNames;
         ResolvedExportMap* resolvedExportMap;
 
@@ -131,9 +136,13 @@ namespace Js
         Var normalizedSpecifier;
         Var errorObject;
         Var* localExportSlots;
-
         uint localSlotCount;
+
+        // module export allows aliasing, like export {foo as foo1, foo2, foo3}.
+        uint localExportCount;
         uint moduleId;
+
+        ModuleNameRecord namespaceRecord;
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();

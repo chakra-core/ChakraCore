@@ -332,6 +332,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
         Assert(this->IsTopFunc());
         return this->GetJITFunctionBody()->HasFinally();
     }
+    bool HasThis() const
+    {
+        Assert(this->IsTopFunc());
+        Assert(this->GetJITFunctionBody());     // For now we always have a function body
+        return this->GetJITFunctionBody()->GetHasThis();
+    }
     Js::ArgSlot GetInParamsCount() const
     {
         Assert(this->IsTopFunc());
@@ -356,6 +362,16 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     }
 
     const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }
+    bool IsLambda() const
+    {
+        Assert(this->IsTopFunc());
+        Assert(this->m_jnFunction);     // For now we always have a function body
+        return this->m_jnFunction->IsLambda();
+    }
+    bool IsTrueLeaf() const
+    {
+        return !GetHasCalls() && !GetHasImplicitCalls();
+    }
 
     StackSym *EnsureLoopParamSym();
 
@@ -630,6 +646,8 @@ public:
     bool                hasBailout: 1;
     bool                hasBailoutInEHRegion : 1;
     bool                hasStackArgs: 1;
+    bool                hasImplicitParamLoad : 1; // True if there is a load of CallInfo, FunctionObject
+    bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
     bool                hasApplyTargetInlining:1;
@@ -712,6 +730,12 @@ public:
                         }
                         return isStackArgsEnabled;
     }
+
+    bool                GetHasImplicitParamLoad() const { return this->hasImplicitParamLoad; }
+    void                SetHasImplicitParamLoad() { this->hasImplicitParamLoad = true; }
+
+    bool                GetHasThrow() const { return this->hasThrow; }
+    void                SetHasThrow() { this->hasThrow = true; }
 
     bool                GetHasUnoptimizedArgumentsAcccess() const { return this->hasUnoptimizedArgumentsAcccess; }
     void                SetHasUnoptimizedArgumentsAccess(bool args)

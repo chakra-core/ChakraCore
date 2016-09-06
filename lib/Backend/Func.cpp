@@ -87,6 +87,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasImplicitParamLoad(false),
+    hasThrow(false),
     hasNonSimpleParams(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),
@@ -233,7 +235,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         m_nonTempLocalVars = Anew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
     }
 
-    if (GetJITFunctionBody()->IsGenerator())
+    if (GetJITFunctionBody()->IsCoroutine())
     {
         m_yieldOffsetResumeLabelList = YieldOffsetResumeLabelList::New(this->m_alloc);
     }
@@ -804,7 +806,7 @@ bool
 Func::DoGlobOptsForGeneratorFunc() const
 {
     // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !GetJITFunctionBody()->IsGenerator();
+    return !GetJITFunctionBody()->IsCoroutine();
 }
 
 bool

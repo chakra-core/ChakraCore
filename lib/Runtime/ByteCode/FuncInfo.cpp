@@ -72,9 +72,13 @@ FuncInfo::FuncInfo(
     slotProfileIdMap(alloc),
     argsPlaceHolderSlotCount(0),
     thisScopeSlot(Js::Constants::NoProperty),
+    innerThisScopeSlot(Js::Constants::NoProperty),
     superScopeSlot(Js::Constants::NoProperty),
+    innerSuperScopeSlot(Js::Constants::NoProperty),
     superCtorScopeSlot(Js::Constants::NoProperty),
+    innerSuperCtorScopeSlot(Js::Constants::NoProperty),
     newTargetScopeSlot(Js::Constants::NoProperty),
+    innerNewTargetScopeSlot(Js::Constants::NoProperty),
     isThisLexicallyCaptured(false),
     isSuperLexicallyCaptured(false),
     isSuperCtorLexicallyCaptured(false),
@@ -86,6 +90,7 @@ FuncInfo::FuncInfo(
     isInstInlineCacheCount(0),
     referencedPropertyIdCount(0),
     argumentsSymbol(nullptr),
+    innerArgumentsSymbol(nullptr),
     nonUserNonTempRegistersToInitialize(alloc),
     constantToRegister(alloc, 17),
     stringToRegister(alloc, 17),
@@ -98,6 +103,10 @@ FuncInfo::FuncInfo(
     if (paramScope != nullptr)
     {
         paramScope->SetFunc(this);
+    }
+    if (pnode && pnode->sxFnc.NestedFuncEscapes())
+    {
+        this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
     }
 }
 
@@ -141,36 +150,102 @@ BOOL FuncInfo::IsBaseClassConstructor() const
     return root->sxFnc.IsBaseClassConstructor();
 }
 
-void FuncInfo::EnsureThisScopeSlot(Scope* scope)
+void FuncInfo::EnsureThisScopeSlot()
 {
-    if (this->thisScopeSlot == Js::Constants::NoRegister)
+    if (this->thisScopeSlot == Js::Constants::NoProperty)
     {
+        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
+        bool isSplitScope = this->paramScope && !this->paramScope->GetCanMergeWithBodyScope();
+        Scope* scope = isSplitScope ? this->paramScope : this->bodyScope;
         Scope* currentScope = scope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : scope;
+
         this->thisScopeSlot = currentScope->AddScopeSlot();
+        if (isSplitScope)
+        {
+            this->innerThisScopeSlot = this->bodyScope->AddScopeSlot();
+        }
     }
 }
 
-void FuncInfo::EnsureSuperScopeSlot(Scope* scope)
+void FuncInfo::EnsureSuperScopeSlot()
 {
-    if (this->superScopeSlot == Js::Constants::NoRegister)
+    if (this->superScopeSlot == Js::Constants::NoProperty)
     {
+        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
+        bool isSplitScope = this->paramScope && !this->paramScope->GetCanMergeWithBodyScope();
+        Scope* scope = isSplitScope ? this->paramScope : this->bodyScope;
+
         this->superScopeSlot = scope->AddScopeSlot();
+        if (isSplitScope)
+        {
+            this->innerSuperScopeSlot = this->bodyScope->AddScopeSlot();
+        }
     }
 }
 
-void FuncInfo::EnsureSuperCtorScopeSlot(Scope* scope)
+void FuncInfo::EnsureSuperCtorScopeSlot()
 {
-    if (this->superCtorScopeSlot == Js::Constants::NoRegister)
+    if (this->superCtorScopeSlot == Js::Constants::NoProperty)
     {
+        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
+        bool isSplitScope = this->paramScope && !this->paramScope->GetCanMergeWithBodyScope();
+        Scope* scope = isSplitScope ? this->paramScope : this->bodyScope;
+
         this->superCtorScopeSlot = scope->AddScopeSlot();
+        if (isSplitScope)
+        {
+            this->innerSuperCtorScopeSlot = this->bodyScope->AddScopeSlot();
+        }
     }
 }
 
-void FuncInfo::EnsureNewTargetScopeSlot(Scope* scope)
+void FuncInfo::EnsureNewTargetScopeSlot()
 {
-    if (this->newTargetScopeSlot == Js::Constants::NoRegister)
+    if (this->newTargetScopeSlot == Js::Constants::NoProperty)
     {
+        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
+        bool isSplitScope = this->paramScope && !this->paramScope->GetCanMergeWithBodyScope();
+        Scope* scope = isSplitScope ? this->paramScope : this->bodyScope;
+
         this->newTargetScopeSlot = scope->AddScopeSlot();
+        if (isSplitScope)
+        {
+            this->innerNewTargetScopeSlot = this->bodyScope->AddScopeSlot();
+        }
+    }
+}
+
+void FuncInfo::UseInnerSpecialScopeSlots()
+{
+    Assert(this->paramScope != nullptr && !this->paramScope->GetCanMergeWithBodyScope());
+    Js::PropertyId temp = Js::Constants::NoProperty;
+    if (this->thisScopeSlot != Js::Constants::NoProperty)
+    {
+        Assert(this->innerThisScopeSlot != Js::Constants::NoProperty);
+        temp = this->thisScopeSlot;
+        this->thisScopeSlot = this->innerThisScopeSlot;
+        this->innerThisScopeSlot = temp;
+    }
+    if (this->superScopeSlot != Js::Constants::NoProperty)
+    {
+        Assert(this->innerSuperScopeSlot != Js::Constants::NoProperty);
+        temp = this->superScopeSlot;
+        this->superScopeSlot = this->innerSuperScopeSlot;
+        this->innerSuperScopeSlot = temp;
+    }
+    if (this->superCtorScopeSlot != Js::Constants::NoProperty)
+    {
+        Assert(this->innerSuperCtorScopeSlot != Js::Constants::NoProperty);
+        temp = this->superCtorScopeSlot;
+        this->superCtorScopeSlot = this->innerSuperCtorScopeSlot;
+        this->innerSuperCtorScopeSlot = temp;
+    }
+    if (this->newTargetScopeSlot != Js::Constants::NoProperty)
+    {
+        Assert(this->innerNewTargetScopeSlot != Js::Constants::NoProperty);
+        temp = this->newTargetScopeSlot;
+        this->newTargetScopeSlot = this->innerNewTargetScopeSlot;
+        this->innerNewTargetScopeSlot = temp;
     }
 }
 

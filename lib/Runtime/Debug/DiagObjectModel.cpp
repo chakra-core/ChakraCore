@@ -24,9 +24,8 @@
 #include "Library/JavascriptWeakSet.h"
 #include "Library/ArgumentsObject.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Types/DynamicObjectPropertyEnumerator.h"
+#include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 #include "Library/SimdLib.h"
@@ -485,7 +484,7 @@ namespace Js
         *isConst = false;
 
 
-        if (!allowLexicalThis && propertyId == Js::PropertyIds::_lexicalThisSlotSymbol)
+        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_lexicalThisSlotSymbol || propertyId == Js::PropertyIds::_lexicalNewTargetSymbol))
         {
             return false;
         }
@@ -1831,10 +1830,29 @@ namespace Js
             ScriptContext* requestContext = obj->GetScriptContext();
             Var objValue = nullptr;
 
+#if ENABLE_TTD_DEBUGGING
+            if(requestContext->ShouldDoGetterInvocationSupression())
+            {
+                requestContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            BOOL success = Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext);
+
+            if(requestContext->ShouldDoGetterInvocationSupression())
+            {
+                requestContext->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            if(success)
+            {
+                return objValue;
+            }
+#else
             if (Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext))
             {
                 return objValue;
             }
+#endif
         }
 
         return nullptr;
@@ -2063,7 +2081,8 @@ namespace Js
                         if (object->CanHaveInterceptors())
                         {
                             Js::ForInObjectEnumerator enumerator(object, object->GetScriptContext(), /* enumSymbols */ true);
-                            if (enumerator.MoveNext())
+                            Js::PropertyId propertyId;
+                            if (enumerator.MoveAndGetNext(propertyId))
                             {
                                 enumerator.Clear();
                                 return TRUE;
@@ -2174,6 +2193,14 @@ namespace Js
     BOOL RecyclableObjectDisplay::GetPropertyWithScriptEnter(RecyclableObject* originalInstance, RecyclableObject* instance, PropertyId propertyId, Var* value, ScriptContext* scriptContext)
     {
         BOOL retValue = FALSE;
+
+#if ENABLE_TTD_DEBUGGING
+        if(instance->GetScriptContext()->ShouldDoGetterInvocationSupression())
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         if(!scriptContext->GetThreadContext()->IsScriptActive())
         {
             BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
@@ -2187,6 +2214,14 @@ namespace Js
         {
             retValue = Js::JavascriptOperators::GetProperty(originalInstance, instance, propertyId, value, scriptContext);
         }
+
+#if ENABLE_TTD_DEBUGGING
+        if(instance->GetScriptContext()->ShouldDoGetterInvocationSupression())
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         return retValue;
     }
 
@@ -2372,13 +2407,14 @@ namespace Js
                     {
                         try
                         {
-                            JavascriptEnumerator* enumerator;
-                            if (object->GetEnumerator(true/*enumNonEnumable*/, (Var*)&enumerator, scriptContext, false/*preferSnapshotSyntax*/, true/*enumSymbols*/))
+                            ScriptContext * objectContext = object->GetScriptContext();
+                            JavascriptStaticEnumerator enumerator;
+                            if (object->GetEnumerator(&enumerator, EnumeratorFlags::EnumNonEnumerable | EnumeratorFlags::EnumSymbols, objectContext))
                             {
                                 Js::PropertyId propertyId;
                                 Var obj;
 
-                                while ((obj = enumerator->GetCurrentAndMoveNext(propertyId)) != nullptr)
+                                while ((obj = enumerator.MoveAndGetNext(propertyId)) != nullptr)
                                 {
                                     if (!JavascriptString::Is(obj))
                                     {
@@ -2398,16 +2434,16 @@ namespace Js
                                         else
                                         {
                                             const PropertyRecord* propertyRecord;
-                                            scriptContext->GetOrAddPropertyRecord(pString->GetSz(), pString->GetLength(), &propertyRecord);
+                                            objectContext->GetOrAddPropertyRecord(pString->GetSz(), pString->GetLength(), &propertyRecord);
                                             propertyId = propertyRecord->GetPropertyId();
                                         }
                                     }
-                                    // GetCurrentAndMoveNext shouldn't return an internal property id
+                                    // MoveAndGetNext shouldn't return an internal property id
                                     Assert(!Js::IsInternalPropertyId(propertyId));
 
                                     uint32 indexVal;
                                     Var varValue;
-                                    if (scriptContext->IsNumericPropertyId(propertyId, &indexVal) && object->GetItem(object, indexVal, &varValue, scriptContext))
+                                    if (objectContext->IsNumericPropertyId(propertyId, &indexVal) && object->GetItem(object, indexVal, &varValue, objectContext))
                                     {
                                         InsertItem(propertyId, false /*isConst*/, false /*isUnscoped*/, varValue, &pMethodsGroupWalker, true /*shouldPinProperty*/);
                                     }

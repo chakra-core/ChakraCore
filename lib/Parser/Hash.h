@@ -27,12 +27,12 @@ ULONG CaseInsensitiveComputeHash(LPCOLESTR posz);
 
 enum
 {
-    fidNil        =     0x0000,
-    fidKwdRsvd    = 0x0001,     // the keyword is a reserved word
-    fidKwdFutRsvd = 0x0002,     // a future reserved word, but only in strict mode
+    fidNil          = 0x0000,
+    fidKwdRsvd      = 0x0001,     // the keyword is a reserved word
+    fidKwdFutRsvd   = 0x0002,     // a future reserved word, but only in strict mode
 
     // Flags to identify tracked aliases of "eval"
-    fidEval       =    0x0008,
+    fidEval         = 0x0008,
     // Flags to identify tracked aliases of "let"
     fidLetOrConst   = 0x0010,     // ID has previously been used in a block-scoped declaration
 
@@ -40,10 +40,11 @@ enum
     // CountDcls sets the bit as it walks through the var decls so that
     // it can skip duplicates. FillDcls clears the bit as it walks through
     // again to skip duplicates.
-    fidGlobalDcl  =    0x2000,
+    fidGlobalDcl    = 0x2000,
 
-    fidUsed       =    0x4000  // name referenced by source code
+    fidUsed         = 0x4000,  // name referenced by source code
 
+    fidModuleExport = 0x8000    // name is module export
 };
 
 struct BlockIdsStack
@@ -74,18 +75,18 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
-    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
+    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
 
     int GetScopeId() const    { return id; }
     Js::LocalFunctionId GetFuncScopeId() const { return funcId; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
     bool IsAssignment() const { return isAsg; }
+    bool IsEscape() const { return isEscape; }
+    void SetIsEscape(bool is) { isEscape = is; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
-    bool IsModuleExport() const { return isModuleExport; }
-    void SetModuleExport()    { isModuleExport = true; }
 
     Symbol **GetSymRef()
     {
@@ -95,6 +96,7 @@ struct PidRefStack
     bool           isAsg;
     bool           isDynamic;
     bool           isModuleExport;
+    bool           isEscape;
     int            id;
     Js::LocalFunctionId funcId;
     Symbol        *sym;
@@ -207,6 +209,22 @@ public:
         return prevRef;
     }
 
+    PidRefStack * TopDecl(int maxBlockId) const
+    {
+        for (PidRefStack *pidRef = m_pidRefStack; pidRef; pidRef = pidRef->prev)
+        {
+            if (pidRef->id > maxBlockId)
+            {
+                continue;
+            }
+            if (pidRef->sym != nullptr)
+            {
+                return pidRef;
+            }
+        }
+        return nullptr;
+    }
+
     PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId)
     {
         // If the stack is empty, or we are pushing to the innermost scope already,
@@ -283,6 +301,9 @@ public:
 
     void SetIsLetOrConst() { m_grfid |= fidLetOrConst; }
     BOOL GetIsLetOrConst() const { return m_grfid & fidLetOrConst; }
+
+    void SetIsModuleExport() { m_grfid |= fidModuleExport; }
+    BOOL GetIsModuleExport() const { return m_grfid & fidModuleExport; }
 };
 
 

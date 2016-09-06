@@ -11,9 +11,6 @@ namespace Js
     class ArrayBufferParent;
     class ArrayBuffer : public DynamicObject
     {
-    private:
-        static PropertyId const specialPropertyIds[];
-
     public:
         // we need to install cross-site thunk on the nested array buffer when marshaling
         // typed array.
@@ -21,7 +18,6 @@ namespace Js
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         void ClearParentsLength(ArrayBufferParent* parent);
         static uint32 GetByteLengthFromVar(ScriptContext* scriptContext, Var length);
     public:
@@ -58,9 +54,9 @@ namespace Js
         };
 
         template <typename Allocator>
-        ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator);
+        ArrayBuffer(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type, Allocator allocator);
 
-        ArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
+        ArrayBuffer(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
 
         class EntryInfo
         {
@@ -83,28 +79,6 @@ namespace Js
         static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
         static ArrayBuffer* FromVar(Var aValue);
-        virtual BOOL HasProperty(Js::PropertyId propertyId) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
-        virtual BOOL SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
-        virtual BOOL DeleteProperty(Js::PropertyId propertyId, Js::PropertyOperationFlags flags) override;
-
-        virtual BOOL IsEnumerable(PropertyId propertyId)  override;
-        virtual BOOL IsConfigurable(PropertyId propertyId)  override;
-        virtual BOOL IsWritable(PropertyId propertyId)  override;
-        virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetWritable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override;
-        virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
-        virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags) override;
-
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
-        virtual uint GetSpecialPropertyCount() const override;
-        virtual PropertyId const * GetSpecialPropertyIds() const override;
-        virtual BOOL InitProperty(Js::PropertyId propertyId, Js::Var value, PropertyOperationFlags flags = PropertyOperation_None, Js::PropertyValueInfo* info = NULL) override;
-        virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None , SideEffects possibleSideEffects = SideEffects_Any) override;
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -132,10 +106,9 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) { return false; }
     protected:
         typedef void __cdecl FreeFn(void* ptr);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) = 0;
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) = 0;
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) = 0;
+        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) = 0;
 
-        inline BOOL IsBuiltinProperty(PropertyId);
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
 
         //In most cases, the ArrayBuffer will only have one parent
@@ -213,11 +186,11 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArrayBuffer);
 
     public:
-        static JavascriptArrayBuffer* Create(uint32 length, DynamicType * type);
-        static JavascriptArrayBuffer* Create(byte* buffer, uint32 length, DynamicType * type);
+        static JavascriptArrayBuffer* Create(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
+        static JavascriptArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
-        static void*__cdecl  AllocWrapper(size_t length)
+        static void*__cdecl  AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
         {
 #if _WIN64
             LPVOID address = VirtualAlloc(nullptr, MAX_ASMJS_ARRAYBUFFER_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
@@ -251,8 +224,8 @@ namespace Js
 
     protected:
         JavascriptArrayBuffer(DynamicType * type);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override;
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override;
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
+        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
     private:
         JavascriptArrayBuffer(uint32 length, DynamicType * type);
         JavascriptArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
@@ -271,17 +244,17 @@ namespace Js
         DEFINE_VTABLE_CTOR(ProjectionArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ProjectionArrayBuffer);
         typedef void __stdcall FreeFn(LPVOID ptr);
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override
         {
             return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, CoTaskMemFree, ArrayBufferAllocationType::CoTask);
         }
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override;
+        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
 
     public:
         // Create constructor. script engine creates a buffer allocated via CoTaskMemAlloc.
-        static ProjectionArrayBuffer* Create(uint32 length, DynamicType * type);
+        static ProjectionArrayBuffer* Create(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         // take over ownership. a CoTaskMemAlloc'ed buffer passed in via projection.
-        static ProjectionArrayBuffer* Create(byte* buffer, uint32 length, DynamicType * type);
+        static ProjectionArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override {};
     private:
@@ -296,10 +269,10 @@ namespace Js
         DEFINE_VTABLE_CTOR(ExternalArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ExternalArrayBuffer);
     public:
-        ExternalArrayBuffer(byte *buffer, uint32 length, DynamicType *type);
+        ExternalArrayBuffer(byte *buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType *type);
     protected:
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
-        virtual ArrayBuffer * TransferInternal(uint32 newBufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
+        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
 
 #if ENABLE_TTD
     public:

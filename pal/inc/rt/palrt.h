@@ -901,9 +901,10 @@ extern "C++" {
 
 inline errno_t __cdecl _wcslwr_unsafe(WCHAR *str, size_t sz)
 {
-    size_t fullSize;
-    if(!ClrSafeInt<size_t>::multiply(sz, sizeof(WCHAR), fullSize))
+    if (sz >= INT_MAX / sizeof(WCHAR))
         return 1;
+
+    size_t fullSize = sz * sizeof(WCHAR);
     WCHAR *copy = (WCHAR *)malloc(fullSize);
     if(copy == nullptr)
         return 1;

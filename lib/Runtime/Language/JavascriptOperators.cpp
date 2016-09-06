@@ -13,9 +13,6 @@
 #include "Library/ThrowErrorObject.h"
 #include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 
@@ -1016,19 +1013,6 @@ CommonNumber:
             }
             break;
 
-        case TypeIds_Function:
-            if (rightType == TypeIds_Function)
-            {
-                // In ES5 in certain cases (ES5 10.6.14(strict), 13.2.19(strict), 15.3.4.5.20-21) we return a function that throws type error.
-                // For different scenarios we return different instances of the function, which differ by exception/error message.
-                // According to ES5, this is the same [[ThrowTypeError]] (thrower) internal function, thus they should be equal.
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    return true;
-                }
-            }
-            break;
 #ifdef ENABLE_SIMDJS
         case TypeIds_SIMDBool8x16:
         case TypeIds_SIMDInt8x16:
@@ -1075,10 +1059,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext *requestContext)
     {
-        BOOL result;
         if (TaggedNumber::Is(instance))
         {
-            result = false;
+            return FALSE;
         }
         else
         {
@@ -1091,10 +1074,22 @@ CommonNumber:
             }
             else
             {
+                PropertyString *propString = requestContext->TryGetPropertyString(propertyId);
+                if (propString != nullptr)
+                {
+                    const PropertyCache *propCache = propString->GetPropertyCache();
+                    if (object->GetType() == propCache->type)
+                    {
+                        // The type cached for the property was the same as the type of this object
+                        // (i.e. obj in obj.hasOwnProperty), so we know the answer is "true".
+                        Assert(TRUE == (object && object->HasOwnProperty(propertyId))); // sanity check on the fastpath result
+                        return TRUE;
+                    }
+                }
+
                 return object && object->HasOwnProperty(propertyId);
             }
         }
-        return result;
     }
 
     BOOL JavascriptOperators::GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
@@ -5228,7 +5223,7 @@ CommonNumber:
     Var JavascriptOperators::OP_BrOnEmpty(ForInObjectEnumerator * aEnumerator)
     {
         PropertyId id;
-        return aEnumerator->GetCurrentAndMoveNext(id);
+        return aEnumerator->MoveAndGetNext(id);
     }
 
     ForInObjectEnumerator * JavascriptOperators::OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext)
@@ -5444,7 +5439,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
-        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) ?
+        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
@@ -6898,11 +6893,10 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
-            argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
+            JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
+            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
-            JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
+            argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
         else
@@ -8202,9 +8196,11 @@ CommonNumber:
             return false;
         }
 
-        if (((Js::Type*)guard->GetTypeAddr())->GetScriptContext() != type->GetScriptContext())
+        AssertMsg(type && type->GetScriptContext(), "type and it's ScriptContext should be valid.");
+
+        if (!guard->IsInvalidatedDuringSweep() && ((Js::Type*)guard->GetTypeAddr())->GetScriptContext() != type->GetScriptContext())
         {
-            // Can't cache cross-context objects
+            // For valid guard value, can't cache cross-context objects
             return false;
         }
 
@@ -8212,14 +8208,42 @@ CommonNumber:
         // the efficacy is too low.
 
         EquivalentTypeCache* cache = guard->GetCache();
-
         // CONSIDER : Consider emitting o.type == equivTypes[hash(o.type)] in machine code before calling
         // this helper, particularly if we want to handle polymorphism with frequently changing types.
         Assert(EQUIVALENT_TYPE_CACHE_SIZE == 8);
         Type** equivTypes = cache->types;
+
+        Type* refType = equivTypes[0];
+        if (refType == nullptr || refType->GetScriptContext() != type->GetScriptContext())
+        {
+            // We could have guard that was invalidated while sweeping and now we have type coming from
+            // different scriptContext. Make sure that it matches the scriptContext in cachedTypes.
+            // If not, return false because as mentioned above, we don't cache cross-context objects.
+#if DBG
+            if (refType == nullptr)
+            {
+                for (int i = 1;i < EQUIVALENT_TYPE_CACHE_SIZE;i++)
+                {
+                    AssertMsg(equivTypes[i] == nullptr, "In equiv typed caches, if first element is nullptr, all others should be nullptr");
+                }
+            }
+#endif
+            return false;
+        }
+
         if (type == equivTypes[0] || type == equivTypes[1] || type == equivTypes[2] || type == equivTypes[3] ||
             type == equivTypes[4] || type == equivTypes[5] || type == equivTypes[6] || type == equivTypes[7])
         {
+#if DBG
+            if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
+            {
+                if (guard->WasReincarnated())
+                {
+                    Output::Print(_u("EquivObjTypeSpec: Guard 0x%p was reincarnated and working now \n"), guard);
+                    Output::Flush();
+                }
+            }
+#endif
             guard->SetTypeAddr((intptr_t)type);
             return true;
         }
@@ -8234,12 +8258,6 @@ CommonNumber:
         // 2. For polymorphic field loads fixed fields are only supported on prototypes.  Hence, if two types have the
         //    same prototype, any of the equivalent fixed properties will match. If any has been overwritten, the
         //    corresponding guard would have been invalidated and we would bail out (as above).
-
-        Type* refType = equivTypes[0];
-        if (refType == nullptr)
-        {
-            return false;
-        }
 
         if (cache->IsLoadedFromProto() && type->GetPrototype() != refType->GetPrototype())
         {
@@ -8297,38 +8315,56 @@ CommonNumber:
             return false;
         }
 
-        // CONSIDER (EquivObjTypeSpec): Invent some form of least recently used eviction scheme.
-        uintptr_t index = (reinterpret_cast<uintptr_t>(type) >> 4) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
-        if (cache->nextEvictionVictim == EQUIVALENT_TYPE_CACHE_SIZE)
+        int emptySlotIndex = -1;
+        for (int i = 0;i < EQUIVALENT_TYPE_CACHE_SIZE;i++)
         {
-            __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
-            if (equivTypes[index] != nullptr)
+            if (equivTypes[i] == nullptr)
             {
-                uintptr_t initialIndex = index;
-                index = (initialIndex + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
-                for (; index != initialIndex; index = (index + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1))
-                {
-                    if (equivTypes[index] == nullptr) break;
-                }
-            }
-            __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
-            if (equivTypes[index] != nullptr)
+                emptySlotIndex = i;
+                break;
+            };
+        }
+
+        // We have some empty slots, let us use those first
+        if (emptySlotIndex != -1)
+        {
+            if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
             {
-                cache->nextEvictionVictim = 0;
+                Output::Print(_u("EquivObjTypeSpec: Saving type in unused slot of equiv types cache. \n"));
+                Output::Flush();
             }
+            equivTypes[emptySlotIndex] = type;
         }
         else
         {
-            Assert(cache->nextEvictionVictim < EQUIVALENT_TYPE_CACHE_SIZE);
-            __analysis_assume(cache->nextEvictionVictim < EQUIVALENT_TYPE_CACHE_SIZE);
-            equivTypes[cache->nextEvictionVictim] = equivTypes[index];
-            cache->nextEvictionVictim = (cache->nextEvictionVictim + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
+            // CONSIDER (EquivObjTypeSpec): Invent some form of least recently used eviction scheme.
+            uintptr_t index = (reinterpret_cast<uintptr_t>(type) >> 4) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
+            
+            if (cache->nextEvictionVictim == EQUIVALENT_TYPE_CACHE_SIZE)
+            {
+                __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
+                // If nextEvictionVictim was never set, set it to next element after index
+                cache->nextEvictionVictim = (index + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
+            }
+            else
+            {
+                Assert(cache->nextEvictionVictim < EQUIVALENT_TYPE_CACHE_SIZE);
+                __analysis_assume(cache->nextEvictionVictim < EQUIVALENT_TYPE_CACHE_SIZE);
+                equivTypes[cache->nextEvictionVictim] = equivTypes[index];
+                // Else, set it to next element after current nextEvictionVictim index
+                cache->nextEvictionVictim = (cache->nextEvictionVictim + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
+            }
+
+            if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
+            {
+                Output::Print(_u("EquivObjTypeSpec: Saving type in used slot of equiv types cache at index = %d. NextEvictionVictim = %d. \n"), index, cache->nextEvictionVictim);
+                Output::Flush();
+            }
+            Assert(index < EQUIVALENT_TYPE_CACHE_SIZE);
+            __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
+            equivTypes[index] = type;
         }
-
-        Assert(index < EQUIVALENT_TYPE_CACHE_SIZE);
-        __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
-        equivTypes[index] = type;
-
+        
         // Fixed field checks allow us to assume a specific type ID, but the assumption is only
         // valid if we lock the type. Otherwise, the type ID may change out from under us without
         // evolving the type.
@@ -9240,6 +9276,13 @@ CommonNumber:
 
     Var JavascriptOperators::CallGetter(RecyclableObject * const function, Var const object, ScriptContext * requestContext)
     {
+#if ENABLE_TTD_DEBUGGING
+        if(requestContext->ShouldSuppressGetterInvocationForDebuggerEvaluation())
+        {
+            return requestContext->GetLibrary()->GetUndefined();
+        }
+#endif
+
         ScriptContext * scriptContext = function->GetScriptContext();
         ThreadContext * threadContext = scriptContext->GetThreadContext();
         return threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor, [=]() -> Js::Var
@@ -9435,7 +9478,7 @@ CommonNumber:
         scriptFunction->SetHomeObj(homeObj);
     }
 
-    Var JavascriptOperators::OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // Ensure this is not a stack ScriptFunction
         if (!ScriptFunction::Is(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
@@ -9449,12 +9492,24 @@ CommonNumber:
         // since the prototype could change.
         Var homeObj = instance->GetHomeObj();
 
+        return (homeObj != nullptr) ? homeObj : scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    Var JavascriptOperators::OP_LdHomeObjProto(Var homeObj, ScriptContext* scriptContext)
+    {
         if (homeObj == nullptr || !RecyclableObject::Is(homeObj))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         RecyclableObject *thisObjPrototype = RecyclableObject::FromVar(homeObj);
+
+        TypeId typeId = thisObjPrototype->GetTypeId();
+
+        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
+        }
 
         Assert(thisObjPrototype != nullptr);
 
@@ -9468,14 +9523,18 @@ CommonNumber:
         return superBase;
     }
 
-    Var JavascriptOperators::OP_LdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // use self as value of [[FunctionObject]] - this is true only for constructors
 
         Assert(RecyclableObject::Is(scriptFunction));
-        Assert(JavascriptOperators::IsClassConstructor(scriptFunction));  // non-constructors cannot have direct super
 
-        RecyclableObject *superCtor = RecyclableObject::FromVar(scriptFunction)->GetPrototype();
+        return scriptFunction;
+    }
+
+    Var JavascriptOperators::OP_LdFuncObjProto(Var funcObj, ScriptContext* scriptContext)
+    {
+        RecyclableObject *superCtor = RecyclableObject::FromVar(funcObj)->GetPrototype();
 
         if (superCtor == nullptr || !IsConstructor(superCtor))
         {
@@ -9485,7 +9544,7 @@ CommonNumber:
         return superCtor;
     }
 
-    Var JavascriptOperators::ScopedLdSuperHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
+    Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
     {
         ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);
         Var superRef = nullptr;
@@ -9528,14 +9587,14 @@ CommonNumber:
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
     }
 
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
@@ -9653,35 +9712,6 @@ CommonNumber:
 
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
         throw yieldData->exceptionObj;
-    }
-
-    Var JavascriptOperators::OP_AsyncSpawn(Var aGenerator, Var aThis, ScriptContext* scriptContext)
-    {
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-
-        JavascriptExceptionObject* e = nullptr;
-        JavascriptPromiseResolveOrRejectFunction* resolve;
-        JavascriptPromiseResolveOrRejectFunction* reject;
-        JavascriptPromiseAsyncSpawnExecutorFunction* executor = library->CreatePromiseAsyncSpawnExecutorFunction(JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction, (JavascriptGenerator*)aGenerator, aThis);
-        JavascriptPromise* promise = library->CreatePromise();
-
-        JavascriptPromise::InitializePromise(promise, &resolve, &reject, scriptContext);
-
-        try
-        {
-            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
-        }
-        catch (JavascriptExceptionObject* ex)
-        {
-            e = ex;
-        }
-
-        if (e != nullptr)
-        {
-            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
-        }
-
-        return promise;
     }
 
     Js::Var

@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+# Keep CMake from caching static/shared library
+# option. Otherwise, CMake fails to update cached
+# references
+if(SHARED_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY CACHE)
+  set(SHARED_LIBRARY 1)
+endif()
+
+if(STATIC_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(SHARED_LIBRARY CACHE)
+  set(STATIC_LIBRARY 1)
+endif()
 
 function(clr_unknown_arch)
     if (WIN32)
@@ -10,7 +26,26 @@ function(clr_unknown_arch)
     endif()
 endfunction()
 
+if(ICU_INCLUDE_PATH)
+  set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
+  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  if(ICUUC)
+    message("found libraries on ${ICU_CC_PATH}")
+    set(ICULIB
+      ${ICUUC}
+      ${ICU18}
+      ${ICUDATA}
+      )
+  endif()
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    if(NOT ICULIB)
+      set(ICULIB "icuuc")
+    endif()
+
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
         set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
@@ -21,8 +56,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
         -DPLATFORM_UNIX
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
     )
+
+    if(NOT ICULIB)
+      set(ICULIB "icucore")
+      add_definitions(
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
+        )
+      message("using ICU from system default: ${ICULIB}")
+    endif()
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -31,6 +73,12 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
         clr_unknown_arch()
     endif()
     set(CLR_CMAKE_PLATFORM_DARWIN 1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -mmacosx-version-min=10.7")
 else()
     clr_unknown_arch()
 endif()
@@ -99,6 +147,8 @@ endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-deprecated-declarations\
+        -Wno-parentheses-equality\
         -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\
@@ -192,6 +242,12 @@ include_directories(
     pal/inc/rt
     ${ICU_INCLUDE_PATH}
     )
+
+if(ICU_INCLUDE_PATH)
+    if(NOT HAVE_LIBICU_UCHAR_H)
+        set(HAVE_LIBICU_UCHAR_H "1")
+    endif()
+endif()
 
 add_subdirectory (pal)
 

@@ -1,0 +1,11 @@
+TypeError: Cannot define property 'ohai': object is not extensible
+x,y
+true
+x,y
+true
+20
+x,y
+true
+20
+
+Reached end of Execution -- Exiting.

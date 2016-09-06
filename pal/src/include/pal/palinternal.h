@@ -165,7 +165,6 @@ function_name() to call the system's implementation
 #define memcpy DUMMY_memcpy 
 #define memcmp DUMMY_memcmp 
 #define memset DUMMY_memset 
-#define memmove DUMMY_memmove 
 #define memchr DUMMY_memchr
 #define strlen DUMMY_strlen
 #define strnlen DUMMY_strnlen
@@ -676,5 +675,12 @@ inline T* InterlockedCompareExchangePointerT(
 #include "volatile.h"
 
 #endif // __cplusplus
+
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 #endif /* _PAL_INTERNAL_H_ */
