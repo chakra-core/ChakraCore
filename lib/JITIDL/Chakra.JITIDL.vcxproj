@@ -23,7 +23,7 @@
       <AdditionalOptions>/protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
     </Midl>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(BuildingInsideVisualStudio)'=='true'">
+  <ItemGroup Condition="'$(BuildingGitRepo)'=='true'">
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /target NT61 /prefix client "Client" server "Server"</AdditionalOptions>

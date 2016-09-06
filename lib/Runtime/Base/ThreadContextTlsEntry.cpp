@@ -91,10 +91,12 @@ void ThreadContextTLSEntry::SetThreadContext(ThreadContextTLSEntry * entry, Thre
     threadContext->SetStackProber(&entry->prober);
     threadContext->SetCurrentThreadId(::GetCurrentThreadId());
 
+#if ENABLE_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
     {
         threadContext->InitJITThreadContext();
     }
+#endif
 }
 
 bool ThreadContextTLSEntry::ClearThreadContext(bool isValid)
