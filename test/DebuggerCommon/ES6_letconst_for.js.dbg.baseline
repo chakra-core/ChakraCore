@@ -3,6 +3,8 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 1",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "x": "number 1"
     }
@@ -10,12 +12,28 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 1",
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"
@@ -28,6 +46,8 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 2",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "x": "number 1"
     }
@@ -35,12 +55,28 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 2",
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"
@@ -53,6 +89,8 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 3",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "x": "number 1"
     }

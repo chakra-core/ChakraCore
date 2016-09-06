@@ -12,15 +12,15 @@ a
 a
 undefined
 a
-function f() {
-    const x = 'a';
-    WScript.Echo(x);
-    if (1 > 0)
-    {
-        let x;
-        WScript.Echo(x);
-    }
-    WScript.Echo(x);
-    WScript.Echo(f);
+function f() {
+    const x = 'a';
+    WScript.Echo(x);
+    if (1 > 0)
+    {
+        let x;
+        WScript.Echo(x);
+    }
+    WScript.Echo(x);
+    WScript.Echo(f);
 }
 undefined
