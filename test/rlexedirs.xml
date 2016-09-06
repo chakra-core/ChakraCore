@@ -374,6 +374,13 @@
 <dir>
   <default>
     <files>WasmSpec</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>wasm</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
     <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
@@ -381,12 +388,6 @@
   <default>
     <files>Debugger</files>
     <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>wasm</files>
-    <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>
