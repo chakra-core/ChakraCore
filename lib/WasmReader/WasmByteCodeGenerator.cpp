@@ -26,7 +26,7 @@ WasmBytecodeGenerator::PrintOpName(WasmOp op) const
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) \
 case wb##opname: \
-    Output::Print(_u(#opname ## "\r\n")); \
+    Output::Print(_u("%s\r\n"), _u(#opname)); \
     break;
 #include "WasmBinaryOpCodes.h"
     }
@@ -472,7 +472,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) \
     case opcode: \
-        if (nyi) throw WasmCompilationException(_u("Operator " #opname## " NYI")); break;
+        if (nyi) throw WasmCompilationException(_u("Operator %s NYI"), _u(#opname)); break;
 #include "WasmBinaryOpcodes.h"
     default:
         break;
@@ -542,6 +542,13 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wbNop:
         info = EmitInfo();
         break;
+    case wbCurrentMemory:
+        {
+        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
+        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        info = EmitInfo(tempReg, WasmTypes::I32);
+        }
+        break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         info = EmitMemAccess<wb##opname, WasmSignature##sig>(false); \
@@ -557,13 +564,6 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #define WASM_UNARY__OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
         info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
-        break;
-    case wbCurrentMemory:
-        {
-        Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
-        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
-        info = EmitInfo(tempReg, WasmTypes::I32);
-        }
         break;
 #include "WasmBinaryOpCodes.h"
     default:

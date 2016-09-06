@@ -215,7 +215,7 @@ WasmBinaryReader::PrintOps()
         {
 #define WASM_OPCODE(opname, opcode, sig, nyi) \
     case opcode: \
-        Output::Print(_u(#opname ## "\r\n")); \
+        Output::Print(_u("%s\r\n"), _u(#opname)); \
         break;
 #include "WasmBinaryOpcodes.h"
         }
