@@ -2756,6 +2756,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     }
                     break;
                 }
+                case Js::OpCode::Throw:
+                case Js::OpCode::EHThrow:
+                case Js::OpCode::InlineThrow:
+                    this->func->SetHasThrow();
+                    break;
             }
         }
 
