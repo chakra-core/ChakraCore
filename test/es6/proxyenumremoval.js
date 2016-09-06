@@ -115,6 +115,17 @@ for(var key in proxy){ keys += key;}
 passed &= keys==="b";
 passed &= getPrototypeOfCalled===1;
 
+// cross site marshal
+var IntArr0 = Array();
+IntArr0[3] = -6869070206472090000;
+IntArr0 = new Proxy(IntArr0, {});
+var sc1 = WScript.LoadScript('', 'samethread');
+sc1.IntArr0 = IntArr0;
+var sc1_cctx = sc1.Debug.parseFunction('x=""; for (var _strvar0 in IntArr0) {x+=IntArr0[_strvar0];}');
+sc1_cctx();
+passed &= (sc1.x=="-6869070206472090000");
+
+
 if (passed) {
   WScript.Echo("PASS");
 }
