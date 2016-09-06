@@ -64,15 +64,15 @@
     this->Trace(block, before); \
     Output::Flush();
 
+// TODO: OOP JIT, add back line number
 #define TRACE_PHASE_INSTR(phase, instr, ...) \
     if(PHASE_TRACE(phase, this->func)) \
     { \
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
         Output::Print( \
-            _u("Function %s (%s, line %u)"), \
+            _u("Function %s (%s)"), \
             this->func->GetJITFunctionBody()->GetDisplayName(), \
-            this->func->GetDebugNumberSet(debugStringBuffer), \
-            this->func->GetJnFunction()->GetLineNumber()); \
+            this->func->GetDebugNumberSet(debugStringBuffer)); \
         if(this->func->IsLoopBody()) \
         { \
             Output::Print(_u(", loop %u"), this->func->GetWorkItem()->GetLoopNumber()); \
@@ -80,10 +80,9 @@
         if(instr->m_func != this->func) \
         { \
             Output::Print( \
-                _u(", Inlinee %s (%s, line %u)"), \
+                _u(", Inlinee %s (%s)"), \
                 instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
-                instr->m_func->GetDebugNumberSet(debugStringBuffer), \
-                instr->m_func->GetJnFunction()->GetLineNumber()); \
+                instr->m_func->GetDebugNumberSet(debugStringBuffer)); \
         } \
         Output::Print(_u(" - %s\n    "), Js::PhaseNames[phase]); \
         instr->Dump(); \
@@ -4193,9 +4192,9 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (IsArgumentsOpnd(src1))
                     {
 #ifdef PERF_HINT
-                        if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
+                        if (PHASE_TRACE1(Js::PerfHintPhase))
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4211,9 +4210,9 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (IsArgumentsOpnd(src2))
                     {
 #ifdef PERF_HINT
-                        if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
+                        if (PHASE_TRACE1(Js::PerfHintPhase))
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4230,9 +4229,9 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (IsArgumentsOpnd(dst))
                     {
 #ifdef PERF_HINT
-                        if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
+                        if (PHASE_TRACE1(Js::PerfHintPhase))
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();
@@ -4244,9 +4243,9 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (this->currentBlock->loop && IsArgumentsOpnd(dst))
                     {
 #ifdef PERF_HINT
-                        if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
+                        if (PHASE_TRACE1(Js::PerfHintPhase))
                         {
-                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                            WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
                         CannotAllocateArgumentsObjectOnStack();

@@ -1909,7 +1909,7 @@ void WritePerfHint(PerfHints hint, Func* func, uint byteCodeOffset /*= Js::Const
 {
     if (!func->IsOOPJIT())
     {
-        WritePerfHint(hint, func->GetJnFunction(), byteCodeOffset);
+        WritePerfHint(hint, (Js::FunctionBody*)func->GetJITFunctionBody()->GetAddr(), byteCodeOffset);
     }
 }
 #endif

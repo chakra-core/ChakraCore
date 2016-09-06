@@ -134,7 +134,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
     bool noMathFastPath;
     bool noFieldFastPath;
     bool fNoLower = false;
-    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
+    bool isStrictMode = this->m_func->GetJITFunctionBody()->IsStrictMode();
     noFieldFastPath = !defaultDoFastPath;
     noMathFastPath = !defaultDoFastPath;
 
@@ -781,9 +781,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
 
 #ifdef PERF_HINT
-            if (PHASE_TRACE1(Js::PerfHintPhase) && !instr->m_func->IsOOPJIT())
+            if (PHASE_TRACE1(Js::PerfHintPhase))
             {
-                WritePerfHint(PerfHints::CallsEval, this->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                WritePerfHint(PerfHints::CallsEval, this->m_func, instr->GetByteCodeOffset());
             }
 #endif
             break;
@@ -19355,7 +19355,7 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
     }
 
     bool isStrictCompare = false;
-    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
+    bool isStrictMode = this->m_func->GetJITFunctionBody()->IsStrictMode();
 
     switch (instr->m_opcode)
     {

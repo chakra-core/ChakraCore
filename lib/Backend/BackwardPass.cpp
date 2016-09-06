@@ -289,7 +289,7 @@ BackwardPass::InsertArgInsForFormals()
 
         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && paramsCount > 0)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJnFunction()->GetDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJITFunctionBody()->GetDisplayName(), func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -2944,7 +2944,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
 
                         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                         {
-                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                             Output::Flush();
                         }
                     }

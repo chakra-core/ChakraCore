@@ -66,9 +66,11 @@ public:
     bool DoBackendArgumentsOptimization() const;
     bool IsLibraryCode() const;
     bool HasTry() const;
+    bool HasThis() const;
     bool HasFinally() const;
     bool HasOrParentHasArguments() const;
     bool IsGenerator() const;
+    bool IsCoroutine() const;
     bool IsAsmJsMode() const;
     bool IsStrictMode() const;
     bool IsEval() const;

@@ -1011,128 +1011,131 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
             Output::Print(_u("param "));
         }
     }
-	else if (this->IsStackSym())
-	{
-		StackSym *stackSym = this->AsStackSym();
+    else if (this->IsStackSym())
+    {
+        StackSym *stackSym = this->AsStackSym();
 
-		if (stackSym->IsArgSlotSym())
-		{
-			if (stackSym->m_isInlinedArgSlot)
-			{
-				Output::Print(_u("iarg%d"), stackSym->GetArgSlotNum());
-			}
-			else
-			{
-				Output::Print(_u("arg%d"), stackSym->GetArgSlotNum());
-			}
-			Output::Print(_u("(s%d)"), m_id);
-		}
-		else if (stackSym->IsParamSlotSym())
-		{
-			if (stackSym->IsImplicitParamSym())
-			{
-				switch (stackSym->GetParamSlotNum())
-				{
-				case 1:
-					Output::Print(_u("callInfo"));
-					break;
-				case 2:
-					Output::Print(_u("funcInfo"));
-					break;
-				case 3:
-					Output::Print(_u("genObj"));
-					break;
-				case 4:
-					Output::Print(_u("genFrame"));
-					break;
-				default:
-					Output::Print(_u("implPrm%d"), stackSym->GetParamSlotNum());
-				}
-			}
-			else
-			{
-				Output::Print(_u("prm%d"), stackSym->GetParamSlotNum());
-			}
-		}
-		else
-		{
-  		    Output::Print(_u("s%d"), m_id);
+        if (stackSym->IsArgSlotSym())
+        {
+            if (stackSym->m_isInlinedArgSlot)
+            {
+                Output::Print(_u("iarg%d"), stackSym->GetArgSlotNum());
+            }
+            else
+            {
+                Output::Print(_u("arg%d"), stackSym->GetArgSlotNum());
+            }
+            Output::Print(_u("(s%d)"), m_id);
+        }
+        else if (stackSym->IsParamSlotSym())
+        {
+            if (stackSym->IsImplicitParamSym())
+            {
+                switch (stackSym->GetParamSlotNum())
+                {
+                case 1:
+                    Output::Print(_u("callInfo"));
+                    break;
+                case 2:
+                    Output::Print(_u("funcInfo"));
+                    break;
+                case 3:
+                    Output::Print(_u("genObj"));
+                    break;
+                case 4:
+                    Output::Print(_u("genFrame"));
+                    break;
+                default:
+                    Output::Print(_u("implPrm%d"), stackSym->GetParamSlotNum());
+                }
+            }
+            else
+            {
+                Output::Print(_u("prm%d"), stackSym->GetParamSlotNum());
+            }
+        }
+        else
+        {
+            Output::Print(_u("s%d"), m_id);
 
-			if (Js::Configuration::Global.flags.Debug && stackSym->HasByteCodeRegSlot())
-			{
-				Js::FunctionBody* functionBody = stackSym->GetByteCodeFunc()->GetJnFunction();
-				if (functionBody->GetPropertyIdOnRegSlotsContainer())
-				{
-                        if(functionBody->IsNonTempLocalVar(stackSym->GetByteCodeRegSlot()))
-					{
-                            uint index = sym->GetByteCodeRegSlot() - sym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
-						Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
-                            Output::Print(_u("(%s)"), sym->GetByteCodeFunc()->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer());
-					}
-				}
-			}
-			if (stackSym->IsVar())
-			{
-				if (stackSym->HasObjectTypeSym() && !SimpleForm)
-				{
-					Output::Print(_u("<s%d>"), stackSym->GetObjectTypeSym()->m_id);
-				}
-			}
-			else
-			{
-				StackSym *varSym = stackSym->GetVarEquivSym(nullptr);
-				if (varSym)
-				{
-					Output::Print(_u("(s%d)"), varSym->m_id);
-				}
-			}
-			if (!SimpleForm)
-			{
-				if (stackSym->m_builtInIndex != Js::BuiltinFunction::None)
-				{
-					Output::Print(_u("[ffunc]"));
-				}
-			}
-			IR::Opnd::DumpValueType(valueType);
-		}
-	}
-	else if (this->IsPropertySym())
-	{
-		PropertySym *propertySym = this->AsPropertySym();
+            if (Js::Configuration::Global.flags.Debug && stackSym->HasByteCodeRegSlot())
+            {
+                if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+                {
+                    Js::FunctionBody* functionBody = (Js::FunctionBody*)stackSym->GetByteCodeFunc()->GetJITFunctionBody()->GetAddr();
+                    if (functionBody->GetPropertyIdOnRegSlotsContainer())
+                    {
+                        if (functionBody->IsNonTempLocalVar(stackSym->GetByteCodeRegSlot()))
+                        {
+                            uint index = stackSym->GetByteCodeRegSlot() - stackSym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
+                            Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
+                            Output::Print(_u("(%s)"), stackSym->GetByteCodeFunc()->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer());
+                        }
+                    }
+                }
+            }
+            if (stackSym->IsVar())
+            {
+                if (stackSym->HasObjectTypeSym() && !SimpleForm)
+                {
+                    Output::Print(_u("<s%d>"), stackSym->GetObjectTypeSym()->m_id);
+                }
+            }
+            else
+            {
+                StackSym *varSym = stackSym->GetVarEquivSym(nullptr);
+                if (varSym)
+                {
+                    Output::Print(_u("(s%d)"), varSym->m_id);
+                }
+            }
+            if (!SimpleForm)
+            {
+                if (stackSym->m_builtInIndex != Js::BuiltinFunction::None)
+                {
+                    Output::Print(_u("[ffunc]"));
+                }
+            }
+            IR::Opnd::DumpValueType(valueType);
+        }
+    }
+    else if (this->IsPropertySym())
+    {
+        PropertySym *propertySym = this->AsPropertySym();
 
-		if (!SimpleForm)
-		{
-			Output::Print(_u("s%d("), m_id);
-		}
+        if (!SimpleForm)
+        {
+            Output::Print(_u("s%d("), m_id);
+        }
 
-		switch (propertySym->m_fieldKind)
-		{
-		case PropertyKindData:
-		{
-			propertySym->m_stackSym->Dump(flags, valueType);
+        switch (propertySym->m_fieldKind)
+        {
+        case PropertyKindData:
+        {
+            propertySym->m_stackSym->Dump(flags, valueType);
             Js::PropertyRecord const* fieldName = propertySym->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId);
-			Output::Print(_u("->%s"), fieldName->GetBuffer());
-			break;
-		}
-		case PropertyKindSlots:
-		case PropertyKindSlotArray:
-			propertySym->m_stackSym->Dump(flags, valueType);
-			Output::Print(_u("[%d]"), propertySym->m_propertyId);
-			break;
-		case PropertyKindLocalSlots:
-			propertySym->m_stackSym->Dump(flags, valueType);
-			Output::Print(_u("l[%d]"), propertySym->m_propertyId);
-			break;
-		default:
-			AssertMsg(0, "Unknown field kind");
-			break;
-		}
+            Output::Print(_u("->%s"), fieldName->GetBuffer());
+            break;
+        }
+        case PropertyKindSlots:
+        case PropertyKindSlotArray:
+            propertySym->m_stackSym->Dump(flags, valueType);
+            Output::Print(_u("[%d]"), propertySym->m_propertyId);
+            break;
+        case PropertyKindLocalSlots:
+            propertySym->m_stackSym->Dump(flags, valueType);
+            Output::Print(_u("l[%d]"), propertySym->m_propertyId);
+            break;
+        default:
+            AssertMsg(0, "Unknown field kind");
+            break;
+        }
 
-		if (!SimpleForm)
-		{
-			Output::Print(_u(")"));
-		}
-	}
+        if (!SimpleForm)
+        {
+            Output::Print(_u(")"));
+        }
+    }
 }
 
 

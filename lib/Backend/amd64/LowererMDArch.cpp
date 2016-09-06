@@ -1492,7 +1492,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (this->m_func->HasArgumentSlot() && (this->m_func->IsStackArgsEnabled() ||
         this->m_func->IsJitInDebugMode() ||
         // disabling apply inlining leads to explicit load from the zero-inited slot
-        this->m_func->GetJnFunction()->IsInlineApplyDisabled()))
+        this->m_func->GetJITFunctionBody()->IsInlineApplyDisabled()))
     {
         // TODO: Support mov [rbp - n], IMM64
         raxOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyUint32, this->m_func);

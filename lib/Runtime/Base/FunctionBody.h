@@ -222,16 +222,17 @@ namespace Js
         // so as to keep the cached types alive.
         EquivalentTypeCache* cache;
         uint32 objTypeSpecFldId;
-#if DBG
+        // TODO: OOP JIT, reenable these asserts
+#if DBG && 0
         // Intentionally have as intptr_t so this guard doesn't hold scriptContext
         intptr_t originalScriptContextValue = 0;
 #endif
 
     public:
         JitEquivalentTypeGuard(intptr_t typeAddr, int index, uint32 objTypeSpecFldId):
-            JitIndexedPropertyGuard(typeAddr, index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId) {}
+            JitIndexedPropertyGuard(typeAddr, index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId)
         {
-#if DBG
+#if DBG && 0
             originalScriptContextValue = reinterpret_cast<intptr_t>(type->GetScriptContext());
 #endif
         }
@@ -240,7 +241,7 @@ namespace Js
 
         void SetTypeAddr(const intptr_t typeAddr)
         {
-#if DBG
+#if DBG && 0
             if (originalScriptContextValue == 0)
             {
                 originalScriptContextValue = reinterpret_cast<intptr_t>(type->GetScriptContext());
@@ -2760,7 +2761,8 @@ namespace Js
     public:
         FunctionBodyFlags GetFlags() { return this->flags; }
 
-        bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
+        static bool GetHasThis(FunctionBodyFlags flags) { return (flags & Flags_HasThis) != 0; }
+        bool GetHasThis() const { return GetHasThis(this->flags); }
         void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
 
         static bool GetHasTry(FunctionBodyFlags flags) { return (flags & Flags_HasTry) != 0; }

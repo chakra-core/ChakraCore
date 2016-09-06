@@ -859,10 +859,10 @@ PropertySymOpnd::ChangesObjectLayout() const
         // This is the case where the type transition actually occurs. (This is the only case that's detectable
         // during the loop pre-pass, since final types are not in place yet.)
 
-        Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+        Assert(cachedType.t && Js::DynamicType::Is(cachedType.t->GetTypeId()));
 
-        auto cachedTypeHandler = cachedType.t->GetTypeHandler();
-        auto initialTypeHandler = initialType.t->GetTypeHandler();
+        const JITTypeHandler * cachedTypeHandler = cachedType.t->GetTypeHandler();
+        const JITTypeHandler * initialTypeHandler = initialType.t->GetTypeHandler();
 
         return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
             cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();

@@ -1073,19 +1073,19 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         if (jitWriteData.disableAggressiveIntTypeSpec)
         {
-            body->GetDynamicProfileInfo()->DisableAggressiveIntTypeSpec(workItem->Type() == JsLoopBodyWorkItemType);
+            body->GetAnyDynamicProfileInfo()->DisableAggressiveIntTypeSpec(workItem->Type() == JsLoopBodyWorkItemType);
         }
         if (jitWriteData.disableStackArgOpt)
         {
-            body->GetDynamicProfileInfo()->DisableStackArgOpt();
+            body->GetAnyDynamicProfileInfo()->DisableStackArgOpt();
         }
         if (jitWriteData.disableSwitchOpt)
         {
-            body->GetDynamicProfileInfo()->DisableSwitchOpt();
+            body->GetAnyDynamicProfileInfo()->DisableSwitchOpt();
         }
         if (jitWriteData.disableTrackCompoundedIntOverflow)
         {
-            body->GetDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
+            body->GetAnyDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
         }
     }
 

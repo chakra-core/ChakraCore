@@ -38,7 +38,7 @@ IRBuilder::AddStatementBoundary(uint statementIndex, uint offset)
                 LONG col;
 
                 // Since we're on a separate thread, don't allow the line cache to be allocated in the Recycler.
-                if (this->m_func->GetJnFunction()->GetLineCharOffset(this->m_jnReader.GetCurrentOffset(), &line, &col, false /*canAllocateLineCache*/))
+                if (((Js::FunctionBody*)m_func->GetJITFunctionBody()->GetAddr())->GetLineCharOffset(this->m_jnReader.GetCurrentOffset(), &line, &col, false /*canAllocateLineCache*/))
                 {
                     line++;
                     if (Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)col) || Js::Configuration::Global.flags.BailOut.Contains(line, (uint32)-1))
@@ -6900,9 +6900,9 @@ IRBuilder::BuildBr(Js::OpCode newOpcode, uint32 offset)
         return;
     }
 #ifdef PERF_HINT
-    else if (PHASE_TRACE1(Js::PerfHintPhase) && !m_func->IsOOPJIT() && (newOpcode == Js::OpCode::TryCatch || newOpcode == Js::OpCode::TryFinally) )
+    else if (PHASE_TRACE1(Js::PerfHintPhase) && (newOpcode == Js::OpCode::TryCatch || newOpcode == Js::OpCode::TryFinally) )
     {
-        WritePerfHint(PerfHints::HasTryBlock, this->m_func->GetJnFunction(), offset);
+        WritePerfHint(PerfHints::HasTryBlock, this->m_func, offset);
     }
 #endif
 

@@ -482,87 +482,87 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 
 RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 {
-	RegNum reg = RegNOREG;
-	StackSym *paramSym = symOpnd->m_sym->AsStackSym();
+    RegNum reg = RegNOREG;
+    StackSym *paramSym = symOpnd->m_sym->AsStackSym();
 
-	if (func->GetJnFunction()->GetIsAsmjsMode() && !func->IsLoopBody())
-	{
-		// Asm.js function only have 1 implicit param as they have no CallInfo, and they have float/SIMD params.
-		// Asm.js loop bodies however are called like normal JS functions.
-		if (IRType_IsFloat(symOpnd->GetType()) || IRType_IsSimd(symOpnd->GetType()))
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegXMM1;
-				break;
-			case 2:
-				reg = RegXMM2;
-				break;
-			case 3:
-				reg = RegXMM3;
-				break;
-			}
-		}
-		else
-		{
-			if (paramSym->IsImplicitParamSym())
-			{
-				switch (paramSym->GetParamSlotNum())
-				{
-				case 1:
-					reg = RegRCX;
-					break;
-				default:
-					Assert(UNREACHED);
-				}
-			}
-			else
-			{
-				switch (paramSym->GetParamSlotNum())
-				{
-				case 1:
-					reg = RegRDX;
-					break;
-				case 2:
-					reg = RegR8;
-					break;
-				case 3:
-					reg = RegR9;
-					break;
-				}
-			}
-		}
-	}
-	else // Non-Asm.js
-	{
-		Assert(symOpnd->GetType() == TyVar || IRType_IsNativeInt(symOpnd->GetType()));
+    if (func->GetJITFunctionBody()->IsAsmJsMode() && !func->IsLoopBody())
+    {
+        // Asm.js function only have 1 implicit param as they have no CallInfo, and they have float/SIMD params.
+        // Asm.js loop bodies however are called like normal JS functions.
+        if (IRType_IsFloat(symOpnd->GetType()) || IRType_IsSimd(symOpnd->GetType()))
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegXMM1;
+                break;
+            case 2:
+                reg = RegXMM2;
+                break;
+            case 3:
+                reg = RegXMM3;
+                break;
+            }
+        }
+        else
+        {
+            if (paramSym->IsImplicitParamSym())
+            {
+                switch (paramSym->GetParamSlotNum())
+                {
+                case 1:
+                    reg = RegRCX;
+                    break;
+                default:
+                    Assert(UNREACHED);
+                }
+            }
+            else
+            {
+                switch (paramSym->GetParamSlotNum())
+                {
+                case 1:
+                    reg = RegRDX;
+                    break;
+                case 2:
+                    reg = RegR8;
+                    break;
+                case 3:
+                    reg = RegR9;
+                    break;
+                }
+            }
+        }
+    }
+    else // Non-Asm.js
+    {
+        Assert(symOpnd->GetType() == TyVar || IRType_IsNativeInt(symOpnd->GetType()));
 
-		if (paramSym->IsImplicitParamSym())
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegRDX;
-				break;
-			case 2:
-				reg = RegRCX;
-				break;
-			}
-		}
-		else
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegR8;
-				break;
-			case 2:
-				reg = RegR9;
-				break;
-			}
-		}
-	}
+        if (paramSym->IsImplicitParamSym())
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegRDX;
+                break;
+            case 2:
+                reg = RegRCX;
+                break;
+            }
+        }
+        else
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegR8;
+                break;
+            case 2:
+                reg = RegR9;
+                break;
+            }
+        }
+    }
 
-	return reg;
+    return reg;
 }

@@ -542,6 +542,12 @@ JITTimeFunctionBody::HasTry() const
 }
 
 bool
+JITTimeFunctionBody::HasThis() const
+{
+    return Js::FunctionBody::GetHasThis(GetFlags());
+}
+
+bool
 JITTimeFunctionBody::HasFinally() const
 {
     return m_bodyData.hasFinally != FALSE;
@@ -605,6 +611,12 @@ bool
 JITTimeFunctionBody::IsParamAndBodyScopeMerged() const
 {
     return m_bodyData.isParamAndBodyScopeMerged != FALSE;
+}
+
+bool
+JITTimeFunctionBody::IsCoroutine() const
+{
+    return Js::FunctionInfo::IsCoroutine(GetAttributes());
 }
 
 bool

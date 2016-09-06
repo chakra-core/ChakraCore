@@ -336,7 +336,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     {
         Assert(this->IsTopFunc());
         Assert(this->GetJITFunctionBody());     // For now we always have a function body
-        return this->GetJITFunctionBody()->GetHasThis();
+        return this->GetJITFunctionBody()->HasThis();
     }
     Js::ArgSlot GetInParamsCount() const
     {
@@ -351,15 +351,6 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     uint16 GetArgUsedForBranch() const;
 
     intptr_t GetWeakFuncRef() const;
-    // TODO: OOP JIT, remove this
-    Js::FunctionBody * GetJnFunction() const 
-    {
-        if (this->IsOOPJIT()) 
-        {
-            return nullptr;
-        }
-        return (Js::FunctionBody *)this->m_workItem->GetWorkItemData()->jitData->functionInfoAddr;
-    }
 
     const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }
     bool IsLambda() const
