@@ -1,0 +1,143 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "foo1": "object null"
+    },
+    "scopes0": {
+      "foo2": "function <large string>",
+      "bar4": "function <large string>",
+      "x": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar4": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar4",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "x": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar4": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar4",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "x": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar4": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar4",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "x": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  }
+]

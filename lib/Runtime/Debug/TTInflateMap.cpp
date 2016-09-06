@@ -12,6 +12,7 @@ namespace TTD
         : m_typeMap(), m_handlerMap(),
         m_tagToGlobalObjectMap(), m_objectMap(),
         m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
+        m_debuggerScopeHomeBodyMap(), m_debuggerScopeChainIndexMap(),
         m_inflatePinSet(nullptr), m_environmentPinSet(nullptr), m_slotArrayPinSet(nullptr), m_oldInflatePinSet(nullptr),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
@@ -45,13 +46,15 @@ namespace TTD
         }
     }
 
-    void InflateMap::PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount)
+    void InflateMap::PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
     {
         this->m_typeMap.Initialize(typeCount);
         this->m_handlerMap.Initialize(handlerCount);
         this->m_tagToGlobalObjectMap.Initialize(ctxCount);
         this->m_objectMap.Initialize(objectCount);
         this->m_functionBodyMap.Initialize(bodyCount);
+        this->m_debuggerScopeHomeBodyMap.Initialize(dbgScopeCount);
+        this->m_debuggerScopeChainIndexMap.Initialize(dbgScopeCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
@@ -66,11 +69,13 @@ namespace TTD
         threadContext->GetRecycler()->RootAddRef(this->m_slotArrayPinSet);
     }
 
-    void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount)
+    void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
     {
         this->m_typeMap.Initialize(typeCount);
         this->m_handlerMap.Initialize(handlerCount);
         this->m_tagToGlobalObjectMap.Initialize(ctxCount);
+        this->m_debuggerScopeHomeBodyMap.Initialize(dbgScopeCount);
+        this->m_debuggerScopeChainIndexMap.Initialize(dbgScopeCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
@@ -104,6 +109,8 @@ namespace TTD
         this->m_handlerMap.Unload();
         this->m_typeMap.Unload();
         this->m_tagToGlobalObjectMap.Unload();
+        this->m_debuggerScopeHomeBodyMap.Unload();
+        this->m_debuggerScopeChainIndexMap.Unload();
         this->m_environmentMap.Unload();
         this->m_slotArrayMap.Unload();
         this->m_promiseDataMap.Clear();
@@ -191,6 +198,12 @@ namespace TTD
         return this->m_slotArrayMap.LookupKnownItem(slotid);
     }
 
+    void InflateMap::LookupInfoForDebugScope(TTD_PTR_ID dbgScopeId, Js::FunctionBody** homeBody, int32* chainIndex) const
+    {
+        *homeBody = this->m_debuggerScopeHomeBodyMap.LookupKnownItem(dbgScopeId);
+        *chainIndex = this->m_debuggerScopeChainIndexMap.LookupKnownItem(dbgScopeId);
+    }
+
     void InflateMap::AddDynamicHandler(TTD_PTR_ID handlerId, Js::DynamicTypeHandler* value)
     {
         this->m_handlerMap.AddItem(handlerId, value);
@@ -231,6 +244,26 @@ namespace TTD
     {
         this->m_slotArrayMap.AddItem(slotId, value);
         this->m_slotArrayPinSet->AddNew(value);
+    }
+
+    void InflateMap::UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb)
+    {
+        AssertMsg((int32)scopeChainInfo.ScopeCount == (fb->GetScopeObjectChain() != nullptr ? fb->GetScopeObjectChain()->pScopeChain->Count() : 0), "Mismatch in scope counts!!!");
+
+        if(fb->GetScopeObjectChain() != nullptr)
+        {
+            Js::ScopeObjectChain* scChain = fb->GetScopeObjectChain();
+            for(int32 i = 0; i < scChain->pScopeChain->Count(); ++i)
+            {
+                TTD_PTR_ID dbgScopeId = scopeChainInfo.ScopeArray[i];
+
+                if(!this->m_debuggerScopeHomeBodyMap.Contains(dbgScopeId))
+                {
+                    this->m_debuggerScopeHomeBodyMap.AddItem(dbgScopeId, fb);
+                    this->m_debuggerScopeChainIndexMap.AddItem(dbgScopeId, i);
+                }
+            }
+        }
     }
 
     JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator>& InflateMap::GetPropertyResetSet()
@@ -335,15 +368,15 @@ namespace TTD
         //
         H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
         H1FunctionTopLevelLoadMap(&HeapAllocator::Instance), H1FunctionTopLevelNewMap(&HeapAllocator::Instance), H1FunctionTopLevelEvalMap(&HeapAllocator::Instance),
-        H1FunctionBodyMap(&HeapAllocator::Instance), H1ObjectMap(&HeapAllocator::Instance),
+        H1FunctionBodyMap(&HeapAllocator::Instance), H1ObjectMap(&HeapAllocator::Instance), H1PendingAsyncModBufferSet(&HeapAllocator::Instance),
         //
         H2ValueMap(&HeapAllocator::Instance), H2SlotArrayMap(&HeapAllocator::Instance), H2FunctionScopeInfoMap(&HeapAllocator::Instance),
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
-        H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance)
+        H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance), H2PendingAsyncModBufferSet(&HeapAllocator::Instance)
     {
-        this->PathBuffer = HeapNewArrayZ(char16, 256);
+        this->PathBuffer = TT_HEAP_ALLOC_ARRAY_ZERO(char16, 256);
 
-        this->SnapObjCmpVTable = HeapNewArrayZ(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
+        this->SnapObjCmpVTable = TT_HEAP_ALLOC_ARRAY_ZERO(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
 
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapScriptFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapScriptFunctionInfo;
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapExternalFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapExternalFunctionInfo;
@@ -370,14 +403,14 @@ namespace TTD
 
     TTDCompareMap::~TTDCompareMap()
     {
-        HeapDeleteArray(256, this->PathBuffer);
+        TT_HEAP_FREE_ARRAY(char16, this->PathBuffer, 256);
 
-        HeapDeleteArray((int32)NSSnapObjects::SnapObjectType::Limit, this->SnapObjCmpVTable);
+        TT_HEAP_FREE_ARRAY(TTD::fPtr_AssertSnapEquivAddtlInfo, this->SnapObjCmpVTable, (int32)NSSnapObjects::SnapObjectType::Limit);
 
         //delete all the compare paths
         for(auto iter = this->H1PtrToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            HeapDelete(iter.CurrentValue());
+            TT_HEAP_DELETE(TTDComparePath, iter.CurrentValue());
         }
     }
 
@@ -418,7 +451,7 @@ namespace TTD
         {
             this->H1PtrIdWorklist.Enqueue(h1PtrId);
 
-            TTDComparePath* objPath = HeapNew(TTDComparePath, this->CurrentPath, stepKind, next);
+            TTDComparePath* objPath = TT_HEAP_NEW(TTDComparePath, this->CurrentPath, stepKind, next);
             this->H1PtrToPathMap.AddNew(h1PtrId, objPath);
 
             this->H1PtrToH2PtrMap.AddNew(h1PtrId, h2PtrId);
@@ -437,7 +470,7 @@ namespace TTD
         this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::FunctionBody, next);
     }
 
-    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, LPCWSTR specialField)
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, const char16* specialField)
     {
         TTDComparePath::PathEntry next{ -1, specialField };
         this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Special, next);

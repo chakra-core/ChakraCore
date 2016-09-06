@@ -4180,7 +4180,6 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
     case Js::OpCode::BailOnNotStackArgs:
     case Js::OpCode::ArgOut_A_FromStackArgs:
-    case Js::OpCode::LdArgumentsFromStack:
     case Js::OpCode::BytecodeArgOutUse:
         break;
 
@@ -18774,9 +18773,13 @@ GlobOpt::OptIsInvariant(
 
     switch(instr->m_opcode)
     {
-
         // Can't legally hoist these
     case Js::OpCode::LdLen_A:
+        return false;
+
+        //Can't Hoist BailOnNotStackArgs, as it is necessary as InlineArgsOptimization relies on this opcode 
+        //to decide whether to throw rejit exception or not.
+    case Js::OpCode::BailOnNotStackArgs:
         return false;
 
         // Usually not worth hoisting these
@@ -21460,7 +21463,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
                 case TyInt16:
                 case TyInt32:
                 case TyInt64:
-                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("lld%") : _u("%d"), candidate->constant.u.intConst.value);
+                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("%lld") : _u("%d"), candidate->constant.u.intConst.value);
                     break;
                 case TyFloat32:
                 case TyFloat64:

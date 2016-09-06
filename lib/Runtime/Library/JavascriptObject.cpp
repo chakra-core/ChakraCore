@@ -1125,16 +1125,23 @@ namespace Js
         //5. Return keys.
         AssertMsg(includeStringProperties || includeSymbolProperties, "Should either get string or symbol properties.");
 
-        Var enumeratorVar;
+        JavascriptStaticEnumerator enumerator;
         JavascriptArray* newArr = scriptContext->GetLibrary()->CreateArray(0);
         JavascriptArray* newArrForSymbols = scriptContext->GetLibrary()->CreateArray(0);
-
-        if (!object->GetEnumerator(includeNonEnumerable, &enumeratorVar, scriptContext, false, includeSymbolProperties))
+        EnumeratorFlags flags = EnumeratorFlags::None;
+        if (includeNonEnumerable)
+        {
+            flags |= EnumeratorFlags::EnumNonEnumerable;
+        }
+        if (includeSymbolProperties)
+        {
+            flags |= EnumeratorFlags::EnumSymbols;
+        }
+        if (!object->GetEnumerator(&enumerator, flags, scriptContext))
         {
             return newArr;  // Return an empty array if we don't have an enumerator
         }
 
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(enumeratorVar);
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
         Var propertyName = nullptr;
         PropertyId propertyId;
@@ -1143,7 +1150,7 @@ namespace Js
         const PropertyRecord* propertyRecord;
         JavascriptSymbol* symbol;
 
-        while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(propertyId)) != NULL)
         {
             if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
             {
@@ -1508,20 +1515,19 @@ namespace Js
 
     void JavascriptObject::AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
-        Var enumeratorVar = nullptr;
-        if (!from->GetEnumerator(FALSE /*only enumerable properties*/, &enumeratorVar, scriptContext, true, true))
+        JavascriptStaticEnumerator enumerator;
+        if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols, scriptContext))
         {
             //nothing to enumerate, continue with the nextSource.
             return;
         }
 
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(enumeratorVar);
         PropertyId nextKey = Constants::NoProperty;
         Var propValue = nullptr;
         Var propertyVar = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = pEnumerator->MoveAndGetNext(nextKey)) != NULL)
+        while ((propertyVar = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
@@ -1667,13 +1673,11 @@ namespace Js
             Var originalVar;
         };
 
-        Var tempVar = nullptr;
-        if (!props->GetEnumerator(FALSE, &tempVar, scriptContext, false, true))
+        JavascriptStaticEnumerator enumerator;
+        if (!props->GetEnumerator(&enumerator, EnumeratorFlags::EnumSymbols, scriptContext))
         {
             return object;
         }
-
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(tempVar);
 
         ENTER_PINNED_SCOPE(DescriptorMap, descriptors);
         descriptors = RecyclerNewArray(scriptContext->GetRecycler(), DescriptorMap, descSize);
@@ -1682,9 +1686,10 @@ namespace Js
         PropertyRecord const * propertyRecord;
         JavascriptString* propertyName = nullptr;
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
+        Var tempVar;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = pEnumerator->MoveAndGetNext(propId)) != NULL)
+        while ((tempVar = enumerator.MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {

@@ -1,0 +1,6 @@
+myobj.propertyIsEnumerable('a'): true
+myobj.propertyIsEnumerable(101): true
+myobj.propertyIsEnumerable("101"): true
+myobj.propertyIsEnumerable("10"): false
+101 is enumerable true
+a is enumerable true

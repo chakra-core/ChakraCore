@@ -70,8 +70,8 @@ namespace TTD
             Count
         };
 
-        void InitKeyNamesArray(LPCWSTR** names, size_t** lengths);
-        void CleanupKeyNamesArray(LPCWSTR** names, size_t** lengths);
+        void InitKeyNamesArray(const char16*** names, size_t** lengths);
+        void CleanupKeyNamesArray(const char16*** names, size_t** lengths);
     }
 
     ////
@@ -81,7 +81,7 @@ namespace TTD
     {
     private:
         //The file that we are writing into
-        HANDLE m_hfile;
+        JsTTDStreamHandle m_hfile;
         TTDWriteBytesToStreamCallback m_pfWrite;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
@@ -181,7 +181,7 @@ namespace TTD
         }
 
     public:
-        FileWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        FileWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileWriter();
 
         void FlushAndClose();
@@ -249,6 +249,8 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
+
+        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
     };
 
     //A implements the writer for verbose text formatted output
@@ -256,14 +258,14 @@ namespace TTD
     {
     private:
         //Array of key names and their lengths
-        LPCWSTR* m_keyNameArray;
+        const char16** m_keyNameArray;
         size_t* m_keyNameLengthArray;
 
         //indent size for formatting
         uint32 m_indentSize;
 
     public:
-        TextFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatWriter();
 
         ////
@@ -301,13 +303,15 @@ namespace TTD
         virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //A implements the writer for a compact binary formatted output
     class BinaryFormatWriter : public FileWriter
     {
     public:
-        BinaryFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        BinaryFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~BinaryFormatWriter();
 
         ////
@@ -345,6 +349,8 @@ namespace TTD
         virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -353,7 +359,7 @@ namespace TTD
     class FileReader
     {
     private:
-        HANDLE m_hfile;
+        JsTTDStreamHandle m_hfile;
         TTDReadBytesFromStreamCallback m_pfRead;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
@@ -494,7 +500,7 @@ namespace TTD
         void FileReadAssert(bool ok);
 
     public:
-        FileReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        FileReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileReader();
 
         virtual void ReadSeperator(bool readSeparator) = 0;
@@ -571,6 +577,8 @@ namespace TTD
             this->ReadKey(keyCheck, readSeparator);
             return this->ReadNakedWellKnownToken(alloc);
         }
+
+        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) = 0;
     };
 
     //////////////////
@@ -579,34 +587,34 @@ namespace TTD
     class TextFormatReader : public FileReader
     {
     private:
-        JsUtil::List<wchar, HeapAllocator> m_charListPrimary;
-        JsUtil::List<wchar, HeapAllocator> m_charListOpt;
-        JsUtil::List<wchar, HeapAllocator> m_charListDiscard;
+        JsUtil::List<char16, HeapAllocator> m_charListPrimary;
+        JsUtil::List<char16, HeapAllocator> m_charListOpt;
+        JsUtil::List<char16, HeapAllocator> m_charListDiscard;
 
         //Array of key names and their lengths
-        LPCWSTR* m_keyNameArray;
+        const char16** m_keyNameArray;
         size_t* m_keyNameLengthArray;
 
-        NSTokens::ParseTokenKind Scan(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind Scan(JsUtil::List<char16, HeapAllocator>& charList);
 
-        NSTokens::ParseTokenKind ScanKey(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanKey(JsUtil::List<char16, HeapAllocator>& charList);
 
         NSTokens::ParseTokenKind ScanSpecialNumber();
-        NSTokens::ParseTokenKind ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanAddress(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanLogTag(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanEnumTag(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanWellKnownToken(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanNumber(JsUtil::List<char16, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanAddress(JsUtil::List<char16, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanLogTag(JsUtil::List<char16, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanEnumTag(JsUtil::List<char16, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanWellKnownToken(JsUtil::List<char16, HeapAllocator>& charList);
 
-        NSTokens::ParseTokenKind ScanString(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanNakedString(wchar leadChar);
+        NSTokens::ParseTokenKind ScanString(JsUtil::List<char16, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanNakedString(char16 leadChar);
 
-        int64 ReadIntFromCharArray(const wchar* buff);
-        uint64 ReadUIntFromCharArray(const wchar* buff);
-        double ReadDoubleFromCharArray(const wchar* buff);
+        int64 ReadIntFromCharArray(const char16* buff);
+        uint64 ReadUIntFromCharArray(const char16* buff);
+        double ReadDoubleFromCharArray(const char16* buff);
 
     public:
-        TextFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatReader();
 
         virtual void ReadSeperator(bool readSeparator) override;
@@ -640,13 +648,15 @@ namespace TTD
 
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
+
+        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) override;
     };
 
     //A serialization class that reads a compact binary format
     class BinaryFormatReader : public FileReader
     {
     public:
-        BinaryFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        BinaryFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~BinaryFormatReader();
 
         virtual void ReadSeperator(bool readSeparator) override;
@@ -680,6 +690,8 @@ namespace TTD
 
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
+
+        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) override;
     };
 
     //////////////////
@@ -802,13 +814,17 @@ namespace TTD
             this->ForceFlush();
         }
 
-        void WriteVar(Js::Var var);
+        void WriteEnumAction(int64 eTime, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attrib, Js::JavascriptString* pname);
+
+        void WriteVar(Js::Var var, bool skipStringContents=false);
 
         void WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv, int64 etime);
         void WriteReturn(Js::JavascriptFunction* function, Js::Var res, int64 etime);
         void WriteReturnException(Js::JavascriptFunction* function, int64 etime);
 
         void WriteStmtIndex(uint32 line, uint32 column);
+
+        void WriteTraceValue(Js::Var var);
     };
 #endif
 }

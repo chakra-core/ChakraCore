@@ -24,49 +24,6 @@ void CopyException (EXCEPINFO *peiDest, const EXCEPINFO *peiSource)
     }
 }
 
-/***
-*PUBLIC HRESULT GetErrorInfo
-*Purpose:
-*  Filling the given EXCEPINFO structure from the contents of
-*  the current OLE error object (if any).
-*
-*Entry:
-*  pexcepinfo = pointer to caller allocated EXCEPINFO to fillin.
-*
-*Exit:
-*  return value = HRESULT. S_OK if obtained info, else S_FALSE
-*
-*Note:
-*  This routine assumes that the given EXCEPINFO does *not* contain
-*  any strings that need to be freed before its contents are set.
-*
-***********************************************************************/
-HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo)
-{
-    HRESULT hr = S_FALSE;
-
-    memset(pexcepinfo, 0, sizeof(*pexcepinfo));
-    IErrorInfo *perrinfo;
-
-    // GetErrorInfo returns S_FALSE if there is no rich error info
-    // and S_OK if there is.
-
-#ifdef _WIN32
-    if(NOERROR == (hr = GetErrorInfo(0L, &perrinfo)))
-    {
-        perrinfo->GetSource(&pexcepinfo->bstrSource);
-        perrinfo->GetDescription(&pexcepinfo->bstrDescription);
-        perrinfo->GetHelpFile(&pexcepinfo->bstrHelpFile);
-        perrinfo->GetHelpContext(&pexcepinfo->dwHelpContext);
-        perrinfo->Release();
-    }
-#endif
-    
-    return hr;
-}
-
-
-
 /***************************************************************************
 HRESULT mapping
 ***************************************************************************/

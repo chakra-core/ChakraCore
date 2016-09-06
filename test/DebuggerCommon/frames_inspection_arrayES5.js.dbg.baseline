@@ -1,0 +1,28 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 18,
+        "column": 12,
+        "sourceText": "key",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 17,
+        "column": 8,
+        "sourceText": "arr.forEach(function (key, val, map) {\r\n            key;/**bp:stack();locals()**/\r\n        })",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "key": "number 1",
+      "val": "number 0",
+      "map": "Array [1]"
+    },
+    "scopes0": "undefined undefined"
+  }
+]

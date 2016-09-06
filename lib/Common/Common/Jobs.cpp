@@ -531,7 +531,7 @@ namespace JsUtil
 
             this->parallelThreadData[i]->processor = this;
             // Make sure to create the thread suspended so the thread handle can be assigned before the thread starts running
-            this->parallelThreadData[i]->threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, this->parallelThreadData[i], CREATE_SUSPENDED, 0));
+            this->parallelThreadData[i]->threadHandle = reinterpret_cast<HANDLE>(PlatformAgnostic::Thread::Create(0, &StaticThreadProc, this->parallelThreadData[i], PlatformAgnostic::Thread::ThreadInitCreateSuspended));
             if (!this->parallelThreadData[i]->threadHandle)
             {
                 HeapDelete(parallelThreadData[i]);

@@ -126,7 +126,7 @@ namespace Js
         LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
         LocalExportMap* localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
         LocalExportIndexList* localExportIndexList; // from index to propertyId: for typehandler.
-        uint numUnParsedChildrenModule;
+        uint numUnInitializedChildrenModule;
         ExportedNames* exportedNames;
         ResolvedExportMap* resolvedExportMap;
 

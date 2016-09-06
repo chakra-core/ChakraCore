@@ -734,10 +734,14 @@ namespace Js
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     }
 
-    BOOL TypedArrayBase::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        *enumerator = RecyclerNew(scriptContext->GetRecycler(), TypedArrayEnumerator, enumNonEnumerable, this, scriptContext, enumSymbols);
-        return true;
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext);
+    }
+
+    JavascriptEnumerator * TypedArrayBase::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext)
+    {
+        return RecyclerNew(requestContext->GetRecycler(), TypedArrayIndexEnumerator, this, flags, requestContext);
     }
 
     BOOL TypedArrayBase::SetItem(uint32 index, Var value, PropertyOperationFlags flags)

@@ -14,14 +14,15 @@ namespace Js
         static FunctionInfo functionInfo;
         GeneratorVirtualScriptFunction* scriptFunction;
 
-        DEFINE_VTABLE_CTOR(JavascriptGeneratorFunction, ScriptFunctionBase);
-        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGeneratorFunction);
-
         bool GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, BOOL* result);
 
     protected:
+        DEFINE_VTABLE_CTOR(JavascriptGeneratorFunction, ScriptFunctionBase);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGeneratorFunction);
+
         JavascriptGeneratorFunction(DynamicType* type);
+        JavascriptGeneratorFunction(DynamicType* type, FunctionInfo* functionInfo, GeneratorVirtualScriptFunction* scriptFunction);
 
     public:
         JavascriptGeneratorFunction(DynamicType* type, GeneratorVirtualScriptFunction* scriptFunction);
@@ -34,6 +35,7 @@ namespace Js
 
         static JavascriptGeneratorFunction* OP_NewScGenFunc(FrameDisplay* environment, FunctionProxy** proxyRef);
         static Var EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAsyncFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
         static DWORD GetOffsetOfScriptFunction() { return offsetof(JavascriptGeneratorFunction, scriptFunction); }
 
         virtual Var GetHomeObj() const override;
@@ -76,6 +78,27 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+    };
+
+    class JavascriptAsyncFunction : public JavascriptGeneratorFunction
+    {
+    private:
+        static FunctionInfo functionInfo;
+
+        DEFINE_VTABLE_CTOR(JavascriptAsyncFunction, JavascriptGeneratorFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptAsyncFunction);
+
+    protected:
+        JavascriptAsyncFunction(DynamicType* type);
+
+    public:
+        JavascriptAsyncFunction(DynamicType* type, GeneratorVirtualScriptFunction* scriptFunction);
+
+        static JavascriptAsyncFunction* New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction);
+        static DWORD GetOffsetOfScriptFunction() { return JavascriptGeneratorFunction::GetOffsetOfScriptFunction(); }
+
+        static JavascriptAsyncFunction* FromVar(Var var);
+        static bool Is(Var var);
     };
 
     class GeneratorVirtualScriptFunction : public ScriptFunction

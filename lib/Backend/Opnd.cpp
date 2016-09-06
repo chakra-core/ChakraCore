@@ -833,20 +833,43 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
+    Js::Type *cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+
     Js::Type *finalType = this->GetFinalType();
-    if (finalType == nullptr || !Js::DynamicType::Is(finalType->GetTypeId()))
+    if (finalType && Js::DynamicType::Is(finalType->GetTypeId()))
+    {
+        // This is the case where final type opt may cause pro-active type transition to take place.
+
+        Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+
+        Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
+        Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
+
+        return cachedTypeHandler->GetInlineSlotCapacity() != finalTypeHandler->GetInlineSlotCapacity() ||
+            cachedTypeHandler->GetOffsetOfInlineSlots() != finalTypeHandler->GetOffsetOfInlineSlots();
+    }
+
+    if (!this->HasInitialType())
     {
         return false;
     }
 
-    Js::Type *cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
-    Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+    Js::Type *initialType = this->GetInitialType();
+    if (initialType && Js::DynamicType::Is(initialType->GetTypeId()))
+    {
+        // This is the case where the type transition actually occurs. (This is the only case that's detectable
+        // during the loop pre-pass, since final types are not in place yet.)
 
-    Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
-    Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
+        Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
 
-    return cachedTypeHandler->GetInlineSlotCapacity() != finalTypeHandler->GetInlineSlotCapacity() ||
-        cachedTypeHandler->GetOffsetOfInlineSlots() != finalTypeHandler->GetOffsetOfInlineSlots();
+        Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
+        Js::DynamicTypeHandler * initialTypeHandler = (static_cast<Js::DynamicType*>(initialType))->GetTypeHandler();
+
+        return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
+            cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
+    }
+
+    return false;
 }
 
 void

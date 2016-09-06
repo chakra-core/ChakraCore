@@ -4635,7 +4635,7 @@ Recycler::EnableConcurrent(JsUtil::ThreadService *threadService, bool startAllTh
 
         if (startConcurrentThread)
         {
-            HANDLE concurrentThread = (HANDLE)_beginthreadex(NULL, Recycler::ConcurrentThreadStackSize, &Recycler::StaticThreadProc, this, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
+            HANDLE concurrentThread = (HANDLE)PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, &Recycler::StaticThreadProc, this, PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation);
             if (concurrentThread != nullptr)
             {
                 // Wait for recycler thread to initialize
@@ -6069,7 +6069,7 @@ RecyclerParallelThread::EnableConcurrent(bool waitForThread)
         return false;
     }
 
-    this->concurrentThread = (HANDLE)_beginthreadex(NULL, Recycler::ConcurrentThreadStackSize, &RecyclerParallelThread::StaticThreadProc, this, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
+    this->concurrentThread = (HANDLE)PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, &RecyclerParallelThread::StaticThreadProc, this, PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation);
 
     if (this->concurrentThread != nullptr && waitForThread)
     {

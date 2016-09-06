@@ -5,6 +5,7 @@
     "locals": {
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -16,6 +17,7 @@
     "locals": {
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -26,6 +28,7 @@
       "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -54,6 +57,7 @@
       "print": "function print",
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -64,6 +68,7 @@
       "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -113,6 +118,7 @@
       "print": "function print",
       "read": "function read",
       "readbuffer": "function readbuffer",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"

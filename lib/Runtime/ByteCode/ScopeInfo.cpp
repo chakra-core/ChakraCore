@@ -69,6 +69,7 @@ namespace Js
         // Add argsPlaceHolder which includes same name args and destructuring patterns on parameters
         AddSlotCount(count, scope->GetFunc()->argsPlaceHolderSlotCount);
         AddSlotCount(count, scope->GetFunc()->thisScopeSlot != Js::Constants::NoRegister ? 1 : 0);
+        AddSlotCount(count, scope->GetFunc()->superScopeSlot != Js::Constants::NoRegister ? 1 : 0);
         AddSlotCount(count, scope->GetFunc()->newTargetScopeSlot != Js::Constants::NoRegister ? 1 : 0);
 
         ScopeInfo* scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(),
@@ -91,33 +92,6 @@ namespace Js
             Assert(scope == sym->GetScope());
             scopeInfo->SaveSymbolInfo(sym, &mapSymbolData);
         });
-
-        return scopeInfo;
-    }
-
-    //
-    // Clone a ScopeInfo object
-    //
-    ScopeInfo *ScopeInfo::CloneFor(ParseableFunctionInfo *body)
-    {
-        auto count = this->symbolCount;
-        auto symbolsSize = count * sizeof(SymbolInfo);
-        auto scopeInfo = RecyclerNewPlusZ(parent->GetScriptContext()->GetRecycler(), symbolsSize,
-            ScopeInfo, parent, count);
-        scopeInfo->isDynamic = this->isDynamic;
-        scopeInfo->isObject = this->isObject;
-        scopeInfo->mustInstantiate = this->mustInstantiate;
-        scopeInfo->isCached = this->isCached;
-        scopeInfo->isGlobalEval = this->isGlobalEval;
-        if (funcExprScopeInfo)
-        {
-            scopeInfo->funcExprScopeInfo = funcExprScopeInfo->CloneFor(body);
-        }
-        if (paramScopeInfo)
-        {
-            scopeInfo->paramScopeInfo = paramScopeInfo->CloneFor(body);
-        }
-        memcpy_s(scopeInfo->symbols, symbolsSize, this->symbols, symbolsSize);
 
         return scopeInfo;
     }

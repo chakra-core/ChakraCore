@@ -113,7 +113,7 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     $buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
 
     # commit message
-    $command = "$gitExe log -1 --name-status -p $commitHash"
+    $command = "$gitExe log -1 --name-status -m --first-parent -p $commitHash"
     $CommitMessageLines = iex $command
     $CommitMessage = $CommitMessageLines -join "`r`n"
 

@@ -1,0 +1,94 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "a": "number 1",
+      "b": "number 2"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "b": "number 2",
+      "a": "number 1",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "b": "number 2",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "a": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "a": "number 1",
+      "b": "number 2"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Run": "function <large string>"
+    }
+  }
+]

@@ -87,9 +87,10 @@ CHAKRA_API JsDiagStartDebugging(
                 debugContext->SetHostDebugContext(jsrtDebugManager);
             }
 
-            if (FAILED(scriptContext->OnDebuggerAttached()))
+            HRESULT hr;
+            if (FAILED(hr = scriptContext->OnDebuggerAttached()))
             {
-                Debugger_AttachDetach_fatal_error(); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 
@@ -129,9 +130,10 @@ CHAKRA_API JsDiagStopDebugging(
         {
             Assert(scriptContext->IsScriptContextInDebugMode());
 
-            if (FAILED(scriptContext->OnDebuggerDetached()))
+            HRESULT hr;
+            if (FAILED(hr = scriptContext->OnDebuggerDetached()))
             {
-                Debugger_AttachDetach_fatal_error(); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 
@@ -427,6 +429,28 @@ CHAKRA_API JsDiagSetStepType(
         else if (stepType == JsDiagStepTypeStepOver)
         {
             jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
+        }
+        else if (stepType == JsDiagStepTypeStepBack)
+        {
+#if ENABLE_TTD_DEBUGGING
+            ThreadContext* threadContext = runtime->GetThreadContext();
+            if(threadContext->TTDLog == nullptr || !threadContext->TTDLog->ShouldPerformDebugAction_BreakPointAction())
+            {
+                return JsErrorInvalidArgument;
+            }
+
+            TTD::TTDebuggerSourceLocation bpLocation;
+            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(bpLocation);
+            threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
+
+            threadContext->TTDLog->LoadBPListForContextRecreate();
+
+            //don't worry about BP suppression because we are just going to throw after we return
+
+            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+#else
+            return JsErrorInvalidArgument;
+#endif
         }
 
         return JsNoError;

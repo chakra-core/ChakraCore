@@ -101,27 +101,6 @@ namespace Js
         return (Var)newDisplay;
     }
 
-    /*
-        Enumerators are always created in current script context, and if the underlying object is a cross
-        site object, we'll marshal the enumerator by changing the vtbl of the base enumerator, such that
-        we will marshal the return index before it's returned to caller.
-        Notice that enumerator marshalling is somewhat different from the object marshalling. We have only
-        one instance of object in cross site usage, but we can create multiple enumerators from different
-        script context for the same cross site object.
-    */
-    Var CrossSite::MarshalEnumerator(ScriptContext* scriptContext, Var value)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(value);
-        if (typeId != TypeIds_Enumerator)
-        {
-            AssertMsg(FALSE, "invalid enumerator");
-            return value;
-        }
-        JavascriptEnumerator* enumerator = JavascriptEnumerator::FromVar(value);
-        enumerator->MarshalToScriptContext(scriptContext);
-        return enumerator;
-    }
-
     // static
     Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
     {

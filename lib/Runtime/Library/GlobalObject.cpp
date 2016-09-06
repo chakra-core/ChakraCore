@@ -995,7 +995,7 @@ namespace Js
                 funcBody = funcBody->GetParseableFunctionInfo(); // RegisterFunction may parse and update function body
             }
 
-            ScriptFunction* pfuncScript = funcBody->IsGenerator() ?
+            ScriptFunction* pfuncScript = funcBody->IsCoroutine() ?
                 scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(funcBody) :
                 scriptContext->GetLibrary()->CreateScriptFunction(funcBody);
 
@@ -1651,6 +1651,7 @@ LHexError:
             //TODO: the host should give us a print callback which we can use here
             //
             wprintf(_u("%ls\n"), jsString->GetSz());
+            fflush(stdout);
         }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();

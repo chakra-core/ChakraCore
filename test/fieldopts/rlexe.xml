@@ -203,7 +203,7 @@
       <files>fieldhoist_negzero.js</files>
       <compile-flags>-force:fieldhoist -Serialized</compile-flags>
       <baseline>fieldhoist_negzero.baseline</baseline>
-      <tags>exclude_ship</tags>
+      <tags>exclude_ship,exclude_forceserialized</tags>
     </default>
   </test>
   <test>

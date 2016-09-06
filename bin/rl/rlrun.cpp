@@ -353,9 +353,20 @@ int
     // Avoid conditionals by copying/creating ccFlags appropriately.
 
     if (inCCFlags)
-        sprintf_s(ccFlags, " %s", inCCFlags);
+    {
+        if (pDir->HasTestInfoData(TIK_SOURCE_PATH))
+        {
+            sprintf_s(ccFlags, " %s -baselinePath:%s", inCCFlags, pDir->GetDirectoryPath());
+        }
+        else
+        {
+            sprintf_s(ccFlags, " %s", inCCFlags);
+        }
+    }
     else
+    {
         ccFlags[0] = '\0';
+    }
 
     switch (TargetMachine) {
     case TM_WVM:
@@ -495,7 +506,7 @@ int
         {
             cmd = pTestVariant->testInfo.data[TIK_COMMAND];
         }
-        sprintf_s(cmdbuf, "%s %s %s %s %s >testout%d 2>&1", cmd, optFlags, tempExtraCCFlags, ccFlags, testCmd, localTestCount);
+        sprintf_s(cmdbuf, "%s %s %s %s %s >%s 2>&1", cmd, optFlags, tempExtraCCFlags, ccFlags, testCmd, full);
 
         Message("Running '%s'", cmdbuf);
 
@@ -505,7 +516,7 @@ int
             return 0;
         }
 
-        cmdResult = ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf, millisecTimeout, envFlags);
+        cmdResult = ExecuteCommand(pDir->GetFullPathFromSourceOrDirectory(), cmdbuf, millisecTimeout, envFlags);
 
         if (cmdResult && cmdResult != WAIT_TIMEOUT && !pTestVariant->testInfo.data[TIK_BASELINE]) // failure code, not baseline diffing
         {
@@ -535,7 +546,7 @@ int
     if (pTestVariant->testInfo.data[TIK_BASELINE]) {
         char baseline_file[_MAX_PATH];
 
-        sprintf_s(baseline_file, "%s\\%s", pDir->GetDirectoryPath(),
+        sprintf_s(baseline_file, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
             pTestVariant->testInfo.data[TIK_BASELINE]);
         if (DoCompare(baseline_file, full)) {
             reason = "diffs from baseline";
@@ -1031,7 +1042,7 @@ BOOL
             fFailed = TRUE;
         }
         else {
-            sprintf_s(full, "%s\\%s", pDir->GetDirectoryPath(),
+            sprintf_s(full, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
                 pTestVariant->testInfo.data[TIK_BASELINE]);
             if (DoCompare(tmp_file1, full)) {
 
@@ -1301,7 +1312,7 @@ int
         // If we have no pathname, use the current directory.
 
         if (p == pFile->string) {
-            sprintf_s(full, "%s\\", pDir->GetDirectoryPath());
+            sprintf_s(full, "%s\\", pDir->GetFullPathFromSourceOrDirectory());
         }
         else {
 
@@ -1326,7 +1337,7 @@ int
         strcat_s(full, p);
 
         if (GetFileAttributes(full) == INVALID_FILE_ATTRIBUTES) {
-            LogError("ERROR: '%s' does not exist", pFile->string);
+            LogError("ERROR: '%s' does not exist", full);
             return -1;
         }
     }

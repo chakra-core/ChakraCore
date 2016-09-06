@@ -32,6 +32,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     -Wl,--no-whole-archive
     -Wl,--end-group
     )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(LINKER_START_GROUP -Wl,-force_load,)
 endif()
 
 # common link deps

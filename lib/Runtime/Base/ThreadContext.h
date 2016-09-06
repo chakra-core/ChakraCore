@@ -990,21 +990,17 @@ public:
 #endif
 
 #if ENABLE_TTD
-    bool IsTTRequested;
     bool IsTTRecordRequested;
     bool IsTTDebugRequested;
-    char16* TTDUri;
+    TTD::TTUriString TTDUri;
     uint32 TTSnapInterval;
     uint32 TTSnapHistoryLength;
 
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
 
-    //return true if thread context is initialized for TTD
-    bool IsTTDInitialized() const;
-
     //Initialize the context for time-travel
-    void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength);
+    void InitTimeTravel(bool doRecord, bool doReplay);
     void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
     void EndCtxTimeTravel(Js::ScriptContext* ctx);
 
@@ -1014,7 +1010,6 @@ public:
     //
     //Callback functions provided by the host for writing info to some type of storage location
     //
-    TTD::TTDInitializeTTDUriCallback TTDInitializeTTDUriFunction;
     TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
     TTD::IOStreamFunctions TTDStreamFunctions;
 #endif

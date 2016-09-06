@@ -441,6 +441,8 @@ var controllerObj = (function () {
                     if (execStr && execStr.toString().search("removeExpr()") != -1) {
                         _onasyncbreakCommands = undefined;
                     }
+                } else if (id === "debuggerStatement") {
+                    execStr = "dumpBreak();locals();stack();"
                 } else {
                     // Retrieve this breakpoint's execution string
                     execStr = bpManager.getExecStr(id);
@@ -831,9 +833,11 @@ var controllerObj = (function () {
                     /*JsDiagDebugEventBreakpoint*/
                 case 3:
                     /*JsDiagDebugEventStepComplete*/
+                    handleBreakpoint(("breakpointId" in eventData) ? eventData.breakpointId : -1);
+                    break;
                 case 4:
                     /*JsDiagDebugEventDebuggerStatement*/
-                    handleBreakpoint(("breakpointId" in eventData) ? eventData.breakpointId : -1);
+                    handleBreakpoint("debuggerStatement");
                     break;
                 case 5:
                     /*JsDiagDebugEventAsyncBreak*/

@@ -269,7 +269,7 @@ namespace Js
         }
         else 
 #endif
-            if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
+            if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments().Values;
@@ -1016,7 +1016,7 @@ namespace Js
             // hidden frame display here?
             return (CallInfo const *)&inlinedFrameCallInfo;
         }
-        else if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
+        else if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return &gen->GetArguments().Info;
@@ -1042,7 +1042,7 @@ namespace Js
         Assert(!inlinedFramesBeingWalked);
         Assert(this->IsJavascriptFrame());
 
-        if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
+        if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments()[0];

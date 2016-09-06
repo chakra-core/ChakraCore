@@ -249,7 +249,6 @@ namespace Js {
 
         static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
 
-        ScopeInfo *CloneFor(ParseableFunctionInfo *body);
         void EnsurePidTracking(ScriptContext* scriptContext);
 
         void GetScopeInfo(Parser *parser, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Scope* scope);

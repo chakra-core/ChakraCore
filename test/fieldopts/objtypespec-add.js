@@ -180,7 +180,9 @@ test5();
 test5();
 test5();
 function printAll(n, v) {
-  for (var c in v)
-    printAll(n, v[c]);
+  for (var c in v) {
+    if (typeof v != "string")
+      printAll(c, v[c]);
+  }
 }
 printAll('this', this);

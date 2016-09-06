@@ -24,6 +24,10 @@ namespace TTD
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FrameDisplay*> m_environmentMap;
         TTDIdentifierDictionary<TTD_PTR_ID, Js::Var*> m_slotArrayMap;
 
+        //The maps for resolving debug scopes
+        TTDIdentifierDictionary<TTD_PTR_ID, Js::FunctionBody*> m_debuggerScopeHomeBodyMap;
+        TTDIdentifierDictionary<TTD_PTR_ID, int32> m_debuggerScopeChainIndexMap;
+
         //A dictionary for the Promise related bits (not typesafe and a bit ugly but I prefer it to creating multiple additional collections)
         JsUtil::BaseDictionary<TTD_PTR_ID, void*, HeapAllocator> m_promiseDataMap;
 
@@ -45,8 +49,8 @@ namespace TTD
         InflateMap();
         ~InflateMap();
 
-        void PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount);
-        void PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount);
+        void PrepForInitialInflate(ThreadContext* threadContext, uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount);
+        void PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount);
         void CleanupAfterInflate();
 
         bool IsObjectAlreadyInflated(TTD_PTR_ID objid) const;
@@ -67,6 +71,8 @@ namespace TTD
         Js::FrameDisplay* LookupEnvironment(TTD_PTR_ID envid) const;
         Js::Var* LookupSlotArray(TTD_PTR_ID slotid) const;
 
+        void LookupInfoForDebugScope(TTD_PTR_ID dbgScopeId, Js::FunctionBody** homeBody, int32* chainIndex) const;
+
         ////
 
         void AddDynamicHandler(TTD_PTR_ID handlerId, Js::DynamicTypeHandler* value);
@@ -78,6 +84,8 @@ namespace TTD
         void AddInflationFunctionBody(TTD_PTR_ID functionId, Js::FunctionBody* value);
         void AddEnvironment(TTD_PTR_ID envId, Js::FrameDisplay* value);
         void AddSlotArray(TTD_PTR_ID slotId, Js::Var* value);
+
+        void UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb);
 
         ////
 
@@ -148,7 +156,7 @@ namespace TTD
         struct PathEntry
         {
             int64 IndexOrPID;
-            LPCWSTR OptName;
+            const char16* OptName;
         };
 
     private:
@@ -194,6 +202,8 @@ namespace TTD
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H1FunctionBodyMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H1ObjectMap;
 
+        JsUtil::BaseHashSet<TTD_PTR_ID, HeapAllocator> H1PendingAsyncModBufferSet;
+
         ////
         //H2 Maps
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H2ValueMap;
@@ -205,6 +215,8 @@ namespace TTD
         JsUtil::BaseDictionary<TTD_PTR_ID, uint64, HeapAllocator> H2FunctionTopLevelEvalMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H2FunctionBodyMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H2ObjectMap;
+
+        JsUtil::BaseHashSet<TTD_PTR_ID, HeapAllocator> H2PendingAsyncModBufferSet;
 
         ////
         //Code
@@ -220,7 +232,7 @@ namespace TTD
 
         void CheckConsistentAndAddPtrIdMapping_Scope(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, uint32 index);
         void CheckConsistentAndAddPtrIdMapping_FunctionBody(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
-        void CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, LPCWSTR specialField);
+        void CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, const char16* specialField);
         void CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_PTR_ID tag);
 
         //Check if the given mapping is consistent but do not enqueue or try to lookup ptr id in any of the maps (used mainly for heap allocated promise info that may be shared)

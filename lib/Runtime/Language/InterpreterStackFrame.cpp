@@ -1084,6 +1084,7 @@ namespace Js
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
         newInstance->isParamScopeDone = false;
+        newInstance->shouldCacheSP = true;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -1807,7 +1808,7 @@ namespace Js
         InterpreterStackFrame* newInstance = nullptr;
         Var* allocation = nullptr;
 
-        if (!isAsmJs && executeFunction->IsGenerator())
+        if (!isAsmJs && executeFunction->IsCoroutine())
         {
             // If the FunctionBody is a generator then this call is being made by one of the three
             // generator resuming methods: next(), throw(), or return().  They all pass the generator
@@ -2338,7 +2339,7 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
         if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
@@ -2375,7 +2376,7 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
         if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
@@ -4491,7 +4492,8 @@ namespace Js
     template <class T>
     inline void InterpreterStackFrame::DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
-        DoSetSuperProperty_NoFastPath(playout, instance, flags);
+        DoSetSuperProperty_NoFastPath(playout, instance, m_functionBody->GetIsStrictMode() ?
+            (PropertyOperationFlags)(flags | PropertyOperation_StrictMode) : flags);
     }
 
     template <class T>
@@ -4582,7 +4584,8 @@ namespace Js
             GetInlineCache(playout->PropertyIdIndex),
             playout->PropertyIdIndex,
             GetReg(playout->Value),
-            flags,
+            m_functionBody->GetIsStrictMode() ?
+                (PropertyOperationFlags)(flags | PropertyOperation_StrictMode ) : flags,
             GetJavascriptFunction(),
             thisInstance);
     }
@@ -5257,12 +5260,16 @@ namespace Js
         Assert(arrayInfo);
 
         JavascriptArray *arr;
-        JavascriptLibrary *lib = scriptContext->GetLibrary();
-
         if (arrayInfo && arrayInfo->IsNativeIntArray())
         {
 #if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary *lib = scriptContext->GetLibrary();
+
+#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
+            if(JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
+#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count))
+#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
@@ -6566,7 +6573,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         //Clear any previous Exception Info
         if(this->scriptContext->ShouldPerformDebugAction())
         {
-            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrame();
+            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrames();
         }
 #endif
 
@@ -6790,7 +6797,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
-            CacheSp();
+            if (shouldCacheSP)
+            {
+                CacheSp();
+            }
 
             if (this->IsInDebugMode())
             {
@@ -6818,10 +6828,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
         }
 
+        shouldCacheSP = !skipFinallyBlock;
+
         if (skipFinallyBlock)
         {
-            RestoreSp();
-
             // A leave occurred due to a yield
             return;
         }
@@ -7455,24 +7465,24 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->scriptContext->GetDebugContext()->GetProbeContainer()->SetCurrentTmpRegCount(playout->C1);
     }
 
-    Var InterpreterStackFrame::OP_LdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuper(function, scriptContext);
+        return JavascriptOperators::OP_LdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_LdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_LdFuncObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuper(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdFuncObj(function, scriptContext);
     }
 
     void InterpreterStackFrame::ValidateRegValue(Var value, bool allowStackVar, bool allowStackVarOnDisabledStackNestedFunc) const
@@ -7509,6 +7519,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
         {
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
 #endif
     }
@@ -7606,6 +7623,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
         }
 #endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
+        }
+#endif
     }
 
     template <typename RegSlotType>
@@ -7627,6 +7651,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
         {
             static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
+
+#if ENABLE_VALUE_TRACE
+        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        {
+            this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
 #endif
     }

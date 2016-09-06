@@ -216,15 +216,14 @@ namespace Js
         return GetProperty(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL ModuleNamespace::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, scriptContext, !!enumNonEnumerable, enumSymbols);
+        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, flags, requestContext);
         if (moduleEnumerator == nullptr)
         {
             return FALSE;
         }
-        *enumerator = moduleEnumerator;
-        return TRUE;
+        return enumerator->Initialize(moduleEnumerator, nullptr, nullptr, flags, requestContext);
     }
 
     BOOL ModuleNamespace::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
@@ -265,20 +264,7 @@ namespace Js
         return Constants::NoProperty;
     }
 
-    Var ModuleNamespace::GetNextProperty(BigPropertyIndex& index)
-    {
-        PropertyId propertyId;
-        Var result = GetLibrary()->GetUndefined();
-        BOOL retVal = FALSE;
-        if (this->FindNextProperty(index, nullptr, &propertyId, nullptr))
-        {
-            retVal = this->GetProperty(this, propertyId, &result, nullptr, GetScriptContext());
-            Assert(retVal);
-        }
-        return result;
-    }
-
-    BOOL ModuleNamespace::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes) const
+    BOOL ModuleNamespace::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const
     {
         if (index < propertyMap->Count())
         {
@@ -288,7 +274,7 @@ namespace Js
             *propertyId = propertyRecord->GetPropertyId();
             if (propertyString != nullptr)
             {
-                *propertyString = GetScriptContext()->GetPropertyString(*propertyId);
+                *propertyString = requestContext->GetPropertyString(*propertyId);
             }
             if (attributes != nullptr)
             {

@@ -1,0 +1,165 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 33,
+        "column": 4,
+        "sourceText": "x",
+        "function": "baz"
+      },
+      {
+        "line": 26,
+        "column": 8,
+        "sourceText": "baz()",
+        "function": "bar"
+      },
+      {
+        "line": 17,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 48,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "x": "number 2"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 27,
+        "column": 0,
+        "sourceText": "}",
+        "function": "bar"
+      },
+      {
+        "line": 17,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 48,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    },
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[baz returned]": "undefined undefined"
+    },
+    "locals": {
+      "_bar": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "_barargs": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    },
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[bar returned]": "undefined undefined"
+    },
+    "locals": {
+      "_foo": "string foo",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "_fooargs": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "baz": "function <large string>",
+      "Run": "function <large string>",
+      "callcount": "number 5"
+    }
+  }
+]

@@ -5,7 +5,6 @@
 #include "CommonCorePch.h"
 
 #ifdef PROFILE_MEM
-#include "DataStructures/quicksort.h"
 #include "Memory/AutoPtr.h"
 #include "Core/ProfileMemory.h"
 
@@ -308,7 +307,8 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
     {
         name[i++] = key;
     });
-    JsUtil::QuickSort<LPWSTR, DefaultComparer<LPWSTR>>::Sort(name, name + (count - 1));
+
+    qsort_s(name, count, sizeof(LPWSTR), [](void*, const void* a, const void* b) { return DefaultComparer<LPWSTR>::Compare(*(LPWSTR*)a, *(LPWSTR*)b); }, nullptr);
 
     summaries = AnewArray(alloc, ArenaMemoryDataSummary *, count);
 
@@ -322,7 +322,7 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
         {
             if (data == nullptr)
             {
-                summaries[i] = nullptr;
+                summaries[j] = nullptr;
                 continue;
             }
             localSummary = AnewStructZ(alloc, ArenaMemoryDataSummary);
@@ -343,7 +343,7 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
         {
             localSummary->arenaCount = localSummary->outstandingCount;
         }
-        summaries[i] = localSummary;
+        summaries[j] = localSummary;
     }
 
     return count;

@@ -220,7 +220,7 @@ namespace Js
                     Output::Print(_u(" (\"%s\")"), dumpFunction->GetScriptContext()->GetLibrary()->GetStringTemplateCallsiteObjectKey(varConst));
                     break;
                 default:
-                    AssertMsg(UNREACHED, "Unexpected object type in CloneConstantTable");
+                    AssertMsg(UNREACHED, "Unexpected object type in DumpConstantTable");
                     break;
                 }
             }
