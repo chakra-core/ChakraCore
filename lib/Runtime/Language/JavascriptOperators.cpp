@@ -9374,6 +9374,8 @@ CommonNumber:
             return;
         }
 
+        uint unregisteredInlineCacheCount = 0;
+
         Assert(inlineCaches && size > 0);
 
         // If we're not shutting down (as in closing the script context), we need to remove our inline caches from
@@ -9390,7 +9392,10 @@ CommonNumber:
         {
             for (int i = 0; i < size; i++)
             {
-                inlineCaches[i].RemoveFromInvalidationList();
+                if (inlineCaches[i].RemoveFromInvalidationList())
+                {
+                    unregisteredInlineCacheCount++;
+                }
             }
 
             AllocatorDeleteArray(InlineCacheAllocator, functionBody->GetScriptContext()->GetInlineCacheAllocator(), size, inlineCaches);
@@ -9426,6 +9431,10 @@ CommonNumber:
         prev = next = nullptr;
         inlineCaches = nullptr;
         size = 0;
+        if (unregisteredInlineCacheCount > 0)
+        {
+            functionBody->GetScriptContext()->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+        }
     }
 
     JavascriptString * JavascriptOperators::Concat3(Var aLeft, Var aCenter, Var aRight, ScriptContext * scriptContext)

@@ -718,6 +718,9 @@ private:
 
     uint registeredInlineCacheCount;
     uint unregisteredInlineCacheCount;
+#if DBG
+    uint totalUnregisteredCacheCount;
+#endif
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
