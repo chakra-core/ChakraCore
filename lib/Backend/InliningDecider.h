@@ -83,7 +83,7 @@ private:
     {
         return inlinee->HasDynamicProfileInfo()
             && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->HasNonBuiltInCallee() : inlinee->GetProfiledCallSiteCount() == 0)
-            && !inlinee->GetDynamicProfileInfo()->HasLdFldCallSiteInfo();
+            && !inlinee->GetAnyDynamicProfileInfo()->HasLdFldCallSiteInfo();
     }
     PREVENT_COPY(InliningDecider)
 };
