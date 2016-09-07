@@ -18,7 +18,7 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(BuildJIT)'!='false'">
     <ClCompile Include="$(MSBuildThisFileDirectory)JITServerStub.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>

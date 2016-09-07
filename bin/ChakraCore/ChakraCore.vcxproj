@@ -29,12 +29,12 @@
         $(ChakraCoreRootDirectory)Lib\Runtime\ByteCode;
         $(ChakraCoreRootDirectory)Lib\Jsrt;
         $(IntDir);
+        $(ChakraJITIDLIntDir);
+        $(MSBuildThisFileDirectory)..\..\lib\JITClient;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(BuildJIT)'!='false'">
         $(ChakraCoreRootDirectory)Lib\Backend;
-        $(ChakraJITIDLIntDir);
-        $(MSBuildThisFileDirectory)..\..\lib\JITClient;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
     </ClCompile>
@@ -68,7 +68,7 @@
     </ClCompile>
     <ClCompile Include="$(MsBuildThisFileDirectory)ConfigParserExternals.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreDLLFunc.cpp" />
-    <ClCompile Include="TestHooks.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)TestHooks.cpp" />
     <None Include="..\CoreCommon.ver" />
   </ItemGroup>
   <ItemGroup>
@@ -100,7 +100,7 @@
     <ProjectReference Include="..\..\lib\JITIDL\Chakra.JITIDL.vcxproj">
       <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\JITServer\Chakra.JITServer.vcxproj">
+    <ProjectReference Include="..\..\lib\JITServer\Chakra.JITServer.vcxproj" Condition="'$(BuildJIT)'!='false'">
       <Project>{31024620-7b97-4ec7-96e8-e7b296a17df4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Jsrt\Chakra.Jsrt.vcxproj">

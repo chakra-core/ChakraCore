@@ -538,6 +538,7 @@ namespace Js
 #endif
     };
 
+#if ENABLE_NATIVE_CODEGEN
     class EquivalentTypeSet
     {
     private:
@@ -569,7 +570,7 @@ namespace Js
         static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);
         void SortAndRemoveDuplicates();
     };
-
+#endif
     enum class CtorCacheGuardValues : intptr_t
     {
         TagFlag = 0x01,

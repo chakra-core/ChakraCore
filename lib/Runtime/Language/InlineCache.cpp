@@ -909,6 +909,7 @@ namespace Js
         }
     }
 #endif
+#if ENABLE_NATIVE_CODEGEN
 
     EquivalentTypeSet::EquivalentTypeSet(JITTypeHolder * types, uint16 count)
         : types(types), count(count), sortedAndDuplicatesRemoved(false)
@@ -1061,6 +1062,7 @@ namespace Js
 
         this->sortedAndDuplicatesRemoved = true;
     }
+#endif
 
     ConstructorCache ConstructorCache::DefaultInstance;
 

@@ -199,6 +199,18 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITType.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFixedField.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -440,20 +452,6 @@
     <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
       <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITObjTypeSpecFldInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITType.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
-    <ClCompile Include="JITTimeFixedField.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

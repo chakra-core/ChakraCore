@@ -23,13 +23,12 @@
       <AdditionalOptions>/protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
     </Midl>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(BuildingGitRepo)'=='true'">
-    <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
-      <OutputDirectory>$(IntDir)</OutputDirectory>
-      <AdditionalOptions>%(AdditionalOptions) /target NT61 /prefix client "Client" server "Server"</AdditionalOptions>
+  <ItemDefinitionGroup Condition="'$(BuildingWithBuildExe)'!='true'">
+    <Midl>
+      <AdditionalOptions>%(AdditionalOptions) /target NT61</AdditionalOptions>
     </Midl>
-  </ItemGroup>
-  <ItemGroup Condition="'$(BuildingWithBuildExe)'=='true'">
+  </ItemDefinitionGroup>
+  <ItemGroup>
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /prefix client "Client" server "Server"</AdditionalOptions>
