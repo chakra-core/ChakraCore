@@ -36,7 +36,7 @@ namespace Js
         typedef ArenaAllocator TAllocator;
     private:
         TAllocator* m_alloc;
-        __declspec(thread) static StackBackTrace* s_stackBackTrace;
+        THREAD_LOCAL static StackBackTrace* s_stackBackTrace;
         StackBackTrace* GetStackBackTrace(ULONG frameCount);
     public:
         static StackTraceHelper* Create(TAllocator* alloc);

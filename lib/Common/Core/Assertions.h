@@ -15,9 +15,11 @@ _declspec(selectany) int AssertsToConsole = false;
 
 #if _WIN32
 _declspec(thread, selectany) int IsInAssert = false;
+#elif !defined(__IOS__)
+__declspec(thread, selectany) int IsInAssert = false;
 #else
-// xplat-todo: This is wrong but unblocking linux for now
-_declspec(selectany) int IsInAssert = false;
+// todo: implement thread local variable for iOS ??
+__declspec(selectany) int IsInAssert = false;
 #endif
 
 #if !defined(USED_IN_STATIC_LIB)

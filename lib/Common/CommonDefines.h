@@ -695,3 +695,19 @@
 #ifndef PROFILE_DICTIONARY
 #define PROFILE_DICTIONARY 0
 #endif
+
+#ifndef THREAD_LOCAL
+#ifndef __APPLE__
+    #if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
+        #define THREAD_LOCAL __declspec(thread)
+    #else // VS2015+, linux Clang etc.
+        #define THREAD_LOCAL thread_local
+    #endif // VS2013?
+#else // __APPLE__
+    #ifndef __IOS__
+        #define THREAD_LOCAL _Thread_local
+    #else
+        #define THREAD_LOCAL
+    #endif
+#endif // __APPLE__
+#endif // THREAD_LOCAL
