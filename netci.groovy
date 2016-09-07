@@ -188,3 +188,17 @@ CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disa
 
 CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
 CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
+
+// ------------
+// HELP MESSAGE
+// ------------
+
+Utilities.createHelperJob(this, project, branch,
+    "Welcome to the ${project} Repository",  // This is prepended to the help message
+    "For additional documentation on ChakraCore CI checks, please see:\n" +
+    "\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-CI-Checks\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-Build-Triggers\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-Repro-Steps\n" +
+    "\n" +
+    "Have a nice day!")  // This is appended to the help message.  You might put known issues here.
