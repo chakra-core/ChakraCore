@@ -3600,7 +3600,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
         switch (pnode->nop)
         {
         case knopFncDecl:
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if (pnode->sxFnc.GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());

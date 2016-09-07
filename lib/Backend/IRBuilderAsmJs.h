@@ -5,6 +5,7 @@
 
 #pragma once
 
+#ifdef ASMJS_PLAT
 namespace AsmJsRegSlots
 {
     enum ConstSlots
@@ -190,3 +191,5 @@ private:
     uint32                  m_offsetToInstructionCount;
 #endif
 };
+
+#endif

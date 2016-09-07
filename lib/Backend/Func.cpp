@@ -365,12 +365,14 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::IRBuilderPhase);
 
+#ifdef ASMJS_PLAT
         if (m_jnFunction->GetIsAsmjsMode())
         {
             IRBuilderAsmJs asmIrBuilder(this);
             asmIrBuilder.Build();
         }
         else
+#endif
         {
             IRBuilder irBuilder(this);
             irBuilder.Build();

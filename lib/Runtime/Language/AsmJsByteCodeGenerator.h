@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
     // Information about the expression that has been emitted

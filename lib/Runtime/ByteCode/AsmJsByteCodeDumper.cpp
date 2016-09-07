@@ -5,7 +5,7 @@
 
 #include "RuntimeByteCodePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #if DBG_DUMP
 #include "Language/AsmJsModule.h"
 #include "ByteCode/AsmJsByteCodeDumper.h"

@@ -263,7 +263,7 @@ AutoSystemInfo::TZCntAvailable() const
 {
     Assert(initialized);
     int CPUInfo[4];
-    __cpuid(CPUInfo, 7);
+    get_cpuid(CPUInfo, 7);
 
     return VirtualSseAvailable(4) && (CPUInfo[1] & (1 << 3));
 }

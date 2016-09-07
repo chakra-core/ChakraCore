@@ -56,7 +56,6 @@
     <ClInclude Include="WasmSection.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSignature.h" />
-    <ClInclude Include="WasmTokens.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />
   </ItemGroup>

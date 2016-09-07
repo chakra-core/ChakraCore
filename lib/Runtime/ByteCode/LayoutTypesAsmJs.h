@@ -8,7 +8,7 @@
 // "LAYOUT_TYPE", etc., to be executed for each entry.
 //
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #ifndef LAYOUT_TYPE
 #define LAYOUT_TYPE(layout)
 #endif

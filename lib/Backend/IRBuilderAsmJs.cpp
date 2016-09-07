@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#ifdef ASMJS_PLAT
 #include "ByteCode/OpCodeUtilAsmJs.h"
 
 void
@@ -7911,3 +7912,4 @@ IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, u
     AddInstr(instr, offset);
 
 }
+#endif

@@ -23,7 +23,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS 
+#ifdef ASMJS_PLAT
 #include "ByteCode/ByteCodeWriter.h"
 #include "ByteCode/AsmJsByteCodeWriter.h"
 #include "Language/AsmJsByteCodeGenerator.h"

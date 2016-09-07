@@ -42,7 +42,7 @@ namespace Js
     class DebuggerScope;
     class FunctionEntryPointInfo;
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     class AsmJsFunctionInfo;
     class AmsJsModuleInfo;
 #endif
@@ -717,7 +717,7 @@ namespace Js
         }
 #endif
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         void SetModuleAddress(uintptr_t moduleAddress)
         {
             Assert(this->GetIsAsmJSFunction());
@@ -858,7 +858,7 @@ namespace Js
             return this->workItem;
         }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         // set code size, used by TJ to set the code size
         void SetCodeSize(ptrdiff_t size)
         {
@@ -883,7 +883,7 @@ namespace Js
             return this->isAsmJsFunction;
         }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         void SetTJCodeGenDone()
         {
             Assert(isAsmJsFunction);
@@ -996,7 +996,7 @@ namespace Js
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         //AsmJS Support
 
         void SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo);
@@ -1060,7 +1060,7 @@ namespace Js
         }
 #endif
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         void SetIsTJMode(bool value)
         {
             Assert(this->GetIsAsmJSFunction());
@@ -1467,7 +1467,7 @@ namespace Js
 
         DEFINE_VTABLE_CTOR_NO_REGISTER(ParseableFunctionInfo, FunctionProxy);
         FunctionBody* Parse(ScriptFunction ** functionRef = nullptr, bool isByteCodeDeserialization = false);
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         FunctionBody* ParseAsmJs(Parser * p, __out CompileScriptException * se, __out ParseNodePtr * ptree);
 #endif
         virtual uint GetDisplayNameLength() const { return m_displayNameLength; }
@@ -2237,7 +2237,7 @@ namespace Js
             Assert(this->GetLoopHeaderArray() != nullptr);
             return this->GetLoopHeaderArray();
         }
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         void SetIsAsmJsFullJitScheduled(bool val){ m_isAsmJsScheduledForFullJIT = val; }
         bool GetIsAsmJsFullJitScheduled(){ return m_isAsmJsScheduledForFullJIT; }
         uint32 GetAsmJSTotalLoopCount() const
@@ -2265,7 +2265,7 @@ namespace Js
             return m_isWasmFunction;
         }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         bool IsHotAsmJsLoop()
         {
             // Negative MinTemplatizedJitLoopRunCount treats all loops as hot asm loop
@@ -2972,7 +2972,7 @@ namespace Js
         void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::LiteralRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
         UnifiedRegex::RegexPattern *GetLiteralRegexWithLock(const uint index);
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* GetAsmJsFunctionInfoWithLock()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtrWithLock(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();

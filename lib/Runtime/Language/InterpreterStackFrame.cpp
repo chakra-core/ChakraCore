@@ -927,7 +927,7 @@ namespace Js
         , (uint32)~7 //TYPE_FLOAT64
     };
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
 
     const ArrFunc InterpreterStackFrame::StArrFunc[8] =
@@ -1456,7 +1456,7 @@ namespace Js
     }
 
 #ifdef _M_IX86
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     int InterpreterStackFrame::GetAsmJsArgSize(AsmJsCallStackLayout* stack)
     {
         JavascriptFunction * func = stack->functionObject;
@@ -1987,7 +1987,7 @@ namespace Js
         return aReturn;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
     {
@@ -2359,7 +2359,7 @@ namespace Js
         return op;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     template<>
     OpCodeAsmJs InterpreterStackFrame::ReadByteOp<OpCodeAsmJs>(const byte *& ip
 #if DBG_DUMP
@@ -2856,7 +2856,7 @@ namespace Js
         Output::Print(_u("\n"));
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     // Function memory allocation should be done the same way as
     // T AsmJsCommunEntryPoint(Js::ScriptFunction* func, ...)  (AsmJSJitTemplate.cpp)
     // update any changes there
@@ -3186,7 +3186,7 @@ namespace Js
 #include "InterpreterLoop.inl"
 #undef INTERPRETERLOOPNAME
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define INTERPRETERLOOPNAME ProcessAsmJs
 #define INTERPRETER_ASMJS
 #include "InterpreterProcessOpCodeAsmJs.h"
@@ -3255,8 +3255,8 @@ namespace Js
                 this->ehBailoutData = nullptr;
             }
         }
-#ifndef TEMP_DISABLE_ASMJS
         FunctionBody *const functionBody = GetFunctionBody();
+#ifdef ASMJS_PLAT
         if( functionBody->GetIsAsmjsMode() )
         {
             AsmJsFunctionInfo* asmInfo = functionBody->GetAsmJsFunctionInfo();
@@ -3622,7 +3622,7 @@ namespace Js
 
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #if _M_X64
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
@@ -8183,7 +8183,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return this->localClosure;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     template <typename T2>
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot value)
     {
@@ -8219,7 +8219,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         m_localSlots[playout->Value] = arr[index];
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     template <typename T2>
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot value)
     {

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define ASMMATH_BUILTIN_SIZE (32)
 #define ASMARRAY_BUILTIN_SIZE (16)
 #define ASMSIMD_BUILTIN_SIZE (512)

@@ -775,7 +775,7 @@ public:
         uint offset;
     };
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     HRESULT RewriteAsmJsByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock)
     {
         SListCounted<AuxRecord> auxRecords(alloc);
@@ -1460,7 +1460,7 @@ public:
         }
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     uint32 AddAsmJsConstantTable(BufferBuilderList & builder, FunctionBody * function)
     {
         uint32 size = 0;
@@ -1797,7 +1797,7 @@ public:
         return size;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     uint32 AddAsmJsFunctionInfo(BufferBuilderList & builder, FunctionBody * function)
     {
         uint32 size = 0;
@@ -1992,7 +1992,7 @@ public:
             | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
             | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
             | (isAnonymous ? ffIsAnonymous : 0)
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
             | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
 #endif
@@ -2073,7 +2073,7 @@ public:
                 PrependByte(builder, _u("Loop Header Array Exists"), 0);
             }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if (function->GetAsmJsFunctionInfo())
             {
                 PrependByte(builder, _u("Asm.js Info Exists"), 1);
@@ -2090,7 +2090,7 @@ public:
                 PrependByte(builder, _u("Asm.js Info Exists"), 0);
             }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if (function->GetIsAsmJsFunction())
             {
                 AddAsmJsConstantTable(builder, function);
@@ -2781,7 +2781,7 @@ public:
         return current;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     const byte * ReadAsmJsConstantsTable(const byte * current, FunctionBody * function)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3228,7 +3228,7 @@ public:
         return current;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     const byte * ReadAsmJsFunctionInfo(const byte * current, FunctionBody * function)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3660,7 +3660,7 @@ public:
             (*functionBody)->m_CallsEval = (bitflags & ffhasSetCallsEval) ? true : false;
             (*functionBody)->m_ChildCallsEval = (bitflags & ffChildCallsEval) ? true : false;
             (*functionBody)->m_hasReferenceableBuiltInArguments = (bitflags & ffHasReferenceableBuiltInArguments) ? true : false;
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             (*functionBody)->m_isAsmJsFunction = (bitflags & ffIsAsmJsFunction) ? true : false;
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
@@ -3688,7 +3688,7 @@ public:
 
             byte asmJsInfoExists;
             current = ReadByte(current, &asmJsInfoExists);
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if (asmJsInfoExists == 1)
             {
                 current = ReadAsmJsFunctionInfo(current, *functionBody);
@@ -3704,7 +3704,7 @@ public:
             }
 
             // Read constants table
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if ((*functionBody)->GetIsAsmJsFunction())
             {
                 current = ReadAsmJsConstantsTable(current, *functionBody);

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 // Removed code from original location, if the expression is true, check if extra code needed
 #define MaybeTodo( expr ) AssertMsg( !(expr), "Unhandled scenario in asm.js" )
 

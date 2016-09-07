@@ -24,7 +24,7 @@
 #pragma once
 #include "Language/WAsmjsUtils.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Wasm
 {
     struct WasmReaderInfo;

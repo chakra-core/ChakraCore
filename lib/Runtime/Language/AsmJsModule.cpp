@@ -5,7 +5,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #include "ByteCode/Symbol.h"
 #include "ByteCode/FuncInfo.h"
 #include "ByteCode/ByteCodeApi.h"

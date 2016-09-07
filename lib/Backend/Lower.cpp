@@ -8475,6 +8475,7 @@ void Lowerer::LowerLdLen(IR::Instr *const instr, const bool isHelper)
 IR::Instr *
 Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 {
+#ifdef ASMJS_PLAT
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::LdInt8ArrViewElem ||
@@ -8527,6 +8528,10 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 
     instr->Remove();
     return instrPrev;
+#else
+    Assert(UNREACHED);
+    return instr;
+#endif
 }
 
 IR::Instr *
@@ -8685,6 +8690,7 @@ Lowerer::LowerMemOp(IR::Instr * instr)
 IR::Instr *
 Lowerer::LowerStArrViewElem(IR::Instr * instr)
 {
+#ifdef ASMJS_PLAT
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::StInt8ArrViewElem    ||
@@ -8736,6 +8742,10 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     InsertMove(dst, src1, done);
     instr->Remove();
     return instrPrev;
+#else
+    Assert(UNREACHED);
+    return instr;
+#endif
 }
 
 IR::Instr *
@@ -9481,10 +9491,12 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
     {
         offset = offset * TySize[opnd->GetType()];
     }
+#ifdef ASMJS_PLAT
     if (m_func->IsTJLoopBody())
     {
         offset = offset - m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetTotalSizeinBytes();
     }
+#endif
 
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(symOpnd->CreatePropertyOwnerOpnd(m_func),
        offset , opnd->GetType(), this->m_func);
