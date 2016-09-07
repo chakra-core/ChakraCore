@@ -647,6 +647,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
+#define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -1186,7 +1187,7 @@ FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
-FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", true)
+FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
