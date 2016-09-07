@@ -1,0 +1,18 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 20,
+        "column": 4,
+        "sourceText": "var a = 0",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 19,
+        "column": 0,
+        "sourceText": "arr.forEach(function(){\r\n    var a = 0;\r\n    return bar();\r\n})",
+        "function": "Global code"
+      }
+    ]
+  }
+]

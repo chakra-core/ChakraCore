@@ -1,0 +1,200 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "HHH_A": "number 0",
+      "HHH_B": "number 0",
+      "HHH_C": "number 0"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "GGG_A": "number 0",
+      "GGG_B": "number 0",
+      "GGG_C": "number 0",
+      "GGG_ARRAY": {
+        "#__proto__": "Array []",
+        "length": "number 3",
+        "[0]": "string 1",
+        "[1]": "string 2",
+        "[2]": "string 3"
+      }
+    },
+    "scopes0": {
+      "GGG_closure": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "FFF_A": "number 0",
+      "FFF_B": "number 0",
+      "FFF_C": "number 0"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "GGG_B=2;GGG_closure=3": "number 3"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 34,
+        "column": 1,
+        "sourceText": "HHH_C++",
+        "function": "HHH"
+      },
+      {
+        "line": 24,
+        "column": 2,
+        "sourceText": "HHH()",
+        "function": "GGG"
+      },
+      {
+        "line": 11,
+        "column": 1,
+        "sourceText": "GGG()",
+        "function": "FFF"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "FFF()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "FFF_B++": "number 0"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "GGG_A": "number 0",
+      "GGG_B": "number 2",
+      "GGG_C": "number 0",
+      "GGG_ARRAY": {
+        "#__proto__": "Array []",
+        "length": "number 3",
+        "[0]": "string 1",
+        "[1]": "string 2",
+        "[2]": "string 3"
+      }
+    },
+    "scopes0": {
+      "GGG_closure": "number 3"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "FFF_A": "number 0",
+      "FFF_B": "number 1",
+      "FFF_C": "number 0"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "FFF": "function <large string>",
+      "HHH": "function <large string>",
+      "GGG": "function <large string>"
+    }
+  }
+]

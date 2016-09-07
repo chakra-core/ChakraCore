@@ -1,0 +1,57 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "test": "function <large string>",
+      "bar": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "k": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "test": "function <large string>",
+      "bar": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "test();": "undefined undefined"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "test": "function <large string>",
+      "bar": "function <large string>",
+      "ttt1": "number 31"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "k": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "test": "function <large string>",
+      "bar": "function <large string>",
+      "ttt1": "number 31"
+    }
+  }
+]

@@ -1,0 +1,126 @@
+[
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "a": {
+        "#__proto__": "Array []",
+        "length": "number 10",
+        "[0]": "string 1",
+        "[1]": "string 2",
+        "[2]": "string 3",
+        "[3]": "string 4",
+        "[4]": "string 5",
+        "[5]": "string 6",
+        "[6]": "string 7",
+        "[7]": "string 8",
+        "[8]": "string 9",
+        "[9]": "string 10"
+      }
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "x": "undefined undefined"
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "a": {
+        "#__proto__": "Array []",
+        "length": "number 10",
+        "[0]": "string 1",
+        "[1]": "string 2",
+        "[2]": "string 3",
+        "[3]": "string 4",
+        "[4]": "string 5",
+        "[5]": "string 6",
+        "[6]": "string 7",
+        "[7]": "string 8",
+        "[8]": "string 9",
+        "[9]": "string 10"
+      }
+    }
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "this": {},
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 2"
+      },
+      "arr": {
+        "#__proto__": "Array []",
+        "length": "number 1",
+        "[0]": "string 2"
+      },
+      "desc": {
+        "#__proto__": "Object {...}",
+        "get": "function <large string>"
+      },
+      "nothrow": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "test": "function <large string>"
+    }
+  },
+  {
+    "this": {},
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 2"
+      },
+      "arr": {
+        "#__proto__": "Array []",
+        "length": "number 3",
+        "[0]": "string 4",
+        "{error}": "string str",
+        "[2]": "string \"nothrowStr\""
+      },
+      "desc": {
+        "#__proto__": "Object {...}",
+        "get": "function <large string>"
+      },
+      "nothrow": {
+        "#__proto__": "Object {...}",
+        "get": "function <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "test": "function <large string>"
+    }
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 4,
+        "sourceText": "}",
+        "function": "func0"
+      },
+      {
+        "line": 17,
+        "column": 9,
+        "sourceText": "1 >= 2 ? 0 : func0()) + 1",
+        "function": "func7"
+      },
+      {
+        "line": 19,
+        "column": 4,
+        "sourceText": "func7(1, 1)",
+        "function": "test0"
+      },
+      {
+        "line": 21,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 4,
+        "sourceText": "}",
+        "function": "func0"
+      },
+      {
+        "line": 17,
+        "column": 9,
+        "sourceText": "1 >= 2 ? 0 : func0()) + 1",
+        "function": "func7"
+      },
+      {
+        "line": 19,
+        "column": 4,
+        "sourceText": "func7(1, 1)",
+        "function": "test0"
+      },
+      {
+        "line": 22,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "evaluate": {
+      "f": "string let f"
+    }
+  },
+  {
+    "evaluate": {
+      "f": "function function f() { }"
+    }
+  },
+  {
+    "evaluate": {
+      "f": "string let f"
+    }
+  }
+]

@@ -1,0 +1,134 @@
+[
+  {
+    "evaluate": {
+      "a": "Array [123,45.01,6789,23.58]"
+    }
+  },
+  {
+    "evaluate": {
+      "[...a]": "Array [123,45.01,6789,23.58]"
+    }
+  },
+  {
+    "evaluate": {
+      "[...[123], ...[45.01, 6789], 23.58]": "Array [123,45.01,6789,23.58]"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 2,
+        "sourceText": "return x - y / z",
+        "function": "foo"
+      },
+      {
+        "line": 13,
+        "column": 0,
+        "sourceText": "foo(...a)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 123",
+      "y": "number 45.01",
+      "z": "number 6789"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 4",
+        "callee": "function function foo(x, y, z) {\r\n  return x - y / z; /**bp:stack();locals();evaluate('arguments',1);**/\r\n}",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 123",
+        "[1]": "string 45.01",
+        "[2]": "string 6789",
+        "[3]": "string 23.58"
+      }
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 2,
+        "sourceText": "return x - y / z",
+        "function": "foo"
+      },
+      {
+        "line": 14,
+        "column": 0,
+        "sourceText": "foo(...[123], ...[45.01, 6789], 23.58)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 123",
+      "y": "number 45.01",
+      "z": "number 6789"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 4",
+        "callee": "function function foo(x, y, z) {\r\n  return x - y / z; /**bp:stack();locals();evaluate('arguments',1);**/\r\n}",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 123",
+        "[1]": "string 45.01",
+        "[2]": "string 6789",
+        "[3]": "string 23.58"
+      }
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 2,
+        "sourceText": "return x - y / z",
+        "function": "foo"
+      },
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "foo(123, 45.01, 6789, 23.58)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 123",
+      "y": "number 45.01",
+      "z": "number 6789"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 4",
+        "callee": "function function foo(x, y, z) {\r\n  return x - y / z; /**bp:stack();locals();evaluate('arguments',1);**/\r\n}",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 123",
+        "[1]": "string 45.01",
+        "[2]": "string 6789",
+        "[3]": "string 23.58"
+      }
+    }
+  }
+]

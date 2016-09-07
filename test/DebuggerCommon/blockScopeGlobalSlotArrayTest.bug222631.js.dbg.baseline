@@ -1,0 +1,52 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "c": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "a": "string level2level3"
+    },
+    "scopes1": {
+      "e": "string level1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "c": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "c": "function <large string>"
+    },
+    "locals": {
+      "b": "string level2",
+      "a": "string level2level3",
+      "e": "string level1",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "c": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "globals": {}
+  }
+]

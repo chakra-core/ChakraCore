@@ -1,0 +1,989 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "in2": "number 1"
+    },
+    "scopes0": {
+      "in1": "number 0"
+    },
+    "scopes1": {
+      "arg1": "number 111",
+      "m": "number 111"
+    },
+    "scopes2": {
+      "e": "Error <large string>"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "in2": "number 1"
+    },
+    "scopes0": {
+      "in1": "number 0"
+    },
+    "scopes1": {
+      "arg1": "undefined undefined",
+      "m": "undefined undefined"
+    },
+    "scopes2": {
+      "e": "Error <large string>"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "e": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "j1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "e": "Error <large string>"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    },
+    "scopes0": {
+      "k": "number 10"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "in1": "number 10"
+    },
+    "scopes0": {
+      "k": "number 10"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "in1": "number 10"
+    },
+    "scopes0": {
+      "k": "number 10"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "m1": "number 10"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "locals": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "bar": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo10": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo10",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo11": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo11",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo3": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo3",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo5": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo5",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo6": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo6",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo7": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo7",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "top": {
+        "#__proto__": "Object {...}",
+        "f1": "function <large string>"
+      },
+      "startTest": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "globals": {}
+  },
+  {
+    "evaluate": {
+      "j.x": "number 20"
+    }
+  },
+  {
+    "evaluate": {
+      "j": {
+        "#__proto__": "Object {...}",
+        "x": "number 20",
+        "y": "Array [30,40]"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "ex": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "ex1": "Error <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 210,
+        "column": 8,
+        "sourceText": "}",
+        "function": "g"
+      },
+      {
+        "line": 205,
+        "column": 9,
+        "sourceText": "function g() {\r\n            var ga = 40;\r\n            fa; ga;\r\n            e1;\r\n            /**bp:stack();locals(1)**/\r\n        })()",
+        "function": "f"
+      },
+      {
+        "line": 198,
+        "column": 1,
+        "sourceText": "function f() { // slot array scope\r\n    var fa = 123;\r\n    try {\r\n        throw -1;\r\n    }\r\n    catch (e1) { // catch scope\r\n        e1;\r\n        (function g() {\r\n            var ga = 40;\r\n            fa; ga;\r\n            e1;\r\n            /**bp:stack();locals(1)**/\r\n        })();\r\n    }\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "ga": "number 40"
+    },
+    "scopes0": {
+      "e1": "number -1"
+    },
+    "scopes1": {
+      "fa": "number 123"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 223,
+        "column": 8,
+        "sourceText": "}",
+        "function": "g"
+      },
+      {
+        "line": 220,
+        "column": 9,
+        "sourceText": "function g() {\r\n            e1;\r\n            /**bp:stack();locals(1)**/\r\n        })()",
+        "function": "f"
+      },
+      {
+        "line": 214,
+        "column": 1,
+        "sourceText": "function f() { // null dummy scope\r\n    try {\r\n        throw -1;\r\n    }\r\n    catch (e1) { // catch scope\r\n        e1;\r\n        (function g() {\r\n            e1;\r\n            /**bp:stack();locals(1)**/\r\n        })();\r\n    }\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "e1": "number -1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 238,
+        "column": 12,
+        "sourceText": "}",
+        "function": "g"
+      },
+      {
+        "line": 235,
+        "column": 13,
+        "sourceText": "function g() {\r\n                e1;\r\n                /**bp:stack();locals(1)**/\r\n            })()",
+        "function": "f"
+      },
+      {
+        "line": 241,
+        "column": 4,
+        "sourceText": "f()",
+        "function": "foo"
+      },
+      {
+        "line": 227,
+        "column": 1,
+        "sourceText": "function foo() { // slot array scope\r\n    var foo0 = 12;\r\n    function f() { // null dummy scope\r\n        try {\r\n            throw new Error(\"1 Error\");\r\n        }\r\n        catch (e1) { // catch scope\r\n            e1; foo0;\r\n            (function g() {\r\n                e1;\r\n                /**bp:stack();locals(1)**/\r\n            })();\r\n        }\r\n    }\r\n    f();\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "e1": "Error 1 Error"
+    },
+    "scopes1": {
+      "foo0": "number 12"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>"
+    }
+  }
+]
