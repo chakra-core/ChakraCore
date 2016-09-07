@@ -8,7 +8,6 @@
 // (with no var binding created).
 // Bug 305562.
 
-function print(e){WScript.Echo(e)}
 (function ()
 {
     for (var i = 0; i < 2; i += 1)
