@@ -28,6 +28,7 @@ PRINT_USAGE() {
     echo "      --icu=PATH       Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
     echo "  -n, --ninja          Build with ninja instead of make"
+    echo "  --no-icu             Compile without unicode/icu support"
     echo "      --xcode          Generate XCode project"
     echo "  -t, --test-build     Test build (by default Release build)"
     echo "      --static         Build as static library (by default shared library)"
@@ -52,7 +53,7 @@ BUILD_TYPE="Release"
 CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
-ICU_PATH=""
+ICU_PATH="-DICU_SETTINGS_RESET=1"
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 WITHOUT_FEATURES=""
 CREATE_DEB=0
@@ -106,12 +107,16 @@ while [[ $# -gt 0 ]]; do
 
     --icu=*)
         ICU_PATH=$1
-        ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:6}"
+        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH:6}"
         ;;
 
     -n | --ninja)
         CMAKE_GEN="-G Ninja"
         MAKE=ninja
+        ;;
+
+    --no-icu)
+        ICU_PATH="-DNO_ICU_PATH_GIVEN_SH=1"
         ;;
 
     --xcode)
