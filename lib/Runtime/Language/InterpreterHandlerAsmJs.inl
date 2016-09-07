@@ -172,15 +172,15 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( F1toF1Mem        , Fround_Flt   , (float)                                            )
   DEF2_WMS( D1toF1Mem        , Fround_Db    , (float)                                            )
   DEF2_WMS( I1toF1Mem        , Fround_Int   , (float)                                            )
-  EXDEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
-  EXDEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
+EXDEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
+EXDEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
 
-  EXDEF2_WMS( F1toF1Mem      , Trunc_Flt        , Wasm::WasmMath::Trunc<float>                       )
-  EXDEF2_WMS( F1toF1Mem      , Nearest_Flt      , Wasm::WasmMath::Nearest<float>                     )
-  EXDEF2_WMS( D1toD1Mem      , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
-  EXDEF2_WMS( D1toD1Mem      , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
-  EXDEF2_WMS( I1toI1Mem      , PopCnt_Int       , ::Math::PopCnt32                                   )
-  EXDEF2_WMS( VtoI1Mem       , CurrentMemory_Int   , OP_GetMemorySize                                   )
+EXDEF2_WMS( F1toF1Mem        , Trunc_Flt        , Wasm::WasmMath::Trunc<float>                       )
+EXDEF2_WMS( F1toF1Mem        , Nearest_Flt      , Wasm::WasmMath::Nearest<float>                     )
+EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
+EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
+EXDEF2_WMS( I1toI1Mem        , PopCnt_Int       , ::Math::PopCnt32                                   )
+EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 
@@ -227,9 +227,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Sqrt_F4             ,SIMDFloat32x4Operation::OpSqrt               )
 
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Not_I4              , Js::SIMDInt32x4Operation::OpNot             )
-  EXDEF2_WMS( SIMD_B4_1toB4_1, Simd128_Not_B4              , Js::SIMDInt32x4Operation::OpNot             )
-  EXDEF2_WMS( SIMD_B8_1toB8_1, Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
-  EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
+EXDEF2_WMS( SIMD_B4_1toB4_1  , Simd128_Not_B4              , Js::SIMDInt32x4Operation::OpNot             )
+EXDEF2_WMS( SIMD_B8_1toB8_1  , Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
+EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
 
   EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
   EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
@@ -601,9 +601,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_U8_2toB8_1   , Simd128_Gt_U8               , Js::SIMDUint16x8Operation::OpGreaterThan        )
   EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Operation::OpGreaterThan        )
 
-  EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
-  EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
-  EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
+EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
+EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
+EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
 
 #if 0
       DEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)

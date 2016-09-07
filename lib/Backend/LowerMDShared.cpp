@@ -1718,19 +1718,14 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 L_Reg | L_Mem | L_Imm32); // for L_Imm32, the encoder converts it into an IMUL3
             break;
 
-        case Js::OpCode::LZCNT:
-            Assert(AutoSystemInfo::Data.LZCntAvailable());
-        case Js::OpCode::BSR:
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg | L_Mem,
-                L_None);
-            break;
-
         case Js::OpCode::TZCNT:
-            Assert(AutoSystemInfo::Data.TZCntAvailable());
+        case Js::OpCode::LZCNT:
+            Assert(
+                (instr->m_opcode == Js::OpCode::LZCNT && AutoSystemInfo::Data.LZCntAvailable()) ||
+                (instr->m_opcode == Js::OpCode::TZCNT && AutoSystemInfo::Data.TZCntAvailable())
+            );
         case Js::OpCode::BSF:
+        case Js::OpCode::BSR:
             LegalizeOpnds<verify>(
                 instr,
                 L_Reg,

@@ -5,7 +5,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#if !defined(TEMP_DISABLE_ASMJS) || defined(ENABLE_WASM)
+#if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
 
 namespace WAsmJs 
 {

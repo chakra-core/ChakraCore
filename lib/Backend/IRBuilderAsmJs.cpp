@@ -2988,7 +2988,7 @@ IRBuilderAsmJs::BuildFloat1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildFloat1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, Js::RegSlot src)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::Fround_Int);
+    Assert(newOpcode == Js::OpCodeAsmJs::Fround_Int || newOpcode == Js::OpCodeAsmJs::Conv_UTF);
 
     Js::RegSlot dstRegSlot = GetRegSlotFromFloatReg(dst);
     Js::RegSlot srcRegSlot = GetRegSlotFromIntReg(src);
@@ -3080,7 +3080,7 @@ IRBuilderAsmJs::BuildDouble3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         break;
 
     case Js::OpCodeAsmJs::Copysign_Db:
-        Assert(UNREACHED);
+        Assert(UNREACHED); // Not yet fully implemented
         instr = IR::Instr::New(Js::OpCode::Copysign_A, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 

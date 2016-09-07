@@ -24,7 +24,6 @@ bool IsLocalType(WasmTypes::WasmType type)
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
-    m_lastOp(WasmOp::wbLimit),
     m_alloc(alloc)
 {
     m_start = m_pc = source;
@@ -106,6 +105,7 @@ WasmBinaryReader::ProcessCurrentSection()
 {
     Assert(m_currentSection.code != bSectInvalid);
     TRACE_WASM_SECTION(_u("Process section %s"), SectionInfo::All[m_currentSection.code].name);
+
     switch (m_currentSection.code)
     {
     case bSectMemory:
@@ -138,7 +138,7 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadNamesSection();
         break;
     default:
-        Assert(false);
+        Assert(UNREACHED);
         return false;
     }
 
@@ -308,20 +308,6 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 WasmOp
 WasmBinaryReader::ReadExpr()
 {
-    return ASTNode();
-}
-
-WasmOp WasmBinaryReader::GetLastOp()
-{
-    return m_lastOp;
-}
-
-/*
-Entry point for decoding a node
-*/
-WasmOp
-WasmBinaryReader::ASTNode()
-{
     if (EndOfFunc())
     {
         // end of AST
@@ -394,7 +380,6 @@ WasmBinaryReader::ASTNode()
 #if DBG_DUMP
     m_ops->AddNew(op);
 #endif
-    m_lastOp = op;
     return op;
 }
 

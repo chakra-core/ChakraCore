@@ -7,14 +7,6 @@
 #ifdef ENABLE_WASM
 namespace Wasm
 {
-    enum FuncDeclFlag
-    {
-        bFuncDeclName = 0x01,
-        bFuncDeclImport = 0x02,
-        bFuncDeclLocals = 0x04,
-        bFuncDeclExport = 0x08
-    };
-
     struct SectionHeader
     {
         SectionCode code;
@@ -36,7 +28,6 @@ namespace Wasm
         void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo);
         bool IsCurrentFunctionCompleted() const;
         WasmOp ReadExpr();
-        WasmOp GetLastOp();
 #if DBG_DUMP
         void PrintOps();
 #endif
@@ -48,8 +39,6 @@ namespace Wasm
             UINT32 count; // current entry
             UINT32 size;  // number of entries
         };
-
-        WasmOp ASTNode();
 
         void CallNode();
         void CallIndirectNode();
@@ -91,7 +80,6 @@ namespace Wasm
         uint m_funcNumber;
         byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
-        WasmOp m_lastOp;
         ReaderState m_funcState;   // func AST level
 
     private:

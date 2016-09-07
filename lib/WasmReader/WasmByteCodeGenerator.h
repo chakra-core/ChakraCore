@@ -113,8 +113,8 @@ namespace Wasm
         void GenerateFunction();
 
         EmitInfo EmitExpr(WasmOp op);
-        EmitInfo EmitBlock();
-        EmitInfo EmitBlockCommon();
+        EmitInfo EmitBlock(bool* endOnElse = nullptr);
+        EmitInfo EmitBlockCommon(bool* endOnElse = nullptr);
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
@@ -132,13 +132,13 @@ namespace Wasm
         template<WasmOp wasmOp>
         EmitInfo EmitBr();
 
-        template<WasmOp wasmOp, typename Signature>
+        template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
         EmitInfo EmitMemAccess(bool isStore);
 
-        template<Js::OpCodeAsmJs op, typename Signature>
+        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
         EmitInfo EmitBinExpr();
 
-        template<Js::OpCodeAsmJs op, typename Signature>
+        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
         EmitInfo EmitUnaryExpr();
 
         template<WasmTypes::WasmType type>

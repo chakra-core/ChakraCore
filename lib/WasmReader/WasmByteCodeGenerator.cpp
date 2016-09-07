@@ -15,7 +15,7 @@
 
 namespace Wasm
 {
-#define WASM_SIGNATURE(id, nTypes, ...) const WasmTypes::WasmType WasmSignature##id::types[] = {__VA_ARGS__};
+#define WASM_SIGNATURE(id, nTypes, ...) const WasmTypes::WasmType WasmOpCodeSignatures::id[] = {__VA_ARGS__};
 #include "WasmBinaryOpcodes.h"
 
 #if DBG_DUMP
@@ -551,19 +551,23 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
-        info = EmitMemAccess<wb##opname, WasmSignature##sig>(false); \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(false); \
         break;
 #define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
-        info = EmitMemAccess<wb##opname, WasmSignature##sig>(true); \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(true); \
         break;
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
-        info = EmitBinExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
+        Assert(WasmOpCodeSignatures::n##sig == 3);\
+        info = EmitBinExpr<Js::OpCodeAsmJs::##asmjop, WasmOpCodeSignatures::sig>(); \
         break;
 #define WASM_UNARY__OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
-        info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmSignature##sig>(); \
+        Assert(WasmOpCodeSignatures::n##sig == 2);\
+        info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmOpCodeSignatures::sig>(); \
         break;
 #include "WasmBinaryOpCodes.h"
     default:
@@ -650,27 +654,37 @@ WasmBytecodeGenerator::EmitConst()
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlockCommon()
+WasmBytecodeGenerator::EmitBlockCommon(bool* endOnElse /*= nullptr*/)
 {
     WasmOp op;
     EmitInfo blockInfo;
     EnterEvalStackScope();
-    while ((op = GetReader()->ReadExpr()) != wbEnd && op != wbElse)
-    {
+    if(endOnElse) *endOnElse = false;
+    do {
+        op = GetReader()->ReadExpr();
+        if (op == wbEnd)
+        {
+            break;
+        }
+        if (endOnElse && op == wbElse)
+        {
+            *endOnElse = true;
+            break;
+        }
         blockInfo = EmitExpr(op);
-    }
+    } while (true);
     DebugPrintOp(op);
     ExitEvalStackScope();
     return blockInfo;
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlock()
+WasmBytecodeGenerator::EmitBlock(bool* endOnElse)
 {
     Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
 
     PushLabel(blockLabel);
-    EmitInfo blockInfo = EmitBlockCommon();
+    EmitInfo blockInfo = EmitBlockCommon(endOnElse);
     YieldToBlock(0, blockInfo);
     m_writer.MarkAsmJsLabel(blockLabel);
     blockInfo = PopLabel(blockLabel);
@@ -929,20 +943,18 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_i32RegSlots.ReleaseLocation(&checkExpr);
 
-    EmitInfo trueExpr = EmitBlock();
+    bool endOnElse = false;
+    EmitInfo trueExpr = EmitBlock(&endOnElse);
 
     m_writer.AsmBr(endLabel);
 
     m_writer.MarkAsmJsLabel(falseLabel);
 
-    WasmOp op = GetReader()->GetLastOp(); // wbEnd or wbElse
     EmitInfo retInfo;
     EmitInfo falseExpr;
-    if (op == wbElse)
+    if (endOnElse)
     {
         falseExpr = EmitBlock();
-        // Read END
-        op = GetReader()->GetLastOp();
     }
 
     if (!WasmTypes::IsLocalType(trueExpr.type) || falseExpr.type != trueExpr.type)
@@ -959,11 +971,6 @@ WasmBytecodeGenerator::EmitIfElseExpr()
         m_writer.AsmReg2(GetLoadOp(falseExpr.type), trueExpr.location, falseExpr.location);
         ReleaseLocation(&falseExpr);
         retInfo = trueExpr;
-    }
-
-    if (op != wbEnd)
-    {
-        throw WasmCompilationException(_u("Missing END opcode"));
     }
 
     m_writer.MarkAsmJsLabel(endLabel);
@@ -1017,13 +1024,13 @@ WasmBytecodeGenerator::EmitDrop()
     return EmitInfo();
 }
 
-template<Js::OpCodeAsmJs op, typename Signature>
+template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
 EmitInfo
 WasmBytecodeGenerator::EmitBinExpr()
 {
-    WasmTypes::WasmType resultType = Signature::types[0];
-    WasmTypes::WasmType lhsType = Signature::types[1];
-    WasmTypes::WasmType rhsType = Signature::types[2];
+    WasmTypes::WasmType resultType = signature[0];
+    WasmTypes::WasmType lhsType = signature[1];
+    WasmTypes::WasmType rhsType = signature[2];
 
     EmitInfo rhs = PopEvalStack();
     EmitInfo lhs = PopEvalStack();
@@ -1047,12 +1054,12 @@ WasmBytecodeGenerator::EmitBinExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<Js::OpCodeAsmJs op, typename Signature>
+template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
 EmitInfo
 WasmBytecodeGenerator::EmitUnaryExpr()
 {
-    WasmTypes::WasmType resultType = Signature::types[0];
-    WasmTypes::WasmType inputType = Signature::types[1];
+    WasmTypes::WasmType resultType = signature[0];
+    WasmTypes::WasmType inputType = signature[1];
 
     EmitInfo info = PopEvalStack();
 
@@ -1070,11 +1077,11 @@ WasmBytecodeGenerator::EmitUnaryExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<WasmOp wasmOp, typename Signature>
+template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
 EmitInfo
 WasmBytecodeGenerator::EmitMemAccess(bool isStore)
 {
-    WasmTypes::WasmType type = Signature::types[0];
+    WasmTypes::WasmType type = signature[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 

@@ -23,8 +23,11 @@ namespace Wasm
         bool IsLocalType(WasmTypes::WasmType type);
     }
 
-#define WASM_SIGNATURE(id, nTypes, ...) struct WasmSignature##id {static const WasmTypes::WasmType types[nTypes];};
+    struct WasmOpCodeSignatures
+    {
+#define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)
 #include "WasmBinaryOpcodes.h"
+    };
 
     enum WasmOp : byte
     {
