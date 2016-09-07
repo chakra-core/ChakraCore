@@ -80,14 +80,6 @@ namespace Js
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
         memset(builtinFunctions, 0, sizeof(JavascriptFunction *) * BuiltinFunction::Count);
 
-        funcInfoToBuiltinIdMap = Anew(scriptContext->GeneralAllocator(), FuncInfoToBuiltinIdMap, scriptContext->GeneralAllocator());
-#define LIBRARY_FUNCTION(target, name, argc, flags, entry) \
-    funcInfoToBuiltinIdMap->AddNew(&entry, BuiltinFunction::##target##_##name);
-#include "LibraryFunction.h"
-#undef LIBRARY_FUNCTION
-
-
-
         // Note: InitializePrototypes and InitializeTypes must be called first.
         InitializePrototypes();
         InitializeTypes();
@@ -3364,29 +3356,33 @@ namespace Js
         }
     }
 
-    BuiltinFunction JavascriptLibrary::GetBuiltinFunctionForFuncId(uint localFuncId)
+#if DBG
+    /*static*/
+    void JavascriptLibrary::CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext)
     {
-        switch (localFuncId)
+        byte count = BuiltinFunction::Count;
+        for (byte index = 0; index < count; index++)
         {
-#define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        case JavascriptBuiltInFunction::##target##_##name: \
-            return BuiltinFunction::##target##_##name;
-#include "LibraryFunction.h"
-#undef LIBRARY_FUNCTION
-        default:
-            return BuiltinFunction::None;
+            Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo((intptr_t)builtInFuncs[index]->GetFunctionInfo(), scriptContext->GetThreadContext())));
         }
+
     }
+#endif
 
     // Returns built-in enum value for given funcInfo. Ultimately this will work for all built-ins (not only Math.*).
     // Used by inliner.
-    //static
-    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(FunctionInfo* funcInfo, ScriptContext *scriptContext)
+    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
     {
-        Assert(funcInfo);
-
-        return scriptContext->GetLibrary()->funcInfoToBuiltinIdMap->Item(funcInfo);
+#define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
+        if(funcInfoAddr == SHIFT_ADDR(context, (intptr_t)&EntryInfo)) \
+        { \
+            return BuiltinFunction::##target##_##name; \
+        }
+#include "LibraryFunction.h"
+#undef LIBRARY_FUNCTION
+        return BuiltinFunction::None;
     }
+
 
     // Returns true if the function's return type is always float.
     BOOL JavascriptLibrary::IsFltFunc(BuiltinFunction index)

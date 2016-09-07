@@ -626,6 +626,12 @@ JITTimeFunctionBody::IsGenerator() const
 }
 
 bool
+JITTimeFunctionBody::IsLambda() const
+{
+    return Js::FunctionInfo::IsLambda(GetAttributes());
+}
+
+bool
 JITTimeFunctionBody::HasImplicitArgIns() const
 {
     return m_bodyData.hasImplicitArgIns != FALSE;

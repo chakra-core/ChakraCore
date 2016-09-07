@@ -1089,7 +1089,11 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // add to OOP JIT process if the context has already been initialized
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
     {
-        JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
+        HRESULT hr = JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
+        if (hr != S_OK)
+        {
+            Js::Throw::FatalInternalError();
+        }
     }
 #endif
 
@@ -1964,7 +1968,11 @@ ThreadContext::InitJITThreadContext()
     {
         m_propertyMap->Map([=](const Js::PropertyRecord * record)
         {
-            JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)record);
+            HRESULT hr = JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)record);
+            if (hr != S_OK)
+            {
+                Js::Throw::FatalInternalError();
+            }
         });
     }
 }

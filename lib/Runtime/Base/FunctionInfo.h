@@ -51,7 +51,8 @@ namespace Js
 
         bool IsAsync() const { return ((this->attributes & Async) != 0); }
         bool IsDeferred() const { return ((this->attributes & (DeferredDeserialize | DeferredParse)) != 0); }
-        bool IsLambda() const { return ((this->attributes & Lambda) != 0); }
+        static bool IsLambda(Attributes attributes) { return ((attributes & Lambda) != 0); }
+        bool IsLambda() const { return IsLambda(this->attributes); }
         bool IsConstructor() const { return ((this->attributes & ErrorOnNew) == 0); }
 
         static bool IsGenerator(Attributes attributes) { return ((attributes & Generator) != 0); }

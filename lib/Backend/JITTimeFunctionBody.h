@@ -71,6 +71,7 @@ public:
     bool HasOrParentHasArguments() const;
     bool IsGenerator() const;
     bool IsCoroutine() const;
+    bool IsLambda() const;
     bool IsAsmJsMode() const;
     bool IsStrictMode() const;
     bool IsEval() const;

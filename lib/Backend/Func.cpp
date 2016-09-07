@@ -153,7 +153,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     {
         m_inlineeId = ++(GetTopFunc()->m_inlineeId);
     }
-    m_jnFunction = nullptr;
     bool doStackNestedFunc = GetJITFunctionBody()->DoStackNestedFunc();
 
     bool doStackClosure = GetJITFunctionBody()->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this) && !PHASE_OFF(Js::StackClosurePhase, this);

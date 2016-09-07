@@ -1066,6 +1066,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         body->SetHasBailoutInstrInJittedCode(true);
     }
+    if (!jitWriteData.isInPrereservedRegion)
+    {
+        scriptContext->GetThreadContext()->ResetIsAllJITCodeInPreReservedRegion();
+    }
 
     body->m_argUsedForBranch |= jitWriteData.argUsedForBranch;
 

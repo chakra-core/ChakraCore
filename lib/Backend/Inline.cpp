@@ -226,7 +226,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
                         // If the inlinee info is the array constructor, just change the opcode to NewScObjArray
                         // so that we will inline the array allocation in lower
-                        if (isCtor && inlineeData->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::JavascriptArray_NewInstance)
+                        if (isCtor && inlineeData->GetFunctionInfoAddr() == this->topFunc->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr())
                         {
                             isBuiltIn = true;
                             instr->m_opcode = Js::OpCode::NewScObjArray;
@@ -1275,7 +1275,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         Output::Print(_u("FixedFields: function %s (%s): considering method <unknown> (%s %s): polymorphic = %d, built-in = %d, ctor = %d, inlined = %d, functionInfo = %p.\n"),
             callInstr->m_func->GetJITFunctionBody()->GetDisplayName(), callInstr->m_func->GetDebugNumberSet(debugStringBuffer), calleeName,
             calleeFunctionBody ? inlineeInfo->GetDebugNumberSet(debugStringBuffer2) : L"(null)",
-            isPolymorphic, isBuiltIn, isCtor, isInlined, inlineeInfo->GetFunctionInfoAddr());
+            isPolymorphic, isBuiltIn, isCtor, isInlined, inlineeInfo ? inlineeInfo->GetFunctionInfoAddr() : 0);
         Output::Flush();
     }
 #endif
@@ -1725,7 +1725,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
     *pIsInlined = false;
 
     // Inlining is profile-based, so get the built-in function from profile rather than from the callInstr's opnd.
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(inlineeData->GetLocalFunctionId());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
 
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -1912,7 +1912,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         argoutInstr->SetByteCodeOffset(callInstr);
         callInstr->GetInsertBeforeByteCodeUsesInstr()->InsertBefore(argoutInstr);
 
-        Js::BuiltinFunction builtInFunctionId = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(inlineeData->GetLocalFunctionId());
+        Js::BuiltinFunction builtInFunctionId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
 
 
         callInstr->m_opcode = inlineCallOpCode;
@@ -2206,7 +2206,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
     // We may still decide not to inline.
     *pIsInlined = false;
 
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(applyData->GetLocalFunctionId());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
     const FunctionJITTimeInfo * inlineeData = nullptr;
 
     IR::SymOpnd* linkOpnd = callInstr->GetSrc2()->AsSymOpnd();
@@ -2244,7 +2244,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
             *pIsInlined = true;
             // TODO: OOP JIT enable assert (readprocessmemory?)
             //Assert((inlineeData->GetFunctionInfo()->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0);
-            return InlineApplyWithArray(callInstr, applyData, Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(inlineeData->GetLocalFunctionId()));
+            return InlineApplyWithArray(callInstr, applyData, Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo()));
         }
         else
         {
@@ -2641,8 +2641,8 @@ Inline::ConvertToInlineBuiltInArgOut(IR::Instr * argInstr)
 IR::Instr*
 Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth)
 {
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(funcInfo->GetLocalFunctionId());
     Func *func = callInstr->m_func;
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetFunctionInfoAddr(), func->GetThreadContextInfo());
 
     *pIsInlined = false;
     if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func)
@@ -2917,7 +2917,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
 
 
 
-    Assert(isApplyTarget || (Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(builtInFuncInfo->GetLocalFunctionId())));
+    Assert(isApplyTarget || Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInFuncInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo()));
 
     Js::OpCode originalCallOpCode = callInstr->m_opcode;
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
@@ -3935,7 +3935,7 @@ Inline::InsertFunctionBodyCheck(IR::Instr *callInstr, IR::Instr *insertBeforeIns
 void
 Inline::InsertFunctionObjectCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
 {
-     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(funcInfo->GetLocalFunctionId());
+     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
     AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
 
     bailOutInstr->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
@@ -4497,7 +4497,6 @@ Inline::MapFormals(Func *inlinee,
                         {
                             fUsesSafeThis = true;
                         }
-                        // TODO: OOP JIT, const this
                         else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
                             thisConstVar = symSrc->GetConstAddress(topFunc->IsOOPJIT());
@@ -5059,7 +5058,8 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
                         if (builtInOpnd->IsAddrOpnd())
                         {
                             Assert(builtInOpnd->AsAddrOpnd()->m_isFunction);
-                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltinFunctionForFuncId(((JITTimeFixedField*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetLocalFuncId());
+                            
+                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((JITTimeFixedField*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), this->topFunc->GetThreadContextInfo());
                             if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                             {
                                 this->SetIsInInlinedApplyCall(true);

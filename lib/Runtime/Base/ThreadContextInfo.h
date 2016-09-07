@@ -23,6 +23,7 @@ public:
     intptr_t GetDoublePointFiveAddr() const;
     intptr_t GetFloatPointFiveAddr() const;
     intptr_t GetDoubleNegPointFiveAddr() const;
+    intptr_t GetDoubleNegOneAddr() const;
     intptr_t GetFloatNegPointFiveAddr() const;
     intptr_t GetDoubleTwoToFractionAddr() const;
     intptr_t GetFloatTwoToFractionAddr() const;

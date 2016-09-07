@@ -356,8 +356,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     bool IsLambda() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->IsLambda();
+        Assert(this->GetJITFunctionBody());     // For now we always have a function body
+        return this->GetJITFunctionBody()->IsLambda();
     }
     bool IsTrueLeaf() const
     {
@@ -927,7 +927,6 @@ private:
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler *const m_codeGenProfiler;
 #endif
-    Js::FunctionBody*   m_jnFunction;
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
     uint                maxInlineeArgOutCount;

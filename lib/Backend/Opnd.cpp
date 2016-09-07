@@ -1941,7 +1941,7 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
 
     if (Js::JavascriptNumber::IsNegZero(value))
     {
-        return New(func->GetScriptContext()->GetLibrary()->GetNegativeZero(), AddrOpndKindDynamicVar, func, dontEncode);
+        return New(func->GetScriptContextInfo()->GetNegativeZeroAddr(), AddrOpndKindDynamicVar, func, dontEncode);
     }
     if (value == +0.0)
     {

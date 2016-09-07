@@ -110,6 +110,12 @@ ThreadContextInfo::GetFloatNegPointFiveAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetDoubleNegOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_NegOne);
+}
+
+intptr_t
 ThreadContextInfo::GetDoubleTwoToFractionAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_TwoToFraction);

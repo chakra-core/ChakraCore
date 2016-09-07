@@ -6354,7 +6354,9 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr)
 void
 LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper)
 {
-    Js::RecyclerJavascriptNumberAllocator * allocator = this->m_lowerer->GetScriptContext()->GetNumberAllocator();
+    size_t alignedAllocSize = Js::RecyclerJavascriptNumberAllocator::GetAlignedAllocSize(
+        m_func->GetScriptContextInfo()->IsRecyclerVerifyEnabled(),
+        m_func->GetScriptContextInfo()->GetRecyclerVerifyPad());
 
     IR::RegOpnd * loadAllocatorAddressOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::Instr * loadAllocatorAddressInstr = IR::Instr::New(Js::OpCode::LDIMM, loadAllocatorAddressOpnd,
@@ -6373,7 +6375,7 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
     // nextMemBlock = ADD dst, allocSize
     IR::RegOpnd * nextMemBlockOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::Instr * loadNextMemBlockInstr = IR::Instr::New(Js::OpCode::ADD, nextMemBlockOpnd, opndDst,
-        IR::IntConstOpnd::New(allocator->GetAlignedAllocSize(), TyInt32, this->m_func), this->m_func);
+        IR::IntConstOpnd::New(alignedAllocSize, TyInt32, this->m_func), this->m_func);
     instrInsert->InsertBefore(loadNextMemBlockInstr);
 
     // CMP nextMemBlock, allocator->endAddress
@@ -8492,7 +8494,7 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     if(instr->ShouldCheckForNegativeZero())
     {
         IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        IR::Opnd * negOne = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_NegOne), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        IR::Opnd * negOne = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegOneAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         this->m_lowerer->InsertCompareBranch(floatOpnd, negOne, Js::OpCode::BrNotGe_A, doneLabel, instr);
         this->m_lowerer->InsertCompareBranch(floatOpnd, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
 
@@ -8554,7 +8556,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     this->LoadFloatZero(zeroReg, instr);
 
     // Add 0.5
-    IR::Opnd * pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+    IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
     this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
 
     // VMRS  Rorig, FPSCR
@@ -8599,7 +8601,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     if(instr->ShouldCheckForNegativeZero())
     {
         IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        IR::Opnd * negPointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_NegPointFive), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        IR::Opnd * negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegPointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         this->m_lowerer->InsertCompareBranch(src, negPointFive, Js::OpCode::BrNotGe_A, doneLabel, instr);
         this->m_lowerer->InsertCompareBranch(src, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
 
@@ -8918,7 +8920,7 @@ LowererMD::InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *cons
                 false /* needFlags */,
                 srcPlusHalf,
                 src,
-                IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, func,
+                IR::MemRefOpnd::New(insertBeforeInstr->m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, func,
                     IR::AddrOpndKindDynamicDoubleRef),
                 insertBeforeInstr);
 
@@ -8976,7 +8978,7 @@ IR::Instr *
 LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
 {
     Assert(opndDst->GetType() == TyFloat64);
-    IR::Opnd * zero = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyFloat64, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
+    IR::Opnd * zero = IR::MemRefOpnd::New(instrInsert->m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
     return Lowerer::InsertMove(opndDst, zero, instrInsert);
 }
 
