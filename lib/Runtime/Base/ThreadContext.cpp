@@ -1963,16 +1963,23 @@ ThreadContext::EnsureJITThreadContext()
 
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     // we may have populated propertyMap prior to initializing JIT connection
-    if (m_propertyMap != nullptr)
+    if (m_propertyMap != nullptr && m_propertyMap->Count() > 0)
     {
-        m_propertyMap->Map([=](const Js::PropertyRecord * record)
+        uint count = (uint)m_propertyMap->Count();
+        PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
+        uint index = 0;
+        auto iter = m_propertyMap->GetIterator();
+        while (iter.IsValid())
         {
-            HRESULT hr = JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)record);
-            if (hr != S_OK)
-            {
-                Js::Throw::FatalInternalError();
-            }
-        });
+            propArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
+            iter.MoveNext();
+        }
+        HRESULT hr = JITManager::GetJITManager()->AddPropertyRecordArray(m_remoteThreadContextInfo, count, (PropertyRecordIDL**)propArray);
+        if (hr != S_OK)
+        {
+            Js::Throw::FatalInternalError();
+        }
+        HeapDeleteArray(count, propArray);
     }
 }
 #endif

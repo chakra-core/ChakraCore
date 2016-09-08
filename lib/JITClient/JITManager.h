@@ -29,6 +29,11 @@ public:
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
 
+    HRESULT AddPropertyRecordArray(
+        __in intptr_t threadContextInfoAddress,
+        __in unsigned int count,
+        __in PropertyRecordIDL ** propertyRecordArray);
+
     HRESULT AddPropertyRecord(
         __in intptr_t threadContextInfoAddress,
         __in PropertyRecordIDL * propertyRecord);

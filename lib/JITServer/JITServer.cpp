@@ -161,6 +161,29 @@ ServerAddPropertyRecord(
 }
 
 HRESULT
+ServerAddPropertyRecordArray(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t threadContextRoot,
+    /* [in] */ uint count,
+    /* [in] */ PropertyRecordIDL ** propertyRecordArray)
+{
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
+
+    if (threadContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+    for (uint i = 0; i < count; ++i)
+    {
+        threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecordArray[i]);
+    }
+
+    return S_OK;
+}
+
+HRESULT
 ServerAddDOMFastPathHelper(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t scriptContextRoot,
