@@ -807,14 +807,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
     HostConfigFlags::HandleArgsFlag(argc, argv);
 
-#ifdef _WIN32
-    if (HostConfigFlags::flags.EnableOutOfProcJIT)
-    {
-        JITProcessManager::RemoveArg(_u("-dynamicprofilecache:"), &argc, &argv);
-        JITProcessManager::RemoveArg(_u("-dynamicprofileinput:"), &argc, &argv);
-    }
-#endif
-
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
     HINSTANCE chakraLibrary = nullptr;
     bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
@@ -837,6 +829,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);
+            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
         }
 
         HANDLE threadHandle;

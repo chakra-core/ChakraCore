@@ -537,8 +537,8 @@ private:
 #if ENABLE_NATIVE_CODEGEN
 public:
 
-    void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
-    void InitJITThreadContext();
+    static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+    void EnsureJITThreadContext();
 
     intptr_t GetRemoteThreadContextAddr() const
     {
@@ -1058,7 +1058,7 @@ public:
     void ShutdownThreads()
     {
 #if ENABLE_NATIVE_CODEGEN
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
         {
             JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
         }

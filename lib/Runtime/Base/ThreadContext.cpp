@@ -1916,10 +1916,6 @@ void
 ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-    if (m_remoteThreadContextInfo)
-    {
-        return;
-    }
     if (!JITManager::GetJITManager()->IsConnected())
     {
         HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
@@ -1929,14 +1925,17 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
             Js::Throw::InternalError();
         }
     }
-    InitJITThreadContext();
 }
 void
-ThreadContext::InitJITThreadContext()
+ThreadContext::EnsureJITThreadContext()
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     Assert(JITManager::GetJITManager()->IsConnected());
 
+    if (m_remoteThreadContextInfo)
+    {
+        return;
+    }
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
 

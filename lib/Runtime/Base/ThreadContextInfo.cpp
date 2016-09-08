@@ -313,12 +313,14 @@ ThreadContextInfo::ResetIsAllJITCodeInPreReservedRegion()
 
 #ifdef ENABLE_GLOBALIZATION
 
+#if defined(_CONTROL_FLOW_GUARD)
 Js::DelayLoadWinCoreProcessThreads *
 ThreadContextInfo::GetWinCoreProcessThreads()
 {
     m_delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
     return &m_delayLoadWinCoreProcessThreads;
 }
+#endif
 
 bool
 ThreadContextInfo::IsCFGEnabled()

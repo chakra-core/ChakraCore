@@ -56,6 +56,11 @@ struct TestHooks
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberRange
 
+#ifdef _WIN32
+    typedef void(TESTHOOK_CALL * ConnectJITServer)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+    ConnectJITServer pfnConnectJITServer;
+#endif
+
     NotifyUnhandledExceptionPtr pfnNotifyUnhandledException;
 };
 
