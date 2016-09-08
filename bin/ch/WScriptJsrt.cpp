@@ -920,7 +920,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
 
             if (FAILED(hr))
             {
-                fwprintf(stderr, L"Couldn't load file.\n");
+                fwprintf(stderr, _u("Couldn't load file.\n"));
                 IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
             }
             else
@@ -961,7 +961,7 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool
             hr = Helpers::LoadBinaryFile(*fileName, fileContent, lengthBytes);
             if (FAILED(hr))
             {
-                fwprintf(stderr, L"Couldn't load file.\n");
+                fwprintf(stderr, _u("Couldn't load file.\n"));
             }
             else
             {
@@ -972,7 +972,7 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool
                 IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
                 if (bufferLength < lengthBytes)
                 {
-                    fwprintf(stderr, L"Array buffer size is insufficient to store the binary file.\n");
+                    fwprintf(stderr, _u("Array buffer size is insufficient to store the binary file.\n"));
                 }
                 else
                 {

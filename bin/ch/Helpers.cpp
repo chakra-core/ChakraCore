@@ -443,6 +443,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     HRESULT hr = S_OK;
     contents = nullptr;
     lengthBytes = 0;
+    size_t result;
     FILE * file;
 
     //
@@ -495,7 +496,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     //
     // Read the entire content as a binary block.
     //
-    size_t result = fread((void*)contents, sizeof(char), lengthBytes, file);
+    result = fread((void*)contents, sizeof(char), lengthBytes, file);
     if (result != lengthBytes)
     {
         fwprintf(stderr, _u("Read error"));

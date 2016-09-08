@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
-#include "Common\MathUtil.h"
+#include "Common/MathUtil.h"
 
 namespace UnifiedRegex
 {
