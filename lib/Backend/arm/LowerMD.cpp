@@ -3124,7 +3124,6 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
     IR::LabelInstr * labelTarget = nullptr;
     bool isBranch = true;
     bool isCmNegOp = false;
-    IR::Opnd *opndSuccess = nullptr;
     IR::Opnd *opndFailure = nullptr;
 
     switch (instr->m_opcode)
@@ -3153,12 +3152,10 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
         if (instr->GetDst()->IsInt32())
         {
-            opndSuccess = IR::IntConstOpnd::New(!isCmNegOp ? 1 : 0, TyMachReg, this->m_func);
-            opndFailure = IR::IntConstOpnd::New(!isCmNegOp ? 0 : 0, TyMachReg, this->m_func);
+            opndFailure = IR::IntConstOpnd::New(!isCmNegOp ? 0 : 1, TyMachReg, this->m_func);
         }
         else
         {
-            opndSuccess = m_lowerer->LoadLibraryValueOpnd(instr, !isCmNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse);
             opndFailure = m_lowerer->LoadLibraryValueOpnd(instr, !isCmNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue);
         }
 
@@ -3173,8 +3170,10 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
     if (!isBranch)
     {
-        LowererMD::CreateAssign(instr->GetDst(), opndSuccess, instr);
-        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelFail, m_func));
+        // CMP first character (from GenerateFastStringCheck)
+        // BNE labelTarget
+        // B helper
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelHelper, m_func));
 
         instr->InsertBefore(labelTarget);
         LowererMD::CreateAssign(instr->GetDst(), opndFailure, instr);
