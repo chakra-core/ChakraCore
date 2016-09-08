@@ -854,7 +854,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     double startTime = threadContext->JITTelemetry.Now();
 #endif
 
-    // TODO: (michhol OOP JIT) I think this should be requisite to calling?
     if (body->GetScriptContext()->IsClosed())
     {
         // Should not be jitting something in the foreground when the script context is actually closed
@@ -899,9 +898,18 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
-        if (workItem->codeGenResult != S_OK)
+        switch (workItem->codeGenResult)
         {
-            Js::Throw::InternalError();
+        case S_OK:
+            break;
+        case E_ABORT:
+            throw Js::OperationAbortedException();
+        case E_OUTOFMEMORY:
+            throw Js::OutOfMemoryException();
+        case VBSERR_OutOfStack:
+            throw Js::StackOverflowException();
+        default:
+            Js::Throw::FatalInternalError();
         }
     }
     else

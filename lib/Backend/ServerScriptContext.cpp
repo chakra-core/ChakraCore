@@ -8,6 +8,7 @@
 ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
     m_contextData(*contextData),
     m_isPRNGSeeded(false),
+    m_isClosed(false),
     m_moduleRecords(&HeapAllocator::Instance),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
@@ -244,6 +245,12 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+bool
+ServerScriptContext::IsClosed() const
+{
+    return m_isClosed;
+}
+
 void
 ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
@@ -261,6 +268,13 @@ ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 
     Assert(found);
     return helper;
+}
+
+void
+ServerScriptContext::Close()
+{
+    Assert(!IsClosed());
+    m_isClosed = true;
 }
 
 void

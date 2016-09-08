@@ -389,6 +389,8 @@ Func::TryCodegen()
 
         END_CODEGEN_PHASE(this, Js::InlinePhase);
 
+        ThrowIfScriptClosed();
+
         // FlowGraph
         {
             // Scope for FlowGraph arena
@@ -417,6 +419,8 @@ Func::TryCodegen()
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::GlobOptPhase);
 #endif /* IR_VIEWER */
+
+        ThrowIfScriptClosed();
 
         // Lowering
         Lowerer lowerer(this);
@@ -454,6 +458,8 @@ Func::TryCodegen()
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::RegAllocPhase);
 #endif /* IR_VIEWER */
+
+        ThrowIfScriptClosed();
 
         // Peephole optimizations
 
@@ -1687,6 +1693,17 @@ Cloner::RetargetClonedBranches()
         }
     }
     NEXT_INSTR_IN_RANGE;
+}
+
+void Func::ThrowIfScriptClosed()
+{
+    if (GetScriptContextInfo()->IsClosed())
+    {
+        // Should not be jitting something in the foreground when the script context is actually closed
+        Assert(IsBackgroundJIT() || !GetScriptContext()->IsActuallyClosed());
+
+        throw Js::OperationAbortedException();
+    }
 }
 
 IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)

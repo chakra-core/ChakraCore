@@ -1061,6 +1061,7 @@ public:
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
         {
             JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
+            m_remoteThreadContextInfo = 0;
         }
 
         if (jobProcessor)

@@ -134,7 +134,7 @@ ServerCleanupThreadContext(
         return RPC_S_INVALID_ARG;
     }
 
-    while (threadContextInfo->IsJITActive()) { Sleep(30); }
+    while (threadContextInfo->IsJITActive()) { Sleep(1); }
     HeapDelete(threadContextInfo);
 
     return S_OK;
@@ -255,7 +255,7 @@ ServerInitializeScriptContext(
 }
 
 HRESULT
-ServerCleanupScriptContext(
+ServerCloseScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t scriptContextRoot)
 {
@@ -274,7 +274,23 @@ ServerCleanupScriptContext(
     }
 #endif
 
-    while (scriptContextInfo->IsJITActive()) { Sleep(30); }
+    scriptContextInfo->Close();
+    return S_OK;
+}
+
+HRESULT
+ServerCleanupScriptContext(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextRoot)
+{
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        return RPC_S_INVALID_ARG;
+    }
+
+    while (scriptContextInfo->IsJITActive()) { Sleep(1); }
     HeapDelete(scriptContextInfo);
     return S_OK;
 }
@@ -397,20 +413,35 @@ ServerRemoteCodeGen(
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
     memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
-    Func::Codegen(
-        &jitArena,
-        jitWorkItem,
-        threadContextInfo,
-        scriptContextInfo,
-        jitData,
-        nullptr,
-        nullptr,
-        jitWorkItem->GetPolymorphicInlineCacheInfo(),
-        threadContextInfo->GetCodeGenAllocators(),
-        nullptr,
-        profiler,
-        true);
-
+    HRESULT hr = S_OK;
+    try
+    {
+        Func::Codegen(
+            &jitArena,
+            jitWorkItem,
+            threadContextInfo,
+            scriptContextInfo,
+            jitData,
+            nullptr,
+            nullptr,
+            jitWorkItem->GetPolymorphicInlineCacheInfo(),
+            threadContextInfo->GetCodeGenAllocators(),
+            nullptr,
+            profiler,
+            true);
+    }
+    catch (Js::OutOfMemoryException)
+    {
+        hr = E_OUTOFMEMORY;
+    }
+    catch (Js::StackOverflowException)
+    {
+        hr = VBSERR_OutOfStack;
+    }
+    catch (Js::OperationAbortedException)
+    {
+        hr = E_ABORT;
+    }
     scriptContextInfo->EndJIT();
     threadContextInfo->EndJIT();
 
@@ -441,5 +472,5 @@ ServerRemoteCodeGen(
         QueryPerformanceCounter(&out_time);
         jitData->startTime = out_time.QuadPart;
     }
-    return S_OK;
+    return hr;
 }

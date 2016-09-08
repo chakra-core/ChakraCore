@@ -46,6 +46,8 @@ public:
     virtual bool IsRecyclerVerifyEnabled() const = 0;
     virtual uint GetRecyclerVerifyPad() const = 0;
 
+    virtual bool IsClosed() const = 0;
+
     virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) = 0;
 
 #if ENABLE_NATIVE_CODEGEN

@@ -39,6 +39,7 @@ public:
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
     virtual bool IsSIMDEnabled() const override;
     virtual bool IsPRNGSeeded() const override;
+    virtual bool IsClosed() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
     virtual intptr_t GetAddr() const override;
@@ -62,6 +63,7 @@ public:
 
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
 
+    void Close();
     void BeginJIT();
     void EndJIT();
     bool IsJITActive();
@@ -75,5 +77,5 @@ private:
     uint m_activeJITCount;
 
     bool m_isPRNGSeeded;
-
+    bool m_isClosed;
 };

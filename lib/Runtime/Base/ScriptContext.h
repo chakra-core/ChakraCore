@@ -894,7 +894,9 @@ private:
         DateTime::DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
         DateTime::Utility *GetDateUtility() { return &dateTimeUtility; }
 
-        bool IsClosed() const { return isClosed; }
+        virtual bool IsClosed() const override { return isClosed; }
+        void SetIsClosed();
+
         bool IsFinalized() const { return isFinalized; }
         void SetIsFinalized() { isFinalized = true; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
@@ -1212,8 +1214,6 @@ private:
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ config.SetCanOptimizeGlobalLookupFlag(f);}
         BOOL CanOptimizeGlobalLookup(){ return config.CanOptimizeGlobalLookup();}
 
-
-        bool IsClosed() { return isClosed; }
         bool IsFastDOMEnabled() { return fastDOMenabled; }
         void SetFastDOMenabled();
         BOOL VerifyAlive(BOOL isJSFunction = FALSE, ScriptContext* requestScriptContext = nullptr);

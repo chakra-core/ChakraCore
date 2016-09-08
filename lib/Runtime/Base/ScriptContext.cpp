@@ -389,6 +389,7 @@ namespace Js
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
             JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
+            m_remoteScriptContextAddr = 0;
         }
 #endif
 
@@ -425,7 +426,7 @@ namespace Js
             threadContext->RemoveFromPendingClose(this);
         }
 
-        this->isClosed = true;
+        SetIsClosed();
         bool closed = Close(true);
 
         // JIT may access number allocator. Need to close the script context first,
@@ -1241,7 +1242,7 @@ if (!sourceList)
     void ScriptContext::MarkForClose()
     {
         SaveStartupProfileAndRelease(true);
-        this->isClosed = true;
+        SetIsClosed();
 
 #ifdef LEAK_REPORT
         if (this->isRootTrackerScriptContext)
@@ -1257,6 +1258,15 @@ if (!sourceList)
         else
         {
             threadContext->AddToPendingScriptContextCloseList(this);
+        }
+    }
+
+    void ScriptContext::SetIsClosed()
+    {
+        this->isClosed = true;
+        if (m_remoteScriptContextAddr)
+        {
+            JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
         }
     }
 
