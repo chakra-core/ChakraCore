@@ -94,7 +94,7 @@ namespace Js{
         }
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
-        if (mathBuiltinUsed.Test(AsmJSMathBuiltinFunction::AsmJSMathBuiltin_infinity))
+        if (mathBuiltinUsed.TestAndClear(AsmJSMathBuiltinFunction::AsmJSMathBuiltin_infinity))
         {
             Var asmInfinityObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Infinity, scriptContext);
             if (!JavascriptConversion::SameValue(asmInfinityObj, library->GetPositiveInfinite()))
@@ -103,7 +103,7 @@ namespace Js{
                 return false;
             }
         }
-        if (mathBuiltinUsed.Test(AsmJSMathBuiltinFunction::AsmJSMathBuiltin_nan))
+        if (mathBuiltinUsed.TestAndClear(AsmJSMathBuiltinFunction::AsmJSMathBuiltin_nan))
         {
             Var asmNaNObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::NaN, scriptContext);
             if (!JavascriptConversion::SameValue(asmNaNObj, library->GetNaN()))
@@ -112,19 +112,22 @@ namespace Js{
                 return false;
             }
         }
-        Var asmMathObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Math, scriptContext);
-        for (int i = 0; i < AsmJSMathBuiltinFunction::AsmJSMathBuiltin_COUNT; i++)
+        if (!mathBuiltinUsed.IsAllClear())
         {
-            //check if bit is set
-            if (!mathBuiltinUsed.Test(i) || i == AsmJSMathBuiltinFunction::AsmJSMathBuiltin_infinity || i == AsmJSMathBuiltinFunction::AsmJSMathBuiltin_nan)
+            Var asmMathObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Math, scriptContext);
+            for (int i = 0; i < AsmJSMathBuiltinFunction::AsmJSMathBuiltin_COUNT; i++)
             {
-                continue;
-            }
-            AsmJSMathBuiltinFunction mathBuiltinFunc = (AsmJSMathBuiltinFunction)i;
-            if (!CheckMathLibraryMethod(scriptContext, asmMathObject, mathBuiltinFunc))
-            {
-                AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Math builtin function is invalid"));
-                return false;
+                //check if bit is set
+                if (!mathBuiltinUsed.Test(i))
+                {
+                    continue;
+                }
+                AsmJSMathBuiltinFunction mathBuiltinFunc = (AsmJSMathBuiltinFunction)i;
+                if (!CheckMathLibraryMethod(scriptContext, asmMathObject, mathBuiltinFunc))
+                {
+                    AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Math builtin function is invalid"));
+                    return false;
+                }
             }
         }
         for (int i = 0; i < AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_COUNT; i++)
@@ -143,18 +146,21 @@ namespace Js{
         }
 
 #ifdef ENABLE_SIMDJS
-        Var asmSimdObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::SIMD, scriptContext);
-        for (int i = 0; i < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_COUNT; i++)
+        if (!simdBuiltinUsed.IsAllClear())
         {
-            if (!simdBuiltinUsed.Test(i))
+            Var asmSimdObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::SIMD, scriptContext);
+            for (int i = 0; i < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_COUNT; i++)
             {
-                continue;
-            }
-            AsmJsSIMDBuiltinFunction simdBuiltinFunc = (AsmJsSIMDBuiltinFunction)i;
-            if (!CheckSimdLibraryMethod(scriptContext, asmSimdObject, simdBuiltinFunc))
-            {
-                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : SIMD builtin function is invalid");
-                return false;
+                if (!simdBuiltinUsed.Test(i))
+                {
+                    continue;
+                }
+                AsmJsSIMDBuiltinFunction simdBuiltinFunc = (AsmJsSIMDBuiltinFunction)i;
+                if (!CheckSimdLibraryMethod(scriptContext, asmSimdObject, simdBuiltinFunc))
+                {
+                    AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : SIMD builtin function is invalid");
+                    return false;
+                }
             }
         }
 #endif
