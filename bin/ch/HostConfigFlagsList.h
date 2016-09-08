@@ -9,6 +9,6 @@ FLAG(bool, DebugLaunch,                     "Create the test debugger and execut
 FLAG(BSTR, GenerateLibraryByteCodeHeader,   "Generate bytecode header file from library code", NULL)
 FLAG(int,  InspectMaxStringLength,          "Max string length to dump in locals inspection", 16)
 FLAG(BSTR, Serialized,                      "If source is UTF8, deserializes from bytecode file", NULL)
-FLAG(bool, EnableOutOfProcJIT,              "Run JIT in a separate process", true)
+FLAG(bool, EnableOutOfProcJIT,              "Run JIT in a separate process", false)
 #undef FLAG
 #endif
