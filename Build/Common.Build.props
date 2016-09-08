@@ -112,6 +112,9 @@
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);DBG;ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
     </ResourceCompile>
+    <Midl>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);DBG</PreprocessorDefinitions>
+    </Midl>
   </ItemDefinitionGroup>
   <!-- fre and fretest build flags -->
   <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true'">

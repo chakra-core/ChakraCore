@@ -116,7 +116,6 @@ typedef struct ObjTypeSpecFldIDL
 {
     boolean inUse;
     IDL_PAD1(0)
-    // TODO: OOP JIT we may want to copy some of the data in these pointers
     unsigned short flags;
     unsigned short slotIndex;
     unsigned short fixedFieldCount;
@@ -181,11 +180,13 @@ typedef struct FldIDL
 typedef struct ArrayCallSiteIDL
 {
     byte bits;
+#if DBG
     IDL_PAD1(0)
     IDL_PAD2(1)
     unsigned int functionNumber;
     unsigned short callSiteNumber;
     IDL_PAD2(2)
+#endif
 } ArrayCallSiteIDL;
 
 typedef struct LdElemIDL

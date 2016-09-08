@@ -301,8 +301,7 @@ namespace Js
             };
             byte bits;
         };
-        // TODO: michhol OOP JIT, how to do preprocessor directives in midl?
-#if DBG || TRUE
+#if DBG
         uint functionNumber;
         ProfileId callSiteNumber;
 #endif

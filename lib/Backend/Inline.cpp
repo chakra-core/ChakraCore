@@ -723,7 +723,6 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
             return InlinePolymorphicFunction(callInstr, inlinerData, symCallerThis, profileId, pIsInlined, recursiveInlineDepth, true);
         }
 #if DBG
-        // TODO: OOP JIT, fixed function
         if(inlineesDataArray[i]->GetBody() && inlineesDataArray[i]->GetFunctionInfoAddr() != methodPropertyOpnd->GetFixedFunction(i)->GetFuncInfoAddr())
         {
             AssertMsg(false, "inlineesDataArray and fixedfunctionInfoArray should be aligned with each other at this point");
@@ -1445,7 +1444,6 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         return false;
     }
 
-    // TODO: OOP JIT, fixed fields?
     if (inlineeInfo != nullptr && fixedField->GetFuncInfoAddr() != inlineeInfo->GetFunctionInfoAddr())
     {
 #if TRACE_FIXED_FIELDS && 0// TODO: OOP JIT, trace fixed fields
