@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -20,6 +20,7 @@
 
 // use stdlib instead of PAL defined malloc to avoid forced Wint-to-pointer warning
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef _VALIDATE_RETURN_ERRCODE
 #define _VALIDATE_RETURN_ERRCODE(c, e) \
