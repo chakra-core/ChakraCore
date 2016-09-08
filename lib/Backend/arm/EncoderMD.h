@@ -55,7 +55,7 @@ public:
     EncoderMD(Func * func) : m_func(func), consecutiveThumbInstrCount(0) { }
     ptrdiff_t       Encode(IR::Instr * instr, BYTE *pc, BYTE* beginCodeAddress = nullptr);
     void            Init(Encoder *encoder);
-    void            ApplyRelocs(uint32 codeBufferAddress);
+    void            ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation = false);
     static bool     TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd);
     static bool     TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd);
     const BYTE      GetRegEncode(IR::RegOpnd *regOpnd);

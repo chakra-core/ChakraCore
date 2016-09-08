@@ -1362,10 +1362,23 @@ CommonNumber:
 
     Var JavascriptOperators::OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        // We know we're going to read from this array. Do the conversion before we try to perform checks on the head segment.
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(aRight);
+#endif
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
-        if (((JavascriptArray::Is(aRight) && method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint())
-                || (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
+        if (((JavascriptArray::Is(aRight) &&
+              (
+                  method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint()
+                  // Verify that the head segment of the array covers all elements with no gaps.
+                  // Accessing an element on the prototype could have side-effects that would invalidate the optimization.
+                  && JavascriptArray::FromVar(aRight)->GetHead()->next == nullptr
+                  && JavascriptArray::FromVar(aRight)->GetHead()->left == 0
+                  && JavascriptArray::FromVar(aRight)->GetHead()->length == JavascriptArray::FromVar(aRight)->GetLength()
+                  && JavascriptArray::FromVar(aRight)->HasNoMissingValues()
+              )) ||
+             (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
             // We can't optimize away the iterator if the array iterator prototype is user defined.
             && !JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext))
         {

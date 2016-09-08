@@ -926,9 +926,10 @@ GlobOpt::TryTailDup(IR::BranchInstr *tailBranch)
             {
                 branchEntry->InsertBefore(instr->Copy());
             }
-            branchEntry->ReplaceTarget(mergeLabel, tailBranch->GetTarget());
 
             instr = branchEntry;
+            branchEntry->ReplaceTarget(mergeLabel, tailBranch->GetTarget());
+
             while(!instr->IsLabelInstr())
             {
                 instr = instr->m_prev;

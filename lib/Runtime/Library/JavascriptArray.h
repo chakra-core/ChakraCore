@@ -567,13 +567,20 @@ namespace Js
         template <> static bool MayChangeType<JavascriptNativeIntArray>() { return true; }
         template <> static bool MayChangeType<JavascriptNativeFloatArray>() { return true; }
 
+        template<typename T, typename P>
+        static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext)
+        {
+            return T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext) :
+                JavascriptOperators::GetItem(arr, index, element, scriptContext);
+        }
+
         template <bool hasSideEffect, typename T, typename Fn>
         static void TemplatedForEachItemInRange(T * arr, uint32 startIndex, uint32 limitIndex, Var missingItem, ScriptContext * scriptContext, Fn fn)
         {
             for (uint32 i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                fn(i, TemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
+                fn(i, TryTemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
 
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
@@ -590,7 +597,7 @@ namespace Js
             for (P i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                if (TemplatedGetItem(arr, i, &element, scriptContext))
+                if (TryTemplatedGetItem(arr, i, &element, scriptContext))
                 {
                     fn(i, element);
 

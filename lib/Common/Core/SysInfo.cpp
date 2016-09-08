@@ -198,6 +198,13 @@ AutoSystemInfo::SSE4_1Available() const
 }
 
 BOOL
+AutoSystemInfo::SSE4_2Available() const
+{
+    Assert(initialized);
+    return VirtualSseAvailable(4) && (CPUInfo[2] & (0x1 << 20));
+}
+
+BOOL
 AutoSystemInfo::PopCntAvailable() const
 {
     Assert(initialized);

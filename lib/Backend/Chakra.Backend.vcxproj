@@ -409,6 +409,11 @@
     <None Include="Opnd.inl" />
     <None Include="Sym.inl" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CRC.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

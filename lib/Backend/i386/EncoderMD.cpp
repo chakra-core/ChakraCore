@@ -481,7 +481,6 @@ void
 EncoderMD::EmitCondBranch(IR::BranchInstr * branchInstr)
 {
     IR::LabelInstr * labelInstr;
-
     // TODO: Make this more table-driven by mapping opcodes to condcodes.
     // (Will become more useful when we're emitting short branches as well.)
 
@@ -556,12 +555,10 @@ EncoderMD::EmitCondBranch(IR::BranchInstr * branchInstr)
         break;
     }
 
-    AppendRelocEntry(RelocTypeBranch, (void*) m_pc);
-
-    // Save the target LabelInstr's address in the encoder buffer itself, using the 4-byte
-    // pcrel field of the branch instruction. This only works for long branches, obviously.
     labelInstr = branchInstr->GetTarget();
-    this->EmitConst((uint32)labelInstr, MachInt);
+    AppendRelocEntry(RelocTypeBranch, (void*) m_pc, labelInstr);
+
+    this->EmitConst(0, MachInt);
 }
 
 ///----------------------------------------------------------------------------
@@ -764,8 +761,8 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             this->EmitModRM(instr, opr1, this->GetOpcodeByte2(instr) >> 3);
             if (opr2->IsLabelOpnd())
             {
-                AppendRelocEntry( RelocTypeLabelUse, (void*) m_pc);
-                this->EmitConst((uint32)opr2->AsLabelOpnd()->GetLabel(), 4);
+                AppendRelocEntry( RelocTypeLabelUse, (void*) m_pc, opr2->AsLabelOpnd()->GetLabel());
+                this->EmitConst(0, 4);
             }
             else
             {
@@ -874,8 +871,8 @@ modrm:
                 {
                     continue;
                 }
-                AppendRelocEntry(RelocTypeLabelUse, (void*) m_pc);
-                this->EmitConst((uint32)opr1->AsLabelOpnd()->GetLabel(), 4);
+                AppendRelocEntry(RelocTypeLabelUse, (void*) m_pc, opr1->AsLabelOpnd()->GetLabel());
+                this->EmitConst(0, 4);
             }
             else
             {
@@ -918,24 +915,21 @@ modrm:
                 // Unconditional branch
                 AssertMsg(instr->IsBranchInstr(), "Invalid LABREL2 form");
 
-                AppendRelocEntry(RelocTypeBranch, (void*)m_pc);
-
-                // Save the target LabelInstr's address in the encoder buffer itself, using the 4-byte
-                // pcrel field of the branch instruction. This only works for long branches, obviously.
-                this->EmitConst((uint32)instr->AsBranchInstr()->GetTarget(), 4);
+                AppendRelocEntry(RelocTypeBranch, (void*)m_pc, instr->AsBranchInstr()->GetTarget());
+                this->EmitConst(0, 4);
             }
             else if (opr1->IsIntConstOpnd())
             {
-                AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc);
-                this->EmitConst(opr1->AsIntConstOpnd()->GetValue(), 4);
+                AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc, nullptr, (void*)opr1->AsIntConstOpnd()->GetValue());
+                this->EmitConst(0, 4);
                 AssertMsg( ( ((BYTE*)opr1->AsIntConstOpnd()->GetValue()) < m_encoder->m_encodeBuffer || ((BYTE *)opr1->AsIntConstOpnd()->GetValue()) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
             }
             else if (opr1->IsHelperCallOpnd())
             {
-                AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc);
                 const void* fnAddress = IR::GetMethodAddress(opr1->AsHelperCallOpnd());
+                AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc, nullptr, fnAddress);
                 AssertMsg(sizeof(uint32) == sizeof(void*), "Sizes of void* assumed to be 32-bits");
-                this->EmitConst((uint32)fnAddress, 4);
+                this->EmitConst(0, 4);
                 AssertMsg( (((BYTE*)fnAddress) < m_encoder->m_encodeBuffer || ((BYTE *)fnAddress) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
             }
             else
@@ -1281,13 +1275,13 @@ modrm:
 }
 
 int
-EncoderMD::AppendRelocEntry(RelocType type, void *ptr)
+EncoderMD::AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr* labelInstr, const void * fnAddress)
 {
     if (m_relocList == nullptr)
         m_relocList = Anew(m_encoder->m_tempAlloc, RelocList, m_encoder->m_tempAlloc);
 
     EncodeRelocAndLabels reloc;
-    reloc.init(type, ptr);
+    reloc.init(type, ptr, labelInstr, fnAddress);
 
     return m_relocList->Add(reloc);
 }
@@ -1341,7 +1335,7 @@ EncoderMD::FixRelocListEntry(uint32 index, int32 totalBytesSaved, BYTE *buffStar
                 uint32 count = field & 0xf;
 
                 AssertMsg(offset < (uint32)(buffEnd - buffStart), "Inlinee entry offset out of range");
-                *((uint32*) relocRecord.m_origPtr) = ((offset - totalBytesSaved) << 4) | count;
+                relocRecord.SetInlineOffset(((offset - totalBytesSaved) << 4) | count);
             }
             // adjust the ptr to the buffer itself
             relocRecord.m_ptr = (BYTE*) relocRecord.m_ptr - totalBytesSaved;
@@ -1396,7 +1390,7 @@ EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, uint32 *inlineeFrameRecord
 /// before we copy the contents of the temporary buffer to the target buffer.
 ///----------------------------------------------------------------------------
 void
-EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
+EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint * bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation)
 {
     for (int32 i = 0; i < m_relocList->Count(); i++)
     {
@@ -1409,7 +1403,13 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
         case RelocTypeCallPcrel:
             {
                 pcrel = (uint32)(codeBufferAddress + (BYTE*)reloc->m_ptr - m_encoder->m_encodeBuffer + 4);
-                *(uint32 *)relocAddress -= pcrel;
+                uint32 offset = (uint32)reloc->GetFnAddress() - pcrel;
+                if (!isFinalBufferValidation)
+                {
+                    Assert(*(uint32 *)relocAddress == 0);
+                    *(uint32 *)relocAddress = offset;
+                }
+                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, offset);
                 break;
             }
         case RelocTypeBranch:
@@ -1421,20 +1421,48 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
                     // short branch
                     pcrel = (uint32)(labelInstr->GetPC() - ((BYTE*)reloc->m_ptr + 1));
                     AssertMsg((int32)pcrel >= -128 && (int32)pcrel <= 127, "Offset doesn't fit in imm8.");
-                    *(BYTE*)relocAddress = (BYTE)pcrel;
+                    if (!isFinalBufferValidation)
+                    {
+                        Assert(*(BYTE*)relocAddress == 0);
+                        *(BYTE*)relocAddress = (BYTE)pcrel;
+                    }
+                    else
+                    {
+                        Encoder::EnsureRelocEntryIntegrity(codeBufferAddress, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(BYTE), (ptrdiff_t)labelInstr->GetPC() - ((ptrdiff_t)reloc->m_ptr + 1));
+                    }
                 }
                 else
                 {
                     pcrel = (uint32)(labelInstr->GetPC() - ((BYTE*)reloc->m_ptr + 4));
-                    *(uint32 *)relocAddress = pcrel;
+                    if (!isFinalBufferValidation)
+                    {
+                        Assert(*(uint32 *)relocAddress == 0);
+                        *(uint32 *)relocAddress = pcrel;
+                    }
+                    else
+                    {
+                        Encoder::EnsureRelocEntryIntegrity(codeBufferAddress, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(uint32), (ptrdiff_t)labelInstr->GetPC() - ((ptrdiff_t)reloc->m_ptr + 4));
+                    }
                 }
+                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, pcrel);
                 break;
             }
         case RelocTypeLabelUse:
             {
-                IR::LabelInstr * labelInstr = *(IR::LabelInstr**)relocAddress;
+                IR::LabelInstr * labelInstr = reloc->GetLabelInstrForRelocTypeLabelUse();
                 AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                *(uint32 *)relocAddress = (uint32)(labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress);
+                uint32 offset = uint32(labelInstr->GetPC() - m_encoder->m_encodeBuffer);
+                size_t targetAddress = (uint32)(offset + codeBufferAddress);
+                if (!isFinalBufferValidation)
+                {
+                    Assert(*(uint32 *)relocAddress == 0);
+                    *(uint32 *)relocAddress = targetAddress;
+                }
+                else
+                {
+                    Encoder::EnsureRelocEntryIntegrity(codeBufferAddress, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(size_t), targetAddress, false);
+                }
+                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, offset);
                 break;
             }
         case RelocTypeLabel:
@@ -1445,6 +1473,40 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
             AssertMsg(UNREACHED, "Unknown reloc type");
         }
     }
+}
+
+uint
+EncoderMD::GetRelocDataSize(EncodeRelocAndLabels *reloc)
+{
+    switch (reloc->m_type)
+    {
+        case RelocTypeCallPcrel:
+        case RelocTypeLabelUse:
+        {
+            return sizeof(uint32);
+        }
+        case RelocTypeBranch:
+        {
+            if (reloc->isShortBr())
+            {
+                return sizeof(BYTE);
+            }
+            else
+            {
+                return sizeof(uint32);
+            }
+        }
+        default:
+        {
+            return 0;
+        }
+    }
+}
+
+BYTE * 
+EncoderMD::GetRelocBufferAddress(EncodeRelocAndLabels * reloc)
+{
+    return (BYTE*)reloc->m_ptr;
 }
 
 ///----------------------------------------------------------------------------
