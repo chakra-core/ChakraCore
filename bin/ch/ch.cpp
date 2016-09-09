@@ -37,7 +37,9 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
     ChakraRTInterface::NotifyUnhandledException(ep);
 
+#if ENABLE_NATIVE_CODEGEN
     JITProcessManager::StopRpcServer();
+#endif
     bool crashOnException = false;
     ChakraRTInterface::GetCrashOnExceptionFlag(&crashOnException);
 

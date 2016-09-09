@@ -1264,10 +1264,12 @@ if (!sourceList)
     void ScriptContext::SetIsClosed()
     {
         this->isClosed = true;
+#if ENABLE_NATIVE_CODEGEN
         if (m_remoteScriptContextAddr)
         {
             JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
         }
+#endif
     }
 
     void ScriptContext::InitializeGlobalObject()

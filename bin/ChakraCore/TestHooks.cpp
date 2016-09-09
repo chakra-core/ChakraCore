@@ -160,7 +160,9 @@ HRESULT OnChakraCoreLoaded()
 #undef FLAG_NumberSet
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberRange
+#if ENABLE_NATIVE_CODEGEN
         ConnectJITServer,
+#endif
         NotifyUnhandledException
     };
 
