@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
+#ifdef ASMJS_PLAT
 namespace OpCodeAttrAsmJs
 {
     // OpSideEffect:
@@ -66,3 +67,4 @@ namespace OpCodeAttrAsmJs
 
 
 }; // OpCodeAttrAsmJs
+#endif

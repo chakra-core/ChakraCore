@@ -190,7 +190,7 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
         Assert(regArg->m_sym->m_isSingleDef);
         IR::Instr *instrArg = regArg->m_sym->m_instrDef;
 
-        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A || 
+        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A ||
             (helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope && instrArg->m_opcode == Js::OpCode::ExtendArg_A));
         prevInstr = LoadHelperArgument(prevInstr, instrArg->GetSrc1());
 
@@ -302,7 +302,6 @@ LowererMD::LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg)
 {
     return this->lowererMDArch.LoadFloatHelperArgument(instr, opndArg);
 }
-
 
 IR::Instr *
 LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
@@ -454,7 +453,6 @@ LowererMD::LowerLeaveNull(IR::Instr *finallyEndInstr)
                                           IR::RegOpnd::New(nullptr, RegR8, TyMachReg, m_func),
                                           m_func);
         finallyEndInstr->InsertBefore(movR8);
-
 
         // MOV r9, argsSize
         IR::Instr *movR9 = IR::Instr::New(Js::OpCode::LdArgSize,
@@ -870,7 +868,6 @@ LowererMD::LowerRet(IR::Instr * retInstr)
     return this->ChangeToAssign(retInstr);
 }
 
-
 ///----------------------------------------------------------------------------
 ///
 /// LowererMD::LowerUncondBranch
@@ -1198,6 +1195,14 @@ void LowererMD::ChangeToShift(IR::Instr *const instr, const bool needFlags)
             instr->m_opcode = Js::OpCode::SHR;
             break;
 
+        case Js::OpCode::Rol_I4:
+            instr->m_opcode = Js::OpCode::ROL;
+            break;
+
+        case Js::OpCode::Ror_I4:
+            instr->m_opcode = Js::OpCode::ROR;
+            break;
+
         default:
             Assert(false);
             __assume(false);
@@ -1475,6 +1480,41 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
         }
 
+        case Js::OpCode::CMOVA:
+        case Js::OpCode::CMOVAE:
+        case Js::OpCode::CMOVB:
+        case Js::OpCode::CMOVBE:
+        case Js::OpCode::CMOVE:
+        case Js::OpCode::CMOVG:
+        case Js::OpCode::CMOVGE:
+        case Js::OpCode::CMOVL:
+        case Js::OpCode::CMOVLE:
+        case Js::OpCode::CMOVNE:
+        case Js::OpCode::CMOVNO:
+        case Js::OpCode::CMOVNP:
+        case Js::OpCode::CMOVNS:
+        case Js::OpCode::CMOVO:
+        case Js::OpCode::CMOVP:
+        case Js::OpCode::CMOVS:
+            if (instr->GetSrc2())
+            {
+                // sometimes we have fake src1 to help reg alloc
+                LegalizeOpnds<verify>(
+                    instr,
+                    L_Reg,
+                    L_Reg,
+                    L_Reg | L_Mem);
+            }
+            else
+            {
+                LegalizeOpnds<verify>(
+                    instr,
+                    L_Reg,
+                    L_Reg | L_Mem,
+                    L_None);
+            }
+            break;
+
         case Js::OpCode::MOVSD:
             Assert(AutoSystemInfo::Data.SSE2Available());
         case Js::OpCode::MOVSS:
@@ -1644,6 +1684,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::SHL:
         case Js::OpCode::SHR:
         case Js::OpCode::SAR:
+        case Js::OpCode::ROL:
+        case Js::OpCode::ROR:
             if (verify)
             {
                 Assert(instr->GetSrc2()->IsIntConstOpnd()
@@ -1676,8 +1718,13 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 L_Reg | L_Mem | L_Imm32); // for L_Imm32, the encoder converts it into an IMUL3
             break;
 
+        case Js::OpCode::TZCNT:
         case Js::OpCode::LZCNT:
-            Assert(AutoSystemInfo::Data.LZCntAvailable());
+            Assert(
+                (instr->m_opcode == Js::OpCode::LZCNT && AutoSystemInfo::Data.LZCntAvailable()) ||
+                (instr->m_opcode == Js::OpCode::TZCNT && AutoSystemInfo::Data.TZCntAvailable())
+            );
+        case Js::OpCode::BSF:
         case Js::OpCode::BSR:
             LegalizeOpnds<verify>(
                 instr,
@@ -1899,7 +1946,6 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
     Assert(src);
     Assert(src == instr->GetSrc1() || src == instr->GetSrc2());
     Assert(forms);
-
 
     switch(src->GetKind())
     {
@@ -2264,7 +2310,6 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instr)
         lowererMDArch.LowerCall(call, 0);
     }
 
-
     // JMP $done
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, done, m_func));
 
@@ -2479,7 +2524,6 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
     //      TEST eax, eax
     //      JEQ $success
     //      JMP $fail
-
     IR::Instr* instrInsert = instr;
 
     this->m_lowerer->GenerateStringTest(srcReg1, instrInsert, labelHelper);
@@ -3322,7 +3366,6 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
         this->GenerateSmIntPairTest(instrSub, opndSrc1, opndSrc2, labelHelper);
     }
 
-
     //
     // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits. This is
     // relevant only on AMD64.
@@ -3330,7 +3373,6 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
 
     opndSrc1    = opndSrc1->UseWithNewType(TyInt32, this->m_func);
     opndSrc2    = opndSrc2->UseWithNewType(TyInt32, this->m_func);
-
 
     // s1 = MOV src1
 
@@ -3460,7 +3502,6 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     this->GenerateSmIntPairTest(instrMul, opndSrc1, opndSrc2, labelHelper);
 
-
     //
     // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits. This is
     // relevant only on AMD64.
@@ -3579,7 +3620,6 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     instr = IR::BranchInstr::New(Js::OpCode::JMP, labelFallThru, this->m_func);
     instrMul->InsertBefore(instr);
-
 
     // $nonzero:
 
@@ -3758,9 +3798,6 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
     labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     instr = IR::BranchInstr::New(Js::OpCode::JMP, labelFallThru, this->m_func);
     instrNeg->InsertBefore(instr);
-
-
-
 
     // $helper:
     //      (caller generates helper sequence)
@@ -3941,7 +3978,6 @@ LowererMD::GenerateSmIntPairTest(
         // JNE $fail
 
         // s1 = MOV src1
-
 
         instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
         instrInsert->InsertBefore(instr);
@@ -4321,7 +4357,6 @@ LowererMD::GenerateLdFldFromFlagInlineCache(
     insertBeforeInstr->InsertBefore(instr);
 }
 
-
 void
 LowererMD::GenerateLdFldFromProtoInlineCache(
     IR::Instr * instrLdFld,
@@ -4648,7 +4683,6 @@ LowererMD::GenerateWriteBarrier(IR::Opnd * writeBarrierAddrRegOpnd, IR::Instr * 
 }
 #endif
 
-
 void
 LowererMD::GenerateStFldFromLocalInlineCache(
     IR::Instr * instrStFld,
@@ -4717,7 +4751,6 @@ void LowererMD::InsertIncUInt8PreventOverflow(
 
     //     inc dst, src
     Lowerer::InsertAdd(true, dst, src, IR::IntConstOpnd::New(1, TyUint8, func, true), noOverflowLabel);
-
 
     //   $done:
 
@@ -4866,7 +4899,6 @@ LowererMD::GenerateFastScopedLdFld(IR::Instr * instrLdScopedFld)
 
     return instrLdScopedFld->m_prev;
 }
-
 
 //----------------------------------------------------------------------------
 //
@@ -5084,7 +5116,6 @@ LowererMD::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isSt
     // $afterLabel:
     //      MOVZXW offsetOpnd, [propertyCacheOpnd->dataSlotIndex]   -- load the slot index
     //      <use [slotOpnd + offsetOpnd * PtrSize]>
-
 
     //      CMP indexOpnd, PropertyString::`vtable'                 -- check if index is property string
     //      JNE $helper
@@ -5721,6 +5752,49 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
 }
 
 void
+LowererMD::GenerateCtz(IR::Instr * instr)
+{
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
+    if (AutoSystemInfo::Data.TZCntAvailable())
+    {
+        instr->m_opcode = Js::OpCode::TZCNT;
+        Legalize(instr);
+    }
+    else
+    {
+        // dst = BSF src
+        // dst = CMOVE dst, 32 // dst is src1 to help reg alloc
+        instr->m_opcode = Js::OpCode::BSF;
+        Legalize(instr);
+
+        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(32, TyInt8, m_func);
+        IR::Instr* cmove = IR::Instr::New(Js::OpCode::CMOVE, instr->GetDst(), instr->GetDst(), const32, this->m_func);
+        instr->InsertAfter(cmove);
+        Legalize(cmove);
+    }
+}
+
+void
+LowererMD::GeneratePopCnt32(IR::Instr * instr)
+{
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetDst()->IsInt32() || instr->GetSrc1()->IsUInt32());
+
+    if (AutoSystemInfo::Data.PopCntAvailable())
+    {
+        instr->m_opcode = Js::OpCode::POPCNT;
+        Legalize(instr);
+    }
+    else
+    {
+        LoadHelperArgument(instr, instr->GetSrc1());
+        instr->UnlinkSrc1();
+        this->ChangeToHelperCall(instr, IR::HelperPopCnt32);
+    }
+}
+
+void
 LowererMD::GenerateClz(IR::Instr * instr)
 {
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
@@ -5886,7 +5960,6 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     cfgCallInstr->SetSrc1(targetOpnd);
 #endif
 
-
     //CALL cfg(rax)
     insertBeforeInstr->InsertBefore(cfgCallInstr);
 
@@ -5947,6 +6020,42 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     IR::BranchInstr * branchToAllocDoneInstr = IR::BranchInstr::New(Js::OpCode::JMP, allocDoneLabel, this->m_func);
     insertionPointInstr->InsertBefore(branchToAllocDoneInstr);
 }
+
+#ifdef ENABLE_WASM
+void
+LowererMD::GenerateCopysign(IR::Instr * instr)
+{
+#if defined(_M_IX86)
+    // We should only generate this if sse2 is available
+    Assert(AutoSystemInfo::Data.SSE2Available());
+#endif
+
+    // ANDPS reg0, absDoubleCst
+    // ANDPS reg1, sgnBitDoubleCst
+    // ORPS reg0, reg1
+
+    // Copy sign from src2 to src1
+    IR::Opnd* src1 = instr->GetSrc1();
+    GenerateFloatAbs(src1->AsRegOpnd(), instr);
+
+    if (src1->IsFloat64())
+    {
+        Assert(UNREACHED);
+    }
+    else
+    {
+        Assert(src1->IsFloat32());
+        IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
+            IR::MemRefOpnd::New((void *)&Js::JavascriptNumber::SgnBitCst, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef),
+            m_func);
+        instr->InsertBefore(t2);
+        Legalize(t2);
+    }
+
+    instr->m_opcode = Js::OpCode::ORPS;
+    Legalize(instr);
+};
+#endif //ENABLE_WASM
 
 void
 LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper)
@@ -6070,7 +6179,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
     // s1 = XOR s1, FloatTag_Value
     // dst = s1
-    
+
     IR::Instr *setTag = IR::Instr::New(Js::OpCode::XOR,
                                        s1,
                                        s1,
@@ -6564,7 +6673,6 @@ LowererMD::LowerInt4SubWithBailOut(
     // Fall through to bailOutLabel
 }
 
-
 bool
 LowererMD::GenerateSimplifiedInt4Mul(
     IR::Instr *const mulInstr,
@@ -6913,7 +7021,6 @@ LowererMD::LowerInt4RemWithBailOut(
     IR::LabelInstr *const skipBailOutLabel) const
 {
 
-
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_I4);
     Assert(!instr->HasBailOutInfo());
@@ -6963,7 +7070,6 @@ LowererMD::LowerInt4RemWithBailOut(
         bailOutLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNSB, skipBailOutLabel, instr->m_func));
     }
     // Fall through to bailOutLabel
-
 
     // Lower the instruction
     LowererMDArch::EmitInt4Instr(instr);
@@ -7166,7 +7272,6 @@ bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, 
     // s1 = SHR s1, VarTag_Shift
     instr = IR::Instr::New(Js::OpCode::SHR, opndReg, opndReg, IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
-
 
     if (fContinueLabel)
     {
@@ -7448,7 +7553,6 @@ void LowererMD::GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr
 }
 
 #endif
-
 
 #if DBG
 //
@@ -7919,11 +8023,11 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     opnd = IR::IndirOpnd::New(baseOpnd, Js::ActivationObjectEx::GetOffsetOfCommitFlag(), TyInt8, this->m_func);
     instrCommit->SetDst(opnd);
     instrCommit->SetSrc1(IR::IntConstOpnd::New(1, TyInt8, this->m_func));
-    
+
     LowererMD::ChangeToAssign(instrCommit);
 
     const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJnFunction()->GetFormalsPropIdArray();
-    
+
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
     {
@@ -8143,7 +8247,6 @@ LowererMD::GenerateLdThisCheck(IR::Instr * instr)
     return true;
 }
 
-
 //
 // TEST src, Js::AtomTag
 // JNE $done
@@ -8226,7 +8329,6 @@ LowererMD::GenerateLdThisStrict(IR::Instr* instr)
 // TEST objectReg, Js::AtomTag
 // JNE done
 //
-
 
 // fallback if object's type is not the cached type
 // MOV typeReg, objectSrc + offsetof(RecyclableObject::type)
@@ -8381,6 +8483,14 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
 
     // JLE labelHelper
     insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JLE, labelHelper, this->m_func));
+}
+
+IR::Instr *
+LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
+{
+    instr->m_opcode = Js::OpCode::MOVD;
+    Legalize(instr);
+    return instr;
 }
 
 IR::Instr *
@@ -8595,7 +8705,7 @@ LowererMD::LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNan)
 }
 void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble)
 {
-    Assert(instr->m_opcode == Js::OpCode::InlineMathFloor || instr->m_opcode == Js::OpCode::InlineMathCeil);
+    Assert(instr->m_opcode == Js::OpCode::InlineMathFloor || instr->m_opcode == Js::OpCode::InlineMathCeil || instr->m_opcode == Js::OpCode::Trunc_A || instr->m_opcode == Js::OpCode::Nearest_A);
     AssertMsg(instr->GetDst()->IsFloat(), "dst must be float.");
     Assert(instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
     Assert(!instr->GetSrc2());
@@ -8725,6 +8835,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
     case Js::OpCode::InlineMathFloor:
     case Js::OpCode::InlineMathCeil:
     case Js::OpCode::InlineMathRound:
+#ifdef ENABLE_WASM
+    case Js::OpCode::Trunc_A:
+    case Js::OpCode::Nearest_A:
+#endif //ENABLE_WASM
         {
             Assert(AutoSystemInfo::Data.SSE4_1Available());
             Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsFloat());
@@ -8808,7 +8922,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Instr* argOut = IR::Instr::New(LowererMDArch::GetAssignOp(src->GetType()), roundedFloat, src, this->m_func);
             instr->InsertBefore(argOut);
             bool negZeroCheckDone = false;
-
 
             IR::LabelInstr * bailoutLabel = nullptr;
             bool sharedBailout = false;
@@ -8956,19 +9069,27 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             }
 
             // ROUNDSD srcCopy, srcCopy, round_mode
-            IR::Opnd * roundMode;
-            if(isNotCeil)
+            IR::Opnd * roundMode = nullptr;
+
+            switch (instr->m_opcode)
             {
-                roundMode = IR::IntConstOpnd::New(0x01, TyInt32, this->m_func);
-            }
-            else if (instr->GetDst()->IsInt32() || instr->m_opcode != Js::OpCode::InlineMathFloor)
-            {
-                roundMode = IR::IntConstOpnd::New(0x02, TyInt32, this->m_func);
-            }
-            else
-            {
+#ifdef ENABLE_WASM
+            case Js::OpCode::Trunc_A:
                 roundMode = IR::IntConstOpnd::New(0x03, TyInt32, this->m_func);
+                break;
+            case Js::OpCode::Nearest_A:
+                roundMode = IR::IntConstOpnd::New(0x00, TyInt32, this->m_func);
+                break;
+#endif //ENABLE_WASM
+            case Js::OpCode::InlineMathRound:
+            case Js::OpCode::InlineMathFloor:
+                roundMode = IR::IntConstOpnd::New(0x01, TyInt32, this->m_func);
+                break;
+            case Js::OpCode::InlineMathCeil:
+                roundMode = IR::IntConstOpnd::New(0x02, TyInt32, this->m_func);
+                break;
             }
+
             IR::Instr* roundInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloat, roundedFloat, roundMode, this->m_func);
 
             instr->InsertBefore(roundInstr);
@@ -9080,16 +9201,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     instr->InsertBefore(branchInstr);
                     LowererMDArch::EmitInt4Instr(branchInstr);
                 }
-                    // MOV dst, src1
-                    this->m_lowerer->InsertMove(dst, src1, instr);
+                // MOV dst, src1
+                this->m_lowerer->InsertMove(dst, src1, instr);
             }
-
-            else if(dst->IsFloat64())
+            else if(dst->IsFloat())
             {
-                //      COMISD src1 (src2), src2 (src1)
+                //      COMISD/COMISS src1 (src2), src2 (src1)
                 //      JA $doneLabel
                 //      JEQ $labelNegZeroAndNaNCheckHelper
-                //      MOVSD dst, src2
+                //      MOVSD/MOVSS dst, src2
                 //      JMP $doneLabel
                 //
                 // $labelNegZeroAndNaNCheckHelper
@@ -9097,24 +9217,24 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 //      if(min)
                 //      {
                 //          if(src2 == -0.0)
-                //              MOVSD dst, src2
+                //              MOVSD/MOVSS dst, src2
                 //      }
                 //      else
                 //      {
                 //          if(src1 == -0.0)
-                //              MOVSD dst, src2
+                //              MOVSD/MOVSS dst, src2
                 //      }
                 //      JMP $doneLabel
                 //
                 // $labelNaNHelper
-                //      MOVSD dst, NaN
+                //      MOVSD/MOVSS dst, NaN
                 //
                 // $doneLabel
 
-                //MOVSD dst, src1;
+                //MOVSD/MOVSS dst, src1;
                 Assert(!dst->IsEqual(src1));
-                this->m_lowerer->InsertMove(dst, src1, instr);
 
+                this->m_lowerer->InsertMove(dst, src1, instr);
                 if(min)
                 {
                     this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
@@ -9149,7 +9269,17 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNaNHelper);
-                IR::Opnd * opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+                IR::Opnd * opndNaN = nullptr;
+
+                if (dst->IsFloat32())
+                {
+                    opndNaN = IR::MemRefOpnd::New((float*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
+                }
+                else
+                {
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+                }
+
                 this->m_lowerer->InsertMove(dst, opndNaN, instr);
             }
             instr->InsertBefore(doneLabel);
@@ -9168,7 +9298,10 @@ IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
 {
     IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
 
-    LoadDoubleHelperArgument(instr, opnd);
+    if (opnd->IsFloat64())
+        LoadDoubleHelperArgument(instr, opnd);
+    else
+        LoadFloatHelperArgument(instr, opnd);
     IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::CALL, isNegZero, this->m_func);
     instr->InsertBefore(helperCallInstr);
     this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);

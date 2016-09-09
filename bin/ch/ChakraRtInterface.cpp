@@ -103,6 +103,8 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetChakraCoreSymbol(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetChakraCoreSymbol(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetChakraCoreSymbol(library, "JsCreateArray");
+    m_jsApiHooks.pfJsrtCreateArrayBuffer = (JsAPIHooks::JsrtCreateArrayBufferPtr)GetChakraCoreSymbol(library, "JsCreateArrayBuffer");
+    m_jsApiHooks.pfJsrtGetArrayBufferStorage = (JsAPIHooks::JsrtGetArrayBufferStoragePtr)GetChakraCoreSymbol(library, "JsGetArrayBufferStorage");
     m_jsApiHooks.pfJsrtHasException = (JsAPIHooks::JsrtHasExceptionPtr)GetChakraCoreSymbol(library, "JsHasException");
     m_jsApiHooks.pfJsrtSetException = (JsAPIHooks::JsrtSetExceptionPtr)GetChakraCoreSymbol(library, "JsSetException");
     m_jsApiHooks.pfJsrtGetAndClearException = (JsAPIHooks::JsrtGetAndClearExceptiopnPtr)GetChakraCoreSymbol(library, "JsGetAndClearException");

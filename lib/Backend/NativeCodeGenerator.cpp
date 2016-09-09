@@ -211,15 +211,13 @@ NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::Entr
 bool
 NativeCodeGenerator::DoBackEnd(Js::FunctionBody *fn)
 {
-    if (PHASE_OFF(Js::BackEndPhase, fn))
-    {
-        return false;
-    }
-    if (fn->IsAsmJSModule() || fn->IsGeneratorAndJitIsDisabled())
-    {
-        return false;
-    }
-    return true;
+    return (
+        !PHASE_OFF(Js::BackEndPhase, fn)
+        && !fn->IsGeneratorAndJitIsDisabled()
+#ifdef ASMJS_PLAT
+        && !fn->IsAsmJSModule()
+#endif
+    );
 }
 
 void
@@ -535,6 +533,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         entryPointInfo = fn->GetDefaultFunctionEntryPointInfo();
         Assert(fn->IsInterpreterThunk() || fn->IsSimpleJitOriginalEntryPoint());
     }
+    bool doPreJit = IS_PREJIT_ON();
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmjsMode())
     {
@@ -557,6 +556,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
             Output::Print(_u("New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n"), fn->GetDisplayName());
+        doPreJit |= CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0 || CONFIG_ISENABLED(Js::ForceNativeFlag);
     }
     else
 #endif
@@ -574,7 +574,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     entryPointInfo->SetCodeGenPending(workitem);
     InterlockedIncrement(&pendingCodeGenWorkItems);
 
-    if(!IS_PREJIT_ON())
+    if(!doPreJit)
     {
         workItems.LinkToEnd(workitem);
         return true;
@@ -633,11 +633,16 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
     // function is currently being interpreted. If it is being interpreted,
     // We'd still like to jit the loop body.
     // We reset the interpretCount to 0 in case we switch back to the interpreter
-    if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders() && (!fn->GetIsAsmJsFunction() || !(loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode())))
+    if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders()
+#ifdef ASMJS_PLAT
+        && (!fn->GetIsAsmJsFunction() || !(loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode()))
+#endif
+    )
     {
         loopHeader->ResetInterpreterCount();
         return;
     }
+#ifdef ASMJS_PLAT
     if (fn->GetIsAsmJsFunction())
     {
         Js::FunctionEntryPointInfo* functionEntryPointInfo = (Js::FunctionEntryPointInfo*) fn->GetDefaultEntryPointInfo();
@@ -645,6 +650,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
         loopEntryPointInfo->SetIsAsmJSFunction(true);
         loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
+#endif
     JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint);
     if (!workitem)
     {
@@ -1211,7 +1217,11 @@ NativeCodeGenerator::CheckCodeGenDone(
     // PrioritizeJob will return false
     Assert(entryPointInfo->IsCodeGenDone() || entryPointInfo->IsCleanedUp() || entryPointInfo->IsPendingCleanup());
 
-    if (!functionBody->GetHasBailoutInstrInJittedCode() && functionBody->GetHasAllocatedLoopHeaders() && (!functionBody->GetIsAsmJsFunction() || !(((Js::FunctionEntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->GetIsTJMode())))
+    if (!functionBody->GetHasBailoutInstrInJittedCode() && functionBody->GetHasAllocatedLoopHeaders()
+#ifdef ASMJS_PLAT
+        && (!functionBody->GetIsAsmJsFunction() || !(((Js::FunctionEntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->GetIsTJMode()))
+#endif
+    )
     {
         if (functionBody->GetCanReleaseLoopHeaders())
         {
@@ -1389,7 +1399,11 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
         JsLoopBodyCodeGen* loopBodyCodeGenWorkItem = (JsLoopBodyCodeGen*)codeGenWork;
         Js::FunctionBody* fn = loopBodyCodeGenWorkItem->GetFunctionBody();
 
-        if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders() && (!fn->GetIsAsmJsFunction() || !(loopBodyCodeGenWorkItem->loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode())))
+        if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders()
+#ifdef ASMJS_PLAT
+            && (!fn->GetIsAsmJsFunction() || !(loopBodyCodeGenWorkItem->loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode()))
+#endif
+        )
         {
             loopBodyCodeGenWorkItem->loopHeader->ResetInterpreterCount();
             return false;
@@ -1482,7 +1496,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
 
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
-    Assert(IS_PREJIT_ON());
+    Assert(IS_PREJIT_ON() || functionBody->GetIsAsmjsMode());
     Assert(functionBody->DoSimpleJit() || functionBody->DoFullJit());
 
     // Prefer full JIT for prejitting unless it's off or simple JIT is forced

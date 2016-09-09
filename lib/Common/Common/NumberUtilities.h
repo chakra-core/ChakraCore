@@ -45,6 +45,7 @@ namespace Js
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];
+        static const BYTE SgnBitCst[];
         static double const UIntConvertConst[];
         static double const MaskNegDouble[];
         static float const MaskNegFloat[];
@@ -72,6 +73,7 @@ namespace Js
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);
         static uint32 ToSpecial(float value);
+        static float ReinterpretBits(int value);
 
         // Convert a given UINT16 into its corresponding string.
         // outBufferSize is in WCHAR elements (and used only for ASSERTs)

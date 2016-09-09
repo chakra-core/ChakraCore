@@ -258,6 +258,16 @@ AutoSystemInfo::LZCntAvailable() const
     return VirtualSseAvailable(4) && (CPUInfo[2] & (1 << 5));
 }
 
+BOOL
+AutoSystemInfo::TZCntAvailable() const
+{
+    Assert(initialized);
+    int CPUInfo[4];
+    get_cpuid(CPUInfo, 7);
+
+    return VirtualSseAvailable(4) && (CPUInfo[1] & (1 << 3));
+}
+
 bool
 AutoSystemInfo::IsAtomPlatform() const
 {

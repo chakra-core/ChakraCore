@@ -1,0 +1,26 @@
+{
+  "modules": [{
+    "filename": "exports.0.wasm",
+    "commands": []
+  }, {
+    "filename": "exports.1.wasm",
+    "commands": []
+  }, {
+    "filename": "exports.2.wasm",
+    "commands": []
+  }, {
+    "filename": "exports.3.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "exports.wast",
+      "line": 22
+    }]
+  }, {
+    "filename": "exports.4.wasm",
+    "commands": []
+  }, {
+    "filename": "exports.5.wasm",
+    "commands": []
+  }]
+}

@@ -2016,6 +2016,8 @@ idiv_common:
     case Js::OpCode::Shl_I4:
     case Js::OpCode::ShrU_I4:
     case Js::OpCode::Shr_I4:
+    case Js::OpCode::Rol_I4:
+    case Js::OpCode::Ror_I4:
         LowererMD::ChangeToShift(instr, false /* needFlags */);
         legalize = true;
         break;

@@ -14,6 +14,19 @@ class Math
 {
 public:
 
+	static uint32 PopCnt32(uint32 x)
+	{
+		// sum set bits in every bit pair
+		x -= (x >> 1) & 0x55555555u;
+		// sum pairs into quads
+		x = (x & 0x33333333u) + ((x >> 2) & 0x33333333u);
+		// sum quads into octets
+		x = (x + (x >> 4)) & 0x0f0f0f0fu;
+		// sum octets into topmost octet
+		x *= 0x01010101u;
+		return x >> 24;
+	}
+
     // Explicit cast to integral (may truncate).  Avoids warning C4302 'type cast': truncation
     template <typename T>
     static T PointerCastToIntegralTruncate(void * pointer)

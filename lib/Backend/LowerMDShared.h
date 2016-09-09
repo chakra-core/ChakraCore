@@ -170,6 +170,8 @@ public:
             bool            GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *srcStr, IR::Opnd *srcIndex, IR::Instr *callInstr, IR::Instr *insertInstr,
                 IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             void            GenerateClz(IR::Instr * instr);
+            void            GenerateCtz(IR::Instr * instr);
+            void            GeneratePopCnt32(IR::Instr * instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             bool            GenerateLdThisCheck(IR::Instr * instr);
             bool            GenerateLdThisStrict(IR::Instr * instr);
@@ -190,6 +192,9 @@ public:
 #ifdef _CONTROL_FLOW_GUARD
             void            GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeInstr);
 #endif
+
+            void            GenerateCopysign(IR::Instr * instr);
+
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
             static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
             IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);
@@ -256,6 +261,7 @@ public:
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
             IR::Instr *         LowerToFloat(IR::Instr *instr);
+            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr);
      static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNan = false);
 
      static Js::OpCode          GetLoadOp(IRType type) { return LowererMDArch::GetAssignOp(type); }

@@ -32,6 +32,7 @@
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\WasmReader;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>

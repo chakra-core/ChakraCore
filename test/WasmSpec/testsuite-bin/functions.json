@@ -1,0 +1,56 @@
+{
+  "modules": [{
+    "filename": "functions.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "functions.wast",
+      "line": 33
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "functions.wast",
+      "line": 34
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "functions.wast",
+      "line": 35
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_3",
+      "file": "functions.wast",
+      "line": 36
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "functions.wast",
+      "line": 37
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_5",
+      "file": "functions.wast",
+      "line": 39
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_6",
+      "file": "functions.wast",
+      "line": 40
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_7",
+      "file": "functions.wast",
+      "line": 41
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_8",
+      "file": "functions.wast",
+      "line": 42
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_9",
+      "file": "functions.wast",
+      "line": 43
+    }]
+  }]
+}

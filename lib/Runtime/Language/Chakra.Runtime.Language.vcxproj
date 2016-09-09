@@ -29,6 +29,7 @@
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\WasmReader;
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Runtime\Math;
@@ -172,6 +173,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -249,6 +251,7 @@
     <ClInclude Include="SimdUtils.h" />
     <ClInclude Include="TaggedInt.h" />
     <ClInclude Include="RuntimeLanguagePch.h" />
+    <ClInclude Include="WAsmjsUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptOperatorsA.asm">

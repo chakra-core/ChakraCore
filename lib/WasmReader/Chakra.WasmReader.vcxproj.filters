@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="WasmParseTree.h" />
+    <ClInclude Include="WasmFunctionInfo.h" />
+    <ClInclude Include="WasmReader.h" />
+    <ClInclude Include="WasmReaderPch.h" />
+    <ClInclude Include="WasmBytecodeGenerator.h" />
+    <ClInclude Include="WasmBinaryReader.h" />
+    <ClInclude Include="WasmBinaryOpcodes.h" />
+    <ClInclude Include="WasmModule.h" />
+    <ClInclude Include="WasmSignature.h" />
+    <ClInclude Include="WasmSections.h" />
+    <ClInclude Include="WasmSection.h" />
+    <ClInclude Include="WasmDataSegment.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmFunctionInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmBinaryReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp" />
+  </ItemGroup>
+</Project>

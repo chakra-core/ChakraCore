@@ -110,6 +110,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmLibrary.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -239,6 +240,7 @@
     <ClInclude Include="SimdBool32x4Lib.h" />
     <ClInclude Include="SimdBool16x8Lib.h" />
     <ClInclude Include="SimdBool8x16Lib.h" />
+    <ClInclude Include="WasmLibrary.h" />
     <ClInclude Include="JavascriptListIterator.h" />
   </ItemGroup>
   <ItemGroup>

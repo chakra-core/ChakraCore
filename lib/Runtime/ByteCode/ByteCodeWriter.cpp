@@ -61,7 +61,7 @@ namespace Js
     ///
     ///----------------------------------------------------------------------------
 
-    void ByteCodeWriter::Begin(ByteCodeGenerator* byteCodeGenerator, FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop)
+    void ByteCodeWriter::Begin(FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop, bool inDebugMode)
     {
         Assert(!isInUse);
         AssertMsg(m_functionWrite == nullptr, "Cannot nest Begin() calls");
@@ -74,7 +74,7 @@ namespace Js
         m_doJitLoopBodies = doJitLoopBodies;
         m_doInterruptProbe = functionWrite->GetScriptContext()->GetThreadContext()->DoInterruptProbe(functionWrite);
         m_hasLoop = hasLoop;
-        m_isInDebugMode = byteCodeGenerator->IsInDebugMode();
+        m_isInDebugMode = inDebugMode;
     }
 
     template <typename T>

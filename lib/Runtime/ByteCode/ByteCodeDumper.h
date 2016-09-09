@@ -22,6 +22,7 @@ namespace Js
         static void DumpU2(uint16 value);
         static void DumpOffset(int byteOffset, ByteCodeReader const& reader);
         static void DumpAddr(void* addr);
+        static void DumpR4(float value);
         static void DumpR8(double value);
         static void DumpReg(RegSlot registerID);
         static void DumpReg(RegSlot_TwoByte registerID);

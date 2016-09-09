@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -219,6 +219,18 @@ DECLSPEC_GUARDIGNORE _NOINLINE void * const GetNonTableMethodAddress(JnHelperMet
 
     case HelperDirectMath_CeilFlt:
         return (float(*)(float))ceil;
+
+    case HelperDirectMath_TruncDb:
+        return (double(*)(double)) Wasm::WasmMath::Trunc<double>;
+
+    case HelperDirectMath_TruncFlt:
+        return (float(*)(float)) Wasm::WasmMath::Trunc<float>;
+
+    case HelperDirectMath_NearestDb:
+        return (double(*)(double)) Wasm::WasmMath::Nearest<double>;
+
+    case HelperDirectMath_NearestFlt:
+        return (float(*)(float)) Wasm::WasmMath::Nearest<float>;
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this

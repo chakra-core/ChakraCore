@@ -60,6 +60,7 @@ IRBuilderSwitchAdapter::ConvertToBailOut(IR::Instr * instr, IR::BailOutKind kind
 ///     by a SwitchIRBuilder to an IRBuilder instance
 ///----------------------------------------------------------------------------
 
+#ifdef ASMJS_PLAT
 void
 IRBuilderAsmJsSwitchAdapter::AddBranchInstr(IR::BranchInstr * instr, uint32 offset, uint32 targetOffset, bool clearBackEdge)
 {
@@ -99,6 +100,7 @@ IRBuilderAsmJsSwitchAdapter::ConvertToBailOut(IR::Instr * instr, IR::BailOutKind
     // switches, since we already know ahead of time that the
     // switch expression is Int32
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///
@@ -222,17 +224,24 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
 ///----------------------------------------------------------------------------
 
 void
-SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::RegOpnd * src2Opnd, uint32 offset, uint32 targetOffset)
+SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offset, uint32 targetOffset)
 {
     IR::BranchInstr * branchInstr;
 
-    if (src2Opnd->m_sym->m_isIntConst && m_intConstSwitchCases->TestAndSet(src2Opnd->m_sym->GetIntConstValue()))
+    Assert(src2Opnd->IsIntConstOpnd() || src2Opnd->IsRegOpnd());
+    // Support only int32 const opnd
+    Assert(!src2Opnd->IsIntConstOpnd() || src2Opnd->GetType() == TyInt32);
+    StackSym* sym = src2Opnd->GetStackSym();
+    const bool isIntConst = src2Opnd->IsIntConstOpnd() || sym->IsIntConst();
+    const bool isStrConst = !isIntConst && sym->m_isStrConst;
+
+    if (isIntConst && m_intConstSwitchCases->TestAndSet(sym ? sym->GetIntConstValue() : src2Opnd->AsIntConstOpnd()->AsInt32()))
     {
         // We've already seen a case statement with the same int const value. No need to emit anything for this.
         return;
     }
 
-    if (src2Opnd->m_sym->m_isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(src2Opnd->GetStackSym()->GetConstAddress())))
+    if (isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(sym->GetConstAddress())))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
         return;
@@ -254,17 +263,17 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::RegOpnd * src2Opnd, uint32 o
 
     if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()))
     {
-        if (m_switchIntDynProfile && src2Opnd->m_sym->IsIntConst())
+        if (m_switchIntDynProfile && isIntConst)
         {
             CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
             m_caseNodes->Add(caseNode);
             deferred = true;
         }
-        else if (m_switchStrDynProfile && src2Opnd->m_sym->m_isStrConst)
+        else if (m_switchStrDynProfile && isStrConst)
         {
             CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
             m_caseNodes->Add(caseNode);
-            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetSrc2StringConst()->GetLength() == 1;
+            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStrConst()->GetLength() == 1;
             deferred = true;
         }
     }
@@ -331,8 +340,8 @@ SwitchIRBuilder::RefineCaseNodes()
         CaseNode * currCaseNode = m_caseNodes->Item(currCaseIndex);
         uint32 prevCaseTargetOffset = prevCaseNode->GetTargetOffset();
         uint32 currCaseTargetOffset = currCaseNode->GetTargetOffset();
-        int prevCaseConstValue = prevCaseNode->GetSrc2IntConst();
-        int currCaseConstValue = currCaseNode->GetSrc2IntConst();
+        int prevCaseConstValue = prevCaseNode->GetUpperBoundIntConst();
+        int currCaseConstValue = currCaseNode->GetUpperBoundIntConst();
 
         /*To handle empty case statements with/without repetition*/
         if (prevCaseTargetOffset == currCaseTargetOffset &&
@@ -344,7 +353,7 @@ SwitchIRBuilder::RefineCaseNodes()
         {
             if (tmpCaseNodes->Count() != 0)
             {
-                int lastTmpCaseConstValue = tmpCaseNodes->Item(tmpCaseNodes->Count() - 1)->GetSrc2IntConst();
+                int lastTmpCaseConstValue = tmpCaseNodes->Item(tmpCaseNodes->Count() - 1)->GetUpperBoundIntConst();
                 /*To handle duplicate non empty case statements*/
                 if (lastTmpCaseConstValue != prevCaseConstValue)
                 {
@@ -459,17 +468,17 @@ SwitchIRBuilder::BuildLinearTraverseInstr(int start, int end, uint fallThrOffset
 
         bool dontBuildEmptyCases = false;
 
-        if (currCaseNode->IsSrc2IntConst())
+        if (currCaseNode->IsUpperBoundIntConst())
         {
-            int lowerBoundCaseConstValue = currCaseNode->GetLowerBound()->GetStackSym()->GetIntConstValue();
-            int upperBoundCaseConstValue = currCaseNode->GetUpperBound()->GetStackSym()->GetIntConstValue();
+            int lowerBoundCaseConstValue = currCaseNode->GetLowerBoundIntConst();
+            int upperBoundCaseConstValue = currCaseNode->GetUpperBoundIntConst();
 
             if (lowerBoundCaseConstValue == upperBoundCaseConstValue)
             {
                 dontBuildEmptyCases = true;
             }
         }
-        else if (currCaseNode->IsSrc2StrConst())
+        else if (currCaseNode->IsUpperBoundStrConst())
         {
             dontBuildEmptyCases = true;
         }
@@ -576,13 +585,13 @@ SwitchIRBuilder::BuildOptimizedIntegerCaseInstrs(uint32 targetOffset)
     {
         int nextIndex = currentIndex + 1;
         //Check if there is no missing value between subsequent case arms
-        if (m_caseNodes->Item(currentIndex)->GetSrc2IntConst() + 1 != m_caseNodes->Item(nextIndex)->GetSrc2IntConst())
+        if (m_caseNodes->Item(currentIndex)->GetUpperBoundIntConst() + 1 != m_caseNodes->Item(nextIndex)->GetUpperBoundIntConst())
         {
             //value of the case nodes are guaranteed to be 32 bits or less than 32bits at this point(if it is more, the Switch Opt will not kick in)
             Assert(nextIndex == endjmpTableIndex + 1);
-            int64 speculatedEndJmpCaseValue = m_caseNodes->Item(nextIndex)->GetSrc2IntConst();
-            int64 endJmpCaseValue = m_caseNodes->Item(endjmpTableIndex)->GetSrc2IntConst();
-            int64 startJmpCaseValue = m_caseNodes->Item(startjmpTableIndex)->GetSrc2IntConst();
+            int64 speculatedEndJmpCaseValue = m_caseNodes->Item(nextIndex)->GetUpperBoundIntConst();
+            int64 endJmpCaseValue = m_caseNodes->Item(endjmpTableIndex)->GetUpperBoundIntConst();
+            int64 startJmpCaseValue = m_caseNodes->Item(startjmpTableIndex)->GetUpperBoundIntConst();
 
             int64 speculatedJmpTableSize = speculatedEndJmpCaseValue - startJmpCaseValue + 1;
             int64 jmpTableSize = endJmpCaseValue - startJmpCaseValue + 1;
@@ -617,8 +626,8 @@ SwitchIRBuilder::BuildOptimizedIntegerCaseInstrs(uint32 targetOffset)
         }
     }
 
-    int64 endJmpCaseValue = m_caseNodes->Item(endjmpTableIndex)->GetSrc2IntConst();
-    int64 startJmpCaseValue = m_caseNodes->Item(startjmpTableIndex)->GetSrc2IntConst();
+    int64 endJmpCaseValue = m_caseNodes->Item(endjmpTableIndex)->GetUpperBoundIntConst();
+    int64 startJmpCaseValue = m_caseNodes->Item(startjmpTableIndex)->GetUpperBoundIntConst();
     int64 jmpTableSize = endJmpCaseValue - startJmpCaseValue + 1;
 
     if (jmpTableSize < CONFIG_FLAG(MinSwitchJumpTableSize))
@@ -824,7 +833,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         generateDictionary = false;
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
             Assert(str->GetLength() == 1);
             char16 currChar = str->GetString()[0];
             minChar = min(minChar, currChar);
@@ -845,7 +854,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoDictionary(caseTargetOffset, str);
         }
@@ -870,7 +879,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
             Assert(str->GetLength() == 1);
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoJumpTable(caseTargetOffset, str->GetString()[0] - minChar);
@@ -906,8 +915,8 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForInts(uint32 start, uint32 end, uint32 t
 
     uint32 lastCaseOffset = m_caseNodes->Item(end)->GetOffset();
 
-    int32 baseCaseValue = m_caseNodes->Item(start)->GetLowerBound()->GetStackSym()->GetIntConstValue();
-    int32 lastCaseValue = m_caseNodes->Item(end)->GetUpperBound()->GetStackSym()->GetIntConstValue();
+    int32 baseCaseValue = m_caseNodes->Item(start)->GetLowerBoundIntConst();
+    int32 lastCaseValue = m_caseNodes->Item(end)->GetUpperBoundIntConst();
 
     multiBranchInstr->m_baseCaseValue = baseCaseValue;
     multiBranchInstr->m_lastCaseValue = lastCaseValue;
@@ -922,10 +931,10 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForInts(uint32 start, uint32 end, uint32 t
 
     for (int jmpIndex = jmpTableSize - 1; jmpIndex >= 0; jmpIndex--)
     {
-        if (caseIndex >= 0 && jmpIndex == m_caseNodes->Item(caseIndex)->GetSrc2IntConst() - baseCaseValue)
+        if (caseIndex >= 0 && jmpIndex == m_caseNodes->Item(caseIndex)->GetUpperBoundIntConst() - baseCaseValue)
         {
-            lowerBoundCaseConstValue = m_caseNodes->Item(caseIndex)->GetLowerBound()->GetStackSym()->GetIntConstValue();
-            upperBoundCaseConstValue = m_caseNodes->Item(caseIndex)->GetUpperBound()->GetStackSym()->GetIntConstValue();
+            lowerBoundCaseConstValue = m_caseNodes->Item(caseIndex)->GetLowerBoundIntConst();
+            upperBoundCaseConstValue = m_caseNodes->Item(caseIndex)->GetUpperBoundIntConst();
             caseTargetOffset = m_caseNodes->Item(caseIndex--)->GetTargetOffset();
             multiBranchInstr->AddtoJumpTable(caseTargetOffset, jmpIndex);
         }

@@ -135,11 +135,11 @@ enum Forms : BYTE
 #define OPBYTE_ANDNPD   {0x55}                  // modrm
 #define OPBYTE_ANDNPS   {0x55}                  // modrm
 
-
 #define OPBYTE_ANDPD    {0x54}                   // modrm
 #define OPBYTE_ANDPS    {0x54}                   // modrm
 #define OPBYTE_SUB      {0x2c, 0x80, 0x28}       // binop, byte2=0x5
 #define OPBYTE_AND      {0x24, 0x80, 0x20}       // binop, byte2=0x4
+#define OPBYTE_BSF      {0xbc}                   // modrm
 #define OPBYTE_BSR      {0xbd}                   // modrm
 #define OPBYTE_BT       {0xba, 0xa3}             // special, modrm
 #define OPBYTE_BTR      {0xba, 0xb3}             // special, modrm
@@ -223,6 +223,7 @@ enum Forms : BYTE
 #define OPBYTE_MINPD    {0x5d}                  // modrm
 #define OPBYTE_MINPS    {0x5d}                  // modrm
 
+#define OPBYTE_TZCNT    {0xbc}                   // modrm
 #define OPBYTE_LZCNT    {0xbd}                   // modrm
 
 #define OPBYTE_OR       {0x0c, 0x80, 0x08}       // binop, byte2=0x1
@@ -287,9 +288,10 @@ enum Forms : BYTE
 #define OPBYTE_POP      {0x58, 0, 0x8f}          // pshpop, byte2=0 immed not legal
 
 #define OPBYTE_POR      {0xeb}                  // modrm
+#define OPBYTE_POPCNT   {0xB8}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
-#define OPBYTE_PEXTRW   {0xc5}                  // special 
-#define OPBYTE_PINSRW   {0xc4}                  // special 
+#define OPBYTE_PEXTRW   {0xc5}                  // special
+#define OPBYTE_PINSRW   {0xc4}                  // special
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
 
@@ -316,6 +318,8 @@ enum Forms : BYTE
 #define OPBYTE_PXOR     {0xef}                  // modrm
 
 #define OPBYTE_RET      {0xc2}                   // special
+#define OPBYTE_ROL      {0xc0, 0xd2}             // shift, byte2=0
+#define OPBYTE_ROR      {0xc0, 0xd2}             // shift, byte2=1
 #define OPBYTE_ROUNDSD  {0x0B}                   // modrm
 #define OPBYTE_ROUNDSS  {0x0A}                   // modrm
 #define OPBYTE_SAR      {0xc0, 0xd2}             // shift, byte2=7

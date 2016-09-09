@@ -4,57 +4,57 @@
     <default>
       <files>ArrayView.js</files>
       <baseline>ArrayView.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>BasicBranching.js</files>
       <baseline>BasicBranching.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
     <test>
     <default>
       <files>BasicBranching.js</files>
       <baseline>BasicBranchingLinkFail.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0 -forceAsmJsLinkFail</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -forceAsmJsLinkFail</compile-flags>
     </default>
   </test>
-  
+
   <test>
     <default>
       <files>basicComparisonDouble.js</files>
       <baseline>basicComparisonDouble.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>basicComparisonInt.js</files>
       <baseline>basicComparisonInt.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>basicComparisonUInt.js</files>
       <baseline>basicComparisonUInt.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>BasicLooping.js</files>
       <baseline>BasicLooping.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>basicMath.js</files>
       <baseline>basicMath.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
@@ -62,49 +62,49 @@
     <default>
       <files>basicMathIntSpecific.js</files>
       <baseline>basicMathIntSpecific.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>basicMathUnary.js</files>
       <baseline>basicMathUnary.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>BasicSwitch.js</files>
       <baseline>BasicSwitch.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>CompositionMathUnary.js</files>
       <baseline>CompositionMathUnary.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>FunctionCalls.js</files>
       <baseline>FunctionCalls.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>MathBuiltinsCall.js</files>
       <baseline>MathBuiltinsCall.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -118,35 +118,35 @@
     <default>
       <files>ModuleVarRead.js</files>
       <baseline>ModuleVarRead.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ModuleVarWrite.js</files>
       <baseline>ModuleVarWrite.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ReadArrayView.js</files>
       <baseline>ReadArrayView.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ReadFixOffset.js</files>
       <baseline>ReadFixOffset.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>relink.js</files>
       <baseline>relink.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -167,14 +167,14 @@
     <default>
       <files>relink.js</files>
       <baseline>relink.baseline</baseline>
-      <compile-flags>-forceserialized -testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-forceserialized -testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>WriteArrayView.js</files>
       <baseline>WriteArrayView.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
@@ -182,7 +182,7 @@
     <default>
       <files>WriteFixOffset.js</files>
       <baseline>WriteFixOffset.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
@@ -498,14 +498,14 @@
     <default>
       <files>functiontablebug.js</files>
       <baseline>functiontablebug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>nanbug.js</files>
       <baseline>nanbug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -519,28 +519,28 @@
     <default>
       <files>switchbug.js</files>
       <baseline>switchbug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fgpeepsbug.js</files>
       <baseline>fgpeepsbug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>cseBug.js</files>
       <baseline>cseBug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -562,21 +562,21 @@
     <default>
       <files>ffibug.js</files>
       <baseline>ffibug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ternaryfloat.js</files>
       <baseline>ternaryfloat.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>minintbug.js</files>
       <baseline>minintbug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -674,7 +674,7 @@
     <default>
       <files>unityBug.js</files>
       <baseline>unityBug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -697,7 +697,7 @@
       <files>argoutcapturebug.js</files>
       <baseline>argoutcapturebug.baseline</baseline>
       <tags></tags>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -711,7 +711,7 @@
     <default>
       <files>clz32.js</files>
       <baseline>clz32.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -769,7 +769,7 @@
     <default>
       <files>lowererdivbug.js</files>
       <baseline>lowererdivbug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>

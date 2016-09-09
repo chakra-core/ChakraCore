@@ -190,19 +190,21 @@ MACRO_SIMD_WMS     (Simd128_LdArr_I16                 , AsmSimdTypedArr         
 MACRO_SIMD_WMS     (Simd128_LdArrConst_I16            , AsmSimdTypedArr                      , None         ,           None                    ,      0)
 MACRO_SIMD_WMS     (Simd128_StArr_I16                 , AsmSimdTypedArr                      , None         ,           None                    ,      0)
 MACRO_SIMD_WMS     (Simd128_StArrConst_I16            , AsmSimdTypedArr                      , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_And_B16                  , Bool8x16_3                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Or_B16                   , Bool8x16_3                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Xor_B16                  , Bool8x16_3                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Not_B16                  , Bool8x16_2                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Neg_U4                   , Uint32x4_2                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Neg_U8                   , Uint16x8_2                           , None         ,           None                    ,      0)
-MACRO_SIMD_WMS     ( Simd128_Neg_U16                  , Uint8x16_2                           , None         ,           None                    ,      0)
-MACRO_SIMD_BACKEND_ONLY     ( Simd128_LdC                       , Empty                             , None           ,        OpCanCSE                  )   // Load Simd128 const stack slot
-MACRO_SIMD                  ( Simd128_End                       , Empty                             , None           ,        None                      )   // Just a marker to indicate SIMD opcodes region
-
+MACRO_SIMD_WMS     (Simd128_And_B16                   , Bool8x16_3                           , None         ,           None                    ,      0)
+MACRO_SIMD_WMS     (Simd128_Or_B16                    , Bool8x16_3                           , None         ,           None                    ,      0)
+MACRO_SIMD_WMS     (Simd128_Xor_B16                   , Bool8x16_3                           , None         ,           None                    ,      0)
+MACRO_SIMD         (Simd128_End                       , Empty                                , None         ,           None)   // Just a marker to indicate SIMD opcodes region
 
 // Extended opcodes. Running out of 1-byte opcode space. Add new opcodes here.
-MACRO_SIMD_EXTEND         ( Simd128_Start_Extend                , Empty                             , None           ,        None              ,      0)   // Just a marker to indicate SIMD opcodes region
+MACRO_SIMD_EXTEND(     Simd128_Start_Extend           , Empty, None, None, 0)   // Just a marker to indicate SIMD opcodes region
+MACRO_SIMD_EXTEND_WMS( Simd128_Not_B16                , Bool8x16_2                           , None         ,           None                    ,      0)
+MACRO_SIMD_EXTEND_WMS( Simd128_Neg_U4                 , Uint32x4_2                           , None         ,           None                    ,      0)
+MACRO_SIMD_EXTEND_WMS( Simd128_Neg_U8                 , Uint16x8_2                           , None         ,           None                    ,      0)
+
+MACRO_SIMD_EXTEND_WMS( Simd128_Neg_U16                , Uint8x16_2                           , None         ,           None                    ,      0)
+MACRO_SIMD_BACKEND_ONLY(Simd128_LdC                   , Empty                                , None         ,           OpCanCSE                  )   // Load Simd128 const stack slot
+
+
 #if 0
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_Ld_D2, Float64x2_2, None, None)
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_LdSlot_D2, ElementSlot, None, None)

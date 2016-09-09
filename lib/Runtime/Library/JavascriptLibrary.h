@@ -380,6 +380,9 @@ namespace Js
         JavascriptFunction* objectValueOfFunction;
         JavascriptFunction* objectToStringFunction;
 
+#ifdef ENABLE_WASM
+        DynamicObject* wasmObject;
+#endif
 
         // SIMD_JS
         JavascriptFunction* simdFloat32x4ToStringFunction;
@@ -1200,6 +1203,9 @@ namespace Js
         void InitializeComplexThings();
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+#ifdef ENABLE_WASM
+        static void __cdecl InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+#endif
         // SIMD_JS
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSIMDOpCodeMaps();

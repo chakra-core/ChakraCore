@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\WasmReader;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
         %(AdditionalIncludeDirectories)
@@ -47,12 +48,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="WasmMath.h" />
     <None Include="JavascriptMath.cpp" />
     <ClInclude Include="AsmJsMath.h" />
     <ClInclude Include="CrtSSE2Math.h" />
     <ClInclude Include="RuntimeMathPch.h" />
     <ClInclude Include="JavascriptMath.h" />
     <ClInclude Include="JavascriptSSE2MathOperators.h" />
+    <ClInclude Include="WasmMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AsmJsMath.inl" />

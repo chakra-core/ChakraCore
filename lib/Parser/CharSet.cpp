@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
+#include "Common\MathUtil.h"
 
 namespace UnifiedRegex
 {
@@ -10,25 +11,12 @@ namespace UnifiedRegex
     // CharBitVec
     // ----------------------------------------------------------------------
 
-    inline uint32 popcnt(uint32 x)
-    {
-        // sum set bits in every bit pair
-        x -= (x >> 1) & 0x55555555u;
-        // sum pairs into quads
-        x = (x & 0x33333333u) + ((x >> 2) & 0x33333333u);
-        // sum quads into octets
-        x = (x + (x >> 4)) & 0x0f0f0f0fu;
-        // sum octets into topmost octet
-        x *= 0x01010101u;
-        return x >> 24;
-    }
-
     uint CharBitvec::Count() const
     {
         uint n = 0;
         for (int w = 0; w < vecSize; w++)
         {
-            n += popcnt(vec[w]);
+            n += Math::PopCnt32(vec[w]);
         }
         return n;
     }

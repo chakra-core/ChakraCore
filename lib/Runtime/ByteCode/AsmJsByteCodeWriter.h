@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
     struct AsmJsByteCodeWriter : public ByteCodeWriter
@@ -18,6 +18,8 @@ namespace Js
         void EmptyAsm        ( OpCodeAsmJs op );
         void Conv            ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmInt1Const1   ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        void AsmFloat1Const1 ( OpCodeAsmJs op, RegSlot R0, float C1 );
+        void AsmDouble1Const1( OpCodeAsmJs op, RegSlot R0, double C1 );
         void AsmReg1         ( OpCodeAsmJs op, RegSlot R0 );
         void AsmReg2         ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmReg3         ( OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2 );
@@ -34,10 +36,10 @@ namespace Js
                                               RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17);
         void AsmReg19        (OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
                                               RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
-        void AsmReg2IntConst1( OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2);
         void AsmBr           ( ByteCodeLabel labelID, OpCodeAsmJs op = OpCodeAsmJs::AsmBr );
         void AsmBrReg1       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1 );
         void AsmBrReg2       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2 );
+        void AsmBrReg1Const1 ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1 );
         void AsmStartCall    ( OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false);
         void AsmCall         ( OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType );
         void AsmSlot         ( OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId );
@@ -68,10 +70,12 @@ namespace Js
         template <typename SizePolicy> bool TryWriteAsmReg19        (OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
                                                                                      RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
 
-        template <typename SizePolicy> bool TryWriteAsmReg2IntConst1( OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2 );
         template <typename SizePolicy> bool TryWriteInt1Const1      ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        template <typename SizePolicy> bool TryWriteFloat1Const1    ( OpCodeAsmJs op, RegSlot R0, float C1 );
+        template <typename SizePolicy> bool TryWriteDouble1Const1   ( OpCodeAsmJs op, RegSlot R0, double C1 );
         template <typename SizePolicy> bool TryWriteAsmBrReg1       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1 );
         template <typename SizePolicy> bool TryWriteAsmBrReg2       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2 );
+        template <typename SizePolicy> bool TryWriteAsmBrReg1Const1 ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1 );
         template <typename SizePolicy> bool TryWriteAsmCall         ( OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType );
         template <typename SizePolicy> bool TryWriteAsmSlot         ( OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId );
         template <typename SizePolicy> bool TryWriteAsmTypedArr     ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType );
