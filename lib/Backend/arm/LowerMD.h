@@ -94,7 +94,8 @@ public:
             void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = nullptr);
             void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget);
             bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
-            bool            GenerateFastBrString(IR::BranchInstr* instr);
+            bool            GenerateFastBrOrCmString(IR::Instr* instr);
+            bool            GenerateFastStringCheck(IR::Instr* instr, IR::RegOpnd *regSrc1, IR::RegOpnd *regSrc2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelTarget, IR::LabelInstr *labelFail);
             bool            GenerateFastCmSrEqConst(IR::Instr *instr);
             bool            GenerateFastCmXxI4(IR::Instr *instr);
             bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return nullptr; }
@@ -217,7 +218,7 @@ public:
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             void                FinishArgLowering();
             IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, bool isDoubleArgument = false);
-            void                GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 probeSize);
+            bool                GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 probeSize);
             void                GenerateStackDeallocation(IR::Instr *instr, uint32 allocSize);
             void                GenerateStackProbe(IR::Instr *instr, bool afterProlog);
             IR::Opnd*           GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);

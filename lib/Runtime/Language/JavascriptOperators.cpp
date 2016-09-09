@@ -1016,19 +1016,6 @@ CommonNumber:
             }
             break;
 
-        case TypeIds_Function:
-            if (rightType == TypeIds_Function)
-            {
-                // In ES5 in certain cases (ES5 10.6.14(strict), 13.2.19(strict), 15.3.4.5.20-21) we return a function that throws type error.
-                // For different scenarios we return different instances of the function, which differ by exception/error message.
-                // According to ES5, this is the same [[ThrowTypeError]] (thrower) internal function, thus they should be equal.
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    return true;
-                }
-            }
-            break;
 #ifdef ENABLE_SIMDJS
         case TypeIds_SIMDBool8x16:
         case TypeIds_SIMDInt8x16:
@@ -6904,11 +6891,10 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
-            argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
+            JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
+            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
-            JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
+            argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
         else

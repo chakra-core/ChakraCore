@@ -243,7 +243,7 @@ namespace Js
         {
             // Get the latest proxy
             FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsGenerator())
+            if (proxy->IsCoroutine())
             {
                 pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
             }
@@ -371,18 +371,6 @@ namespace Js
         }
 
         return library->GetUndefined();
-    }
-
-    BOOL JavascriptFunction::IsThrowTypeErrorFunction()
-    {
-        ScriptContext* scriptContext = this->GetScriptContext();
-        Assert(scriptContext);
-
-        return
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorCalleeAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
     }
 
     enum : unsigned { STACK_ARGS_ALLOCA_THRESHOLD = 8 }; // Number of stack args we allow before using _alloca
@@ -2257,17 +2245,10 @@ LABEL1:
             switch (propertyId)
             {
             case PropertyIds::caller:
-                if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
-                {
-                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                    return true;
-                }
-                break;
-
             case PropertyIds::arguments:
                 if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
                 {
-                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                     return true;
                 }
                 break;
@@ -2311,27 +2292,12 @@ LABEL1:
         switch (propertyId)
         {
         case PropertyIds::caller:
-            if (this->HasRestrictedProperties()) {
-                PropertyValueInfo::SetNoCache(info, this);
-                if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
-                {
-                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                    *descriptorFlags = Accessor;
-                }
-                else
-                {
-                    *descriptorFlags = Data;
-                }
-                return true;
-            }
-            break;
-
         case PropertyIds::arguments:
             if (this->HasRestrictedProperties()) {
                 PropertyValueInfo::SetNoCache(info, this);
                 if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
                 {
-                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                     *descriptorFlags = Accessor;
                 }
                 else
@@ -2509,7 +2475,7 @@ LABEL1:
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
-                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
+                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                 *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
@@ -2564,7 +2530,7 @@ LABEL1:
                 // Note that for caller coming from remote context (see the check right above) we can't call IsStrictMode()
                 // unless CheckCrossDomainScriptContext succeeds. If it fails we don't know whether caller is strict mode
                 // function or not and throw if it's not, so just return Null.
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_AccessCallerRestricted);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_AccessRestrictedProperty);
             }
         }
 
@@ -2584,7 +2550,7 @@ LABEL1:
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
-                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                 *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;

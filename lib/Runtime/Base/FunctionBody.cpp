@@ -5401,7 +5401,7 @@ namespace Js
 
     bool FunctionBody::CanFunctionObjectHaveInlineCaches()
     {
-        if (this->DoStackNestedFunc() || this->IsGenerator())
+        if (this->DoStackNestedFunc() || this->IsCoroutine())
         {
             return false;
         }
@@ -6712,7 +6712,7 @@ namespace Js
             !this->IsInDebugMode() &&
             DoInterpreterProfile() &&
             (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
-            !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
+            !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
     bool FunctionBody::DoSimpleJitWithLock() const
@@ -6723,7 +6723,7 @@ namespace Js
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
             (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
-            !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
+            !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
     bool FunctionBody::DoSimpleJitDynamicProfile() const

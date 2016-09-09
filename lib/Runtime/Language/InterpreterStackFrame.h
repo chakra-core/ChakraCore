@@ -112,6 +112,7 @@ namespace Js
 
         bool closureInitDone : 1;
         bool isParamScopeDone : 1;
+        bool shouldCacheSP : 1; // Helps in determining if we need to cache the sp in ProcessTryFinally
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;

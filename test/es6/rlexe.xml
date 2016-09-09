@@ -707,7 +707,7 @@
   </test>
   <test>
     <default>
-      <files>proxyenumbug.js</files>
+      <files>proxyenumremoval.js</files>
     </default>
   </test>
   <test>

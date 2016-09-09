@@ -4163,7 +4163,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         // VisitFunctionsInScope has already done binding within the declared function. Here, just record the fact
         // that the parent function has a local/global declaration in it.
         BindFuncSymbol(pnode, byteCodeGenerator);
-        if (pnode->sxFnc.IsGenerator())
+        if (pnode->sxFnc.IsCoroutine())
         {
             // Always assume generator functions escape since tracking them requires tracking
             // the resulting generators in addition to the function.
@@ -4675,7 +4675,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopFncDecl:
         if (!byteCodeGenerator->TopFuncInfo()->IsGlobalFunction())
         {
-            if (pnode->sxFnc.IsGenerator())
+            if (pnode->sxFnc.IsCoroutine())
             {
                 // Assume generators always escape; otherwise need to analyze if
                 // the return value of calls to generator function, the generator

@@ -173,10 +173,7 @@ namespace Js
 
         JavascriptFunction* defaultAccessorFunction;
         JavascriptFunction* stackTraceAccessorFunction;
-        JavascriptFunction* throwTypeErrorAccessorFunction;
-        JavascriptFunction* throwTypeErrorCallerAccessorFunction;
-        JavascriptFunction* throwTypeErrorCalleeAccessorFunction;
-        JavascriptFunction* throwTypeErrorArgumentsAccessorFunction;
+        JavascriptFunction* throwTypeErrorRestrictedPropertyAccessorFunction;
         JavascriptFunction* debugObjectNonUserGetterFunction;
         JavascriptFunction* debugObjectNonUserSetterFunction;
         JavascriptFunction* debugObjectDebugModeGetterFunction;
