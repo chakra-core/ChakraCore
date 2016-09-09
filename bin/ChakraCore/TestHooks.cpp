@@ -40,6 +40,7 @@ HRESULT __stdcall SetEnableCheckMemoryLeakOutput(bool flag)
     return S_OK;
 }
 
+#if ENABLE_NATIVE_CODEGEN
 #ifdef _WIN32
 void __stdcall ConnectJITServer(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
 {
@@ -47,6 +48,7 @@ void __stdcall ConnectJITServer(HANDLE processHandle, void* serverSecurityDescri
     ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
 }
 #endif
+#endif 
 
 void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 {

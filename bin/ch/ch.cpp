@@ -826,13 +826,14 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     if (success)
     {
 #ifdef _WIN32
-
+#if ENABLE_NATIVE_CODEGEN
         if (HostConfigFlags::flags.EnableOutOfProcJIT)
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);
             ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
         }
+#endif
 
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));

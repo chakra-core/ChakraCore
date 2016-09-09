@@ -255,6 +255,7 @@ public:
     }
 
 #ifdef _WIN32
+#if ENABLE_NATIVE_CODEGEN
     static void ConnectJITServer(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
     {
         if (m_testHooksSetup && m_testHooks.pfnConnectJITServer != NULL)
@@ -262,6 +263,7 @@ public:
             m_testHooks.pfnConnectJITServer(processHandle, serverSecurityDescriptor, connectionId);
         }
     }
+#endif
 #endif
 
     static void NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)

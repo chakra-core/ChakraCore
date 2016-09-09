@@ -3365,7 +3365,6 @@ namespace Js
         {
             Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo((intptr_t)builtInFuncs[index]->GetFunctionInfo(), scriptContext->GetThreadContext())));
         }
-
     }
 #endif
 
@@ -3373,7 +3372,6 @@ namespace Js
     // Used by inliner.
     BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
     {
-#if ENABLE_NATIVE_CODEGEN
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
         if(funcInfoAddr == SHIFT_ADDR(context, (intptr_t)&EntryInfo)) \
         { \
@@ -3381,7 +3379,6 @@ namespace Js
         }
 #include "LibraryFunction.h"
 #undef LIBRARY_FUNCTION
-#endif
         return BuiltinFunction::None;
     }
 
