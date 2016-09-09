@@ -21,7 +21,6 @@
 #include "DataStructures/DoublyLinkedListElement.inl"
 #include "DataStructures/DoublyLinkedList.inl"
 
-#include "Common/Event.h"
 #include "Common/ThreadService.h"
 #include "Common/Jobs.h"
 #include "Common/Jobs.inl"
@@ -703,7 +702,7 @@ namespace JsUtil
         return WaitWithThread(parallelThreadData, parallelThreadData->threadStartedOrClosing, milliseconds);
     }
 
-    bool BackgroundJobProcessor::WaitWithThread(ParallelThreadData *parallelThreadData, const Event &e, const unsigned int milliseconds)
+    bool BackgroundJobProcessor::WaitWithThread(ParallelThreadData *parallelThreadData, const PlatformAgnostic::Event &e, const unsigned int milliseconds)
     {
         const HANDLE handles[] = { e.Handle(), parallelThreadData->threadHandle };
 

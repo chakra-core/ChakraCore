@@ -2,7 +2,6 @@ add_library (Chakra.Common.Common OBJECT
     CfgLogger.cpp
     CommonCommonPch.cpp
     DateUtilities.cpp
-    Event.cpp
     Int32Math.cpp
     Int64Math.cpp
     Jobs.cpp

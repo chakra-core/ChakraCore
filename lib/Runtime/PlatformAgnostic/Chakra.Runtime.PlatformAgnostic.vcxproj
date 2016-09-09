@@ -43,6 +43,7 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DateTime.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DaylightHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\Event.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\HiResTimer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />

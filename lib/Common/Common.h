@@ -124,7 +124,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Core/ProfileMemory.h"
 #include "Core/StackBackTrace.h"
 
-#include "Common/Event.h"
 #include "Common/Jobs.h"
 
 #include "Common/vtregistry.h" // Depends on SimpleHashTable.h
