@@ -15334,7 +15334,8 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
         // The index is negative or not int.
         if (indirOpnd == nullptr)
         {
-            Assert(!(ldElem->HasBailOutInfo() && ldElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall));
+            // could have bailout kind BailOutOnArrayAccessHelperCall if indirOpnd overflows
+            Assert(!(ldElem->HasBailOutInfo() && ldElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall) || indirOpndOverflowed);
 
             // The global optimizer should never type specialize a LdElem for which the index is not int or an integer constant
             // with a negative value. This would force an unconditional bail out on the main code path.
