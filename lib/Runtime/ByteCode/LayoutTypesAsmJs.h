@@ -8,7 +8,6 @@
 // "LAYOUT_TYPE", etc., to be executed for each entry.
 //
 
-#ifdef ASMJS_PLAT
 #ifndef LAYOUT_TYPE
 #define LAYOUT_TYPE(layout)
 #endif
@@ -68,6 +67,7 @@
 #define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18) LAYOUT_TYPE_WMS(layout)
 #endif
 
+#ifdef ASMJS_PLAT
 
 // FE for frontend only layout
 #ifdef EXCLUDE_FRONTEND_LAYOUT
@@ -347,6 +347,7 @@ LAYOUT_TYPE_WMS_REG2  ( Reg1Bool8x16_1                   , Reg, Bool8x16)
 
 
 LAYOUT_TYPE_WMS       ( AsmSimdTypedArr                  )
+#endif
 
 #undef LAYOUT_TYPE_DUP
 #undef LAYOUT_TYPE_WMS_DUP
@@ -370,4 +371,3 @@ LAYOUT_TYPE_WMS       ( AsmSimdTypedArr                  )
 
 #undef LAYOUT_PREFIX_Int
 #undef LAYOUT_PREFIX_IntConst
-#endif

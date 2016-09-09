@@ -3255,10 +3255,10 @@ namespace Js
                 this->ehBailoutData = nullptr;
             }
         }
-        FunctionBody *const functionBody = GetFunctionBody();
 #ifdef ASMJS_PLAT
-        if( functionBody->GetIsAsmjsMode() )
+        if( GetFunctionBody()->GetIsAsmjsMode() )
         {
+            FunctionBody *const functionBody = GetFunctionBody();
             AsmJsFunctionInfo* asmInfo = functionBody->GetAsmJsFunctionInfo();
             if (asmInfo)
             {
@@ -3312,6 +3312,7 @@ namespace Js
 #endif
 
 #if ENABLE_PROFILE_INFO
+        FunctionBody *const functionBody = GetFunctionBody();
         const ExecutionMode interpreterExecutionMode =
             functionBody->GetInterpreterExecutionMode(!!(GetFlags() & InterpreterStackFrameFlags_FromBailOut));
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
