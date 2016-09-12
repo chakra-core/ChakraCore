@@ -5700,7 +5700,16 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     insertInstr->InsertBefore(instr);
     if (index == Js::BuiltinFunction::String_CharAt)
     {
-        this->m_lowerer->GenerateGetSingleCharString(charReg, dst, labelHelper, doneLabel, insertInstr, false);
+        IR::Opnd *resultOpnd;
+        if (dst->IsEqual(srcStr))
+        {
+            resultOpnd = IR::RegOpnd::New(TyVar, this->m_func);
+        }
+        else
+        {
+            resultOpnd = dst;
+        }
+        this->m_lowerer->GenerateGetSingleCharString(charReg, resultOpnd, labelHelper, doneLabel, insertInstr, false);
     }
     else
     {

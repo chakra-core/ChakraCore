@@ -6852,7 +6852,16 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
 
     if (index == Js::BuiltinFunction::String_CharAt)
     {
-        this->m_lowerer->GenerateGetSingleCharString(charResult, dst, labelHelper, labelDone, insertInstr, false);
+        IR::Opnd *resultOpnd;
+        if (dst->IsEqual(srcStr))
+        {
+            resultOpnd = IR::RegOpnd::New(TyVar, this->m_func);
+        }
+        else
+        {
+            resultOpnd = dst;
+        }
+        this->m_lowerer->GenerateGetSingleCharString(charResult, resultOpnd, labelHelper, labelDone, insertInstr, false);
     }
     else
     {
