@@ -8,5 +8,6 @@
 namespace Memory
 {
     void ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInBytes, HANDLE processHandle = GetCurrentProcess());
+    void ChakraWMemSet(__ecount(count) char16* dst, char16 val, size_t count, HANDLE processHandle = GetCurrentProcess());
     void ChakraMemCopy(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count, HANDLE processHandle = GetCurrentProcess());
 } // namespace Memory

@@ -1017,7 +1017,7 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     // This is 2 bytes, and in case there is a gap of 1 byte in the end, fill it with 0 (there is no 1 byte long THUMB instruction).
     CompileAssert(sizeof(char16) == 2);
     char16 pattern = 0xDEFE;
-    wmemset(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2);
+    ChakraWMemSet(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2, processHandle);
     if (byteCount % 2)
     {
         // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.

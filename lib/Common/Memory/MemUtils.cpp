@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "CommonMemoryPch.h"
+#include <wchar.h>
 
 void
 Memory::ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInBytes, HANDLE processHandle)
@@ -27,6 +28,31 @@ Memory::ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInByte
             Js::Throw::FatalInternalError();
         }
         HeapDeleteArray(sizeInBytes, writeBuffer);
+    }
+}
+
+void
+Memory::ChakraWMemSet(__ecount(count) char16* dst, char16 val, size_t count, HANDLE processHandle)
+{
+    const bool isLocalProc = processHandle == GetCurrentProcess();
+    char16 * writeBuffer;
+
+    if (isLocalProc)
+    {
+        writeBuffer = (char16*)dst;
+    }
+    else
+    {
+        writeBuffer = HeapNewArray(char16, count);
+    }
+    wmemset(writeBuffer, val, count);
+    if (!isLocalProc)
+    {
+        if (!WriteProcessMemory(processHandle, dst, writeBuffer, count * sizeof(char16), NULL))
+        {
+            Js::Throw::FatalInternalError();
+        }
+        HeapDeleteArray(count, writeBuffer);
     }
 }
 

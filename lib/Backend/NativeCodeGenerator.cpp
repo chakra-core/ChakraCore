@@ -1056,7 +1056,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
-    XDataAllocation * xdataInfo = HeapNew(XDataAllocation);
+    XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
 #if defined(_M_ARM32_OR_ARM64)
     xdataInfo->pdataCount = jitWriteData.pdataCount;

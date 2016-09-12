@@ -161,10 +161,12 @@ size_t
 JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle)
 {
     BYTE *xdataFinal = xdataAddr + offset;
+    m_outputData->xdataAddr = (intptr_t)xdataAddr;
 
     Assert(xdataFinal);
     Assert(((DWORD)xdataFinal & 0x3) == 0); // 4 byte aligned
     ChakraMemCopy(xdataFinal, size, unwindInfo, size, processHandle);
+
     return (size_t)xdataFinal;
 }
 #endif
