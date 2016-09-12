@@ -24,6 +24,14 @@ if(ICU_SETTINGS_RESET)
   unset(ICU_INCLUDE_PATH_SH CACHE)
   unset(NO_ICU_PATH_GIVEN_SH CACHE)
   unset(NO_ICU_PATH_GIVEN CACHE)
+  unset(CC_EMBED_ICU_SH CACHE)
+endif()
+
+if(CC_EMBED_ICU_SH)
+  unset(CC_EMBED_ICU_SH CACHE)
+  set(CC_EMBED_ICU 1)
+  set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
+  add_definitions(-DU_STATIC_IMPLEMENTATION)
 endif()
 
 if(ICU_INCLUDE_PATH_SH)
@@ -62,12 +70,24 @@ if(ICU_INCLUDE_PATH)
       ${ICUDATA}
       )
   endif()
-endif()
+elseif(CC_EMBED_ICU)
+  set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
+  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  set(ICULIB
+    ${ICUUC}
+    ${ICU18}
+    ${ICUDATA}
+    )
+ endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     if(NOT ICULIB)
       if(NOT NO_ICU_PATH_GIVEN)
-        set(ICULIB "icuuc")
+        if(NOT CC_EMBED_ICU)
+          set(ICULIB "icuuc")
+        endif()
         add_definitions(-DHAS_REAL_ICU=1)
       endif()
     endif()
@@ -86,11 +106,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
     if(NOT ICULIB)
       if(NOT NO_ICU_PATH_GIVEN)
-        set(ICULIB "icucore")
         add_definitions(-DHAS_REAL_ICU=1)
-        add_definitions(
-          -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
-          )
+        if(NOT CC_EMBED_ICU)
+          set(ICULIB "icucore")
+          add_definitions(
+            -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
+            )
+        endif()
         message("using ICU from system default: ${ICULIB}")
       endif()
     endif()
@@ -109,7 +131,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
         -mmacosx-version-min=10.7")
 else()
-    clr_unknown_arch()
+    message(FATAL_ERROR "This OS is not supported")
 endif()
 
 if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
