@@ -4914,8 +4914,6 @@ Recycler::BackgroundScanStack()
 #ifdef RECYCLER_TRACE
         CUSTOM_PHASE_PRINT_VERBOSE_TRACE1(GetRecyclerFlagsTable(), Js::ScanStackPhase, _u("[%04X] Skipping the stack scan\n"), ::GetCurrentThreadId());
 #endif
-        Output::Print(Js::ScanStackPhase, _u("[%04X] Skipping the stack scan\n"), ::GetCurrentThreadId());
-
         return 0;
     }
 
