@@ -929,8 +929,8 @@ namespace Js
                         dict.Add(str->GetSz(), prop);
                         // if (desc.enumerable) yield key;
                         if (desc.IsEnumerable())
-                        {
-                            ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
+                        {                            
+                            ret = arrResult->SetItem(index++, CrossSite::MarshalVar(requestContext, prop), PropertyOperation_None);
                             Assert(ret);
                         }
                     }
