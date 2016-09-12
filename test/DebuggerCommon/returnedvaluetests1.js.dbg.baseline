@@ -1,0 +1,158 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "formatter": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[Anonymous function returned]": "undefined undefined",
+      "[Intl.NumberFormat returned]": "Object {...}"
+    },
+    "locals": {
+      "formatter": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "undefined undefined",
+      "coll": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 8,
+        "sourceText": "var m = 31",
+        "function": "f1"
+      },
+      {
+        "line": 20,
+        "column": 8,
+        "sourceText": "f1(new Intl.Collator())",
+        "function": "test6"
+      },
+      {
+        "line": 24,
+        "column": 4,
+        "sourceText": "test6()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[f1 returned]": "number 132"
+    },
+    "locals": {
+      "formatter": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 8,
+        "sourceText": "formatter",
+        "function": "test6"
+      },
+      {
+        "line": 24,
+        "column": 4,
+        "sourceText": "test6()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "formatter": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[Intl.NumberFormat returned]": "Object {...}"
+    },
+    "locals": {
+      "formatter": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "test7": "function <large string>"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "d": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[Anonymous function returned]": "function <large string>",
+      "[forEach returned]": "undefined undefined"
+    },
+    "locals": {
+      "d": "Date <large string>"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "callStack": [
+      {
+        "line": 33,
+        "column": 12,
+        "sourceText": "return d",
+        "function": "test7"
+      },
+      {
+        "line": 35,
+        "column": 8,
+        "sourceText": "test7()",
+        "function": "test8"
+      },
+      {
+        "line": 37,
+        "column": 4,
+        "sourceText": "test8()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "k1": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  }
+]

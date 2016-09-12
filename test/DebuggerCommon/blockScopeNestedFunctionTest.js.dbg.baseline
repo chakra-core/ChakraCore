@@ -1,0 +1,199 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "innerFunc": "function <large string>",
+      "x": "undefined undefined",
+      "a": "string [Uninitialized block variable]",
+      "aConst": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "innerFunc": "function <large string>",
+      "x": "number -1",
+      "a": "number 0",
+      "aConst": "number 1"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "innerInnerFunc": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string innerInnerFunc",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bConst": "string [Uninitialized block variable]",
+      "b": "string [Uninitialized block variable]"
+    },
+    "scopes0": {
+      "a": "number 0",
+      "aConst": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "innerInnerFunc": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string innerInnerFunc",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bConst": "number 2",
+      "b": "number 3"
+    },
+    "scopes0": {
+      "a": "number 0",
+      "aConst": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "c": "string [Uninitialized block variable]",
+      "cConst": "string [Uninitialized block variable]"
+    },
+    "scopes0": {
+      "bConst": "number 2",
+      "b": "number 3"
+    },
+    "scopes1": {
+      "a": "number 0",
+      "aConst": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "c": "number 4",
+      "cConst": "number 5"
+    },
+    "scopes0": {
+      "bConst": "number 2",
+      "b": "number 3"
+    },
+    "scopes1": {
+      "a": "number 0",
+      "aConst": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "innerInnerFunc": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string innerInnerFunc",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bConst": "number 2",
+      "b": "number 3"
+    },
+    "scopes0": {
+      "a": "number 0",
+      "aConst": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeNestedFunctionTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "innerFunc": "function <large string>",
+      "x": "number -1",
+      "a": "number 0",
+      "aConst": "number 1"
+    }
+  }
+]

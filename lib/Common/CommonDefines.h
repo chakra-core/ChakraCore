@@ -88,7 +88,9 @@
 // ByteCode
 #define VARIABLE_INT_ENCODING 1                     // Byte code serialization variable size int field encoding
 #define BYTECODE_BRANCH_ISLAND                      // Byte code short branch and branch island
+#if defined(_WIN32) || defined(HAS_REAL_ICU)
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
+#endif
 // Language features
 // xplat-todo: revisit these features
 #ifdef _WIN32
@@ -695,3 +697,19 @@
 #ifndef PROFILE_DICTIONARY
 #define PROFILE_DICTIONARY 0
 #endif
+
+#ifndef THREAD_LOCAL
+#ifndef __APPLE__
+    #if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
+        #define THREAD_LOCAL __declspec(thread)
+    #else // VS2015+, linux Clang etc.
+        #define THREAD_LOCAL thread_local
+    #endif // VS2013?
+#else // __APPLE__
+    #ifndef __IOS__
+        #define THREAD_LOCAL _Thread_local
+    #else
+        #define THREAD_LOCAL
+    #endif
+#endif // __APPLE__
+#endif // THREAD_LOCAL

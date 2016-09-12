@@ -1,0 +1,23 @@
+[
+  {
+    "evaluate": {
+      "test10_a": {
+        "#__proto__": "Array []",
+        "p": "number 2",
+        "length": "number 2",
+        "[0]": "string 1"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "test10_a": {
+        "#__proto__": "Array []",
+        "p": "number 2",
+        "length": "number 2",
+        "[0]": "string 1",
+        "[1]": "string 5"
+      }
+    }
+  }
+]

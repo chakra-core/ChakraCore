@@ -1,0 +1,128 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "o": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[A returned]": "Object {...}"
+    },
+    "locals": {
+      "o": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "A": "function <large string>",
+      "test1": "function <large string>",
+      "f1": "function <large string>",
+      "f2": "function <large string>",
+      "test2": "function <large string>",
+      "obj1": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "functionCallsReturn": {
+      "[A returned]": {
+        "#__proto__": "Object {...}",
+        "B": "function <large string>"
+      },
+      "[obj1.B returned]": {
+        "#__proto__": "Object {...}",
+        "x": "string x"
+      }
+    },
+    "locals": {
+      "o": {
+        "#__proto__": "Object {...}",
+        "x": "string x"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "A": "function <large string>",
+      "test1": "function <large string>",
+      "f1": "function <large string>",
+      "f2": "function <large string>",
+      "test2": "function <large string>",
+      "obj1": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "A": "function <large string>",
+      "test1": "function <large string>",
+      "f1": "function <large string>",
+      "f2": "function <large string>",
+      "test2": "function <large string>",
+      "obj1": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "[Return value]": {
+      "#__proto__": "Object {...}",
+      "x": "string x"
+    },
+    "locals": {
+      "o": {
+        "#__proto__": "Object {...}",
+        "x": "string x"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "A": "function <large string>",
+      "test1": "function <large string>",
+      "f1": "function <large string>",
+      "f2": "function <large string>",
+      "test2": "function <large string>",
+      "obj1": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "k": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "undefined undefined",
+      "coll": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[f2 returned]": "number 102"
+    },
+    "locals": {
+      "k": "undefined undefined"
+    }
+  }
+]

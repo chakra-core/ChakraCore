@@ -39,6 +39,11 @@ function runTest(numberToTestAsString)
     writeLine("n.toPrecision(5):  " + n.toPrecision(5));
     writeLine("n.toPrecision(20):  " + n.toPrecision(20));
 
+    // test toFixed toString round formatting
+    if ( !(1.25499999999999989342.toFixed(2) + "" == "1.25") ||
+         !(1.255.toFixed(2) + "" == "1.25") ) {
+        throw Error("1.255.toFixed(2) != 1.25 ??");
+    }
     writeLine("");
 }
 

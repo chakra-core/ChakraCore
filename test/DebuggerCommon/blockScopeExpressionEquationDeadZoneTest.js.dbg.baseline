@@ -1,0 +1,116 @@
+[
+  {
+    "evaluate": {
+      "a + 1": "Error Use before declaration"
+    }
+  },
+  {
+    "evaluate": {
+      "a + 1": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "c + '1'": "Error Use before declaration"
+    }
+  },
+  {
+    "evaluate": {
+      "c + '1'": "string 11"
+    }
+  },
+  {
+    "log": "Outside block"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 0",
+      "c": "number 1",
+      "b": "number 1",
+      "d": "string abc"
+    }
+  },
+  {
+    "log": "Block with let"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "number 1",
+      "a": "number 0",
+      "c": "number 1",
+      "d": "string abc"
+    }
+  },
+  {
+    "evaluate": {
+      "b": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "evaluate": {
+      "b//": "Error Use before declaration"
+    }
+  },
+  {
+    "evaluate": {
+      "b": "number 22"
+    }
+  },
+  {
+    "evaluate": {
+      "b//": "number 22"
+    }
+  },
+  {
+    "log": "Block with const"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "d": "string abc",
+      "a": "number 0",
+      "c": "number 1",
+      "b": "number 1"
+    }
+  },
+  {
+    "evaluate": {
+      "d": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "evaluate": {
+      "d//": "Error Use before declaration"
+    }
+  },
+  {
+    "evaluate": {
+      "const d = 5; d;": "number 5"
+    }
+  },
+  {
+    "evaluate": {
+      "d": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "evaluate": {
+      "d = 5; d;": "Error Assignment to const"
+    }
+  },
+  {
+    "evaluate": {
+      "d": "number 33"
+    }
+  },
+  {
+    "evaluate": {
+      "d//": "number 33"
+    }
+  }
+]

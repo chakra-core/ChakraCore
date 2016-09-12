@@ -1,0 +1,23 @@
+[
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "f": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "f": "function function f() { }",
+      "console": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "f": "function function f() { }"
+    }
+  }
+]

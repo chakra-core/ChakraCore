@@ -2199,7 +2199,7 @@ static int RoundTo(byte *pbSrc, byte *pbLim, int nDigits, __out_bcount(nDigits+1
     {
         int i = nDigits;
 
-        if( pbSrc[i] >= 5 )
+        if( pbSrc[i] > 5 )
         {
             // Add 1 to the BCD representation.
             for( i = nDigits - 1; i >= 0; i-- )
@@ -2322,7 +2322,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
             else
             {
                 //Special case: When negative power of 10 is more than most significant digit.
-                if( rgb[0] >= 5 )
+                if( rgb[0] > 5 )
                 {
                     rgbAdj[0] = 1;
                     wExp10 += 1;

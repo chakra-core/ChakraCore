@@ -736,6 +736,9 @@ private:
 
     uint registeredInlineCacheCount;
     uint unregisteredInlineCacheCount;
+#if DBG
+    uint totalUnregisteredCacheCount;
+#endif
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
@@ -801,7 +804,7 @@ private:
 
     Js::ImplicitCallFlags implicitCallFlags;
 
-    __declspec(thread) static uint activeScriptSiteCount;
+    THREAD_LOCAL static uint activeScriptSiteCount;
     bool isScriptActive;
 
     // To synchronize with ETW rundown, which needs to walk scriptContext/functionBody/entryPoint lists.

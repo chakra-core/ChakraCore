@@ -1,0 +1,27 @@
+[
+  {
+    "evaluate": {
+      "f": "Error 'f' is undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "Error 'f' is undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "f": "function function f() { }"
+    }
+  },
+  {
+    "evaluate": {
+      "f": "Error 'f' is undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "Error 'f' is undefined"
+    }
+  }
+]

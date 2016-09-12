@@ -1,0 +1,134 @@
+[
+  {
+    "log": "start"
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "a1",
+        "function": "sub_expression_step_into"
+      },
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "sub_expression_step_into()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOver1_at_obj_lit"
+  },
+  {
+    "callStack": [
+      {
+        "line": 18,
+        "column": 4,
+        "sourceText": "var obj = { \r\n        a: a1,  \r\n        b: a1 + 20, \r\n        c:  {\r\n                ca: a1 * 2, \r\n                cb: foo(),\r\n                cc: a1\r\n            }\r\n        }",
+        "function": "sub_expression_step_into"
+      },
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "sub_expression_step_into()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn1_inside_foo"
+  },
+  {
+    "callStack": [
+      {
+        "line": 8,
+        "column": 4,
+        "sourceText": "return a1 * 5",
+        "function": "foo"
+      },
+      {
+        "line": 23,
+        "column": 16,
+        "sourceText": "cb: foo()",
+        "function": "sub_expression_step_into"
+      },
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "sub_expression_step_into()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOut1_back_in_caller"
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 16,
+        "sourceText": "cb: foo()",
+        "function": "sub_expression_step_into"
+      },
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "sub_expression_step_into()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOver2_next_statement"
+  },
+  {
+    "callStack": [
+      {
+        "line": 27,
+        "column": 4,
+        "sourceText": "WScript.Echo(JSON.stringify(obj))",
+        "function": "sub_expression_step_into"
+      },
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "sub_expression_step_into()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "sub_expression_step_into": "function <large string>",
+      "a1": "number 10"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "a": "number 10",
+        "b": "number 30",
+        "c": "Object {...}"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "sub_expression_step_into": "function <large string>",
+      "a1": "number 10"
+    }
+  }
+]

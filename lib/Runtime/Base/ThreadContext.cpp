@@ -69,7 +69,7 @@ CriticalSection ThreadContext::s_csThreadContext;
 size_t ThreadContext::processNativeCodeSize = 0;
 ThreadContext * ThreadContext::globalListFirst = nullptr;
 ThreadContext * ThreadContext::globalListLast = nullptr;
-__declspec(thread) uint ThreadContext::activeScriptSiteCount = 0;
+THREAD_LOCAL uint ThreadContext::activeScriptSiteCount = 0;
 
 const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 {
@@ -3029,6 +3029,7 @@ ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheLi
     Assert(inlineCacheList != nullptr);
 
     uint cacheCount = 0;
+    uint nullCacheCount = 0;
     FOREACH_SLISTBASE_ENTRY(Js::InlineCache*, inlineCache, inlineCacheList)
     {
         cacheCount++;
@@ -3042,15 +3043,24 @@ ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheLi
 
             memset(inlineCache, 0, sizeof(Js::InlineCache));
         }
+        else
+        {
+            nullCacheCount++;
+        }
     }
     NEXT_SLISTBASE_ENTRY;
     Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
     this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ? this->registeredInlineCacheCount - cacheCount : 0;
+    this->unregisteredInlineCacheCount = this->unregisteredInlineCacheCount > nullCacheCount ? this->unregisteredInlineCacheCount - nullCacheCount : 0;
 }
 
 void
 ThreadContext::CompactInlineCacheInvalidationLists()
 {
+#if DBG
+    uint countOfNodesToCompact = this->unregisteredInlineCacheCount;
+    this->totalUnregisteredCacheCount = 0;
+#endif
     Assert(this->unregisteredInlineCacheCount > 0);
     CompactProtoInlineCaches();
 
@@ -3058,6 +3068,7 @@ ThreadContext::CompactInlineCacheInvalidationLists()
     {
         CompactStoreFieldInlineCaches();
     }
+    Assert(countOfNodesToCompact == this->totalUnregisteredCacheCount);
 }
 
 void
@@ -3095,10 +3106,18 @@ ThreadContext::CompactInlineCacheList(InlineCacheList* inlineCacheList)
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
 
+#if DBG
+    this->totalUnregisteredCacheCount += cacheCount;
+#endif
     if (cacheCount > 0)
     {
+        AssertMsg(this->unregisteredInlineCacheCount >= cacheCount, "Some codepaths didn't unregistered the inlineCaches which might leak memory.");
         this->unregisteredInlineCacheCount = this->unregisteredInlineCacheCount > cacheCount ?
             this->unregisteredInlineCacheCount - cacheCount : 0;
+
+        AssertMsg(this->registeredInlineCacheCount >= cacheCount, "Some codepaths didn't registered the inlineCaches which might leak memory.");
+        this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ?
+            this->registeredInlineCacheCount - cacheCount : 0;
     }
 }
 

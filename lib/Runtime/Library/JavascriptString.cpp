@@ -2240,7 +2240,7 @@ case_2:
                 {
                     if (*i <= 'Z') { break; }
                     if (*i >= 192)
-                    { 
+                    {
                         if (*i < 223) { break; }
                         if (*i >= 255) { break; }
                     }

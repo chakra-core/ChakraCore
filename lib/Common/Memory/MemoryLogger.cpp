@@ -98,7 +98,7 @@ namespace Js
         return s_stackBackTrace;
     }
 
-    __declspec(thread) StackBackTrace* StackTraceHelper::s_stackBackTrace = nullptr;
+    THREAD_LOCAL StackBackTrace* StackTraceHelper::s_stackBackTrace = nullptr;
 #endif // STACK_BACK_TRACE
 }
 #endif // ENABLE_TRACE

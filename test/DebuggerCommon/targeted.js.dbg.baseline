@@ -1,0 +1,1108 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 5",
+      "obj": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 2"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 1,
+        "sourceText": "c = 7",
+        "function": "f"
+      },
+      {
+        "line": 28,
+        "column": 1,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 0",
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 0",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 5",
+      "obj": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 2"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 1,
+        "sourceText": "c = 7",
+        "function": "f"
+      },
+      {
+        "line": 28,
+        "column": 1,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 1",
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 1",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 5",
+      "obj": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 2"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 1,
+        "sourceText": "c = 7",
+        "function": "f"
+      },
+      {
+        "line": 28,
+        "column": 1,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 2",
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 2",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 5",
+      "obj": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 2"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 1,
+        "sourceText": "c = 7",
+        "function": "f"
+      },
+      {
+        "line": 28,
+        "column": 1,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 3",
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 3",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 5",
+      "obj": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "number 2"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 1,
+        "sourceText": "c = 7",
+        "function": "f"
+      },
+      {
+        "line": 28,
+        "column": 1,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": {
+        "#__proto__": "function <large string>",
+        "length": "number 3",
+        "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 4",
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "i": "number 4",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "g": "function <large string>",
+      "f": "function <large string>",
+      "g1": "function <large string>",
+      "f1": "function <large string>",
+      "i": "number 5",
+      "d": "number 7"
+    },
+    "locals": {
+      "x": "number 2",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 10"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "g": "function <large string>",
+      "f": "function <large string>",
+      "g1": "function <large string>",
+      "f1": "function <large string>",
+      "i": "number 5",
+      "d": "number 7"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "g": "function <large string>",
+      "f": "function <large string>",
+      "g1": "function <large string>",
+      "f1": "function <large string>",
+      "i": "number 5",
+      "d": "number 7"
+    },
+    "locals": {
+      "x": "number 2",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 10"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "g": "function <large string>",
+      "f": "function <large string>",
+      "g1": "function <large string>",
+      "f1": "function <large string>",
+      "i": "number 5",
+      "d": "number 7"
+    }
+  }
+]

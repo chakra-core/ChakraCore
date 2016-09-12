@@ -1,0 +1,85 @@
+[
+  {
+    "evaluate": {
+      "a": "string with_a"
+    }
+  },
+  {
+    "evaluate": {
+      "b": "function function b() { }"
+    }
+  },
+  {
+    "evaluate": {
+      "c": "string proto_c"
+    }
+  },
+  {
+    "evaluate": {
+      "d": "function function proto_d() { }"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "string ancestor_e"
+    }
+  },
+  {
+    "evaluate": {
+      "f": "string ancestor_f"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 20",
+      "x": "Object {...}",
+      "k": "string with_a"
+    }
+  },
+  {
+    "evaluate": {
+      "outer1": "string outer1"
+    }
+  },
+  {
+    "evaluate": {
+      "outer2": "string outer2"
+    }
+  },
+  {
+    "evaluate": {
+      "foo1": "string foo1"
+    }
+  },
+  {
+    "evaluate": {
+      "foo": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "outer3": "string outer3"
+    }
+  },
+  {
+    "this": {},
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function function values() { [native code] }"
+    },
+    "scopes0": {
+      "foo": "function <large string>",
+      "foo1": "string foo1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "f1": "function <large string>"
+    }
+  }
+]

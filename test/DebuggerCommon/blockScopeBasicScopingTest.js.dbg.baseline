@@ -1,0 +1,29 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "integer": "number 1",
+      "string": "string 2",
+      "object": "Object {...}",
+      "constInteger": "number 5",
+      "constString": "string 6",
+      "constObject": "Object {...}",
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 0"
+    }
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 1,
+        "sourceText": "var x = a",
+        "function": "f"
+      },
+      {
+        "line": 13,
+        "column": 0,
+        "sourceText": "f(10)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "x += y",
+        "function": "f"
+      },
+      {
+        "line": 13,
+        "column": 0,
+        "sourceText": "f(10)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 10",
+      "x": "number 10",
+      "y": "number 20"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "x += y",
+        "function": "f"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "sourceText": "f(40)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 40",
+      "x": "number 40",
+      "y": "number 80"
+    }
+  }
+]

@@ -1603,8 +1603,6 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
 
     case Js::OpCode::Throw:
         {
-            this->m_func->SetHasThrow();
-
             srcOpnd = this->BuildSrcOpnd(srcRegOpnd);
 
             if (this->catchOffsetStack && !this->catchOffsetStack->Empty())
@@ -3274,12 +3272,15 @@ IRBuilder::BuildElementSlot(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fie
     IR::SymOpnd *   fieldSymOpnd;
     PropertyKind    propertyKind = PropertyKindSlots;
     PropertySym *   fieldSym;
+    StackSym *      stackFuncPtrSym = nullptr;
     bool isLdSlotThatWasNotProfiled = false;
 
     switch (newOpcode)
     {
-    case Js::OpCode::NewInnerScFunc:
     case Js::OpCode::NewInnerStackScFunc:
+        stackFuncPtrSym = this->EnsureStackFuncPtrSym();
+        // fall through
+    case Js::OpCode::NewInnerScFunc:
         newOpcode = Js::OpCode::NewScFunc;
         goto NewScFuncCommon;
 
@@ -3290,7 +3291,18 @@ NewScFuncCommon:
         IR::Opnd * functionBodySlotOpnd = IR::IntConstOpnd::New(slotId, TyInt32, m_func, true);
         IR::Opnd * environmentOpnd = this->BuildSrcOpnd(fieldRegSlot);
         regOpnd = this->BuildDstOpnd(regSlot);
-        instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, environmentOpnd, m_func);
+        if (stackFuncPtrSym)
+        {
+             IR::RegOpnd * dataOpnd = IR::RegOpnd::New(TyVar, m_func);
+             instr = IR::Instr::New(Js::OpCode::NewScFuncData, dataOpnd, environmentOpnd, IR::RegOpnd::New(stackFuncPtrSym, TyVar, m_func), m_func);
+             this->AddInstr(instr, offset);
+
+            instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, dataOpnd, m_func);
+        }
+        else
+        {
+            instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, environmentOpnd, m_func);
+        }
         if (regOpnd->m_sym->m_isSingleDef)
         {
             regOpnd->m_sym->m_isSafeThis = true;
@@ -3417,6 +3429,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     IR::Instr   *instr = nullptr;
     IR::ByteCodeUsesInstr *byteCodeUse;
     PropertySym *fieldSym = nullptr;
+    StackSym *   stackFuncPtrSym = nullptr;
     SymID        symID;
     bool isLdSlotThatWasNotProfiled = false;
     uint scopeSlotSize = 0;
@@ -3638,9 +3651,11 @@ LdLocalObjSlot:
             m_func->GetTopFunc()->AddFrameDisplayCheck(fieldOpnd);
             break;
 
-        case Js::OpCode::NewScFunc:
         case Js::OpCode::NewStackScFunc:
+            stackFuncPtrSym = this->EnsureStackFuncPtrSym();
             newOpcode = Js::OpCode::NewScFunc;
+            // fall through
+        case Js::OpCode::NewScFunc:
             goto NewScFuncCommon;
 
         case Js::OpCode::NewScGenFunc:
@@ -3674,7 +3689,18 @@ NewScFuncCommon:
                 StackSym *stackSym = StackSym::FindOrCreate(symID, (Js::RegSlot)symID, m_func);
                 IR::Opnd * environmentOpnd = IR::RegOpnd::New(stackSym, TyVar, m_func);
                 regOpnd = this->BuildDstOpnd(regSlot);
-                instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, environmentOpnd, m_func);
+                if (stackFuncPtrSym)
+                {
+                    IR::RegOpnd * dataOpnd = IR::RegOpnd::New(TyVar, m_func);
+                    instr = IR::Instr::New(Js::OpCode::NewScFuncData, dataOpnd, environmentOpnd, 
+                                           IR::RegOpnd::New(stackFuncPtrSym, TyVar, m_func), m_func);
+                    this->AddInstr(instr, offset);
+                    instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, dataOpnd, m_func);
+                }
+                else
+                {
+                    instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, environmentOpnd, m_func);
+                }
                 if (regOpnd->m_sym->m_isSingleDef)
                 {
                     regOpnd->m_sym->m_isSafeThis = true;
@@ -7172,6 +7198,25 @@ IRBuilder::CheckBuiltIn(PropertySym * propertySym, Js::BuiltinFunction *puBuiltI
     *puBuiltInIndex = index;
 }
 
+StackSym *
+IRBuilder::EnsureStackFuncPtrSym()
+{
+    StackSym * sym = this->m_stackFuncPtrSym;
+    if (sym)
+    {
+        return sym;
+    }
+
+    if (m_func->IsLoopBody() && m_func->DoStackNestedFunc())
+    {
+        Assert(m_func->IsTopFunc());
+        sym = StackSym::New(TyVar, m_func);
+        this->m_stackFuncPtrSym = sym;
+    }
+
+    return sym;
+}
+
 void
 IRBuilder::GenerateLoopBodySlotAccesses(uint offset)
 {
@@ -7192,6 +7237,15 @@ IRBuilder::GenerateLoopBodySlotAccesses(uint offset)
 
     IR::Instr *instrArgIn = IR::Instr::New(Js::OpCode::ArgIn_A, loopParamOpnd, srcOpnd, m_func);
     m_func->m_headInstr->InsertAfter(instrArgIn);
+
+    StackSym *stackFuncPtrSym = this->m_stackFuncPtrSym;
+    if (stackFuncPtrSym)
+    {
+        PropertySym * fieldSym = PropertySym::FindOrCreate(loopParamSym->m_id, (Js::PropertyId)(Js::InterpreterStackFrame::GetOffsetOfStackNestedFunctions() / sizeof(Js::Var)), (uint32)-1, (uint)-1, PropertyKindLocalSlots, m_func);
+        IR::SymOpnd * opndPtrRef = IR::SymOpnd::New(fieldSym, TyVar, m_func);
+        IR::Instr * instrPtrInit = IR::Instr::New(Js::OpCode::LdSlot, IR::RegOpnd::New(stackFuncPtrSym, TyVar, m_func), opndPtrRef, m_func);
+        instrArgIn->InsertAfter(instrPtrInit);
+    }
 
     GenerateLoopBodyStSlots(loopParamSym->m_id, offset);
 }
