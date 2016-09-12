@@ -15,7 +15,7 @@ void
 JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
     __in Recycler * recycler,
     __in Js::EntryPointPolymorphicInlineCacheInfo * runtimeInfo,
-    __inout CodeGenWorkItemIDL * jitInfo)
+    __out CodeGenWorkItemIDL * jitInfo)
 {
     if (runtimeInfo == nullptr)
     {
@@ -51,7 +51,7 @@ void
 JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
     __in Recycler * recycler,
     __in Js::PolymorphicInlineCacheInfo * runtimeInfo,
-    __inout PolymorphicInlineCacheInfoIDL * jitInfo)
+    __out PolymorphicInlineCacheInfoIDL * jitInfo)
 {
     jitInfo->polymorphicCacheUtilizationArray = runtimeInfo->GetUtilByteArray();
     jitInfo->functionBodyAddr = (intptr_t)runtimeInfo->GetFunctionBody();

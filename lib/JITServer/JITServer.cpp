@@ -144,7 +144,7 @@ HRESULT
 ServerAddPropertyRecord(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextRoot,
-    /* [in] */ PropertyRecordIDL * propertyRecord)
+    /* [in] */ __RPC__in PropertyRecordIDL * propertyRecord)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
@@ -165,7 +165,7 @@ ServerAddPropertyRecordArray(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextRoot,
     /* [in] */ uint count,
-    /* [in] */ PropertyRecordIDL ** propertyRecordArray)
+    /* [in] */ __RPC__in_ecount_full(count) PropertyRecordIDL ** propertyRecordArray)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
@@ -318,12 +318,13 @@ ServerIsNativeAddr(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextInfo,
     /* [in] */ intptr_t address,
-    /* [out] */ boolean * result)
+    /* [out] */ __RPC__out boolean * result)
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
 
     if (context == nullptr)
     {
+        *result = false;
         return RPC_S_INVALID_ARG;
     }
 
@@ -362,8 +363,8 @@ ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextInfoAddress,
     /* [in] */ intptr_t scriptContextInfoAddress,
-    /* [in] */ CodeGenWorkItemIDL *workItemData,
-    /* [out] */ JITOutputIDL *jitData)
+    /* [in] */ __RPC__in CodeGenWorkItemIDL *workItemData,
+    /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
     UNREFERENCED_PARAMETER(binding);
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));

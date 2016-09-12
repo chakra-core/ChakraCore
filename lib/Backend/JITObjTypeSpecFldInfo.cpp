@@ -254,7 +254,7 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
     __in ArenaAllocator * alloc,
     __in Js::ObjTypeSpecFldInfo ** objTypeSpecInfo,
     __in uint arrayLength,
-    __out ObjTypeSpecFldIDL * jitData)
+    _Inout_updates_(arrayLength) ObjTypeSpecFldIDL * jitData)
 {
     for (uint i = 0; i < arrayLength; ++i)
     {

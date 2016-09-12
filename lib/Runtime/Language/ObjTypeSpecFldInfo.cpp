@@ -661,6 +661,7 @@ namespace Js
                 }
                 // TODO: OOP JIT, consider putting these inline
                 types[i].t = RecyclerNew(recycler, JITType);
+                __analysis_assume(localTypes[i] != nullptr);
                 JITType::BuildFromJsType(localTypes[i], types[i].t);
             }
             typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);

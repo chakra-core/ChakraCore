@@ -413,7 +413,13 @@ Encoder::Encode()
         if (this->m_func->IsOOPJIT())
         {
             auto& equivalentTypeGuardOffsets = this->m_func->GetJITOutput()->GetOutputData()->equivalentTypeGuardOffsets;
-            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(offsetof(EquivalentTypeGuardOffsets, guards) + equivalentTypeGuardsCount * sizeof(EquivalentTypeGuardIDL));
+            size_t allocSize = offsetof(EquivalentTypeGuardOffsets, guards) + equivalentTypeGuardsCount * sizeof(EquivalentTypeGuardIDL);
+            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(allocSize);
+            if (equivalentTypeGuardOffsets == nullptr)
+            {
+                Js::Throw::OutOfMemory();
+            }
+
             equivalentTypeGuardOffsets->count = equivalentTypeGuardsCount;
 
             int i = 0;
@@ -532,6 +538,11 @@ Encoder::Encode()
             {
                 auto count = srcSet->Count();
                 (*entry) = (TypeGuardTransferEntryIDL*)midl_user_allocate(offsetof(TypeGuardTransferEntryIDL, guardOffsets) + count*sizeof(int));
+                if (*entry)
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                __analysis_assume(*entry);
                 (*entry)->propId = propertyId;
                 (*entry)->guardsCount = count;
                 (*entry)->next = nullptr;
@@ -578,6 +589,11 @@ Encoder::Encode()
             m_func->ctorCachesByPropertyId->Map([func, entries, &propIndex](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
             {
                 entries[propIndex] = (CtorCacheTransferEntryIDL*)midl_user_allocate(srcCacheSet->Count() * sizeof(intptr_t) + sizeof(CtorCacheTransferEntryIDL));
+                if (entries[propIndex])
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                __analysis_assume(entries[propIndex]);
                 entries[propIndex]->propId = propertyId;
 
                 int cacheIndex = 0;

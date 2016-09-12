@@ -222,7 +222,7 @@ namespace Js
                 Js::Configuration::Global.flags.ForceDynamicProfile ||
 #endif
                 !scriptContext->GetConfig()->IsNoNative() ||
-                functionBody->IsInDebugMode()
+                (functionBody && functionBody->IsInDebugMode())
 #ifdef DYNAMIC_PROFILE_STORAGE
                 || DynamicProfileStorage::DoCollectInfo()
 #endif

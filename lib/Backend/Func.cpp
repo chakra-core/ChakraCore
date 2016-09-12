@@ -581,7 +581,13 @@ Func::TryCodegen()
             ////
 
             JITOutputIDL* jitOutputData = m_output.GetOutputData();
-            jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount));
+            size_t allocSize = offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount);
+            jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(allocSize);
+            if (jitOutputData->nativeDataFixupTable)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(jitOutputData->nativeDataFixupTable);
             jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
 
             jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);

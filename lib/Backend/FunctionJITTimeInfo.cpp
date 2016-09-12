@@ -14,10 +14,10 @@ FunctionJITTimeInfo::FunctionJITTimeInfo(FunctionJITTimeDataIDL * data) : m_data
 /* static */
 void
 FunctionJITTimeInfo::BuildJITTimeData(
-    ArenaAllocator * alloc,
-    const Js::FunctionCodeGenJitTimeData * codeGenData,
-    const Js::FunctionCodeGenRuntimeData * runtimeData,
-    FunctionJITTimeDataIDL * jitData,
+    __in ArenaAllocator * alloc,
+    __in const Js::FunctionCodeGenJitTimeData * codeGenData,
+    __in_opt const Js::FunctionCodeGenRuntimeData * runtimeData,
+    __out FunctionJITTimeDataIDL * jitData,
     bool isInlinee)
 {
     jitData->bodyData = codeGenData->GetJITBody();
@@ -216,6 +216,7 @@ FunctionJITTimeInfo::GetInlineeForTargetInlineeRuntimeData(const Js::ProfileId p
     {
         inlineeData = inlineeData->GetNext();
     }
+    __analysis_assume(inlineeData != nullptr);
     return inlineeData->GetRuntimeInfo();
 }
 

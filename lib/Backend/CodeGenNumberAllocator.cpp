@@ -363,7 +363,12 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess
     }
     else
     {
-        XProcNumberPageSegmentImpl* seg = new (midl_user_allocate(sizeof(XProcNumberPageSegment))) XProcNumberPageSegmentImpl();
+        XProcNumberPageSegmentImpl* seg = (XProcNumberPageSegmentImpl*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+        if (seg == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+        seg = new (seg) XProcNumberPageSegmentImpl();
         tail->nextSegment = seg;
         return seg->AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
     }

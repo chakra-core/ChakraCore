@@ -1041,7 +1041,7 @@ JITTimeFunctionBody::GetFormalsPropIdArray() const
 }
 
 bool
-JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const
+JITTimeFunctionBody::InitializeStatementMap(Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const
 {
     if (!m_bodyData.statementMap)
     {

@@ -12,8 +12,8 @@ public:
     static void BuildJITTimeData(
         __in ArenaAllocator * alloc,
         __in const Js::FunctionCodeGenJitTimeData * codeGenData,
-        __in const Js::FunctionCodeGenRuntimeData * runtimeData,
-        __inout FunctionJITTimeDataIDL * jitData,
+        __in_opt const Js::FunctionCodeGenRuntimeData * runtimeData,
+        __out FunctionJITTimeDataIDL * jitData,
         bool isInlinee = true);
 
     uint GetInlineeCount() const;
