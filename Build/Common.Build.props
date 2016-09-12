@@ -11,11 +11,12 @@
       <!-- Force all MIDL compiles to be treated as English unless otherwise specified -->
       <LocaleID>1033</LocaleID>
 
-      <!-- Disable the settings comment to make the headers more diff-able.  Only available in midl 8 -->
-      <AdditionalOptions>%(AdditionalOptions) /no_settings_comment</AdditionalOptions>
+      <!-- Disable the settings comment to make the headers more diff-able.  Only available in midl 8. razzle build already have this -->
+      <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_settings_comment</AdditionalOptions>
 
-      <!--Disable midl timestamps wherever possible-->
-      <AdditionalOptions>%(AdditionalOptions) /no_stamp</AdditionalOptions>
+      <!--Disable midl timestamps wherever possible, razzle build already have this-->
+      <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_stamp</AdditionalOptions>
+      
       <SuppressStartupBanner>true</SuppressStartupBanner>
 
       <!-- Other defaults -->
