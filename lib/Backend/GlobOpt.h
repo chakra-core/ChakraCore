@@ -476,6 +476,7 @@ struct ObjectTypePropertyEntry
 };
 
 typedef JsUtil::BaseDictionary<Js::PropertyId, ObjectTypePropertyEntry, JitArenaAllocator> ObjectTypePropertyMap;
+typedef  BVSparse<JitArenaAllocator, BVIndex64> BVSparse64;
 
 class JsTypeValueInfo : public ValueInfo
 {
@@ -773,14 +774,15 @@ public:
     ValueNumber GetSrc2ValueNumber()    { return this->src2Val; }
     ExprAttributes GetExprAttributes()  { return this->attributes; }
     bool        IsValid()               { return this->opcode != 0; }
-
-    operator    uint()                  { return *(uint*)this; }
+    
+    operator    uint64()                  { return *(uint64*)this; }
+    
 
 private:
-    uint32  opcode: 8;
-    uint32  src1Val: 11;
-    uint32  src2Val: 11;
-    uint32  attributes: 2;
+    uint64  opcode: 10;
+    uint64  src1Val: 26;
+    uint64  src2Val: 26;
+    uint64  attributes: 2;
 };
 
 enum class PathDependentRelationship : uint8
@@ -966,7 +968,7 @@ public:
     GlobHashTable *                         symToValueMap;
     ExprHashTable *                         exprToValueMap;
     BVSparse<JitArenaAllocator> *           liveFields;
-    BVSparse<JitArenaAllocator> *           liveArrayValues;
+    BVSparse<JitArenaAllocator, BVIndex64> * liveArrayValues;
     BVSparse<JitArenaAllocator> *           maybeWrittenTypeSyms;
     BVSparse<JitArenaAllocator> *           isTempSrc;
     BVSparse<JitArenaAllocator> *           liveVarSyms;
