@@ -5013,18 +5013,6 @@ CommonNumber:
         return thisVar;
     }
 
-    Var JavascriptOperators::OP_StrictGetThis_JIT(Var thisVar, ScriptContextInfo* scriptContext)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(thisVar);
-
-        if (typeId == TypeIds_ActivationObject)
-        {
-            return (Var)scriptContext->GetUndefinedAddr();
-        }
-
-        return thisVar;
-    }
-
     BOOL JavascriptOperators::GetRemoteTypeId(Var aValue, TypeId* typeId)
     {
         if (GetTypeId(aValue) != TypeIds_HostDispatch)

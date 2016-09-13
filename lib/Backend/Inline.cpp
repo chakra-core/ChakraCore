@@ -4405,7 +4405,7 @@ Inline::MapFormals(Func *inlinee,
     bool fUsesSafeThis = false;
     bool fUsesConstThis = false;
     StackSym *symThis = nullptr;
-    Js::Var thisConstVar = nullptr;
+    StackSym *thisConstSym = nullptr;
 
     FOREACH_INSTR_EDITING(instr, instrNext, inlinee->m_headInstr)
     {
@@ -4498,7 +4498,7 @@ Inline::MapFormals(Func *inlinee,
                         }
                         else if (symSrc->m_isSingleDef && symSrc->IsConst() && !symSrc->IsIntConst() && !symSrc->IsFloatConst())
                         {
-                            thisConstVar = symSrc->GetConstAddress(topFunc->IsOOPJIT());
+                            thisConstSym = symSrc;
                             fUsesConstThis = true;
                         }
                         else if(fixedFunctionSafeThis)
@@ -4698,22 +4698,27 @@ Inline::MapFormals(Func *inlinee,
                     // "this" is a constant, so map it now.
                     // Don't bother mapping if it's not an object, though, since we'd have to create a
                     // boxed value at JIT time, and that case doesn't seem worth it.
-                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeIdNoCheck(thisConstVar);
+                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeIdNoCheck(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()));
                     if (Js::JavascriptOperators::IsObjectType(typeId) ||
                         Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
                     {
                         auto scriptContext = inlinee->GetScriptContextInfo();
+                        Js::Var thisConstVar;
                         if (instr->m_opcode == Js::OpCode::LdThis)
                         {
                             int moduleId = instr->GetSrc2()->AsIntConstOpnd()->AsInt32();
                             // TODO OOP JIT, create and use server copy of module roots
                             Assert(!topFunc->IsOOPJIT() || moduleId == 0);
-                            thisConstVar = Js::JavascriptOperators::GetThisHelper(thisConstVar, typeId, moduleId, scriptContext);
+                            thisConstVar = Js::JavascriptOperators::GetThisHelper(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()), typeId, moduleId, scriptContext);
                             instr->FreeSrc2();
+                        }
+                        else if (typeId == Js::TypeIds_ActivationObject)
+                        {
+                            thisConstVar = (Js::Var)scriptContext->GetUndefinedAddr();
                         }
                         else
                         {
-                            thisConstVar = Js::JavascriptOperators::OP_StrictGetThis_JIT(thisConstVar, scriptContext);
+                            thisConstVar = thisConstSym->GetConstAddress();
                         }
                         IR::Opnd *thisOpnd = IR::AddrOpnd::New((intptr_t)thisConstVar, IR::AddrOpndKindDynamicVar, inlinee, true);
 
