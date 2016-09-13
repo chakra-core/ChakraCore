@@ -2508,12 +2508,18 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         {
             Output::Print(_u(">>>>>>>>>>>>>>>>>>>>>> %s: Instr Start\n"), tag == Js::BackwardPhase? _u("BACKWARD") : _u("DEADSTORE"));
             instr->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("   Exposed Use: "));
-            block->upwardExposedUses->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("Exposed Fields: "));
-            block->upwardExposedFields->Dump();
+            if (block->upwardExposedUses)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("   Exposed Use: "));
+                block->upwardExposedUses->Dump();
+            }
+            if (block->upwardExposedFields)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("Exposed Fields: "));
+                block->upwardExposedFields->Dump();
+            }
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
@@ -2828,12 +2834,18 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         {
             Output::Print(_u("-------------------\n"));
             instr->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("   Exposed Use: "));
-            block->upwardExposedUses->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("Exposed Fields: "));
-            block->upwardExposedFields->Dump();
+            if (block->upwardExposedUses)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("   Exposed Use: "));
+                block->upwardExposedUses->Dump();
+            }
+            if (block->upwardExposedFields)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("Exposed Fields: "));
+                block->upwardExposedFields->Dump();
+            }
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
