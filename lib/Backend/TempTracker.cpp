@@ -1000,6 +1000,8 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     // Special case ArgOut_A which communicate information about CallDirect
     switch (opcode)
     {
+    case Js::OpCode::LdLen_A:
+        return instr->GetSrc1()->AsRegOpnd()->GetStackSym() == sym;
     case Js::OpCode::ArgOut_A:
         return instr->dstIsTempObject;
     case Js::OpCode::LdFld:
