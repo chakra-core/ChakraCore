@@ -6074,7 +6074,16 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
         newOpcode = opcode;
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
         Assert(newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjectSpread);
-        returnType = ValueType::GetObject(ObjectType::UninitializedObject);
+        if (newOpcode == Js::OpCode::NewScObjectSpread || !this->m_func->HasProfileInfo())
+        {
+            // Testing required before enabling this for newscobjectspread
+            returnType = ValueType::GetObject(ObjectType::UninitializedObject);
+        }
+        else
+        {
+            // If we have profile data, make use of it
+            returnType = this->m_func->GetReadOnlyProfileInfo()->GetReturnType(opcode, profileId);
+        }
     }
     else
     {
@@ -6122,7 +6131,7 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
     IR::Instr * callInstr = BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, profileId, inlineCacheIndex);
     callInstr->isCallInstrProtectedByNoProfileBailout = isProtectedByNoProfileBailout;
 
-    if (callInstr->GetDst() && callInstr->GetDst()->GetValueType().IsUninitialized())
+    if (callInstr->GetDst() && (callInstr->GetDst()->GetValueType().IsUninitialized() || callInstr->GetDst()->GetValueType() == ValueType::UninitializedObject))
     {
         callInstr->GetDst()->SetValueType(returnType);
     }

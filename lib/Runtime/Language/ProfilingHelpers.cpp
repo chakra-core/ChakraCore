@@ -617,7 +617,8 @@ namespace Js
                 calleeObject->GetTypeId() == TypeIds_Function
                     ? JavascriptFunction::FromVar(calleeObject)->GetFunctionInfo()
                     : nullptr;
-            callerFunctionBody->GetDynamicProfileInfo()->RecordCallSiteInfo(
+            DynamicProfileInfo *profileInfo = callerFunctionBody->GetDynamicProfileInfo();
+            profileInfo->RecordCallSiteInfo(
                 callerFunctionBody,
                 profileId,
                 calleeFunctionInfo,
@@ -625,6 +626,11 @@ namespace Js
                 args.Info.Count,
                 true,
                 inlineCacheIndex);
+            // We need to record information here, most importantly so that we handle array subclass
+            // creation properly, since optimizing those cases is important
+            Var retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+            profileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retVal);
+            return retVal;
         }
 
         return JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);

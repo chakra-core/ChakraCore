@@ -82,6 +82,11 @@ namespace Js
         return op >= Js::OpCode::ProfiledCallIWithICIndex && op <= Js::OpCode::ProfiledCallIExtendedFlagsWithICIndex;
     }
 
+    bool OpCodeUtil::IsProfiledConstructorCall(OpCode op)
+    {
+        return op >= Js::OpCode::NewScObject && op <= Js::OpCode::ProfiledNewScObjArraySpread && (OpCodeAttr::IsProfiledOp(op) || OpCodeAttr::IsProfiledOpWithICIndex(op));
+    }
+
     bool OpCodeUtil::IsProfiledReturnTypeCallOp(OpCode op)
     {
         return op >= Js::OpCode::ProfiledReturnTypeCallI && op <= Js::OpCode::ProfiledReturnTypeCallIExtendedFlags;
