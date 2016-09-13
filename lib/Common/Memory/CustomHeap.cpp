@@ -1017,12 +1017,34 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     // This is 2 bytes, and in case there is a gap of 1 byte in the end, fill it with 0 (there is no 1 byte long THUMB instruction).
     CompileAssert(sizeof(char16) == 2);
     char16 pattern = 0xDEFE;
-    ChakraWMemSet(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2, processHandle);
+
+    const bool isLocalProc = processHandle == GetCurrentProcess();
+    BYTE * writeBuffer;
+
+    if (isLocalProc)
+    {
+        writeBuffer = buffer;
+    }
+    else
+    {
+        writeBuffer = HeapNewArray(BYTE, byteCount);
+    }
+    wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
     if (byteCount % 2)
     {
         // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.
-        *(buffer + byteCount - 1) = 0;  // Fill last remaining byte.
+        *(writeBuffer + byteCount - 1) = 0;  // Fill last remaining byte.
     }
+
+    if (!isLocalProc)
+    {
+        if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
+        {
+            Js::Throw::FatalInternalError();
+        }
+        HeapDeleteArray(byteCount, writeBuffer);
+    }
+
 #elif defined(_M_ARM64)
     CompileAssert(sizeof(DWORD) == 4);
     DWORD pattern = 0xd4200000 | (0xf000 << 5);
