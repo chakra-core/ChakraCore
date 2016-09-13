@@ -905,7 +905,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         case E_ABORT:
             throw Js::OperationAbortedException();
         case E_OUTOFMEMORY:
-            throw Js::OutOfMemoryException();
+            Js::Throw::OutOfMemory();
         case VBSERR_OutOfStack:
             throw Js::StackOverflowException();
         default:

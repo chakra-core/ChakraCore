@@ -412,6 +412,15 @@ ServerRemoteCodeGen(
 #endif
 
     jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+    if (!jitData->numberPageSegments)
+    {
+        scriptContextInfo->EndJIT();
+        threadContextInfo->EndJIT();
+
+        return E_OUTOFMEMORY;
+    }
+    __analysis_assume(jitData->numberPageSegments);
+
     memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
 
     HRESULT hr = S_OK;
@@ -433,14 +442,17 @@ ServerRemoteCodeGen(
     }
     catch (Js::OutOfMemoryException)
     {
+        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = E_OUTOFMEMORY;
     }
     catch (Js::StackOverflowException)
     {
+        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = VBSERR_OutOfStack;
     }
     catch (Js::OperationAbortedException)
     {
+        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = E_ABORT;
     }
     scriptContextInfo->EndJIT();

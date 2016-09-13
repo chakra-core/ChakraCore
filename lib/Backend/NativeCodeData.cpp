@@ -69,7 +69,7 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* targetStartAddr, void* add
     DataChunk* chunk = NativeCodeData::GetDataChunk(startAddress);
 
     NativeDataFixupEntry* entry = (NativeDataFixupEntry*)midl_user_allocate(sizeof(NativeDataFixupEntry));
-    if (entry)
+    if (!entry)
     {
         Js::Throw::OutOfMemory();
     }
@@ -119,7 +119,7 @@ NativeCodeData::AddFixupEntryForPointerArray(void* startAddress, DataChunk * chu
 #endif
 
         NativeDataFixupEntry* entry = (NativeDataFixupEntry*)midl_user_allocate(sizeof(NativeDataFixupEntry));
-        if (entry)
+        if (!entry)
         {
             Js::Throw::OutOfMemory();
         }

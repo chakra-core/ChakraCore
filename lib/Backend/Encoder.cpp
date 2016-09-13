@@ -372,6 +372,12 @@ Encoder::Encode()
         if (this->m_func->IsOOPJIT())
         {
             pinnedTypeRefs = (PinnedTypeRefsIDL*)midl_user_allocate(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*pinnedTypeRefCount);
+            if (!pinnedTypeRefs)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(pinnedTypeRefs);
+
             pinnedTypeRefs->count = pinnedTypeRefCount;
             pinnedTypeRefs->isOOPJIT = true;
             this->m_func->GetJITOutput()->GetOutputData()->pinnedTypeRefs = pinnedTypeRefs;
@@ -538,7 +544,7 @@ Encoder::Encode()
             {
                 auto count = srcSet->Count();
                 (*entry) = (TypeGuardTransferEntryIDL*)midl_user_allocate(offsetof(TypeGuardTransferEntryIDL, guardOffsets) + count*sizeof(int));
-                if (*entry)
+                if (!*entry)
                 {
                     Js::Throw::OutOfMemory();
                 }
@@ -584,12 +590,17 @@ Encoder::Encode()
             m_func->GetJITOutput()->GetOutputData()->ctorCachesCount = propertyCount;
             m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries = (CtorCacheTransferEntryIDL**)midl_user_allocate(propertyCount * sizeof(CtorCacheTransferEntryIDL*));
             CtorCacheTransferEntryIDL** entries = m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries;
+            if (!entries)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(entries);
 
             uint propIndex = 0;
             m_func->ctorCachesByPropertyId->Map([func, entries, &propIndex](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
             {
                 entries[propIndex] = (CtorCacheTransferEntryIDL*)midl_user_allocate(srcCacheSet->Count() * sizeof(intptr_t) + sizeof(CtorCacheTransferEntryIDL));
-                if (entries[propIndex])
+                if (!entries[propIndex])
                 {
                     Js::Throw::OutOfMemory();
                 }
