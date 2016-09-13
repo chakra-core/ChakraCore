@@ -373,12 +373,13 @@ ServerRemoteCodeGen(
     {
         QueryPerformanceCounter(&start_time);
     }
+    memset(jitData, 0, sizeof(JITOutputIDL));
+
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
 
     if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
     {
-        memset(jitData, 0, sizeof(JITOutputIDL));
         return RPC_S_INVALID_ARG;
     }
 
@@ -442,17 +443,14 @@ ServerRemoteCodeGen(
     }
     catch (Js::OutOfMemoryException)
     {
-        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = E_OUTOFMEMORY;
     }
     catch (Js::StackOverflowException)
     {
-        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = VBSERR_OutOfStack;
     }
     catch (Js::OperationAbortedException)
     {
-        memset(jitData, 0, sizeof(JITOutputIDL));
         hr = E_ABORT;
     }
     scriptContextInfo->EndJIT();
