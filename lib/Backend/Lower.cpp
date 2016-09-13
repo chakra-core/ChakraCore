@@ -14454,6 +14454,10 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     //      } else {
     //          newLength = index + 1
     //      }
+    //      if(BailOutOnInvalidatedArrayLength) {
+    //          CMP [base + offset(length)], newlength
+    //          JB $helper
+    //      }
     //      MOV [headSegment + offset(length)], newLength       -- update length on chunk
     //      CMP [base  + offset(length)], newLength
     //      JAE $done
@@ -14463,13 +14467,13 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     //          INC newLength
     //          MOV dst, newLength
     //      }
-    //     JMP $done
+    //      JMP $done
     //
-    //     $toNumberHelper: Call HelperOp_ConvNumber_Full
-    //     JMP $done
-    //     $done
+    //      $toNumberHelper: Call HelperOp_ConvNumber_Full
+    //      JMP $done
+    //      $done
     //  } else {la
-    //     JBE $helper
+    //      JBE $helper
     //  }
     // return [headSegment + offset(elements) + index]
 
@@ -14692,7 +14696,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
 
     const IR::BailOutKind bailOutKind = instr->HasBailOutInfo() ? instr->GetBailOutKind() : IR::BailOutInvalid;
     const bool needBailOutOnInvalidLength = !!(bailOutKind & (IR::BailOutOnInvalidatedArrayHeadSegment));
-    const bool needBailOutToHelper = !!(bailOutKind & (IR::BailOutOnArrayAccessHelperCall | IR::BailOutOnInvalidatedArrayLength));
+    const bool needBailOutToHelper = !!(bailOutKind & (IR::BailOutOnArrayAccessHelperCall));
     const bool needBailOutOnSegmentLengthCompare = needBailOutToHelper || needBailOutOnInvalidLength;
     
     if(indexIsLessThanHeadSegmentLength || needBailOutOnSegmentLengthCompare)
@@ -14961,6 +14965,19 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             autoReuseNewLengthOpnd.Initialize(newLengthOpnd, m_func);
         }
 
+        // This is a common enough case that we want to go through this path instead of the simpler one, since doing it this way is faster for preallocated but un-filled arrays.
+        if (!!(bailOutKind & IR::BailOutOnInvalidatedArrayLength))
+        {
+            // If we'd increase the array length, go to the helper
+            indirOpnd = IR::IndirOpnd::New(arrayOpnd, Js::JavascriptArray::GetOffsetOfLength(), TyUint32, this->m_func);
+            InsertCompareBranch(
+                newLengthOpnd,
+                indirOpnd,
+                Js::OpCode::BrGt_A,
+                true,
+                labelHelper,
+                instr);
+        }
         //      MOV [headSegment + offset(length)], newLength
         indirOpnd = IR::IndirOpnd::New(headSegmentOpnd, offsetof(Js::SparseArraySegmentBase, length), TyUint32, this->m_func);
         InsertMove(indirOpnd, newLengthOpnd, instr);
