@@ -6704,6 +6704,7 @@ namespace Js
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !GetScriptContext()->IsScriptContextInDebugMode() &&
             DoInterpreterProfile() &&
+#pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
             (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
             !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
@@ -6715,6 +6716,7 @@ namespace Js
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
+#pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
             (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
             !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }

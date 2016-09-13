@@ -6,7 +6,7 @@
 #include "CommonMemoryPch.h"
 
 void
-Memory::ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInBytes, HANDLE processHandle)
+Memory::ChakraMemSet(_In_ void *dst, int val, size_t sizeInBytes, HANDLE processHandle)
 {
     const bool isLocalProc = processHandle == GetCurrentProcess();
     byte * writeBuffer;
@@ -31,7 +31,7 @@ Memory::ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInByte
 }
 
 void
-Memory::ChakraMemCopy(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count, HANDLE processHandle)
+Memory::ChakraMemCopy(_In_ void *dst, size_t sizeInBytes, _In_reads_bytes_(count) const void *src, size_t count, HANDLE processHandle)
 {
     Assert(count <= sizeInBytes);
     if (count > sizeInBytes)

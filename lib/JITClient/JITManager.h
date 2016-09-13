@@ -88,7 +88,7 @@ private:
 
     HRESULT JITManager::CreateBinding(
         __in HANDLE serverProcessHandle,
-        __in void* serverSecurityDescriptor,
+        __in_opt void* serverSecurityDescriptor,
         __in UUID* connectionUuid,
         __out RPC_BINDING_HANDLE* bindingHandle);
 

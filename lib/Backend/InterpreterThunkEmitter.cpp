@@ -529,7 +529,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
 
 
 inline /*static*/
-DWORD InterpreterThunkEmitter::FillDebugBreak(__out_bcount_full(count) BYTE* dest, __in DWORD count)
+DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
 {
 #if defined(_M_ARM)
     Assert(count % 2 == 0);
@@ -545,11 +545,11 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(__out_bcount_full(count) BYTE* des
 
 inline /*static*/
 DWORD InterpreterThunkEmitter::CopyWithAlignment(
-    __in_bcount(sizeInBytes) BYTE* dest,
-    __in const DWORD sizeInBytes,
-    __in_bcount(srcSize) const BYTE* src,
-    __in_range(0, sizeInBytes) const DWORD srcSize,
-    __in const DWORD alignment)
+    _In_ BYTE* dest,
+    _In_ const DWORD sizeInBytes,
+    _In_ const BYTE* src,
+    _In_ const DWORD srcSize,
+    _In_ const DWORD alignment)
 {
     js_memcpy_s(dest, sizeInBytes, src, srcSize);
     dest += srcSize;

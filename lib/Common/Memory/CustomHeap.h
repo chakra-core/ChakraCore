@@ -558,6 +558,6 @@ private:
 // Helpers
 unsigned int log2(size_t number);
 BucketId GetBucketForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes);
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount, HANDLE processHandle);
+void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHandle);
 } // namespace CustomHeap
 } // namespace Memory

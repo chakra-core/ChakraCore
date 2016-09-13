@@ -61,6 +61,7 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     Assert(this == nullptr);
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
     size_t bytes = (dwFreeType == MEM_RELEASE)? 0 : dwSize;
+#pragma warning(suppress: 28160) // Calling VirtualFreeEx without the MEM_RELEASE flag frees memory but not address descriptors (VADs)
     return VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
 }
 
@@ -402,6 +403,7 @@ PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
 
         Assert(dwSize % AutoSystemInfo::PageSize == 0);
 #pragma warning(suppress: 6250)
+#pragma warning(suppress: 28160) // Calling VirtualFreeEx without the MEM_RELEASE flag frees memory but not address descriptors (VADs)
         BOOL success = VirtualFreeEx(processHandle, lpAddress, dwSize, MEM_DECOMMIT);
         size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
         Assert(requestedNumOfSegments <= MAXUINT32);

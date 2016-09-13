@@ -18,10 +18,9 @@ HRESULT JsInitializeJITServer(
     uuidVector.Count = 1;
     uuidVector.Uuid[0] = connectionUuid;
 
-    status = RpcServerUseProtseqEpW(
+    status = RpcServerUseProtseqW(
         (RPC_WSTR)L"ncalrpc",
         RPC_C_PROTSEQ_MAX_REQS_DEFAULT,
-        NULL,
         alpcSecurityDescriptor);
     if (status != RPC_S_OK)
     {
@@ -379,6 +378,7 @@ ServerRemoteCodeGen(
 
     if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
     {
+        memset(jitData, 0, sizeof(JITOutputIDL));
         return RPC_S_INVALID_ARG;
     }
 

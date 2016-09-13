@@ -5,12 +5,14 @@
 
 #include "JITClientPch.h"
 
-__bcount_opt(size) void * __RPC_USER midl_user_allocate(size_t size)
+_Must_inspect_result_
+_Ret_maybenull_ _Post_writable_byte_size_(size)
+void * __RPC_USER midl_user_allocate(size_t size)
 {
     return (HeapAlloc(GetProcessHeap(), 0, size));
 }
 
-void __RPC_USER midl_user_free(__inout void * ptr)
+void __RPC_USER midl_user_free(_Pre_maybenull_ _Post_invalid_ void * ptr)
 {
     if (ptr != NULL)
     {
@@ -44,7 +46,7 @@ JITManager::GetJITManager()
 HRESULT
 JITManager::CreateBinding(
     __in HANDLE serverProcessHandle,
-    __in void * serverSecurityDescriptor,
+    __in_opt void * serverSecurityDescriptor,
     __in UUID * connectionUuid,
     __out RPC_BINDING_HANDLE * bindingHandle)
 {
