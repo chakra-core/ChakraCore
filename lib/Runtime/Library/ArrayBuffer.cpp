@@ -6,6 +6,17 @@
 
 namespace Js
 {
+    bool ArrayBufferBase::Is(Var value)
+    {
+        return ArrayBuffer::Is(value) || SharedArrayBuffer::Is(value);
+    }
+
+    ArrayBufferBase* ArrayBufferBase::FromVar(Var value)
+    {
+        Assert(ArrayBufferBase::Is(value));
+        return static_cast<ArrayBuffer *> (value);
+    }
+
     ArrayBuffer* ArrayBuffer::NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library)
     {
         ArrayBufferDetachedStateBase* arrayBufferState = (ArrayBufferDetachedStateBase *)state;
@@ -426,7 +437,7 @@ namespace Js
 
     template <class Allocator>
     ArrayBuffer::ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
-        DynamicObject(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
+        ArrayBufferBase(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
     {
         buffer = nullptr;
         bufferLength = 0;
@@ -473,7 +484,7 @@ namespace Js
     }
 
     ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
-        buffer(buffer), bufferLength(length), DynamicObject(type), mIsAsmJsBuffer(false), isDetached(false)
+        buffer(buffer), bufferLength(length), ArrayBufferBase(type), mIsAsmJsBuffer(false), isDetached(false)
     {
         if (length > MaxArrayBufferLength)
         {

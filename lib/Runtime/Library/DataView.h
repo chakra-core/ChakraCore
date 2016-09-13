@@ -39,7 +39,7 @@ namespace Js
             static FunctionInfo GetterByteOffset;
         };
 
-        DataView(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
+        DataView(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
 
         static BOOL Is(Var aValue);
 

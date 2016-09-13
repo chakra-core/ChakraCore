@@ -137,8 +137,16 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeArrayBufferPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-        arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        if (scriptContext->GetConfig()->IsESSharedArrayBufferEnabled())
+        {
+            sharedArrayBufferPrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeSharedArrayBufferPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        }
+        else
+        {
+            sharedArrayBufferPrototype = nullptr;
+        }
 
         dataViewPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -443,6 +451,17 @@ namespace Js
 
         arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+
+        if (scriptContext->GetConfig()->IsESSharedArrayBufferEnabled())
+        {
+            sharedArrayBufferType = DynamicType::New(scriptContext, TypeIds_SharedArrayBuffer, sharedArrayBufferPrototype, nullptr,
+                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        }
+        else
+        {
+            sharedArrayBufferType = nullptr;
+        }
+
         dataViewType = DynamicType::New(scriptContext, TypeIds_DataView, dataViewPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
 
@@ -1384,6 +1403,23 @@ namespace Js
             typedArrayConstructor);
         AddFunction(globalObject, PropertyIds::Float64Array, Float64ArrayConstructor);
 
+        if (scriptContext->GetConfig()->IsESSharedArrayBufferEnabled())
+        {
+            sharedArrayBufferConstructor = CreateBuiltinConstructor(&SharedArrayBuffer::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeSharedArrayBufferConstructor>::GetDefaultInstance());
+            AddFunction(globalObject, PropertyIds::SharedArrayBuffer, sharedArrayBufferConstructor);
+
+            atomicsObject = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeAtomicsObject>::GetDefaultInstance()));
+            AddMember(globalObject, PropertyIds::Atomics, atomicsObject);
+        }
+        else
+        {
+            sharedArrayBufferConstructor = nullptr;
+            atomicsObject = nullptr;
+        }
+
         JSONObject = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
             DeferredTypeHandler<InitializeJSONObject>::GetDefaultInstance()));
@@ -1664,6 +1700,65 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         arrayPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void  JavascriptLibrary::InitializeSharedArrayBufferConstructor(DynamicObject* sharedArrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(sharedArrayBufferConstructor, mode, 4);
+
+        ScriptContext* scriptContext = sharedArrayBufferConstructor->GetScriptContext();
+        JavascriptLibrary* library = sharedArrayBufferConstructor->GetLibrary();
+        library->AddMember(sharedArrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(sharedArrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->sharedArrayBufferPrototype, PropertyNone);
+
+        library->AddAccessorsToLibraryObject(sharedArrayBufferConstructor, PropertyIds::_symbolSpecies, &SharedArrayBuffer::EntryInfo::GetterSymbolSpecies, nullptr);
+
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(sharedArrayBufferConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::SharedArrayBuffer), PropertyConfigurable);
+        }
+
+        sharedArrayBufferConstructor->SetHasNoEnumerableProperties(true);
+    }
+
+    void  JavascriptLibrary::InitializeSharedArrayBufferPrototype(DynamicObject* sharedArrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(sharedArrayBufferPrototype, mode, 4);
+
+        ScriptContext* scriptContext = sharedArrayBufferPrototype->GetScriptContext();
+        JavascriptLibrary* library = sharedArrayBufferPrototype->GetLibrary();
+        library->AddMember(sharedArrayBufferPrototype, PropertyIds::constructor, library->sharedArrayBufferConstructor);
+        library->AddFunctionToLibraryObject(sharedArrayBufferPrototype, PropertyIds::slice, &SharedArrayBuffer::EntryInfo::Slice, 2);
+        library->AddAccessorsToLibraryObject(sharedArrayBufferPrototype, PropertyIds::byteLength, &SharedArrayBuffer::EntryInfo::GetterByteLength, nullptr);
+
+        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            library->AddMember(sharedArrayBufferPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("SharedArrayBuffer")), PropertyConfigurable);
+        }
+
+        sharedArrayBufferPrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void  JavascriptLibrary::InitializeAtomicsObject(DynamicObject* atomicsObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(atomicsObject, mode, 12);
+
+        JavascriptLibrary* library = atomicsObject->GetLibrary();
+
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::add, &AtomicsObject::EntryInfo::Add, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::and_, &AtomicsObject::EntryInfo::And, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::compareExchange, &AtomicsObject::EntryInfo::CompareExchange, 4);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::exchange, &AtomicsObject::EntryInfo::Exchange, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::isLockFree, &AtomicsObject::EntryInfo::IsLockFree, 1);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::load, &AtomicsObject::EntryInfo::Load, 2);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::or_, &AtomicsObject::EntryInfo::Or, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::store, &AtomicsObject::EntryInfo::Store, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::sub, &AtomicsObject::EntryInfo::Sub, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wait, &AtomicsObject::EntryInfo::Wait, 4);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wake, &AtomicsObject::EntryInfo::Wake, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::xor_, &AtomicsObject::EntryInfo::Xor, 3);
+
+        atomicsObject->SetHasNoEnumerableProperties(true);
     }
 
     void  JavascriptLibrary::InitializeArrayBufferConstructor(DynamicObject* arrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -5674,6 +5769,16 @@ namespace Js
         return arr;
     }
 
+    SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(uint32 length)
+    {
+        return JavascriptSharedArrayBuffer::Create(length, sharedArrayBufferType);
+    }
+
+    SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(SharedContents *contents)
+    {
+        return JavascriptSharedArrayBuffer::Create(contents, sharedArrayBufferType);
+    }
+
     ArrayBuffer* JavascriptLibrary::CreateProjectionArraybuffer(uint32 length)
     {
         ArrayBuffer* arr = ProjectionArrayBuffer::Create(length, arrayBufferType);
@@ -5688,7 +5793,7 @@ namespace Js
         return arr;
     }
 
-    DataView* JavascriptLibrary::CreateDataView(ArrayBuffer* arrayBuffer, uint32 offset, uint32 length)
+    DataView* JavascriptLibrary::CreateDataView(ArrayBufferBase* arrayBuffer, uint32 offset, uint32 length)
     {
         DataView* dataView = RecyclerNew(this->GetRecycler(), DataView, arrayBuffer, offset, length, dataViewType);
 
@@ -7142,6 +7247,28 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(stringify, JSON::Stringify);
         REG_OBJECTS_LIB_FUNC(parse, JSON::Parse);
+        return hr;
+    }
+
+    HRESULT JavascriptLibrary::ProfilerRegisterAtomics()
+    {
+        HRESULT hr = S_OK;
+
+        DEFINE_OBJECT_NAME(Atomics);
+
+        REG_OBJECTS_LIB_FUNC(add, AtomicsObject::EntryAdd);
+        REG_OBJECTS_LIB_FUNC(and_, AtomicsObject::EntryAnd);
+        REG_OBJECTS_LIB_FUNC(compareExchange, AtomicsObject::EntryCompareExchange);
+        REG_OBJECTS_LIB_FUNC(exchange, AtomicsObject::EntryExchange);
+        REG_OBJECTS_LIB_FUNC(isLockFree, AtomicsObject::EntryIsLockFree);
+        REG_OBJECTS_LIB_FUNC(load, AtomicsObject::EntryLoad);
+        REG_OBJECTS_LIB_FUNC(or_, AtomicsObject::EntryOr);
+        REG_OBJECTS_LIB_FUNC(store, AtomicsObject::EntryStore);
+        REG_OBJECTS_LIB_FUNC(sub, AtomicsObject::EntrySub);
+        REG_OBJECTS_LIB_FUNC(wait, AtomicsObject::EntryWait);
+        REG_OBJECTS_LIB_FUNC(wake, AtomicsObject::EntryWake);
+        REG_OBJECTS_LIB_FUNC(xor_, AtomicsObject::EntryXor);
+
         return hr;
     }
 

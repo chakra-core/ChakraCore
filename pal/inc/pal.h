@@ -5475,6 +5475,30 @@ The function returns the initial value pointed to by Target.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchange8(
+    IN OUT char volatile *Target,
+    IN char Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchange16(
+    IN OUT short volatile *Target,
+    IN short Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchange(
@@ -5519,6 +5543,38 @@ Return Values
 The return value is the initial value of the destination.
 
 --*/
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedCompareExchange8(
+    IN OUT char volatile *Destination,
+    IN char Exchange,
+    IN char Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedCompareExchange16(
+    IN OUT short volatile *Destination,
+    IN short Exchange,
+    IN short Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
 EXTERN_C
 PALIMPORT
 inline
@@ -5606,6 +5662,30 @@ The return value is the original value that 'Addend' pointed to.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchangeAdd8(
+    IN OUT char volatile *Addend,
+    IN char Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchangeAdd16(
+    IN OUT short volatile *Addend,
+    IN short Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchangeAdd(
@@ -5642,6 +5722,30 @@ InterlockedExchangeAdd64(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedAnd8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short 
+PALAPI
+InterlockedAnd16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedAnd(
@@ -5654,6 +5758,30 @@ InterlockedAnd(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedOr8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedOr16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedOr(
@@ -5661,6 +5789,42 @@ InterlockedOr(
     IN LONG Value)
 {
     return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedXor8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedXor16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+LONG
+PALAPI
+InterlockedXor(
+    IN OUT LONG volatile *Destination,
+    IN LONG Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
 }
 
 #define BITS_IN_BYTE 8
