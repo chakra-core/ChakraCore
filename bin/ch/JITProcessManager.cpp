@@ -14,6 +14,7 @@ HRESULT JITProcessManager::StartRpcServer(int argc, __in_ecount(argc) LPWSTR arg
     HRESULT hr = S_OK;
 
     JITProcessManager::RemoveArg(_u("-dynamicprofilecache:"), &argc, &argv);
+    JITProcessManager::RemoveArg(_u("-dpc:"), &argc, &argv);
     JITProcessManager::RemoveArg(_u("-dynamicprofileinput:"), &argc, &argv);
 
     if (IsEqualGUID(s_connectionId, GUID_NULL))
@@ -126,35 +127,55 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
     CloseHandle(processInfo.hThread);
     s_rpcServerProcessHandle = processInfo.hProcess;
 
-    // create job object so if parent jshost gets killed, server is killed as well
-    HANDLE jobObject = CreateJobObject(nullptr, nullptr);
-    if (jobObject == nullptr)
+    if (HostConfigFlags::flags.EnsureCloseJITServer)
     {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    if (!AssignProcessToJobObject(jobObject, s_rpcServerProcessHandle))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
+        // create job object so if parent ch gets killed, server is killed as well
+        // under a flag because it's preferable to let server close naturally
+        // only useful in scenarios where ch is expected to be force terminated
+        HANDLE jobObject = CreateJobObject(nullptr, nullptr);
+        if (jobObject == nullptr)
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+        if (!AssignProcessToJobObject(jobObject, s_rpcServerProcessHandle))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
 
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = { 0 };
-    jobInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobInfo = { 0 };
+        jobInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
-    if (!SetInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo)))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
+        if (!SetInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &jobInfo, sizeof(jobInfo)))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
     }
 
     return NOERROR;
 }
 
-void JITProcessManager::StopRpcServer()
-{
-    // For now we just kill the process
-    TerminateProcess(s_rpcServerProcessHandle, 1);
+typedef HRESULT(WINAPI *JsShutdownJITServerPtr)();
 
-    CloseHandle(s_rpcServerProcessHandle);
+void JITProcessManager::StopRpcServer(HINSTANCE chakraLibrary)
+{
+    if (s_rpcServerProcessHandle)
+    {
+        JsShutdownJITServerPtr shutdownJITServer = (JsShutdownJITServerPtr)GetProcAddress(chakraLibrary, "JsShutdownJITServer");
+        shutdownJITServer();
+    }
     s_rpcServerProcessHandle = NULL;
+}
+
+void
+JITProcessManager::TerminateJITServer()
+{
+    if (s_rpcServerProcessHandle)
+    {
+        TerminateProcess(s_rpcServerProcessHandle, 1);
+
+        CloseHandle(s_rpcServerProcessHandle);
+        s_rpcServerProcessHandle = NULL;
+    }
 }
 
 HANDLE JITProcessManager::GetRpcProccessHandle()

@@ -19,10 +19,6 @@ interface IChakraJIT
         [out] CHAKRA_PTR * threadContextInfoAddress,
         [out] CHAKRA_PTR * prereservedRegionAddr);
 
-    HRESULT CleanupProcess(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR processHandle);
-
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress);

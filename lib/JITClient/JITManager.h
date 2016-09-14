@@ -14,17 +14,12 @@ public:
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
 
-    ~JITManager();
-
     HANDLE GetJITTargetHandle() const;
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out intptr_t *threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr);
-
-    HRESULT CleanupProcess(
-        __in intptr_t processHandle);
 
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
@@ -77,10 +72,12 @@ public:
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
 
+    HRESULT Shutdown();
+
     static JITManager * GetJITManager();
 private:
     JITManager();
-    HRESULT DisconnectRpcServer();
+    ~JITManager();
 
     HRESULT JITManager::CreateBinding(
         __in HANDLE serverProcessHandle,

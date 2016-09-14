@@ -77,22 +77,40 @@ HRESULT JsInitializeJITServer(
 }
 
 HRESULT
-ServerShutdown(/* [in] */ handle_t binding)
+ShutdownCommon()
 {
-    RPC_STATUS status;
-
-    status = RpcMgmtStopServerListening(NULL);
+    HRESULT status = RpcMgmtStopServerListening(NULL);
     if (status != RPC_S_OK)
     {
-        TerminateProcess(GetCurrentProcess(), status);
+        return status;
     }
 
     status = RpcServerUnregisterIf(ServerIChakraJIT_v0_0_s_ifspec, NULL, FALSE);
-    if (status != RPC_S_OK)
+    return status;
+}
+
+__declspec(dllexport)
+HRESULT
+JsShutdownJITServer()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+
+    if (JITManager::GetJITManager()->IsConnected())
     {
-        TerminateProcess(GetCurrentProcess(), status);
+        // if client is hosting jit process directly, call to remotely shutdown
+        return JITManager::GetJITManager()->Shutdown();
     }
-    return S_OK;
+    else
+    {
+        return ShutdownCommon();
+    }
+}
+
+HRESULT
+ServerShutdown(
+    /* [in] */ handle_t binding)
+{
+    return ShutdownCommon();
 }
 
 HRESULT
@@ -108,15 +126,6 @@ ServerInitializeThreadContext(
 
     *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
     *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
-    return S_OK;
-}
-
-HRESULT
-ServerCleanupProcess(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t processHandle)
-{
-    CloseHandle((HANDLE)processHandle);
     return S_OK;
 }
 

@@ -10,5 +10,6 @@ FLAG(BSTR, GenerateLibraryByteCodeHeader,   "Generate bytecode header file from 
 FLAG(int,  InspectMaxStringLength,          "Max string length to dump in locals inspection", 16)
 FLAG(BSTR, Serialized,                      "If source is UTF8, deserializes from bytecode file", NULL)
 FLAG(bool, EnableOutOfProcJIT,              "Run JIT in a separate process", false)
+FLAG(bool, EnsureCloseJITServer,            "JIT process will be force closed when ch is terminated", false)
 #undef FLAG
 #endif

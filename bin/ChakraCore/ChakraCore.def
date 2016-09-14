@@ -49,3 +49,4 @@ JsModuleEvaluation
 JsSetModuleHostInfo
 JsGetModuleHostInfo
 JsInitializeJITServer
+JsShutdownJITServer

@@ -38,7 +38,7 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
     ChakraRTInterface::NotifyUnhandledException(ep);
 
 #if ENABLE_NATIVE_CODEGEN
-    JITProcessManager::StopRpcServer();
+    JITProcessManager::TerminateJITServer();
 #endif
     bool crashOnException = false;
     ChakraRTInterface::GetCrashOnExceptionFlag(&crashOnException);
@@ -853,8 +853,18 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         // On linux, execute on the same thread
         ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
+
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+        JITProcessManager::StopRpcServer(chakraLibrary);
+#endif
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+    else
+    {
+        JITProcessManager::TerminateJITServer();
+    }
+#endif
 
     PAL_Shutdown();
     return 0;
