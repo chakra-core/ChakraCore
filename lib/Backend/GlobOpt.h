@@ -111,6 +111,7 @@ public:
 
     using ValueType::HasBeenString;
     using ValueType::IsString;
+    using ValueType::HasHadStringTag;
     using ValueType::IsLikelyString;
     using ValueType::IsNotString;
 

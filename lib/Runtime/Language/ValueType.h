@@ -150,6 +150,7 @@ public:
 
     bool HasBeenString() const;
     bool IsString() const;
+    bool HasHadStringTag() const; // Note: this is likely not what you're looking for; this is a short-cut for LdLen optimization.
     bool IsLikelyString() const;
     bool IsNotString() const;
 
