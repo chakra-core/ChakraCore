@@ -14,6 +14,13 @@ SAFE_RUN() {
     echo $SF_RETURN_VALUE
 }
 
+ERROR_EXIT() {
+    if [[ $? != 0 ]]; then
+        echo $($1 2>&1)
+        exit 1;
+    fi
+}
+
 PRINT_USAGE() {
     echo ""
     echo "[ChakraCore Build Script Help]"
@@ -24,6 +31,7 @@ PRINT_USAGE() {
     echo "      --cxx=PATH       Path to Clang++ (see example below)"
     echo "      --cc=PATH        Path to Clang   (see example below)"
     echo "  -d, --debug          Debug build (by default Release build)"
+    echo "      --embed-icu      Download and embed ICU-57 statically"
     echo "  -h, --help           Show help"
     echo "      --icu=PATH       Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
@@ -57,6 +65,20 @@ ICU_PATH="-DICU_SETTINGS_RESET=1"
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 WITHOUT_FEATURES=""
 CREATE_DEB=0
+OS_LINUX=0
+OS_APT_GET=0
+OS_UNIX=0
+
+if [ -f "/proc/version" ]; then
+    OS_LINUX=1
+    PROC_INFO=$(cat /proc/version)
+    if [[ $PROC_INFO =~ 'Ubuntu' || $PROC_INFO =~ 'Debian'
+       || $PROC_INFO =~ 'Linaro' ]]; then
+        OS_APT_GET=1
+    fi
+else
+    OS_UNIX=1
+fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -82,6 +104,49 @@ while [[ $# -gt 0 ]]; do
     -d | --debug)
         BUILD_TYPE="Debug"
         ;;
+
+    --embed-icu)
+        if [ ! -d "${CHAKRACORE_DIR}/deps/icu/source/output" ]; then
+            ICU_URL="http://source.icu-project.org/repos/icu/icu/tags/release-57-1"
+            echo -e "\n----------------------------------------------------------------"
+            echo -e "\nThis script will download ICU-LIB from\n${ICU_URL}\n"
+            echo "It is licensed to you by its publisher, not Microsoft."
+            echo "Microsoft is not responsible for the software."
+            echo "Your installation and use of ICU-LIB is subject to the publisher’s terms available here:"
+            echo -e "http://www.unicode.org/copyright.html#License\n"
+            echo -e "----------------------------------------------------------------\n"
+            echo "If you don't agree, press Ctrl+C to terminate"
+            read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
+            SAFE_RUN `mkdir -p ${CHAKRACORE_DIR}/deps/`
+            cd "${CHAKRACORE_DIR}/deps/";
+            ABS_DIR=`pwd`
+            if [ ! -d "${ABS_DIR}/icu/" ]; then
+                echo "Downloading ICU ${ICU_URL}"
+                if [ ! -f "/usr/bin/svn" ]; then
+                    echo -e "\nYou should install 'svn' client in order to use this feature"
+                    if [ $OS_APT_GET == 1 ]; then
+                        echo "tip: Try 'sudo apt-get install subversion'"
+                    fi
+                    exit 1
+                fi
+                svn export -q $ICU_URL icu
+                ERROR_EXIT "rm -rf ${ABS_DIR}/icu/"
+            fi
+
+            cd "${ABS_DIR}/icu/source";./configure --with-data-packaging=static\
+                    --prefix="${ABS_DIR}/icu/source/output/"\
+                    --enable-static --disable-shared --with-library-bits=64\
+                    --disable-icuio --disable-layout\
+                    CXXFLAGS="-fPIC" CFLAGS="-fPIC"
+
+            ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
+            make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
+            ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
+            cd "${ABS_DIR}/../"
+        fi
+        ICU_PATH="-DCC_EMBED_ICU_SH=1"
+        ;;
+
 
     -t | --test-build)
         BUILD_TYPE="Test"
