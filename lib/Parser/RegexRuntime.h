@@ -1230,8 +1230,22 @@ namespace UnifiedRegex
         inline LoopSetInst(int loopId, const CountDomain& repeats, bool hasOuterLoops)
             : Inst(LoopSet), loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops) {}
 
+        inline LoopSetInst(InstTag tag, int loopId, const CountDomain& repeats, bool hasOuterLoops)
+            : Inst(tag), loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops) {}
+        
         INST_BODY
         INST_BODY_FREE(SetMixin)
+    };
+
+    // Loop is greedy, contains a MatchSet only, first character in its follow set is known
+    struct LoopSetWithFollowFirstInst : LoopSetInst
+    {
+        Char followFirst;
+
+        inline LoopSetWithFollowFirstInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, Char followFirst)
+            : LoopSetInst(InstTag::LoopSetWithFollowFirst, loopId, repeats, hasOuterLoops), followFirst(followFirst) {}
+
+        INST_BODY
     };
 
     // Loop is greedy, fixed width, deterministic body, one outermost group
@@ -1425,15 +1439,22 @@ namespace UnifiedRegex
     {
         CharCount number;            // current iteration number
         CharCount startInputOffset;  // input offset where the iteration started
-
+        SList<CharCount>* offsetsOfFollowFirst; // list of offsets from startInputOffset where we matched with followFirst
+        
         inline void Reset()
         {
 #if DBG
             // So debug prints will look nice
             number = 0;
             startInputOffset = 0;
+            if (offsetsOfFollowFirst)
+            {
+                offsetsOfFollowFirst->Clear();
+            }
 #endif
         }
+
+        inline void EnsureOffsetsOfFollowFirst(Matcher& matcher);
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         void Print(DebugWriter* w) const;
@@ -1604,6 +1625,14 @@ namespace UnifiedRegex
         CONT_BODY
     };
 
+    struct RewindLoopSetWithFollowFirstCont : Cont
+    {
+        Label beginLabel;   // label of LoopSet instruction
+
+        inline RewindLoopSetWithFollowFirstCont(Label beginLabel) : Cont(RewindLoopSetWithFollowFirst), beginLabel(beginLabel) {}
+
+        CONT_BODY
+    };
 
     struct RewindLoopFixedGroupLastIterationCont : Cont
     {
