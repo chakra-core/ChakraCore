@@ -829,7 +829,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     {
 #ifdef _WIN32
 #if ENABLE_NATIVE_CODEGEN
-        if (HostConfigFlags::flags.EnableOutOfProcJIT)
+        if (HostConfigFlags::flags.OOPJIT)
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);
