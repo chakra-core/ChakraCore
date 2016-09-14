@@ -530,12 +530,19 @@ public:
     typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
+    typedef JsUtil::List<const Js::PropertyRecord *, HeapAllocator> PropertyList;
 private:
     intptr_t m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
+    PropertyList * m_pendingJITProperties;
 public:
+
+    PropertyList * GetPendingJITProperties() const
+    {
+        return m_pendingJITProperties;
+    }
 
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
     void EnsureJITThreadContext();

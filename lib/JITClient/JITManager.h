@@ -34,10 +34,6 @@ public:
         __in unsigned int count,
         __in PropertyRecordIDL ** propertyRecordArray);
 
-    HRESULT AddPropertyRecord(
-        __in intptr_t threadContextInfoAddress,
-        __in PropertyRecordIDL * propertyRecord);
-
     HRESULT AddDOMFastPathHelper(
         __in intptr_t scriptContextInfoAddress,
         __in intptr_t funcInfoAddr,

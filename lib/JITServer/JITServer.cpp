@@ -140,26 +140,6 @@ ServerCleanupThreadContext(
 }
 
 HRESULT
-ServerAddPropertyRecord(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t threadContextRoot,
-    /* [in] */ __RPC__in PropertyRecordIDL * propertyRecord)
-{
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
-
-    if (threadContextInfo == nullptr) 
-    {
-        return RPC_S_INVALID_ARG;
-    }
-
-    threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecord);
-
-    return S_OK;
-}
-
-HRESULT
 ServerAddPropertyRecordArray(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextRoot,

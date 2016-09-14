@@ -448,27 +448,6 @@ JITManager::AddPropertyRecordArray(
 }
 
 HRESULT
-JITManager::AddPropertyRecord(
-    __in intptr_t threadContextInfoAddress,
-    __in PropertyRecordIDL * propertyRecord)
-{
-    Assert(JITManager::IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientAddPropertyRecord(m_rpcBindingHandle, threadContextInfoAddress, propertyRecord);
-    }
-        RpcExcept(1)
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-
-HRESULT
 JITManager::InitializeScriptContext(
     __in ScriptContextDataIDL * data,
     __out intptr_t * scriptContextInfoAddress)

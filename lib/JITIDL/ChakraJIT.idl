@@ -27,11 +27,6 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress);
 
-    HRESULT AddPropertyRecord(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
-        [in] PropertyRecordIDL * propertyRecord);
-
     HRESULT AddPropertyRecordArray(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,

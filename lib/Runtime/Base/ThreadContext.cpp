@@ -192,6 +192,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , TTSnapHistoryLength(UINT32_MAX)
     , TTDLog(nullptr)
     , m_propertyMap(nullptr)
+    , m_pendingJITProperties(nullptr)
     , TTDWriteInitializeFunction(nullptr)
     , TTDStreamFunctions({ 0 })
 #endif
@@ -481,6 +482,12 @@ ThreadContext::~ThreadContext()
         {
             HeapDelete(this->m_propertyMap);
             this->m_propertyMap = nullptr;
+        }
+
+        if (this->m_pendingJITProperties != nullptr)
+        {
+            HeapDelete(this->m_pendingJITProperties);
+            this->m_pendingJITProperties = nullptr;
         }
 
         // Unpin the memory for leak report so we don't report this as a leak.
@@ -911,6 +918,7 @@ void ThreadContext::InitializePropertyMaps()
     try
     {
         this->m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+        this->m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
 
         this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
 
@@ -918,6 +926,19 @@ void ThreadContext::InitializePropertyMaps()
 
         Js::JavascriptLibrary::InitializeProperties(this);
         InitializeAdditionalProperties(this);
+
+        if (m_propertyMap->Count() > 0)
+        {
+            uint count = (uint)m_propertyMap->Count();
+            PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
+            auto iter = m_propertyMap->GetIterator();
+            while (iter.IsValid())
+            {
+                m_pendingJITProperties->Add(iter.CurrentValue());
+                iter.MoveNext();
+            }
+            HeapDeleteArray(count, propArray);
+        }
         //Js::JavascriptLibrary::InitializeDOMProperties(this);
     }
     catch(...)
@@ -930,6 +951,12 @@ void ThreadContext::InitializePropertyMaps()
             HeapDelete(this->m_propertyMap);
         }
         this->m_propertyMap = nullptr;
+
+        if (this->m_pendingJITProperties != nullptr)
+        {
+            HeapDelete(this->m_pendingJITProperties);
+            this->m_pendingJITProperties = nullptr;
+        }
 
         this->caseInvariantPropertySet = nullptr;
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
@@ -1086,14 +1113,9 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     m_propertyMap->Add(propertyRecord);
 
 #if ENABLE_NATIVE_CODEGEN
-    // add to OOP JIT process if the context has already been initialized
-    if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        HRESULT hr = JITManager::GetJITManager()->AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
-        if (hr != S_OK)
-        {
-            Js::Throw::FatalInternalError();
-        }
+        m_pendingJITProperties->Add(propertyRecord);
     }
 #endif
 
@@ -1962,25 +1984,6 @@ ThreadContext::EnsureJITThreadContext()
 #endif
 
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
-    // we may have populated propertyMap prior to initializing JIT connection
-    if (m_propertyMap != nullptr && m_propertyMap->Count() > 0)
-    {
-        uint count = (uint)m_propertyMap->Count();
-        PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
-        uint index = 0;
-        auto iter = m_propertyMap->GetIterator();
-        while (iter.IsValid())
-        {
-            propArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
-            iter.MoveNext();
-        }
-        HRESULT hr = JITManager::GetJITManager()->AddPropertyRecordArray(m_remoteThreadContextInfo, count, (PropertyRecordIDL**)propArray);
-        if (hr != S_OK)
-        {
-            Js::Throw::FatalInternalError();
-        }
-        HeapDeleteArray(count, propArray);
-    }
 }
 #endif
 

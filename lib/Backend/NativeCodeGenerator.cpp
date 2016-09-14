@@ -2864,10 +2864,31 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
     if (JITManager::GetJITManager()->IsOOPJITEnabled() )
     {
+        // ensure jit contexts have been set up
         scriptContext->GetThreadContext()->EnsureJITThreadContext();
         if (!scriptContext->GetRemoteScriptAddr())
         {
             scriptContext->InitializeRemoteScriptContext();
+        }
+
+        // batch send all new property records
+        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
+        if (pendingProps->Count() > 0)
+        {
+            uint count = (uint)pendingProps->Count();
+            PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
+            uint index = 0;
+            while (pendingProps->Count() > 0)
+            {
+                propArray[index++] = (PropertyRecordIDL*)pendingProps->RemoveAtEnd();
+            }
+            Assert(index == count);
+            HRESULT hr = JITManager::GetJITManager()->AddPropertyRecordArray(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), count, (PropertyRecordIDL**)propArray);
+            if (hr != S_OK)
+            {
+                Js::Throw::FatalInternalError();
+            }
+            HeapDeleteArray(count, propArray);
         }
     }
 
