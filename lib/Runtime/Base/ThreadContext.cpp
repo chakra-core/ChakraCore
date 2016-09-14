@@ -166,6 +166,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
     codeGenNumberThreadAllocator(nullptr),
+    m_pendingJITProperties(nullptr),
     xProcNumberPageSegmentManager(nullptr),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
@@ -177,6 +178,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     telemetryBlock(&localTelemetryBlock),
     configuration(enableExperimentalFeatures),
     jsrtRuntime(nullptr),
+    m_propertyMap(nullptr),
     rootPendingClose(nullptr),
     isProfilingUserCode(true),
     loopDepth(0),
@@ -191,8 +193,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , TTSnapInterval(2000)
     , TTSnapHistoryLength(UINT32_MAX)
     , TTDLog(nullptr)
-    , m_propertyMap(nullptr)
-    , m_pendingJITProperties(nullptr)
     , TTDWriteInitializeFunction(nullptr)
     , TTDStreamFunctions({ 0 })
 #endif
@@ -484,12 +484,13 @@ ThreadContext::~ThreadContext()
             this->m_propertyMap = nullptr;
         }
 
+#if ENABLE_NATIVE_CODEGEN
         if (this->m_pendingJITProperties != nullptr)
         {
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
         }
-
+#endif
         // Unpin the memory for leak report so we don't report this as a leak.
         recyclableData.Unroot(recycler);
 
@@ -918,8 +919,9 @@ void ThreadContext::InitializePropertyMaps()
     try
     {
         this->m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+#if ENABLE_NATIVE_CODEGEN
         this->m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
-
+#endif
         this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
 
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
@@ -927,6 +929,7 @@ void ThreadContext::InitializePropertyMaps()
         Js::JavascriptLibrary::InitializeProperties(this);
         InitializeAdditionalProperties(this);
 
+#if ENABLE_NATIVE_CODEGEN
         if (m_propertyMap->Count() > 0)
         {
             uint count = (uint)m_propertyMap->Count();
@@ -939,6 +942,7 @@ void ThreadContext::InitializePropertyMaps()
             }
             HeapDeleteArray(count, propArray);
         }
+#endif
         //Js::JavascriptLibrary::InitializeDOMProperties(this);
     }
     catch(...)
@@ -952,11 +956,13 @@ void ThreadContext::InitializePropertyMaps()
         }
         this->m_propertyMap = nullptr;
 
+#if ENABLE_NATIVE_CODEGEN
         if (this->m_pendingJITProperties != nullptr)
         {
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
         }
+#endif
 
         this->caseInvariantPropertySet = nullptr;
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
