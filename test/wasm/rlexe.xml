@@ -51,8 +51,7 @@
 </test>
 <test>
     <default>
-       <files>i32_unreachable.js</files>
-       <baseline>i32_unreachable.baseline</baseline>
+       <files>unreachable.js</files>
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>

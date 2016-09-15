@@ -127,7 +127,6 @@
     { \
         PROCESS_READ_LAYOUT(name, Empty, ); \
         func(); \
-        ip = m_reader.GetIP(); \
         break; \
     }
 
