@@ -4284,16 +4284,29 @@ GlobOpt::MarkArgumentsUsedForBranch(IR::Instr * instr)
     if (instr->IsBranchInstr() && !instr->AsBranchInstr()->IsUnconditional())
     {
         IR::BranchInstr * bInstr = instr->AsBranchInstr();
+        IR::Opnd *src1 = bInstr->GetSrc1();
         IR::Opnd *src2 = bInstr->GetSrc2();
-        if (((!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A))
-            || (src2 &&  src2->IsConstOpnd()))
-            && bInstr->GetSrc1()->IsRegOpnd())
+        // These are used because we don't want to rely on src1 or src2 to always be the register/constant
+        IR::RegOpnd *regopnd = nullptr;
+        IR::Opnd *constopnd = nullptr;
+        if (!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A) && src1->IsRegOpnd()) {
+            regopnd = src1->AsRegOpnd();
+        }
+        // We need to check for (0===arg) and (arg===0); this is especially important since some minifiers
+        // change all instances of one to the other.
+        else if (src2 && src2->IsConstOpnd() && src1->IsRegOpnd()) {
+            regopnd = src1->AsRegOpnd();
+            constopnd = src2;
+        }
+        else if (src2 && src2->IsRegOpnd() && src1->IsConstOpnd()) {
+            regopnd = src2->AsRegOpnd();
+            constopnd = src1;
+        }
+        if (regopnd != nullptr)
         {
-            IR::RegOpnd *src1 = bInstr->GetSrc1()->AsRegOpnd();
-
-            if (src1 && src1->m_sym->IsSingleDef())
+            if (regopnd->m_sym->IsSingleDef())
             {
-                IR::Instr * defInst = src1->m_sym->GetInstrDef();
+                IR::Instr * defInst = regopnd->m_sym->GetInstrDef();
                 IR::Opnd *defSym = defInst->GetSrc1();
                 if (defSym && defSym->IsSymOpnd() && defSym->AsSymOpnd()->m_sym->IsStackSym()
                     && defSym->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
