@@ -545,6 +545,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbUnreachable:
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
+        info = EmitInfo(WasmTypes::Unreachable);
         break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \

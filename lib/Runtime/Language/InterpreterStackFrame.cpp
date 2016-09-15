@@ -7699,7 +7699,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::OP_Unreachable()
     {
-        JavascriptError::ThrowError(scriptContext, WASMERR_Unreachable);
+        JavascriptError::ThrowUnreachable(scriptContext);
     }
 
     template <class T>
