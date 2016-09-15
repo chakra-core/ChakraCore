@@ -504,6 +504,7 @@ private:
     void FreeBucket(DListBase<Page>* bucket, bool freeOnlyEmptyPages);
     void FreePage(Page* page);
     bool FreeAllocation(Allocation* allocation);
+    void FreeAllocationHelper(Allocation * allocation, BVIndex index, uint length);
 
 #if PDATA_ENABLED
     void FreeXdata(XDataAllocation* xdata, void* segment);

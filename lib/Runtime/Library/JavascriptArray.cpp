@@ -9019,7 +9019,7 @@ Case0:
 
                     if (newArr)
                     {
-                        newArr->DirectSetItemAt(k, mappedValue);
+                        newArr->SetItem(k, mappedValue, PropertyOperation_None);
                     }
                     else
                     {

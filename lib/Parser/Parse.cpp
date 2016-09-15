@@ -816,6 +816,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         && blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Function
         && blockInfo->pBlockInfoOuter != nullptr
         && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
+        && blockInfo->pnodeBlock->sxBlock.scope->GetScopeType() != ScopeType_FuncExpr
         && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope())
     {
         blockInfo = blockInfo->pBlockInfoOuter;
@@ -5029,6 +5030,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                         }
                         return false;
                     });
+
+                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetScopeId() > pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId)
+                    {
+                        Assert(pnodeFnc->sxFnc.UsesArguments());
+                        // Arguments symbol is captured in the param scope
+                        paramScope->SetCannotMergeWithBodyScope();
+                    }
                 }
             }
         }
@@ -5895,13 +5903,6 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
             pnodeFnc->sxFnc.pid = m_phtbl->PidHashNameLen(
                 m_pscan->PchBase() + ichMinNames, ichLimNames - ichMinNames);
         }
-
-        if(pnodeFnc->sxFnc.pid == wellKnownPropertyPids.arguments && fDeclaration && pnodeFncParent)
-        {
-            // This function declaration (or function expression in compat modes) overrides the built-in arguments object of the
-            // parent function
-            pnodeFncParent->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
-        }
     }
 
     return true;
@@ -6670,10 +6671,11 @@ void Parser::AddArgumentsNodeToVars(ParseNodePtr pnodeFnc)
     }
     else
     {
+        ParseNodePtr argNode = nullptr;
         if(m_ppnodeVar == &pnodeFnc->sxFnc.pnodeVars)
         {
             // There were no var declarations in the function
-            CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc)->grfpn |= PNodeFlags::fpnArguments;
+            argNode = CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc);
         }
         else
         {
@@ -6684,9 +6686,17 @@ void Parser::AddArgumentsNodeToVars(ParseNodePtr pnodeFnc)
             // object until it is replaced with something else.
             ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
-            CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc)->grfpn |= PNodeFlags::fpnArguments;
+            argNode = CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc);
             m_ppnodeVar = ppnodeVarSave;
         }
+
+        Assert(argNode);
+        argNode->grfpn |= PNodeFlags::fpnArguments;
+
+        // When a function definition with the name arguments occurs in the body the declaration of the arguments symbol will
+        // be set to that function declaration. We should change it to arguments declaration from the param scope as it may be
+        // used in the param scope and we have to load the arguments.
+        argNode->sxVar.sym->SetDecl(argNode);
 
         pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(true);
     }

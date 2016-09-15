@@ -27,6 +27,41 @@ var tests = [
             assert.throws(function() { Array.prototype.splice.call(arr, 0, 3); }, TypeError, "TypeError when constructor[Symbol.species] is not constructor", "Function 'constructor[Symbol.species]' is not a constructor");
         }
     },
+    {
+        name: "Type confusion in Array.prototype.map()",
+        body: function () {
+            function test(){
+                CollectGarbage();
+
+                var n = [];
+                for (var i = 0; i < 0x10; i++)
+                    n.push([0x12345678, 0x12345678, 0x12345678, 0x12345678]);
+
+                class fake extends Object {
+                    static get [Symbol.species]() { return function() { return n[5]; }; };
+                }
+
+                var f = function(a){ return a; }
+
+                var x = ["fluorescence", 0, 0, 0x41414141];
+                var y = new Proxy(x, {
+                    get: function(t, p, r) {
+                        return (p == "constructor") ? fake : x[p];
+                    }
+                });
+
+                // oob write
+                Array.prototype.map.apply(y, [f]);
+
+                for (var i = 0; i < 0x10; i++)
+                    n[i][0] = 0x42424242;
+
+            }
+
+            test();
+
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
