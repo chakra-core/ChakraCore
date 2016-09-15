@@ -8055,6 +8055,107 @@ void EmitCallInstr(
     EmitCallI(pnode, /*fEvaluateComponents*/ TRUE, fIsPut, fIsEval, fHasNewTarget, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
 }
 
+void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
+{
+    Js::ArgSlot argCount = pnode->sxCall.argCount;
+    argCount++; // include "this"
+
+    BOOL fSideEffectArgs = FALSE;
+    unsigned int tmpCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs);
+    Assert(argCount == tmpCount);
+
+    if (argCount != (Js::ArgSlot)argCount)
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    byteCodeGenerator->StartStatement(pnode);
+
+    // Start call, allocate out param space
+    funcInfo->StartRecordingOutArgs(argCount);
+
+    // Assign the call target operand(s), putting them into expression temps if necessary to protect
+    // them from side-effects.
+    if (fSideEffectArgs)
+    {
+        SaveOpndValue(pnode->sxCall.pnodeTarget, funcInfo);
+    }
+
+    if (pnode->sxCall.pnodeTarget->nop == knopSuper)
+    {
+        EmitSuperFieldPatch(funcInfo, pnode, byteCodeGenerator);
+    }
+
+    Emit(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo, false, true);
+
+    if (pnode->sxCall.pnodeArgs == nullptr)
+    {
+        funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+        Js::OpCode op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
+            && CallTargetIsArray(pnode->sxCall.pnodeTarget))
+            ? Js::OpCode::NewScObjArray : Js::OpCode::NewScObject;
+        Assert(argCount == 1);
+
+        Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
+        byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
+        byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode),
+            pnode->sxCall.pnodeTarget->location, argCount, callSiteId);
+    }
+    else
+    {
+        byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
+        uint32 actualArgCount = 0;
+
+        if (IsCallOfConstants(pnode))
+        {
+            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+            actualArgCount = EmitNewObjectOfConstants(pnode, byteCodeGenerator, funcInfo, argCount);
+        }
+        else
+        {
+            Js::OpCode op;
+            if ((CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)))
+            {
+                op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjArraySpread : Js::OpCode::NewScObjArray;
+            }
+            else
+            {
+                op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjectSpread : Js::OpCode::NewScObject;
+            }
+
+            Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
+
+
+            Js::AuxArray<uint32> *spreadIndices = nullptr;
+            actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister, Js::Constants::NoRegister,
+                false, true, byteCodeGenerator, funcInfo, callSiteId, pnode->sxCall.spreadArgCount, &spreadIndices);
+            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+
+
+            if (pnode->sxCall.spreadArgCount > 0)
+            {
+                Assert(spreadIndices != nullptr);
+                uint spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
+                uint spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
+                byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
+                    (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
+                    spreadIndices, spreadIndicesSize, callSiteId);
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
+                    (uint16)actualArgCount, callSiteId);
+            }
+        }
+
+        Assert(argCount == actualArgCount);
+    }
+
+    // End call, pop param space
+    funcInfo->EndRecordingOutArgs(argCount);
+    return;
+}
+
 void EmitCall(
     ParseNode* pnode,
     Js::RegSlot rhsLocation,
@@ -8074,6 +8175,15 @@ void EmitCall(
     ParseNode *pnodeTarget = pnode->sxCall.pnodeTarget;
     ParseNode *pnodeArgs = pnode->sxCall.pnodeArgs;
     uint16 spreadArgCount = pnode->sxCall.spreadArgCount;
+
+    if (CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)) {
+        // some minifiers (potentially incorrectly) assume that "v = new Array()" and "v = Array()" are equivalent,
+        // and replace the former with the latter to save 4 characters. What that means for us is that it, at least
+        // initially, uses the "Call" path. We want to guess that it _is_ just "new Array()" and change over to the
+        // "new" path, since then our native array handling can kick in.
+        EmitNew(pnode, byteCodeGenerator, funcInfo);
+        return;
+    }
 
     unsigned int argCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs) + (unsigned int)fIsPut;
 
@@ -10375,102 +10485,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     case knopNew:
     {
-        Js::ArgSlot argCount = pnode->sxCall.argCount;
-        argCount++; // include "this"
-
-        BOOL fSideEffectArgs = FALSE;
-        unsigned int tmpCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs);
-        Assert(argCount == tmpCount);
-
-        if (argCount != (Js::ArgSlot)argCount)
-        {
-            Js::Throw::OutOfMemory();
-        }
-
-        byteCodeGenerator->StartStatement(pnode);
-
-        // Start call, allocate out param space
-        funcInfo->StartRecordingOutArgs(argCount);
-
-        // Assign the call target operand(s), putting them into expression temps if necessary to protect
-        // them from side-effects.
-        if (fSideEffectArgs)
-        {
-            SaveOpndValue(pnode->sxCall.pnodeTarget, funcInfo);
-        }
-
-        if (pnode->sxCall.pnodeTarget->nop == knopSuper)
-        {
-            EmitSuperFieldPatch(funcInfo, pnode, byteCodeGenerator);
-        }
-
-        Emit(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo, false, true);
-
-        if (pnode->sxCall.pnodeArgs == nullptr)
-        {
-            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-            Js::OpCode op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
-                && CallTargetIsArray(pnode->sxCall.pnodeTarget))
-                ? Js::OpCode::NewScObjArray : Js::OpCode::NewScObject;
-            Assert(argCount == 1);
-
-            Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
-            byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-            byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode),
-                pnode->sxCall.pnodeTarget->location, argCount, callSiteId);
-        }
-        else
-        {
-            byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-            uint32 actualArgCount = 0;
-
-            if (IsCallOfConstants(pnode))
-            {
-                funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-                actualArgCount = EmitNewObjectOfConstants(pnode, byteCodeGenerator, funcInfo, argCount);
-            }
-            else
-            {
-                Js::OpCode op;
-                if ((CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)))
-                {
-                    op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjArraySpread : Js::OpCode::NewScObjArray;
-                }
-                else
-                {
-                    op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjectSpread : Js::OpCode::NewScObject;
-                }
-
-                Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
-
-
-                Js::AuxArray<uint32> *spreadIndices = nullptr;
-                actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister, Js::Constants::NoRegister,
-                    false, true, byteCodeGenerator, funcInfo, callSiteId, pnode->sxCall.spreadArgCount, &spreadIndices);
-                funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-
-
-                if (pnode->sxCall.spreadArgCount > 0)
-                {
-                    Assert(spreadIndices != nullptr);
-                    uint spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
-                    uint spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
-                    byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
-                        (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
-                        spreadIndices, spreadIndicesSize, callSiteId);
-                }
-                else
-                {
-                    byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
-                        (uint16)actualArgCount, callSiteId);
-                }
-            }
-
-            Assert(argCount == actualArgCount);
-        }
-
-        // End call, pop param space
-        funcInfo->EndRecordingOutArgs(argCount);
+        EmitNew(pnode, byteCodeGenerator, funcInfo);
 
         byteCodeGenerator->EndStatement(pnode);
         break;
