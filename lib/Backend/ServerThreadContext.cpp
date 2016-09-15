@@ -20,6 +20,9 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 #endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
+#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+    m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
+#endif
     m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
 }
 

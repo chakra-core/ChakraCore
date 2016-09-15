@@ -1955,7 +1955,7 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
     }
 }
 void
-ThreadContext::EnsureJITThreadContext()
+ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     Assert(JITManager::GetJITManager()->IsConnected());
@@ -1984,7 +1984,7 @@ ThreadContext::EnsureJITThreadContext()
     contextData.debugScriptIdWhenSetAddr = (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
-
+    contextData.allowPrereserveAlloc = allowPrereserveAlloc;
 #if _M_IX86 || _M_AMD64
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif

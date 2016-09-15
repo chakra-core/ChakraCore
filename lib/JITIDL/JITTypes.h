@@ -258,8 +258,8 @@ typedef struct ProfileDataIDL
 typedef struct ThreadContextDataIDL
 {
     boolean isThreadBound;
+    boolean allowPrereserveAlloc;
 
-    IDL_PAD1(0)
     IDL_PAD2(1)
     IDL_PAD4(2)
     CHAKRA_PTR processHandle;

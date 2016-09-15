@@ -2865,11 +2865,22 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
     if (JITManager::GetJITManager()->IsOOPJITEnabled() )
     {
         // ensure jit contexts have been set up
-        scriptContext->GetThreadContext()->EnsureJITThreadContext();
         if (!scriptContext->GetRemoteScriptAddr())
         {
             scriptContext->InitializeRemoteScriptContext();
         }
+
+        bool allowPrereserveAlloc = true;
+#if !_M_X64_OR_ARM64
+        if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
+        {
+            allowPrereserveAlloc = false;
+        }
+#endif
+#ifndef _CONTROL_FLOW_GUARD
+        allowPrereserveAlloc = false;
+#endif
+        scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
 
         // batch send all new property records
         ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
