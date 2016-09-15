@@ -1836,9 +1836,11 @@ AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dont
             addrOpnd->m_valueType = ValueType::GetTaggedInt();
             addrOpnd->SetValueTypeFixed();
         }
-#if FLOATVAR
-        // REVIEW (michhol): OOP JIT, should we do something when we don't have tagged floats
-        else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(addrOpnd->m_address))
+        else if (
+#if !FLOATVAR
+            !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) &&
+#endif
+            Js::JavascriptNumber::Is_NoTaggedIntCheck(addrOpnd->m_address))
         {
             addrOpnd->m_valueType =
                 Js::JavascriptNumber::IsInt32_NoChecks(addrOpnd->m_address)
@@ -1846,7 +1848,6 @@ AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dont
                 : ValueType::Float;
             addrOpnd->SetValueTypeFixed();
         }
-#endif
     }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
@@ -1884,7 +1885,11 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
         else
         {
             Js::Var var = varLocal ? varLocal : address;
-            if (Js::JavascriptNumber::Is_NoTaggedIntCheck(var))
+            if (
+#if !FLOATVAR
+                !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) &&
+#endif
+                Js::JavascriptNumber::Is_NoTaggedIntCheck(var))
             {
                 addrOpnd->m_valueType =
                     Js::JavascriptNumber::IsInt32_NoChecks(var)
