@@ -11440,11 +11440,18 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     return pnode;
       //PTNODE(knopFalse      , "false"        ,False   ,None ,fnopLeaf)
   case knopFalse:
-    return CreateNodeT<knopFalse>(pnode->ichMin,pnode->ichLim);
-      break;
+    {
+      ParseNode* ret = CreateNodeT<knopFalse>(pnode->ichMin, pnode->ichLim);
+      ret->location = pnode->location;
+      return ret;
+    }
       //PTNODE(knopTrue       , "true"        ,True    ,None ,fnopLeaf)
   case knopTrue:
-    return CreateNodeT<knopTrue>(pnode->ichMin,pnode->ichLim);
+    {
+        ParseNode* ret = CreateNodeT<knopTrue>(pnode->ichMin, pnode->ichLim);
+        ret->location = pnode->location;
+        return ret;
+    }
       //PTNODE(knopEmpty      , "empty"        ,Empty   ,None ,fnopLeaf)
   case knopEmpty:
     return CreateNodeT<knopEmpty>(pnode->ichMin,pnode->ichLim);
@@ -11574,8 +11581,8 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
       //PTNODE(knopNew        , "new"        ,None    ,Bin  ,fnopBin)
   case knopNew:
   case knopCall:
-    return CreateCallNode(pnode->nop,CopyPnode(pnode->sxBin.pnode1),
-                         CopyPnode(pnode->sxBin.pnode2),pnode->ichMin,pnode->ichLim);
+    return CreateCallNode(pnode->nop,CopyPnode(pnode->sxCall.pnodeTarget),
+                         CopyPnode(pnode->sxCall.pnodeArgs),pnode->ichMin,pnode->ichLim);
       //PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
   case knopQmark:
     return CreateTriNode(pnode->nop,CopyPnode(pnode->sxTri.pnode1),
