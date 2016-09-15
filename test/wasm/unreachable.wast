@@ -11,5 +11,4 @@
 
 )
 
-
 (assert_return (invoke "test_unreachable") (i32.const 1))
