@@ -178,7 +178,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     telemetryBlock(&localTelemetryBlock),
     configuration(enableExperimentalFeatures),
     jsrtRuntime(nullptr),
-    m_propertyMap(nullptr),
+    propertyMap(nullptr),
     rootPendingClose(nullptr),
     isProfilingUserCode(true),
     loopDepth(0),
@@ -478,10 +478,10 @@ ThreadContext::~ThreadContext()
             this->recyclableData->returnedValueList = nullptr;
         }
 
-        if (this->m_propertyMap != nullptr)
+        if (this->propertyMap != nullptr)
         {
-            HeapDelete(this->m_propertyMap);
-            this->m_propertyMap = nullptr;
+            HeapDelete(this->propertyMap);
+            this->propertyMap = nullptr;
         }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -850,15 +850,15 @@ ThreadContext::GetPropertyNameImpl(Js::PropertyId propertyId)
 
     int propertyIndex = propertyId - Js::PropertyIds::_none;
 
-    if (propertyIndex < 0 || propertyIndex > m_propertyMap->GetLastIndex())
+    if (propertyIndex < 0 || propertyIndex > propertyMap->GetLastIndex())
     {
         propertyIndex = 0;
     }
 
     const Js::PropertyRecord * propertyRecord = nullptr;
-    if (locked) { m_propertyMap->LockResize(); }
-    bool found = m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
-    if (locked) { m_propertyMap->UnlockResize(); }
+    if (locked) { propertyMap->LockResize(); }
+    bool found = propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
+    if (locked) { propertyMap->UnlockResize(); }
 
     AssertMsg(found && propertyRecord != nullptr, "using invalid propertyid");
     return propertyRecord;
@@ -893,11 +893,11 @@ ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameL
     if (IsDirectPropertyName(propertyName, propertyNameLength))
     {
         propertyRecord = propertyNamesDirect[propertyName[0]];
-        Assert(propertyRecord == m_propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
+        Assert(propertyRecord == propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
     }
     else
     {
-        propertyRecord = m_propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
+        propertyRecord = propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
     }
 
     return propertyRecord;
@@ -913,12 +913,12 @@ void ThreadContext::InitializePropertyMaps()
 {
     Assert(this->recycler != nullptr);
     Assert(this->recyclableData != nullptr);
-    Assert(this->m_propertyMap == nullptr);
+    Assert(this->propertyMap == nullptr);
     Assert(this->caseInvariantPropertySet == nullptr);
 
     try
     {
-        this->m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+        this->propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
 #if ENABLE_NATIVE_CODEGEN
         this->m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
 #endif
@@ -930,11 +930,11 @@ void ThreadContext::InitializePropertyMaps()
         InitializeAdditionalProperties(this);
 
 #if ENABLE_NATIVE_CODEGEN
-        if (m_propertyMap->Count() > 0)
+        if (propertyMap->Count() > 0)
         {
-            uint count = (uint)m_propertyMap->Count();
+            uint count = (uint)propertyMap->Count();
             PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
-            auto iter = m_propertyMap->GetIterator();
+            auto iter = propertyMap->GetIterator();
             while (iter.IsValid())
             {
                 m_pendingJITProperties->Add(iter.CurrentValue());
@@ -950,11 +950,11 @@ void ThreadContext::InitializePropertyMaps()
         // Initialization failed, undo what was done above. Callees that throw must clean up after themselves. The recycler will
         // be trashed, so clear members that point to recyclable memory. Stuff in 'recyclableData' will be taken care of by the
         // recycler, and the 'recyclableData' instance will be trashed as well.
-        if (this->m_propertyMap != nullptr)
+        if (this->propertyMap != nullptr)
         {
-            HeapDelete(this->m_propertyMap);
+            HeapDelete(this->propertyMap);
         }
-        this->m_propertyMap = nullptr;
+        this->propertyMap = nullptr;
 
 #if ENABLE_NATIVE_CODEGEN
         if (this->m_pendingJITProperties != nullptr)
@@ -1025,7 +1025,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     }
 #endif
 
-    this->m_propertyMap->EnsureCapacity();
+    this->propertyMap->EnsureCapacity();
 
     // Automatically bind direct (single-character) property names, so that they can be
     // stored in the direct property table
@@ -1116,7 +1116,7 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
 #endif
 
     // Add to the map
-    m_propertyMap->Add(propertyRecord);
+    propertyMap->Add(propertyRecord);
 
 #if ENABLE_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
@@ -1266,7 +1266,7 @@ bool ThreadContext::IsActivePropertyId(Js::PropertyId pid)
     int propertyIndex = pid - Js::PropertyIds::_none;
 
     const Js::PropertyRecord * propertyRecord;
-    if (m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
+    if (propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
     {
         return true;
     }
@@ -1278,7 +1278,7 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
 
-    this->m_propertyMap->Remove(propertyRecord);
+    this->propertyMap->Remove(propertyRecord);
 
     PropertyRecordTrace(_u("Reclaimed property '%s' at 0x%08x, pid = %d\n"),
         propertyRecord->GetBuffer(), propertyRecord, propertyRecord->GetPropertyId());
@@ -1286,12 +1286,12 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 
 Js::PropertyId ThreadContext::GetNextPropertyId()
 {
-    return this->m_propertyMap->GetNextIndex() + Js::PropertyIds::_none;
+    return this->propertyMap->GetNextIndex() + Js::PropertyIds::_none;
 }
 
 Js::PropertyId ThreadContext::GetMaxPropertyId()
 {
-    auto maxPropertyId = this->m_propertyMap->Count() + Js::InternalPropertyIds::Count;
+    auto maxPropertyId = this->propertyMap->Count() + Js::InternalPropertyIds::Count;
     return maxPropertyId;
 }
 
@@ -1310,10 +1310,10 @@ void ThreadContext::CreateNoCasePropertyMap()
     // Thus, don't use BaseDictionary::Map here, as it cannot tolerate changes while mapping.
     // Instead, walk the PropertyRecord entries in index order.  This will work even if a GC occurs.
 
-    for (int propertyIndex = 0; propertyIndex <= this->m_propertyMap->GetLastIndex(); propertyIndex++)
+    for (int propertyIndex = 0; propertyIndex <= this->propertyMap->GetLastIndex(); propertyIndex++)
     {
         const Js::PropertyRecord * propertyRecord;
-        if (this->m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
+        if (this->propertyMap->TryGetValueAt(propertyIndex, &propertyRecord) && propertyRecord != nullptr)
         {
             AddCaseInvariantPropertyRecord(propertyRecord);
         }
@@ -4074,7 +4074,7 @@ uint ThreadContext::GetRandomNumber()
 #ifdef ENABLE_JS_ETW
 void ThreadContext::EtwLogPropertyIdList()
 {
-    m_propertyMap->Map([&](const Js::PropertyRecord* propertyRecord){
+    propertyMap->Map([&](const Js::PropertyRecord* propertyRecord){
         EventWriteJSCRIPT_HOSTING_PROPERTYID_LIST(propertyRecord, propertyRecord->GetBuffer());
     });
 }
@@ -4436,7 +4436,7 @@ void ThreadContext::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSet
 
 uint ThreadContext::GetHighestPropertyNameIndex() const
 {
-    return m_propertyMap->GetLastIndex() + 1 + Js::InternalPropertyIds::Count;
+    return propertyMap->GetLastIndex() + 1 + Js::InternalPropertyIds::Count;
 }
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
