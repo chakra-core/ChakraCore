@@ -7063,19 +7063,31 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         return true;
     }
 
+    // Save the head instruction for later use.
+    IR::Instr *blockHeadInstr = curInstr;
+
     // We can't bail in the middle of a "tmp = CmEq s1, s2; BrTrue tmp" turned into a "BrEq s1, s2",
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
+    IR::Instr *instrNope = nullptr;
     if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
-        block->RemoveInstr(instr);
-        return true;
+        // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
+        // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
+        // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
+        // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
+        while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+        {
+            instrNope = curNext;
+            curNext = curNext->GetNextRealInstrOrLabel();
+        }
+        instrNope = curNext;
     }
 
     curInstr = instr->m_prev;
 
     // Move to top of block.
-    while(!curInstr->StartsBasicBlock())
+    while(!curInstr->StartsBasicBlock() && curInstr != instrNope)
     {
         // Delete redundant BailOnNoProfile
         if (curInstr->m_opcode == Js::OpCode::BailOnNoProfile)
@@ -7113,7 +7125,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
             {
                 continue;
             }
-            if (predSucc->GetFirstInstr()->m_next->m_opcode != Js::OpCode::BailOnNoProfile)
+            if (!predSucc->beginsBailOnNoProfile)
             {
                 hoistBailToPred = false;
                 break;
@@ -7163,10 +7175,11 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // and throw case should be rare enough that it won't matter for perf.
     if (block->GetBlockNum() != 0)
     {
-        curInstr->AsLabelInstr()->isOpHelper = true;
+        blockHeadInstr->AsLabelInstr()->isOpHelper = true;
 #if DBG
-        curInstr->AsLabelInstr()->m_noHelperAssert = true;
+        blockHeadInstr->AsLabelInstr()->m_noHelperAssert = true;
 #endif
+        block->beginsBailOnNoProfile = true;
 
         instr->m_func = curInstr->m_func;
         curInstr->InsertAfter(instr);
