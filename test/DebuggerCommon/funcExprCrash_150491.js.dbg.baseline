@@ -1,0 +1,41 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "Pass": "function <large string>",
+      "test": "function <large string>",
+      "top": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "tt": "undefined undefined"
+    },
+    "scopes0": {
+      "m": "Object {...}",
+      "g": "number 0",
+      "a": "number 0",
+      "b": "number 0",
+      "l": "number 0",
+      "n": "number 0",
+      "h": "number 0",
+      "o": "boolean true",
+      "c": "number 0",
+      "q": "boolean true",
+      "p": "boolean false"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "Pass": "function <large string>",
+      "test": "function <large string>",
+      "top": "Object {...}"
+    }
+  }
+]

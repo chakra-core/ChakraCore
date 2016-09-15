@@ -357,3 +357,8 @@ RT_ERROR_MSG(JSERR_InvalidHint, 5658, "%s: invalid hint", "invalid hint", kjstTy
 
 RT_ERROR_MSG(JSERR_This_NeedNamespace, 5659, "%s: 'this' is not a Module Namespace object", "Module Namespace object expected", kjstTypeError, JSERR_This_NeedNamespace) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedListIterator, 5660, "%s: 'this' is not a List Iterator object", "List Iterator expected", kjstTypeError, 0) 
+RT_ERROR_MSG(JSERR_NeedSharedArrayBufferObject, 5661, "%s is not a SharedArrayBuffer", "SharedArrayBuffer object expected", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NeedTypedArrayObject, 5662, "", "Atomics function called with invalid typed array object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of range", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)

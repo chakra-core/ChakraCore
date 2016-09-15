@@ -1,0 +1,242 @@
+[
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  },
+  {
+    "breakpoints": [
+      {
+        "breakpointId": 1,
+        "line": 10,
+        "column": 5,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 2,
+        "line": 20,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 3,
+        "line": 34,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 4,
+        "line": 41,
+        "column": 69,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 5,
+        "line": 48,
+        "column": 6,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 6,
+        "line": 60,
+        "column": 6,
+        "scriptId": 2
+      }
+    ]
+  }
+]

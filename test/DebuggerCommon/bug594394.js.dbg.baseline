@@ -1,0 +1,72 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 0,
+        "sourceText": "for (i in [1,2])",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 5,
+        "sourceText": "i",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 16,
+        "sourceText": "WScript.Echo(i)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 5,
+        "sourceText": "i",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 16,
+        "sourceText": "WScript.Echo(i)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 5,
+        "sourceText": "i",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 0,
+        "sourceText": "WScript.Echo(\"After\")",
+        "function": "Global code"
+      }
+    ]
+  }
+]

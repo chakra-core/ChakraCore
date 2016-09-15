@@ -143,7 +143,7 @@ private:
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
     void            AllocStackClosure();
-    IR::Instr *     GenerateNewStackScFunc(IR::Instr * newScFuncInstr);
+    IR::Instr *     GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnvOpnd);
     void            GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyPtrPtr nestedProxy);
     void            GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,
                         Js::FunctionProxyPtrPtr nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed = false);

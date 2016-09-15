@@ -593,35 +593,8 @@ if new_level is -1, the nesting level will not be modified
 --*/
 int DBG_change_entrylevel(int new_level);
 
-#ifdef __APPLE__
-/*++
-Function :
-    PAL_DisplayDialog
-
-    Display a simple modal dialog with an alert icon and a single OK button. Caller supplies the title of the
-    dialog and the main text. The dialog is displayed only if the COMPlus_EnableAssertDialog environment
-    variable is set to the value "1".
-
---*/
-void PAL_DisplayDialog(const char *szTitle, const char *szText);
-
-/*++
-Function :
-    PAL_DisplayDialogFormatted
-
-    As above but takes a printf-style format string and insertion values to form the main text.
-
---*/
-void PAL_DisplayDialogFormatted(const char *szTitle, const char *szTextFormat, ...);
-#else // __APPLE__
-#define PAL_DisplayDialog(_szTitle, _szText)
-#define PAL_DisplayDialogFormatted(_szTitle, _szTextFormat, args...)
-#endif // __APPLE__
-
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif /* _PAL_DBGMSG_H_ */
-
-

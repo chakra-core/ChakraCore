@@ -184,7 +184,6 @@ static exception_mask_t GetExceptionMask()
         {                                                               \
             PAL_EnterHolder enterHolder;                                \
             PAL_printf(__VA_ARGS__);                                    \
-            PAL_DisplayDialogFormatted("NON-PAL RETAIL ASSERT", __VA_ARGS__); \
         }                                                               \
         DBG_DebugBreak();                                               \
         abort();                                                        \

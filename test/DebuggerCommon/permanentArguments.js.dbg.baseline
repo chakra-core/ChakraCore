@@ -1,0 +1,12 @@
+[
+  {
+    "evaluate": {
+      "a": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      }
+    }
+  }
+]

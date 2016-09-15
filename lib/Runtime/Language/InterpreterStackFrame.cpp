@@ -1680,7 +1680,7 @@ namespace Js
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    __declspec(thread) int InterpreterThunkStackCountTracker::s_count = 0;
+    THREAD_LOCAL int InterpreterThunkStackCountTracker::s_count = 0;
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK

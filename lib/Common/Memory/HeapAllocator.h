@@ -155,7 +155,7 @@ public:
 
     static bool CheckLeaks();
 
-    __declspec(thread) static TrackAllocData nextAllocData;
+    THREAD_LOCAL static TrackAllocData nextAllocData;
     HeapAllocatorData data;
     static CriticalSection cs;
 #endif // HEAP_TRACK_ALLOC

@@ -251,11 +251,14 @@ bool CatchHardwareExceptionHolder::IsEnabled()
 
 --*/
 
+#ifndef __IOS__
+// todo: Implement ThreadLocal for iOS ?? i.e. pthread get/set specific ??
 #ifdef __llvm__
 __thread 
 #else // __llvm__
 __declspec(thread)
 #endif // !__llvm__
+#endif
 static NativeExceptionHolderBase *t_nativeExceptionHolderHead = nullptr;
 
 NativeExceptionHolderBase::NativeExceptionHolderBase()

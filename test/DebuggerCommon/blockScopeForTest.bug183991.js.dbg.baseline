@@ -1,0 +1,42 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "a": "Object {...}"
+    },
+    "locals": {
+      "y": "string x",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "a": {
+        "#__proto__": "Object {...}",
+        "x": "number 2",
+        "y": "number 1"
+      }
+    },
+    "globals": {}
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "a": "Object {...}"
+    },
+    "locals": {
+      "y": "string y",
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "a": {
+        "#__proto__": "Object {...}",
+        "x": "number 2",
+        "y": "number 1"
+      }
+    },
+    "globals": {}
+  }
+]

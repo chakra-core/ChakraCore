@@ -496,7 +496,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptError.h"
 #include "Library/JavascriptArray.h"
 
+#include "Library/AtomicsObject.h"
 #include "Library/ArrayBuffer.h"
+#include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
 

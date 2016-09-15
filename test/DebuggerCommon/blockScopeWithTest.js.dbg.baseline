@@ -1,0 +1,113 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "c": "string 1",
+      "dConst": "string 2",
+      "b": "number 4",
+      "a": "number 3",
+      "o": {
+        "#__proto__": "Object {...}",
+        "p1": "number 1",
+        "p2": "string 2"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "b": "number 4",
+      "a": "number 3",
+      "o": {
+        "#__proto__": "Object {...}",
+        "p1": "number 1",
+        "p2": "string 2"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "a": "number 3",
+      "o": {
+        "#__proto__": "Object {...}",
+        "p1": "number 1",
+        "p2": "string 2"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "o": {
+        "#__proto__": "Object {...}",
+        "p1": "number 1",
+        "p2": "string 2"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeWithTestFunc": "function <large string>"
+    }
+  }
+]

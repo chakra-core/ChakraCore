@@ -1,0 +1,998 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 13,
+        "column": 4,
+        "sourceText": "var sub = -10",
+        "function": "F2"
+      },
+      {
+        "line": 34,
+        "column": 12,
+        "sourceText": "return b1 + F2()",
+        "function": "f6"
+      },
+      {
+        "line": 36,
+        "column": 8,
+        "sourceText": "f6()",
+        "function": "F5_1"
+      },
+      {
+        "line": 38,
+        "column": 4,
+        "sourceText": "F5_1(t1)",
+        "function": "F5"
+      },
+      {
+        "line": 45,
+        "column": 8,
+        "sourceText": "F5()",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 83,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [...]",
+      "i": "number 100",
+      "sub": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b1": "number 10",
+      "obj1": "Object {...}"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 22.2",
+      "arguments": "Object {...}",
+      "f6": "function <large string>",
+      "z": "number 20"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "F5_1": "function <large string>",
+      "x": "number 20",
+      "y": "Object {...}",
+      "t1": "number 22.2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 12",
+      "b": "string assdf"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 46,
+        "column": 8,
+        "sourceText": "return j",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 83,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 12",
+      "b": "string assdf"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "number 12",
+      "arg2": "string assdf",
+      "arg3": "number 112"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "F2": "function <large string>",
+      "F3": "function <large string>",
+      "F5": "function <large string>",
+      "F6": "function <large string>",
+      "F7": "function <large string>",
+      "Run": "function <large string>",
+      "obj4": "number 12.56"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 62,
+        "column": 12,
+        "sourceText": "a++",
+        "function": "f3"
+      },
+      {
+        "line": 71,
+        "column": 8,
+        "sourceText": "f3()",
+        "function": "f2"
+      },
+      {
+        "line": 74,
+        "column": 4,
+        "sourceText": "f2(k)",
+        "function": "F7"
+      },
+      {
+        "line": 80,
+        "column": 4,
+        "sourceText": "F7(arg3)",
+        "function": "Run"
+      },
+      {
+        "line": 83,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c31": "undefined undefined",
+      "c32": "undefined undefined",
+      "a": "number 10"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "f3": "function <large string>",
+      "f32": "function <large string>",
+      "arguments": "Object {...}",
+      "j2": "number 1",
+      "k2": "number 10",
+      "b21": "number 26.8",
+      "b22": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a1": "number 112",
+      "f2": "function <large string>",
+      "k": "number 26.8",
+      "m": "number 132",
+      "j": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "number 12",
+      "arg2": "string assdf",
+      "arg3": "number 112"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 13,
+        "column": 4,
+        "sourceText": "var sub = -10",
+        "function": "F2"
+      },
+      {
+        "line": 34,
+        "column": 12,
+        "sourceText": "return b1 + F2()",
+        "function": "f6"
+      },
+      {
+        "line": 36,
+        "column": 8,
+        "sourceText": "f6()",
+        "function": "F5_1"
+      },
+      {
+        "line": 38,
+        "column": 4,
+        "sourceText": "F5_1(t1)",
+        "function": "F5"
+      },
+      {
+        "line": 45,
+        "column": 8,
+        "sourceText": "F5()",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 84,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [...]",
+      "i": "number 100",
+      "sub": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b1": "number 10",
+      "obj1": "Object {...}"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 22.2",
+      "arguments": "Object {...}",
+      "f6": "function <large string>",
+      "z": "number 20"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "F5_1": "function <large string>",
+      "x": "number 20",
+      "y": "Object {...}",
+      "t1": "number 22.2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [3,5,8]",
+      "b": "Object {...}"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 46,
+        "column": 8,
+        "sourceText": "return j",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 84,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [3,5,8]",
+      "b": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "Array [3,5,8]",
+      "arg2": "Object {...}",
+      "arg3": "number 21"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "F2": "function <large string>",
+      "F3": "function <large string>",
+      "F5": "function <large string>",
+      "F6": "function <large string>",
+      "F7": "function <large string>",
+      "Run": "function <large string>",
+      "obj4": "number 12.56"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 62,
+        "column": 12,
+        "sourceText": "a++",
+        "function": "f3"
+      },
+      {
+        "line": 71,
+        "column": 8,
+        "sourceText": "f3()",
+        "function": "f2"
+      },
+      {
+        "line": 74,
+        "column": 4,
+        "sourceText": "f2(k)",
+        "function": "F7"
+      },
+      {
+        "line": 80,
+        "column": 4,
+        "sourceText": "F7(arg3)",
+        "function": "Run"
+      },
+      {
+        "line": 84,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c31": "undefined undefined",
+      "c32": "undefined undefined",
+      "a": "number 10"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "f3": "function <large string>",
+      "f32": "function <large string>",
+      "arguments": "Object {...}",
+      "j2": "number 1",
+      "k2": "number 10",
+      "b21": "number 26.8",
+      "b22": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a1": "number 21",
+      "f2": "function <large string>",
+      "k": "number 26.8",
+      "m": "number 41",
+      "j": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "Array [3,5,8]",
+      "arg2": "Object {...}",
+      "arg3": "number 21"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 13,
+        "column": 4,
+        "sourceText": "var sub = -10",
+        "function": "F2"
+      },
+      {
+        "line": 34,
+        "column": 12,
+        "sourceText": "return b1 + F2()",
+        "function": "f6"
+      },
+      {
+        "line": 36,
+        "column": 8,
+        "sourceText": "f6()",
+        "function": "F5_1"
+      },
+      {
+        "line": 38,
+        "column": 4,
+        "sourceText": "F5_1(t1)",
+        "function": "F5"
+      },
+      {
+        "line": 45,
+        "column": 8,
+        "sourceText": "F5()",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 85,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [...]",
+      "i": "number 100",
+      "sub": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b1": "number 10",
+      "obj1": "Object {...}"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 22.2",
+      "arguments": "Object {...}",
+      "f6": "function <large string>",
+      "z": "number 20"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "F5_1": "function <large string>",
+      "x": "number 20",
+      "y": "Object {...}",
+      "t1": "number 22.2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 12",
+      "b": "string assdf"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 46,
+        "column": 8,
+        "sourceText": "return j",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 85,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 12",
+      "b": "string assdf"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "number 12",
+      "arg2": "string assdf",
+      "arg3": "number 112"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "F2": "function <large string>",
+      "F3": "function <large string>",
+      "F5": "function <large string>",
+      "F6": "function <large string>",
+      "F7": "function <large string>",
+      "Run": "function <large string>",
+      "obj4": "number 12.56"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 62,
+        "column": 12,
+        "sourceText": "a++",
+        "function": "f3"
+      },
+      {
+        "line": 71,
+        "column": 8,
+        "sourceText": "f3()",
+        "function": "f2"
+      },
+      {
+        "line": 74,
+        "column": 4,
+        "sourceText": "f2(k)",
+        "function": "F7"
+      },
+      {
+        "line": 80,
+        "column": 4,
+        "sourceText": "F7(arg3)",
+        "function": "Run"
+      },
+      {
+        "line": 85,
+        "column": 0,
+        "sourceText": "Run(12, \"assdf\", 112)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c31": "undefined undefined",
+      "c32": "undefined undefined",
+      "a": "number 10"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "f3": "function <large string>",
+      "f32": "function <large string>",
+      "arguments": "Object {...}",
+      "j2": "number 1",
+      "k2": "number 10",
+      "b21": "number 26.8",
+      "b22": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a1": "number 112",
+      "f2": "function <large string>",
+      "k": "number 26.8",
+      "m": "number 132",
+      "j": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "number 12",
+      "arg2": "string assdf",
+      "arg3": "number 112"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 13,
+        "column": 4,
+        "sourceText": "var sub = -10",
+        "function": "F2"
+      },
+      {
+        "line": 34,
+        "column": 12,
+        "sourceText": "return b1 + F2()",
+        "function": "f6"
+      },
+      {
+        "line": 36,
+        "column": 8,
+        "sourceText": "f6()",
+        "function": "F5_1"
+      },
+      {
+        "line": 38,
+        "column": 4,
+        "sourceText": "F5_1(t1)",
+        "function": "F5"
+      },
+      {
+        "line": 45,
+        "column": 8,
+        "sourceText": "F5()",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 86,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [...]",
+      "i": "number 100",
+      "sub": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b1": "number 10",
+      "obj1": "Object {...}"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 22.2",
+      "arguments": "Object {...}",
+      "f6": "function <large string>",
+      "z": "number 20"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "F5_1": "function <large string>",
+      "x": "number 20",
+      "y": "Object {...}",
+      "t1": "number 22.2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [3,5,8]",
+      "b": "Object {...}"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 46,
+        "column": 8,
+        "sourceText": "return j",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 43,
+        "column": 5,
+        "sourceText": "function () {\r\n        var j = \"Anonymous function2\";\r\n        F5();\r\n        return j;                                    /**bp:stack();locals();setFrame(1);locals();setFrame(2);locals();setFrame(3);locals();**/\r\n    })()",
+        "function": "F6"
+      },
+      {
+        "line": 79,
+        "column": 4,
+        "sourceText": "F6(arg1, arg2)",
+        "function": "Run"
+      },
+      {
+        "line": 86,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array [3,5,8]",
+      "b": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "Array [3,5,8]",
+      "arg2": "Object {...}",
+      "arg3": "number 21"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "F2": "function <large string>",
+      "F3": "function <large string>",
+      "F5": "function <large string>",
+      "F6": "function <large string>",
+      "F7": "function <large string>",
+      "Run": "function <large string>",
+      "obj4": "number 12.56"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 62,
+        "column": 12,
+        "sourceText": "a++",
+        "function": "f3"
+      },
+      {
+        "line": 71,
+        "column": 8,
+        "sourceText": "f3()",
+        "function": "f2"
+      },
+      {
+        "line": 74,
+        "column": 4,
+        "sourceText": "f2(k)",
+        "function": "F7"
+      },
+      {
+        "line": 80,
+        "column": 4,
+        "sourceText": "F7(arg3)",
+        "function": "Run"
+      },
+      {
+        "line": 86,
+        "column": 0,
+        "sourceText": "Run([3,5,8], {a:\"aa\"}, 21)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c31": "undefined undefined",
+      "c32": "undefined undefined",
+      "a": "number 10"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "f3": "function <large string>",
+      "f32": "function <large string>",
+      "arguments": "Object {...}",
+      "j2": "number 1",
+      "k2": "number 10",
+      "b21": "number 26.8",
+      "b22": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a1": "number 21",
+      "f2": "function <large string>",
+      "k": "number 26.8",
+      "m": "number 41",
+      "j": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg1": "Array [3,5,8]",
+      "arg2": "Object {...}",
+      "arg3": "number 21"
+    }
+  }
+]

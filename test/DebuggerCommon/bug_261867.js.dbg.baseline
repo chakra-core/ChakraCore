@@ -1,0 +1,12 @@
+[
+  {
+    "evaluate": {
+      "CollectGarbage();CollectGarbage();": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "CollectGarbage();CollectGarbage();": "undefined undefined"
+    }
+  }
+]

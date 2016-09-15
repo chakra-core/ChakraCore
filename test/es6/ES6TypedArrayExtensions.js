@@ -2017,160 +2017,166 @@ var tests = [
     {
         name: "ArrayBuffer.prototype.slice behavior with positive start offset",
         body: function() {
-            var len = 10;
-            var buf = new ArrayBuffer(len);
-            var u8 = new Uint8Array(buf);
+            [ArrayBuffer, SharedArrayBuffer].forEach(function(bufferType) {
+                var len = 10;
+                var buf = new bufferType(len);
+                var u8 = new Uint8Array(buf);
 
-            for (var i = 0; i < u8.length; i++)
-            {
-                u8[i] = i + 1;
-            }
+                for (var i = 0; i < u8.length; i++)
+                {
+                    u8[i] = i + 1;
+                }
 
-            var sliced = buf.slice();
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice() returns the same array elements as the original");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice() returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice();
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice() returns the same array elements as the original");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice() returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(0);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(0) returns the same array elements as the original");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(0);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(0) returns the same array elements as the original");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0) returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(5);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([6,7,8,9,10], slicedArray, "slice(5) contains the last 5 elements - [6,7,8,9,10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "slice(5) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(5);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([6,7,8,9,10], slicedArray, "slice(5) contains the last 5 elements - [6,7,8,9,10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "slice(5) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(9);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([10], slicedArray, "slice(9) contains the last 1 elements - [10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(1, sliced.byteLength, "slice(9) returns an ArrayBuffer with byteLength = 1");
+                var sliced = buf.slice(9);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([10], slicedArray, "slice(9) contains the last 1 elements - [10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(1, sliced.byteLength, "slice(9) returns an ArrayBuffer with byteLength = 1");
 
-            var sliced = buf.slice(10);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "slice(10) contains empty buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "slice(10) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(10);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "slice(10) contains empty buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "slice(10) returns an ArrayBuffer with byteLength = 0");
 
-            var sliced = buf.slice(15);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "slice(15) contains empty buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "slice(15) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(15);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "slice(15) contains empty buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "slice(15) returns an ArrayBuffer with byteLength = 0");
 
-            var sliced = buf.slice(100);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "slice(100) contains empty buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "slice(100) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(100);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "slice(100) contains empty buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "slice(100) returns an ArrayBuffer with byteLength = 0");
+            });
         }
     },
     {
         name: "ArrayBuffer.prototype.slice behavior with negative start offset",
         body: function() {
-            var len = 10;
-            var buf = new ArrayBuffer(len);
-            var u8 = new Uint8Array(buf);
+            [ArrayBuffer, SharedArrayBuffer].forEach(function(bufferType) {
+                var len = 10;
+                var buf = new bufferType(len);
+                var u8 = new Uint8Array(buf);
 
-            for (var i = 0; i < u8.length; i++)
-            {
-                u8[i] = i + 1;
-            }
+                for (var i = 0; i < u8.length; i++)
+                {
+                    u8[i] = i + 1;
+                }
 
-            var sliced = buf.slice(-4);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([7,8,9,10], slicedArray, "slice(-4) returns the last 4 elements - [7,8,9,10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(4, sliced.byteLength, "slice(-4) returns an ArrayBuffer with the byteLength = 4");
+                var sliced = buf.slice(-4);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([7,8,9,10], slicedArray, "slice(-4) returns the last 4 elements - [7,8,9,10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(4, sliced.byteLength, "slice(-4) returns an ArrayBuffer with the byteLength = 4");
 
-            var sliced = buf.slice(-5);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([6,7,8,9,10], slicedArray, "slice(-5) contains the last 5 elements - [6,7,8,9,10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "slice(-5) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(-5);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([6,7,8,9,10], slicedArray, "slice(-5) contains the last 5 elements - [6,7,8,9,10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "slice(-5) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(-9);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([2,3,4,5,6,7,8,9,10], slicedArray, "slice(-9) contains the last 9 elements - [2,3,4,5,6,7,8,9,10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(9, sliced.byteLength, "slice(-9) returns an ArrayBuffer with byteLength = 9");
+                var sliced = buf.slice(-9);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([2,3,4,5,6,7,8,9,10], slicedArray, "slice(-9) contains the last 9 elements - [2,3,4,5,6,7,8,9,10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(9, sliced.byteLength, "slice(-9) returns an ArrayBuffer with byteLength = 9");
 
-            var sliced = buf.slice(-10);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(-10) returns ArrayBuffer containing the entire original buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-10) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(-10);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(-10) returns ArrayBuffer containing the entire original buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-10) returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(-15);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(-15) returns ArrayBuffer containing the entire original buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-15) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(-15);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(-15) returns ArrayBuffer containing the entire original buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-15) returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(-100);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(-100) returns ArrayBuffer containing the entire original buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-100) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(-100);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(-100) returns ArrayBuffer containing the entire original buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(-100) returns an ArrayBuffer with the same byteLength as the original");
+            });
         }
     },
     {
         name: "ArrayBuffer.prototype.slice behavior with positive start offset and positive end offset",
         body: function() {
-            var len = 10;
-            var buf = new ArrayBuffer(len);
-            var u8 = new Uint8Array(buf);
+            [ArrayBuffer, SharedArrayBuffer].forEach(function(bufferType) {
+                var len = 10;
+                var buf = new bufferType(len);
+                var u8 = new Uint8Array(buf);
 
-            for (var i = 0; i < u8.length; i++)
-            {
-                u8[i] = i + 1;
-            }
+                for (var i = 0; i < u8.length; i++)
+                {
+                    u8[i] = i + 1;
+                }
 
-            var sliced = buf.slice(0, len);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(0, len) returns all the elements of the original buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0, len) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(0, len);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(0, len) returns all the elements of the original buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0, len) returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(0, len * 10);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual(u8, slicedArray, "slice(0, len*10) returns all the elements of the original buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0, len*10) returns an ArrayBuffer with the same byteLength as the original");
+                var sliced = buf.slice(0, len * 10);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual(u8, slicedArray, "slice(0, len*10) returns all the elements of the original buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(buf.byteLength, sliced.byteLength, "slice(0, len*10) returns an ArrayBuffer with the same byteLength as the original");
 
-            var sliced = buf.slice(0, 5);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([1,2,3,4,5], slicedArray, "slice(0, 5) contains the first 5 elements - [1,2,3,4,5]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "slice(0, 5) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(0, 5);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([1,2,3,4,5], slicedArray, "slice(0, 5) contains the first 5 elements - [1,2,3,4,5]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "slice(0, 5) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(1, 1);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "slice(1, 1) contains no elements - the empty buffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "slice(1, 1) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(1, 1);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "slice(1, 1) contains no elements - the empty buffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "slice(1, 1) returns an ArrayBuffer with byteLength = 0");
 
-            var sliced = buf.slice(5, 10);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([6,7,8,9,10], slicedArray, "slice(5, 10) returns the last 5 elements - [6,7,8,9,10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "slice(5, 10) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(5, 10);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([6,7,8,9,10], slicedArray, "slice(5, 10) returns the last 5 elements - [6,7,8,9,10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "slice(5, 10) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(9, 10);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([10], slicedArray, "slice(9, 10) returns the last element - [10]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(1, sliced.byteLength, "slice(9, 10) returns an ArrayBuffer with byteLength = 1");
+                var sliced = buf.slice(9, 10);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([10], slicedArray, "slice(9, 10) returns the last element - [10]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(1, sliced.byteLength, "slice(9, 10) returns an ArrayBuffer with byteLength = 1");
 
-            var sliced = buf.slice(7, 5);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "slice(7, 5) returns empty ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "slice(7, 5) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(7, 5);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "slice(7, 5) returns empty ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "slice(7, 5) returns an ArrayBuffer with byteLength = 0");
+            });
         }
     },
     {
@@ -2363,56 +2369,58 @@ var tests = [
     {
         name: "BLUE: 519650, 519651, 519652 - ArrayBuffer.prototype.slice behavior with undefined or infinite arguments",
         body: function() {
-            var len = 5;
-            var buf = new ArrayBuffer(len);
-            var u8 = new Uint8ClampedArray(buf);
+            [ArrayBuffer, SharedArrayBuffer].forEach(function(bufferType) {
+                var len = 5;
+                var buf = new bufferType(len);
+                var u8 = new Uint8ClampedArray(buf);
 
-            for (var i = 0; i < u8.length; i++)
-            {
-                u8[i] = i + 1;
-            }
+                for (var i = 0; i < u8.length; i++)
+                {
+                    u8[i] = i + 1;
+                }
 
-            var sliced = buf.slice(3, undefined);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([4,5], slicedArray, "slice(3, undefined) returns elements 3 through len-1 = [4,5]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(2, sliced.byteLength, "slice(3, undefined) returns an ArrayBuffer with byteLength = 2");
+                var sliced = buf.slice(3, undefined);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([4,5], slicedArray, "slice(3, undefined) returns elements 3 through len-1 = [4,5]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(2, sliced.byteLength, "slice(3, undefined) returns an ArrayBuffer with byteLength = 2");
 
-            var sliced = buf.slice(Number.POSITIVE_INFINITY, 3);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "buf.slice(Number.POSITIVE_INFINITY, 3) returns elements an empty ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "buf.slice(Number.POSITIVE_INFINITY, 3) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(Number.POSITIVE_INFINITY, 3);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "buf.slice(Number.POSITIVE_INFINITY, 3) returns elements an empty ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "buf.slice(Number.POSITIVE_INFINITY, 3) returns an ArrayBuffer with byteLength = 0");
 
-            var sliced = buf.slice(2, Number.POSITIVE_INFINITY);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([3,4,5], slicedArray, "buf.slice(2, Number.POSITIVE_INFINITY) returns elements 2 through len-1 = [3,4,5]");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(3, sliced.byteLength, "buf.slice(2, Number.POSITIVE_INFINITY) returns an ArrayBuffer with byteLength = 3");
+                var sliced = buf.slice(2, Number.POSITIVE_INFINITY);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([3,4,5], slicedArray, "buf.slice(2, Number.POSITIVE_INFINITY) returns elements 2 through len-1 = [3,4,5]");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(3, sliced.byteLength, "buf.slice(2, Number.POSITIVE_INFINITY) returns an ArrayBuffer with byteLength = 3");
 
-            var sliced = buf.slice(NaN);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([1,2,3,4,5], slicedArray, "buf.slice(NaN) returns the same elements as the original ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "buf.slice(NaN) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(NaN);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([1,2,3,4,5], slicedArray, "buf.slice(NaN) returns the same elements as the original ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "buf.slice(NaN) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(Number.NEGATIVE_INFINITY);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([1,2,3,4,5], slicedArray, "buf.slice(Number.NEGATIVE_INFINITY) returns the same elements as the original ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(5, sliced.byteLength, "buf.slice(Number.NEGATIVE_INFINITY) returns an ArrayBuffer with byteLength = 5");
+                var sliced = buf.slice(Number.NEGATIVE_INFINITY);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([1,2,3,4,5], slicedArray, "buf.slice(Number.NEGATIVE_INFINITY) returns the same elements as the original ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(5, sliced.byteLength, "buf.slice(Number.NEGATIVE_INFINITY) returns an ArrayBuffer with byteLength = 5");
 
-            var sliced = buf.slice(len-1,len);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([5], slicedArray, "buf.slice(len-1,len) returns the last element from the original ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(1, sliced.byteLength, "buf.slice(len-1,len) returns an ArrayBuffer with byteLength = 1");
+                var sliced = buf.slice(len-1,len);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([5], slicedArray, "buf.slice(len-1,len) returns the last element from the original ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(1, sliced.byteLength, "buf.slice(len-1,len) returns an ArrayBuffer with byteLength = 1");
 
-            var sliced = buf.slice(len,len);
-            var slicedArray = new Uint8Array(sliced);
-            assert.areEqual([], slicedArray, "buf.slice(len,len) returns an empty ArrayBuffer");
-            assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
-            assert.areEqual(0, sliced.byteLength, "buf.slice(len,len) returns an ArrayBuffer with byteLength = 0");
+                var sliced = buf.slice(len,len);
+                var slicedArray = new Uint8Array(sliced);
+                assert.areEqual([], slicedArray, "buf.slice(len,len) returns an empty ArrayBuffer");
+                assert.isFalse(buf === sliced, "slice returns a new ArrayBuffer - not the original");
+                assert.areEqual(0, sliced.byteLength, "buf.slice(len,len) returns an ArrayBuffer with byteLength = 0");
+            });
         }
     },
     {

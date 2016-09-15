@@ -47,6 +47,7 @@ namespace Js
     class AmsJsModuleInfo;
 #endif
     class ArrayBuffer;
+    class SharedArrayBuffer;
     class FunctionCodeGenRuntimeData;
 #pragma endregion
 

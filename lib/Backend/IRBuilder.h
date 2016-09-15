@@ -68,6 +68,7 @@ public:
         , catchOffsetStack(nullptr)
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
+        , m_stackFuncPtrSym(nullptr)
 #if DBG
         , m_callsOnStack(0)
         , m_usedAsTemp(nullptr)
@@ -116,7 +117,7 @@ private:
     BranchReloc *       CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
     void                BuildGeneratorPreamble();
     void                BuildConstantLoads();
-    void                BuildImplicitArgIns();
+    void                BuildImplicitArgIns();    
 
 #define LAYOUT_TYPE(layout) \
     void                Build##layout(Js::OpCode newOpcode, uint32 offset);
@@ -287,7 +288,7 @@ private:
     bool                IsLoopBodyReturnIPInstr(IR::Instr * instr) const;
     IR::Opnd *          InsertLoopBodyReturnIPInstr(uint targetOffset, uint offset);
     IR::Instr *         CreateLoopBodyReturnIPInstr(uint targetOffset, uint offset);
-
+    StackSym *          EnsureStackFuncPtrSym();
 
     void                InsertBailOutForDebugger(uint offset, IR::BailOutKind kind, IR::Instr* insertBeforeInstr = nullptr);
     void                InsertBailOnNoProfile(uint offset);
@@ -334,6 +335,7 @@ private:
 #endif
     StackSym *          m_loopBodyRetIPSym;
     StackSym*           m_loopCounterSym;
+    StackSym *          m_stackFuncPtrSym;
     bool                callTreeHasSomeProfileInfo;
 
     // Keep track of how many args we have on the stack whenever
