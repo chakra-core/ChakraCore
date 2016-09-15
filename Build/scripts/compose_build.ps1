@@ -17,20 +17,27 @@ param (
 # Aggregate build metadata and produce build.json
 #
 
-$outputJsonFile = Join-Path $rootPath "build.json"
+$buildJsonFile = Join-Path $rootPath "build.json"
 $buildInfo = New-Object System.Object
 
 $changeJson = (Get-ChildItem -Path $rootPath "change.json" -Recurse)[0].FullName
 $changeText = (Get-ChildItem -Path $rootPath "change.txt"  -Recurse)[0].FullName
-Copy-Item -Verbose -Force -Path $changeJson -Destination $rootPath
-Copy-Item -Verbose -Force -Path $changeText -Destination $rootPath
+
+# Copy files found in a build metadata directory, protecting against the possibility that this
+# build was previously composed and that those files may already be in the destination dir.
+if (-not ($changeJson -eq (Join-Path $rootPath "change.json"))) {
+    Copy-Item -Verbose -Force -Path $changeJson -Destination $rootPath
+}
+if (-not ($changeText -eq (Join-Path $rootPath "change.txt"))) {
+    Copy-Item -Verbose -Force -Path $changeText -Destination $rootPath
+}
 
 $changeInfo = (Get-Content $changeJson) -join "`n" | ConvertFrom-Json
 
 # Recursively locate ${arch}_${flavor}.json and move to $rootPath.
 # This ensures that in the rebuild scenario, we don't have duplication of *.json files
 # between the partially-composed root and the metadata directories.
-
+# Exclude change.json and build.json, the results of a previous composition already in the root.
 Get-ChildItem -Path $rootPath "*.json" -Recurse `
     | ? { -not ($_.Name -in @("change.json", "build.json")) } `
     | % { Move-Item -Verbose -Force -Path $_.FullName -Destination $rootPath }
@@ -56,4 +63,4 @@ $buildInfo | Add-Member -type NoteProperty -name change -value $changeInfo
 $buildInfo | Add-Member -type NoteProperty -name builds -value $builds
 
 $buildInfo | ConvertTo-Json | Write-Output
-$buildInfo | ConvertTo-Json | Out-File $outputJsonFile -Encoding Ascii
+$buildInfo | ConvertTo-Json | Out-File $buildJsonFile -Encoding utf8
