@@ -548,7 +548,7 @@ void WasmBinaryReader::ConstNode()
 bool
 WasmBinaryReader::EndOfFunc()
 {
-    return m_funcState.count >= m_funcState.size;
+    return m_funcState.count + 1 >= m_funcState.size;
 }
 
 bool
