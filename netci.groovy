@@ -186,8 +186,9 @@ CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disa
 // CODE STYLE TASKS
 // ----------------
 
-CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
 CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
+CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
+CreateStyleCheckTasks('./jenkins/check_tabs.sh', 'ubuntu_check_tabs', 'Tab Check')
 
 // ------------
 // HELP MESSAGE
