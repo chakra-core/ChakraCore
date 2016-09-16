@@ -734,9 +734,18 @@ var tests = [
         assert.throws(function () { eval("function f(a = 10, b = (c = arguments) => a) { }"); }, SyntaxError, "Use of arguments symbol is not allowed in non-simple parameter list when captured in a lambda in split scope", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
         assert.throws(function () { eval("function f(a, b = () => a, c = () => { return arguments; }) { }"); }, SyntaxError, "Use of arguments symbol is not allowed in non-simple parameter list in split scope when captured by a lambda method", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
         assert.throws(function () { eval("function f(a = 10, b = () => a, c = () => () => arguments) { }"); }, SyntaxError, "Use of arguments symbol is not allowed in non-simple parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
-        assert.throws(function () { eval("function f3(a, arguments = function () { return a; } ) { }"); }, SyntaxError, "Use of arguments as a parameter name is not allowed in non-simple parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
-        assert.throws(function () { eval("function f3({a, arguments = function () { return a; }}) { }"); }, SyntaxError, "Use of arguments as a parameter name is not allowed in destructuring parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
-        assert.throws(function () { eval("function f3({a = arguments}, b = function () { return a; } ) { }"); }, SyntaxError, "Use of arguments is not allowed in destructuring parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a, arguments = function () { return a; } ) { }"); }, SyntaxError, "Use of arguments as a parameter name is not allowed in non-simple parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f({a, arguments = function () { return a; }}) { }"); }, SyntaxError, "Use of arguments as a parameter name is not allowed in destructuring parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f({a = arguments}, b = function () { return a; } ) { }"); }, SyntaxError, "Use of arguments is not allowed in destructuring parameter list in split scope when captured by nested lambda", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = () => arguments) { }"); }, SyntaxError, "Arguments cannot be captured in the param scope", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = () => arguments[0]) { }"); }, SyntaxError, "Arguments cannot be captured in the param scope", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = 1, b = () => arguments[0]) { }"); }, SyntaxError, "Arguments cannot be captured in the param scope at any position", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = () => arguments[0] + b, b = 10) { }"); }, SyntaxError, "Arguments cannot be captured in the param scope at any position", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = () => arguments) { var arguments }"); }, SyntaxError, "Arguments cannot be captured in the param scope even when duplicate definition occurs in the body", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a = () => arguments) { function arguments() { } }"); }, SyntaxError, "Arguments cannot be captured in the param scope even when duplicate definition occurs in the body", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(arguments, b = () => arguments) { }"); }, SyntaxError, "Arguments cannot be captured in the param scope even if it is a formal shadowing the actual arguments", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f({a, arguments}, b = () => a) { }"); }, SyntaxError, "Arguments cannot be used as a formal name when one of the formal is captured", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
+        assert.throws(function () { eval("function f(a, {arguments, b = () => arguments}) { }"); }, SyntaxError, "Arguments cannot be used as a formal name when one of the formal is captured", "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured");
         
         function f1(a, b = () => a) {
             eval("");
@@ -913,6 +922,83 @@ var tests = [
             }
         }
         assert.areEqual([2, 3], f16(1, undefined, 2, 3), "Rest should remain unaffected when arguments is updated");
+
+        function f18(a, b = function arguments(c) {
+            if (!c) {
+                return arguments.callee(a, 10, 20);
+            }
+            return arguments;
+        }) {
+            assert.areEqual(10, b()[1], "Function defined in the param scope can be called recursively");
+            assert.areEqual(1, arguments[0], "Arguments symbol is unaffected by the function expression");
+        }
+        f18(1);
+
+        function f19(a, b = arguments) {
+            var c = function arguments(c) {
+                if (!arguments.length) {
+                    return arguments.callee(a, 10, 20, 30);
+                }
+                return arguments;
+            }
+            assert.areEqual(30, c()[3], "In the function body the arguments function expression with name is not visible");
+            assert.areEqual(1, b[0], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f19(1, undefined, 2, 3, 4);
+
+        function f20(a, b = function arguments(c) {
+            if (!c) {
+                return arguments.callee(a, 10, 20);
+            }
+            return eval("arguments");
+        }) {
+            assert.areEqual(1, b()[0], "Function defined in the param scope can be called recursively when eval occurs in its body");
+            assert.areEqual(1, arguments[0], "Arguments symbol is unaffected by the function expression");
+        }
+        f20(1);
+
+        function f21(a, b = arguments) {
+            var c = function arguments(c) {
+                if (!arguments.length) {
+                    return arguments.callee(a, 10, 20, 30);
+                }
+                return arguments;
+            }
+            assert.areEqual(30, c()[3], "In the function body the arguments function expression with name is not visible when eval is there in the body");
+            assert.areEqual(3, eval("b[3]"), "In the param scope arguments symbol referes to the passed in values");
+        }
+        f21(1, undefined, 2, 3, 4);
+
+        function f22(a, b = () => a) {
+            assert.areEqual(1, arguments[0], "Function in block causes a var declaration to be hoisted and the initial value should be same as the arguments symbol");
+            {
+                {
+                    function arguments() {
+                        return 10;
+                    }
+                }
+            }
+            assert.areEqual(1, b(), "Function defined in the param scope should be able to capture the formal even when arguments in overwritten the body");
+            assert.areEqual(10, arguments(), "Hoisted var binding is updated after the block is exected");
+        }
+        f22(1);
+
+        function f23(a, b = () => a) {
+            function f16() {
+                eval("");
+                this.arguments = 1;
+            }
+
+            a = 10;
+            var obj = new f16();
+            
+            function arguments() {
+                return 10;
+            }
+            assert.areEqual(1, obj.arguments, "Inner function with eval should add the property named arguments when duplicate arguments definition occurs in the parent body");
+            assert.areEqual(1, b(), "Formal captured from the param scope should be constrained to the param scope");
+        };
+        f23(1);
     }  
   },
   {

@@ -485,7 +485,7 @@ void Heap::FreeLargeObjects()
 #endif
         this->codePageAllocators->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-            largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
+        largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
 }
@@ -519,7 +519,13 @@ bool Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdata
 
     uint length = GetChunkSizeForBytes(bytes);
     BVIndex index = GetFreeIndexForPage(page, bytes);
-    Assert(index != BVInvalidIndex);
+    
+    if (index == BVInvalidIndex)
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
+    }
+
     char* address = page->address + Page::Alignment * index;
 
 #if PDATA_ENABLED
@@ -561,6 +567,13 @@ bool Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdata
     this->allocationsSinceLastCompact += bytes;
     this->freeObjectSize -= bytes;
 #endif
+
+    //Section of the Page should already be freed.
+    if (!page->freeBitVector.TestRange(index, length))
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
+    }
 
     page->freeBitVector.ClearRange(index, length);
     VerboseHeapTrace(_u("ChunkSize: %d, Index: %d, Free bit vector in page: "), length, index);
@@ -729,18 +742,19 @@ bool Heap::FreeAllocation(Allocation* object)
     unsigned int length = GetChunkSizeForBytes(object->size);
     BVIndex index = GetIndexInPage(page, object->address);
 
-#if DBG
-    // Make sure that it's not already been freed
-    for (BVIndex i = index; i < length; i++)
+    uint freeBitsCount = page->freeBitVector.Count();
+
+    // Make sure that the section under interest or the whole page has not already been freed
+    if (page->IsEmpty() || page->freeBitVector.TestAnyInRange(index, length))
     {
-        Assert(!page->freeBitVector.Test(i));
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
     }
-#endif
 
     if (page->inFullList)
     {
         VerboseHeapTrace(_u("Recycling page 0x%p because address 0x%p of size %d was freed\n"), page->address, object->address, object->size);
-
+       
         // If the object being freed is equal to the page size, we're
         // going to remove it anyway so don't add it to a bucket
         if (object->size != pageSize)
@@ -777,45 +791,23 @@ bool Heap::FreeAllocation(Allocation* object)
     // If the page is about to become empty then we should not need
     // to set it to executable and we don't expect to restore the
     // previous protection settings.
-    if (page->freeBitVector.Count() == BVUnit::BitsPerWord - length)
+    if (freeBitsCount == BVUnit::BitsPerWord - length)
     {
         EnsureAllocationWriteable(object);
+        FreeAllocationHelper(object, index, length);
+        Assert(page->IsEmpty());
+
+        this->buckets[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);
+        return false;
     }
     else
     {
         EnsureAllocationExecuteWriteable(object);
-    }
 
-    // Fill the old buffer with debug breaks
-    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+        FreeAllocationHelper(object, index, length);
 
-    VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
-#if VERBOSE_HEAP
-    page->freeBitVector.DumpWord();
-#endif
-    VerboseHeapTrace(_u("\n"));
+        // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
 
-    page->freeBitVector.SetRange(index, length);
-    VerboseHeapTrace(_u("Free bit vector in page: "), length, index);
-#if VERBOSE_HEAP
-    page->freeBitVector.DumpWord();
-#endif
-    VerboseHeapTrace(_u("\n"));
-
-#if DBG_DUMP
-    this->freeObjectSize += object->size;
-    this->freesSinceLastCompact += object->size;
-#endif
-
-    this->auxiliaryAllocator->Free(object, sizeof(Allocation));
-
-    if (page->IsEmpty())
-    {
-        this->buckets[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);
-        return false;
-    }
-    else // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
-    {
         DWORD protectFlags = 0;
 
         if (AutoSystemInfo::Data.IsCFGEnabled())
@@ -831,6 +823,35 @@ bool Heap::FreeAllocation(Allocation* object)
         
         return true;
     }
+}
+
+void Heap::FreeAllocationHelper(Allocation* object, BVIndex index, uint length)
+{
+    Page* page = object->page;
+
+    // Fill the old buffer with debug breaks
+    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+
+    VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
+#if VERBOSE_HEAP
+    page->freeBitVector.DumpWord();
+#endif
+    VerboseHeapTrace(_u("\n"));
+
+    page->freeBitVector.SetRange(index, length);
+
+    VerboseHeapTrace(_u("Free bit vector in page: "), length, index);
+#if VERBOSE_HEAP
+    page->freeBitVector.DumpWord();
+#endif
+    VerboseHeapTrace(_u("\n"));
+
+#if DBG_DUMP
+    this->freeObjectSize += object->size;
+    this->freesSinceLastCompact += object->size;
+#endif
+
+    this->auxiliaryAllocator->Free(object, sizeof(Allocation));
 }
 
 void Heap::FreeDecommittedBuckets()
