@@ -781,7 +781,7 @@ PropertySymOpnd::CopyWithoutFlowSensitiveInfo(Func *func)
     // an instruction elsewhere in the flow (e.g. field hoisting or copy propagation), these fields cannot be copied.
     // If the caller knows some of them can be safely copied, the caller must do so manually.
     Assert(newOpnd->typeCheckSeqFlags == 0);
-    Assert(newOpnd->finalType.t == nullptr);
+    Assert(newOpnd->finalType == nullptr);
     Assert(newOpnd->guardedPropOps == nullptr);
     Assert(newOpnd->writeGuards == nullptr);
 
@@ -824,9 +824,9 @@ PropertySymOpnd::IsObjectHeaderInlined() const
         type = this->GetFirstEquivalentType();
     }
 
-    if (type.t != nullptr && Js::DynamicType::Is(type.t->GetTypeId()))
+    if (type != nullptr && Js::DynamicType::Is(type->GetTypeId()))
     {
-        return type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+        return type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
     }
 
     return false;
@@ -838,14 +838,14 @@ PropertySymOpnd::ChangesObjectLayout() const
     JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
 
     JITTypeHolder finalType = this->GetFinalType();
-    if (finalType.t && Js::DynamicType::Is(finalType.t->GetTypeId()))
+    if (finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()))
     {
         // This is the case where final type opt may cause pro-active type transition to take place.
 
-    Assert(cachedType.t != nullptr && Js::DynamicType::Is(cachedType.t->GetTypeId()));
+    Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
 
-    return cachedType.t->GetTypeHandler()->GetInlineSlotCapacity() != finalType.t->GetTypeHandler()->GetInlineSlotCapacity() ||
-        cachedType.t->GetTypeHandler()->GetOffsetOfInlineSlots() != finalType.t->GetTypeHandler()->GetOffsetOfInlineSlots();
+    return cachedType->GetTypeHandler()->GetInlineSlotCapacity() != finalType->GetTypeHandler()->GetInlineSlotCapacity() ||
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() != finalType->GetTypeHandler()->GetOffsetOfInlineSlots();
     }
 
     if (!this->HasInitialType())
@@ -854,15 +854,15 @@ PropertySymOpnd::ChangesObjectLayout() const
     }
 
     JITTypeHolder initialType = this->GetInitialType();
-    if (initialType.t && Js::DynamicType::Is(initialType.t->GetTypeId()))
+    if (initialType != nullptr && Js::DynamicType::Is(initialType->GetTypeId()))
     {
         // This is the case where the type transition actually occurs. (This is the only case that's detectable
         // during the loop pre-pass, since final types are not in place yet.)
 
-        Assert(cachedType.t && Js::DynamicType::Is(cachedType.t->GetTypeId()));
+        Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
 
-        const JITTypeHandler * cachedTypeHandler = cachedType.t->GetTypeHandler();
-        const JITTypeHandler * initialTypeHandler = initialType.t->GetTypeHandler();
+        const JITTypeHandler * cachedTypeHandler = cachedType->GetTypeHandler();
+        const JITTypeHandler * initialTypeHandler = initialType->GetTypeHandler();
 
         return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
             cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
@@ -880,8 +880,8 @@ PropertySymOpnd::UpdateSlotForFinalType()
     JITTypeHolder cachedType =
         this->IsMono() ? this->GetType() : this->GetEquivalentTypeSet()->GetType(checkedTypeSetIndex);
 
-    Assert(finalType.t != nullptr && Js::DynamicType::Is(finalType.t->GetTypeId()));
-    Assert(cachedType.t != nullptr && Js::DynamicType::Is(cachedType.t->GetTypeId()));
+    Assert(finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()));
+    Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
 
     if (finalType == cachedType)
     {
@@ -889,10 +889,10 @@ PropertySymOpnd::UpdateSlotForFinalType()
     }
 
     // TODO: OOP JIT: should assert about runtime type handler addr 
-    Assert(cachedType.t->GetTypeHandler() != finalType.t->GetTypeHandler());
+    Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
-    if (cachedType.t->GetTypeHandler()->GetInlineSlotCapacity() == finalType.t->GetTypeHandler()->GetInlineSlotCapacity() &&
-        cachedType.t->GetTypeHandler()->GetOffsetOfInlineSlots() == finalType.t->GetTypeHandler()->GetOffsetOfInlineSlots())
+    if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() == finalType->GetTypeHandler()->GetOffsetOfInlineSlots())
     {
         // Nothing can change, since the variables aren't changing.
         return;
@@ -902,30 +902,30 @@ PropertySymOpnd::UpdateSlotForFinalType()
     uint16 index = this->GetSlotIndex();
     if (this->UsesAuxSlot())
     {
-        index += cachedType.t->GetTypeHandler()->GetInlineSlotCapacity();
+        index += cachedType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
-        index -= cachedType.t->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index -= cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
 
     // Figure out the slot index and aux-ness from the property index
-    if (index >= finalType.t->GetTypeHandler()->GetInlineSlotCapacity())
+    if (index >= finalType->GetTypeHandler()->GetInlineSlotCapacity())
     {
         this->SetUsesAuxSlot(true);
-        index -= finalType.t->GetTypeHandler()->GetInlineSlotCapacity();
+        index -= finalType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
         this->SetUsesAuxSlot(false);
-        index += finalType.t->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index += finalType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
     this->SetSlotIndex(index);
 }
 
 bool PropertySymOpnd::HasFinalType() const
 {
-    return this->finalType.t != nullptr;
+    return this->finalType != nullptr;
 }
 
 PropertySymOpnd *
@@ -1887,7 +1887,7 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
             Js::Var var = varLocal ? varLocal : address;
             if (
 #if !FLOATVAR
-                !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) &&
+                varLocal || (!func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts)) &&
 #endif
                 Js::JavascriptNumber::Is_NoTaggedIntCheck(var))
             {
@@ -2791,7 +2791,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             if (propertySymOpnd->HasFinalType())
             {
                 Output::Print(_u(",final:"));
-                this->DumpAddress((void*)propertySymOpnd->GetFinalType().t->GetAddr(), /* printToConsole */ true, /* skipMaskedAddress */ false);
+                this->DumpAddress((void*)propertySymOpnd->GetFinalType()->GetAddr(), /* printToConsole */ true, /* skipMaskedAddress */ false);
             }
             if (propertySymOpnd->GetGuardedPropOps() != nullptr)
             {

@@ -834,14 +834,14 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
         InsertOneInlinee(callInstr, returnValueOpnd, constMethodValueOpnd, inlineesDataArray[i], inlineesDataArray[i]->GetRuntimeInfo(), doneLabel, symCallerThis, safeThis, recursiveInlineDepth);
         while (fixedFunctionInfoArray[i].NextHasSameFixedField())
         {
-            dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel, typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i).t->GetAddr(),
+            dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel, typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i)->GetAddr(),
                 IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
             this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i).t); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
             i++;
         }
 
         dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel,
-            typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i).t->GetAddr(), IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
+            typeOpnd, IR::AddrOpnd::New(methodPropertyOpnd->GetType(i)->GetAddr(), IR::AddrOpndKindDynamicType, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
         this->topFunc->PinTypeRef(methodPropertyOpnd->GetType(i).t); // Keep the types alive as the types may not be equivalent and, hence, won't be kept alive by EquivalentTypeCache
     }
 

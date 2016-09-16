@@ -668,7 +668,9 @@ bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[]
     }
 
     if (i == argc)
+    {
         return false;
+    }
 
     // remove this flag now
     HostConfigFlags::RemoveArg(argc, argv, i);

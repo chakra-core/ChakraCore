@@ -69,7 +69,7 @@ HRESULT JsInitializeJITServer(
     {
         return status;
     }
-    JITManager::GetJITManager()->EnableOOPJIT();
+    JITManager::GetJITManager()->SetIsJITServer();
 
     status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, FALSE);
 
@@ -111,6 +111,15 @@ ServerShutdown(
     /* [in] */ handle_t binding)
 {
     return ShutdownCommon();
+}
+
+HRESULT
+ServerCleanupProcess(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t processHandle)
+{
+    CloseHandle((HANDLE)processHandle);
+    return S_OK;
 }
 
 HRESULT

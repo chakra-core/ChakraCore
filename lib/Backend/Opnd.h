@@ -679,7 +679,7 @@ public:
 
     bool MustDoMonoCheck() const
     {
-        return this->monoGuardType.t != nullptr;
+        return this->monoGuardType != nullptr;
     }
 
     JITTypeHolder GetMonoGuardType() const
@@ -1036,7 +1036,7 @@ public:
 
     void SetFinalType(JITTypeHolder type)
     {
-        Assert(type.t != nullptr);
+        Assert(type != nullptr);
         this->finalType = type;
     }
 

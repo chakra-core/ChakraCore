@@ -32,8 +32,8 @@ public:
     virtual intptr_t GetDebugFrameAddressAddr() const override;
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
-    virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
-    virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
+    ptrdiff_t GetChakraBaseAddressDifference() const;
+    ptrdiff_t GetCRTBaseAddressDifference() const;
 
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) override;
     virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() override;

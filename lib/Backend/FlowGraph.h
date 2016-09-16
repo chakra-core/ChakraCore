@@ -91,7 +91,7 @@ public:
     void SetGuardedPropertyOps(BVSparse<JitArenaAllocator> *guardedPropertyOps) { this->guardedPropertyOps = guardedPropertyOps; }
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
-    bool NeedsMonoCheck() const { return this->monoGuardType.t != nullptr; }
+    bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
     void SetMonoGuardType(JITTypeHolder type) { this->monoGuardType = type; }
     JITTypeHolder GetMonoGuardType() const { return this->monoGuardType; }
 

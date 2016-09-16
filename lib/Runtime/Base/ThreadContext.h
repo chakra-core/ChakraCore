@@ -1303,8 +1303,8 @@ public:
     virtual intptr_t GetDebugFrameAddressAddr() const override;
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
-    virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
-    virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
+    ptrdiff_t GetChakraBaseAddressDifference() const;
+    ptrdiff_t GetCRTBaseAddressDifference() const;
 
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);

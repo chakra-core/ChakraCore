@@ -710,7 +710,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
             {
                 AddPropertyCacheBucket *fromData = &bucket.element;
-                if (fromData->GetInitialType().t == nullptr ||
+                if (fromData->GetInitialType() == nullptr ||
                     fromData->GetFinalType() == fromData->GetInitialType())
                 {
                     return;
@@ -722,7 +722,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             auto fixupTo = [blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
             {
                 AddPropertyCacheBucket *toData = &bucket.element;
-                if (toData->GetInitialType().t == nullptr ||
+                if (toData->GetInitialType() == nullptr ||
                     toData->GetFinalType() == toData->GetInitialType())
                 {
                     return;
@@ -1184,7 +1184,7 @@ BackwardPass::MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBuc
     ObjTypeGuardBucket bucket;
     bucket.SetGuardedPropertyOps(mergedPropertyOps);
     JITTypeHolder monoGuardType = bucket1.GetMonoGuardType();
-    if (monoGuardType.t != nullptr)
+    if (monoGuardType != nullptr)
     {
         Assert(!bucket2.NeedsMonoCheck() || monoGuardType == bucket2.GetMonoGuardType());
     }
@@ -3662,7 +3662,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                 // transition here.
                 AddPropertyCacheBucket *pBucket = block->stackSymToFinalType->Get(objSym->m_id);
                 if (pBucket &&
-                    pBucket->GetInitialType().t != nullptr &&
+                    pBucket->GetInitialType() != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
                     Assert(pBucket->GetInitialType() == ctorCache->GetType());
@@ -3672,7 +3672,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                     }
 #if DBG
                     pBucket->deadStoreUnavailableInitialType = pBucket->GetInitialType();
-                    if (pBucket->deadStoreUnavailableFinalType.t == nullptr)
+                    if (pBucket->deadStoreUnavailableFinalType == nullptr)
                     {
                         pBucket->deadStoreUnavailableFinalType = pBucket->GetFinalType();
                     }
@@ -4256,7 +4256,7 @@ BackwardPass::ProcessPropertySymOpndUse(IR::PropertySymOpnd * opnd)
                 StackSym *baseSym = opnd->GetObjectSym();
                 AddPropertyCacheBucket *pBucket = block->stackSymToFinalType->Get(baseSym->m_id);
                 if (pBucket &&
-                    pBucket->GetFinalType().t != nullptr &&
+                    pBucket->GetFinalType() != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
                     this->InsertTypeTransition(this->currentInstr->m_next, baseSym, pBucket);
@@ -4501,7 +4501,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
     JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : JITTypeHolder(nullptr);
 
-    if (typeWithoutProperty.t == nullptr ||
+    if (typeWithoutProperty == nullptr ||
         typeWithProperty == typeWithoutProperty ||
         (opnd->IsTypeChecked() && !opnd->IsInitialTypeChecked()))
     {
@@ -4510,7 +4510,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
             PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
-            if (pBucket && pBucket->GetFinalType().t && pBucket->GetInitialType() != pBucket->GetFinalType())
+            if (pBucket && pBucket->GetFinalType() != nullptr && pBucket->GetInitialType() != pBucket->GetFinalType())
             {
                 opnd->SetFinalType(pBucket->GetFinalType());
             }
@@ -4519,12 +4519,13 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         return;
     }
 
-#if 0 // TODO: OOP JIT, add these assert back (ReadProcessMemory?)
+#if DBG
     Assert(typeWithProperty != nullptr);
-    Js::DynamicTypeHandler * typeWithoutPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithoutProperty)->GetTypeHandler();
-    Js::DynamicTypeHandler * typeWithPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithProperty)->GetTypeHandler();
-    Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
-    AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
+    const JITTypeHandler * typeWithoutPropertyTypeHandler = typeWithoutProperty->GetTypeHandler();
+    const JITTypeHandler * typeWithPropertyTypeHandler = typeWithProperty->GetTypeHandler();
+    // TODO: OOP JIT, reenable assert
+    //Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
+    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
         "TypeHandlers are not compatible for transition?");
     Assert(typeWithoutPropertyTypeHandler->GetSlotCapacity() <= typeWithPropertyTypeHandler->GetSlotCapacity());
 #endif
@@ -4545,7 +4546,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 #if DBG
     JITTypeHolder deadStoreUnavailableFinalType(nullptr);
 #endif
-    if (pBucket->GetInitialType().t == nullptr || opnd->GetType() != pBucket->GetInitialType())
+    if (pBucket->GetInitialType() == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {
 #if DBG
         if (opnd->GetType() == pBucket->deadStoreUnavailableInitialType)
@@ -4571,7 +4572,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 
     if (!PHASE_OFF(Js::ObjTypeSpecStorePhase, this->func))
     {
-#if 0 //TODO: OOP JIT, reenable assert
+#if DBG
 
         // We may regress in this case:
         // if (b)
@@ -4592,15 +4593,17 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         if (!opnd->IsTypeDead())
         {
             // This is the type that would have been propagated if we didn't kill it because the type isn't available
-            JITTypeHolder checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
+            JITTypeHolder checkFinalType = deadStoreUnavailableFinalType != nullptr ? deadStoreUnavailableFinalType : finalType;
             if (opnd->HasFinalType() && opnd->GetFinalType() != checkFinalType)
             {
                 // Final type discovery must be progressively better (unless we kill it in the deadstore pass
                 // when the type is not available during the forward pass)
-                Js::DynamicTypeHandler * oldFinalTypeHandler = static_cast<Js::DynamicType *>(opnd->GetFinalType())->GetTypeHandler();
-                Js::DynamicTypeHandler * checkFinalTypeHandler = static_cast<Js::DynamicType *>(checkFinalType)->GetTypeHandler();
-                Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
-                AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
+                const JITTypeHandler * oldFinalTypeHandler = opnd->GetFinalType()->GetTypeHandler();
+                const JITTypeHandler * checkFinalTypeHandler = checkFinalType->GetTypeHandler();
+
+                // TODO: OOP JIT, enable assert
+                //Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
+                AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
                     "TypeHandlers should be compatible for transition.");
                 Assert(oldFinalTypeHandler->GetSlotCapacity() <= checkFinalTypeHandler->GetSlotCapacity());
             }
@@ -4644,7 +4647,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     {
 #if DBG
         pBucket->deadStoreUnavailableInitialType = pBucket->GetInitialType();
-        if (pBucket->deadStoreUnavailableFinalType.t == nullptr)
+        if (pBucket->deadStoreUnavailableFinalType == nullptr)
         {
             pBucket->deadStoreUnavailableFinalType = pBucket->GetFinalType();
         }
@@ -4671,11 +4674,11 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     baseOpnd->SetIsJITOptimizedReg(true);
 
     IR::AddrOpnd *initialTypeOpnd =
-        IR::AddrOpnd::New(data->GetInitialType().t->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
     initialTypeOpnd->m_metadata = data->GetInitialType().t;
 
     IR::AddrOpnd *finalTypeOpnd =
-        IR::AddrOpnd::New(data->GetFinalType().t->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
     finalTypeOpnd->m_metadata = data->GetFinalType().t;
 
     IR::Instr *adjustTypeInstr =
@@ -4722,8 +4725,8 @@ BackwardPass::InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPrope
                 {
                     // This symbol already has a type transition at this point.
                     // It *must* be doing the same transition we're already trying to do.
-                    Assert((intptr_t)instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType().t->GetAddr() &&
-                           (intptr_t)instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType().t->GetAddr());
+                    Assert((intptr_t)instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType()->GetAddr() &&
+                           (intptr_t)instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType()->GetAddr());
                     // Nothing to do.
                     return;
                 }
@@ -4824,7 +4827,7 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
     FOREACH_HASHTABLE_ENTRY(AddPropertyCacheBucket, bucket, block->stackSymToFinalType)
     {
         AddPropertyCacheBucket *data = &bucket.element;
-        if (data->GetInitialType().t != nullptr &&
+        if (data->GetInitialType() != nullptr &&
             data->GetInitialType() != data->GetFinalType())
         {
             bool done = fn(bucket.value, data);
@@ -4841,22 +4844,22 @@ bool
 BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const
 {
     JITTypeHolder type = data->GetInitialType();
-    if (type.t == nullptr || !Js::DynamicType::Is(type.t->GetTypeId()))
+    if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
     {
         return false;
     }
 
-    if (!type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+    if (!type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
     {
         return false;
     }
 
     type = data->GetFinalType();
-    if (type.t == nullptr || !Js::DynamicType::Is(type.t->GetTypeId()))
+    if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
     {
         return false;
     }
-    return !type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+    return !type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
 }
 
 void

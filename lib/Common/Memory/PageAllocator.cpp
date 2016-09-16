@@ -1610,7 +1610,6 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         // This helps low-end machines with limited cache size.
         //
 #if defined(_M_IX86) || defined(_M_X64)
-        // TODO: OOP JIT, do we need to do anything for this?
         if (CONFIG_FLAG(ZeroMemoryWithNonTemporalStore) && this->processHandle == GetCurrentProcess())
         {
             js_memset_zero_nontemporal(freePageEntry, AutoSystemInfo::PageSize * pageCount);

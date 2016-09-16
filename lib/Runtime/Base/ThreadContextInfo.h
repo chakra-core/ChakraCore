@@ -94,9 +94,6 @@ public:
     virtual intptr_t GetDebugFrameAddressAddr() const = 0;
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const = 0;
 
-    virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
-    virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
-
     virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
 
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
@@ -125,28 +122,14 @@ private:
 template<typename T>
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
 {
-#if ENABLE_NATIVE_CODEGEN
-    Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
-    return (intptr_t)address + context->GetChakraBaseAddressDifference();
-#else
-    return (intptr_t)address;
-#endif
+    return SHIFT_ADDR(context, (intptr_t)address);
 }
 
 
 template<typename T>
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
 {
-#if ENABLE_NATIVE_CODEGEN
-    if (AutoSystemInfo::Data.IsJscriptModulePointer((void*)address))
-    {
-        // the function is compiled to chakra.dll, or statically linked to crt 
-        return SHIFT_ADDR(context, address);
-    }
-    return (intptr_t)address + context->GetCRTBaseAddressDifference();
-#else
-return (intptr_t)address;
-#endif
+    return SHIFT_CRT_ADDR(context, (intptr_t)address);
 }
 
 

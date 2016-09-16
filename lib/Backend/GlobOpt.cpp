@@ -3506,7 +3506,7 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
         return toValueInfo;
     }
 
-    if (mergedType.t == nullptr && mergedTypeSet == nullptr)
+    if (mergedType == nullptr && mergedTypeSet == nullptr)
     {
         // No info, so don't bother making a value.
         return nullptr;
@@ -20534,7 +20534,7 @@ void ValueInfo::Dump()
     else if(IsJsType())
     {
         const JITTypeHolder type(AsJsType()->GetJsType());
-        type.t != nullptr ? Output::Print(_u("type: 0x%p, "), type.t->GetAddr()) : Output::Print(_u("type: null, "));
+        type != nullptr ? Output::Print(_u("type: 0x%p, "), type->GetAddr()) : Output::Print(_u("type: null, "));
         Output::Print(_u("type Set: "));
         Js::EquivalentTypeSet* typeSet = AsJsType()->GetJsTypeSet();
         if (typeSet != nullptr)

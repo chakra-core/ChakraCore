@@ -188,9 +188,6 @@ namespace Js
         CtorCacheGuardTransferEntry(): propertyId(Js::Constants::NoProperty) {}
     };
 
-
-#define EQUIVALENT_TYPE_CACHE_SIZE (EQUIVALENT_TYPE_CACHE_SIZE_IDL)
-
     struct EquivalentTypeCache
     {
         Js::Type* types[EQUIVALENT_TYPE_CACHE_SIZE];
@@ -207,13 +204,6 @@ namespace Js
         bool IsLoadedFromProto() const { return this->isLoadedFromProto; }
         void SetHasFixedValue() { this->hasFixedValue = true; }
         bool HasFixedValue() const { return this->hasFixedValue; }
-
-#if ENABLE_NATIVE_CODEGEN
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-            Assert(false); // not implemented yet
-        }
-#endif
     };
 
     class JitEquivalentTypeGuard : public JitIndexedPropertyGuard
@@ -268,13 +258,6 @@ namespace Js
         {
             this->cache = cache;
         }
-
-#if ENABLE_NATIVE_CODEGEN
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-            // cache will be recycler allocated pointer
-        }
-#endif
     };
 
 #pragma region Inline Cache Info class declarations

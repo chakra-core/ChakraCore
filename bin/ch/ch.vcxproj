@@ -38,8 +38,6 @@
         kernel32.lib;
         Rpcrt4.lib;
       </AdditionalDependencies>
-      <IgnoreAllDefaultLibraries Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

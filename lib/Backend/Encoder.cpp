@@ -271,8 +271,6 @@ Encoder::Encode()
         }
     }
 
-    JITTimeWorkItem * workItem = m_func->GetWorkItem();
-
     BEGIN_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
     // Copy to permanent buffer.
@@ -440,7 +438,7 @@ Encoder::Encode()
                 equivalentTypeGuardOffsets->guards[i].cache.nextEvictionVictim = cache->nextEvictionVictim;
                 equivalentTypeGuardOffsets->guards[i].cache.record.propertyCount = cache->record.propertyCount;
                 equivalentTypeGuardOffsets->guards[i].cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
-                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE_IDL; j++)
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
                 {
                     equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)cache->types[j];
                 }
@@ -477,10 +475,8 @@ Encoder::Encode()
     if (this->m_func->propertyGuardsByPropertyId != nullptr)
     {
         Assert(!isSimpleJit);
-# if 0 // TODO: OOP JIT, is this assert valid?
         AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
             "Why do we have type guards if we don't do object type spec or fixed methods?");
-#endif
 
 #if DBG
         int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
@@ -687,10 +683,10 @@ Encoder::Encode()
         Js::Configuration::Global.flags.DumpIRAddresses = dumpIRAddressesValue;
     }
 
-    if (PHASE_DUMP(Js::EncoderPhase, m_func) && Js::Configuration::Global.flags.Verbose)
+    if (PHASE_DUMP(Js::EncoderPhase, m_func) && Js::Configuration::Global.flags.Verbose && !m_func->IsOOPJIT())
     {
-        workItem->DumpNativeOffsetMaps();
-        workItem->DumpNativeThrowSpanSequence();
+        m_func->GetInProcJITEntryPointInfo()->DumpNativeOffsetMaps();
+        m_func->GetInProcJITEntryPointInfo()->DumpNativeThrowSpanSequence();
         this->DumpInlineeFrameMap(m_func->GetJITOutput()->GetCodeAddress());
         Output::Flush();
     }

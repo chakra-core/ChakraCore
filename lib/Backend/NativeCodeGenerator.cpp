@@ -1050,6 +1050,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
         epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData);
+
+        Assert(jitWriteData.ctorCacheEntries == nullptr || epInfo->GetConstructorCacheCount() > 0);
         epInfo->GetJitTransferData()->SetCtorCacheTransferData(&jitWriteData);
 
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();

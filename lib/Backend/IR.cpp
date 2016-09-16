@@ -1865,7 +1865,10 @@ PragmaInstr::Record(uint32 nativeBufferOffset)
 {
     // Currently the only pragma instructions are for Source Info
     Assert(this->m_func->GetTopFunc()->DoRecordNativeMap());
-    this->m_func->GetTopFunc()->m_workItem->RecordNativeMap(nativeBufferOffset, m_statementIndex);
+    if (!m_func->IsOOPJIT())
+    {
+        m_func->GetTopFunc()->GetInProcJITEntryPointInfo()->RecordNativeMap(nativeBufferOffset, m_statementIndex);
+    }
 }
 #endif
 

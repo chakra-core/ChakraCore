@@ -804,11 +804,8 @@ Func::AjustLocalVarSlotOffset()
         int localsOffset = m_localVarSlotsOffset - (m_localStackHeight + m_ArgumentsOffset);
         int valueChangeOffset = m_hasLocalVarChangedOffset - (m_localStackHeight + m_ArgumentsOffset);
 
-        Js::FunctionEntryPointInfo * entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(this->m_workItem->GetEntryPoint());
-        Assert(entryPointInfo != nullptr);
-
-        entryPointInfo->localVarSlotsOffset = localsOffset;
-        entryPointInfo->localVarChangedOffset = valueChangeOffset;
+        m_output.SetVarSlotsOffset(localsOffset);
+        m_output.SetVarChangedOffset(valueChangeOffset);
     }
 }
 #endif
@@ -1389,7 +1386,7 @@ Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
 {
     EnsureEquivalentTypeGuards();
 
-    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type.t->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNewNoFixup(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.
@@ -1400,7 +1397,7 @@ Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
     }
     else
     {
-        cache = NativeCodeDataNewZ(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+        cache = NativeCodeDataNewZNoFixup(GetTransferDataAllocator(), Js::EquivalentTypeCache);
     }
     guard->SetCache(cache);
 

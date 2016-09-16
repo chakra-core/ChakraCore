@@ -105,7 +105,7 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
         NULL,
         NULL,
         FALSE,
-        CREATE_SUSPENDED,
+        NULL,
         NULL,
         NULL,
         &si,
@@ -115,14 +115,6 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
     }
 
     free(cmdLine);
-
-    if (ResumeThread(processInfo.hThread) == (DWORD)-1)
-    {
-        TerminateProcess(processInfo.hProcess, GetLastError());
-        CloseHandle(processInfo.hProcess);
-        CloseHandle(processInfo.hThread);
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
 
     CloseHandle(processInfo.hThread);
     s_rpcServerProcessHandle = processInfo.hProcess;

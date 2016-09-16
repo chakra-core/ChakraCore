@@ -23,7 +23,7 @@ import "wtypes.idl";
 #define IDL_DEF(def)
 #endif
 
-#if defined(_M_X64) && defined(__midl)
+#if defined(__midl)
 #define IDL_PAD1(num) byte struct_pad_##num;
 #define IDL_PAD2(num) short struct_pad_##num;
 #define IDL_PAD4(num) int struct_pad_##num;
@@ -31,6 +31,18 @@ import "wtypes.idl";
 #define IDL_PAD1(num)
 #define IDL_PAD2(num)
 #define IDL_PAD4(num)
+#endif
+
+#if defined(__midl) && (defined(_M_X64) || defined(_M_ARM64))
+#define X64_PAD4(num) int struct_pad_##num;
+#else
+#define X64_PAD4(num)
+#endif
+
+#if defined(__midl) && (defined(_M_IX86) || defined(_M_ARM))
+#define X86_PAD4(num) int struct_pad_##num;
+#else
+#define X86_PAD4(num)
 #endif
 
 #ifndef __midl
@@ -41,7 +53,7 @@ typedef unsigned char boolean;
 
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 47;
-const int EQUIVALENT_TYPE_CACHE_SIZE_IDL = 8;
+const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
 typedef struct TypeHandlerIDL
 {
@@ -51,7 +63,7 @@ typedef struct TypeHandlerIDL
     unsigned short inlineSlotCapacity;
     unsigned short offsetOfInlineSlots;
     IDL_PAD2(0)
-    IDL_PAD4(1)
+    X64_PAD4(1)
     int slotCapacity;
 } TypeHandlerIDL;
 
@@ -76,7 +88,7 @@ typedef struct EquivalentTypeSetIDL
     boolean sortedAndDuplicatesRemoved;
     IDL_PAD1(0)
     unsigned short count;
-    IDL_PAD4(1)
+    X64_PAD4(1)
     IDL_DEF([size_is(count)]) TypeIDL ** types;
 } EquivalentTypeSetIDL;
 
@@ -104,7 +116,7 @@ typedef struct JITTimeConstructorCacheIDL
     IDL_PAD2(0)
     int slotCount;
 
-    IDL_PAD4(1)
+    X64_PAD4(1)
     TypeIDL type;
 
     CHAKRA_PTR runtimeCacheAddr;
@@ -150,7 +162,7 @@ typedef struct BVUnitIDL
 typedef struct BVFixedIDL
 {
     unsigned int len;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     IDL_DEF([size_is(((len - 1) >> BV_SHIFT) + 1)]) BVUnitIDL data[IDL_DEF(*)];
 } BVFixedIDL;
 
@@ -194,12 +206,14 @@ typedef struct LdElemIDL
     unsigned short arrayType;
     unsigned short elemType;
     byte bits;
+    IDL_PAD1(0)
 } LdElemIDL;
 
 typedef struct StElemIDL
 {
     unsigned short arrayType;
     byte bits;
+    IDL_PAD1(0)
 } StElemIDL;
 
 typedef struct ProfileDataIDL
@@ -208,7 +222,6 @@ typedef struct ProfileDataIDL
     IDL_PAD1(0)
 
     ThisIDL thisData;
-
 
     unsigned short profiledLdElemCount;
     unsigned short profiledStElemCount;
@@ -260,8 +273,8 @@ typedef struct ThreadContextDataIDL
     boolean isThreadBound;
     boolean allowPrereserveAlloc;
 
-    IDL_PAD2(1)
-    IDL_PAD4(2)
+    IDL_PAD2(0)
+    X64_PAD4(1)
     CHAKRA_PTR processHandle;
     CHAKRA_PTR chakraBaseAddress;
     CHAKRA_PTR crtBaseAddress;
@@ -323,7 +336,7 @@ typedef struct SmallSpanSequenceIDL
     int baseValue;
     unsigned int statementLength;
     IDL_DEF([size_is(statementLength)]) unsigned int * statementBuffer;
-    IDL_PAD4(1)
+    X64_PAD4(1)
     unsigned int actualOffsetLength; // REVIEW: are lengths the same?
     IDL_DEF([size_is(actualOffsetLength)]) unsigned int * actualOffsetList;
 } SmallSpanSequenceIDL;
@@ -394,7 +407,7 @@ typedef struct PropertyRecordIDL
 typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     IDL_DEF([size_is(clonedCacheCount)]) CHAKRA_PTR * clonedInlineCaches;
 } FunctionJITRuntimeIDL;
 
@@ -438,7 +451,7 @@ typedef struct RecyclableObjectIDL
 typedef struct ConstTableContentIDL
 {
     unsigned int count;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     IDL_DEF([size_is(count)]) RecyclableObjectIDL** content;
 } ConstTableContentIDL;
 
@@ -512,7 +525,7 @@ typedef struct FunctionBodyDataIDL
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
 
-    IDL_PAD4(1)
+    X64_PAD4(1)
 
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
@@ -583,7 +596,7 @@ typedef struct FunctionJITTimeDataIDL
 
     IDL_DEF([size_is(ldFldInlineeCount)]) struct FunctionJITTimeDataIDL ** ldFldInlinees;
 
-    IDL_PAD4(1)
+    X64_PAD4(1)
     unsigned int objTypeSpecFldInfoCount;
     IDL_DEF([size_is(objTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL * objTypeSpecFldInfoArray;
 
@@ -613,7 +626,7 @@ typedef struct PolymorphicInlineCacheIDL
 {
     unsigned short size;
     IDL_PAD2(0)
-    IDL_PAD4(1)
+    X64_PAD4(1)
     CHAKRA_PTR addr;
     CHAKRA_PTR inlineCachesAddr;
 } PolymorphicInlineCacheIDL;
@@ -667,14 +680,14 @@ typedef struct NativeDataFixupRecord
     unsigned int index;
     unsigned int length;
     unsigned int startOffset;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     struct NativeDataFixupEntry* updateList;
 } NativeDataFixupRecord;
 
 typedef struct NativeDataFixupTable
 {
     unsigned int count;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     IDL_DEF([size_is(count)]) NativeDataFixupRecord fixupRecords[IDL_DEF(*)];
 } NativeDataFixupTable;
 
@@ -687,12 +700,13 @@ typedef struct TypeEquivalenceRecordIDL
 
 typedef struct EquivlentTypeCacheIDL
 {
-    CHAKRA_PTR types[EQUIVALENT_TYPE_CACHE_SIZE_IDL];
+    CHAKRA_PTR types[EQUIVALENT_TYPE_CACHE_SIZE];
     CHAKRA_PTR guardOffset;
     struct TypeEquivalenceRecordIDL record;
     unsigned int nextEvictionVictim;
     boolean isLoadedFromProto;
     boolean hasFixedValue;
+    IDL_PAD2(0)
 } EquivlentTypeCacheIDL;
 
 typedef struct EquivalentTypeGuardIDL
@@ -705,7 +719,7 @@ typedef struct EquivalentTypeGuardIDL
 typedef struct EquivalentTypeGuardOffsets
 {
     unsigned int count;
-    IDL_PAD4(0)
+    X64_PAD4(0)
     IDL_DEF([size_is(count)]) EquivalentTypeGuardIDL guards[IDL_DEF(*)];
 
 } EquivalentTypeGuardOffsets;
@@ -729,6 +743,8 @@ typedef struct NativeDataBuffer
 {
     unsigned int len;
     unsigned int unused;
+    IDL_PAD2(0)
+    IDL_PAD1(1)
     IDL_DEF([size_is(len)]) byte data[IDL_DEF(*)];
 } NativeDataBuffer;
 
@@ -779,6 +795,6 @@ typedef struct JITOutputIDL
     NativeDataBuffer* buffer;
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
     XProcNumberPageSegment* numberPageSegments;
-
+    X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;

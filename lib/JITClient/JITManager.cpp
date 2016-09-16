@@ -29,12 +29,18 @@ JITManager JITManager::s_jitManager = JITManager();
 JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_oopJitEnabled(false),
+    m_isJITServer(false),
+    m_targetHandle(nullptr),
     m_jitConnectionId()
 {
 }
 
 JITManager::~JITManager()
 {
+    if(m_targetHandle)
+    {
+        CleanupProcess();
+    }
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
@@ -170,6 +176,19 @@ JITManager::CreateBinding(
 }
 
 bool
+JITManager::IsJITServer() const
+{
+    return m_isJITServer;
+}
+
+void
+JITManager::SetIsJITServer()
+{
+    m_isJITServer = true;
+    m_oopJitEnabled = true;
+}
+
+bool
 JITManager::IsConnected() const
 {
     Assert(IsOOPJITEnabled());
@@ -233,17 +252,35 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
 }
 
 HRESULT
+JITManager::CleanupProcess()
+{
+    Assert(JITManager::IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientCleanupProcess(m_rpcBindingHandle, (intptr_t)m_targetHandle);
+    }
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
 JITManager::Shutdown()
 {
     HRESULT hr = S_OK;
-
     Assert(IsOOPJITEnabled());
 
     RpcTryExcept
     {
         ClientShutdown(m_rpcBindingHandle);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -265,7 +302,7 @@ JITManager::InitializeThreadContext(
     {
         hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -285,7 +322,7 @@ JITManager::CleanupThreadContext(
     {
         hr = ClientCleanupThreadContext(m_rpcBindingHandle, threadContextInfoAddress);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -307,7 +344,7 @@ JITManager::AddDOMFastPathHelper(
     {
         hr = ClientAddDOMFastPathHelper(m_rpcBindingHandle, scriptContextInfoAddress, funcInfoAddr, helper);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -326,7 +363,7 @@ JITManager::SetIsPRNGSeeded(
     {
         hr = ClientSetIsPRNGSeeded(m_rpcBindingHandle, scriptContextInfoAddress, value);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -349,7 +386,7 @@ JITManager::AddModuleRecordInfo(
     {
         hr = ClientAddModuleRecordInfo(m_rpcBindingHandle, scriptContextInfoAddress, moduleId, localExportSlotsAddr);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -372,7 +409,7 @@ JITManager::SetWellKnownHostTypeId(
     {
         hr = ClientSetWellKnownHostTypeId(m_rpcBindingHandle, threadContextRoot, typeId);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -395,7 +432,7 @@ JITManager::AddPropertyRecordArray(
     {
         hr = ClientAddPropertyRecordArray(m_rpcBindingHandle, threadContextInfoAddress, count, propertyRecordArray);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -416,7 +453,7 @@ JITManager::InitializeScriptContext(
     {
         hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, scriptContextInfoAddress);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -436,7 +473,7 @@ JITManager::CleanupScriptContext(
     {
         hr = ClientCleanupScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -456,7 +493,7 @@ JITManager::CloseScriptContext(
     {
         hr = ClientCloseScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -477,7 +514,7 @@ JITManager::FreeAllocation(
     {
         hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, address);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -499,7 +536,7 @@ JITManager::IsNativeAddr(
     {
         hr = ClientIsNativeAddr(m_rpcBindingHandle, threadContextInfoAddress, address, result);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -522,7 +559,7 @@ JITManager::RemoteCodeGenCall(
     {
         hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData);
     }
-        RpcExcept(1)
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }

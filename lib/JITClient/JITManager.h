@@ -11,6 +11,8 @@ public:
     HRESULT ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid);
 
     bool IsConnected() const;
+    bool IsJITServer() const;
+    void SetIsJITServer();
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
 
@@ -47,6 +49,8 @@ public:
         __in ScriptContextDataIDL * data,
         __out intptr_t *scriptContextInfoAddress);
 
+    HRESULT CleanupProcess();
+
     HRESULT CleanupScriptContext(
         __in intptr_t scriptContextInfoAddress);
 
@@ -79,7 +83,7 @@ private:
     JITManager();
     ~JITManager();
 
-    HRESULT JITManager::CreateBinding(
+    HRESULT CreateBinding(
         __in HANDLE serverProcessHandle,
         __in_opt void* serverSecurityDescriptor,
         __in UUID* connectionUuid,
@@ -89,6 +93,7 @@ private:
     HANDLE m_targetHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
+    bool m_isJITServer;
 
     static JITManager s_jitManager;
 };

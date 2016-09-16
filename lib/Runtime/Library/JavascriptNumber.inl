@@ -24,6 +24,7 @@ namespace Js
 #endif
     ) : RecyclableObject(type), m_value(value)
     {
+        // for oopjit type will be pointing to address of StaticType on other proc, so don't dereference it
         Assert(oopJIT || type->GetTypeId() == TypeIds_Number);
     }
 #endif

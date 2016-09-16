@@ -36,6 +36,7 @@ public:
 
     JITTypeHolder();
     JITTypeHolder(JITType * t);
+    const JITType* operator->() const;
     bool operator== (const JITTypeHolder& p) const;
     bool operator!= (const JITTypeHolder& p) const;
     bool operator> (const JITTypeHolder& p) const;
@@ -43,6 +44,8 @@ public:
     bool operator< (const JITTypeHolder& p) const;
     bool operator<= (const JITTypeHolder& p) const;
     void operator =(const JITTypeHolder &p);
+    bool operator== (const nullptr_t &p) const;
+    bool operator!= (const nullptr_t &p) const;
 
 private:
     // prevent implicit conversion
@@ -53,4 +56,5 @@ private:
     template<typename T> bool operator< (T p) const;
     template<typename T> bool operator<= (T p) const;
     template<typename T> void operator =(T p);
+    template<typename T> T* operator->();
 };

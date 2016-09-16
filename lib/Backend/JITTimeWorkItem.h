@@ -48,10 +48,4 @@ private:
     CodeGenWorkItemIDL * m_workItemData;
     JITTimeFunctionBody m_jitBody;
     Js::SmallSpanSequence m_statementMap;
-
-public: // TODO: (michhol) remove these. currently needed to compile
-    Js::EntryPointInfo * GetEntryPoint() { __debugbreak(); return nullptr; }
-    void DumpNativeOffsetMaps() { __debugbreak(); }
-    void DumpNativeThrowSpanSequence() { __debugbreak(); }
-    void RecordNativeMap(...) { __debugbreak(); }
 };

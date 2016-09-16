@@ -2265,12 +2265,12 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
         {
             JsTypeValueInfo *valueInfo = value->GetValueInfo()->AsJsType();
             Assert(valueInfo);
-            if (valueInfo->GetJsType().t != nullptr)
+            if (valueInfo->GetJsType() != nullptr)
             {
                 JITTypeHolder type(valueInfo->GetJsType());
-                if (Js::DynamicType::Is(type.t->GetTypeId()))
+                if (Js::DynamicType::Is(type->GetTypeId()))
                 {
-                    if (type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+                    if (type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
                     {
                         this->blockData.liveFields->Clear(symId);
                     }
@@ -2282,9 +2282,9 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
                 for (uint16 i = 0; i < typeSet->GetCount(); i++)
                 {
                     JITTypeHolder type = typeSet->GetType(i);
-                    if (type.t != nullptr && Js::DynamicType::Is(type.t->GetTypeId()))
+                    if (type != nullptr && Js::DynamicType::Is(type->GetTypeId()))
                     {
-                        if (type.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+                        if (type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
                         {
                             this->blockData.liveFields->Clear(symId);
                             break;
@@ -2379,7 +2379,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         // We need a monomorphic type check here (e.g., final type opt, fixed field check on non-proto property).
         JITTypeHolder opndType = opnd->GetType();
 
-        if (valueInfo == nullptr || (valueInfo->GetJsType().t == nullptr && valueInfo->GetJsTypeSet() == nullptr))
+        if (valueInfo == nullptr || (valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr))
         {
             // This is the initial type check.
             opnd->SetTypeAvailable(false);
@@ -2391,7 +2391,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 SetObjectTypeFromTypeSym(typeSym, opndType, nullptr, block, updateExistingValue);
             }
         }
-        else if (valueInfo->GetJsType().t != nullptr)
+        else if (valueInfo->GetJsType() != nullptr)
         {
             // We have a monomorphic type check upstream. Check against initial/final type.
             const JITTypeHolder valueType(valueInfo->GetJsType());
@@ -2497,7 +2497,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         Js::EquivalentTypeSet * opndTypeSet = opnd->GetEquivalentTypeSet();
         uint16 checkedTypeSetIndex = (uint16)-1;
 
-        if (valueInfo == nullptr || (valueInfo->GetJsType().t == nullptr && valueInfo->GetJsTypeSet() == nullptr))
+        if (valueInfo == nullptr || (valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr))
         {
             // If we don't have a value for the type we will have to emit a type check and we produce a new type value here.
             if (produceType)
@@ -2514,7 +2514,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             isSpecialized = !isTypeDead;
             emitsTypeCheck = isSpecialized;
         }
-        else if (valueInfo->GetJsType().t != nullptr ?
+        else if (valueInfo->GetJsType() != nullptr ?
                  opndTypeSet->Contains(valueInfo->GetJsType(), &checkedTypeSetIndex) :
                  IsSubsetOf(valueInfo->GetJsTypeSet(), opndTypeSet))
         {
@@ -2958,7 +2958,7 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, J
         // value created during loop pre-pass for field hoisting, so we expect the value info to still be blank.
         Assert(value != nullptr && value->GetValueInfo() != nullptr && value->GetValueInfo()->IsJsType());
         JsTypeValueInfo* valueInfo = value->GetValueInfo()->AsJsType();
-        Assert(valueInfo->GetJsType().t == nullptr && valueInfo->GetJsTypeSet() == nullptr);
+        Assert(valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr);
         UpdateObjectTypeValue(value, type, true, typeSet, true);
     }
     else
@@ -3144,10 +3144,10 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
     }
     JsTypeValueInfo * typeValueInfo = typeValue->GetValueInfo()->AsJsType();
     JITTypeHolder type = typeValueInfo->GetJsType();
-    if (type.t != nullptr)
+    if (type != nullptr)
     {
-        if (Js::DynamicType::Is(type.t->GetTypeId()) &&
-            !type.t->GetTypeHandler()->IsLocked())
+        if (Js::DynamicType::Is(type->GetTypeId()) &&
+            !type->GetTypeHandler()->IsLocked())
         {
             return;
         }
@@ -3159,16 +3159,16 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
         for (uint16 i = 0; i < typeSet->GetCount(); i++)
         {
             type = typeSet->GetType(i);
-            if (Js::DynamicType::Is(type.t->GetTypeId()) &&
-                !type.t->GetTypeHandler()->IsLocked())
+            if (Js::DynamicType::Is(type->GetTypeId()) &&
+                !type->GetTypeHandler()->IsLocked())
             {
                 return;
             }
         }
     }
 
-    AnalysisAssert(type.t != nullptr);
-    Js::TypeId typeId = type.t->GetTypeId();
+    AnalysisAssert(type != nullptr);
+    Js::TypeId typeId = type->GetTypeId();
 
     // Passing false for useVirtual as we would never have a virtual typed array hitting this code path
     ValueType newValueType = ValueType::FromTypeId(typeId, false);

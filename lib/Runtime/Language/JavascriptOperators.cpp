@@ -4983,7 +4983,9 @@ CommonNumber:
     {
         if (! JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsUndefinedOrNullType(typeId))
         {
-            // OOP JIT code path should not get here
+#if ENABLE_NATIVE_CODEGEN
+            Assert(!JITManager::GetJITManager()->IsJITServer());
+#endif
 #if !FLOATVAR
             // We allowed stack number to be used as the "this" for getter and setter activation of
             // n.x and n[prop], where n is the Javascript Number

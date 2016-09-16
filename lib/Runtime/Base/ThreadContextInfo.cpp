@@ -5,6 +5,11 @@
 
 #include "RuntimeBasePch.h"
 
+#if ENABLE_NATIVE_CODEGEN
+#include "CodeGenAllocators.h"
+#include "ServerThreadContext.h"
+#endif
+
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
     wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
@@ -364,7 +369,16 @@ intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 {
 #if ENABLE_NATIVE_CODEGEN
     Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
-    return (intptr_t)address + context->GetChakraBaseAddressDifference();
+    ptrdiff_t diff = 0;
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        diff = ((ServerThreadContext*)context)->GetChakraBaseAddressDifference();
+    }
+    else
+    {
+        diff = ((ThreadContext*)context)->GetChakraBaseAddressDifference();
+    }
+    return (intptr_t)address + diff;
 #else
     return address;
 #endif
@@ -379,7 +393,16 @@ intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address)
         // the function is compiled to chakra.dll, or statically linked to crt 
         return SHIFT_ADDR(context, address);
     }
-    return (intptr_t)address + context->GetCRTBaseAddressDifference();
+    ptrdiff_t diff = 0;
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        diff = ((ServerThreadContext*)context)->GetCRTBaseAddressDifference();
+    }
+    else
+    {
+        diff = ((ThreadContext*)context)->GetCRTBaseAddressDifference();
+    }
+    return (intptr_t)address + diff;
 #else
     return address;
 #endif

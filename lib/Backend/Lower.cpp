@@ -4650,7 +4650,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         return true;
     }
 
-    AssertMsg(ctorCache->GetType().t != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
+    AssertMsg(ctorCache->GetType() != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
 
 #if 0 // TODO: oop jit, add constructor info for tracing
     if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
@@ -4703,16 +4703,16 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     else
     {
         JITTypeHolder newObjectType(ctorCache->GetType());
-        Assert(newObjectType.t->IsShared());
+        Assert(newObjectType->IsShared());
 
-        IR::AddrOpnd* typeSrc = IR::AddrOpnd::New(newObjectType.t->GetAddr(), IR::AddrOpndKindDynamicType, m_func);
+        IR::AddrOpnd* typeSrc = IR::AddrOpnd::New(newObjectType->GetAddr(), IR::AddrOpndKindDynamicType, m_func);
 
         // For the next call:
         //     inlineSlotSize == Number of slots to allocate beyond the DynamicObject header
         //     slotSize - inlineSlotSize == Number of aux slots to allocate
         int inlineSlotSize = ctorCache->GetInlineSlotCount();
         int slotSize = ctorCache->GetSlotCount();
-        if (newObjectType.t->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+        if (newObjectType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
         {
             Assert(inlineSlotSize >= Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity());
             Assert(inlineSlotSize == slotSize);
@@ -6897,8 +6897,8 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 
     if (typeCheckGuard == nullptr)
     {
-        Assert(type.t != nullptr);
-        expectedTypeOpnd = IR::AddrOpnd::New(type.t->GetAddr(), IR::AddrOpndKindDynamicType, func, true);
+        Assert(type != nullptr);
+        expectedTypeOpnd = IR::AddrOpnd::New(type->GetAddr(), IR::AddrOpndKindDynamicType, func, true);
     }
     else
     {
@@ -7050,7 +7050,7 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
     JITTypeHolder typeWithoutProperty = propertySymOpnd->GetInitialType();
 
     // We should never add properties to objects of static types.
-    Assert(Js::DynamicType::Is(typeWithoutProperty.t->GetTypeId()));
+    Assert(Js::DynamicType::Is(typeWithoutProperty->GetTypeId()));
 
     if (typeOpnd == nullptr)
     {
@@ -7095,11 +7095,11 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
         emitDirectCheck = false;
 
         OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, _u("Emitted %s type check for type 0x%p.\n"),
-            emitDirectCheck ? _u("direct") : _u("indirect"), typeWithoutProperty.t->GetAddr());
+            emitDirectCheck ? _u("direct") : _u("indirect"), typeWithoutProperty->GetAddr());
     }
     else
     {
-        expectedTypeOpnd = IR::AddrOpnd::New(typeWithoutProperty.t->GetAddr(), IR::AddrOpndKindDynamicType, m_func, true);
+        expectedTypeOpnd = IR::AddrOpnd::New(typeWithoutProperty->GetAddr(), IR::AddrOpndKindDynamicType, m_func, true);
     }
 
     InsertCompareBranch(typeOpnd, expectedTypeOpnd, Js::OpCode::BrNeq_A, labelTypeCheckFailed, instrInsert);
@@ -7140,7 +7140,7 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::Pro
             {
                 if (guard == nullptr)
                 {
-                    guard = this->m_func->GetOrCreateSingleTypeGuard(type.t->GetAddr());
+                    guard = this->m_func->GetOrCreateSingleTypeGuard(type->GetAddr());
                 }
 
                 if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
@@ -7200,7 +7200,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
     uint16 cachedTypeCount = typeSet->GetCount() < EQUIVALENT_TYPE_CACHE_SIZE ? typeSet->GetCount() : EQUIVALENT_TYPE_CACHE_SIZE;
     for (uint16 ti = 0; ti < cachedTypeCount; ti++)
     {
-        cache->types[ti] = (Js::Type*)typeSet->GetType(ti).t->GetAddr();
+        cache->types[ti] = (Js::Type*)typeSet->GetType(ti)->GetAddr();
     }
 
     // Populate property ID and slot index arrays on the guard's cache. We iterate over the
@@ -7211,7 +7211,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
     auto propOps = propertySymOpnd->GetGuardedPropOps();
     uint propOpCount = propOps->Count();
 
-    bool isTypeStatic = Js::StaticType::Is(type.t->GetTypeId());
+    bool isTypeStatic = Js::StaticType::Is(type->GetTypeId());
     JsUtil::BaseDictionary<Js::PropertyId, Js::EquivalentPropertyEntry*, JitArenaAllocator> propIds(this->m_alloc, propOpCount);
     Js::EquivalentPropertyEntry* properties = AnewArray(this->m_alloc, Js::EquivalentPropertyEntry, propOpCount);
     uint propIdCount = 0;
@@ -7312,7 +7312,7 @@ Lowerer::LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* ctorCache)
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(_u("ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n"),
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                    ctorCache->GetRuntimeCacheAddr(), ctorCache->GetType().t->GetAddr(), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId);
+                    ctorCache->GetRuntimeCacheAddr(), ctorCache->GetType()->GetAddr(), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
 
@@ -7431,8 +7431,8 @@ Lowerer::GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySy
     // If the helper finds a non-writable property, bail out, as we're counting on being able to add the property.
 
     JITTypeHolder typeWithoutProperty(propertySymOpnd->GetInitialType());
-    Assert(typeWithoutProperty.t != nullptr);
-    intptr_t protoAddr = typeWithoutProperty.t->GetPrototypeAddr();
+    Assert(typeWithoutProperty != nullptr);
+    intptr_t protoAddr = typeWithoutProperty->GetPrototypeAddr();
     Assert(protoAddr != 0);
 
     // s1 = MOV [proto->type].ptr
@@ -7482,12 +7482,12 @@ bool
 Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, JITTypeHolder initialType, JITTypeHolder finalType)
 {
     // Possibly allocate new slot capacity to accommodate a type transition.
-    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(initialType.t->GetTypeHandler(), finalType.t->GetTypeHandler()),
+    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(initialType->GetTypeHandler(), finalType->GetTypeHandler()),
         "Incompatible typeHandler transition?");
-    int oldCount = initialType.t->GetTypeHandler()->GetSlotCapacity();
-    int newCount = finalType.t->GetTypeHandler()->GetSlotCapacity();
-    Js::PropertyIndex inlineSlotCapacity = initialType.t->GetTypeHandler()->GetInlineSlotCapacity();
-    Js::PropertyIndex newInlineSlotCapacity = finalType.t->GetTypeHandler()->GetInlineSlotCapacity();
+    int oldCount = initialType->GetTypeHandler()->GetSlotCapacity();
+    int newCount = finalType->GetTypeHandler()->GetSlotCapacity();
+    Js::PropertyIndex inlineSlotCapacity = initialType->GetTypeHandler()->GetInlineSlotCapacity();
+    Js::PropertyIndex newInlineSlotCapacity = finalType->GetTypeHandler()->GetInlineSlotCapacity();
 
     if (oldCount >= newCount || newCount <= inlineSlotCapacity)
     {
@@ -7528,11 +7528,11 @@ Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySy
     this->GenerateAdjustSlots(instrStFld, propertySymOpnd, initialType, finalType);
 
     // We should never add properties to objects of static types.
-    Assert(Js::DynamicType::Is(finalType.t->GetTypeId()));
+    Assert(Js::DynamicType::Is(finalType->GetTypeId()));
 
     // Let's pin the final type to be sure its alive when we try to do the type transition.
     PinTypeRef(finalType, finalType.t, instrStFld, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
-    IR::Opnd *finalTypeOpnd = IR::AddrOpnd::New(finalType.t->GetAddr(), IR::AddrOpndKindDynamicType, instrStFld->m_func, true);
+    IR::Opnd *finalTypeOpnd = IR::AddrOpnd::New(finalType->GetAddr(), IR::AddrOpndKindDynamicType, instrStFld->m_func, true);
 
     // Set the new type.
     IR::RegOpnd *baseOpnd = propertySymOpnd->CreatePropertyOwnerOpnd(instrStFld->m_func);
