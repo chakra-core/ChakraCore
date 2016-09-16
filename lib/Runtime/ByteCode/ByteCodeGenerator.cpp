@@ -1276,6 +1276,9 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             parsedFunctionBody = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnode->sxFnc.nestedCount, m_utf8SourceInfo,
                 m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId, propertyRecordList
                 , attributes
+                , pnode->sxFnc.IsClassConstructor() ?
+                    Js::FunctionBody::FunctionBodyFlags::Flags_None :
+                    Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
                 , false /* is function from deferred deserialized proxy */
 #endif
@@ -5277,7 +5280,8 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
             m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
             pnode->sxFnc.functionId,
             propertyRecordList,
-            Js::FunctionInfo::Attributes::None
+            Js::FunctionInfo::Attributes::None,
+            Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
             , false /* is function from deferred deserialized proxy */
 #endif
