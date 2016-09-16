@@ -2,6 +2,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     },
@@ -16,6 +18,8 @@
       "gConstB": "number 2",
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     }
@@ -23,6 +27,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "gC": "number 3",
       "gD": "number 4",
@@ -41,6 +47,8 @@
       "gD": "number 4",
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     }

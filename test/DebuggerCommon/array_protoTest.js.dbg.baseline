@@ -8,6 +8,20 @@
         "caller": "object null",
         "arguments": "object null"
       },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"
@@ -219,6 +233,8 @@
         "Detach": "function Detach",
         "DumpFunctionPosition": "function <large string>",
         "RequestAsyncBreak": "function <large string>",
+        "LoadBinaryFile": "function LoadBinaryFile",
+        "LoadTextFile": "function LoadTextFile",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -227,6 +243,20 @@
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
         "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
         "caller": "object null",
         "arguments": "object null"
       },
@@ -266,6 +296,20 @@
         "#__proto__": "function <large string>",
         "length": "number 3",
         "name": "string telemetryLog",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
         "caller": "object null",
         "arguments": "object null"
       },
@@ -503,6 +547,8 @@
         "Detach": "function Detach",
         "DumpFunctionPosition": "function <large string>",
         "RequestAsyncBreak": "function <large string>",
+        "LoadBinaryFile": "function LoadBinaryFile",
+        "LoadTextFile": "function LoadTextFile",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -511,6 +557,20 @@
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
         "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
         "caller": "object null",
         "arguments": "object null"
       },
@@ -547,6 +607,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -568,6 +630,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -577,6 +641,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -599,6 +665,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -608,6 +676,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -631,6 +701,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -640,6 +712,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
@@ -667,6 +741,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "foo1": "function <large string>",
