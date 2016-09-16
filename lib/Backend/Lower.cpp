@@ -21702,7 +21702,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         
         bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue() != -1);
-        int64 intMin = TySize[src1->GetType()] == 4 ? INT_MIN : LONGLONG_MIN;
+        int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
         if (src1->IsImmediateOpnd())
         {
             if (needsMinOverNeg1Check && src1->GetImmediateValue() == intMin)

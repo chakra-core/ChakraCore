@@ -1989,10 +1989,7 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     IR::RegOpnd *regEDX;
 
     bool legalize = false;
-    int dstInstrSize = dst ? TySize[dst->GetType()] : 0;
-    int src1InstrSize = src1 ? TySize[src1->GetType()] : 0;
-    int src2InstrSize = src2 ? TySize[src2->GetType()] : 0;
-    bool isInt64Instr = ((dstInstrSize | src1InstrSize | src2InstrSize) & 8) != 0;
+    bool isInt64Instr = instr->HasAnyInt64Opnd();
     if (!isInt64Instr)
     {
         if (dst && !dst->IsUInt32())
@@ -2010,8 +2007,7 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     }
     else
     {
-        Assert(!dstInstrSize || dstInstrSize == src1InstrSize);
-        Assert(!src2InstrSize || src2InstrSize == src1InstrSize);
+        Assert(instr->AreAllOpndInt64());
         legalize = true;
     }
 

@@ -3299,6 +3299,22 @@ bool Instr::HasAnySideEffects() const
     return false;
 }
 
+bool Instr::HasAnyInt64Opnd() const
+{
+    bool isDstInt64 = m_dst && IRType_IsInt64(m_dst->GetType());
+    bool isSrc1Int64 = m_src1 && IRType_IsInt64(m_src1->GetType());
+    bool isSrc2Int64 = m_src2 && IRType_IsInt64(m_src2->GetType());
+    return isDstInt64 || isSrc1Int64 || isSrc2Int64;
+}
+
+bool Instr::AreAllOpndInt64() const
+{
+    bool isDstInt64 = !m_dst || IRType_IsInt64(m_dst->GetType());
+    bool isSrc1Int64 = !m_src1 || IRType_IsInt64(m_src1->GetType());
+    bool isSrc2Int64 = !m_src2 || IRType_IsInt64(m_src2->GetType());
+    return isDstInt64 && isSrc1Int64 && isSrc2Int64;
+}
+
 Js::JavascriptFunction* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());

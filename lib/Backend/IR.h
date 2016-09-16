@@ -211,6 +211,8 @@ public:
     bool            ShouldCheckForNon32BitOverflow() const;
     bool            HasAnyImplicitCalls() const;
     bool            HasAnySideEffects() const;
+    bool            HasAnyInt64Opnd() const;
+    bool            AreAllOpndInt64() const;
 
     IRKind          GetKind() const;
     Opnd *          GetDst() const;
