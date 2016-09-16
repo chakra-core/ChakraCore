@@ -3784,7 +3784,8 @@ public:
                 sourceInfo,
                 functionNumber,
                 sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
-                firstFunctionId + functionId, nullptr, (FunctionInfo::Attributes)attributes
+                firstFunctionId + functionId, nullptr, (FunctionInfo::Attributes)attributes,
+                Js::FunctionBody::FunctionBodyFlags::Flags_None  // bytecode serializer will initialize
 #ifdef PERF_COUNTERS
                 , (deferDeserializeFunctionInfo != nullptr)
 #endif

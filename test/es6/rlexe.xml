@@ -1331,4 +1331,12 @@
     <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>bug_issue_1496.js</files>
+    <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
+    <baseline>bug_issue_1496.baseline</baseline>
+    <tags>BugFix</tags>
+  </default>
+</test>
 </regress-exe>
