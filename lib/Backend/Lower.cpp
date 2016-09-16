@@ -20864,14 +20864,25 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
 
         if (typeOfDst && instrSrc1 && instrSrc2)
         {
+            IR::RegOpnd *typeOpnd = nullptr;
+            IR::RegOpnd *idOpnd = nullptr;
             if (instrSrc1->m_sym == typeOfDst->m_sym)
             {
-                if (!instrSrc1->m_isTempLastUse)
+                typeOpnd = instrSrc1;
+                idOpnd = instrSrc2;
+            }
+            else if (instrSrc2->m_sym == typeOfDst->m_sym) {
+                typeOpnd = instrSrc2;
+                idOpnd = instrSrc1;
+            }
+            if (typeOpnd && idOpnd)
+            {
+                if (!typeOpnd->m_isTempLastUse)
                 {
                     return false;
                 }
 
-                if (!(instrSrc2->m_sym->m_isSingleDef && instrSrc2->m_sym->m_isStrConst))
+                if (!(idOpnd->m_sym->m_isSingleDef && idOpnd->m_sym->m_isStrConst))
                 {
                     return false;
                 }
@@ -20879,11 +20890,11 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
                 // The second argument to [Cm|Br]TypeOf is the typeid.
                 IR::IntConstOpnd *typeIdOpnd = nullptr;
 
-                Assert(instrSrc2->m_sym->m_isSingleDef);
-                Assert(instrSrc2->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
+                Assert(idOpnd->m_sym->m_isSingleDef);
+                Assert(idOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
 
                 // We can't optimize non-javascript type strings.
-                JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
+                JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(idOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
                 const char16        *typeName         = typeNameJsString->GetString();
 
                 Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
