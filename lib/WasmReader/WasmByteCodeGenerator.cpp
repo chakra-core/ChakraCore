@@ -207,7 +207,8 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
         wasmInfo->GetNumber(),
         nullptr,
-        Js::FunctionInfo::Attributes::None
+        Js::FunctionInfo::Attributes::None,
+        Js::FunctionBody::Flags_None
 #ifdef PERF_COUNTERS
         , false /* is function from deferred deserialized proxy */
 #endif
