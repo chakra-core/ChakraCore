@@ -49,11 +49,4 @@
        <compile-flags>-on:Wasm  -on:wasmlazytrap</compile-flags>
     </default>
 </test>
-<test>
-    <default>
-       <files>f32_known_sections.js</files>
-       <baseline>f32.baseline</baseline>
-       <compile-flags>-on:Wasm</compile-flags>
-    </default>
-</test>
 </regress-exe>
