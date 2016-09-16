@@ -1879,7 +1879,7 @@ Js::ArrayObject* CreateTypedArray(Js::ScriptContext *scriptContext, void* data, 
 {
     Js::JavascriptLibrary* library = scriptContext->GetLibrary();
 
-    Js::ArrayBuffer* arrayBuffer = RecyclerNew(
+    Js::ArrayBufferBase* arrayBuffer = RecyclerNew(
         scriptContext->GetRecycler(),
         Js::ExternalArrayBuffer,
         reinterpret_cast<BYTE*>(data),

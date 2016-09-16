@@ -324,4 +324,10 @@
       <compile-flags>-simdjs  -asmjs -testtrace:asmjs -asmjsstoponerror</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>invertloop_bug.js</files>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>

@@ -12,6 +12,7 @@
     <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0'">v110</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0'">v120</PlatformToolset>
     <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='15.0'">v140</PlatformToolset> <!-- v140 is what currently ships in VS15 Preview. -->
   </PropertyGroup>
 
   <!-- Default ChakraDevConfigDir -->

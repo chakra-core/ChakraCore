@@ -147,14 +147,14 @@ template <typename TAllocator>
 BVFixed * BVFixed::New(TAllocator * alloc, BVFixed * initBv)
 {
     BVIndex length = initBv->Length();
-    BVFixed *result = AllocatorNewPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, initBv);
+    BVFixed *result = AllocatorNewPlusLeaf(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, initBv);
     return result;
 }
 
 template <typename TAllocator>
 BVFixed * BVFixed::New(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * alloc, bool initialSet)
 {
-    BVFixed *result = AllocatorNewPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
+    BVFixed *result = AllocatorNewPlusLeaf(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
     return result;
 }
 

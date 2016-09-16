@@ -153,11 +153,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
+    <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptListIterator.h" />
@@ -174,6 +177,7 @@
     <ClInclude Include="JavascriptSimdBool32x4.h" />
     <ClInclude Include="JavascriptSimdBool16x8.h" />
     <ClInclude Include="JavascriptSimdBool8x16.h" />
+    <ClInclude Include="SharedArrayBuffer.h" />
     <ClInclude Include="SimdFloat32x4Lib.h" />
     <ClInclude Include="SimdFloat64x2Lib.h" />
     <ClInclude Include="SimdInt32x4Lib.h" />

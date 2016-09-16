@@ -78,6 +78,8 @@ public:
 
         char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
         char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
+        char * AllocLeaf(__declspec(guard(overflow)) size_t requestedBytes);
+
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
 
@@ -149,6 +151,10 @@ public:
 #endif
 
             return dataBlock;
+        }
+        char * AllocLeaf(size_t requestedBytes)
+        {
+            return Alloc(requestedBytes);
         }
     };
 

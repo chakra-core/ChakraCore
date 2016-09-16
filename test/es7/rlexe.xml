@@ -72,4 +72,17 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>sharedarraybuffer.js</files>
+      <compile-flags>-ESSharedArrayBuffer -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>atomics_test.js</files>
+      <compile-flags>-ESSharedArrayBuffer -args summary -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
+    </default>
+  </test>
 </regress-exe>

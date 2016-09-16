@@ -254,6 +254,12 @@ NativeCodeData::Allocator::Alloc(size_t requestSize)
 }
 
 char *
+NativeCodeData::Allocator::AllocLeaf(size_t requestSize)
+{
+    return Alloc(requestSize);
+}
+
+char *
 NativeCodeData::Allocator::AllocZero(size_t requestSize)
 {
     char * data = Alloc(requestSize);
