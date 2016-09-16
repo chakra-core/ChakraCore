@@ -1874,7 +1874,7 @@ namespace UnifiedRegex
     // defined constant and complains. So skip the declaration if we're compiling
     // with VS2013 or below.
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-	const int  CharSetNode::directBits;
+    const int  CharSetNode::directBits;
     const uint CharSetNode::directSize;
     const uint CharSetNode::innerMask;
     const int  CharSetNode::bitsPerLeafLevel;
