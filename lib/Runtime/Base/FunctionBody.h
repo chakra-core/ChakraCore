@@ -49,6 +49,7 @@ namespace Js
     class ArrayBuffer;
     class SharedArrayBuffer;
     class FunctionCodeGenRuntimeData;
+    class JavascriptNumber;
 #pragma endregion
 
     typedef JsUtil::BaseDictionary<Js::PropertyId, const Js::PropertyRecord*, RecyclerNonLeafAllocator, PowerOf2SizePolicy, DefaultComparer, JsUtil::SimpleDictionaryEntry> PropertyRecordList;
@@ -79,7 +80,7 @@ namespace Js
             Uninitialized = 1,
             Invalidated_DuringSweep = 2
         };
-        intptr_t value;
+        intptr_t value; // value is address of Js::Type
 #if DBG
         bool wasReincarnated = false;
 #endif
@@ -145,10 +146,11 @@ namespace Js
     class JitTypePropertyGuard : public Js::JitIndexedPropertyGuard
     {
     public:
-        JitTypePropertyGuard(Js::Type* type, int index):
-            JitIndexedPropertyGuard(reinterpret_cast<intptr_t>(type), index) {}
+        JitTypePropertyGuard(intptr_t typeAddr, int index):
+            JitIndexedPropertyGuard(typeAddr, index) {}
 
-        Js::Type* GetType() const { return reinterpret_cast<Js::Type*>(this->GetValue()); }
+        intptr_t GetTypeAddr() const { return this->GetValue(); }
+
     };
 
     struct TypeGuardTransferEntry
@@ -183,13 +185,10 @@ namespace Js
     struct CtorCacheGuardTransferEntry
     {
         PropertyId propertyId;
-        ConstructorCache* caches[0];
+        intptr_t caches[0];
 
         CtorCacheGuardTransferEntry(): propertyId(Js::Constants::NoProperty) {}
     };
-
-
-#define EQUIVALENT_TYPE_CACHE_SIZE (8)
 
     struct EquivalentTypeCache
     {
@@ -215,25 +214,26 @@ namespace Js
         // so as to keep the cached types alive.
         EquivalentTypeCache* cache;
         uint32 objTypeSpecFldId;
-#if DBG
+        // TODO: OOP JIT, reenable these asserts
+#if DBG && 0
         // Intentionally have as intptr_t so this guard doesn't hold scriptContext
         intptr_t originalScriptContextValue = 0;
 #endif
 
     public:
-        JitEquivalentTypeGuard(Type* type, int index, uint32 objTypeSpecFldId):
-            JitIndexedPropertyGuard(reinterpret_cast<intptr_t>(type), index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId)
+        JitEquivalentTypeGuard(intptr_t typeAddr, int index, uint32 objTypeSpecFldId):
+            JitIndexedPropertyGuard(typeAddr, index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId)
         {
-#if DBG
+#if DBG && 0
             originalScriptContextValue = reinterpret_cast<intptr_t>(type->GetScriptContext());
 #endif
         }
 
-        Js::Type* GetType() const { return reinterpret_cast<Js::Type*>(this->GetValue()); }
+        intptr_t GetTypeAddr() const { return this->GetValue(); }
 
-        void SetType(const Js::Type* type)
+        void SetTypeAddr(const intptr_t typeAddr)
         {
-#if DBG
+#if DBG && 0
             if (originalScriptContextValue == 0)
             {
                 originalScriptContextValue = reinterpret_cast<intptr_t>(type->GetScriptContext());
@@ -243,7 +243,7 @@ namespace Js
                 AssertMsg(originalScriptContextValue == reinterpret_cast<intptr_t>(type->GetScriptContext()), "Trying to set guard type from different script context.");
             }
 #endif
-            this->SetValue(reinterpret_cast<intptr_t>(type));
+            this->SetValue(typeAddr);
         }
 
         uint32 GetObjTypeSpecFldId() const
@@ -274,6 +274,7 @@ namespace Js
         {
         }
         void EnsureUtilArray(Recycler * const recycler, Js::FunctionBody * functionBody);
+        byte* GetByteArray() { return utilArray; }
         void SetUtil(Js::FunctionBody* functionBody, uint index, byte util);
         byte GetUtil(Js::FunctionBody* functionBody, uint index);
     };
@@ -293,34 +294,32 @@ namespace Js
 
         InlineCachePointerArray<PolymorphicInlineCache> * GetPolymorphicInlineCaches() { return &polymorphicInlineCaches; }
         PolymorphicCacheUtilizationArray * GetUtilArray() { return &polymorphicCacheUtilizationArray; }
-        FunctionBody * GetFunctionBody() { return functionBody; }
+        byte * GetUtilByteArray() { return polymorphicCacheUtilizationArray.GetByteArray(); }
+        FunctionBody * GetFunctionBody() const { return functionBody; }
     };
 
     class EntryPointPolymorphicInlineCacheInfo sealed
     {
     private:
         PolymorphicInlineCacheInfo selfInfo;
-        SListBase<PolymorphicInlineCacheInfo*> inlineeInfo;
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler> inlineeInfo;
 
         static void SetPolymorphicInlineCache(PolymorphicInlineCacheInfo * polymorphicInlineCacheInfo, FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, byte polyCacheUtil);
 
     public:
-        EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody)
-            : selfInfo(functionBody)
-        {
-        }
-
+        EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody);
 
         PolymorphicInlineCacheInfo * GetSelfInfo() { return &selfInfo; }
         PolymorphicInlineCacheInfo * EnsureInlineeInfo(Recycler * recycler, FunctionBody * inlineeFunctionBody);
         PolymorphicInlineCacheInfo * GetInlineeInfo(FunctionBody * inlineeFunctionBody);
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler> * GetInlineeInfo() { return &this->inlineeInfo; }
 
         void SetPolymorphicInlineCache(FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, bool isInlinee, byte polyCacheUtil);
 
         template <class Fn>
         void MapInlinees(Fn fn)
         {
-            SListBase<PolymorphicInlineCacheInfo*>::Iterator iter(&inlineeInfo);
+            SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
             while (iter.Next())
             {
                 fn(iter.Data());
@@ -391,6 +390,20 @@ namespace Js
     };
 
 
+    struct TypeGuardTransferData
+    {
+        unsigned int propertyGuardCount;
+        TypeGuardTransferEntryIDL* entries;
+    };
+
+    struct CtorCacheTransferData
+    {
+        unsigned int ctorCachesCount;
+        CtorCacheTransferEntryIDL ** entries;
+    };
+
+
+
     // Not thread safe.
     // Note that instances of this class are read from and written to from the
     // main and JIT threads.
@@ -417,8 +430,8 @@ namespace Js
         private:
             TypeRefSet* jitTimeTypeRefs;
 
-            void** runtimeTypeRefs;
-            int runtimeTypeRefCount;
+            PinnedTypeRefsIDL* runtimeTypeRefs;
+
 
             int propertyGuardCount;
             // This is a dynamically sized array of dynamically sized TypeGuardTransferEntries.  It's heap allocated by the JIT
@@ -438,24 +451,32 @@ namespace Js
             // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
-            NativeCodeData* data;
+#if ENABLE_NATIVE_CODEGEN
+            NativeCodeData* jitTransferRawData;
+#endif
+            EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
+            TypeGuardTransferData typeGuardTransferData;
+            CtorCacheTransferData ctorCacheTransferData;
 
             bool falseReferencePreventionBit;
             bool isReady;
 
         public:
             JitTransferData():
-                jitTimeTypeRefs(nullptr), runtimeTypeRefCount(0), runtimeTypeRefs(nullptr),
+                jitTimeTypeRefs(nullptr), runtimeTypeRefs(nullptr),
                 propertyGuardCount(0), propertyGuardsByPropertyId(nullptr), propertyGuardsByPropertyIdPlusSize(0),
                 ctorCacheGuardsByPropertyId(nullptr), ctorCacheGuardsByPropertyIdPlusSize(0),
-                equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), data(nullptr),
+                equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), jitTransferRawData(nullptr),
                 falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0){}
 
+#if ENABLE_NATIVE_CODEGEN
+            void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
+#endif
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
-            int GetRuntimeTypeRefCount() { return this->runtimeTypeRefCount; }
-            void** GetRuntimeTypeRefs() { return this->runtimeTypeRefs; }
-            void SetRuntimeTypeRefs(void** runtimeTypeRefs, int count) { this->runtimeTypeRefs = runtimeTypeRefs; this->runtimeTypeRefCount = count; }
+            int GetRuntimeTypeRefCount() { return this->runtimeTypeRefs ? this->runtimeTypeRefs->count : 0; }
+            void** GetRuntimeTypeRefs() { return this->runtimeTypeRefs ? (void**)this->runtimeTypeRefs->typeRefs : nullptr; }
+            void SetRuntimeTypeRefs(PinnedTypeRefsIDL* pinnedTypeRefs) { this->runtimeTypeRefs = pinnedTypeRefs;}
 
             JitEquivalentTypeGuard** GetEquivalentTypeGuards() const { return this->equivalentTypeGuards; }
             void SetEquivalentTypeGuards(JitEquivalentTypeGuard** guards, int count)
@@ -468,16 +489,32 @@ namespace Js
                 this->lazyBailoutProperties = properties;
                 this->lazyBailoutPropertyCount = count;
             }
-
+            void SetEquivalentTypeGuardOffsets(EquivalentTypeGuardOffsets* offsets)
+            {
+                equivalentTypeGuardOffsets = offsets;
+            }
+            void SetTypeGuardTransferData(JITOutputIDL* data)
+            {
+                typeGuardTransferData.entries = data->typeGuardEntries;
+                typeGuardTransferData.propertyGuardCount = data->propertyGuardCount;
+            }
+            void SetCtorCacheTransferData(JITOutputIDL * data)
+            {
+                ctorCacheTransferData.entries = data->ctorCacheEntries;
+                ctorCacheTransferData.ctorCachesCount = data->ctorCachesCount;
+            }
             bool GetIsReady() { return this->isReady; }
             void SetIsReady() { this->isReady = true; }
 
         private:
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
-
-        NativeCodeData * data;
-        CodeGenNumberChunk * numberChunks;
+#if ENABLE_NATIVE_CODEGEN
+        NativeCodeData * inProcJITNaticeCodedata;
+        char* nativeDataBuffer;
+        Js::JavascriptNumber** numberChunks;
+        XProcNumberPageSegment* numberPageSegments;
+#endif
 
         SmallSpanSequence *nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
@@ -515,6 +552,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
+        unsigned int inlineeFrameOffsetArrayOffset;
+        unsigned int inlineeFrameOffsetArrayCount;
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
@@ -534,6 +573,23 @@ namespace Js
         };
         uint frameHeight;
 
+#if ENABLE_NATIVE_CODEGEN
+        char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
+        char* GetNativeDataBuffer() { return nativeDataBuffer; }
+        void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
+        void SetNumberChunks(Js::JavascriptNumber** chunks)
+        {
+            Assert(numberPageSegments != nullptr);
+            numberChunks = chunks; 
+        }
+        void SetNumberPageSegment(XProcNumberPageSegment * segments)
+        {
+            Assert(numberPageSegments == nullptr);
+            numberPageSegments = segments; 
+        }
+        
+#endif
+
     private:
 #if ENABLE_NATIVE_CODEGEN
         typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
@@ -548,6 +604,10 @@ namespace Js
 
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
         void **runtimeTypeRefs;
+
+#if _M_AMD64 || _M_ARM32_OR_ARM64
+        XDataAllocation * xdataInfo;
+#endif
 
         uint32 pendingPolymorphicCacheState;
 #endif
@@ -573,8 +633,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
-            equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), data(nullptr),
-            numberChunks(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
+            equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
+            numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
@@ -616,6 +676,10 @@ namespace Js
 
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+        XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
+        void SetXDataInfo(XDataAllocation* xdataInfo) { this->xdataInfo = xdataInfo; }
+#endif
 
 #ifdef FIELD_ACCESS_STATS
         FieldAccessStats* GetFieldAccessStats() { return this->fieldAccessStats; }
@@ -772,20 +836,12 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize,
-            NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks)
+        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
         {
             Assert(this->GetState() == CodeGenQueued);
             Assert(codeSize > 0);
-            Assert(this->jitTransferData != nullptr || transferData == nullptr);
             this->nativeAddress = nativeAddress;
             this->codeSize = codeSize;
-            this->data = data;
-            if (transferData != nullptr)
-            {
-                this->jitTransferData->data = transferData;
-            }
-            this->numberChunks = numberChunks;
             this->state = CodeGenRecorded;
 
 #ifdef PERF_COUNTERS
@@ -904,8 +960,8 @@ namespace Js
         virtual void ResetOnNativeCodeInstallFailure() = 0;
 
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
-        bool HasSharedPropertyGuards() { return this->sharedPropertyGuards != nullptr; }
-        bool HasSharedPropertyGuard(Js::PropertyId propertyId);
+        Js::PropertyId* GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const;
+
         bool TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard);
         void RecordTypeGuards(int propertyGuardCount, TypeGuardTransferEntry* typeGuardTransferRecord, size_t typeGuardTransferPlusSize);
         void RecordCtorCacheGuards(CtorCacheGuardTransferEntry* ctorCacheTransferRecord, size_t ctorCacheTransferPlusSize);
@@ -926,6 +982,7 @@ namespace Js
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         void RecordBailOutMap(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* bailoutMap);
         void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
+        void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees() { return this->frameHeight > 0; }
         void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
@@ -1347,7 +1404,7 @@ namespace Js
         bool IsJitLoopBodyPhaseEnabled() const
         {
             // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
-            return !PHASE_OFF(JITLoopBodyPhase, this) && DoFullJit() && !this->IsCoroutine();
+            return !PHASE_OFF(JITLoopBodyPhase, this) && !PHASE_OFF(FullJitPhase, this) && !this->IsCoroutine();
         }
 
         bool IsJitLoopBodyPhaseForced() const
@@ -1364,11 +1421,6 @@ namespace Js
 
         ULONG GetHostStartLine() const;
         ULONG GetHostStartColumn() const;
-
-        bool DoFullJit() const
-        {
-            return !PHASE_OFF(FullJitPhase, this);
-        }
 
     protected:
         // Static method(s)
@@ -1873,6 +1925,7 @@ namespace Js
                 bool GetIsEnterBlock();
             };
 
+            typedef JsUtil::List<Js::FunctionBody::StatementMap*, ArenaAllocator> ArenaStatementMapList;
             typedef JsUtil::List<Js::FunctionBody::StatementMap*> StatementMapList;
 
             // Note: isLeaf = true template param below means that recycler should not be used to dispose the items.
@@ -1938,17 +1991,22 @@ namespace Js
             WriteBarrierPtr<byte> m_inlineCacheTypes;
 #endif
     public:
+        PropertyId * GetCacheIdToPropertyIdMap()
+        {
+            return cacheIdToPropertyIdMap;
+        }
         static DWORD GetAsmJsTotalLoopCountOffset() { return offsetof(FunctionBody, m_asmJsTotalLoopCount); }
 #if DBG
         int m_DEBUG_executionCount;     // Count of outstanding on InterpreterStackFrame
         bool m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
                                                    // Set by bgjit in OutOfMemory scenario during codegen.
 #endif
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+
+//#if ENABLE_DEBUG_CONFIG_OPTIONS //TODO: need this?
         NoWriteBarrierField<uint> regAllocStoreCount;
         NoWriteBarrierField<uint> regAllocLoadCount;
         NoWriteBarrierField<uint> callCountStats;
-#endif
+//#endif
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
         //
@@ -2281,13 +2339,8 @@ namespace Js
             return (void*)&m_uScriptId;
         }
 
-        uint8 *GetCallsCountAddress(EntryPointInfo* info) const
-        {
-            FunctionEntryPointInfo* entryPoint = (FunctionEntryPointInfo*) info;
-            return &entryPoint->callsCount;
-        }
 
-        uint *GetJittedLoopIterationsSinceLastBailoutAddress(EntryPointInfo* info) const
+        static uint *GetJittedLoopIterationsSinceLastBailoutAddress(EntryPointInfo* info)
         {
             LoopEntryPointInfo* entryPoint = (LoopEntryPointInfo*)info;
             return &entryPoint->jittedLoopIterationsSinceLastBailout;
@@ -2347,7 +2400,6 @@ namespace Js
         void DoTraceExecutionMode(const char *const eventDescription) const;
 
     public:
-        static bool IsNewSimpleJit();
         bool DoSimpleJit() const;
         bool DoSimpleJitWithLock() const;
         bool DoSimpleJitDynamicProfile() const;
@@ -2387,7 +2439,7 @@ namespace Js
         static bool DoObjectHeaderInliningForObjectLiterals();
     public:
         static bool DoObjectHeaderInliningForObjectLiteral(const uint32 inlineSlotCapacity);
-        static bool DoObjectHeaderInliningForObjectLiteral(const PropertyIdArray *const propIds, ScriptContext *const scriptContext);
+        static bool DoObjectHeaderInliningForObjectLiteral(const PropertyIdArray *const propIds);
         static bool DoObjectHeaderInliningForEmptyObjects();
 
     public:
@@ -2464,7 +2516,8 @@ namespace Js
         FunctionCodeGenRuntimeData ** GetCodeGenRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
-        static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
+        template <typename TStatementMapList>
+        static StatementMap * GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
         void RecordStatementAdjustment(uint offset, StatementAdjustmentType adjType);
         void RecordCrossFrameEntryExitRecord(uint byteCodeOffset, bool isEnterBlock);
@@ -2704,10 +2757,14 @@ namespace Js
             }
         }
     public:
-        bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
+        FunctionBodyFlags GetFlags() { return this->flags; }
+
+        static bool GetHasThis(FunctionBodyFlags flags) { return (flags & Flags_HasThis) != 0; }
+        bool GetHasThis() const { return GetHasThis(this->flags); }
         void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
 
-        bool GetHasTry() const { return (flags & Flags_HasTry) != 0; }
+        static bool GetHasTry(FunctionBodyFlags flags) { return (flags & Flags_HasTry) != 0; }
+        bool GetHasTry() const { return GetHasTry(this->flags); }
         void SetHasTry(bool has) { SetFlags(has, Flags_HasTry); }
 
         bool GetHasFinally() const { return m_hasFinally; }
@@ -2716,10 +2773,12 @@ namespace Js
         bool GetFuncEscapes() const { return funcEscapes; }
         void SetFuncEscapes(bool does) { funcEscapes = does; }
 
-        bool GetHasOrParentHasArguments() const { return (flags & Flags_HasOrParentHasArguments) != 0; }
+        static bool GetHasOrParentHasArguments(FunctionBodyFlags flags) { return (flags & Flags_HasOrParentHasArguments) != 0; }
+        bool GetHasOrParentHasArguments() const { return GetHasOrParentHasArguments(this->flags); }
         void SetHasOrParentHasArguments(bool has) { SetFlags(has, Flags_HasOrParentHasArguments); }
 
-        bool DoStackNestedFunc() const { return (flags & Flags_StackNestedFunc) != 0; }
+        static bool DoStackNestedFunc(FunctionBodyFlags flags) { return (flags & Flags_StackNestedFunc) != 0; }
+        bool DoStackNestedFunc() const { return DoStackNestedFunc(flags); }
         void SetStackNestedFunc(bool does) { SetFlags(does, Flags_StackNestedFunc); }
 #if DBG
         bool CanDoStackNestedFunc() const { return m_canDoStackNestedFunc; }
@@ -2759,7 +2818,8 @@ namespace Js
         bool GetInlineCachesOnFunctionObject() { return m_inlineCachesOnFunctionObject; }
         void SetInlineCachesOnFunctionObject(bool has) { m_inlineCachesOnFunctionObject = has; }
 
-        bool GetHasRestParameter() const { return (flags & Flags_HasRestParameter) != 0; }
+        static bool GetHasRestParameter(FunctionBodyFlags flags) { return (flags & Flags_HasRestParameter) != 0; }
+        bool GetHasRestParameter() const { return GetHasRestParameter(this->flags); }
         void SetHasRestParameter() { SetFlags(true, Flags_HasRestParameter); }
 
         bool NeedScopeObjectForArguments(bool hasNonSimpleParams)
@@ -2979,10 +3039,10 @@ namespace Js
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
+        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
         DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
     public:
@@ -3019,9 +3079,6 @@ namespace Js
         bool HasNonBuiltInCallee();
 
         void RecordNativeThrowMap(SmallSpanSequenceIter& iter, uint32 offset, uint32 statementIndex, EntryPointInfo* entryPoint, uint loopNum);
-        void RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t codeSizeS,  NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks,
-            EntryPointInfo* info, uint loopNum);
-
         void SetNativeThrowSpanSequence(SmallSpanSequence *seq, uint loopNum, LoopEntryPointInfo* entryPoint);
 
         BOOL GetMatchingStatementMapFromNativeAddress(DWORD_PTR codeAddress, StatementData &data, uint loopNum, FunctionBody *inlinee = nullptr);
@@ -3034,7 +3091,7 @@ namespace Js
         void InsertSymbolToRegSlotList(JsUtil::CharacterBuffer<WCHAR> const& propName, RegSlot reg, RegSlot totalRegsCount);
         void InsertSymbolToRegSlotList(RegSlot reg, PropertyId propertyId, RegSlot totalRegsCount);
         void SetPropertyIdsOfFormals(PropertyIdArray * formalArgs);
-        PropertyIdArray * AllocatePropertyIdArrayForFormals(uint32 size, uint32 count);
+        PropertyIdArray * AllocatePropertyIdArrayForFormals(uint32 size, uint32 count, byte extraSlots);
 
         bool DontRethunkAfterBailout() const { return dontRethunkAfterBailout; }
         void SetDontRethunkAfterBailout() { dontRethunkAfterBailout = true; }
@@ -3412,6 +3469,12 @@ namespace Js
         int indexOfActualOffset;
     };
 
+    struct ThrowMapEntry
+    {
+        uint32 nativeBufferOffset;
+        uint32 statementIndex;
+    };
+
     // This class compacts the range of the statement to BYTEs instead of ints.
     // Instead of having start and end as int32s we will have them stored in bytes, and they will be
     // treated as start offset and end offset.
@@ -3419,10 +3482,11 @@ namespace Js
     // or main thread.
     class SmallSpanSequence
     {
-        friend class SmallSpanSequenceIter;
-        friend class ByteCodeBufferBuilder;
-        friend class ByteCodeBufferReader;
     private:
+        BOOL GetRangeAt(int index, SmallSpanSequenceIter &iter, int * pCountOfMissed, StatementData & data);
+        ushort GetDiff(int current, int prev);
+
+    public:
 
         // Each item in the list contains two set of begins (one for bytecode and for sourcespan).
         // The  allowed valued for source and bytecode span is in between SHORT_MAX - 1 to SHORT_MIN (inclusive).
@@ -3434,11 +3498,6 @@ namespace Js
 
         // The first value of the sequence
         int baseValue;
-
-        BOOL GetRangeAt(int index, SmallSpanSequenceIter &iter, int * pCountOfMissed, StatementData & data);
-        ushort GetDiff(int current, int prev);
-
-    public:
 
         SmallSpanSequence();
 
@@ -3452,11 +3511,13 @@ namespace Js
             if (pStatementBuffer != nullptr)
             {
                 HeapDelete(pStatementBuffer);
+                pStatementBuffer = nullptr;
             }
 
             if (pActualOffsetList != nullptr)
             {
                 HeapDelete(pActualOffsetList);
+                pActualOffsetList = nullptr;
             }
         }
 

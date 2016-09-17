@@ -42,6 +42,19 @@ namespace Js
     }
 
     template<class T>
+    T *InlineCachePointerArray<T>::GetInlineCache(const uint index) const
+    {
+        Assert(index < inlineCacheCount);
+        return inlineCaches[index];
+    }
+
+    template<class T>
+    bool InlineCachePointerArray<T>::HasInlineCaches() const
+    {
+        return inlineCaches != nullptr;
+    }
+
+    template<class T>
     void InlineCachePointerArray<T>::SetInlineCache(
         Recycler *const recycler,
         FunctionBody *const functionBody,

@@ -16,6 +16,7 @@ namespace Js
         {
         }
 
+        static size_t OffsetOfElements() { return offsetof(AuxArray<T>, elements); }
         void SetCount(uint count) { this->count = count; }
         size_t GetDataSize() const { return sizeof(AuxArray) + sizeof(T) * count; }
     };

@@ -25,9 +25,12 @@
         $(ChakraCoreRootDirectory)Lib\Common;
         $(ChakraCoreRootDirectory)Lib\Parser;
         $(ChakraCoreRootDirectory)Lib\Runtime;
+        $(ChakraCoreRootDirectory)Lib\CodeGenClient;
         $(ChakraCoreRootDirectory)Lib\Runtime\ByteCode;
         $(ChakraCoreRootDirectory)Lib\Jsrt;
         $(IntDir);
+        $(ChakraJITIDLIntDir);
+        $(MSBuildThisFileDirectory)..\..\lib\JITClient;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(BuildJIT)'!='false'">
@@ -45,6 +48,7 @@
         user32.lib;
         advapi32.lib;
         ole32.lib;
+        Rpcrt4.lib;
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs);oleaut32.dll</DelayLoadDLLs>
@@ -63,8 +67,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MsBuildThisFileDirectory)ConfigParserExternals.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreDLLFunc.cpp" />
-    <ClCompile Include="TestHooks.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreDllFunc.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)TestHooks.cpp" />
     <None Include="..\CoreCommon.ver" />
   </ItemGroup>
   <ItemGroup>
@@ -90,6 +94,15 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\lib\JITClient\Chakra.JITClient.vcxproj">
+      <Project>{ffd0fa88-7a39-407e-a92d-d3a06273e1ac}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\JITServer\Chakra.JITServer.vcxproj" Condition="'$(BuildJIT)'!='false'">
+      <Project>{31024620-7b97-4ec7-96e8-e7b296a17df4}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lib\Jsrt\Chakra.Jsrt.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9220f5}</Project>
     </ProjectReference>

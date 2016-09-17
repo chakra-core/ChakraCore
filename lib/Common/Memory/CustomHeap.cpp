@@ -20,10 +20,11 @@ namespace CustomHeap
 
 #pragma region "Constructor and Destructor"
 
-Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators):
+Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators, HANDLE processHandle):
     auxiliaryAllocator(alloc),
     codePageAllocators(codePageAllocators),
-    lastSecondaryAllocStateChangedCount(0)
+    lastSecondaryAllocStateChangedCount(0),
+    processHandle(processHandle)
 #if DBG_DUMP
     , freeObjectSize(0)
     , totalAllocationSize(0)
@@ -221,7 +222,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         if (allocation)
         {
             MEMORY_BASIC_INFORMATION memBasicInfo;
-            size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+            size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->address, &memBasicInfo, sizeof(memBasicInfo));
             Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
         }
 #endif
@@ -252,7 +253,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
 
 #if defined(DBG)
         MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
+        size_t resultBytes = VirtualQueryEx(this->processHandle, page->address, &memBasicInfo, sizeof(memBasicInfo));
         Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
@@ -383,7 +384,7 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
             return nullptr;
         }
 
-        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize);
+        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize, this->processHandle);
         DWORD protectFlags = 0;
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
@@ -616,7 +617,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
         return nullptr;
     }
 
-    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize);
+    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize, this->processHandle);
 
     DWORD protectFlags = 0;
 
@@ -766,7 +767,7 @@ bool Heap::FreeAllocation(Allocation* object)
             EnsureAllocationWriteable(object);
 
             // Fill the old buffer with debug breaks
-            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
 
             void* pageAddress = page->address;
 
@@ -830,7 +831,7 @@ void Heap::FreeAllocationHelper(Allocation* object, BVIndex index, uint length)
     Page* page = object->page;
 
     // Fill the old buffer with debug breaks
-    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
 
     VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
 #if VERBOSE_HEAP
@@ -1028,7 +1029,7 @@ inline BucketId GetBucketForSize(size_t bytes)
 // Fills the specified buffer with "debug break" instruction encoding.
 // If there is any space left after that due to alignment, fill it with 0.
 // static
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount)
+void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHandle)
 {
 #if defined(_M_ARM)
     // On ARM there is breakpoint instruction (BKPT) which is 0xBEii, where ii (immediate 8) can be any value, 0xBE in particular.
@@ -1037,12 +1038,34 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     // This is 2 bytes, and in case there is a gap of 1 byte in the end, fill it with 0 (there is no 1 byte long THUMB instruction).
     CompileAssert(sizeof(char16) == 2);
     char16 pattern = 0xDEFE;
-    wmemset(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2);
+
+    const bool isLocalProc = processHandle == GetCurrentProcess();
+    BYTE * writeBuffer;
+
+    if (isLocalProc)
+    {
+        writeBuffer = buffer;
+    }
+    else
+    {
+        writeBuffer = HeapNewArray(BYTE, byteCount);
+    }
+    wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
     if (byteCount % 2)
     {
         // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.
-        *(buffer + byteCount - 1) = 0;  // Fill last remaining byte.
+        *(writeBuffer + byteCount - 1) = 0;  // Fill last remaining byte.
     }
+
+    if (!isLocalProc)
+    {
+        if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
+        {
+            Js::Throw::FatalInternalError();
+        }
+        HeapDeleteArray(byteCount, writeBuffer);
+    }
+
 #elif defined(_M_ARM64)
     CompileAssert(sizeof(DWORD) == 4);
     DWORD pattern = 0xd4200000 | (0xf000 << 5);
@@ -1057,7 +1080,7 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     }
 #else
     // On Intel just use "INT 3" instruction which is 0xCC.
-    memset(buffer, 0xCC, byteCount);
+    ChakraMemSet(buffer, 0xCC, byteCount, processHandle);
 #endif
 }
 

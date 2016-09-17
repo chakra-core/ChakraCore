@@ -22,6 +22,7 @@ add_library (Chakra.Common.Memory OBJECT
     MarkContext.cpp
     MemoryLogger.cpp
     MemoryTracking.cpp
+    MemUtils.cpp
     PageAllocator.cpp
     Recycler.cpp
     RecyclerHeuristic.cpp

@@ -625,6 +625,7 @@ class Recycler
 #endif
     friend class ScriptEngineBase;  // This is for disabling GC for certain Host operations.
     friend class CodeGenNumberThreadAllocator;
+    friend struct XProcNumberPageSegmentManager;
 public:
     static const uint ConcurrentThreadStackSize = 300000;
     static const bool FakeZeroLengthArray = true;
@@ -1370,7 +1371,8 @@ public:
         return this->autoHeap.GetBucket<attributes>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
     }
 
-    void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset);
+    void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
+    static void GetNormalHeapBlockAllocatorInfoForNativeAllocation(void* recyclerAddr, size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
     bool AllowNativeCodeBumpAllocation();
     static void TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBlock, size_t sizeCat);
 
@@ -1436,6 +1438,7 @@ public:
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     BOOL VerifyEnabled() const { return verifyEnabled; }
+    uint GetVerifyPad() const { return verifyPad; }
     void Verify(Js::Phase phase);
 
     static void VerifyCheck(BOOL cond, char16 const * msg, void * address, void * corruptedAddress);

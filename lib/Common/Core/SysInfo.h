@@ -14,7 +14,6 @@ public:
     uint GetAllocationGranularityPageCount() const;
     uint GetAllocationGranularityPageSize() const;
 
-    HANDLE GetProcessHandle() { return this->processHandle; }
     bool DisableDebugScopeCapture() const { return this->disableDebugScopeCapture; }
     bool IsCFGEnabled();
     bool IsWin8OrLater();

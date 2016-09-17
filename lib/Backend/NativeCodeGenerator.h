@@ -30,7 +30,7 @@ public:
     void Close();
 
     JsFunctionCodeGen * NewFunctionCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info);
-    JsLoopBodyCodeGen * NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info);
+    JsLoopBodyCodeGen * NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info, Js::LoopHeader * loopHeader);
 
     bool GenerateFunction(Js::FunctionBody * fn, Js::ScriptFunction * function = nullptr);
     void GenerateLoopBody(Js::FunctionBody * functionBody, Js::LoopHeader * loopHeader, Js::EntryPointInfo* info = nullptr, uint localCount = 0, Js::Var localSlots[] = nullptr);
@@ -77,6 +77,8 @@ private:
     JsUtil::Job *GetJobToProcessProactively();
     void AddToJitQueue(CodeGenWorkItem *const codeGenWorkItem, bool prioritize, bool lock, void* function = nullptr);
     void RemoveProactiveJobs();
+    static void LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
+    static void LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
     typedef SListCounted<Js::ObjTypeSpecFldInfo*, ArenaAllocator> ObjTypeSpecFldInfoList;
 
     template<bool IsInlinee> void GatherCodeGenData(
@@ -125,7 +127,7 @@ private:
 
     CodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
-        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext);
+        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext()->GetCodePageAllocators(), GetCurrentProcess());
     }
 
     CodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)

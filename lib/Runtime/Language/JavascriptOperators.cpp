@@ -4902,7 +4902,7 @@ CommonNumber:
         return thisVar;
     }
 
-    inline void JavascriptOperators::TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContext* scriptContext)
+    inline void JavascriptOperators::TryLoadRoot(Var& thisVar, TypeId typeId, int moduleID, ScriptContextInfo* scriptContext)
     {
         bool loadRoot = false;
         if (JavascriptOperators::IsUndefinedOrNullType(typeId) || typeId == TypeIds_ActivationObject)
@@ -4924,16 +4924,17 @@ CommonNumber:
         if (loadRoot)
         {
             if (moduleID == 0)
-            {
-                thisVar = JavascriptOperators::OP_LdRoot(scriptContext)->ToThis();
+            {                
+                thisVar = (Js::Var)scriptContext->GetGlobalObjectThisAddr();
             }
             else
             {
-                Js::ModuleRoot * moduleRoot = JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
+                // TODO: OOP JIT, create a copy of module roots in server side
+                Js::ModuleRoot * moduleRoot = JavascriptOperators::GetModuleRoot(moduleID, (ScriptContext*)scriptContext);
                 if (moduleRoot == nullptr)
                 {
                     Assert(false);
-                    thisVar = scriptContext->GetLibrary()->GetUndefined();
+                    thisVar = (Js::Var)scriptContext->GetUndefinedAddr();
                 }
                 else
                 {
@@ -4943,7 +4944,7 @@ CommonNumber:
         }
     }
 
-    Var JavascriptOperators::OP_GetThis(Var thisVar, int moduleID, ScriptContext* scriptContext)
+    Var JavascriptOperators::OP_GetThis(Var thisVar, int moduleID, ScriptContextInfo* scriptContext)
     {
         //
         // if "this" is null or undefined
@@ -4978,17 +4979,20 @@ CommonNumber:
         return (JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsSpecialObjectType(typeId));
     }
 
-    Var JavascriptOperators::GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContext *scriptContext)
+    Var JavascriptOperators::GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContextInfo *scriptContext)
     {
         if (! JavascriptOperators::IsObjectType(typeId) && ! JavascriptOperators::IsUndefinedOrNullType(typeId))
         {
+#if ENABLE_NATIVE_CODEGEN
+            Assert(!JITManager::GetJITManager()->IsJITServer());
+#endif
 #if !FLOATVAR
             // We allowed stack number to be used as the "this" for getter and setter activation of
             // n.x and n[prop], where n is the Javascript Number
             return JavascriptOperators::ToObject(
-                JavascriptNumber::BoxStackNumber(thisVar, scriptContext), scriptContext);
+                JavascriptNumber::BoxStackNumber(thisVar, (ScriptContext*)scriptContext), (ScriptContext*)scriptContext);
 #else
-            return JavascriptOperators::ToObject(thisVar, scriptContext);
+            return JavascriptOperators::ToObject(thisVar, (ScriptContext*)scriptContext);
 #endif
 
         }
@@ -5354,7 +5358,7 @@ CommonNumber:
         else
         {
             DynamicType* objectType =
-                FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds, scriptContext)
+                FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds)
                     ?   scriptContext->GetLibrary()->GetObjectHeaderInlinedLiteralType((uint16)propIds->count)
                     :   scriptContext->GetLibrary()->GetObjectLiteralType(
                             static_cast<PropertyIndex>(
@@ -5363,9 +5367,10 @@ CommonNumber:
             *literalType = newType;
         }
 
-        Assert(GetLiteralInlineSlotCapacity(propIds, scriptContext) == newType->GetTypeHandler()->GetInlineSlotCapacity());
+        Assert(scriptContext);
+        Assert(GetLiteralInlineSlotCapacity(propIds) == newType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(newType->GetTypeHandler()->GetSlotCapacity() >= 0);
-        Assert(GetLiteralSlotCapacity(propIds, scriptContext) == (uint)newType->GetTypeHandler()->GetSlotCapacity());
+        Assert(GetLiteralSlotCapacity(propIds) == (uint)newType->GetTypeHandler()->GetSlotCapacity());
         return newType;
     }
 
@@ -5401,15 +5406,14 @@ CommonNumber:
         return instance;
     }
 
-    uint JavascriptOperators::GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds, ScriptContext *const scriptContext)
+    uint JavascriptOperators::GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds)
     {
-        const uint inlineSlotCapacity = GetLiteralInlineSlotCapacity(propIds, scriptContext);
+        const uint inlineSlotCapacity = GetLiteralInlineSlotCapacity(propIds);
         return DynamicTypeHandler::RoundUpSlotCapacity(propIds->count, static_cast<PropertyIndex>(inlineSlotCapacity));
     }
 
     uint JavascriptOperators::GetLiteralInlineSlotCapacity(
-        Js::PropertyIdArray const * propIds,
-        ScriptContext *const scriptContext)
+        Js::PropertyIdArray const * propIds)
     {
         if (propIds->hadDuplicates)
         {
@@ -5417,7 +5421,7 @@ CommonNumber:
         }
 
         return
-            FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds, scriptContext)
+            FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds)
                 ?   DynamicTypeHandler::RoundUpObjectHeaderInlinedInlineSlotCapacity(static_cast<PropertyIndex>(propIds->count))
                 :   DynamicTypeHandler::RoundUpInlineSlotCapacity(
                         static_cast<PropertyIndex>(
@@ -6595,18 +6599,9 @@ CommonNumber:
         return propertyId;
     }
 
-    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContextInfo* scriptContext)
     {
-        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
-        Assert(moduleRecord != nullptr);
-
-        // Require caller to also provide the intended access slot so we can do bounds check now.
-        if (moduleRecord->GetLocalExportCount() + 1 <= slotIndex)
-        {
-            Js::Throw::FatalInternalError();
-        }
-
-        return moduleRecord->GetLocalExportSlots();
+        return scriptContext->GetModuleExportSlotArrayAddress(moduleIndex, slotIndex);
     }
 
     Var* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
@@ -8194,7 +8189,7 @@ CommonNumber:
 
         AssertMsg(type && type->GetScriptContext(), "type and it's ScriptContext should be valid.");
 
-        if (!guard->IsInvalidatedDuringSweep() && guard->GetType()->GetScriptContext() != type->GetScriptContext())
+        if (!guard->IsInvalidatedDuringSweep() && ((Js::Type*)guard->GetTypeAddr())->GetScriptContext() != type->GetScriptContext())
         {
             // For valid guard value, can't cache cross-context objects
             return false;
@@ -8240,7 +8235,7 @@ CommonNumber:
                 }
             }
 #endif
-            guard->SetType(type);
+            guard->SetTypeAddr((intptr_t)type);
             return true;
         }
 
@@ -8374,7 +8369,7 @@ CommonNumber:
             }
         }
 
-        guard->SetType(type);
+        guard->SetTypeAddr((intptr_t)type);
         return true;
     }
 

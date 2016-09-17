@@ -211,6 +211,8 @@ CodeGenNumberThreadAllocator::Integrate()
 
     while (!pendingIntegrationChunkBlock.Empty())
     {
+        // REVIEW: the above number block integration can be moved into this loop
+
         TRACK_ALLOC_INFO(recycler, CodeGenNumberChunk, Recycler, 0, (size_t)-1);
 
         BlockRecord& record = pendingIntegrationChunkBlock.Head();
@@ -286,4 +288,221 @@ CodeGenNumberAllocator::Finalize()
     this->chunkTail = nullptr;
     this->currentChunkNumberCount = 0;
     return finalizedChunk;
+}
+
+/* static */
+uint
+XProcNumberPageSegmentImpl::GetSizeCat()
+{
+    return (uint)HeapInfo::GetAlignedSizeNoCheck(sizeof(Js::JavascriptNumber));
+}
+
+
+Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess, double value, Js::StaticType* numberTypeStatic, void* javascriptNumberVtbl)
+{
+    XProcNumberPageSegmentImpl* tail = this;
+
+    if (this->pageAddress != 0)
+    {
+        while (tail->nextSegment)
+        {
+            tail = (XProcNumberPageSegmentImpl*)tail->nextSegment;
+        }
+
+        if (tail->pageAddress + tail->committedEnd - tail->allocEndAddress >= GetSizeCat())
+        {
+            auto number = tail->allocEndAddress;
+            tail->allocEndAddress += GetSizeCat();
+
+            Js::JavascriptNumber localNumber(value, numberTypeStatic
+#if DBG
+                , true
+#endif
+            );
+
+            // change vtable to the remote one
+            *(void**)&localNumber = javascriptNumberVtbl;
+
+            // initialize number by WriteProcessMemory
+            SIZE_T bytesWritten;
+            WriteProcessMemory(hProcess, (void*)number, &localNumber, sizeof(localNumber), &bytesWritten);
+
+            return (Js::JavascriptNumber*) number;
+        }
+
+        // alloc blocks
+        if ((void*)tail->committedEnd < tail->GetEndAddress())
+        {
+            Assert((unsigned int)((char*)tail->GetEndAddress() - (char*)tail->committedEnd) >= BlockSize);
+            // TODO: implement guard pages (still necessary for OOP JIT?)
+            auto ret = ::VirtualAllocEx(hProcess, tail->GetCommitEndAddress(), BlockSize, MEM_COMMIT, PAGE_READWRITE);
+            if (!ret)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            tail->committedEnd += BlockSize;
+            return AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+        }
+    }
+
+    // alloc new segment
+    void* pages = ::VirtualAllocEx(hProcess, nullptr, PageCount * AutoSystemInfo::PageSize, MEM_RESERVE, PAGE_READWRITE);
+    if (pages == nullptr)
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    if (tail->pageAddress == 0)
+    {
+        tail = new (tail) XProcNumberPageSegmentImpl();
+        tail->pageAddress = (intptr_t)pages;
+        tail->allocStartAddress = this->pageAddress;
+        tail->allocEndAddress = this->pageAddress;
+        tail->nextSegment = nullptr;
+        return AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+    }
+    else
+    {
+        XProcNumberPageSegmentImpl* seg = (XProcNumberPageSegmentImpl*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+        if (seg == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+        seg = new (seg) XProcNumberPageSegmentImpl();
+        tail->nextSegment = seg;
+        return seg->AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+    }
+}
+
+
+XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
+{
+    this->blockIntegratedSize = 0;
+    this->pageSegment = 0;
+}
+
+Js::JavascriptNumber** ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
+{
+    Assert(segments->pageAddress && segments->allocStartAddress && segments->allocEndAddress);
+    XProcNumberPageSegmentImpl* segmentImpl = (XProcNumberPageSegmentImpl*)segments;
+
+    XProcNumberPageSegmentImpl* temp = segmentImpl;
+    size_t totalCount = 0;
+    while (temp)
+    {
+        totalCount += (temp->allocEndAddress - temp->allocStartAddress) / XProcNumberPageSegmentImpl::GetSizeCat();
+        temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+    }
+
+    Js::JavascriptNumber** numbers = RecyclerNewArray(this->recycler, Js::JavascriptNumber*, totalCount);
+
+    temp = segmentImpl;
+    int count = 0;
+    while (temp)
+    {
+        auto start = temp->allocStartAddress;
+        while (start < temp->allocEndAddress)
+        {
+            numbers[count] = (Js::JavascriptNumber*)start;
+            count++;
+            start += XProcNumberPageSegmentImpl::GetSizeCat();
+        }
+        temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+    }
+
+
+
+    AutoCriticalSection autoCS(&cs);
+    if (this->segmentsList == nullptr)
+    {
+        this->segmentsList = segmentImpl;
+    }
+    else
+    {
+        temp = segmentsList;
+        while (temp->nextSegment)
+        {
+            temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+        }
+        temp->nextSegment = segmentImpl;
+    }
+
+    return numbers;
+}
+
+void XProcNumberPageSegmentManager::GetFreeSegment(XProcNumberPageSegment * seg)
+{
+    AutoCriticalSection autoCS(&cs);
+
+    if (segmentsList == nullptr)
+    {
+        new (seg) XProcNumberPageSegmentImpl();
+        return;
+    }
+
+    auto temp = segmentsList;
+    auto prev = &segmentsList;
+    while (temp)
+    {
+        if (temp->allocEndAddress != temp->pageAddress + (int)(XProcNumberPageSegmentImpl::PageCount*AutoSystemInfo::PageSize)) // not full
+        {
+            *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+
+            // remove from the list
+            memcpy(seg, temp, sizeof(XProcNumberPageSegment));
+            midl_user_free(temp);
+            return;
+        }
+        prev = (XProcNumberPageSegmentImpl**)&temp->nextSegment;
+        temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+    }
+}
+
+void XProcNumberPageSegmentManager::Integrate()
+{
+    AutoCriticalSection autoCS(&cs);
+
+    auto temp = this->segmentsList;
+    auto prev = &this->segmentsList;
+    while (temp)
+    {
+        if (temp->pageSegment == 0)
+        {
+            auto leafPageAllocator = recycler->GetRecyclerLeafPageAllocator();
+            DListBase<PageSegment> segmentList;
+            temp->pageSegment = (intptr_t)leafPageAllocator->AllocPageSegment(segmentList, leafPageAllocator,
+                (void*)temp->pageAddress, XProcNumberPageSegmentImpl::PageCount, temp->committedEnd / AutoSystemInfo::PageSize);
+            leafPageAllocator->IntegrateSegments(segmentList, 1, XProcNumberPageSegmentImpl::PageCount);
+
+            this->integratedSegmentCount++;
+        }
+
+        unsigned int minIntegrateSize = XProcNumberPageSegmentImpl::BlockSize;
+        for (; temp->pageAddress + temp->blockIntegratedSize + minIntegrateSize < (unsigned int)temp->allocEndAddress;
+            temp->blockIntegratedSize += minIntegrateSize)
+        {
+            TRACK_ALLOC_INFO(recycler, Js::JavascriptNumber, Recycler, 0, (size_t)-1);
+
+            if (!recycler->IntegrateBlock<LeafBit>((char*)temp->pageAddress + temp->blockIntegratedSize,
+                (PageSegment*)temp->pageSegment, XProcNumberPageSegmentImpl::GetSizeCat(), sizeof(Js::JavascriptNumber)))
+            {
+                Js::Throw::OutOfMemory();
+            }
+        }
+
+        *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+        midl_user_free(temp);
+        temp = *prev;
+    }
+}
+
+XProcNumberPageSegmentManager::~XProcNumberPageSegmentManager()
+{
+    auto temp = segmentsList;
+    while (temp)
+    {
+        auto next = temp->nextSegment;
+        midl_user_free(temp);
+        temp = (XProcNumberPageSegmentImpl*)next;
+    }
 }

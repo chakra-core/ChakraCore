@@ -37,6 +37,16 @@ namespace Js
         return result;
     }
 
+    inline bool TaggedInt::Is(intptr_t aValue)
+    {
+        bool result = (aValue >> VarTag_Shift) == AtomTag;
+        if (result)
+        {
+            Assert((aValue >> 32) == (AtomTag << 16));
+        }
+        return result;
+    }
+
     inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
     {
         uint32 tags = (uint32)((uint64)aLeft >> 32 | (uint64)aRight >> 48);
@@ -50,6 +60,13 @@ namespace Js
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<int32>(aValue);
+    }
+
+    inline int32 TaggedInt::ToInt32(intptr_t aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+
+        return (int32)aValue;
     }
 
     inline uint32 TaggedInt::ToUInt32(Var aValue)
@@ -98,6 +115,11 @@ namespace Js
     inline bool TaggedInt::Is(const Var aValue)
     {
         return (((uintptr_t) aValue) & AtomTag) == AtomTag_IntPtr;
+    }
+
+    __inline bool TaggedInt::Is(intptr_t aValue)
+    {
+        return (aValue & AtomTag) == AtomTag_IntPtr;
     }
 
     inline bool TaggedInt::IsPair(Var aLeft, Var aRight)

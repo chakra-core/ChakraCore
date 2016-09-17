@@ -190,7 +190,8 @@ const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
-    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer")),
+    // TODO: michhol oop JIT move interpreter thunk emitter out of process
+    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     allocation(nullptr),
     allocator(allocator),
     thunkCount(0),
@@ -528,14 +529,15 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
 
 
 inline /*static*/
-DWORD InterpreterThunkEmitter::FillDebugBreak(__out_bcount_full(count) BYTE* dest, __in DWORD count)
+DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
 {
 #if defined(_M_ARM)
     Assert(count % 2 == 0);
 #elif defined(_M_ARM64)
     Assert(count % 4 == 0);
 #endif
-    CustomHeap::FillDebugBreak(dest, count);
+    // TODO: michhol OOP JIT. after mving OOP, change to runtime process handle
+    CustomHeap::FillDebugBreak(dest, count, GetCurrentProcess());
     return count;
 }
 
@@ -543,11 +545,11 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(__out_bcount_full(count) BYTE* des
 
 inline /*static*/
 DWORD InterpreterThunkEmitter::CopyWithAlignment(
-    __in_bcount(sizeInBytes) BYTE* dest,
-    __in const DWORD sizeInBytes,
-    __in_bcount(srcSize) const BYTE* src,
-    __in_range(0, sizeInBytes) const DWORD srcSize,
-    __in const DWORD alignment)
+    _In_ BYTE* dest,
+    _In_ const DWORD sizeInBytes,
+    _In_ const BYTE* src,
+    _In_ const DWORD srcSize,
+    _In_ const DWORD alignment)
 {
     js_memcpy_s(dest, sizeInBytes, src, srcSize);
     dest += srcSize;

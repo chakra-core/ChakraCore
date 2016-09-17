@@ -18,8 +18,11 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptNumber, RecyclableObject);
 #endif
     public:
-        JavascriptNumber(double value, StaticType*);
-
+        JavascriptNumber(double value, StaticType*
+#if DBG
+            , bool oopJIT = false
+#endif
+        );
         static uint32 GetValueOffset()
         {
             return offsetof(JavascriptNumber, m_value);
@@ -140,13 +143,14 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint, Var* value, ScriptContext *) override { AssertMsg(false, "Number ToPrimitive should not be called"); *value = this; return true;}
 #endif
 
-    private:
+
 #if FLOATVAR
         static Var ToVar(double value);
 #else
         static JavascriptNumber* FromVar(Var aValue);
 #endif
 
+    private:
         void SetValue(double value)
         {
             m_value = value;

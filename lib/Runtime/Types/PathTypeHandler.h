@@ -31,7 +31,7 @@ namespace Js
         virtual BOOL IsSharable() const override { return true; }
         virtual void DoShareTypeHandler(ScriptContext* scriptContext) override;
 
-        static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, ScriptContext *const scriptContext, bool *const check__proto__Ref = nullptr);
+        static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, bool *const check__proto__Ref = nullptr);
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
         static DynamicType* CreateNewScopeObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, PropertyAttributes extraAttributes = PropertyNone, uint extraAttributesSlotCount = UINT_MAX);
 

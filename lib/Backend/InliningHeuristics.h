@@ -6,7 +6,7 @@
 
 struct InliningThreshold
 {
-    Js::FunctionBody * topFunc;
+    uint nonLoadByteCodeCount;
     bool forLoopBody;
     int inlineThreshold;
     int constructorInlineThreshold;
@@ -18,7 +18,7 @@ struct InliningThreshold
     int maxNumberOfInlineesWithLoop;
     int constantArgumentInlineThreshold;
 
-    InliningThreshold(Js::FunctionBody * topFunc, bool forLoopBody, bool aggressive = false);
+    InliningThreshold(uint nonLoadByteCodeCount, bool forLoopBody, bool aggressive = false);
     void SetHeuristics();
     void SetAggressiveHeuristics();
     void Reset();
@@ -28,17 +28,15 @@ class InliningHeuristics
 {
     friend class InliningDecider;
 
-    Js::FunctionBody * topFunc;
+    const FunctionJITTimeInfo * topFunc;
     InliningThreshold threshold;
 
 public:
 
 public:
-    InliningHeuristics(Js::FunctionBody * topFunc, bool forLoopBody) :topFunc(topFunc), threshold(topFunc, forLoopBody) {};
-    bool DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js::FunctionBody *inliner, bool isConstructorCall, bool isPolymorphicCall, InliningDecider* inliningDecider, uint16 constantArgInfo, uint recursiveInlineDepth, bool allowRecursiveInlining);
-    bool CanRecursivelyInline(Js::FunctionBody* inlinee, Js::FunctionBody *inliner, bool allowRecursiveInlining, uint recursiveInlineDepth);
-    bool BackendInlineIntoInliner(Js::FunctionBody* inlinee,
-                                Js::FunctionBody *inliner,
+    InliningHeuristics(const FunctionJITTimeInfo * topFunc, bool forLoopBody) :topFunc(topFunc), threshold(topFunc->GetBody()->GetNonLoadByteCodeCount(), forLoopBody) {};
+    bool BackendInlineIntoInliner(const FunctionJITTimeInfo * inlinee,
+                                Func * inliner,
                                 Func *topFunc,
                                 Js::ProfileId,
                                 bool isConstructorCall,
@@ -48,13 +46,12 @@ public:
                                 uint recursiveInlineDepth,
                                 uint16 constantArguments
                                 );
-    bool ContinueInliningUserDefinedFunctions(uint32 bytecodeInlinedCount) const;
 private:
-    static bool IsInlineeLeaf(Js::FunctionBody* inlinee)
+    static bool IsInlineeLeaf(const FunctionJITTimeInfo * inlinee)
     {
-        return inlinee->HasDynamicProfileInfo()
-            && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->HasNonBuiltInCallee() : inlinee->GetProfiledCallSiteCount() == 0)
-            && !inlinee->GetAnyDynamicProfileInfo()->hasLdFldCallSiteInfo();
+        return inlinee->GetBody()->HasProfileInfo()
+            && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->GetBody()->HasNonBuiltInCallee() : inlinee->GetBody()->GetProfiledCallSiteCount() == 0)
+            && !inlinee->GetBody()->GetReadOnlyProfileInfo()->HasLdFldCallSiteInfo();
     }
 
 };

@@ -20,13 +20,14 @@ public:
 
     void SetSideEffects(SideEffects se);
     SideEffects GetSideEffects() { return sideEffects; }
-    SideEffects * GetAddressOfSideEffects() { return &sideEffects; }
+    intptr_t GetAddressOfSideEffects() const { return (intptr_t)&sideEffects; }
 
     bool IsEnabledArraySetElementFastPath() const;
     void DisableArraySetElementFastPath();
     INT_PTR GetArraySetElementFastPathVtable() const;
-    INT_PTR GetIntArraySetElementFastPathVtable() const;
-    INT_PTR GetFloatArraySetElementFastPathVtable() const;
+    INT_PTR GetArraySetElementFastPathVtableAddr() const;
+    INT_PTR GetIntArraySetElementFastPathVtableAddr() const;
+    INT_PTR GetFloatArraySetElementFastPathVtableAddr() const;
     void * GetAddressOfArraySetElementFastPathVtable();
     void * GetAddressOfIntArraySetElementFastPathVtable();
     void * GetAddressOfFloatArraySetElementFastPathVtable();

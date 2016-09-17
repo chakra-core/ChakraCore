@@ -158,7 +158,7 @@ public:
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
-    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Func *func);
+    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func *func, Js::Var varLocal = nullptr);
 
 public:
     bool            IsPlainInstr() const;
@@ -230,7 +230,6 @@ public:
     void            FreeSrc1();
     Opnd *          ReplaceSrc1(Opnd * newSrc);
     Instr *         HoistSrc1(Js::OpCode assignOpcode, RegNum regNum = RegNOREG, StackSym *newSym = nullptr);
-    bool            IsSrc1FunctionObject();
     Opnd *          GetSrc2() const;
     Opnd *          SetSrc2(Opnd * newSrc);
     Opnd *          UnlinkSrc2();
@@ -317,7 +316,7 @@ public:
     void            ResetAuxBailOut();
     void            UnlinkStartCallFromBailOutInfo(IR::Instr *endInstr) const;
     void            ChangeEquivalentToMonoTypeCheckBailOut();
-    Js::Var         TryOptimizeInstrWithFixedDataProperty(IR::Instr ** pInstr, GlobOpt* globopt);
+    intptr_t        TryOptimizeInstrWithFixedDataProperty(IR::Instr ** pInstr, GlobOpt* globopt);
     Opnd *          FindCallArgumentOpnd(const Js::ArgSlot argSlot, IR::Instr * *const ownerInstrRef = nullptr);
     void            CopyNumber(IR::Instr *instr) { this->SetNumber(instr->GetNumber()); }
 
@@ -424,7 +423,7 @@ public:
     bool       HasByteCodeArgOutCapture();
     void       GenerateArgOutSnapshot();
     IR::Instr* GetArgOutSnapshot();
-    Js::JavascriptFunction* GetFixedFunction() const;
+    JITTimeFixedField* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
     bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);
@@ -790,7 +789,7 @@ public:
 #endif
     }
 
-    void                            AddtoDictionary(uint32 offset, TBranchKey key);
+    void                            AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar);
     void                            AddtoJumpTable(uint32 offset, uint32 jmpIndex);
     void                            CreateBranchTargetsAndSetDefaultTarget(int dictionarySize, Kind kind, uint defaultTargetOffset);
     void                            ChangeLabelRef(LabelInstr * oldTarget, LabelInstr * newTarget);
@@ -944,7 +943,6 @@ public:
 #if DBG_DUMP | defined(VTUNE_PROFILING)
     void Record(uint32 nativeBufferOffset);
 #endif
-    void RecordThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeBufferOffset);
     PragmaInstr * ClonePragma();
     PragmaInstr * CopyPragma();
 };

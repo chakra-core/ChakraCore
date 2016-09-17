@@ -181,6 +181,24 @@ public:
     static uint32 GetArgumentsObjectOffset();
     static const uint BailOutRegisterSaveSlotCount = LinearScanMD::RegisterSaveSlotCount;
 
+    void Fixup(NativeCodeData::DataChunk* chunkList)
+    {
+        FixupNativeDataPointer(globalBailOutRecordTable, chunkList);
+        FixupNativeDataPointer(argOutOffsetInfo, chunkList);
+        FixupNativeDataPointer(parent, chunkList);
+        FixupNativeDataPointer(constants, chunkList);
+        FixupNativeDataPointer(ehBailoutData, chunkList);
+        FixupNativeDataPointer(stackLiteralBailOutRecord, chunkList);
+#ifdef _M_IX86
+        // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
+        if (argOutOffsetInfo)
+        {
+            uint* startCallArgRestoreAdjustCountsStart = startCallArgRestoreAdjustCounts - argOutOffsetInfo->startCallIndex;
+            NativeCodeData::AddFixupEntry(startCallArgRestoreAdjustCounts, startCallArgRestoreAdjustCountsStart, &this->startCallArgRestoreAdjustCounts, this, chunkList);
+        }
+#endif
+    }
+
 public:
     template <size_t N>
     void FillNativeRegToByteCodeRegMap(uint (&nativeRegToByteCodeRegMap)[N]);
@@ -281,6 +299,30 @@ protected:
         int * outParamOffsets;
         uint startCallCount;
         uint argOutSymStart;
+        uint startCallIndex;
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            FixupNativeDataPointer(argOutFloat64Syms, chunkList);
+            FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);            
+            FixupNativeDataPointer(argOutSimd128I8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128I16Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U16Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B16Syms, chunkList);
+
+            // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
+            uint* startCallOutParamCountsStart = startCallOutParamCounts - startCallIndex;
+            NativeCodeData::AddFixupEntry(startCallOutParamCounts, startCallOutParamCountsStart, &this->startCallOutParamCounts, this, chunkList);
+
+            int* outParamOffsetsStart = outParamOffsets - argOutSymStart;
+            NativeCodeData::AddFixupEntry(outParamOffsets, outParamOffsetsStart, &this->outParamOffsets, this, chunkList);
+            
+        }
     };
 
     // The offset to 'globalBailOutRecordTable' is hard-coded in LinearScanMD::SaveAllRegisters, so let this be the first member variable
@@ -473,4 +515,59 @@ struct GlobalBailOutRecordDataTable
             }
         }
     }
+
+    void Fixup(NativeCodeData::DataChunk* chunkList)
+    {
+        FixupNativeDataPointer(globalBailOutRecordDataRows, chunkList);
+    }
 };
+#if DBG
+template<> void NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+template<> void NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+template<> void NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+#else
+template<>
+char*
+NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::Alloc(size_t requestedBytes)
+{
+    return __super::Alloc(requestedBytes);
+}
+template<>
+char*
+NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::AllocZero(size_t requestedBytes)
+{
+    return __super::AllocZero(requestedBytes);
+}
+
+template<>
+char*
+NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::Alloc(size_t requestedBytes)
+{
+    return __super::Alloc(requestedBytes);
+}
+template<>
+char*
+NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::AllocZero(size_t requestedBytes)
+{
+    return __super::AllocZero(requestedBytes);
+}
+
+template<>
+char*
+NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::Alloc(size_t requestedBytes)
+{
+    return __super::Alloc(requestedBytes);
+}
+template<>
+char*
+NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::AllocZero(size_t requestedBytes)
+{
+    return __super::AllocZero(requestedBytes);
+}
+#endif
+
+template<> void NativeCodeData::AllocatorT<GlobalBailOutRecordDataTable*>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList)
+{
+    // for every pointer needs to update the table
+    NativeCodeData::AddFixupEntryForPointerArray(pThis, chunkList);
+}

@@ -82,7 +82,7 @@ public:
         , longBranchMap(nullptr)
 #endif
     {
-        auto loopCount = func->GetJnFunction()->GetLoopCount();
+        auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
             m_saveLoopImplicitCallFlags = (IR::Opnd**)func->m_alloc->Alloc(sizeof(IR::Opnd*) * loopCount);
 #if DBG
@@ -91,14 +91,13 @@ public:
         }
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
-        m_functionBody = func->m_workItem->GetFunctionBody();
-        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
     };
 
     ~IRBuilder() {
-        Assert(m_func->GetJnFunction()->GetLoopCount() == 0 || m_saveLoopImplicitCallFlags);
+        Assert(m_func->GetJITFunctionBody()->GetLoopCount() == 0 || m_saveLoopImplicitCallFlags);
         if (m_saveLoopImplicitCallFlags) {
-            m_func->m_alloc->Free(m_saveLoopImplicitCallFlags, sizeof(IR::Opnd*) * m_func->GetJnFunction()->GetLoopCount());
+            m_func->m_alloc->Free(m_saveLoopImplicitCallFlags, sizeof(IR::Opnd*) * m_func->GetJITFunctionBody()->GetLoopCount());
         }
     }
 
@@ -116,6 +115,7 @@ private:
 #endif
     BranchReloc *       CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
     void                BuildGeneratorPreamble();
+    void                LoadNativeCodeData();
     void                BuildConstantLoads();
     void                BuildImplicitArgIns();    
 
@@ -206,8 +206,8 @@ private:
     SymID               BuildSrcStackSymID(Js::RegSlot regSlot);
     IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false);
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
-    IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 auxArrayOffset, uint extraSlots = 0);
-    IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId, uint32 offset);
+    IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset);
+    IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
 
 private:
     uint                AddStatementBoundary(uint statementIndex, uint offset);
@@ -262,7 +262,7 @@ private:
 
     BOOL                RegIsConstant(Js::RegSlot reg)
     {
-        return reg > 0 && reg < this->m_func->GetJnFunction()->GetConstantCount();
+        return reg > 0 && reg < m_func->GetJITFunctionBody()->GetConstCount();
     }
 
     Js::RegSlot         InnerScopeIndexToRegSlot(uint32) const;
@@ -317,8 +317,7 @@ private:
     IR::Instr **        m_offsetToInstruction;
     uint32              m_functionStartOffset;
     Js::ByteCodeReader  m_jnReader;
-    Js::StatementReader m_statementReader;
-    Js::FunctionBody *  m_functionBody;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
     SList<IR::Instr *> *m_argStack;
     SList<BranchReloc*> *branchRelocList;
     SList<uint>         *catchOffsetStack;

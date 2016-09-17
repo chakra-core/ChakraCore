@@ -12,6 +12,8 @@
 #pragma intrinsic(_mm_round_sd)
 #endif
 
+const LPCWSTR UCrtC99MathApis::LibraryName = _u("api-ms-win-crt-math-l1-1-0.dll");
+
 void UCrtC99MathApis::Ensure()
 {
     if (m_isInit)

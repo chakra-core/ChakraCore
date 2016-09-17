@@ -176,7 +176,6 @@ PHASE(All)
         PHASE(Lowerer)
             PHASE(FastPath)
                 PHASE(LoopFastPath)
-                PHASE(LeafFastPath)
                 PHASE(MathFastPath)
                 PHASE(Atom)
                     PHASE(MulStrengthReduction)
@@ -348,6 +347,7 @@ PHASE(All)
         PHASE(TypeShareForChangePrototype)
         PHASE(DeferSourceLoad)
         PHASE(ObjectMutationBreakpoint)
+        PHASE(NativeCodeData)
 #undef PHASE
 #endif
 
@@ -377,7 +377,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_DeferTopLevelTillFirstCall (true)
 #define DEFAULT_CONFIG_DirectCallTelemetryStats (false)
 #define DEFAULT_CONFIG_errorStackTrace      (true)
-#define DEFAULT_CONFIG_FastPathCap          (-1)        // By default, we do not have any fast path cap
 #define DEFAULT_CONFIG_FastLineColumnCalculation (true)
 #define DEFAULT_CONFIG_PrintLineColumnInfo (false)
 #define DEFAULT_CONFIG_ForceDecommitOnCollect (false)
@@ -650,6 +649,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
+#define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -1036,7 +1036,6 @@ FLAGR(Boolean, WinRTAdaptiveApps        , "Enable the adaptive apps feature, all
 // This flag to be removed once JITing generator functions is stable
 FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", false)
 
-FLAGNR(Number,  FastPathCap           , "Cap in source code size for enabling fast-paths", DEFAULT_CONFIG_FastPathCap)
 FLAGNR(Boolean, FastLineColumnCalculation, "Enable fast calculation of line/column numbers from the source.", DEFAULT_CONFIG_FastLineColumnCalculation)
 FLAGR (String,  Filename              , "Jscript source file", nullptr)
 FLAGNR(Boolean, FreeRejittedCode      , "Free rejitted code", true)
@@ -1199,6 +1198,7 @@ FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
+FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else

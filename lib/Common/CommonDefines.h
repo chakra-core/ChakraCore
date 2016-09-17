@@ -283,7 +283,7 @@
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
-#ifdef _M_IX86
+#if 0
 #if ENABLE_NATIVE_CODEGEN
 #define IR_VIEWER
 #define ENABLE_IR_VIEWER
@@ -571,8 +571,10 @@
 #ifndef PDATA_ENABLED
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
 #define PDATA_ENABLED 1
+#define ALLOC_XDATA (true)
 #else
 #define PDATA_ENABLED 0
+#define ALLOC_XDATA (false)
 #endif
 #endif
 #endif // _WIN32 || _WIN64

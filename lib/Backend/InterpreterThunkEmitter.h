@@ -101,8 +101,8 @@ private:
 #endif
 
     /*-------static helpers ---------*/
-    inline static DWORD FillDebugBreak(__out_bcount_full(count) BYTE* dest, __in DWORD count);
-    inline static DWORD CopyWithAlignment(__in_bcount(sizeInBytes) BYTE* dest, __in const DWORD sizeInBytes, __in_bcount(srcSize) const BYTE* src, __in_range(0, sizeInBytes) const DWORD srcSize, __in const DWORD alignment);
+    inline static DWORD FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count);
+    inline static DWORD CopyWithAlignment(_In_ BYTE* dest, _In_ const DWORD sizeInBytes, _In_ const BYTE* src, _In_ const DWORD srcSize, _In_ const DWORD alignment);
     template<class T>
     inline static void Emit(__in_bcount(sizeof(T) + offset) BYTE* dest, __in const DWORD offset, __in const T value)
     {

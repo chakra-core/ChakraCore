@@ -1701,7 +1701,7 @@ LABEL1:
 
     */
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-    ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody) // get the reg operand and isLoad and
+    ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo) // get the reg operand and isLoad and
     {
         InstructionData instrData;
         uint prefixValue = 0;
@@ -2097,7 +2097,7 @@ LABEL1:
         }
 
         BYTE* pc = (BYTE*)exceptionInfo->ExceptionRecord->ExceptionAddress;
-        ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo, funcBody);
+        ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo);
         // Check If the instruction is valid
         if (instrData.isInvalidInstr)
         {

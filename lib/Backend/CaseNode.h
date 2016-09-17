@@ -31,10 +31,15 @@ public:
         return caseInstr->GetSrc2()->GetStackSym()->GetIntConstValue();
     }
 
-    Js::JavascriptString* GetSrc2StringConst()
+    Js::JavascriptString* GetSrc2StringConstLocal()
     {
         AssertMsg(caseInstr->GetSrc2()->GetStackSym()->m_isStrConst,"Source2 operand is not an integer constant");
-        return Js::JavascriptString::FromVar(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress());
+        return Js::JavascriptString::FromVar(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress(true));
+    }
+    Js::JavascriptString* GetSrc2StringConst()
+    {
+        AssertMsg(caseInstr->GetSrc2()->GetStackSym()->m_isStrConst, "Source2 operand is not an integer constant");
+        return static_cast<Js::JavascriptString*>(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress(false));
     }
 
     bool IsSrc2IntConst()

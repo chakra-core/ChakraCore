@@ -270,12 +270,41 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         linearScan->SetSrcRegs(newInstr);
     }
 
-    // Pass in the bailout record
-    //     mov  rcx, bailOutRecord
-    Lowerer::InsertMove(
-        IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
-        IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
-        instr);
+
+    if (!func->IsOOPJIT())
+    {
+        // Pass in the bailout record
+        //     mov  rcx, bailOutRecord
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
+            instr);
+
+    }
+    else
+    {
+        // move rcx, dataAddr
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func),
+            instr);
+
+        // mov rcx, [rcx]
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func), 0, TyMachPtr, func),
+            instr);
+
+        // lea rcx, [rcx + bailoutRecord_offset]
+        int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
+        Lowerer::InsertLea(IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func), 
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func), bailoutRecordOffset, TyMachPtr,
+#if DBG
+            NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
+#endif
+            this->func), instr);
+
+    }
 
     firstInstr = firstInstr->m_next;
     for(uint i = 0; i < registerSaveSymsCount; i++)
@@ -424,7 +453,7 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
         NEXT_BITSET_IN_SPARSEBV;
     }
 
-    Js::RegSlot localsCount = this->func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = this->func->GetJITFunctionBody()->GetLocalsCount();
     bailOutInfo->IterateArgOutSyms([localsCount, &restoreSymFn](uint, uint argOutSlotOffset, StackSym* sym) {
         restoreSymFn(localsCount + argOutSlotOffset, sym);
     });
@@ -453,87 +482,87 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 
 RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 {
-	RegNum reg = RegNOREG;
-	StackSym *paramSym = symOpnd->m_sym->AsStackSym();
+    RegNum reg = RegNOREG;
+    StackSym *paramSym = symOpnd->m_sym->AsStackSym();
 
-	if (func->GetJnFunction()->GetIsAsmjsMode() && !func->IsLoopBody())
-	{
-		// Asm.js function only have 1 implicit param as they have no CallInfo, and they have float/SIMD params.
-		// Asm.js loop bodies however are called like normal JS functions.
-		if (IRType_IsFloat(symOpnd->GetType()) || IRType_IsSimd(symOpnd->GetType()))
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegXMM1;
-				break;
-			case 2:
-				reg = RegXMM2;
-				break;
-			case 3:
-				reg = RegXMM3;
-				break;
-			}
-		}
-		else
-		{
-			if (paramSym->IsImplicitParamSym())
-			{
-				switch (paramSym->GetParamSlotNum())
-				{
-				case 1:
-					reg = RegRCX;
-					break;
-				default:
-					Assert(UNREACHED);
-				}
-			}
-			else
-			{
-				switch (paramSym->GetParamSlotNum())
-				{
-				case 1:
-					reg = RegRDX;
-					break;
-				case 2:
-					reg = RegR8;
-					break;
-				case 3:
-					reg = RegR9;
-					break;
-				}
-			}
-		}
-	}
-	else // Non-Asm.js
-	{
-		Assert(symOpnd->GetType() == TyVar || IRType_IsNativeInt(symOpnd->GetType()));
+    if (func->GetJITFunctionBody()->IsAsmJsMode() && !func->IsLoopBody())
+    {
+        // Asm.js function only have 1 implicit param as they have no CallInfo, and they have float/SIMD params.
+        // Asm.js loop bodies however are called like normal JS functions.
+        if (IRType_IsFloat(symOpnd->GetType()) || IRType_IsSimd(symOpnd->GetType()))
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegXMM1;
+                break;
+            case 2:
+                reg = RegXMM2;
+                break;
+            case 3:
+                reg = RegXMM3;
+                break;
+            }
+        }
+        else
+        {
+            if (paramSym->IsImplicitParamSym())
+            {
+                switch (paramSym->GetParamSlotNum())
+                {
+                case 1:
+                    reg = RegRCX;
+                    break;
+                default:
+                    Assert(UNREACHED);
+                }
+            }
+            else
+            {
+                switch (paramSym->GetParamSlotNum())
+                {
+                case 1:
+                    reg = RegRDX;
+                    break;
+                case 2:
+                    reg = RegR8;
+                    break;
+                case 3:
+                    reg = RegR9;
+                    break;
+                }
+            }
+        }
+    }
+    else // Non-Asm.js
+    {
+        Assert(symOpnd->GetType() == TyVar || IRType_IsNativeInt(symOpnd->GetType()));
 
-		if (paramSym->IsImplicitParamSym())
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegRDX;
-				break;
-			case 2:
-				reg = RegRCX;
-				break;
-			}
-		}
-		else
-		{
-			switch (paramSym->GetParamSlotNum())
-			{
-			case 1:
-				reg = RegR8;
-				break;
-			case 2:
-				reg = RegR9;
-				break;
-			}
-		}
-	}
+        if (paramSym->IsImplicitParamSym())
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegRDX;
+                break;
+            case 2:
+                reg = RegRCX;
+                break;
+            }
+        }
+        else
+        {
+            switch (paramSym->GetParamSlotNum())
+            {
+            case 1:
+                reg = RegR8;
+                break;
+            case 2:
+                reg = RegR9;
+                break;
+            }
+        }
+    }
 
-	return reg;
+    return reg;
 }

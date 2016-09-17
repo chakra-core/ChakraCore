@@ -55,7 +55,7 @@ LowererMD::IsUnconditionalBranch(const IR::Instr *instr)
 
 // GenerateMemRef: Return an opnd that can be used to access the given address.
 IR::Opnd *
-LowererMD::GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode)
+LowererMD::GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode)
 {
     return IR::MemRefOpnd::New(addr, type, this->m_func);
 }
@@ -676,7 +676,7 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     if (helperCallOpnd->IsDiagHelperCallOpnd())
     {
         // Load arguments for the wrapper.
-        this->LoadHelperArgument(callInstr, IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(helperMethod), IR::AddrOpndKindDynamicMisc, m_func));
+        this->LoadHelperArgument(callInstr, IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(m_func->GetThreadContextInfo(), helperMethod), IR::AddrOpndKindDynamicMisc, m_func));
         this->m_lowerer->LoadScriptContext(callInstr);
     }
     callInstr->SetSrc1(helperCallOpnd);
@@ -792,69 +792,56 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 {
     IR::RegOpnd * retReg;
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
-        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetReturnType();
+        Js::AsmJsRetType::Which asmType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType();
         IRType regType = TyInt32;
-        if (asmType.which() == Js::AsmJsRetType::Double)
+        switch (asmType)
         {
+        case Js::AsmJsRetType::Double:
             regType = TyFloat64;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float)
-        {
+            break;
+        case Js::AsmJsRetType::Float:
             regType = TyFloat32;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Signed || asmType.which() == Js::AsmJsRetType::Void)
-        {
-
+            break;
+        case Js::AsmJsRetType::Signed:
+        case Js::AsmJsRetType::Void:
             regType = TyInt32;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float32x4)
-        {
+            break;
+        case Js::AsmJsRetType::Float32x4:
             regType = TySimd128F4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Int32x4)
-        {
+            break;
+        case Js::AsmJsRetType::Int32x4:
             regType = TySimd128I4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Int16x8)
-        {
-            regType = TySimd128I8;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Int8x16)
-        {
-            regType = TySimd128I16;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Uint32x4)
-        {
-            regType = TySimd128U4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Uint16x8)
-        {
-            regType = TySimd128U8;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Uint8x16)
-        {
-            regType = TySimd128U16;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Bool32x4)
-        {
-            regType = TySimd128B4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Bool16x8)
-        {
-            regType = TySimd128B8;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Bool8x16)
-        {
-            regType = TySimd128B16;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float64x2)
-        {
+            break;
+        case Js::AsmJsRetType::Float64x2:
             regType = TySimd128D2;
-        }
-        else
-        {
+            break;
+        case Js::AsmJsRetType::Int16x8:
+            regType = TySimd128I8;
+            break;
+        case Js::AsmJsRetType::Int8x16:
+            regType = TySimd128I16;
+            break;
+        case Js::AsmJsRetType::Uint32x4:
+            regType = TySimd128U4;
+            break;
+        case Js::AsmJsRetType::Uint16x8:
+            regType = TySimd128U8;
+            break;
+        case Js::AsmJsRetType::Uint8x16:
+            regType = TySimd128U16;
+            break;
+        case Js::AsmJsRetType::Bool32x4:
+            regType = TySimd128B4;
+            break;
+        case Js::AsmJsRetType::Bool16x8:
+            regType = TySimd128B8;
+            break;
+        case Js::AsmJsRetType::Bool8x16:
+            regType = TySimd128B16;
+            break;
+        default:
             Assert(UNREACHED);
         }
 
@@ -1228,7 +1215,7 @@ void LowererMD::ChangeToMul(IR::Instr *const instr, bool hasOverflowCheck)
             // MOV reg, imm
             temp2 = IR::RegOpnd::New(TyInt32, instr->m_func);
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, temp2,
-                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(), TyInt32, instr->m_func, true),
+                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(instr->m_func), TyInt32, instr->m_func, true),
                 instr->m_func));
         }
         // eax = IMUL eax, reg
@@ -1764,7 +1751,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
     // Non-MOV (second operand) immediate need to fit in DWORD for AMD64
     Assert(!instr->GetSrc2() || !instr->GetSrc2()->IsImmediateOpnd()
-        || (TySize[instr->GetSrc2()->GetType()] != 8) || Math::FitsInDWord(instr->GetSrc2()->GetImmediateValue()));
+        || (TySize[instr->GetSrc2()->GetType()] != 8) || Math::FitsInDWord(instr->GetSrc2()->GetImmediateValue(instr->m_func)));
 #endif
 }
 
@@ -1943,7 +1930,8 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
                 if (!instr->isInlineeEntryInstr)
                 {
                     Assert(forms & L_Reg);
-                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd(addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
+                    // TODO: michhol, remove cast after making m_address intptr
+                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd((intptr_t)addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
                     if (indirOpnd != nullptr)
                     {
                         if (indirOpnd->GetOffset() == 0)
@@ -2723,8 +2711,8 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
     }
 
     bool isNeqOp = instr->m_opcode == Js::OpCode::CmSrNeq_A || instr->m_opcode == Js::OpCode::CmNeq_A;
-    Js::Var notEqualResult = m_func->GetScriptContext()->GetLibrary()->GetTrueOrFalse(isNeqOp);
-    Js::Var equalResult = m_func->GetScriptContext()->GetLibrary()->GetTrueOrFalse(!isNeqOp);
+    intptr_t notEqualResult = isNeqOp ? m_func->GetScriptContextInfo()->GetTrueAddr() : m_func->GetScriptContextInfo()->GetFalseAddr();
+    intptr_t equalResult = !isNeqOp ? m_func->GetScriptContextInfo()->GetTrueAddr() : m_func->GetScriptContextInfo()->GetFalseAddr();
 
     // Tagged ints?
     bool isTaggedInts = false;
@@ -4114,11 +4102,11 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
     IR::LabelInstr * labelNext)
 {
     uint accessorFlagMask;
-    if (PHASE_OFF(Js::InlineGettersPhase, insertBeforeInstr->m_func->GetJnFunction()))
+    if (PHASE_OFF(Js::InlineGettersPhase, insertBeforeInstr->m_func))
     {
         accessorFlagMask = Js::InlineCache::GetSetterFlagMask();
     }
-    else if (PHASE_OFF(Js::InlineSettersPhase, insertBeforeInstr->m_func->GetJnFunction()))
+    else if (PHASE_OFF(Js::InlineSettersPhase, insertBeforeInstr->m_func))
     {
         accessorFlagMask = Js::InlineCache::GetGetterFlagMask();
     }
@@ -5526,7 +5514,7 @@ IR::Instr * LowererMD::GenerateFloatAbs(IR::RegOpnd * regOpnd, IR::Instr * inser
     else
     {
         Assert(regOpnd->IsFloat32());
-        opnd = IR::MemRefOpnd::New((void *)&Js::JavascriptNumber::AbsFloatCst, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+        opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetAbsFloatCstAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
     }
 
     // ANDPS has smaller encoding then ANDPD
@@ -5698,7 +5686,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     IR::RegOpnd *charReg = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::MOVZXW, charReg, indirOpnd, this->m_func);
     insertInstr->InsertBefore(instr);
-    if (index == Js::BuiltinFunction::String_CharAt)
+    if (index == Js::BuiltinFunction::JavascriptString_CharAt)
     {
         IR::Opnd *resultOpnd;
         if (dst->IsEqual(srcStr))
@@ -5713,9 +5701,9 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     }
     else
     {
-        Assert(index == Js::BuiltinFunction::String_CharCodeAt || index == Js::BuiltinFunction::String_CodePointAt);
+        Assert(index == Js::BuiltinFunction::JavascriptString_CharCodeAt || index == Js::BuiltinFunction::JavascriptString_CodePointAt);
 
-        if (index == Js::BuiltinFunction::String_CodePointAt)
+        if (index == Js::BuiltinFunction::JavascriptString_CodePointAt)
         {
             this->m_lowerer->GenerateFastInlineStringCodePointAt(insertInstr, this->m_func, strLength, srcIndex, charReg, r1);
         }
@@ -5767,7 +5755,9 @@ LowererMD::GenerateClz(IR::Instr * instr)
 void
 LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper)
 {
-    Js::RecyclerJavascriptNumberAllocator * allocator = this->m_lowerer->GetScriptContext()->GetNumberAllocator();
+    size_t alignedAllocSize = Js::RecyclerJavascriptNumberAllocator::GetAlignedAllocSize(
+        m_func->GetScriptContextInfo()->IsRecyclerVerifyEnabled(),
+        m_func->GetScriptContextInfo()->GetRecyclerVerifyPad());
 
     IR::Opnd * endAddressOpnd = m_lowerer->LoadNumberAllocatorValueOpnd(instrInsert, NumberAllocatorValue::NumberAllocatorEndAddress);
     IR::Opnd * freeObjectListOpnd = m_lowerer->LoadNumberAllocatorValueOpnd(instrInsert, NumberAllocatorValue::NumberAllocatorFreeObjectList);
@@ -5779,7 +5769,7 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
     // LEA nextMemBlock, [dst + allocSize]
     IR::RegOpnd * nextMemBlockOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::Instr * loadNextMemBlockInstr = IR::Instr::New(Js::OpCode::LEA, nextMemBlockOpnd,
-        IR::IndirOpnd::New(opndDst, allocator->GetAlignedAllocSize(), TyMachPtr, this->m_func), this->m_func);
+        IR::IndirOpnd::New(opndDst, alignedAllocSize, TyMachPtr, this->m_func), this->m_func);
     instrInsert->InsertBefore(loadNextMemBlockInstr);
 
     // CMP nextMemBlock, allocator->endAddress
@@ -5830,7 +5820,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
 
     if (m_func->CanAllocInPreReservedHeapPageSegment())
     {
-        PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator();
+        PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetThreadContextInfo()->GetPreReservedVirtualAllocator();
         preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
         if (preReservedRegionStartAddress != nullptr)
         {
@@ -5917,14 +5907,16 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     IR::Opnd * endAddressOpnd;
     IR::Opnd * freeListOpnd;
 
-    Js::ScriptContext* scriptContext = this->m_func->GetScriptContext();
-    Recycler* recycler = scriptContext->GetRecycler();
+    ScriptContextInfo* scriptContext = this->m_func->GetScriptContextInfo();
     void* allocatorAddress;
     uint32 endAddressOffset;
     uint32 freeListOffset;
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
-    recycler->GetNormalHeapBlockAllocatorInfoForNativeAllocation(alignedSize, allocatorAddress, endAddressOffset, freeListOffset);
+    bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
+    Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize, 
+        allocatorAddress, endAddressOffset, freeListOffset, 
+        allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
 
     endAddressOpnd = IR::MemRefOpnd::New((char*)allocatorAddress + endAddressOffset, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicRecyclerAllocatorEndAddressRef);
     freeListOpnd = IR::MemRefOpnd::New((char*)allocatorAddress + freeListOffset, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicRecyclerAllocatorFreeListRef);
@@ -6033,7 +6025,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
     IR::Instr *movd = IR::Instr::New(Js::OpCode::MOVD, s1, opndFloat, m_func);
     instrInsert->InsertBefore(movd);
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         // s1 = MOVD src
         // tmp = NOT s1
@@ -6119,7 +6111,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         insertInstr->Remove();
         return;
     }
-    Assert(!m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(!m_func->GetJITFunctionBody()->IsAsmJsMode());
 
     IR::LabelInstr *labelNoBailOut = nullptr;
     IR::SymOpnd *tempSymOpnd = nullptr;
@@ -6210,16 +6202,29 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         Assert(regOpnd->m_sym->m_isSingleDef);
         Js::Var value = regOpnd->m_sym->GetFloatConstValueAsVar_PostGlobOpt();
 #if FLOATVAR
-        double *pDouble = NativeCodeDataNew(this->m_func->GetNativeCodeDataAllocator(), double);
-        AnalysisAssert(pDouble);
-        *pDouble = Js::JavascriptNumber::GetValue(value);
-        IR::MemRefOpnd *memRef = IR::MemRefOpnd::New((BYTE*)pDouble, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        void *pDouble = (double*)NativeCodeDataNewNoFixup(this->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_EmitLoadFloatCommon_Double>, Js::JavascriptNumber::GetValue(value));
+        IR::Opnd * doubleRef;
+        if (!m_func->IsOOPJIT())
+        {
+            doubleRef = IR::MemRefOpnd::New(pDouble, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        }
+        else
+        {
+            int offset = NativeCodeData::GetDataTotalOffset(pDouble);
+            doubleRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, TyMachDouble,
+#if DBG
+                NativeCodeData::GetDataDescription(pDouble, m_func->m_alloc),
+#endif
+                m_func);
+
+            GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
+        }
 #else
-        IR::MemRefOpnd *memRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func,
+        IR::MemRefOpnd *doubleRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func,
             IR::AddrOpndKindDynamicDoubleRef);
 #endif
         regFloatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOVSD, regFloatOpnd, memRef, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::MOVSD, regFloatOpnd, doubleRef, this->m_func);
         insertInstr->InsertBefore(instr);
         Legalize(instr);
         isFloatConst = true;
@@ -6997,21 +7002,48 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     }
 
     IR::Opnd * opnd;
-    if (opndDst->IsFloat64())
+
+    void* pValue = nullptr;
+    bool isFloat64 = opndDst->IsFloat64();
+    if (isFloat64)
     {
-        double *pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), double, value);
-        opnd = IR::MemRefOpnd::New((void*)pValue, TyMachDouble, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, value);
     }
     else
     {
         Assert(opndDst->IsFloat32());
-        float * pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), float, (float)value);
-        opnd = IR::MemRefOpnd::New((void *)pValue, TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicFloatRef);
+        pValue = (float*)NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), FloatType<DataDesc_LowererMD_LoadFloatValue_Float>, (float)value);
     }
+
+    if (!instrInsert->m_func->IsOOPJIT())
+    {
+        opnd = IR::MemRefOpnd::New((void*)pValue, isFloat64 ? TyMachDouble : TyFloat32,
+            instrInsert->m_func, isFloat64 ? IR::AddrOpndKindDynamicDoubleRef : IR::AddrOpndKindDynamicFloatRef);
+    }
+    else // OOP JIT
+    {
+        int offset = NativeCodeData::GetDataTotalOffset(pValue);
+        auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, instrInsert->m_func);
+
+        Lowerer::InsertMove(
+            addressRegOpnd,
+            IR::MemRefOpnd::New(instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+            instrInsert);
+
+        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32,
+#if DBG
+            NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
+#endif
+            instrInsert->m_func);
+    }
+
+    // movsd xmm, [reg+offset]
     IR::Instr * instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
+
     instrInsert->InsertBefore(instr);
     Legalize(instr);
     return instr;
+
 }
 
 IR::Instr *
@@ -7782,7 +7814,7 @@ LowererMD::InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *cons
                 false /* needFlags */,
                 srcPlusHalf,
                 src,
-                IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, func,
+                IR::MemRefOpnd::New(func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, func,
                     IR::AddrOpndKindDynamicDoubleRef),
                 insertBeforeInstr);
 
@@ -7931,7 +7963,7 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     
     LowererMD::ChangeToAssign(instrCommit);
 
-    const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJnFunction()->GetFormalsPropIdArray();
+    const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJITFunctionBody()->GetFormalsPropIdArray();
     
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
@@ -8265,12 +8297,12 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     IR::RegOpnd * objectReg;
     IR::Opnd * functionSrc;
     IR::RegOpnd * functionReg;
-    Js::IsInstInlineCache * inlineCache;
+    intptr_t inlineCache;
     IR::Instr * instrArg;
 
     // We are going to use the extra ArgOut_A instructions to lower the helper call later,
     // so we leave them alone here and clean them up then.
-    inlineCache = instr->m_func->GetJnFunction()->GetIsInstInlineCache(instr->GetSrc1()->AsIntConstOpnd()->AsUint32());
+    inlineCache = instr->m_func->GetJITFunctionBody()->GetIsInstInlineCache(instr->GetSrc1()->AsIntConstOpnd()->AsUint32());
     Assert(instr->GetSrc2()->AsRegOpnd()->m_sym->m_isSingleDef);
     instrArg = instr->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
 
@@ -8299,7 +8331,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     {
         IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, m_func);
         cmp->SetSrc1(functionReg);
-        cmp->SetSrc2(IR::MemRefOpnd::New((void*)&(inlineCache->function), TyMachReg, m_func,
+        cmp->SetSrc2(IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfFunction(), TyMachReg, m_func,
             IR::AddrOpndKindDynamicIsInstInlineCacheFunctionRef));
         instr->InsertBefore(cmp);
         Legalize(cmp);
@@ -8332,7 +8364,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     {
         IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, m_func);
         cmp->SetSrc1(typeReg);
-        cmp->SetSrc2(IR::MemRefOpnd::New((void*)&(inlineCache->type), TyMachReg, m_func,
+        cmp->SetSrc2(IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfType(), TyMachReg, m_func,
             IR::AddrOpndKindDynamicIsInstInlineCacheTypeRef));
         instr->InsertBefore(cmp);
         Legalize(cmp);
@@ -8342,7 +8374,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, checkPrimType, m_func));
 
     // MOV dst, [&(inlineCache->result)]
-    Lowerer::InsertMove(instr->GetDst(), IR::MemRefOpnd::New((void*)&(inlineCache->result), TyMachReg, m_func,
+    Lowerer::InsertMove(instr->GetDst(), IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfResult(), TyMachReg, m_func,
         IR::AddrOpndKindDynamicIsInstInlineCacheResultRef), instr);
 
     // JMP done
@@ -8427,12 +8459,12 @@ LowererMD::LowerToFloat(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::XORPS;
         if (instr->GetDst()->IsFloat32())
         {
-            opnd = IR::MemRefOpnd::New((void*)&Js::JavascriptNumber::MaskNegFloat, TyMachDouble, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegFloatAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicFloatRef);
         }
         else
         {
             Assert(instr->GetDst()->IsFloat64());
-            opnd = IR::MemRefOpnd::New((void*)&Js::JavascriptNumber::MaskNegDouble, TyMachDouble, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegDoubleAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         }
         instr->SetSrc2(opnd);
         Legalize(instr);
@@ -8716,7 +8748,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 #else
             // s1 = MOV helperAddr
             IR::RegOpnd* s1 = IR::RegOpnd::New(TyMachReg, this->m_func);
-            IR::AddrOpnd* helperAddr = IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(helperMethod), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func);
+            IR::AddrOpnd* helperAddr = IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(m_func->GetThreadContextInfo(), helperMethod), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func);
             IR::Instr* mov = IR::Instr::New(Js::OpCode::MOV, s1, helperAddr, this->m_func);
             instr->InsertBefore(mov);
 
@@ -8830,12 +8862,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Opnd * zero;
             if (src->IsFloat64())
             {
-                zero = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                zero = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
             }
             else
             {
                 Assert(src->IsFloat32());
-                zero = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32Zero, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                zero = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatZeroAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
             }
 
             IR::LabelInstr * skipRoundSd = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -8852,14 +8884,14 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (src->IsFloat64())
                 {
-                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-                    negPointFive = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_NegPointFive, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegPointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
-                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
-                    negPointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegPointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatNegPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // CMP 0.5, roundedFloat
@@ -8878,12 +8910,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     IR::Opnd * twoToFraction;
                     if (src->IsFloat64())
                     {
-                        twoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_TwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                        twoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleTwoToFractionAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                     }
                     else
                     {
                         Assert(src->IsFloat32());
-                        twoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32TwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                        twoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatTwoToFractionAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                     }
                     // CMP 2^fraction, roundedFloat
                     // JA $addHalfToRoundSrcLabel
@@ -8926,12 +8958,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     IR::Opnd * negTwoToFraction;
                     if (src->IsFloat64())
                     {
-                        negTwoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_NegTwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                        negTwoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegTwoToFractionAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                     }
                     else
                     {
                         Assert(src->IsFloat32());
-                        negTwoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegTwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                        negTwoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatNegTwoToFractionAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
 
                     }
                     // CMP roundedFloat, negTwoToFraction
@@ -8943,12 +8975,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (src->IsFloat64())
                 {
-                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
-                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // $addHalfToRoundSrcLabel
@@ -9158,7 +9190,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNaNHelper);
-                IR::Opnd * opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+                IR::Opnd * opndNaN = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNaNAddr(), IRType::TyFloat64, this->m_func);
                 this->m_lowerer->InsertMove(dst, opndNaN, instr);
             }
             instr->InsertBefore(doneLabel);

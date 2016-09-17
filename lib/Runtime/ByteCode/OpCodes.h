@@ -437,6 +437,7 @@ MACRO_BACKEND_ONLY(     LdUInt32ArrViewElem,    ElementI,       OpCanCSE        
 MACRO_BACKEND_ONLY(     Memset,                 ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     Memcopy,                ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     ArrayDetachedCheck,     Reg1,           None)   // ensures that an ArrayBuffer has not been detached
+MACRO_BACKEND_ONLY(     LdNativeCodeData,       Reg1,           OpSideEffect)   // load native code data buffer
 MACRO_WMS(              StArrItemI_CI4,         ElementUnsigned1,      OpSideEffect)
 MACRO_WMS(              StArrItemC_CI4,         ElementUnsigned1,      OpSideEffect)
 MACRO_WMS(              LdArrHead,              Reg2,           OpTempObjectSources)

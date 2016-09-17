@@ -192,7 +192,7 @@ BackwardPass::DoTrackCompoundedIntOverflow() const
     return
         !PHASE_OFF(Js::TrackCompoundedIntOverflowPhase, func) &&
         DoTrackIntOverflow() &&
-        !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled();
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 }
 
 bool
@@ -261,12 +261,12 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
 void
 BackwardPass::InsertArgInsForFormals()
 {
-    if (func->IsStackArgsEnabled() && !func->GetJnFunction()->GetHasImplicitArgIns())
+    if (func->IsStackArgsEnabled() && !func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         IR::Instr * insertAfterInstr = func->m_headInstr->m_next;
         AssertMsg(insertAfterInstr->IsLabelInstr(), "First Instr of the first block should always have a label");
 
-        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
         IR::Instr *     argInInstr = nullptr;
         for (Js::ArgSlot argumentIndex = 1; argumentIndex <= paramsCount; argumentIndex++)
         {
@@ -289,7 +289,7 @@ BackwardPass::InsertArgInsForFormals()
 
         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && paramsCount > 0)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJnFunction()->GetDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJITFunctionBody()->GetDisplayName(), func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -460,7 +460,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
 #if DBG
-    uint byteCodeLocalsCount = func->GetJnFunction()->GetLocalsCount();
+    uint byteCodeLocalsCount = func->GetJITFunctionBody()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
 #endif
 
@@ -704,7 +704,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 
             PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func,
                               _u("ObjTypeSpecStore: func %s, edge %d => %d: "),
-                              this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetDebugNumberSet(debugStringBuffer),
                               block->GetBlockNum(), blockSucc->GetBlockNum());
 
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
@@ -804,11 +804,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                 {
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: "),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(),
-                        functionBody->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(), blockSucc->GetBlockNum());
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
+                        blockSucc->GetBlockNum());
                 }
 #endif
                 if (blockSucc->stackSymToWriteGuardsMap != nullptr)
@@ -851,11 +852,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
                 {
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n"),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
 #endif
@@ -960,7 +962,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
         {
             Output::Print(_u("ObjTypeSpecStore: func %s, block %d: "),
-                          this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                          this->func->GetDebugNumberSet(debugStringBuffer),
                           block->GetBlockNum());
             if (stackSymToFinalType)
             {
@@ -975,7 +977,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
         {
             Output::Print(_u("ObjTypeSpec: func %s, block %d, guarded properties:\n"),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToGuardedProperties)
             {
                 stackSymToGuardedProperties->Dump();
@@ -990,7 +992,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
         {
             Output::Print(_u("ObjTypeSpec: func %s, block %d, write guards: "),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToWriteGuardsMap)
             {
                 Output::Print(_u("\n"));
@@ -1181,7 +1183,7 @@ BackwardPass::MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBuc
 
     ObjTypeGuardBucket bucket;
     bucket.SetGuardedPropertyOps(mergedPropertyOps);
-    Js::Type *monoGuardType = bucket1.GetMonoGuardType();
+    JITTypeHolder monoGuardType = bucket1.GetMonoGuardType();
     if (monoGuardType != nullptr)
     {
         Assert(!bucket2.NeedsMonoCheck() || monoGuardType == bucket2.GetMonoGuardType());
@@ -1319,7 +1321,7 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
         JitAdelete(this->tempAlloc, block->byteCodeUpwardExposedUsed);
         block->byteCodeUpwardExposedUsed = nullptr;
 #if DBG
-        JitAdeleteArray(this->tempAlloc, func->GetJnFunction()->GetLocalsCount(), block->byteCodeRestoreSyms);
+        JitAdeleteArray(this->tempAlloc, func->GetJITFunctionBody()->GetLocalsCount(), block->byteCodeRestoreSyms);
         block->byteCodeRestoreSyms = nullptr;
 #endif
     }
@@ -1648,7 +1650,7 @@ void
 BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* bailoutReferencedArgSymsBv)
 {
     Assert(this->tag != Js::BackwardPhase);
-    Assert(!this->func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(!this->func->GetJITFunctionBody()->IsAsmJsMode());
 
     // Remove copy prop that we were already going to restore
     SListBase<CopyPropSyms> * usedCopyPropSyms = &bailOutInfo->usedCapturedValues.copyPropSyms;
@@ -2935,7 +2937,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                     Assert(sym);
                     if (IsFormalParamSym(currFunc, sym))
                     {
-                        AssertMsg(!currFunc->GetJnFunction()->GetHasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
+                        AssertMsg(!currFunc->GetJITFunctionBody()->HasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
 
                         instr->m_opcode = Js::OpCode::Ld_A;
                         PropertySym * propSym = sym->AsPropertySym();
@@ -2949,7 +2951,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
 
                         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                         {
-                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                             Output::Flush();
                         }
                     }
@@ -3028,7 +3030,7 @@ BackwardPass::TraceDeadStoreOfInstrsForScopeObjectRemoval()
         {
             if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
             {
-                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                 Output::Flush();
             }
         }
@@ -3047,7 +3049,7 @@ BackwardPass::IsFormalParamSym(Func * func, Sym * sym) const
         PropertySym * propSym = sym->AsPropertySym();
         IntConstType    value = propSym->m_propertyId;
         return func->IsFormalsArraySym(propSym->m_stackSym->m_id) &&
-            (value >= 0 && value < func->GetJnFunction()->GetInParamsCount() - 1);
+            (value >= 0 && value < func->GetJITFunctionBody()->GetInParamsCount() - 1);
     }
     else
     {
@@ -3652,7 +3654,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 
             Assert(instr->GetDst()->AsRegOpnd()->GetStackSym()->HasObjectTypeSym());
 
-            Js::JitTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
+            JITTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
 
             if (block->stackSymToFinalType != nullptr)
             {
@@ -3663,7 +3665,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                     pBucket->GetInitialType() != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
-                    Assert(pBucket->GetInitialType() == ctorCache->type);
+                    Assert(pBucket->GetInitialType() == ctorCache->GetType());
                     if (!this->IsPrePass())
                     {
                         this->InsertTypeTransition(instr->m_next, objSym, pBucket);
@@ -4305,7 +4307,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #if DBG
         FOREACH_BITSET_IN_SPARSEBV(propOpId, guardedPropertyOps)
         {
-            Js::ObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
+            JITObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
             Assert(existingFldInfo != nullptr);
 
             if (existingFldInfo->GetPropertyId() != opnd->GetPropertyId())
@@ -4330,12 +4332,10 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     (existingFldInfo->GetSlotIndex() != opnd->GetSlotIndex())))
                 {
                     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetJnFunction();
-                    Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
 
                     Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n"),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
-                        scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
+                        this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetThreadContextInfo()->GetPropertyRecord(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
                 }
             }
@@ -4347,7 +4347,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
-            Js::Type *monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
+            JITTypeHolder monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
             bucket->SetMonoGuardType(monoGuardType);
         }
 
@@ -4498,8 +4498,8 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     Assert(this->tag == Js::DeadStorePhase);
     Assert(opnd->IsMono() || opnd->HasEquivalentTypeSet());
 
-    Js::Type *typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
-    Js::Type *typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
+    JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
+    JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : JITTypeHolder(nullptr);
 
     if (typeWithoutProperty == nullptr ||
         typeWithProperty == typeWithoutProperty ||
@@ -4510,7 +4510,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
             PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
-            if (pBucket && pBucket->GetFinalType() && pBucket->GetInitialType() != pBucket->GetFinalType())
+            if (pBucket && pBucket->GetFinalType() != nullptr && pBucket->GetInitialType() != pBucket->GetFinalType())
             {
                 opnd->SetFinalType(pBucket->GetFinalType());
             }
@@ -4521,10 +4521,11 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 
 #if DBG
     Assert(typeWithProperty != nullptr);
-    Js::DynamicTypeHandler * typeWithoutPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithoutProperty)->GetTypeHandler();
-    Js::DynamicTypeHandler * typeWithPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithProperty)->GetTypeHandler();
-    Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
-    AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
+    const JITTypeHandler * typeWithoutPropertyTypeHandler = typeWithoutProperty->GetTypeHandler();
+    const JITTypeHandler * typeWithPropertyTypeHandler = typeWithProperty->GetTypeHandler();
+    // TODO: OOP JIT, reenable assert
+    //Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
+    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
         "TypeHandlers are not compatible for transition?");
     Assert(typeWithoutPropertyTypeHandler->GetSlotCapacity() <= typeWithPropertyTypeHandler->GetSlotCapacity());
 #endif
@@ -4541,9 +4542,9 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
-    Js::Type* finalType = nullptr;
+    JITTypeHolder finalType(nullptr);
 #if DBG
-    Js::Type * deadStoreUnavailableFinalType = nullptr;
+    JITTypeHolder deadStoreUnavailableFinalType(nullptr);
 #endif
     if (pBucket->GetInitialType() == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {
@@ -4592,15 +4593,17 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         if (!opnd->IsTypeDead())
         {
             // This is the type that would have been propagated if we didn't kill it because the type isn't available
-            Js::Type * checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
+            JITTypeHolder checkFinalType = deadStoreUnavailableFinalType != nullptr ? deadStoreUnavailableFinalType : finalType;
             if (opnd->HasFinalType() && opnd->GetFinalType() != checkFinalType)
             {
                 // Final type discovery must be progressively better (unless we kill it in the deadstore pass
                 // when the type is not available during the forward pass)
-                Js::DynamicTypeHandler * oldFinalTypeHandler = static_cast<Js::DynamicType *>(opnd->GetFinalType())->GetTypeHandler();
-                Js::DynamicTypeHandler * checkFinalTypeHandler = static_cast<Js::DynamicType *>(checkFinalType)->GetTypeHandler();
-                Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
-                AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
+                const JITTypeHandler * oldFinalTypeHandler = opnd->GetFinalType()->GetTypeHandler();
+                const JITTypeHandler * checkFinalTypeHandler = checkFinalType->GetTypeHandler();
+
+                // TODO: OOP JIT, enable assert
+                //Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
+                AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
                     "TypeHandlers should be compatible for transition.");
                 Assert(oldFinalTypeHandler->GetSlotCapacity() <= checkFinalTypeHandler->GetSlotCapacity());
             }
@@ -4671,9 +4674,12 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     baseOpnd->SetIsJITOptimizedReg(true);
 
     IR::AddrOpnd *initialTypeOpnd =
-        IR::AddrOpnd::New(data->GetInitialType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    initialTypeOpnd->m_metadata = data->GetInitialType().t;
+
     IR::AddrOpnd *finalTypeOpnd =
-        IR::AddrOpnd::New(data->GetFinalType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    finalTypeOpnd->m_metadata = data->GetFinalType().t;
 
     IR::Instr *adjustTypeInstr =
         IR::Instr::New(Js::OpCode::AdjustObjType, finalTypeOpnd, baseOpnd, initialTypeOpnd, this->func);
@@ -4719,8 +4725,8 @@ BackwardPass::InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPrope
                 {
                     // This symbol already has a type transition at this point.
                     // It *must* be doing the same transition we're already trying to do.
-                    Assert(instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType() &&
-                           instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType());
+                    Assert((intptr_t)instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType()->GetAddr() &&
+                           (intptr_t)instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType()->GetAddr());
                     // Nothing to do.
                     return;
                 }
@@ -4837,13 +4843,13 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
 bool
 BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const
 {
-    Js::Type *type = data->GetInitialType();
+    JITTypeHolder type = data->GetInitialType();
     if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
     {
         return false;
     }
-    Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
-    if (!dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+
+    if (!type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
     {
         return false;
     }
@@ -4853,8 +4859,7 @@ BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data)
     {
         return false;
     }
-    dynamicType = static_cast<Js::DynamicType*>(type);
-    return !dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+    return !type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
 }
 
 void
@@ -6154,13 +6159,13 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
         currentBlock->intOverflowDoesNotMatterRange->SetFirstInstr(boundaryInstr);
 
 #if DBG_DUMP
-        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
+        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func))
         {
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
                 _u("TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n"),
-                func->GetJnFunction()->GetDisplayName(),
-                func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                func->GetJITFunctionBody()->GetDisplayName(),
+                func->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
             Output::Print(_u("    Input syms to be int-specialized (lossless): "));
@@ -6397,7 +6402,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             {
                 BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
                 // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJnFunction()->GetIsAsmJsFunction() && this->func->IsLoopBody() && !isPropertySymUsed));
+                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isPropertySymUsed));
                 Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
 
                 isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
@@ -6634,7 +6639,7 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
     if (instr->m_opcode == Js::OpCode::ArgIn_A)
     {
         //Ignore tracking ArgIn for "this", as argInsCount only tracks other params - unless it is a asmjs function(which doesn't have a "this").
-        if (instr->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() != 1 || func->GetJnFunction()->GetIsAsmjsMode())
+        if (instr->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() != 1 || func->GetJITFunctionBody()->IsAsmJsMode())
         {
             Assert(this->func->argInsCount > 0);
             this->func->argInsCount--;
@@ -6823,8 +6828,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n"),
-                func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber(),
-                inlineeStart->m_func->GetJnFunction()->GetExternalDisplayName(), inlineeStart->m_func->GetJnFunction()->GetFunctionNumber(),
+                func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
+                inlineeStart->m_func->GetJITFunctionBody()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
@@ -6834,7 +6839,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->frameInfo->isRecorded)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n"),
-            func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber());
         inlineeStart->m_func->DisableCanDoInlineArgOpt();
         return false;
     }
@@ -6844,7 +6849,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     inlineeStart->IterateMetaArgs([&](IR::Instr* metaArg)
     {
         if (i == Js::Constants::InlineeMetaArgIndex_ArgumentsObject &&
-            inlineeStart->m_func->GetJnFunction()->GetUsesArgumentsObject())
+            inlineeStart->m_func->GetJITFunctionBody()->UsesArgumentsObject())
         {
             Assert(!inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess());
             // Do not remove arguments object meta arg if there is a reference to arguments object
@@ -7709,6 +7714,6 @@ BackwardPass::IsTraceEnabled() const
 {
     return
         Js::Configuration::Global.flags.Trace.IsEnabled(tag, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()) &&
-        (PHASE_TRACE(Js::SimpleJitPhase, func->GetJnFunction()) || !func->IsSimpleJit());
+        (PHASE_TRACE(Js::SimpleJitPhase, func) || !func->IsSimpleJit());
 }
 #endif

@@ -203,3 +203,19 @@ void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
     autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
     autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
 }
+
+#if !ENABLE_NATIVE_CODEGEN
+EXPORT_FUNC
+HRESULT JsInitializeJITServer(
+    __in GUID* connectionUuid,
+    __in_opt void* securityDescriptor,
+    __in_opt void* alpcSecurityDescriptor)
+{
+    return E_NOTIMPL;
+}
+EXPORT_FUNC
+HRESULT JsShutdownJITServer()
+{
+    return E_NOTIMPL;
+}
+#endif

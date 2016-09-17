@@ -33,7 +33,7 @@ add_library (Chakra.Runtime.Language OBJECT
     ModuleNamespace.cpp
     ModuleNamespaceEnumerator.cpp
     ProfilingHelpers.cpp
-    ReadOnlyDynamicProfileInfo.cpp
+    #ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
     # SimdBool16x8Operation.cpp
     # SimdBool16x8OperationX86X64.cpp

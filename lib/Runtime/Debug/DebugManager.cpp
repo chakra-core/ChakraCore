@@ -56,6 +56,11 @@ namespace Js
         return &this->debuggingFlags;
     }
 
+    intptr_t DebugManager::GetDebuggingFlagsAddr() const
+    {
+        return (intptr_t)&this->debuggingFlags;
+    }
+
     ReferencedArenaAdapter* DebugManager::GetDiagnosticArena()
     {
         if (pCurrentInterpreterLocation)

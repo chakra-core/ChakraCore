@@ -31,6 +31,27 @@ namespace Js
         }
     }
 
+    __forceinline TypeId JavascriptOperators::GetTypeIdNoCheck(const Var aValue)
+    {
+        AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
+
+        if (TaggedInt::Is(aValue))
+        {
+            return TypeIds_Integer;
+        }
+#if FLOATVAR
+        else if (JavascriptNumber::Is_NoTaggedIntCheck(aValue))
+        {
+            return TypeIds_Number;
+        }
+#endif
+        else
+        {
+            auto typeId = RecyclableObject::FromVar(aValue)->GetTypeId();
+            return typeId;
+        }
+    }
+
     // A helper function which will do the IteratorStep and fetch value - however in the event of an exception it will perform the IteratorClose as well.
     template <typename THandler>
     void JavascriptOperators::DoIteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, THandler handler)

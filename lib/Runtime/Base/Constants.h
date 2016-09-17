@@ -47,6 +47,9 @@ namespace Js
         static const ArgSlot            InvalidArgSlot              = (ArgSlot)-1;
         static const uint32             InvalidSymID = (uint32)-1;
 
+        static const uint64 ExponentMask = 0x3FF0000000000000;
+        static const uint64 MantissaMask = 0x000FFFFFFFFFFFFF;
+
         static const int ReservedTypeIds = 2048;
 
         // 1 MEM_RESERVE page at the bottom of the stack
@@ -113,7 +116,7 @@ namespace Js
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;
 #endif
 
-        static const PBYTE StackLimitForScriptInterrupt;
+        static const size_t StackLimitForScriptInterrupt;
 
 
         // Arguments object created on the fly is 1 slot before the frame
@@ -145,6 +148,8 @@ namespace Js
         static const  char16 EvalCode[];
         static const  char16 GlobalFunction[];
         static const  char16 UnknownScriptCode[];
+        static const  char16 StringReplace[];
+        static const  char16 StringMatch[];
 
         static const size_t AnonymousFunctionLength = _countof(_u("Anonymous function")) - 1;
         static const size_t AnonymousLength         = _countof(_u("anonymous")) - 1;
