@@ -725,7 +725,7 @@ bool WScriptJsrt::InstallObjectsOnObject(JsValueRef object, const char* name, Js
     memcpy(path, msg, (size_t)str_len);          \
     path[str_len] = char(0)
 
-void GetBinaryLocation(char *path, const uint32_t size)
+void GetBinaryLocation(char *path, const unsigned size)
 {
     AssertMsg(size >= 512 && path != nullptr, "Min path buffer size 512 and path can not be nullptr");
     AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
@@ -754,13 +754,13 @@ void GetBinaryLocation(char *path, const uint32_t size)
         return;
     }
 
-    if ((uint32_t)str_len > size - 1)
+    if ((unsigned)str_len > size - 1)
     {
         str_len = (int) size - 1;
     }
     path[str_len] = char(0);
 #elif defined(__APPLE__)
-    uint32_t path_size = size;
+    uint32_t path_size = (uint32_t)size;
     char *tmp = nullptr;
     int str_len;
     if (_NSGetExecutablePath(path, &path_size))
