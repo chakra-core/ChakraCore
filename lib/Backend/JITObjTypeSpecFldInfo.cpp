@@ -309,6 +309,7 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
                 Js::JavascriptFunction * funcObj = Js::JavascriptFunction::FromVar(ffInfo[j].fieldValue);
                 jitData[i].fixedFieldInfoArray[j].valueType = ValueType::FromObject(funcObj).GetRawData();
                 jitData[i].fixedFieldInfoArray[j].funcInfoAddr = (intptr_t)funcObj->GetFunctionInfo();
+                jitData[i].fixedFieldInfoArray[j].isClassCtor = funcObj->GetFunctionInfo()->IsConstructor();
                 jitData[i].fixedFieldInfoArray[j].localFuncId = (intptr_t)funcObj->GetFunctionInfo()->GetLocalFunctionId();
                 if (Js::ScriptFunction::Is(ffInfo[j].fieldValue))
                 {
