@@ -262,6 +262,7 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR(ProjectionArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ProjectionArrayBuffer);
+
         typedef void __stdcall FreeFn(LPVOID ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override
         {
@@ -300,4 +301,3 @@ namespace Js
 #endif
     };
 }
-

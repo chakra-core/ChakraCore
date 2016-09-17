@@ -6,6 +6,13 @@
 
 namespace Js
 {
+
+#if defined(__clang__) && defined(_M_IX86)
+    inline bool TaggedInt::IsOverflow(intptr_t nValue)
+    {
+        return (nValue < k_nMinValue) || (nValue > k_nMaxValue);
+    }
+#endif
     inline bool TaggedInt::IsOverflow(int32 nValue)
     {
         return (nValue < k_nMinValue) || (nValue > k_nMaxValue);

@@ -3502,6 +3502,8 @@ PALIMPORT BOOL PALAPI PAL_VirtualUnwindOutOfProc(CONTEXT *context,
 #define PAL_CS_NATIVE_DATA_SIZE 76
 #elif defined(__APPLE__) && defined(__x86_64__)
 #define PAL_CS_NATIVE_DATA_SIZE 120
+#elif defined(__LINUX__) && defined(__i386__)
+#define PAL_CS_NATIVE_DATA_SIZE 56
 #elif defined(__LINUX__) && defined(__x86_64__)
 #define PAL_CS_NATIVE_DATA_SIZE 96
 #elif defined(__LINUX__) && defined(_ARM_)
@@ -6405,11 +6407,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define _wcstoui64    PAL__wcstoui64
 #define _flushall     PAL__flushall
 
-#ifdef _AMD64_
-#define _mm_getcsr    PAL__mm_getcsr
-#define _mm_setcsr    PAL__mm_setcsr
-#endif // _AMD64_
-
 #endif // !PAL_STDCPP_COMPAT
 #endif // PLATFORM_UNIX
 
@@ -6851,14 +6848,6 @@ PALAPI
 PAL_GetCpuTickCount(VOID);
 #endif // PAL_PERF
 
-/******************* PAL functions for SIMD extensions *****************/
-
-PALIMPORT
-unsigned int _mm_getcsr(void);
-
-PALIMPORT
-void _mm_setcsr(unsigned int i);
-
 /******************* PAL side-by-side support  ************************/
 
 #ifdef FEATURE_PAL_SXS
@@ -7091,6 +7080,7 @@ public:
     }
 };
 
+typedef DWORD (PALAPI *PGET_GCMARKER_EXCEPTION_CODE)(LPVOID ip);
 typedef VOID (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
 
 PALIMPORT

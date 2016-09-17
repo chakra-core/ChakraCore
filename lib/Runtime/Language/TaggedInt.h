@@ -32,6 +32,9 @@ namespace Js {
 
         static Var Speculative_And(Var aLeft, Var aRight);
 
+#if defined(__clang__) && defined(_M_IX86)
+        static bool IsOverflow(intptr_t nValue);
+#endif
         static bool IsOverflow(int32 nValue);
         static bool IsOverflow(uint32 nValue);
         static bool IsOverflow(int64 nValue);

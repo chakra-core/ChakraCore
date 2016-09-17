@@ -1,10 +1,6 @@
-add_library (Chakra.Common.Memory OBJECT
-    # xplat-todo: Include platform\XDataAllocator.cpp
-    # Needed on windows, need a replacement for linux to do
-    # amd64 stack walking
+set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     Allocator.cpp
     ArenaAllocator.cpp
-
     CustomHeap.cpp
     CommonMemoryPch.cpp
     EtwMemoryTracking.cpp
@@ -29,7 +25,7 @@ add_library (Chakra.Common.Memory OBJECT
     RecyclerObjectDumper.cpp
     RecyclerObjectGraphDumper.cpp
     RecyclerPageAllocator.cpp
-    RecyclerSweep.cpp    
+    RecyclerSweep.cpp
     RecyclerWriteBarrierManager.cpp
     SmallFinalizableHeapBlock.cpp
     SmallFinalizableHeapBucket.cpp
@@ -40,7 +36,19 @@ add_library (Chakra.Common.Memory OBJECT
     SmallNormalHeapBucket.cpp
     StressTest.cpp
     VirtualAllocWrapper.cpp
-    amd64/amd64_SAVE_REGISTERS.S
+    )
+
+if(CC_TARGETS_AMD64)
+    # xplat-todo: Include platform\XDataAllocator.cpp
+    # Needed on windows, need a replacement for linux to do
+    # amd64 stack walking
+    set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
+        amd64/amd64_SAVE_REGISTERS.S
+        )
+endif()
+
+add_library (Chakra.Common.Memory OBJECT
+    ${CCM_SOURCE_FILES}
     )
 
 include_directories(..)

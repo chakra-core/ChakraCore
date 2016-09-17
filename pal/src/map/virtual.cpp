@@ -983,7 +983,10 @@ static LPVOID ReserveVirtualMemory(
                 IN SIZE_T dwSize)           /* Size of Region */
 {
     LPVOID pRetVal = NULL;
-    UINT_PTR StartBoundary = (UINT_PTR)lpAddress;
+#if !defined(__APPLE__) && !defined(vm_address_t)
+#define vm_address_t UINT_PTR
+#endif
+    vm_address_t StartBoundary = (vm_address_t)lpAddress;
     SIZE_T MemSize = dwSize;
 #if HAVE_VM_ALLOCATE
     int result;

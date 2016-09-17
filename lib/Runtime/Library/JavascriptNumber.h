@@ -37,6 +37,9 @@ namespace Js
         static Var ToVarMaybeInPlace(double value, ScriptContext* scriptContext, JavascriptNumber *result);
         static Var ToVarIntCheck(double value, ScriptContext* scriptContext);
         static Var ToVar(int32 nValue, ScriptContext* scriptContext);
+#if defined(__clang__) && defined(_M_IX86)
+        static Var ToVar(intptr_t nValue, ScriptContext* scriptContext);
+#endif
         static Var ToVarInPlace(int32 nValue, ScriptContext* scriptContext, JavascriptNumber *result);
         static Var ToVarInPlace(int64 value, ScriptContext* scriptContext, JavascriptNumber *result);
         static Var ToVarInPlace(uint32 nValue, ScriptContext* scriptContext, JavascriptNumber *result);

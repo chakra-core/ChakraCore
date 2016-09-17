@@ -1672,7 +1672,7 @@ if (!sourceList)
 
             cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const char16*)script, static_cast<charcount_t>(length));
 
-#if DBG_DUMP
+#if DBG_DUMP && defined(PROFILE_MEM)
             if(Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
             {
                 Output::Print(_u("Loading script.\n")
@@ -5809,4 +5809,3 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
 } // End namespace Js
-
