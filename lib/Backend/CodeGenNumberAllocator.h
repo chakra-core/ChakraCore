@@ -99,7 +99,10 @@ private:
     bool hasNewChunkBlock;
     struct BlockRecord
     {
-        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) : blockAddress(blockAddress), segment(segment) {};
+        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) 
+            : blockAddress(blockAddress), segment(segment) 
+        {
+        }
         char * blockAddress;
         PageSegment * segment;
     };
@@ -158,8 +161,6 @@ struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
     unsigned int GetTotalSize() { return PageCount * AutoSystemInfo::PageSize; }
     void* GetEndAddress() { return (void*)(this->pageAddress + PageCount * AutoSystemInfo::PageSize); }
     void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
-    // TODO: using CodeGenNumberThreadAllocator to allocate the chunks only, abstract chunk alloc code out of CodeGenNumberThreadAllocator
-    CodeGenNumberThreadAllocator* GetChunkAllocator() { return (CodeGenNumberThreadAllocator*) this->chunkAllocator; }
 
     static const uint BlockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
     static const uint PageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
@@ -173,17 +174,16 @@ struct XProcNumberPageSegmentManager
     CriticalSection cs;
     XProcNumberPageSegmentImpl* segmentsList;
     Recycler* recycler;
-    JsUtil::List<CodeGenNumberThreadAllocator*, HeapAllocator> chunkAllocators;
     unsigned int integratedSegmentCount;
     XProcNumberPageSegmentManager(Recycler* recycler)
-        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0), chunkAllocators(&HeapAllocator::Instance)
+        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0)
     {
     }
 
     ~XProcNumberPageSegmentManager();
 
     void GetFreeSegment(XProcNumberPageSegment * seg);
-    CodeGenNumberChunk* RegisterSegments(XProcNumberPageSegment* segments);
+    Js::JavascriptNumber** RegisterSegments(XProcNumberPageSegment* segments);
 
     void Integrate();
 };

@@ -7787,6 +7787,14 @@ namespace Js
     void EntryPointInfo::EnsureIsReadyToCall()
     {
         ProcessJitTransferData();
+        
+        if (this->numberPageSegments)
+        {
+            auto numberChunks = this->GetScriptContext()->GetThreadContext()
+                ->GetXProcNumberPageSegmentManager()->RegisterSegments(this->numberPageSegments);
+            this->SetNumberChunks(numberChunks);
+            this->numberPageSegments = nullptr;
+        }
     }
 
     void EntryPointInfo::ProcessJitTransferData()

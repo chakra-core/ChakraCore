@@ -619,7 +619,6 @@ typedef struct XProcNumberPageSegment
     CHAKRA_PTR allocStartAddress;
     CHAKRA_PTR allocEndAddress;
     CHAKRA_PTR pageSegment;
-    CHAKRA_PTR chunkAllocator;
 } XProcNumberPageSegment;
 
 typedef struct PolymorphicInlineCacheIDL

@@ -981,8 +981,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         else
         {
             // TODO: when codegen fail, need to return the segment as well
-            auto numberChunks = threadContext->GetXProcNumberPageSegmentManager()->RegisterSegments(jitWriteData.numberPageSegments);
-            epInfo->SetNumberChunks(numberChunks);
+            epInfo->SetNumberPageSegment(jitWriteData.numberPageSegments);
         }
     }
 

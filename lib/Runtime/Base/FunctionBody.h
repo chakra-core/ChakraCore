@@ -49,6 +49,7 @@ namespace Js
     class ArrayBuffer;
     class SharedArrayBuffer;
     class FunctionCodeGenRuntimeData;
+    class JavascriptNumber;
 #pragma endregion
 
     typedef JsUtil::BaseDictionary<Js::PropertyId, const Js::PropertyRecord*, RecyclerNonLeafAllocator, PowerOf2SizePolicy, DefaultComparer, JsUtil::SimpleDictionaryEntry> PropertyRecordList;
@@ -511,8 +512,9 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
+        Js::JavascriptNumber** numberChunks;
+        XProcNumberPageSegment* numberPageSegments;
 #endif
-        CodeGenNumberChunk * numberChunks;
 
         SmallSpanSequence *nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
@@ -575,7 +577,17 @@ namespace Js
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
         void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
-        void SetNumberChunks(CodeGenNumberChunk * chunks) { numberChunks = chunks; }
+        void SetNumberChunks(Js::JavascriptNumber** chunks)
+        {
+            Assert(numberPageSegments != nullptr);
+            numberChunks = chunks; 
+        }
+        void SetNumberPageSegment(XProcNumberPageSegment * segments)
+        {
+            Assert(numberPageSegments == nullptr);
+            numberPageSegments = segments; 
+        }
+        
 #endif
 
     private:
@@ -622,7 +634,7 @@ namespace Js
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
-            numberChunks(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
+            numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
