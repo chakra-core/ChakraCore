@@ -2109,6 +2109,13 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
         return;
     }
 
+    // If bailOutKind is equivTypeCheck then leave alone the bailout
+    if (bailOutKind == IR::BailOutFailedEquivalentTypeCheck ||
+        bailOutKind == IR::BailOutFailedEquivalentFixedFieldTypeCheck)
+    {
+        return;
+    }
+
     // We're not checking for polymorphism, so don't let the bailout indicate that we
     // detected polymorphism.
     instr->GetBailOutInfo()->polymorphicCacheIndex = (uint)-1;

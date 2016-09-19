@@ -8239,6 +8239,19 @@ CommonNumber:
             return true;
         }
 
+        // Since the equivTypes cache is always compacted, if last entry is non-nullptr, it means the cache is full.
+        DynamicType * dynamicType = (type && DynamicType::Is(type->GetTypeId())) ? static_cast<DynamicType*>(type) : nullptr;
+        bool isEquivTypesCacheFull = equivTypes[EQUIVALENT_TYPE_CACHE_SIZE - 1] != nullptr;
+        if (dynamicType != nullptr)
+        {
+            if (!dynamicType->GetIsShared() && isEquivTypesCacheFull)
+            {
+                // If this is non-shared type and we don't have space to cache it, just consider
+                // it as non-equivalent so we will eventually bailout
+                return false;
+            }
+        }
+
         // If we didn't find the type in the cache, let's check if it's equivalent the slow way, by comparing
         // each of its relevant property slots to its equivalent in one of the cached types.
         // We are making a few assumption that simplify the process:
@@ -8262,6 +8275,7 @@ CommonNumber:
             return false;
         }
 
+#pragma prefast(suppress:6011) // If type is nullptr, we would AV at the beginning of this method
         if (type->GetTypeId() != refType->GetTypeId())
         {
             if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
@@ -8286,9 +8300,9 @@ CommonNumber:
 
         bool isEquivalent;
         uint failedPropertyIndex;
-        if (DynamicType::Is(type->GetTypeId()))
+        if (dynamicType != nullptr)
         {
-            Js::DynamicTypeHandler* typeHandler = (static_cast<DynamicType*>(type))->GetTypeHandler();
+            Js::DynamicTypeHandler* typeHandler = dynamicType->GetTypeHandler();
             isEquivalent = typeHandler->IsObjTypeSpecEquivalent(type, cache->record, failedPropertyIndex);
         }
         else
@@ -8307,6 +8321,7 @@ CommonNumber:
         }
 
         int emptySlotIndex = -1;
+        int nonSharedTypeSlotIndex = -1;
         for (int i = 0;i < EQUIVALENT_TYPE_CACHE_SIZE;i++)
         {
             if (equivTypes[i] == nullptr)
@@ -8314,7 +8329,22 @@ CommonNumber:
                 emptySlotIndex = i;
                 break;
             };
+
+            // If equivTypes cache is full, also look for
+            // non-shared type to evict
+            if (isEquivTypesCacheFull &&
+                DynamicType::Is(equivTypes[i]->GetTypeId()) &&
+                !(static_cast<DynamicType*>(equivTypes[i]))->GetIsShared())
+            {
+                nonSharedTypeSlotIndex = i;
+            }
         }
+
+        AssertMsg(!isEquivTypesCacheFull || !dynamicType || dynamicType->GetIsShared(), "If equiv cache is full, then this should be sharedType.");
+        
+        // If cache is full, then this is definitely a sharedType, so evict non-shared type.
+        // Else evict next empty slot (only applicable for DynamicTypes)
+        emptySlotIndex = (isEquivTypesCacheFull && dynamicType) ? nonSharedTypeSlotIndex : emptySlotIndex;
 
         // We have some empty slots, let us use those first
         if (emptySlotIndex != -1)
@@ -8360,9 +8390,8 @@ CommonNumber:
         // valid if we lock the type. Otherwise, the type ID may change out from under us without
         // evolving the type.
         // We also need to lock the type in case of, for instance, adding a property to a dictionary type handler.
-        if (DynamicType::Is(type->GetTypeId()))
+        if (dynamicType != nullptr)
         {
-            DynamicType *dynamicType = static_cast<DynamicType*>(type);
             if (!dynamicType->GetIsLocked())
             {
                 dynamicType->LockType();
