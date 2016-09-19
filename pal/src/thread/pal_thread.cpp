@@ -2906,7 +2906,13 @@ bool IsAddressOnStack(ULONG_PTR address)
 
     ULONG_PTR currentStackPtr = 0;
 
+#ifdef _AMD64_
     asm("mov %%rsp, %0;":"=r"(currentStackPtr));
+#elif defined(__i686__)
+    asm("mov %%esp, %0;":"=r"(currentStackPtr));
+#else
+#error "Implement this!!"
+#endif
 
     if (currentStackPtr <= address && address < s_cachedThreadStackHighLimit)
     {

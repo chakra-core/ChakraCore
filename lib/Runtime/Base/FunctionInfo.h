@@ -51,14 +51,20 @@ namespace Js
 
         bool IsAsync() const { return ((this->attributes & Async) != 0); }
         bool IsDeferred() const { return ((this->attributes & (DeferredDeserialize | DeferredParse)) != 0); }
-        bool IsLambda() const { return ((this->attributes & Lambda) != 0); }
+        static bool IsLambda(Attributes attributes) { return ((attributes & Lambda) != 0); }
+        bool IsLambda() const { return IsLambda(this->attributes); }
         bool IsConstructor() const { return ((this->attributes & ErrorOnNew) == 0); }
-        bool IsGenerator() const { return ((this->attributes & Generator) != 0); }
+
+        static bool IsGenerator(Attributes attributes) { return ((attributes & Generator) != 0); }
+        bool IsGenerator() const { return IsGenerator(this->attributes); }
+
         bool IsClassConstructor() const { return ((this->attributes & ClassConstructor) != 0); }
         bool IsClassMethod() const { return ((this->attributes & ClassMethod) != 0); }
         bool IsModule() const { return ((this->attributes & Module) != 0); }
         bool HasSuperReference() const { return ((this->attributes & SuperReference) != 0); }
-        bool IsCoroutine() const { return ((this->attributes & (Async | Generator)) != 0); }
+        static bool IsCoroutine(Attributes attributes) { return ((attributes & (Async | Generator)) != 0); }
+        bool IsCoroutine() const { return IsCoroutine(this->attributes); }
+
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }
         BOOL HasParseableInfo() const { return this->HasBody() && !this->IsDeferredDeserializeFunction(); }

@@ -30,7 +30,7 @@ class NativeCodeGenerator;
 class ThreadContext;
 struct CodeGenWorkItem;
 class NativeCodeData;
-
+class ThreadContextInfo;
 class StackSym;
 class Func;
 struct InlinedFrameLayout;
@@ -226,9 +226,9 @@ enum LibraryValue {
 };
 
 enum VTableValue {
-#if !_M_X64
+//#if !_M_X64 TODO: OOP JIT, can we make this arch specific again?
     VtableJavascriptNumber,
-#endif
+//#endif
     VtableDynamicObject,
     VtableInvalid,
     VtablePropertyString,

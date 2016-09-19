@@ -1126,8 +1126,25 @@ namespace Js
     template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
 
 #ifdef _M_IX86
-    template <bool doStackProbe>
-    Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args)
+#ifdef __clang__
+void __cdecl _alloca_probe_16()
+{
+    // todo: fix this!!!
+    abort();
+    __asm
+    {
+        push    ecx
+        lea     ecx, [esp + 8]
+        sub     ecx, eax
+        and     ecx, (16 - 1)
+        add     eax, ecx
+        ret
+    }
+}
+#endif
+
+    static Var LocalCallFunction(RecyclableObject* function,
+        JavascriptMethod entryPoint, Arguments args, bool doStackProbe)
     {
         Js::Var varResult;
 
@@ -1147,8 +1164,7 @@ namespace Js
 
         void *data;
         void *savedEsp;
-        __asm
-        {
+        __asm {
             // Save ESP
             mov savedEsp, esp
             mov eax, argsSize
@@ -1201,6 +1217,15 @@ dbl_align:
         }
 
         return varResult;
+    }
+
+    // clang fails to create the labels,
+    // when __asm op is under a template function
+    template <bool doStackProbe>
+    Var JavascriptFunction::CallFunction(RecyclableObject* function,
+        JavascriptMethod entryPoint, Arguments args)
+    {
+        return LocalCallFunction(function, entryPoint, args, doStackProbe);
     }
 
 #elif _M_X64
@@ -1701,7 +1726,7 @@ LABEL1:
 
     */
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-    ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody) // get the reg operand and isLoad and
+    ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo) // get the reg operand and isLoad and
     {
         InstructionData instrData;
         uint prefixValue = 0;
@@ -2097,7 +2122,7 @@ LABEL1:
         }
 
         BYTE* pc = (BYTE*)exceptionInfo->ExceptionRecord->ExceptionAddress;
-        ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo, funcBody);
+        ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo);
         // Check If the instruction is valid
         if (instrData.isInvalidInstr)
         {
@@ -2579,7 +2604,7 @@ LABEL1:
             {
                 Var args = nullptr;
                 //Create a copy of the arguments and return it.
-                
+
                 CallInfo const *callInfo = walker.GetCallInfo();
                 args = JavascriptOperators::LoadHeapArguments(
                     this, callInfo->Count - 1,

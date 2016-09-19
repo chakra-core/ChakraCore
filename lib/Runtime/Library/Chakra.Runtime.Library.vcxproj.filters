@@ -111,6 +111,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -240,6 +242,8 @@
     <ClInclude Include="SimdBool16x8Lib.h" />
     <ClInclude Include="SimdBool8x16Lib.h" />
     <ClInclude Include="JavascriptListIterator.h" />
+    <ClInclude Include="SharedArrayBuffer.h" />
+    <ClInclude Include="AtomicsObject.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

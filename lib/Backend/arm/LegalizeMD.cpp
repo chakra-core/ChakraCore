@@ -73,7 +73,7 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
         // MemRefOpnd is a deference of the memory location.
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
-        void *memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
+        intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
         IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
         if (fPostRegAlloc)
         {
@@ -167,7 +167,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     case IR::OpndKindAddr:
     case IR::OpndKindHelperCall:
     case IR::OpndKindIntConst:
-        immed = opnd->GetImmediateValue();
+        immed = opnd->GetImmediateValue(instr->m_func);
         LegalizeImmed(instr, opnd, opndNum, immed, forms, fPostRegAlloc);
         break;
 
@@ -180,7 +180,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
         // MemRefOpnd is a deference of the memory location.
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
-        void *memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
+        intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
         IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
         if (fPostRegAlloc)
         {

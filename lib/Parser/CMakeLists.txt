@@ -28,6 +28,7 @@ add_library (Chakra.Parser OBJECT
 
 target_include_directories (
     Chakra.Parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ../JITIDL
     ../Common
     ../Backend
     ../Runtime

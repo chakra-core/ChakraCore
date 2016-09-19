@@ -961,5 +961,22 @@ BUILTIN(JavascriptGeneratorFunction, NewInstance, NewInstance, FunctionInfo::Ski
 BUILTIN(JavascriptGenerator, Next, EntryNext, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Return, EntryReturn, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Throw, EntryThrow, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(SharedArrayBuffer, Slice, EntrySlice, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, GetterByteLength, EntryGetterByteLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(SharedArrayBuffer, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
+
+BUILTIN(AtomicsObject, Add, EntryAdd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, And, EntryAnd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, CompareExchange, EntryCompareExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Exchange, EntryExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, IsLockFree, EntryIsLockFree, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Load, EntryLoad, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Or, EntryOr, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Store, EntryStore, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Sub, EntrySub, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wake, EntryWake, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
 #undef BUILTIN_TEMPLATE

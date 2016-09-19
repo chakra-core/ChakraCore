@@ -12,16 +12,15 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size) :
+XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
     freeList(nullptr),
     start(address),
     current(address),
     size(size),
-    pdataEntries(nullptr),
-    functionTableHandles(nullptr)
+    processHandle(processHandle)
 {
 #ifdef RECYCLER_MEMORY_VERIFY
-    memset(this->start, Recycler::VerifyMemFill, this->size);
+    ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
 #endif
     Assert(size > 0);
     Assert(address != nullptr);
@@ -30,58 +29,11 @@ XDataAllocator::XDataAllocator(BYTE* address, uint size) :
 bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
 {
     Assert(segmentEnd > segmentStart);
-    Assert(this->pdataEntries == nullptr);
-    Assert(this->functionTableHandles == nullptr);
-
-    bool success = true;
-
-    this->pdataEntries = HeapNewNoThrowArrayZ(RUNTIME_FUNCTION, GetTotalPdataCount());
-    success = this->pdataEntries != nullptr;
-    if(success && AutoSystemInfo::Data.IsWin8OrLater())
-    {
-        this->functionTableHandles = HeapNewNoThrowArrayZ(FunctionTableHandle,  GetTotalPdataCount());
-        success = this->functionTableHandles != nullptr;
-    }
-    return success;
+    return true;
 }
 
 XDataAllocator::~XDataAllocator()
 {
-    if(this->pdataEntries)
-    {
-        if(!AutoSystemInfo::Data.IsWin8OrLater())
-        {
-            ushort count = this->GetCurrentPdataCount();
-            for(ushort i = 0; i < count; i++)
-            {
-                RUNTIME_FUNCTION* pdata = GetPdataEntry(i);
-                if(pdata->UnwindInfoAddress != 0)
-                {
-                    BOOLEAN success = RtlDeleteFunctionTable(pdata);
-                    Assert(success);
-                }
-            }
-        }
-        HeapDeleteArray(this->GetTotalPdataCount(), this->pdataEntries);
-        this->pdataEntries = nullptr;
-    }
-
-    if(this->functionTableHandles)
-    {
-        Assert(AutoSystemInfo::Data.IsWin8OrLater());
-        ushort count = this->GetCurrentPdataCount();
-        for(ushort i = 0; i < count; i++)
-        {
-            FunctionTableHandle handle = GetFunctionTableHandle(i);
-            if(handle)
-            {
-                NtdllLibrary::Instance->DeleteGrowableFunctionTable(handle);
-            }
-        }
-        HeapDeleteArray(this->GetTotalPdataCount(), this->functionTableHandles);
-        this->functionTableHandles = nullptr;
-    }
-
     ClearFreeList();
 }
 
@@ -103,25 +55,18 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     if((End() - current) >= XDATA_SIZE)
     {
         xdata->address = current;
-        GetNextPdataEntry(&xdata->pdataIndex);
         current += XDATA_SIZE;
     } // try allocating from the free list
     else if(freeList)
     {
         auto entry = freeList;
         xdata->address = entry->address;
-        xdata->pdataIndex = entry->pdataIndex;
         this->freeList = entry->next;
         HeapDelete(entry);
     }
     else
     {
         OUTPUT_TRACE(Js::XDataAllocatorPhase, _u("No space for XDATA.\n"));
-    }
-
-    if(xdata->address != nullptr)
-    {
-        Register(xdata, functionStart, functionSize);
     }
 
     return xdata->address != nullptr;
@@ -136,46 +81,18 @@ void XDataAllocator::Release(const SecondaryAllocation& allocation)
     if(freed)
     {
         freed->address = xdata.address;
-        freed->pdataIndex = xdata.pdataIndex;
         freed->next = this->freeList;
         this->freeList = freed;
     }
 
-    Assert(this->pdataEntries != nullptr);
-
-    // Delete the table
-    if (AutoSystemInfo::Data.IsWin8OrLater())
-    {
-        FunctionTableHandle handle = GetFunctionTableHandle(xdata.pdataIndex);
-        Assert(handle);
-        NtdllLibrary::Instance->DeleteGrowableFunctionTable(handle);
-        functionTableHandles[xdata.pdataIndex] = nullptr;
-    }
-    else
-    {
-        RUNTIME_FUNCTION* pdata = GetPdataEntry(xdata.pdataIndex);
-        BOOLEAN success = RtlDeleteFunctionTable(pdata);
-        memset(pdata, 0, sizeof(RUNTIME_FUNCTION));
-        Assert(success);
-    }
-
 #ifdef RECYCLER_MEMORY_VERIFY
-    memset(allocation.address, Recycler::VerifyMemFill, XDATA_SIZE);
+    ChakraMemSet(allocation.address, Recycler::VerifyMemFill, XDATA_SIZE, this->processHandle);
 #endif
 }
 
 bool XDataAllocator::CanAllocate()
 {
     return ((End() - current) >= XDATA_SIZE) || this->freeList;
-}
-
-void XDataAllocator::ReleaseAll()
-{
-#ifdef RECYCLER_MEMORY_VERIFY
-    memset(this->start, Recycler::VerifyMemFill, this->size);
-#endif
-    this->current = this->start;
-    ClearFreeList();
 }
 
 void XDataAllocator::ClearFreeList()
@@ -191,20 +108,19 @@ void XDataAllocator::ClearFreeList()
     this->freeList = NULL;
 }
 
-void XDataAllocator::Register(XDataAllocation* const xdata, ULONG_PTR functionStart, DWORD functionSize)
+/* static */
+void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize)
 {
-    RUNTIME_FUNCTION* pdata = this->GetPdataEntry(xdata->pdataIndex);
+    ULONG_PTR baseAddress = functionStart;
+    xdataInfo->pdata.BeginAddress = (DWORD)(functionStart - baseAddress);
+    xdataInfo->pdata.EndAddress = (DWORD)(xdataInfo->pdata.BeginAddress + functionSize);
+    xdataInfo->pdata.UnwindInfoAddress = (DWORD)((intptr_t)xdataInfo->address - baseAddress);
 
-    ULONG_PTR baseAddress      = functionStart;
-    pdata->BeginAddress        = (DWORD)(functionStart - baseAddress);
-    pdata->EndAddress          = (DWORD)(pdata->BeginAddress + functionSize);
-    pdata->UnwindInfoAddress   = (DWORD)((ULONG_PTR)xdata->address - baseAddress);
     BOOLEAN success = FALSE;
     if (AutoSystemInfo::Data.IsWin8OrLater())
     {
-        Assert(this->functionTableHandles[xdata->pdataIndex] == NULL);
-        DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&this->functionTableHandles[xdata->pdataIndex],
-            pdata,
+        DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+            &xdataInfo->pdata,
             /*MaxEntryCount*/ 1,
             /*Valid entry count*/ 1,
             /*RangeBase*/ functionStart,
@@ -212,19 +128,35 @@ void XDataAllocator::Register(XDataAllocation* const xdata, ULONG_PTR functionSt
         success = NT_SUCCESS(status);
         if (success)
         {
-            Assert(this->functionTableHandles[xdata->pdataIndex]);
+            Assert(xdataInfo->functionTable != nullptr);
         }
     }
     else
     {
-        success = RtlAddFunctionTable(pdata, 1, functionStart);
+        success = RtlAddFunctionTable(&xdataInfo->pdata, 1, functionStart);
     }
     Js::Throw::CheckAndThrowOutOfMemory(success);
 
 #if DBG
     // Validate that the PDATA registration succeeded
-    ULONG64            imageBase       = 0;
+    ULONG64            imageBase = 0;
     RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)functionStart, &imageBase, nullptr);
     Assert(runtimeFunction != NULL);
 #endif
+}
+
+/* static */
+void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
+{
+    // Delete the table
+    if (AutoSystemInfo::Data.IsWin8OrLater())
+    {
+        NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
+    }
+    else
+    {
+        BOOLEAN success = RtlDeleteFunctionTable(&xdataInfo->pdata);
+        Assert(success);
+    }
+
 }

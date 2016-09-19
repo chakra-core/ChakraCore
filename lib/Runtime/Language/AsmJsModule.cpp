@@ -2536,7 +2536,7 @@ namespace Js
     {
         if( count )
         {
-            mExports = RecyclerNewPlus( mRecycler, count * sizeof( PropertyId ), PropertyIdArray, count );
+            mExports = RecyclerNewPlus( mRecycler, count * sizeof( PropertyId ), PropertyIdArray, count, 0);
             mExportsFunctionLocation = RecyclerNewArray( mRecycler, RegSlot, count );
         }
         mExportsCount = count;

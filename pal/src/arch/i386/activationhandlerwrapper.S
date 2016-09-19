@@ -28,4 +28,23 @@ LOCAL_LABEL(ActivationHandlerReturn):
     ret
 NESTED_END ActivationHandlerWrapper, _TEXT
 
+#else
+
+// Offset of the return address from the ActivationHandler in the ActivationHandlerWrapper
+.globl C_FUNC(ActivationHandlerReturnOffset)
+C_FUNC(ActivationHandlerReturnOffset):
+    .int LOCAL_LABEL(ActivationHandlerReturn)-C_FUNC(ActivationHandlerWrapper)
+
+.globl C_FUNC(ActivationHandlerWrapper)
+C_FUNC(ActivationHandlerWrapper):
+    push    ebp
+    mov     ebp, esp
+    mov     edi, esp
+    int3
+    call    C_FUNC(ActivationHandler)
+LOCAL_LABEL(ActivationHandlerReturn):
+    int3
+    pop     ebp
+    ret
+
 #endif // BIT64

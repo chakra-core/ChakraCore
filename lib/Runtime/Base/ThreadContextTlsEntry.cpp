@@ -56,7 +56,7 @@ bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
     if (threadContextThreadId != ThreadContext::NoThread && threadContextThreadId != ::GetCurrentThreadId())
     {
         // the thread doesn't support rental thread and try to set on a different thread???
-        Assert(!threadContext->GetIsThreadBound());
+        Assert(!threadContext->IsThreadBound());
         return false;
     }
 
@@ -64,7 +64,7 @@ bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
 
     if (entry == NULL)
     {
-        Assert(!threadContext->GetIsThreadBound());
+        Assert(!threadContext->IsThreadBound());
         entry = CreateEntryForCurrentThread();
     }
     else if (entry->threadContext != NULL && entry->threadContext != threadContext)
@@ -72,7 +72,7 @@ bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
         // If the thread has an active thread context and either that thread context is thread
         // bound (in which case it cannot be moved off this thread), or if the thread context
         // is running script, you cannot move it off this thread.
-        if (entry->threadContext->GetIsThreadBound() || entry->threadContext->IsInScript())
+        if (entry->threadContext->IsThreadBound() || entry->threadContext->IsInScript())
         {
             return false;
         }
@@ -108,7 +108,7 @@ bool ThreadContextTLSEntry::ClearThreadContext(ThreadContextTLSEntry * entry, bo
             // If the thread has an active thread context and either that thread context is thread
             // bound (in which case it cannot be moved off this thread), or if the thread context
             // is running script, you cannot move it off this thread.
-            if (!force && (entry->threadContext->GetIsThreadBound() || entry->threadContext->IsInScript()))
+            if (!force && (entry->threadContext->IsThreadBound() || entry->threadContext->IsInScript()))
             {
                 return false;
             }

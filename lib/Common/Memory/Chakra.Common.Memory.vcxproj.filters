@@ -51,6 +51,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\XDataAllocator.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="MemUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator.h" />
@@ -105,6 +106,7 @@
       <Filter>amd64</Filter>
     </ClInclude>
     <ClInclude Include="XDataAllocator.h" />
+    <ClInclude Include="MemUtils.h" />
     <ClInclude Include="CollectionState.h" />
     <ClInclude Include="AllocationPolicyManager.h" />
   </ItemGroup>

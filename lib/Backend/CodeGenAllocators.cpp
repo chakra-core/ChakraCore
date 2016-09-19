@@ -4,10 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext)
+CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, CustomHeap::CodePageAllocators * codePageAllocators, HANDLE processHandle)
 : pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT, 0)
 , allocator(_u("NativeCode"), &pageAllocator, Js::Throw::OutOfMemory)
-, emitBufferManager(&allocator, scriptContext->GetThreadContext()->GetCodePageAllocators(), scriptContext, _u("JIT code buffer"))
+, emitBufferManager(&allocator, codePageAllocators, scriptContext, _u("JIT code buffer"), processHandle)
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
 , canCreatePreReservedSegment(false)
 #endif

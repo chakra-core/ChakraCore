@@ -29,8 +29,10 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
-        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
+        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
+        m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
+#if 0
+        // templatized JIT loop body
         if (func->IsLoopBody())
         {
             Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint());
@@ -40,12 +42,14 @@ public:
                 func->isTJLoopBody = true;
             }
         }
+#endif
     }
 
     void Build();
 
 private:
 
+    void                    LoadNativeCodeData();
     void                    AddInstr(IR::Instr * instr, uint32 offset);
     bool                    IsLoopBody()const;
     uint                    GetLoopBodyExitInstrOffset() const;
@@ -150,7 +154,7 @@ private:
     IR::Instr *             m_lastInstr;
     IR::Instr **            m_offsetToInstruction;
     Js::ByteCodeReader      m_jnReader;
-    Js::StatementReader     m_statementReader;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
     SList<IR::Instr *> *    m_argStack;
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;
@@ -174,7 +178,7 @@ private:
     SymID *                 m_tempMap;
     BVFixed *               m_fbvTempUsed;
     uint32                  m_functionStartOffset;
-    Js::AsmJsFunctionInfo * m_asmFuncInfo;
+    const AsmJsJITInfo *    m_asmFuncInfo;
     StackSym *              m_loopBodyRetIPSym;
     BVFixed *               m_ldSlots;
     BVFixed *               m_stSlots;

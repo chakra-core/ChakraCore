@@ -28,6 +28,8 @@
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
+        $(ChakraJITIDLIntDir);
+        $(MSBuildThisFileDirectory)..\..\JITClient;
         $(MSBuildThisFileDirectory)..;$(MSBuildThisFileDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -36,23 +38,28 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="RuntimePlatformAgnosticPch.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)RuntimePlatformAgnosticPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Platform\Windows\DateTime.cpp" />
-    <ClCompile Include="Platform\Windows\DaylightHelper.cpp" />
-    <ClCompile Include="Platform\Windows\HiResTimer.cpp" />
-    <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
-    <ClCompile Include="Platform\Windows\NumbersUtility.cpp" />
-    <ClCompile Include="Platform\Windows\SystemInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DateTime.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DaylightHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\HiResTimer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\SystemInfo.cpp" />
     <ClCompile Include="Platform\Windows\Thread.cpp" />
 
-    <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
     <ClInclude Include="UnicodeText.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

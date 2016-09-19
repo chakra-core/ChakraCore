@@ -191,7 +191,7 @@
       <files>ArrayView.js</files>
       <baseline>ArrayView.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -199,7 +199,7 @@
       <files>BasicBranching.js</files>
       <baseline>BasicBranching.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -207,7 +207,7 @@
       <files>basicComparisonDouble.js</files>
       <baseline>basicComparisonDouble.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -215,7 +215,7 @@
       <files>basicComparisonInt.js</files>
       <baseline>basicComparisonInt.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -223,7 +223,7 @@
       <files>basicComparisonUInt.js</files>
       <baseline>basicComparisonUInt.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -231,7 +231,7 @@
       <files>BasicLooping.js</files>
       <baseline>BasicLooping.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -239,7 +239,7 @@
       <files>basicMath.js</files>
       <baseline>basicMath.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -247,7 +247,7 @@
       <files>basicMathIntSpecific.js</files>
       <baseline>basicMathIntSpecific.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -255,7 +255,7 @@
       <files>basicMathUnary.js</files>
       <baseline>basicMathUnary.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -263,7 +263,7 @@
       <files>BasicSwitch.js</files>
       <baseline>BasicSwitch.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -271,7 +271,7 @@
       <files>CompositionMathUnary.js</files>
       <baseline>CompositionMathUnary.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -279,7 +279,7 @@
       <files>FunctionCalls.js</files>
       <baseline>FunctionCalls.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -287,7 +287,7 @@
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -295,7 +295,7 @@
       <files>MathBuiltinsCall.js</files>
       <baseline>MathBuiltinsCall.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -303,7 +303,7 @@
       <files>ModuleVarRead.js</files>
       <baseline>ModuleVarRead.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -311,7 +311,7 @@
       <files>ModuleVarWrite.js</files>
       <baseline>ModuleVarWrite.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -319,7 +319,7 @@
       <files>ReadArrayView.js</files>
       <baseline>ReadArrayView.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -327,7 +327,7 @@
       <files>ReadFixOffset.js</files>
       <baseline>ReadFixOffset.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -335,7 +335,7 @@
       <files>WriteArrayView.js</files>
       <baseline>WriteArrayView.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -343,7 +343,7 @@
       <files>WriteFixOffset.js</files>
       <baseline>WriteFixOffset.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -555,7 +555,7 @@
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -689,7 +689,7 @@
       <files>unityBug.js</files>
       <baseline>unityBug.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>
@@ -726,7 +726,7 @@
       <files>clz32.js</files>
       <baseline>clz32.baseline</baseline>
       <tags>exclude_amd64</tags>
-      <compile-flags>-testtrace:asmjs -simdjs -on:asmjsjittemplate -off:fulljit</compile-flags>
+      <compile-flags>-testtrace:asmjs -simdjs -enableoutofprocjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
     </default>
   </test>
   <test>

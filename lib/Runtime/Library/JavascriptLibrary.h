@@ -30,6 +30,8 @@ namespace Js
 {
     class MissingPropertyTypeHandler;
     class SourceTextModuleRecord;
+    class ArrayBufferBase;
+    class SharedContents;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
     typedef JsUtil::List<Var, Recycler> ListForListIterator;
 
@@ -194,6 +196,7 @@ namespace Js
 #endif
         DynamicType * nativeFloatArrayType;
         DynamicType * arrayBufferType;
+        DynamicType * sharedArrayBufferType;
         DynamicType * dataViewType;
         DynamicType * typedArrayType;
         DynamicType * int8ArrayType;
@@ -225,9 +228,6 @@ namespace Js
         DynamicType * listIteratorType;
 
         JavascriptFunction* builtinFunctions[BuiltinFunction::Count];
-
-        typedef JsUtil::BaseDictionary<FunctionInfo *, BuiltinFunction, ArenaAllocator > FuncInfoToBuiltinIdMap;
-        FuncInfoToBuiltinIdMap * funcInfoToBuiltinIdMap;
 
         INT_PTR vtableAddresses[VTableValue::Count];
         ConstructorCache *constructorCacheDefaultInstance;
@@ -407,6 +407,10 @@ namespace Js
         JavascriptFunction* regexGlobalGetterFunction;
         JavascriptFunction* regexStickyGetterFunction;
         JavascriptFunction* regexUnicodeGetterFunction;
+
+        RuntimeFunction* sharedArrayBufferConstructor;
+        DynamicObject* sharedArrayBufferPrototype;
+        DynamicObject* atomicsObject;
 
         int regexConstructorSlotIndex;
         int regexExecSlotIndex;
@@ -635,6 +639,9 @@ namespace Js
         const PropertyDescriptor* GetDefaultPropertyDescriptor() const { return &defaultPropertyDescriptor; }
         DynamicObject* GetMissingPropertyHolder() const { return missingPropertyHolder; }
 
+        JavascriptFunction* GetSharedArrayBufferConstructor() { return sharedArrayBufferConstructor; }
+        DynamicObject* GetAtomicsObject() { return atomicsObject; }
+
 #if ENABLE_TTD
         Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
@@ -858,9 +865,11 @@ namespace Js
         JavascriptArray* CreateArray(uint32 length, uint32 size);
         ArrayBuffer* CreateArrayBuffer(uint32 length);
         ArrayBuffer* CreateArrayBuffer(byte* buffer, uint32 length);
+        SharedArrayBuffer* CreateSharedArrayBuffer(uint32 length);
+        SharedArrayBuffer* CreateSharedArrayBuffer(SharedContents *contents);
         ArrayBuffer* CreateProjectionArraybuffer(uint32 length);
         ArrayBuffer* CreateProjectionArraybuffer(byte* buffer, uint32 length);
-        DataView* CreateDataView(ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength);
+        DataView* CreateDataView(ArrayBufferBase* arrayBuffer, uint32 offSet, uint32 mappedLength);
 
         template <typename TypeName, bool clamped>
         inline DynamicType* GetTypedArrayType(TypeName);
@@ -1033,7 +1042,7 @@ namespace Js
         bool IsPRNGSeeded() { return isPRNGSeeded; }
         uint64 GetRandSeed0() { return randSeed0; }
         uint64 GetRandSeed1() { return randSeed1; }
-        void SetIsPRNGSeeded(bool val) { isPRNGSeeded = val; }
+        void SetIsPRNGSeeded(bool val);
         void SetRandSeed0(uint64 rs) { randSeed0 = rs;}
         void SetRandSeed1(uint64 rs) { randSeed1 = rs; }
 
@@ -1062,17 +1071,9 @@ namespace Js
         JavascriptFunction** GetBuiltinFunctions();
         INT_PTR* GetVTableAddresses();
         static BuiltinFunction GetBuiltinFunctionForPropId(PropertyId id);
-        static BuiltinFunction GetBuiltInForFuncInfo(FunctionInfo* funcInfo, ScriptContext *scriptContext);
+        static BuiltinFunction GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo *context);
 #if DBG
-        static void CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext)
-        {
-            byte count = BuiltinFunction::Count;
-            for(byte index = 0; index < count; index++)
-            {
-                Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo(builtInFuncs[index]->GetFunctionInfo(), scriptContext)));
-            }
-
-        }
+        static void CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext);
 #endif
         static BOOL CanFloatPreferenceFunc(BuiltinFunction index);
         static BOOL IsFltFunc(BuiltinFunction index);
@@ -1140,6 +1141,11 @@ namespace Js
 
         static void __cdecl InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeSharedArrayBufferConstructor(DynamicObject* sharedArrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSharedArrayBufferPrototype(DynamicObject* sharedArrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeAtomicsObject(DynamicObject* atomicsObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         static void __cdecl InitializeArrayBufferConstructor(DynamicObject* arrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeArrayBufferPrototype(DynamicObject* arrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1345,6 +1351,7 @@ namespace Js
         HRESULT ProfilerRegisterReflect();
         HRESULT ProfilerRegisterGenerator();
         HRESULT ProfilerRegisterSIMD();
+        HRESULT ProfilerRegisterAtomics();
 
 #ifdef IR_VIEWER
         HRESULT ProfilerRegisterIRViewer();

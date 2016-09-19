@@ -10,11 +10,12 @@
 //----------------------------------------------------------------------------
 template <typename SyncObject>
 EmitBufferManager<SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators * codePageAllocators,
-    Js::ScriptContext * scriptContext, LPCWSTR name) :
-    allocationHeap(allocator, codePageAllocators),
+    Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle) :
+    allocationHeap(allocator, codePageAllocators, processHandle),
     allocator(allocator),
     allocations(nullptr),
-    scriptContext(scriptContext)
+    scriptContext(scriptContext),
+    processHandle(processHandle)
 {
 #if DBG_DUMP
     this->totalBytesCode = 0;
@@ -146,11 +147,6 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
     bool isAllJITCodeInPreReservedRegion = true;
     CustomHeap::Allocation* heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);
 
-    if (!isAllJITCodeInPreReservedRegion)
-    {
-        this->scriptContext->GetThreadContext()->ResetIsAllJITCodeInPreReservedRegion();
-    }
-
     if (heapAllocation  == nullptr)
     {
         // This is used in interpreter scenario, thus we need to try to recover memory, if possible.
@@ -173,6 +169,7 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
     allocation->bytesUsed = 0;
     allocation->nextAllocation = this->allocations;
     allocation->recorded = false;
+    allocation->inPrereservedRegion = isAllJITCodeInPreReservedRegion;
 
     this->allocations = allocation;
 
@@ -292,7 +289,7 @@ EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t 
 
 #if DBG
     MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+    size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
     Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
@@ -370,7 +367,7 @@ bool EmitBufferManager<SyncObject>::CommitReadWriteBufferForInterpreter(EmitBuff
         return false;
     }
 
-    FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), pBuffer, bufferSize);
+    FlushInstructionCache(this->processHandle, pBuffer, bufferSize);
 
     return true;
 }
@@ -424,7 +421,7 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
         if (alignPad != 0)
         {
             DWORD alignBytes = alignPad < spaceInCurrentPage ? alignPad : spaceInCurrentPage;
-            CustomHeap::FillDebugBreak(currentDestBuffer, alignBytes);
+            CustomHeap::FillDebugBreak(currentDestBuffer, alignBytes, this->processHandle);
 
             alignPad -= alignBytes;
             currentDestBuffer += alignBytes;
@@ -442,7 +439,7 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
         {
             AssertMsg(alignPad == 0, "If we are copying right now - we should be done with setting alignment.");
 
-            memcpy_s(currentDestBuffer, allocation->BytesFree(), sourceBuffer, bytesToChange);
+            ChakraMemCopy(currentDestBuffer, allocation->BytesFree(), sourceBuffer, bytesToChange, this->processHandle);
 
             currentDestBuffer += bytesToChange;
             sourceBuffer += bytesToChange;
@@ -458,7 +455,7 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
         }
     }
 
-    FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), bufferToFlush, sizeToFlush);
+    FlushInstructionCache(this->processHandle, bufferToFlush, sizeToFlush);
 #if DBG_DUMP
     this->totalBytesCode += bytes;
 #endif

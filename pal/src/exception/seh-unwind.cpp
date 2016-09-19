@@ -28,17 +28,17 @@ Abstract:
 #include "pal/context.h"
 #include "pal.h"
 #include <dlfcn.h>
-    
+
 #if HAVE_LIBUNWIND_H
 #ifndef __LINUX__
 #define UNW_LOCAL_ONLY
-#endif // !__LINUX__       
+#endif // !__LINUX__
 #include <libunwind.h>
 #ifdef __LINUX__
 #ifdef HAVE_LIBUNWIND_PTRACE
 #include <libunwind-ptrace.h>
 #endif // HAVE_LIBUNWIND_PTRACE
-#endif // __LINUX__    
+#endif // __LINUX__
 #endif // HAVE_LIBUNWIND_H
 
 
@@ -124,6 +124,11 @@ static void UnwindContextToWinContext(unw_cursor_t *cursor, CONTEXT *winContext)
     unw_get_reg(cursor, UNW_X86_64_R13, (unw_word_t *) &winContext->R13);
     unw_get_reg(cursor, UNW_X86_64_R14, (unw_word_t *) &winContext->R14);
     unw_get_reg(cursor, UNW_X86_64_R15, (unw_word_t *) &winContext->R15);
+#elif defined(__i686__)
+    unw_get_reg(cursor, UNW_REG_IP, (unw_word_t *) &winContext->Eip);
+    unw_get_reg(cursor, UNW_REG_SP, (unw_word_t *) &winContext->Esp);
+    unw_get_reg(cursor, UNW_X86_EBP, (unw_word_t *) &winContext->Ebp);
+    unw_get_reg(cursor, UNW_X86_EBX, (unw_word_t *) &winContext->Ebx);
 #elif defined(_ARM_)
     unw_get_reg(cursor, UNW_ARM_R13, (unw_word_t *) &winContext->Sp);
     unw_get_reg(cursor, UNW_ARM_R14, (unw_word_t *) &winContext->Lr);
@@ -167,13 +172,14 @@ static void GetContextPointer(unw_cursor_t *cursor, unw_context_t *unwContext, i
     if (saveLoc.type == UNW_SLT_MEMORY)
     {
         SIZE_T *pLoc = (SIZE_T *)saveLoc.u.addr;
-        // Filter out fake save locations that point to unwContext 
+        // Filter out fake save locations that point to unwContext
         if ((pLoc < (SIZE_T *)unwContext) || ((SIZE_T *)(unwContext + 1) <= pLoc))
             *contextPointer = (SIZE_T *)saveLoc.u.addr;
     }
 #endif
 }
 
+#if defined(_AMD64_) || defined(_ARM_) || defined(_ARM64_)
 static void GetContextPointers(unw_cursor_t *cursor, unw_context_t *unwContext, KNONVOLATILE_CONTEXT_POINTERS *contextPointers)
 {
 #if defined(_AMD64_)
@@ -252,7 +258,7 @@ BOOL PAL_VirtualUnwind(CONTEXT *context, KNONVOLATILE_CONTEXT_POINTERS *contextP
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(_ARM64_)
     // OSX and FreeBSD appear to do two different things when unwinding
-    // 1: If it reaches where it cannot unwind anymore, say a 
+    // 1: If it reaches where it cannot unwind anymore, say a
     // managed frame.  It wil return 0, but also update the $pc
     // 2: If it unwinds all the way to _start it will return
     // 0 from the step, but $pc will stay the same.
@@ -296,6 +302,12 @@ BOOL PAL_VirtualUnwind(CONTEXT *context, KNONVOLATILE_CONTEXT_POINTERS *contextP
     }
     return TRUE;
 }
+#else // __i686__
+BOOL PAL_VirtualUnwind(CONTEXT *context, void *contextPointers)
+{
+    return FALSE;
+}
+#endif
 
 #else
 #error don't know how to unwind on this platform
@@ -330,7 +342,7 @@ static int access_mem(unw_addr_space_t as, unw_word_t addr, unw_word_t *valp, in
     {
         return UNW_ESUCCESS;
     }
-    else 
+    else
     {
         return -UNW_EUNSPEC;
     }
@@ -346,7 +358,7 @@ static int access_reg(unw_addr_space_t as, unw_regnum_t regnum, unw_word_t *valp
 
     CONTEXT *winContext = LibunwindCallbacksInfo.Context;
 
-    switch (regnum) 
+    switch (regnum)
     {
 #if defined(_AMD64_)
         case UNW_REG_IP:       *valp = (unw_word_t) winContext->Rip; break;
@@ -409,28 +421,28 @@ static int resume(unw_addr_space_t as, unw_cursor_t *cp, void *arg)
 static int get_proc_name(unw_addr_space_t as, unw_word_t addr, char *bufp, size_t buf_len, unw_word_t *offp, void *arg)
 {
     ASSERT("Not supposed to be ever called");
-    return -UNW_EINVAL;  
+    return -UNW_EINVAL;
 }
 
-int find_proc_info(unw_addr_space_t as, 
+int find_proc_info(unw_addr_space_t as,
                    unw_word_t ip, unw_proc_info_t *pip,
                    int need_unwind_info, void *arg)
 {
 #ifdef HAVE_LIBUNWIND_PTRACE
-    // UNIXTODO: libunwind RPM package on Fedora/CentOS/RedHat doesn't have libunwind-ptrace.so 
+    // UNIXTODO: libunwind RPM package on Fedora/CentOS/RedHat doesn't have libunwind-ptrace.so
     // and we can't use it from a shared library like libmscordaccore.so.
     // That's why all calls to ptrace parts of libunwind ifdeffed out for now.
     return _UPT_find_proc_info(as, ip, pip, need_unwind_info, arg);
-#else    
+#else
     return -UNW_EINVAL;
-#endif    
+#endif
 }
 
 void put_unwind_info(unw_addr_space_t as, unw_proc_info_t *pip, void *arg)
 {
-#ifdef HAVE_LIBUNWIND_PTRACE    
+#ifdef HAVE_LIBUNWIND_PTRACE
     return _UPT_put_unwind_info(as, pip, arg);
-#endif    
+#endif
 }
 
 static unw_accessors_t unwind_accessors =
@@ -445,20 +457,20 @@ static unw_accessors_t unwind_accessors =
     .get_proc_name = get_proc_name
 };
 
-BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context, 
-                                KNONVOLATILE_CONTEXT_POINTERS *contextPointers, 
-                                DWORD pid, 
+BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context,
+                                KNONVOLATILE_CONTEXT_POINTERS *contextPointers,
+                                DWORD pid,
                                 ReadMemoryWordCallback readMemCallback)
 {
-    // This function can be executed only by one thread at a time. 
+    // This function can be executed only by one thread at a time.
     // The reason for this is that we need to pass context and read mem function to libunwind callbacks
-    // but "arg" is already used by the pointer returned from _UPT_create(). 
+    // but "arg" is already used by the pointer returned from _UPT_create().
     // So we resort to using global variables and a lock.
-    struct Lock 
+    struct Lock
     {
         CRITICAL_SECTION cs;
         Lock()
-        {        
+        {
             // ctor of a static variable is a thread-safe way to initialize critical section exactly once (clang,gcc)
             InitializeCriticalSection(&cs);
         }
@@ -477,7 +489,7 @@ BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context,
             LeaveCriticalSection(cs);
             cs = NULL;
         }
-    };    
+    };
     static Lock lock;
     LockHolder lockHolder(&lock.cs);
 
@@ -492,9 +504,9 @@ BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context,
     LibunwindCallbacksInfo.readMemCallback = readMemCallback;
     WinContextToUnwindContext(context, &unwContext);
     addrSpace = unw_create_addr_space(&unwind_accessors, 0);
-#ifdef HAVE_LIBUNWIND_PTRACE    
+#ifdef HAVE_LIBUNWIND_PTRACE
     libunwindUptPtr = _UPT_create(pid);
-#endif    
+#endif
     st = unw_init_remote(&cursor, addrSpace, libunwindUptPtr);
     if (st < 0)
     {
@@ -519,22 +531,22 @@ BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context,
 
 Exit:
 #ifdef HAVE_LIBUNWIND_PTRACE
-    if (libunwindUptPtr != NULL) 
+    if (libunwindUptPtr != NULL)
     {
         _UPT_destroy(libunwindUptPtr);
     }
-#endif    
-    if (addrSpace != 0) 
+#endif
+    if (addrSpace != 0)
     {
         unw_destroy_addr_space(addrSpace);
-    }    
+    }
     return result;
 }
 #else // __LINUX__
 
-BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context, 
-                                KNONVOLATILE_CONTEXT_POINTERS *contextPointers, 
-                                DWORD pid, 
+BOOL PAL_VirtualUnwindOutOfProc(CONTEXT *context,
+                                KNONVOLATILE_CONTEXT_POINTERS *contextPointers,
+                                DWORD pid,
                                 ReadMemoryWordCallback readMemCallback)
 {
     //UNIXTODO: Implement for Mac flavor of libunwind
@@ -552,18 +564,18 @@ Parameters:
     ExceptionRecord - the Windows exception record to throw
 
 Note:
-    The name of this function and the name of the ExceptionRecord 
+    The name of this function and the name of the ExceptionRecord
     parameter is used in the sos lldb plugin code to read the exception
     record. See coreclr\src\ToolBox\SOS\lldbplugin\debugclient.cpp.
 
     This function must not be inlined or optimized so the below PAL_VirtualUnwind
-    calls end up with RaiseException caller's context and so the above debugger 
+    calls end up with RaiseException caller's context and so the above debugger
     code finds the function and ExceptionRecord parameter.
 --*/
 PAL_NORETURN
 __attribute__((noinline))
 __attribute__((optnone))
-static void 
+static void
 RtlpRaiseException(EXCEPTION_RECORD *ExceptionRecord)
 {
     // Capture the context of RtlpRaiseException.
@@ -572,10 +584,10 @@ RtlpRaiseException(EXCEPTION_RECORD *ExceptionRecord)
     ContextRecord.ContextFlags = CONTEXT_FULL;
     CONTEXT_CaptureContext(&ContextRecord);
 
-    // Find the caller of RtlpRaiseException.  
+    // Find the caller of RtlpRaiseException.
     PAL_VirtualUnwind(&ContextRecord, NULL);
 
-    // The frame we're looking at now is RaiseException. We have to unwind one 
+    // The frame we're looking at now is RaiseException. We have to unwind one
     // level further to get the actual context user code could be resumed at.
     PAL_VirtualUnwind(&ContextRecord, NULL);
 

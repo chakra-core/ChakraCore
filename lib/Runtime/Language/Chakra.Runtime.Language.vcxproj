@@ -32,6 +32,8 @@
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Runtime\Math;
+        $(MSBuildThisFileDirectory)..\..\JITClient;
+        $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -90,7 +92,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProfilingHelpers.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ReadOnlyDynamicProfileInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -170,6 +171,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
@@ -217,10 +219,10 @@
     <ClInclude Include="JavascriptExceptionOperators.h" />
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="ProfilingHelpers.h" />
-    <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
     <ClInclude Include="ModuleRecordBase.h" />
     <ClInclude Include="SourceTextModuleRecord.h" />
@@ -284,6 +286,11 @@
     <None Include="JavascriptConversion.inl" />
     <None Include="JavascriptOperators.inl" />
     <None Include="TaggedInt.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

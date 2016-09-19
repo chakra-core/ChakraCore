@@ -108,7 +108,12 @@ namespace Js
 #endif
 #endif
 #if DBG || defined(PROFILE_TYPES)
-        RecordAllocation(type->GetScriptContext());
+#if ENABLE_NATIVE_CODEGEN
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
+        {
+            RecordAllocation(type->GetScriptContext());
+        }
 #endif
     }
 

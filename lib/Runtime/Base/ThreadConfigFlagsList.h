@@ -47,6 +47,7 @@ FLAG_RELEASE(SkipSplitOnNoResult, SkipSplitOnNoResult)
 FLAG_RELEASE(IsES7AsyncAndAwaitEnabled, ES7AsyncAwait)
 FLAG_RELEASE(IsArrayBufferTransferEnabled, ArrayBufferTransfer)
 FLAG_RELEASE(IsESObjectGetOwnPropertyDescriptorsEnabled, ESObjectGetOwnPropertyDescriptors)
+FLAG_RELEASE(IsESSharedArrayBufferEnabled, ESSharedArrayBuffer)
 #ifdef ENABLE_PROJECTION
 FLAG(AreWinRTDelegatesInterfaces, WinRTDelegateInterfaces)
 FLAG_RELEASE(IsWinRTAdaptiveAppsEnabled, WinRTAdaptiveApps)

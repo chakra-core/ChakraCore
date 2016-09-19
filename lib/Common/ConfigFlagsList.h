@@ -176,7 +176,6 @@ PHASE(All)
         PHASE(Lowerer)
             PHASE(FastPath)
                 PHASE(LoopFastPath)
-                PHASE(LeafFastPath)
                 PHASE(MathFastPath)
                 PHASE(Atom)
                     PHASE(MulStrengthReduction)
@@ -345,8 +344,10 @@ PHASE(All)
         PHASE(StackFramesEvent)
 #endif
         PHASE(PerfHint)
+        PHASE(TypeShareForChangePrototype)
         PHASE(DeferSourceLoad)
         PHASE(ObjectMutationBreakpoint)
+        PHASE(NativeCodeData)
 #undef PHASE
 #endif
 
@@ -376,7 +377,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_DeferTopLevelTillFirstCall (true)
 #define DEFAULT_CONFIG_DirectCallTelemetryStats (false)
 #define DEFAULT_CONFIG_errorStackTrace      (true)
-#define DEFAULT_CONFIG_FastPathCap          (-1)        // By default, we do not have any fast path cap
 #define DEFAULT_CONFIG_FastLineColumnCalculation (true)
 #define DEFAULT_CONFIG_PrintLineColumnInfo (false)
 #define DEFAULT_CONFIG_ForceDecommitOnCollect (false)
@@ -574,6 +574,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
 // ES6 DEFAULT BEHAVIOR
@@ -648,6 +649,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
+#define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -783,6 +785,14 @@ PHASE(All)
 // RELEASE FLAGS
 #define FLAGPR(Type, ParentName, Name, String, Default)     FLAG(Type, Name, String, Default, ParentName, FALSE)
 #define FLAGR(Type, Name, String, Default)                  FLAG(Type, Name, String, Default, NoParent, FALSE)
+
+// Release flags with parent and acronym
+#ifndef FLAGPRA
+#define FLAGPRA(Type, ParentName, Name, Acronym, String, Default) \
+        FLAGPR(Type, ParentName, Name, String, Default) \
+        FLAGNR(Type, Acronym, String, Default)
+#endif
+
 
 // RELEASE FLAGS WITH REGISTRY OVERRIDE
 #define FLAGPR_REGOVR_ASMJS(Type, ParentName, Name, String, Default) FLAG_REGOVR_ASMJS(Type, Name, String, Default, ParentName, FALSE)
@@ -1013,7 +1023,8 @@ FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose tra
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 
-FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"              , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable SharedArrayBuffer"                       , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
 
@@ -1025,7 +1036,6 @@ FLAGR(Boolean, WinRTAdaptiveApps        , "Enable the adaptive apps feature, all
 // This flag to be removed once JITing generator functions is stable
 FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", false)
 
-FLAGNR(Number,  FastPathCap           , "Cap in source code size for enabling fast-paths", DEFAULT_CONFIG_FastPathCap)
 FLAGNR(Boolean, FastLineColumnCalculation, "Enable fast calculation of line/column numbers from the source.", DEFAULT_CONFIG_FastLineColumnCalculation)
 FLAGR (String,  Filename              , "Jscript source file", nullptr)
 FLAGNR(Boolean, FreeRejittedCode      , "Free rejitted code", true)
@@ -1188,6 +1198,7 @@ FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
+FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
@@ -1474,5 +1485,6 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
 #undef FLAGNR
 #undef FLAGNRA
 #undef FLAGPNR
+#undef FLAGPRA
 
 #endif

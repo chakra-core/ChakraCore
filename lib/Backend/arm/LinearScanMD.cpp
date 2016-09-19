@@ -218,7 +218,7 @@ LinearScanMD::GenerateBailOut(
     Func *const func = instr->m_func;
     BailOutInfo *const bailOutInfo = instr->GetBailOutInfo();
     IR::Instr *firstInstr = instr->m_prev;
-    Js::Var *const registerSaveSpace = func->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace();
+    Js::Var *const registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
 
     const auto LoadRegSaveSpaceIntoScratch = [&](const RegNum reg)
     {

@@ -362,13 +362,13 @@
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -ESSharedArrayBuffer -Off:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -ESSharedArrayBuffer -Force:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -438,7 +438,7 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
@@ -489,7 +489,8 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -ES6DefaultArgs -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6 -ES6DefaultArgs -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -497,7 +498,8 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.enable_disable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -505,7 +507,8 @@
   <test>
     <default>
       <files>es6_all.js</files>
-      <compile-flags>-verbose -es6all -WERExceptionSupport</compile-flags>
+      <!-- Disable OOP JIT which would cause output to print twice. -->
+      <compile-flags>-verbose -es6all -enableoutofprocjit- -WERExceptionSupport</compile-flags>
       <baseline>es6_all.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -1329,6 +1332,14 @@
   <default>
     <files>iteratorclose.js</files>
     <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>bug_issue_1496.js</files>
+    <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
+    <baseline>bug_issue_1496.baseline</baseline>
+    <tags>BugFix</tags>
   </default>
 </test>
 </regress-exe>

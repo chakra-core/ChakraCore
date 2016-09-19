@@ -43,6 +43,31 @@ namespace Js
         Assert(allocator.AllocatedSize() == 0);
     }
 
+    template <bool isGuestArena>
+    void TempArenaAllocatorWrapper<isGuestArena>::AdviseInUse()
+    {
+        if (isGuestArena)
+        {
+            if (externalGuestArenaRef == nullptr)
+            {
+                externalGuestArenaRef = this->recycler->RegisterExternalGuestArena(this->GetAllocator());
+            }
+        }
+    }
+
+    template <bool isGuestArena>
+    void TempArenaAllocatorWrapper<isGuestArena>::AdviseNotInUse()
+    {
+        this->allocator.Reset();
+
+        if (isGuestArena)
+        {
+            Assert(externalGuestArenaRef != nullptr);
+            this->recycler->UnregisterExternalGuestArena(externalGuestArenaRef);
+            externalGuestArenaRef = nullptr;
+        }
+    }
+
     // Explicit instantiation
     template class TempArenaAllocatorWrapper<true>;
     template class TempArenaAllocatorWrapper<false>;

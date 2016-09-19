@@ -100,9 +100,8 @@ IRBuilderAsmJs::Build()
     // Skip the last EndOfBlock opcode
     // EndOfBlock opcode has same value in Asm
     Assert(!OpCodeAttr::HasMultiSizeLayout(Js::OpCode::EndOfBlock));
-    uint32 lastOffset = m_func->GetJnFunction()->GetByteCode()->GetLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
+    uint32 lastOffset = m_func->GetJITFunctionBody()->GetByteCodeLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
     uint32 offsetToInstructionCount = lastOffset;
-    Js::FunctionBody *funcBody = m_func->GetJnFunction()->GetFunctionBody();
     if (this->IsLoopBody())
     {
         // LdSlot needs to cover all the register, including the temps, because we might treat
@@ -111,13 +110,12 @@ IRBuilderAsmJs::Build()
         this->m_stSlots = BVFixed::New<JitArenaAllocator>(m_firstIntTemp, m_tempAlloc);
         this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
 #if DBG
-        if (funcBody->GetTempCount() != 0)
+        if (m_func->GetJITFunctionBody()->GetTempCount() != 0)
         {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(funcBody->GetTempCount(), m_tempAlloc);
+            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetTempCount(), m_tempAlloc);
         }
 #endif
-        JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-        lastOffset = loopBodyCodeGen->loopHeader->endOffset;
+        lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
         // Ret is created at lastOffset + 1, so we need lastOffset + 2 entries
         offsetToInstructionCount = lastOffset + 2;
     }
@@ -127,8 +125,10 @@ IRBuilderAsmJs::Build()
 #endif
     m_offsetToInstruction = JitAnewArrayZ(m_tempAlloc, IR::Instr *, offsetToInstructionCount);
 
+    LoadNativeCodeData();
+
     BuildConstantLoads();
-    if (!this->IsLoopBody() && m_func->GetJnFunction()->GetHasImplicitArgIns())
+    if (!this->IsLoopBody() && m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         BuildImplicitArgIns();
     }
@@ -206,6 +206,19 @@ IRBuilderAsmJs::Build()
     if (m_func->IsTopFunc())
     {
         m_func->SetDoFastPaths();
+    }
+}
+
+void
+IRBuilderAsmJs::LoadNativeCodeData()
+{
+    Assert(m_func->IsTopFunc());
+    if (m_func->IsOOPJIT())
+    {
+        IR::RegOpnd * nativeDataOpnd = IR::RegOpnd::New(TyVar, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::LdNativeCodeData, nativeDataOpnd, m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        m_func->SetNativeCodeDataSym(nativeDataOpnd->GetStackSym());
     }
 }
 
@@ -348,9 +361,9 @@ IRBuilderAsmJs::BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type)
 IR::RegOpnd *
 IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
-    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
+    Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
     int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetIntConstCount();
+    uint32 intConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetIntConstCount();
 
     Assert(regSlot >= Js::FunctionBody::FirstRegSlot && regSlot < intConstCount);
     const int32 value = intConstTable[regSlot];
@@ -647,7 +660,7 @@ bool
 IRBuilderAsmJs::RegIsSimd128ReturnVar(Js::RegSlot reg)
 {
     return (reg == m_firstSimdConst &&
-            m_asmFuncInfo->GetReturnType().toVarType().isSIMD());
+            Js::AsmJsRetType(m_asmFuncInfo->GetRetType()).toVarType().isSIMD());
 }
 BOOL
 IRBuilderAsmJs::RegIsConstant(Js::RegSlot reg)
@@ -714,11 +727,10 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 void
 IRBuilderAsmJs::BuildConstantLoads()
 {
-    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
-    uint32 intConstCount = asmJsFuncInfo->GetIntConstCount();
-    uint32 floatConstCount = asmJsFuncInfo->GetFloatConstCount();
-    uint32 doubleConstCount = asmJsFuncInfo->GetDoubleConstCount();
-    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
+    uint32 intConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetIntConstCount();
+    uint32 floatConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetFloatConstCount();
+    uint32 doubleConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetDoubleConstCount();
+    Js::Var * constTable = (Js::Var *)m_func->GetJITFunctionBody()->GetConstTable();
 
     // Load FrameDisplay
     IR::RegOpnd * asmJsEnvDstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
@@ -748,7 +760,7 @@ IRBuilderAsmJs::BuildConstantLoads()
 
         IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, IR::IntConstOpnd::New(intConst, TyInt32, m_func), m_func);
 
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsIntConst(intConst);
         }
@@ -777,7 +789,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(floatConst, TyFloat32, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsFloatConst();
         }
@@ -806,7 +818,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(doubleConst, TyFloat64, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsFloatConst();
         }
@@ -817,7 +829,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         ++regAllocated;
     }
 
-    uint32 simdConstCount = asmJsFuncInfo->GetSimdConstCount();
+    uint32 simdConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetSimdConstCount();
     // Space for SIMD0
     ++regAllocated;
     AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
@@ -837,7 +849,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         IR::Instr *instrLdC = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
 
 #if _M_IX86
-        if (dstOpnd->m_sym->IsSingleDef())
+        if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
         {
             dstOpnd->m_sym->SetIsSimd128Const();
         }
@@ -858,14 +870,14 @@ IRBuilderAsmJs::BuildImplicitArgIns()
 
     // formal params are offset from EBP by the EBP chain, return address, and function object
     int32 offset = 3 * MachPtr;
-    for (Js::ArgSlot i = 1; i < m_func->GetJnFunction()->GetInParamsCount(); ++i)
+    for (Js::ArgSlot i = 1; i < m_func->GetJITFunctionBody()->GetInParamsCount(); ++i)
     {
         StackSym * symSrc = nullptr;
         IR::Opnd * srcOpnd = nullptr;
         IR::RegOpnd * dstOpnd = nullptr;
         IR::Instr * instr = nullptr;
         // TODO: double args are not aligned on stack
-        Js::AsmJsVarType varType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetArgType(i - 1);
+        Js::AsmJsVarType varType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgType(i - 1);
         switch (varType.which())
         {
         case Js::AsmJsVarType::Which::Int:
@@ -1017,7 +1029,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     case Js::OpCodeAsmJs::Ret:
         instr = IR::Instr::New(Js::OpCode::Ret, m_func);
 
-        switch (m_asmFuncInfo->GetReturnType().which())
+        switch (m_asmFuncInfo->GetRetType())
         {
         case Js::AsmJsRetType::Which::Signed:
             retSlot = GetRegSlotFromIntReg(0);
@@ -1045,7 +1057,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
         {
             IRType irType;
             ValueType vType;
-            GetSimdTypesFromAsmType(m_asmFuncInfo->GetReturnType().toType().GetWhich(), &irType, &vType);
+            GetSimdTypesFromAsmType(Js::AsmJsRetType(m_asmFuncInfo->GetRetType()).toType().GetWhich(), &irType, &vType);
             retSlot = GetRegSlotFromSimd128Reg(0);
             regOpnd = BuildDstOpnd(retSlot, irType);
             regOpnd->SetValueType(vType);
@@ -1443,7 +1455,7 @@ IRBuilderAsmJs::BuildStartCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
         m_argStack->Push(instr);
 
         // also need to add undefined as arg0
-        addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+        addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
         addrOpnd->SetValueType(ValueType::Undefined);
 
         symDst = m_func->m_symTable->GetArgSlotSym(1);
@@ -1802,7 +1814,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         prevInstr = argInstr;
 
 #if defined(_M_X64)
-        if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+        if (m_func->IsSIMDEnabled())
         {
             m_tempList->Push(argInstr);
         }
@@ -1819,7 +1831,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 #if defined(_M_X64)
     // Without SIMD vars, all args are Var in size. So offset in Var = arg position in args list.
     // With SIMD, args have variable size, so we need to track argument position in the args list to be able to assign arg register for first four args on x64.
-    if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+    if (m_func->IsSIMDEnabled())
     {
         for (uint i = 1; !m_tempList->Empty(); i++)
         {
@@ -1904,7 +1916,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         dstOpnd->m_sym->m_isNotInt = true;
     }
 
-    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
     addrOpnd->SetValueType(ValueType::Undefined);
 
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, addrOpnd, m_func);
@@ -3031,15 +3043,14 @@ IRBuilderAsmJs::IsLoopBodyOuterOffset(uint offset) const
         return false;
     }
 
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    return (offset >= loopBodyCodeGen->loopHeader->endOffset || offset < loopBodyCodeGen->loopHeader->startOffset);
+    return (offset >= m_func->GetWorkItem()->GetLoopHeader()->endOffset || offset < m_func->GetWorkItem()->GetLoopHeader()->startOffset);
 }
 
 uint
 IRBuilderAsmJs::GetLoopBodyExitInstrOffset() const
 {
     // End of loop body, start of StSlot and Ret instruction at endOffset + 1
-    return ((JsLoopBodyCodeGen*)m_func->m_workItem)->loopHeader->endOffset + 1;
+    return m_func->GetWorkItem()->GetLoopHeader()->endOffset + 1;
 }
 
 IR::Instr *
@@ -3153,18 +3164,7 @@ IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(SymID symId, IRType type)
 
     StackSym * symDst = StackSym::FindOrCreate(symId, (Js::RegSlot)symId, m_func, fieldSymOpnd->GetType());
     IR::RegOpnd * dstOpnd = IR::RegOpnd::New(symDst, symDst->GetType(), m_func);
-    IR::Instr * ldSlotInstr;
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    ValueType symValueType;
-    if (loopBodyCodeGen->symIdToValueTypeMap && loopBodyCodeGen->symIdToValueTypeMap->TryGetValue(symId, &symValueType))
-    {
-        ldSlotInstr = IR::ProfiledInstr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
-        ldSlotInstr->AsProfiledInstr()->u.FldInfo().valueType = symValueType;
-    }
-    else
-    {
-        ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
-    }
+    IR::Instr * ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
 
     m_func->m_headInstr->InsertAfter(ldSlotInstr);
     if (m_lastInstr == m_func->m_headInstr)

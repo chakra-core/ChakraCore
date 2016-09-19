@@ -529,11 +529,12 @@ BranchInstr::IsUnconditional() const
 ///
 ///----------------------------------------------------------------------------
 inline void
-MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key)
+MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar)
 {
     Assert(this->m_kind == StrDictionary);
     Assert(key);
-    this->GetBranchDictionary()->dictionary.AddNew(key, (void*)offset);
+    auto dict = this->GetBranchDictionary();
+    dict->AddEntry(offset, key, remoteVar);
 }
 
 inline void
@@ -541,7 +542,8 @@ MultiBranchInstr::AddtoJumpTable(uint32 offset, uint32 jmpIndex)
 {
     Assert(this->m_kind == IntJumpTable || this->m_kind == SingleCharStrJumpTable);
     Assert(jmpIndex != -1);
-    this->GetBranchJumpTable()->jmpTable[jmpIndex] = (void*)offset;
+    auto table = this->GetBranchJumpTable();
+    table->jmpTable[jmpIndex] = (void*)offset;
 }
 
 inline void
@@ -570,7 +572,7 @@ MultiBranchInstr::CreateBranchTargetsAndSetDefaultTarget(int size, Kind kind, ui
         }
     case StrDictionary:
         {
-            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(allocator, size);
+            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(allocator, size, m_func->IsOOPJIT() ? m_func->m_alloc : nullptr);
             branchTargets->defaultTarget = (void *)defaultTargetOffset;
             this->m_branchTargets = branchTargets;
             break;

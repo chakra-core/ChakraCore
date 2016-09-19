@@ -30,6 +30,8 @@
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
+        $(MSBuildThisFileDirectory)..\..\JITClient;
+        $(ChakraJITIDLIntDir);
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
         $(ManifestsInboxIncludeDirectory);
@@ -151,11 +153,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
+    <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptListIterator.h" />
@@ -172,6 +177,7 @@
     <ClInclude Include="JavascriptSimdBool32x4.h" />
     <ClInclude Include="JavascriptSimdBool16x8.h" />
     <ClInclude Include="JavascriptSimdBool8x16.h" />
+    <ClInclude Include="SharedArrayBuffer.h" />
     <ClInclude Include="SimdFloat32x4Lib.h" />
     <ClInclude Include="SimdFloat64x2Lib.h" />
     <ClInclude Include="SimdInt32x4Lib.h" />
@@ -310,6 +316,11 @@
     <None Include="JavascriptLibrary.inl" />
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

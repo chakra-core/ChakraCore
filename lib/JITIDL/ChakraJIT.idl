@@ -1,0 +1,89 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+#include "JITTypes.h"
+
+[
+    uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),
+    pointer_default(unique)
+]
+interface IChakraJIT
+{
+    HRESULT Shutdown([in] handle_t binding);
+
+    HRESULT InitializeThreadContext(
+        [in] handle_t binding,
+        [in] ThreadContextDataIDL * threadData,
+        [out] CHAKRA_PTR * threadContextInfoAddress,
+        [out] CHAKRA_PTR * prereservedRegionAddr);
+
+    HRESULT CleanupProcess(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR processHandle);
+
+    HRESULT CleanupThreadContext(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress);
+
+    HRESULT AddPropertyRecordArray(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] unsigned int count,
+        [in, size_is(count)] PropertyRecordIDL ** propertyRecord);
+
+    HRESULT AddDOMFastPathHelper(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] CHAKRA_PTR funcInfoAddr,
+        [in] int helper);
+
+    HRESULT AddModuleRecordInfo(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] unsigned int moduleId,
+        [in] CHAKRA_PTR localExportSlotsAddr);
+
+    HRESULT SetWellKnownHostTypeId(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] int typeId);
+
+    HRESULT InitializeScriptContext(
+        [in] handle_t binding,
+        [in] ScriptContextDataIDL * scriptContextData,
+        [out] CHAKRA_PTR * scriptContextInfoAddress);
+
+    HRESULT CloseScriptContext(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress);
+
+    HRESULT CleanupScriptContext(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress);
+
+    HRESULT FreeAllocation(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR address);
+
+    HRESULT IsNativeAddr(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR address,
+        [out] boolean * result);
+
+    HRESULT SetIsPRNGSeeded(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] boolean value);
+
+    HRESULT RemoteCodeGen(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] CodeGenWorkItemIDL * workItemData,
+        [out] JITOutputIDL * jitData);
+
+}

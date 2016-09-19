@@ -500,7 +500,7 @@ IndirOpnd::SetScale(byte scale)
 ///
 ///----------------------------------------------------------------------------
 
-inline void *
+inline intptr_t
 MemRefOpnd::GetMemLoc() const
 {
     return m_memLoc;
@@ -513,7 +513,7 @@ MemRefOpnd::GetMemLoc() const
 ///----------------------------------------------------------------------------
 
 inline void
-MemRefOpnd::SetMemLoc(void * pMemLoc)
+MemRefOpnd::SetMemLoc(intptr_t pMemLoc)
 {
     m_memLoc = pMemLoc;
 }

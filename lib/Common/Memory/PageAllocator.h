@@ -10,6 +10,7 @@ struct PageMemoryData;
 #endif
 
 class CodeGenNumberThreadAllocator;
+struct XProcNumberPageSegmentManager;
 
 namespace Memory
 {
@@ -81,6 +82,20 @@ struct SecondaryAllocation
     }
 };
 
+#if defined(_M_X64)
+struct XDataInfo
+{
+    RUNTIME_FUNCTION pdata;
+    FunctionTableHandle functionTable;
+};
+#elif defined(_M_ARM32_OR_ARM64)
+struct XDataInfo
+{
+    ushort pdataCount;
+    ushort xdataSize;
+    FunctionTableHandle functionTable;
+};
+#endif
 
 //
 // For every page segment a page allocator can create a secondary allocator which can have a specified
@@ -197,6 +212,7 @@ class PageSegmentBase : public SegmentBase<TVirtualAlloc>
     typedef SegmentBase<TVirtualAlloc> Base;
 public:
     PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool committed, bool allocated);
+    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, void* address, uint pageCount, uint committedCount);
     // Maximum possible size of a PageSegment; may be smaller.
     static const uint MaxDataPageCount = 256;     // 1 MB
     static const uint MaxGuardPageCount = 16;
@@ -361,6 +377,7 @@ template<typename TVirtualAlloc>
 class PageAllocatorBase
 {
     friend class CodeGenNumberThreadAllocator;
+    friend struct XProcNumberPageSegmentManager;
     // Allowing recycler to report external memory allocation.
     friend class Recycler;
 public:
@@ -412,7 +429,8 @@ public:
         uint maxAllocPageCount = DefaultMaxAllocPageCount,
         uint secondaryAllocPageCount = DefaultSecondaryAllocPageCount,
         bool stopAllocationOnOutOfMemory = false,
-        bool excludeGuardPages = false);
+        bool excludeGuardPages = false,
+        HANDLE processHandle = GetCurrentProcess());
 
     virtual ~PageAllocatorBase();
 
@@ -537,8 +555,9 @@ protected:
 #if DBG_DUMP
     virtual void DumpStats() const;
 #endif
-    virtual PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, 
+    PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, PageAllocatorBase<TVirtualAlloc> * pageAllocator, void* address, uint pageCount, uint committedCount);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList,
         PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
 
     // Zero Pages
@@ -634,6 +653,7 @@ protected:
     bool IsAddressInSegment(__in void* address, const PageSegmentBase<TVirtualAlloc>& segment);
     bool IsAddressInSegment(__in void* address, const SegmentBase<TVirtualAlloc>& segment);
 
+    HANDLE processHandle;
 private:
     uint GetSecondaryAllocPageCount() const { return this->secondaryAllocPageCount; }
     void IntegrateSegments(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, uint segmentCount, size_t pageCount);
@@ -753,7 +773,7 @@ class HeapPageAllocator : public PageAllocatorBase<TVirtualAlloc>
 {
     typedef PageAllocatorBase<TVirtualAlloc> Base;
 public:
-    HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, TVirtualAlloc * virtualAllocator);
+    HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, TVirtualAlloc * virtualAllocator, HANDLE processHandle = nullptr);
 
     BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag);
     bool AllocSecondary(void* segment, ULONG_PTR functionStart, DWORD functionSize, DECLSPEC_GUARD_OVERFLOW ushort pdataCount, DECLSPEC_GUARD_OVERFLOW ushort xdataSize, SecondaryAllocation* allocation);

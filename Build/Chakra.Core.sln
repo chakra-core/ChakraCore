@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24706.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChakraCore", "..\bin\ChakraCore\ChakraCore.vcxproj", "{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -27,7 +27,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChakraCore", "..\bin\Chakra
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{D8216B93-BD6E-4293-8D98-79CEF7CF66BC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Codex", "..\lib\common\Codex\Chakra.Common.Codex.vcxproj", "{1876E800-AD77-48C4-A2F7-E5265F24AC38}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Codex", "..\lib\Common\Codex\Chakra.Common.Codex.vcxproj", "{1876E800-AD77-48C4-A2F7-E5265F24AC38}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.ByteCode", "..\lib\Runtime\ByteCode\Chakra.Runtime.ByteCode.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9110F5}"
 EndProject
@@ -39,31 +39,34 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.Library", ".
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.Types", "..\lib\Runtime\Types\Chakra.Runtime.Types.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9110F6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Common", "..\lib\common\Common\Chakra.Common.Common.vcxproj", "{BB4153FF-AC3E-4734-B562-CC23812DF31B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Common", "..\lib\Common\Common\Chakra.Common.Common.vcxproj", "{BB4153FF-AC3E-4734-B562-CC23812DF31B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Runtime", "Runtime", "{DDF436E7-0A8E-41AA-82B3-902B5D2D0809}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{546172B2-F084-4363-BE35-06010663D319}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Core", "..\lib\common\Core\Chakra.Common.Core.vcxproj", "{CC4153FF-AC3E-4734-B562-CC23812DF31B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Core", "..\lib\Common\Core\Chakra.Common.Core.vcxproj", "{CC4153FF-AC3E-4734-B562-CC23812DF31B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.DataStructures", "..\lib\common\DataStructures\Chakra.Common.DataStructures.vcxproj", "{5643D42A-C38D-4D82-9662-58470B3AC9F7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.DataStructures", "..\lib\Common\DataStructures\Chakra.Common.DataStructures.vcxproj", "{5643D42A-C38D-4D82-9662-58470B3AC9F7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Exceptions", "..\lib\common\Exceptions\Chakra.Common.Exceptions.vcxproj", "{FD8EEC40-4141-448A-BF4B-1589FBE4F60D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Exceptions", "..\lib\Common\Exceptions\Chakra.Common.Exceptions.vcxproj", "{FD8EEC40-4141-448A-BF4B-1589FBE4F60D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Memory", "..\lib\common\Memory\Chakra.Common.Memory.vcxproj", "{BB4153FF-AC3E-4734-B562-FF23812DF31B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Memory", "..\lib\Common\Memory\Chakra.Common.Memory.vcxproj", "{BB4153FF-AC3E-4734-B562-FF23812DF31B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Backend", "..\lib\Backend\Chakra.Backend.vcxproj", "{18CF279F-188D-4655-B03D-74F65388E7D1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Parser", "..\lib\Parser\Chakra.Parser.vcxproj", "{F6FAD160-5A4B-476A-93AC-33E0B3A18C0C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Jsrt", "..\lib\Jsrt\Chakra.Jsrt.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9220F5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719} = {0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Jsrt.Core", "..\lib\Jsrt\Core\Chakra.Jsrt.Core.vcxproj", "{706083F7-6AA4-4558-A153-6352EF9220EE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.Math", "..\lib\Runtime\Math\Chakra.Runtime.Math.vcxproj", "{ABC904AD-9415-46F8-AA23-E33193F81F7C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Util", "..\lib\common\util\Chakra.Common.Util.vcxproj", "{6979EC58-7A28-465C-A694-F3323A1F5401}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Util", "..\lib\Common\Util\Chakra.Common.Util.vcxproj", "{6979EC58-7A28-465C-A694-F3323A1F5401}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{158C8616-750C-4E0E-BD3D-5721D3C555E6}"
 EndProject
@@ -83,6 +86,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GCStress", "..\bin\GCStress\GCStress.vcxproj", "{73CE5C59-E0BA-413D-A73C-3EECE067891B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.PlatformAgnostic", "..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj", "{129AC184-877C-441F-AC49-A692CE700E62}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.JITClient", "..\lib\JITClient\Chakra.JITClient.vcxproj", "{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.JITIDL", "..\lib\JITIDL\Chakra.JITIDL.vcxproj", "{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.JITServer", "..\lib\JITServer\Chakra.JITServer.vcxproj", "{31024620-7B97-4EC7-96E8-E7B296A17DF4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeTests", "..\bin\NativeTests\NativeTests.vcxproj", "{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}"
 EndProject
@@ -513,6 +522,60 @@ Global
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x64.Build.0 = Test|x64
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x86.ActiveCfg = Test|Win32
 		{129AC184-877C-441F-AC49-A692CE700E62}.Test|x86.Build.0 = Test|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|ARM.ActiveCfg = Debug|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|ARM.Build.0 = Debug|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|x64.ActiveCfg = Debug|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|x64.Build.0 = Debug|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|x86.ActiveCfg = Debug|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Debug|x86.Build.0 = Debug|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|ARM.ActiveCfg = Release|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|ARM.Build.0 = Release|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|x64.ActiveCfg = Release|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|x64.Build.0 = Release|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|x86.ActiveCfg = Release|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Release|x86.Build.0 = Release|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|ARM.ActiveCfg = Test|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|ARM.Build.0 = Test|ARM
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|x64.ActiveCfg = Test|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|x64.Build.0 = Test|x64
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|x86.ActiveCfg = Test|Win32
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC}.Test|x86.Build.0 = Test|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|ARM.ActiveCfg = Debug|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|ARM.Build.0 = Debug|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|x64.ActiveCfg = Debug|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|x64.Build.0 = Debug|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|x86.ActiveCfg = Debug|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Debug|x86.Build.0 = Debug|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|ARM.ActiveCfg = Release|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|ARM.Build.0 = Release|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|x64.ActiveCfg = Release|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|x64.Build.0 = Release|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|x86.ActiveCfg = Release|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Release|x86.Build.0 = Release|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|ARM.ActiveCfg = Test|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|ARM.Build.0 = Test|ARM
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|x64.ActiveCfg = Test|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|x64.Build.0 = Test|x64
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|x86.ActiveCfg = Test|Win32
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}.Test|x86.Build.0 = Test|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|ARM.ActiveCfg = Debug|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|ARM.Build.0 = Debug|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|x64.ActiveCfg = Debug|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|x64.Build.0 = Debug|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|x86.ActiveCfg = Debug|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Debug|x86.Build.0 = Debug|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|ARM.ActiveCfg = Release|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|ARM.Build.0 = Release|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|x64.ActiveCfg = Release|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|x64.Build.0 = Release|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|x86.ActiveCfg = Release|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Release|x86.Build.0 = Release|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|ARM.ActiveCfg = Test|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|ARM.Build.0 = Test|ARM
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|x64.ActiveCfg = Test|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|x64.Build.0 = Test|x64
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|x86.ActiveCfg = Test|Win32
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4}.Test|x86.Build.0 = Test|Win32
 		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|ARM.ActiveCfg = Debug|ARM
 		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|ARM.Build.0 = Debug|ARM
 		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B}.Debug|x64.ActiveCfg = Debug|x64
@@ -564,6 +627,9 @@ Global
 		{706083F7-6AA4-4558-A153-6352EF9110EE} = {DDF436E7-0A8E-41AA-82B3-902B5D2D0809}
 		{73CE5C59-E0BA-413D-A73C-3EECE067891B} = {D3BA0BFC-4757-4B73-994F-3556950884A1}
 		{129AC184-877C-441F-AC49-A692CE700E62} = {DDF436E7-0A8E-41AA-82B3-902B5D2D0809}
+		{FFD0FA88-7A39-407E-A92D-D3A06273E1AC} = {D8216B93-BD6E-4293-8D98-79CEF7CF66BC}
+		{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719} = {D8216B93-BD6E-4293-8D98-79CEF7CF66BC}
+		{31024620-7B97-4EC7-96E8-E7B296A17DF4} = {D8216B93-BD6E-4293-8D98-79CEF7CF66BC}
 		{EDEB02E2-F389-4CBF-AE7D-3041A934F86B} = {D3BA0BFC-4757-4B73-994F-3556950884A1}
 	EndGlobalSection
 EndGlobal

@@ -13,6 +13,23 @@ namespace Js
         ByteCodeReader::Create(functionRead, startOffset, /* useOriginalByteCode = */ false);
     }
 
+#if DBG
+    void ByteCodeReader::Create(const byte * byteCodeStart, uint startOffset, uint byteCodeLength)
+#else
+    void ByteCodeReader::Create(const byte * byteCodeStart, uint startOffset)
+#endif
+    {
+        AssertMsg(byteCodeStart != nullptr, "Must have valid byte-code to read");
+
+        m_startLocation = byteCodeStart;
+        m_currentLocation = m_startLocation + startOffset;
+
+#if DBG
+        m_endLocation = m_startLocation + byteCodeLength;
+        Assert(m_currentLocation <= m_endLocation);
+#endif
+    }
+
     void ByteCodeReader::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
     {
         AssertMsg(functionRead != nullptr, "Must provide valid function to execute");
@@ -252,17 +269,17 @@ namespace Js
     template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> > >(const byte*&);
     template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> > >(const byte*&);
 
-    const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots)
+    const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArray(uint offset, FunctionBody * functionBody)
     {
         Js::PropertyIdArray const * propIds = (Js::PropertyIdArray const *)(functionBody->GetAuxiliaryData()->GetBuffer() + offset);
-        Assert(offset + propIds->GetDataSize(extraSlots) <= functionBody->GetAuxiliaryData()->GetLength());
+        Assert(offset + propIds->GetDataSize() <= functionBody->GetAuxiliaryData()->GetLength());
         return propIds;
     }
 
-    const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots)
+    const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody)
     {
         Js::PropertyIdArray const * propIds = (Js::PropertyIdArray const *)(functionBody->GetAuxiliaryDataWithLock()->GetBuffer() + offset);
-        Assert(offset + propIds->GetDataSize(extraSlots) <= functionBody->GetAuxiliaryDataWithLock()->GetLength());
+        Assert(offset + propIds->GetDataSize() <= functionBody->GetAuxiliaryDataWithLock()->GetLength());
         return propIds;
     }
 

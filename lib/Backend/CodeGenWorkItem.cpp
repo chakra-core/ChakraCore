@@ -14,21 +14,24 @@ CodeGenWorkItem::CodeGenWorkItem(
     : JsUtil::Job(manager)
     , codeAddress(NULL)
     , functionBody(functionBody)
-    , type(type)
-    , jitMode(ExecutionMode::Interpreter)
     , entryPointInfo(entryPointInfo)
     , recyclableData(nullptr)
     , isInJitQueue(false)
     , isAllocationCommitted(false)
-    , isJitInDebugMode(isJitInDebugMode)
     , queuedFullJitWorkItem(nullptr)
     , allocation(nullptr)
+    , codeGenResult(0)
 #ifdef IR_VIEWER
     , isRejitIRViewerFunction(false)
     , irViewerOutput(nullptr)
     , irViewerRequestContext(nullptr)
 #endif
 {
+    this->jitData = {0};
+    // work item data
+    this->jitData.type = type;
+    this->jitData.isJitInDebugMode = isJitInDebugMode;
+    ResetJitMode();
 }
 
 CodeGenWorkItem::~CodeGenWorkItem()
@@ -47,7 +50,7 @@ CodeGenWorkItem::~CodeGenWorkItem()
 //
 bool CodeGenWorkItem::ShouldSpeculativelyJit(uint byteCodeSizeGenerated) const
 {
-    if(!functionBody->DoFullJit())
+    if(PHASE_OFF(Js::FullJitPhase, this->functionBody))
     {
         return false;
     }
@@ -197,45 +200,6 @@ void CodeGenWorkItem::OnRemoveFromJitQueue(NativeCodeGenerator* generator)
     }
 }
 
-void CodeGenWorkItem::RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize)
-{
-    BYTE *buffer;
-#if defined(_M_ARM32_OR_ARM64)
-    bool canAllocInPreReservedHeapPageSegment = false;
-#else
-    bool canAllocInPreReservedHeapPageSegment = func->CanAllocInPreReservedHeapPageSegment();
-#endif
-    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
-    Assert(func->GetEmitBufferManager()->IsBufferExecuteReadOnly(allocation));
-
-    Assert(allocation != nullptr);
-    if (buffer == nullptr)
-        Js::Throw::OutOfMemory();
-
-    SetCodeAddress((size_t)buffer);
-    SetCodeSize(bytes);
-    SetPdataCount(pdataCount);
-    SetXdataSize(xdataSize);
-    SetAllocation(allocation);
-}
-
-void CodeGenWorkItem::RecordNativeCode(Func *func, const BYTE* sourceBuffer)
-{
-    if (!func->GetEmitBufferManager()->CommitBuffer(this->GetAllocation(), (BYTE *)GetCodeAddress(), GetCodeSize(), sourceBuffer))
-    {
-        Js::Throw::OutOfMemory();
-    }
-
-    this->isAllocationCommitted = true;
-
-#if DBG_DUMP
-    if (Type() == JsLoopBodyWorkItemType)
-    {
-        func->GetEmitBufferManager()->totalBytesLoopBody += GetCodeSize();
-    }
-#endif
-}
-
 void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 {
     if (!isAllocationCommitted && this->allocation != nullptr && this->allocation->allocation != nullptr)
@@ -245,15 +209,6 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #endif
         codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address);
     }
-}
-
-void CodeGenWorkItem::FinalizeNativeCode(Func *func)
-{
-    NativeCodeData * data = func->GetNativeCodeDataAllocator()->Finalize();
-    NativeCodeData * transferData = func->GetTransferDataAllocator()->Finalize();
-    CodeGenNumberChunk * numberChunks = func->GetNumberAllocator()->Finalize();
-    this->functionBody->RecordNativeBaseAddress((BYTE *)GetCodeAddress(), GetCodeSize(), data, transferData, numberChunks, GetEntryPoint(), GetLoopNumber());
-    func->GetEmitBufferManager()->CompletePreviousAllocation(this->GetAllocation());
 }
 
 QueuedFullJitWorkItem *CodeGenWorkItem::GetQueuedFullJitWorkItem() const

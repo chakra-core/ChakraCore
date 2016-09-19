@@ -439,7 +439,7 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
             {
                 if (branchInstr->HasAnyImplicitCalls())
                 {
-                    Assert(!branchInstr->m_func->GetJnFunction()->GetIsAsmjsMode());
+                    Assert(!branchInstr->m_func->GetJITFunctionBody()->IsAsmJsMode());
                     // if (x > y) might trigger a call to valueof() or something for x and y.
                     // We can't just delete them.
                     Js::OpCode newOpcode;

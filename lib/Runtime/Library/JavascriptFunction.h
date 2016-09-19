@@ -231,7 +231,7 @@ namespace Js
             uint rexValue;
             RexByteValue() :isR(0), isX(0), isW(0), isB(0), rexValue(0){}
         };
-        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody);
+        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo);
     };
 #endif
 

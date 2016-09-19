@@ -392,14 +392,14 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             )
     {
             return FunctionBody::NewFromRecycler(scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo,
-            scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, boundPropertyRecords, attributes
+            scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, boundPropertyRecords, attributes, flags
 #ifdef PERF_COUNTERS
             , isDeserializedFunction
 #endif
@@ -407,23 +407,23 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             )
     {
 #ifdef PERF_COUNTERS
-            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, isDeserializedFunction);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, flags, isDeserializedFunction);
 #else
-            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, flags);
 #endif
     }
 
 
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
-        Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
         , bool isDeserializedFunction
 #endif
@@ -454,7 +454,7 @@ namespace Js
         loopInterpreterLimit(CONFIG_FLAG(LoopInterpretCount)),
         savedPolymorphicCacheState(0),
         debuggerScopeIndex(0),
-        flags(Flags_HasNoExplicitReturnValue),
+        flags(flags),
         m_hasFinally(false),
 #if ENABLE_PROFILE_INFO
         dynamicProfileInfo(nullptr),
@@ -978,16 +978,7 @@ namespace Js
         this->GetBoundPropertyRecords()->Item(pid, propRecord);
 
         return pid;
-    }
-
-#if ENABLE_NATIVE_CODEGEN
-    void
-    FunctionBody::RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t size, NativeCodeData * data, NativeCodeData * transferData,
-        CodeGenNumberChunk * numberChunks, EntryPointInfo* entryPoint, uint loopNum)
-    {
-        entryPoint->SetCodeGenRecorded(reinterpret_cast<Js::JavascriptMethod>(baseAddress), size, data, transferData, numberChunks);
-    }
-#endif
+    }  
 
     SmallSpanSequence::SmallSpanSequence()
         : pStatementBuffer(nullptr),
@@ -1717,7 +1708,8 @@ namespace Js
                 this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
                 this->functionId, /* function id */
                 propertyRecordList,
-                (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
+                (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse)),
+                Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
                 , false /* is function from deferred deserialized proxy */
 #endif
@@ -1983,7 +1975,8 @@ namespace Js
             this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
             this->functionId, /* function id */
             propertyRecordList,
-            (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
+            (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse)),
+            Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
             , false /* is function from deferred deserialized proxy */
 #endif
@@ -2217,7 +2210,9 @@ namespace Js
 
     // SourceInfo methods
 
-    /* static */ FunctionBody::StatementMap * FunctionBody::GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex)
+    /* static */
+    template <typename TStatementMapList>
+    FunctionBody::StatementMap * FunctionBody::GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex)
     {
         AssertMsg(statementMapList != nullptr, "Must have valid statementMapList to execute");
 
@@ -2232,6 +2227,11 @@ namespace Js
         }
         return map;
     }
+    // explicitly instantiate template
+    template FunctionBody::StatementMap *
+    FunctionBody::GetNextNonSubexpressionStatementMap<FunctionBody::ArenaStatementMapList>(FunctionBody::ArenaStatementMapList *statementMapList, int & startingAtIndex);
+    template FunctionBody::StatementMap *
+    FunctionBody::GetNextNonSubexpressionStatementMap<FunctionBody::StatementMapList>(FunctionBody::StatementMapList *statementMapList, int & startingAtIndex);
 
     /* static */ FunctionBody::StatementMap * FunctionBody::GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex)
     {
@@ -5606,10 +5606,10 @@ namespace Js
     }
 #endif
 
-    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count)
+    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count, byte extraSlots)
     {
         //TODO: saravind: Should the allocation be a Leaf Allocation?
-        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count);
+        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count, extraSlots);
         SetFormalsPropIdArray(formalsPropIdArray);
         return formalsPropIdArray;
     }
@@ -5778,7 +5778,7 @@ namespace Js
 
     const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
     {
-        Assert(inlineCacheIndex < GetInlineCacheCount());
+        Assert(inlineCacheIndex < this->GetInlineCacheCount());
 
         FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeDataWithLock();
         return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
@@ -5957,7 +5957,7 @@ namespace Js
                 break;
 
             case ExecutionMode::FullJit:
-                Assert(DoFullJit());
+                Assert(!PHASE_OFF(FullJitPhase, this));
                 break;
 
             default:
@@ -6006,7 +6006,7 @@ namespace Js
                 return GetExecutionMode();
 
             case ExecutionMode::SimpleJit:
-                if(IsNewSimpleJit())
+                if(CONFIG_FLAG(NewSimpleJit))
                 {
                     return GetDefaultInterpreterExecutionMode();
                 }
@@ -6141,7 +6141,7 @@ namespace Js
             }
 
             TransitionToFullJit:
-                if(DoFullJit())
+                if(!PHASE_OFF(FullJitPhase, this))
                 {
                     SetExecutionMode(ExecutionMode::FullJit);
                     return true;
@@ -6300,7 +6300,7 @@ namespace Js
             scale += autoProfilingInterpreter0Limit + autoProfilingInterpreter1Limit;
             autoProfilingInterpreter0Limit = 0;
             autoProfilingInterpreter1Limit = 0;
-            if(!IsNewSimpleJit())
+            if(!CONFIG_FLAG(NewSimpleJit))
             {
                 simpleJitLimit += profilingInterpreter0Limit;
                 profilingInterpreter0Limit = 0;
@@ -6308,7 +6308,7 @@ namespace Js
         }
         if(!DoSimpleJit())
         {
-            if(!IsNewSimpleJit() && doInterpreterProfile)
+            if(!CONFIG_FLAG(NewSimpleJit) && doInterpreterProfile)
             {
                 // The old simple JIT is off, but since it does profiling, it will be replaced with the profiling interpreter
                 profilingInterpreter1Limit += simpleJitLimit;
@@ -6319,7 +6319,7 @@ namespace Js
             }
             simpleJitLimit = 0;
         }
-        if(!DoFullJit())
+        if(PHASE_OFF(FullJitPhase, this))
         {
             scale += profilingInterpreter1Limit;
             profilingInterpreter1Limit = 0;
@@ -6434,7 +6434,7 @@ namespace Js
         const bool doSimpleJit = DoSimpleJit();
         const bool doInterpreterProfile = DoInterpreterProfile();
         const bool fullyScaled =
-            (IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
+            (CONFIG_FLAG(NewSimpleJit) && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
             (
                 doInterpreterProfile
                     ?   DoInterpreterAutoProfile() &&
@@ -6442,7 +6442,7 @@ namespace Js
                     :   ScaleLimit(interpreterLimit)
             ) ||
             (
-                IsNewSimpleJit()
+                CONFIG_FLAG(NewSimpleJit)
                     ?   doInterpreterProfile &&
                         (ScaleLimit(profilingInterpreter1Limit) || ScaleLimit(profilingInterpreter0Limit))
                     :   (doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit)) ||
@@ -6462,7 +6462,7 @@ namespace Js
                 // Simple JIT code has not yet been generated, and was either requested to be skipped, or the limit was scaled
                 // down too much. Skip simple JIT by moving any remaining iterations to an equivalent interpreter execution
                 // mode.
-                (IsNewSimpleJit() ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
+                (CONFIG_FLAG(NewSimpleJit) ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
                 simpleJitLimit = 0;
                 TryTransitionToNextInterpreterExecutionMode();
             }
@@ -6528,7 +6528,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
         if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            (!IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf()) ||
+            (!CONFIG_FLAG(NewSimpleJit) && &limit == simpleJitLimit.AddressOf()) ||
             &limit == profilingInterpreter1Limit.AddressOf())
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
@@ -6613,7 +6613,7 @@ namespace Js
             }
 
             case ExecutionMode::SimpleJit:
-                if(!IsNewSimpleJit())
+                if(!CONFIG_FLAG(NewSimpleJit))
                 {
                     const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
                     profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
@@ -6699,19 +6699,15 @@ namespace Js
         Output::Flush();
     }
 
-    bool FunctionBody::IsNewSimpleJit()
-    {
-        return CONFIG_FLAG(NewSimpleJit);
-    }
-
     bool FunctionBody::DoSimpleJit() const
     {
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
             !GetScriptContext()->GetConfig()->IsNoNative() &&
-            !this->IsInDebugMode() &&
+            !GetScriptContext()->IsScriptContextInDebugMode() &&
             DoInterpreterProfile() &&
-            (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
+#pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
+            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
             !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
@@ -6722,7 +6718,8 @@ namespace Js
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
-            (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
+#pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
+            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
             !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
@@ -6730,7 +6727,7 @@ namespace Js
     {
         Assert(DoSimpleJitWithLock());
 
-        return !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, this) && !IsNewSimpleJit();
+        return !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, this) && !CONFIG_FLAG(NewSimpleJit);
     }
 
     bool FunctionBody::DoInterpreterProfile() const
@@ -6803,7 +6800,7 @@ namespace Js
             TraceExecutionMode("WasCalledFromLoop (before)");
             if(fullJitThreshold > 1)
             {
-                SetFullJitThreshold(fullJitThreshold / 2, !IsNewSimpleJit());
+                SetFullJitThreshold(fullJitThreshold / 2, !CONFIG_FLAG(NewSimpleJit));
             }
         }
 
@@ -6858,7 +6855,7 @@ namespace Js
     {
         return
             static_cast<uint>(
-                IsNewSimpleJit()
+                CONFIG_FLAG(NewSimpleJit)
                     ? DEFAULT_CONFIG_MinProfileIterations
                     : DEFAULT_CONFIG_MinProfileIterations_OldSimpleJit);
     }
@@ -6933,15 +6930,13 @@ namespace Js
     }
 
     bool FunctionBody::DoObjectHeaderInliningForObjectLiteral(
-        const PropertyIdArray *const propIds,
-        ScriptContext *const scriptContext)
+        const PropertyIdArray *const propIds)
     {
         Assert(propIds);
-        Assert(scriptContext);
 
         return
             DoObjectHeaderInliningForObjectLiteral(propIds->count) &&
-            PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(propIds, scriptContext);
+            PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(propIds);
     }
 
     bool FunctionBody::DoObjectHeaderInliningForEmptyObjects()
@@ -7688,9 +7683,15 @@ namespace Js
         return m_isEnterBlock;
     }
 
+    EntryPointPolymorphicInlineCacheInfo::EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody) :
+        selfInfo(functionBody),
+        inlineeInfo(functionBody->GetRecycler())
+    {
+    }
+
     PolymorphicInlineCacheInfo * EntryPointPolymorphicInlineCacheInfo::GetInlineeInfo(FunctionBody * inlineeFunctionBody)
     {
-        SListBase<PolymorphicInlineCacheInfo*>::Iterator iter(&inlineeInfo);
+        SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
         while (iter.Next())
         {
             PolymorphicInlineCacheInfo * info = iter.Data();
@@ -7709,7 +7710,7 @@ namespace Js
         if (!info)
         {
             info = RecyclerNew(recycler, PolymorphicInlineCacheInfo, inlineeFunctionBody);
-            inlineeInfo.Prepend(recycler, info);
+            inlineeInfo.Prepend(info);
         }
         return info;
     }
@@ -7786,44 +7787,58 @@ namespace Js
     void EntryPointInfo::EnsureIsReadyToCall()
     {
         ProcessJitTransferData();
+        
+        if (this->numberPageSegments)
+        {
+            auto numberChunks = this->GetScriptContext()->GetThreadContext()
+                ->GetXProcNumberPageSegmentManager()->RegisterSegments(this->numberPageSegments);
+            this->SetNumberChunks(numberChunks);
+            this->numberPageSegments = nullptr;
+        }
     }
 
     void EntryPointInfo::ProcessJitTransferData()
     {
         Assert(!IsCleanedUp());
-        if (GetJitTransferData() != nullptr && GetJitTransferData()->GetIsReady())
+
+        auto jitTransferData = GetJitTransferData();
+        if (jitTransferData == nullptr)
         {
-            class AutoCleanup
+            return;
+        }
+
+        class AutoCleanup
+        {
+            EntryPointInfo *entryPointInfo;
+        public:
+            AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
             {
-                EntryPointInfo *entryPointInfo;
-            public:
-                AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
-                {
-                }
+            }
 
-                void Done()
+            void Done()
+            {
+                entryPointInfo = nullptr;
+            }
+            ~AutoCleanup()
+            {
+                if (entryPointInfo)
                 {
-                    entryPointInfo = nullptr;
+                    entryPointInfo->OnNativeCodeInstallFailure();
                 }
-                ~AutoCleanup()
-                {
-                    if (entryPointInfo)
-                    {
-                        entryPointInfo->OnNativeCodeInstallFailure();
-                    }
-                }
-            } autoCleanup(this);
+            }
+        } autoCleanup(this);
 
-            ScriptContext* scriptContext = GetScriptContext();
 
-            // If we start transferring more data from the jit thread, corresponding fields on the
-            // entryPointInfo should be rolled back in EntryPointInfo::OnNativeCodeInstallFailure
+        ScriptContext* scriptContext = GetScriptContext();
+
+        if (jitTransferData->GetIsReady())
+        {
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
             FreeJitTransferData();
-
-            autoCleanup.Done();
         }
+
+        autoCleanup.Done();
     }
 
     EntryPointInfo::JitTransferData* EntryPointInfo::EnsureJitTransferData(Recycler* recycler)
@@ -7887,7 +7902,11 @@ namespace Js
             void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
             size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
             this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
-            js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+            //js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+            for (size_t i = 0; i < jitPinnedTypeRefCount; i++)
+            {
+                this->runtimeTypeRefs[i] = jitPinnedTypeRefs[i];
+            }
             this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
         }
     }
@@ -7919,8 +7938,11 @@ namespace Js
             }
         }
 
+
+        // in-proc JIT
         if (this->jitTransferData->equivalentTypeGuardCount > 0)
         {
+            Assert(jitTransferData->equivalentTypeGuardOffsets == nullptr);
             Assert(this->jitTransferData->equivalentTypeGuards != nullptr);
 
             Recycler* recycler = scriptContext->GetRecycler();
@@ -7954,6 +7976,98 @@ namespace Js
             }
         }
 
+        if (jitTransferData->equivalentTypeGuardOffsets)
+        {
+            Recycler* recycler = scriptContext->GetRecycler();
+
+            // InstallGuards
+            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
+
+            // Create an array of equivalent type caches on the entry point info to ensure they are kept
+            // alive for the lifetime of the entry point.
+            this->equivalentTypeCacheCount = guardCount;
+
+            // No need to zero-initialize, since we will populate all data slots.
+            // We used to let the recycler scan the types in the cache, but we no longer do. See
+            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
+            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
+
+            this->RegisterEquivalentTypeCaches();
+            EquivalentTypeCache* cache = this->equivalentTypeCaches;
+
+            for (int i = 0; i < guardCount; i++)
+            {
+                auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->guards[i].cache;
+                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->guards[i].offset;
+                JitEquivalentTypeGuard* guard = (JitEquivalentTypeGuard*)(this->GetNativeDataBuffer() + guardOffset);
+                cache[i].guard = guard;
+                cache[i].hasFixedValue = cacheIDL.hasFixedValue != 0;
+                cache[i].isLoadedFromProto = cacheIDL.isLoadedFromProto != 0;
+                cache[i].nextEvictionVictim = cacheIDL.nextEvictionVictim;
+                cache[i].record.propertyCount = cacheIDL.record.propertyCount;
+                cache[i].record.properties = (EquivalentPropertyEntry*)(this->GetNativeDataBuffer() + cacheIDL.record.propertyOffset);
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
+                {
+                    cache[i].types[j] = (Js::Type*)cacheIDL.types[j];
+                }
+                guard->SetCache(&cache[i]);
+            }
+
+            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+        }
+
+        // OOP JIT
+        if (jitTransferData->typeGuardTransferData.entries != nullptr)
+        {
+            this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            auto next = &jitTransferData->typeGuardTransferData.entries;
+            while (*next)
+            {
+                Js::PropertyId propertyId = (*next)->propId;
+                Js::PropertyGuard* sharedPropertyGuard;
+
+                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
+                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
+                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
+                // guard for some property during work item creation, we won't find out about it here.
+                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
+                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
+                if (isNeeded)
+                {
+                    for (unsigned int i = 0; i < (*next)->guardsCount; i++)
+                    {
+                        Js::JitIndexedPropertyGuard* guard = (Js::JitIndexedPropertyGuard*)(this->nativeDataBuffer + (*next)->guardOffsets[i]);
+                        int guardIndex = guard->GetIndex();
+                        Assert(guardIndex >= 0 && guardIndex < this->propertyGuardCount);
+                        // We use the shared guard here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                        // If they did, we proactively invalidate the guard here, so that we bail out if we try to call this code.
+                        if (isValid)
+                        {
+                            auto propertyGuardWeakRef = this->propertyGuardWeakRefs[guardIndex];
+                            if (propertyGuardWeakRef == nullptr)
+                            {
+                                propertyGuardWeakRef = Js::FakePropertyGuardWeakReference::New(scriptContext->GetRecycler(), guard);
+                                this->propertyGuardWeakRefs[guardIndex] = propertyGuardWeakRef;
+                            }
+                            Assert(propertyGuardWeakRef->Get() == guard);
+                            threadContext->RegisterUniquePropertyGuard(propertyId, propertyGuardWeakRef);
+                        }
+                        else
+                        {
+                            guard->Invalidate();
+                        }
+                    }
+                }
+
+                auto current = (*next);
+                *next = (*next)->next;
+                midl_user_free(current);
+            }
+        }
+
+        // in-proc JIT
         // The propertyGuardsByPropertyId structure is temporary and serves only to register the type guards for the correct
         // properties.  If we've done code gen for this EntryPointInfo, typePropertyGuardsByPropertyId will have been used and nulled out.
         if (this->jitTransferData->propertyGuardsByPropertyId != nullptr)
@@ -8007,10 +8121,52 @@ namespace Js
             }
         }
 
+
         // The ctorCacheGuardsByPropertyId structure is temporary and serves only to register the constructor cache guards for the correct
         // properties.  If we've done code gen for this EntryPointInfo, ctorCacheGuardsByPropertyId will have been used and nulled out.
         // Unlike type property guards, constructor cache guards use the live constructor caches associated with function objects. These are
         // recycler allocated and are kept alive by the constructorCaches field, where they were inserted during work item creation.
+
+        // OOP JIT
+        if (jitTransferData->ctorCacheTransferData.entries != nullptr)
+        {
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+            CtorCacheTransferEntryIDL ** entries = this->jitTransferData->ctorCacheTransferData.entries;
+            for (uint i = 0; i < this->jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
+            {
+                Js::PropertyId propertyId = entries[i]->propId;
+                Js::PropertyGuard* sharedPropertyGuard;
+
+                // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
+                // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
+                // because it exists on the instance.  Unfortunately, this means that if we have a bug and fail to create a shared
+                // guard for some property during work item creation, we won't find out about it here.
+                bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
+                bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
+
+                if (isNeeded)
+                {
+                    for (uint j = 0; j < entries[i]->cacheCount; ++j)
+                    {
+                            Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
+                            // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                            // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
+                            if (isValid)
+                            {
+                                threadContext->RegisterConstructorCache(propertyId, cache);
+                            }
+                            else
+                            {
+                                cache->InvalidateAsGuard();
+                            }
+                    }
+                }
+                midl_user_free(entries[i]);
+            }
+            midl_user_free(entries);
+        }
+
         if (this->jitTransferData->ctorCacheGuardsByPropertyId != nullptr)
         {
             ThreadContext* threadContext = scriptContext->GetThreadContext();
@@ -8028,11 +8184,11 @@ namespace Js
                 bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
                 bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
                 int entryCacheIndex = 0;
-                while (entry->caches[entryCacheIndex] != nullptr)
+                while (entry->caches[entryCacheIndex] != 0)
                 {
                     if (isNeeded)
                     {
-                        Js::ConstructorCache* cache = entry->caches[entryCacheIndex];
+                        Js::ConstructorCache* cache = (Js::ConstructorCache*)(entry->caches[entryCacheIndex]);
                         // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
                         // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
                         if (isValid)
@@ -8058,6 +8214,7 @@ namespace Js
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
+        AutoCriticalSection autoCs(FunctionProxy::GetLock());
         if (this->sharedPropertyGuards == nullptr)
         {
             Recycler* recycler = scriptContext->GetRecycler();
@@ -8075,9 +8232,25 @@ namespace Js
         return guard;
     }
 
-    bool EntryPointInfo::HasSharedPropertyGuard(Js::PropertyId propertyId)
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const
     {
-        return this->sharedPropertyGuards != nullptr ? this->sharedPropertyGuards->ContainsKey(propertyId) : false;
+        AutoCriticalSection autoCs(FunctionProxy::GetLock());
+        if (sharedPropertyGuards != nullptr)
+        {
+            auto guards = AnewArray(alloc, Js::PropertyId, sharedPropertyGuards->Count());
+            count = sharedPropertyGuards->Count();
+            auto sharedGuardIter = sharedPropertyGuards->GetIterator();
+            uint i = 0;
+
+            while (sharedGuardIter.IsValid())
+            {
+                guards[i] = sharedGuardIter.CurrentKey();
+                sharedGuardIter.MoveNext();
+                ++i;
+            }
+            return guards;
+        }
+        return nullptr;
     }
 
     bool EntryPointInfo::TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard)
@@ -8136,35 +8309,85 @@ namespace Js
             this->inlineeFrameMap->Copy(tempInlineeFrameMap);
         }
     }
+    void EntryPointInfo::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+    {
+        this->inlineeFrameOffsetArrayOffset = offsetsArrayOffset;
+        this->inlineeFrameOffsetArrayCount = offsetsArrayCount;
+    }
 
     InlineeFrameRecord* EntryPointInfo::FindInlineeFrame(void* returnAddress)
     {
-        if (this->inlineeFrameMap == nullptr)
+        if (this->nativeDataBuffer == nullptr) // in-proc JIT
         {
-            return nullptr;
-        }
-
-        size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
-        int index = this->inlineeFrameMap->BinarySearch([=](const NativeOffsetInlineeFramePair& pair, int index) {
-            if (pair.offset >= offset)
+            if (this->inlineeFrameMap == nullptr)
             {
-                if (index == 0 || index > 0 && this->inlineeFrameMap->Item(index - 1).offset < offset)
+                return nullptr;
+            }
+
+            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+            int index = this->inlineeFrameMap->BinarySearch([=](const NativeOffsetInlineeFramePair& pair, int index) {
+                if (pair.offset >= offset)
                 {
-                    return 0;
+                    if (index == 0 || index > 0 && this->inlineeFrameMap->Item(index - 1).offset < offset)
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
+                }
+                return -1;
+            });
+
+            if (index == -1)
+            {
+                return nullptr;
+            }
+            return this->inlineeFrameMap->Item(index).record;
+        }
+        else // OOP JIT
+        {
+            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
+            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+
+            if (this->inlineeFrameOffsetArrayCount == 0)
+            {
+                return nullptr;
+            }
+
+            uint fromIndex = 0;
+            uint toIndex = this->inlineeFrameOffsetArrayCount - 1;
+            while (fromIndex <= toIndex)
+            {
+                uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
+                auto item = offsets[midIndex];
+
+                if (item.offset >= offset)
+                {
+                    if (midIndex == 0 || midIndex > 0 && offsets[midIndex - 1].offset < offset)
+                    {
+                        if (offsets[midIndex].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        {
+                            return nullptr;
+                        }
+                        else
+                        {
+                            return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[midIndex].recordOffset);
+                        }
+                    }
+                    else
+                    {
+                        toIndex = midIndex - 1;
+                    }
                 }
                 else
                 {
-                    return 1;
+                    fromIndex = midIndex + 1;
                 }
             }
-            return -1;
-        });
-
-        if (index == -1)
-        {
             return nullptr;
         }
-        return this->inlineeFrameMap->Item(index).record;
     }
 
     void EntryPointInfo::DoLazyBailout(BYTE** addressOfInstructionPointer, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord)
@@ -8227,10 +8450,17 @@ namespace Js
             // All structures below are heap allocated and need to be freed explicitly.
             if (jitTransferData->runtimeTypeRefs != nullptr)
             {
-                HeapDeleteArray(jitTransferData->runtimeTypeRefCount, jitTransferData->runtimeTypeRefs);
+                if (jitTransferData->runtimeTypeRefs->isOOPJIT)
+                {
+                    midl_user_free(jitTransferData->runtimeTypeRefs);
+                }
+                else
+                {
+                    HeapDeletePlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*jitTransferData->runtimeTypeRefs->count - sizeof(PinnedTypeRefsIDL), 
+                        jitTransferData->runtimeTypeRefs);
+                }
                 jitTransferData->runtimeTypeRefs = nullptr;
             }
-            jitTransferData->runtimeTypeRefCount = 0;
 
             if (jitTransferData->propertyGuardsByPropertyId != nullptr)
             {
@@ -8254,10 +8484,10 @@ namespace Js
             }
             jitTransferData->equivalentTypeGuardCount = 0;
 
-            if (jitTransferData->data != nullptr)
+            if (jitTransferData->jitTransferRawData != nullptr)
             {
-                HeapDelete(jitTransferData->data);
-                jitTransferData->data = nullptr;
+                HeapDelete(jitTransferData->jitTransferRawData);
+                jitTransferData->jitTransferRawData = nullptr;
             }
 
             jitTransferData = nullptr;
@@ -8470,6 +8700,15 @@ namespace Js
             {
                 this->constructorCaches->Clear();
             }
+
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+            if (this->xdataInfo != nullptr)
+            {
+                XDataAllocator::Unregister(this->xdataInfo);
+                HeapDelete(this->xdataInfo);
+                this->xdataInfo = nullptr;
+            }
+#endif
 #endif
 
             // This is how we set the CleanedUp state
@@ -8483,9 +8722,15 @@ namespace Js
             this->library = nullptr;
 
 #if ENABLE_NATIVE_CODEGEN
-            DeleteNativeCodeData(this->data);
-            this->data = nullptr;
+            DeleteNativeCodeData(this->inProcJITNaticeCodedata);
+            this->inProcJITNaticeCodedata = nullptr;
             this->numberChunks = nullptr;
+
+            if (this->nativeDataBuffer)
+            {
+                NativeDataBuffer* buffer = (NativeDataBuffer*)(this->nativeDataBuffer - offsetof(NativeDataBuffer, data));
+                midl_user_free(buffer);
+            }
 #endif
 
             this->state = CleanedUp;
@@ -8535,10 +8780,10 @@ namespace Js
         this->sharedPropertyGuards = nullptr;
         FreePropertyGuards();
         FreeJitTransferData();
-        if (this->data != nullptr)
+        if (this->inProcJITNaticeCodedata != nullptr)
         {
-            DeleteNativeCodeData(this->data);
-            this->data = nullptr;
+            DeleteNativeCodeData(this->inProcJITNaticeCodedata);
+            this->inProcJITNaticeCodedata = nullptr;
         }
 #endif
         // Set the state to NotScheduled only if the call to Reset is not because of JIT cap being reached
