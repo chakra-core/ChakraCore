@@ -265,6 +265,7 @@ namespace Js
         void Br(ByteCodeLabel labelID);
         void Br(OpCode op, ByteCodeLabel labelID);
         void BrReg1(OpCode op, ByteCodeLabel labelID, RegSlot R1);
+        void BrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C1);
         void BrS(OpCode op, ByteCodeLabel labelID, byte val);
         void BrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
         void BrProperty(OpCode op, ByteCodeLabel labelID, RegSlot R1, PropertyIdIndexType propertyIdIndex);
@@ -312,6 +313,7 @@ namespace Js
         template <typename SizePolicy> bool TryWriteArg(OpCode op, ArgSlot arg, RegSlot reg);
         template <typename SizePolicy> bool TryWriteArgNoSrc(OpCode op, ArgSlot arg);
         template <typename SizePolicy> bool TryWriteBrReg1(OpCode op, ByteCodeLabel labelID, RegSlot R1);
+        template <typename SizePolicy> bool TryWriteBrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C2);
         template <typename SizePolicy> bool TryWriteBrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteCallI(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount);
         template <typename SizePolicy> bool TryWriteCallIFlags(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, CallFlags callFlags);

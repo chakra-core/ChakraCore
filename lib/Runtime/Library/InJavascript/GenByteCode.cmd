@@ -44,11 +44,12 @@ if not [%1]==[] (
 
 :: This script will expect %_binary% to be built for x86_debug and x64_debug
 
-if "%_BinLocation%"=="" (
-    set _BinLocation=%~dp0..\..\..\..\Build\VcBuild%_suffix%\bin
-) else if "%OutBaseDir%" NEQ "" (
+if "%OutBaseDir%" NEQ "" (
     set _BinLocation=%OutBaseDir%\Chakra.Core%_suffix%\bin
 )
+if "%_BinLocation%"=="" (
+    set _BinLocation=%~dp0..\..\..\..\Build\VcBuild%_suffix%\bin
+) 
 
 if not exist %_BinLocation%\x86_debug\%_binary% (
     echo Error: %_BinLocation%\x86_debug\%_binary% not found, please build sources. Exiting ...

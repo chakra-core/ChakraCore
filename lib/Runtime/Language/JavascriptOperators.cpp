@@ -5223,42 +5223,18 @@ CommonNumber:
         return aEnumerator->MoveAndGetNext(id);
     }
 
-    ForInObjectEnumerator * JavascriptOperators::OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext)
+    void JavascriptOperators::OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, ForInCache * forInCache)
     {
         RecyclableObject* enumerableObject;
-        bool isCrossSite;
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(enumerable);
 #endif
-        if (GetPropertyObject(enumerable, scriptContext, &enumerableObject))
-        {
-            isCrossSite = enumerableObject->GetScriptContext() != scriptContext;
-        }
-        else
+        if (!GetPropertyObject(enumerable, scriptContext, &enumerableObject))
         {
             enumerableObject = nullptr;
-            isCrossSite = false;
         }
-        if (!isCrossSite)
-        {
-            ForInObjectEnumerator * enumerator  = scriptContext->GetLibrary()->GetAndClearForInEnumeratorCache();
-            if(enumerator != NULL)
-            {
-                enumerator->Initialize(enumerableObject, scriptContext);
-                return enumerator;
-            }
-        }
-        return RecyclerNew(scriptContext->GetRecycler(), ForInObjectEnumerator, enumerableObject, scriptContext);
-    }
 
-    void JavascriptOperators::OP_ReleaseForInEnumerator(ForInObjectEnumerator * enumerator, ScriptContext* scriptContext)
-    {
-        // Debugger SetNextStatement may skip OP_GetForInEnumerator and result in NULL ForInObjectEnumerator here. See Win8 391556
-        if (enumerator && enumerator->CanBeReused())
-        {
-            enumerator->Clear();
-            scriptContext->GetLibrary()->SetForInEnumeratorCache(enumerator);
-        }
+        enumerator->Initialize(enumerableObject, scriptContext, false, forInCache);
     }
 
     Js::Var JavascriptOperators::OP_CmEq_A(Var a, Var b, ScriptContext* scriptContext)

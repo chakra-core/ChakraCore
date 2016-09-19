@@ -9,6 +9,8 @@
 #include "Base/VTuneChakraProfile.h"
 #endif
 
+#include "Library/ForInObjectEnumerator.h"
+
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
@@ -140,6 +142,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
+    , m_forInLoopBaseDepth(0)
+    , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
 {
@@ -253,6 +257,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     }
 
     canHoistConstantAddressLoad = !PHASE_OFF(Js::HoistConstAddrPhase, this);
+
+    m_forInLoopMaxDepth = this->GetJITFunctionBody()->GetForInLoopDepth();
 }
 
 bool
@@ -1835,6 +1841,22 @@ Func::DumpFullFunctionName()
     Output::Print(_u("Function %s (%s)"), GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
 }
 #endif
+
+void
+Func::UpdateForInLoopMaxDepth(uint forInLoopMaxDepth)
+{
+    Assert(this->IsTopFunc());
+    this->m_forInLoopMaxDepth = max(this->m_forInLoopMaxDepth, forInLoopMaxDepth);
+}
+
+int
+Func::GetForInEnumeratorArrayOffset() const
+{
+    Func const* topFunc = this->GetTopFunc();
+    Assert(this->m_forInLoopBaseDepth + this->GetJITFunctionBody()->GetForInLoopDepth() <= topFunc->m_forInLoopMaxDepth);
+    return topFunc->m_forInEnumeratorArrayOffset
+        + this->m_forInLoopBaseDepth * sizeof(Js::ForInObjectEnumerator);
+}
 
 #if DBG_DUMP
 ///----------------------------------------------------------------------------

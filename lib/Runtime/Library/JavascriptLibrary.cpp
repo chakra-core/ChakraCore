@@ -342,7 +342,6 @@ namespace Js
         functionPrototype = RecyclerNew(recycler, JavascriptFunction, tempDynamicType, &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
         promisePrototype = nullptr;
-        javascriptEnumeratorIteratorPrototype = nullptr;
         generatorFunctionPrototype = nullptr;
         generatorPrototype = nullptr;
         asyncFunctionPrototype = nullptr;
@@ -389,13 +388,6 @@ namespace Js
             promisePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-        }
-
-        if(scriptContext->GetConfig()->IsES6ProxyEnabled())
-        {
-            javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
         if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
@@ -504,7 +496,6 @@ namespace Js
         proxyType   = nullptr;
         promiseType = nullptr;
         moduleNamespaceType = nullptr;
-        javascriptEnumeratorIteratorType = nullptr;
 
         // Initialize boolean types
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
@@ -530,9 +521,6 @@ namespace Js
             // We can use GetType()->GetPrototype() in [[get]], [[set]], and [[hasProperty]] to force the prototype walk to stop at prototype so we don't need to
             // continue prototype chain walk after proxy.
             proxyType = DynamicType::New(scriptContext, TypeIds_Proxy, GetNull(), nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
-
-            javascriptEnumeratorIteratorType = DynamicType::New(scriptContext, TypeIds_JavascriptEnumeratorIterator, javascriptEnumeratorIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         }
 
         if (config->IsES6PromiseEnabled())
@@ -4398,22 +4386,6 @@ namespace Js
         }
     }
 
-    void JavascriptLibrary::InitializeJavascriptEnumeratorIteratorPrototype(DynamicObject* javascriptEnumeratorIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
-    {
-        typeHandler->Convert(javascriptEnumeratorIteratorPrototype, mode, 2);
-        // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterEnumeratorIterator
-        // so that the update is in sync with profiler
-
-        JavascriptLibrary* library = javascriptEnumeratorIteratorPrototype->GetLibrary();
-        ScriptContext* scriptContext = library->GetScriptContext();
-        library->AddFunctionToLibraryObject(javascriptEnumeratorIteratorPrototype, PropertyIds::next, &JavascriptEnumeratorIterator::EntryInfo::Next, 0);
-
-        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-        {
-            library->AddMember(javascriptEnumeratorIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Enumerator Iterator")), PropertyConfigurable);
-        }
-    }
-
     RuntimeFunction* JavascriptLibrary::CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype)
     {
         Assert((functionInfo->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0);
@@ -6564,24 +6536,6 @@ namespace Js
         return ThrowErrorObject::New(this->throwErrorObjectType, error, this->GetRecycler());
     }
 
-    void JavascriptLibrary::SetForInEnumeratorCache(ForInObjectEnumerator* enumerator)
-    {
-        Assert(enumerator);
-        this->cachedForInEnumerator = enumerator->GetWeakReference(this->recycler);
-    }
-
-    ForInObjectEnumerator* JavascriptLibrary::GetAndClearForInEnumeratorCache()
-    {
-        auto cachedEnumerator = this->cachedForInEnumerator;
-        if (cachedEnumerator)
-        {
-            ForInObjectEnumerator * enumerator = cachedEnumerator->Get();
-            this->cachedForInEnumerator = nullptr;
-            return enumerator;
-        }
-        return nullptr;
-    }
-
 #if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptLibrary::IsCopyOnAccessArrayCallSite(JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo, uint32 length)
     {
@@ -6928,7 +6882,6 @@ namespace Js
         REGISTER_OBJECT(MapIterator);
         REGISTER_OBJECT(SetIterator);
         REGISTER_OBJECT(StringIterator);
-        REGISTER_OBJECT(EnumeratorIterator);
 
         REGISTER_OBJECT(TypedArray);
 
@@ -7509,18 +7462,6 @@ namespace Js
         DEFINE_OBJECT_NAME(String Iterator);
 
         REG_OBJECTS_LIB_FUNC(next, JavascriptStringIterator::EntryNext);
-
-        return hr;
-    }
-
-    HRESULT JavascriptLibrary::ProfilerRegisterEnumeratorIterator()
-    {
-        HRESULT hr = S_OK;
-        // Enumerator Iterator has no global constructor
-
-        DEFINE_OBJECT_NAME(Enumerator Iterator);
-
-        REG_OBJECTS_LIB_FUNC(next, JavascriptEnumeratorIterator::EntryNext);
 
         return hr;
     }

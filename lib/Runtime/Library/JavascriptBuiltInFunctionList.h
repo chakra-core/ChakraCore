@@ -954,7 +954,6 @@ BUILTIN(JavascriptReflect, OwnKeys, EntryOwnKeys, FunctionInfo::ErrorOnNew | Fun
 BUILTIN(JavascriptReflect, PreventExtensions, EntryPreventExtensions, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Set, EntrySet, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, SetPrototypeOf, EntrySetPrototypeOf, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptEnumeratorIterator, Next, EntryNext, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Apply, EntryApply, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Construct, EntryConstruct, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptGeneratorFunction, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

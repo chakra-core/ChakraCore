@@ -224,7 +224,6 @@ namespace Js
         DynamicType * setIteratorType;
         DynamicType * stringIteratorType;
         DynamicType * promiseType;
-        DynamicType * javascriptEnumeratorIteratorType;
         DynamicType * listIteratorType;
 
         JavascriptFunction* builtinFunctions[BuiltinFunction::Count];
@@ -356,7 +355,6 @@ namespace Js
         StaticType* throwErrorObjectType;
 
         PropertyStringCacheMap* propertyStringMap;
-        RecyclerWeakReference<ForInObjectEnumerator>*  cachedForInEnumerator;
 
         ConstructorCache* builtInConstructorCache;
 
@@ -518,7 +516,6 @@ namespace Js
                               jsrtContextObject(nullptr),
                               scriptContextCache(nullptr),
                               externalLibraryList(nullptr),
-                              cachedForInEnumerator(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
                               cacheForCopyOnAccessArraySegments(nullptr),
 #endif
@@ -754,7 +751,6 @@ namespace Js
         StaticType  * GetSymbolTypeStatic() const { return symbolTypeStatic; }
         DynamicType * GetSymbolTypeDynamic() const { return symbolTypeDynamic; }
         DynamicType * GetProxyType() const { return proxyType; }
-        DynamicType * GetJavascriptEnumeratorIteratorType() const { return javascriptEnumeratorIteratorType; }
         DynamicType * GetHeapArgumentsObjectType() const { return heapArgumentsType; }
         DynamicType * GetActivationObjectType() const { return activationObjectType; }
         DynamicType * GetModuleNamespaceType() const { return moduleNamespaceType; }
@@ -1108,9 +1104,6 @@ namespace Js
         PropertyStringCacheMap* EnsurePropertyStringMap();
         PropertyStringCacheMap* GetPropertyStringMap() { return this->propertyStringMap; }
 
-        ForInObjectEnumerator* JavascriptLibrary::GetAndClearForInEnumeratorCache();
-        void SetForInEnumeratorCache(ForInObjectEnumerator* enumerator);
-
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
@@ -1258,7 +1251,6 @@ namespace Js
         static void __cdecl InitializeMapIteratorPrototype(DynamicObject* mapIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSetIteratorPrototype(DynamicObject* setIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeStringIteratorPrototype(DynamicObject* stringIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeJavascriptEnumeratorIteratorPrototype(DynamicObject* javascriptEnumeratorIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         static void __cdecl InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1346,7 +1338,6 @@ namespace Js
         HRESULT ProfilerRegisterMapIterator();
         HRESULT ProfilerRegisterSetIterator();
         HRESULT ProfilerRegisterStringIterator();
-        HRESULT ProfilerRegisterEnumeratorIterator();
         HRESULT ProfilerRegisterTypedArray();
         HRESULT ProfilerRegisterPromise();
         HRESULT ProfilerRegisterProxy();

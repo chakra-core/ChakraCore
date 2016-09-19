@@ -1051,6 +1051,4 @@ namespace Js
 #else
     CompileAssert(sizeof(IsInstInlineCache) == 0x20);
 #endif
-
-    CompileAssert(sizeof(IsInstInlineCache) == sizeof(IsInstInlineCacheAllocator::CacheLayout));
 }

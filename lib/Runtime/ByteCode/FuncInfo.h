@@ -80,7 +80,8 @@ private:
     Scope *currentChildScope;
     SymbolTable *capturedSyms;
     CapturedSymMap *capturedSymMap;
-
+    uint        nextForInLoopLevel;
+    uint        maxForInLoopLevel;
 public:
     ArenaAllocator *alloc;
     // set in Bind/Assign pass
@@ -619,6 +620,20 @@ public:
         outArgsCurrentExpr -= (argCount + 1);
 
         Assert(outArgsDepth != 0 || outArgsCurrentExpr == 0);
+    }
+
+    uint GetMaxForInLoopLevel() const { return this->maxForInLoopLevel;  }
+    uint AcquireForInLoopLevel()
+    {
+        uint forInLoopLevel = this->nextForInLoopLevel++;
+        this->maxForInLoopLevel = max(this->maxForInLoopLevel, this->nextForInLoopLevel);
+        return forInLoopLevel;
+    }
+
+    void ReleaseForInLoopLevel(uint forInLoopLevel)
+    {
+        Assert(this->nextForInLoopLevel == forInLoopLevel + 1);
+        this->nextForInLoopLevel = forInLoopLevel;
     }
 
     Js::RegSlot AcquireLoc(ParseNode *pnode);

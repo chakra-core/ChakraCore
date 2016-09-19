@@ -39,8 +39,8 @@ namespace Js
         class Setup
         {
         public:
-            Setup(ScriptFunction * function, Arguments& args, bool inlinee = false);
-            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount, bool inlinee = false);
+            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
+            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
 
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
@@ -69,6 +69,7 @@ namespace Js
             uint varAllocCount;
             uint inlineCacheCount;
             Js::CallFlags callFlags;
+            bool bailedOut;
             bool bailedOutOfInlinee;
         };
     private:
@@ -85,6 +86,7 @@ namespace Js
         Var localClosure;
         Var paramClosure;
         Var *innerScopeArray;
+        ForInObjectEnumerator * forInObjectEnumerators;
         ScriptContext* scriptContext;
         ScriptFunction * function;
         FunctionBody * m_functionBody;
@@ -250,6 +252,7 @@ namespace Js
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
         static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
+        static uint32 GetOffsetOfForInEnumerators() { return offsetof(InterpreterStackFrame, forInObjectEnumerators); }
         void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
@@ -709,6 +712,10 @@ namespace Js
         template <class T> void OP_InitComputedProperty(const unaligned T * playout);
         template <class T> void OP_InitProto(const unaligned T * playout);
         void OP_BeginBodyScope();
+
+        void OP_InitForInEnumerator(Var object, uint forInLoopLevel);
+        void OP_InitForInEnumeratorWithCache(Var object, uint forInLoopLevel, ProfileId profileId);
+        ForInObjectEnumerator * GetForInEnumerator(uint forInLoopLevel);
 
         uint CallLoopBody(JavascriptMethod address);
         uint CallAsmJsLoopBody(JavascriptMethod address);

@@ -72,6 +72,11 @@ namespace Js
         DiagParamScopeInObject,     // The scope represents symbols at formals and formal scope in activation object
     };
 
+    struct ForInCache
+    {
+        Type * type;
+        void * data;
+    };
     class PropertyGuard
     {
         friend class PropertyGuardValidator;
@@ -1330,6 +1335,7 @@ namespace Js
             ObjLiteralTypes = 19,
             ScopeInfo = 20,
             FormalsPropIdArray = 21,
+            ForInCacheArray = 22,
 
             Max,
             Invalid = 0xff
@@ -1843,25 +1849,27 @@ namespace Js
                 ByteCodeWithoutLDACount                 = 4,
                 ByteCodeInLoopCount                     = 5,
                 LoopCount                               = 6,
-                InlineCacheCount                        = 7,
-                RootObjectLoadInlineCacheStart          = 8,
-                RootObjectLoadMethodInlineCacheStart    = 9,
-                RootObjectStoreInlineCacheStart         = 10,
-                IsInstInlineCacheCount                  = 11,
-                ReferencedPropertyIdCount               = 12,
-                ObjLiteralCount                         = 13,
-                LiteralRegexCount                       = 14,
-                InnerScopeCount                         = 15,
+                ForInLoopDepth                          = 7,
+                ProfiledForInLoopCount                  = 8,
+                InlineCacheCount                        = 9,
+                RootObjectLoadInlineCacheStart          = 10,
+                RootObjectLoadMethodInlineCacheStart    = 11,
+                RootObjectStoreInlineCacheStart         = 12,
+                IsInstInlineCacheCount                  = 13,
+                ReferencedPropertyIdCount               = 14,
+                ObjLiteralCount                         = 15,
+                LiteralRegexCount                       = 16,
+                InnerScopeCount                         = 17,
 
                 // Following counters uses ((uint32)-1) as default value
-                LocalClosureRegister                    = 16,
-                ParamClosureRegister                    = 17,
-                LocalFrameDisplayRegister               = 18,
-                EnvRegister                             = 19,
-                ThisRegisterForEventHandler             = 20,
-                FirstInnerScopeRegister                 = 21,
-                FuncExprScopeRegister                   = 22,
-                FirstTmpRegister                        = 23,
+                LocalClosureRegister                    = 18,
+                ParamClosureRegister                    = 19,
+                LocalFrameDisplayRegister               = 20,
+                EnvRegister                             = 21,
+                ThisRegisterForEventHandler             = 22,
+                FirstInnerScopeRegister                 = 23,
+                FuncExprScopeRegister                   = 24,
+                FirstTmpRegister                        = 25,
 
                 Max
             };
@@ -2680,6 +2688,23 @@ namespace Js
         uint GetLoopCount() const { return this->GetCountField(CounterFields::LoopCount); }
         uint SetLoopCount(uint count) { return this->SetCountField(CounterFields::LoopCount, count); }
 
+        uint GetForInLoopDepth() const { return this->GetCountField(CounterFields::ForInLoopDepth); }
+        uint SetForInLoopDepth(uint count) { return this->SetCountField(CounterFields::ForInLoopDepth, count); }
+
+        bool AllocProfiledForInLoopCount(ProfileId* profileId) 
+        {
+            ProfileId profiledForInLoopCount = this->GetProfiledForInLoopCount(); 
+            if (profiledForInLoopCount != Constants::NoProfileId) 
+            { 
+                *profileId = profiledForInLoopCount; 
+                this->IncreaseCountField(CounterFields::ProfiledForInLoopCount); 
+                return true; 
+            } 
+            return false; 
+        }
+        ProfileId GetProfiledForInLoopCount() const { return (ProfileId)this->GetCountField(CounterFields::ProfiledForInLoopCount); }
+        void SetProfiledForInLoopCount(ProfileId count) { this->SetCountField(CounterFields::ProfiledForInLoopCount, count); }
+
         bool AllocProfiledDivOrRem(ProfileId* profileId) { if (this->profiledDivOrRemCount != Constants::NoProfileId) { *profileId = this->profiledDivOrRemCount++; return true; } return false; }
         ProfileId GetProfiledDivOrRemCount() { return this->profiledDivOrRemCount; }
 
@@ -2991,8 +3016,12 @@ namespace Js
         void SetLiteralRegexCount(uint count) { SetCountField(CounterFields::LiteralRegexCount, count); }
         uint IncLiteralRegexCount() { return IncreaseCountField(CounterFields::LiteralRegexCount); }
 
+        void AllocateForInCache();
+        ForInCache * GetForInCache(uint index);
+        ForInCache * GetForInCacheArray();
+        void CleanUpForInCache(bool isShutdown);
 
-        void AllocateInlineCache();
+        void AllocateInlineCache();        
         InlineCache * GetInlineCache(uint index);
         bool CanFunctionObjectHaveInlineCaches();
         void** GetInlineCaches();
@@ -3003,9 +3032,9 @@ namespace Js
         IsInstInlineCache * GetIsInstInlineCache(uint index);
         PolymorphicInlineCache * GetPolymorphicInlineCache(uint index);
         PolymorphicInlineCache * CreateNewPolymorphicInlineCache(uint index, PropertyId propertyId, InlineCache * inlineCache);
-        PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(uint index, PropertyId propertyId);
+        PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(uint index, PropertyId propertyId);        
+    private:        
 
-    private:
         void ResetInlineCaches();
         PolymorphicInlineCache * CreatePolymorphicInlineCache(uint index, uint16 size);
         uint32 m_asmJsTotalLoopCount;

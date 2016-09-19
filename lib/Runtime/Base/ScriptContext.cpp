@@ -120,6 +120,7 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        forInCacheAllocator(_u("SC-ForInCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         hasUsedInlineCache(false),
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
@@ -4266,6 +4267,12 @@ void ScriptContext::ClearIsInstInlineCaches()
     }
 
     Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
+}
+
+void ScriptContext::ClearForInCaches()
+{
+    ForInCacheAllocator()->ZeroAll();
+    Assert(ForInCacheAllocator()->IsAllZero());
 }
 
 

@@ -31,6 +31,9 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
     func->actualCount = callerArgOutCount;
 
+    // Current for..in depth starts with the inlinee's base depth
+    this->currentForInDepth = func->m_forInLoopBaseDepth;
+
     // Keep the caller's "this" symbol (if any).
     StackSym *symThis = nullptr;
     lastStatementBoundary = nullptr;
@@ -63,9 +66,34 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         this->isInLoop++;
                         backEdgeCount = loopTop->labelRefs.Count();
                     }
+
+                    if (instr->AsLabelInstr()->m_isForInExit)
+                    {
+                        Assert(this->currentForInDepth != 0);
+                        this->currentForInDepth--;
+                    }
                 }
                 break;
-
+            case Js::OpCode::InitForInEnumerator:
+                // Loop body uses the for in enumerator in the interpreter frame.
+                // No need to keep track of its depth
+                if (!func->IsLoopBody())
+                {
+                    this->currentForInDepth++;
+                }
+                break;
+            case Js::OpCode::BrOnNotEmpty:
+                // Byte code doesn't emit BrOnNotEmpty, and we have done any transformation yet.
+                Assert(false);
+                break;
+            case Js::OpCode::BrOnEmpty:
+                // Loop body uses the for in enumerator in the interpreter frame.
+                // No need to keep track of its depth
+                if (!func->IsLoopBody())
+                {
+                    instr->AsBranchInstr()->GetTarget()->m_isForInExit = true;
+                }
+                break;
             case Js::OpCode::StFld:
             case Js::OpCode::LdFld:
             case Js::OpCode::LdFldForCallApplyTarget:
@@ -1226,6 +1254,12 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
 void
 Inline::BuildIRForInlinee(Func *inlinee, JITTimeFunctionBody *funcBody, IR::Instr *callInstr, bool isApplyTarget, uint recursiveInlineDepth)
 {
+    // Update for..in max depth for the whole function
+    this->topFunc->UpdateForInLoopMaxDepth(this->currentForInDepth + funcBody->GetForInLoopDepth());
+
+    // Set for..in base depth of inlinee
+    inlinee->m_forInLoopBaseDepth = this->currentForInDepth;
+
     Js::ArgSlot actualsCount = 0;
     IR::Instr *argOuts[Js::InlineeCallInfo::MaxInlineeArgoutCount];
 #if DBG

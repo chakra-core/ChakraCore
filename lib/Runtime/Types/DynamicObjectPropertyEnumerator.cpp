@@ -19,17 +19,110 @@ namespace Js
         return !!(flags & EnumeratorFlags::SnapShotSemantics); 
     }
 
-    bool DynamicObjectPropertyEnumerator::Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext)
+    bool DynamicObjectPropertyEnumerator::GetUseCache() const
     {
-        if (object && !object->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(object))
+        return ((flags & (EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache)) == (EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache));
+    }
+
+    void DynamicObjectPropertyEnumerator::Initialize(DynamicType * type, CachedData * data, Js::BigPropertyIndex initialPropertyCount)
+    {
+        this->initialType = type;
+        this->cachedData = data;
+        this->initialPropertyCount = initialPropertyCount;
+    }
+
+    bool DynamicObjectPropertyEnumerator::Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
+    {
+        this->scriptContext = requestContext;
+        this->object = object;
+        this->flags = flags;
+
+        if (!object)
+        {
+            this->cachedData = nullptr;
+            return true;
+        }
+
+        this->objectIndex = Constants::NoBigSlot;
+        this->enumeratedCount = 0;
+
+        if (!GetUseCache())
+        {
+            if (!object->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(object))
+            {
+                return false;
+            }            
+            Initialize(object->GetDynamicType(), nullptr, GetSnapShotSemantics() ? this->object->GetPropertyCount() : Constants::NoBigSlot);
+            return true;
+        }
+
+        DynamicType * type = object->GetDynamicType();
+
+        CachedData * data;
+        if (forInCache && type == forInCache->type)
+        {
+            // We shouldn't have a for in cache when asking to enum symbols
+            Assert(!GetEnumSymbols());            
+            data = (CachedData *)forInCache->data;
+
+            Assert(data != nullptr);
+            Assert(data->scriptContext == this->scriptContext); // The cache data script context should be the same as request context
+            Assert(!data->enumSymbols);
+
+            if (data->enumNonEnumerable == GetEnumNonEnumerable())
+            {
+                Initialize(type, data, data->propertyCount);
+                return true;
+            }
+        }
+      
+        data = (CachedData *)requestContext->GetThreadContext()->GetDynamicObjectEnumeratorCache(type);
+
+        if (data != nullptr && data->scriptContext == this->scriptContext && data->enumNonEnumerable == GetEnumNonEnumerable() && data->enumSymbols == GetEnumSymbols())
+        {
+            Initialize(type, data, data->propertyCount);
+
+            if (forInCache)
+            {
+                forInCache->type = type;
+                forInCache->data = data;
+            }
+            return true;
+        }
+
+        if (!object->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(object))
         {
             return false;
         }
 
-        this->requestContext = requestContext;
-        this->object = object;
-        this->flags = flags;
-        Reset();
+        // Reload the type after EnsureObjecteReady
+        type = object->GetDynamicType();
+        if (!type->PrepareForTypeSnapshotEnumeration())
+        {
+            Initialize(type, nullptr, object->GetPropertyCount());
+            return true;
+        }
+
+        uint propertyCount = this->object->GetPropertyCount();
+        data = RecyclerNewStructPlus(requestContext->GetRecycler(),
+            propertyCount * sizeof(PropertyString *) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
+        data->scriptContext = requestContext;
+        data->cachedCount = 0;
+        data->propertyCount = propertyCount;
+        data->strings = (PropertyString **)(data + 1);
+        data->indexes = (BigPropertyIndex *)(data->strings + propertyCount);
+        data->attributes = (PropertyAttributes*)(data->indexes + propertyCount);
+        data->completed = false;
+        data->enumNonEnumerable = GetEnumNonEnumerable();
+        data->enumSymbols = GetEnumSymbols();
+        requestContext->GetThreadContext()->AddDynamicObjectEnumeratorCache(type, data);
+        Initialize(type, data, propertyCount);
+
+        if (forInCache)
+        {
+            forInCache->type = type;
+            forInCache->data = data;
+        }
         return true;
     }
 
@@ -38,49 +131,19 @@ namespace Js
         return this->object == nullptr;
     }
 
-    void DynamicObjectPropertyEnumerator::Clear()
+    bool DynamicObjectPropertyEnumerator::CanUseJITFastPath() const
     {
-        this->object = nullptr;
+        return !this->IsNullEnumerator() && !GetEnumNonEnumerable() && this->cachedData != nullptr;
+    }
+
+    void DynamicObjectPropertyEnumerator::Clear(EnumeratorFlags flags, ScriptContext * requestContext)
+    {
+        Initialize(nullptr, flags, requestContext, nullptr);
     }
 
     void DynamicObjectPropertyEnumerator::Reset()
     {
-        if (this->object)
-        {
-            enumeratedCount = 0;
-            initialType = object->GetDynamicType();
-            objectIndex = Constants::NoBigSlot;
-            initialPropertyCount = GetSnapShotSemantics() ? this->object->GetPropertyCount() : Constants::NoBigSlot;
-            // Create the appropriate enumerator object.
-            if (GetSnapShotSemantics() && this->initialType->PrepareForTypeSnapshotEnumeration())
-            {
-                ScriptContext* scriptContext = this->object->GetScriptContext();
-                ThreadContext * threadContext = scriptContext->GetThreadContext();
-                CachedData * data = (CachedData *)threadContext->GetDynamicObjectEnumeratorCache(this->initialType);
-
-                if (data == nullptr || data->scriptContext != this->requestContext || data->enumNonEnumerable != GetEnumNonEnumerable() || data->enumSymbols != GetEnumSymbols())
-                {
-                    data = RecyclerNewStructPlus(scriptContext->GetRecycler(),
-                        this->initialPropertyCount * sizeof(PropertyString *) + this->initialPropertyCount * sizeof(BigPropertyIndex) + this->initialPropertyCount * sizeof(PropertyAttributes), CachedData);
-                    data->scriptContext = requestContext;
-                    data->cachedCount = 0;
-                    data->strings = (PropertyString **)(data + 1);
-                    data->indexes = (BigPropertyIndex *)(data->strings + this->initialPropertyCount);
-                    data->attributes = (PropertyAttributes*)(data->indexes + this->initialPropertyCount);
-                    data->completed = false;
-                    data->enumNonEnumerable = GetEnumNonEnumerable();
-                    data->enumSymbols = GetEnumSymbols();
-                    threadContext->AddDynamicObjectEnumeratorCache(this->initialType, data);
-                }
-                this->cachedData = data;
-                this->cachedDataType = this->initialType;
-            }
-            else
-            {
-                this->cachedData = nullptr;
-                this->cachedDataType = nullptr;
-            }
-        }
+        Initialize(object, flags, scriptContext, nullptr);
     }
 
     DynamicType * DynamicObjectPropertyEnumerator::GetTypeToEnumerate() const
@@ -187,7 +250,7 @@ namespace Js
         {
             newIndex++;
             if (!object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
-                GetTypeToEnumerate(), flags, this->requestContext)
+                GetTypeToEnumerate(), flags, this->scriptContext)
                 || (GetSnapShotSemantics() && newIndex >= initialPropertyCount))
             {
                 // No more properties
@@ -203,12 +266,12 @@ namespace Js
 
     Var DynamicObjectPropertyEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes)
     {
+        if (this->cachedData && this->initialType == this->object->GetDynamicType())
+        {
+            return MoveAndGetNextWithCache(propertyId, attributes);
+        }
         if (this->object)
         {
-            if (this->cachedDataType == this->object->GetDynamicType())
-            {
-                return MoveAndGetNextWithCache(propertyId, attributes);
-            }
             return MoveAndGetNextNoCache(propertyId, attributes);
         }
         return nullptr;
