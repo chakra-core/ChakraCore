@@ -686,6 +686,11 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
         return false;
     }
 
+    if (inlinee->GetIsAsmjsMode() || inliner->GetIsAsmjsMode())
+    {
+        return false;
+    }
+
     if (PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
         PHASE_FORCE(Js::InlinePhase, inliner) ||
         PHASE_FORCE(Js::InlinePhase, inlinee))
@@ -709,11 +714,6 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     if (PHASE_FORCE(Js::InlineAtEveryCallerPhase, inlinee))
     {
         return true;
-    }
-
-    if (inlinee->GetIsAsmjsMode() || inliner->GetIsAsmjsMode())
-    {
-        return false;
     }
 
     uint inlineeByteCodeCount = inlinee->GetByteCodeWithoutLDACount();
