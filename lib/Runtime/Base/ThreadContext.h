@@ -530,16 +530,15 @@ public:
     typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
-    typedef JsUtil::List<const Js::PropertyRecord *, HeapAllocator> PropertyList;
 private:
     intptr_t m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyList * m_pendingJITProperties;
+    PropertyMap * m_pendingJITProperties;
 public:
 
-    PropertyList * GetPendingJITProperties() const
+    PropertyMap * GetPendingJITProperties() const
     {
         return m_pendingJITProperties;
     }

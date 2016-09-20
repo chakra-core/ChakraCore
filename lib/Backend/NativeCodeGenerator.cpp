@@ -2902,15 +2902,18 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
 
         // batch send all new property records
-        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
+        ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
         if (pendingProps->Count() > 0)
         {
             uint count = (uint)pendingProps->Count();
             PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
             uint index = 0;
-            while (pendingProps->Count() > 0)
+            auto iter = pendingProps->GetIteratorWithRemovalSupport();
+            while (iter.IsValid())
             {
-                propArray[index++] = (PropertyRecordIDL*)pendingProps->RemoveAtEnd();
+                propArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
+                iter.RemoveCurrent();
+                iter.MoveNext();
             }
             Assert(index == count);
             HRESULT hr = JITManager::GetJITManager()->AddPropertyRecordArray(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), count, (PropertyRecordIDL**)propArray);

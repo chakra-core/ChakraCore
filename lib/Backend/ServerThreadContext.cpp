@@ -224,6 +224,15 @@ ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
     }
     record->pid = origRecord->pid;
 
+    const Js::PropertyRecord * oldRecord = nullptr;
+    if (m_propertyMap->TryGetValue(origRecord->GetPropertyId(), &oldRecord))
+    {
+        // if there was reclaimed property that had its pid reused, delete the old property record
+        m_propertyMap->Remove(oldRecord);
+        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
+        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+    }
+
     m_propertyMap->Add(record);
 
     PropertyRecordTrace(_u("Added JIT property '%s' at 0x%08x, pid = %d\n"), record->GetBuffer(), record, record->pid);
