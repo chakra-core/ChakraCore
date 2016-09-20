@@ -890,10 +890,10 @@ Remember to fix the errcode defintion in safecrt.h.
 #define _vscprintf _vscprintf_unsafe
 #define _vscwprintf _vscwprintf_unsafe
 
-#define sprintf_s _snprintf
-#define swprintf_s _snwprintf
-#define vsprintf_s _vsnprintf
-#define vswprintf_s _vsnwprintf
+// #define sprintf_s _snprintf
+// #define swprintf_s _snwprintf
+// #define vsprintf_s _vsnprintf
+// #define vswprintf_s _vsnwprintf
 
 extern "C++" {
 

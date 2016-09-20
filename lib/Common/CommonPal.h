@@ -83,6 +83,7 @@ __forceinline void  __int2c()
 #define STRSAFE_INLINE   1
 
 #ifdef PAL_STDCPP_COMPAT
+#include <wchar.h>
 #include <math.h>
 #include <time.h>
 #include <smmintrin.h>
@@ -96,6 +97,8 @@ __forceinline void  __int2c()
 
 typedef char16_t char16;
 #define _u(s) u##s
+
+typedef GUID UUID;
 #define INIT_PRIORITY(x) __attribute__((init_priority(x)))
 
 #ifdef PAL_STDCPP_COMPAT
@@ -134,12 +137,11 @@ inline void DebugBreak()
 
 // These are not available in pal
 #define fwprintf_s      fwprintf
-// sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
-#undef sprintf_s
-// #define sprintf_s PAL_sprintf_s
 
 // PAL LoadLibraryExW not supported
 #define LOAD_LIBRARY_SEARCH_SYSTEM32     0
+// winnt.h
+#define FAST_FAIL_INVALID_ARG            5
 // winerror.h
 #define FACILITY_JSCRIPT                 2306
 #define JSCRIPT_E_CANTEXECUTE            _HRESULT_TYPEDEF_(0x89020001L)
@@ -391,13 +393,6 @@ inline __int64 _abs64(__int64 n)
     return n < 0 ? -n : n;
 }
 
-// xplat-todo: implement this for JIT and Concurrent/Partial GC
-BOOL WINAPI GetModuleHandleEx(
-  _In_     DWORD   dwFlags,
-  _In_opt_ LPCTSTR lpModuleName,
-  _Out_    HMODULE *phModule
-);
-
 int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
 bool IsAddressOnStack(ULONG_PTR address);
 
@@ -411,6 +406,30 @@ inline char16* wmemset(char16* wcs, char16 wc, size_t n)
     }
     return wcs;
 }
+
+inline errno_t wmemcpy_s(char16* dest, size_t destSize, const char16* src, size_t count)
+{
+    return memcpy_s(dest, sizeof(char16) * destSize, src, sizeof(char16) * count);
+}
+
+inline int _wunlink(const char16* filename)
+{
+    // WARN: does not set errno when fail
+    return DeleteFile(filename) ? 0 : -1;
+}
+
+template <size_t size>
+inline errno_t _wcserror_s(char16 (&buffer)[size], int errnum)
+{
+    const char* str = strerror(errnum);
+    // WARN: does not return detail errno when fail
+    return MultiByteToWideChar(CP_ACP, 0, str, -1, buffer, size) ? 0 : -1;
+}
+
+#define midl_user_allocate(size) \
+    HeapAlloc(GetProcessHeap(), 0, (size))
+#define midl_user_free(ptr) \
+    if (ptr != NULL) { HeapFree(GetProcessHeap(), NULL, ptr); }
 
 DWORD __cdecl CharLowerBuffW(const char16* lpsz, DWORD  cchLength);
 DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
