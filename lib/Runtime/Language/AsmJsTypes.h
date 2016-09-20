@@ -969,11 +969,6 @@ namespace Js
             mArgType = val;
         }
 
-        inline bool AccessNeedsBoundCheck(uint offset) const
-        {
-            // Normally, heap has min size of 0x10000, but if you use ChangeHeap, min heap size is increased to 0x1000000
-            return offset >= 0x1000000 || (IsHeapBufferConst() && offset >= 0x10000);
-        }
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
         void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}
         bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }

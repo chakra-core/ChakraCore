@@ -160,13 +160,13 @@ GlobOpt::GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttribute
 #if DBG_DUMP
     if (!pHash->IsValid() && Js::Configuration::Global.flags.Trace.IsEnabled(Js::CSEPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(_u(" >>>>  CSE: Value numbers too big to be hashed in function %s!\n"), this->func->GetJnFunction()->GetDisplayName());
+        Output::Print(_u(" >>>>  CSE: Value numbers too big to be hashed in function %s!\n"), this->func->GetJITFunctionBody()->GetDisplayName());
     }
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (!pHash->IsValid() && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CSEPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(_u(" >>>>  CSE: Value numbers too big to be hashed in function %s!\n"), this->func->GetJnFunction()->GetDisplayName());
+        Output::Print(_u(" >>>>  CSE: Value numbers too big to be hashed in function %s!\n"), this->func->GetJITFunctionBody()->GetDisplayName());
     }
 #endif
 
@@ -653,14 +653,14 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::CSEPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(_u(" --- CSE (%s): "), this->func->GetJnFunction()->GetDisplayName());
+        Output::Print(_u(" --- CSE (%s): "), this->func->GetJITFunctionBody()->GetDisplayName());
         instr->Dump();
     }
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CSEPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(_u(" --- CSE (%s): %s\n"), this->func->GetJnFunction()->GetDisplayName(), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+        Output::Print(_u(" --- CSE (%s): %s\n"), this->func->GetJITFunctionBody()->GetDisplayName(), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
     }
 #endif
 

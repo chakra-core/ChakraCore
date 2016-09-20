@@ -82,6 +82,26 @@ namespace Js
         }
     };
 
+    struct CallSiteInfo
+    {
+        uint16 isArgConstant : 13;
+        uint16 isConstructorCall : 1;
+        uint16 dontInline : 1;
+        uint16 isPolymorphic : 1;
+        ValueType returnType;
+        InlineCacheIndex ldFldInlineCacheId;
+        union
+        {
+            struct
+            {
+                Js::SourceId sourceId;
+                Js::LocalFunctionId functionId;
+            } functionData;
+            // As of now polymorphic info is allocated only if the source Id is current
+            PolymorphicCallSiteInfo* polymorphicCallSiteInfo;
+        } u;
+    };
+
 
 
     // TODO: include ImplicitCallFlags in this structure
@@ -151,7 +171,7 @@ namespace Js
             return !valueType.IsUninitialized();
         }
 
-        uint32 GetOffsetOfFlags() { return offsetof(FldInfo, flags); }
+        static uint32 GetOffsetOfFlags() { return offsetof(FldInfo, flags); }
     };
     CompileAssert(sizeof(FldInfo::TSize) == sizeof(FldInfo));
 
@@ -335,49 +355,58 @@ namespace Js
         const StElemInfo *GetStElemInfo() const { return stElemInfo; }
 
         ArrayCallSiteInfo *GetArrayCallSiteInfo(FunctionBody *functionBody, ProfileId index) const;
+        ArrayCallSiteInfo *GetArrayCallSiteInfo() const { return arrayCallSiteInfo; }
 
         void RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags);
         void RecordPolymorphicFieldAccess(FunctionBody *functionBody, uint fieldAccessid);
         bool HasPolymorphicFldAccess() const { return bits.hasPolymorphicFldAccess; }
         FldInfo * GetFldInfo(FunctionBody* functionBody, uint fieldAccessId) const;
+        FldInfo * GetFldInfo() const { return fldInfo; }
 
         void RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object);
         ValueType GetSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId) const;
+        ValueType * GetSlotInfo() const { return slotInfo; }
 
         void RecordThisInfo(Var object, ThisType thisType);
         ThisInfo GetThisInfo() const;
 
         void RecordDivideResultType(FunctionBody* body, ProfileId divideId, Var object);
         ValueType GetDivideResultType(FunctionBody* body, ProfileId divideId) const;
+        ValueType * GetDivideTypeInfo() const { return divideTypeInfo; }
 
         void RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2);
         bool IsModulusOpByPowerOf2(FunctionBody* body, ProfileId profileId) const;
 
         void RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object);
         ValueType GetSwitchType(FunctionBody* body, ProfileId switchId) const;
+        ValueType * GetSwitchTypeInfo() const { return switchTypeInfo; }
 
         void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, ArgSlot actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
         void RecordConstParameterAtCallSite(ProfileId callSiteId, int argNum);
-        bool HasCallSiteInfo(FunctionBody* functionBody);
+        static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
         FunctionInfo * GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall);
+        CallSiteInfo * GetCallSiteInfo() const { return callSiteInfo; }
         uint16 GetConstantArgInfo(ProfileId callSiteId);
         uint GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId);
         bool GetPolymorphicCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, __inout_ecount(functionBodyArrayLength) FunctionBody** functionBodyArray, uint functionBodyArrayLength);
 
         bool RecordLdFldCallSiteInfo(FunctionBody* functionBody, RecyclableObject* callee, bool callApplyTarget);
 
-        bool hasLdFldCallSiteInfo();
+        bool HasLdFldCallSiteInfo() const;
 
         void RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object);
         void RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object);
         ValueType GetReturnType(FunctionBody* functionBody, Js::OpCode opcode, ProfileId callSiteId) const;
+        ValueType * GetReturnTypeInfo() const { return returnTypeInfo; }
 
         void RecordParameterInfo(FunctionBody* functionBody, ArgSlot index, Var object);
         ValueType GetParameterInfo(FunctionBody* functionBody, ArgSlot index) const;
+        ValueType * GetParameterInfo() const { return parameterInfo; }
 
         void RecordLoopImplicitCallFlags(FunctionBody* functionBody, uint loopNum, ImplicitCallFlags flags);
         ImplicitCallFlags GetLoopImplicitCallFlags(FunctionBody* functionBody, uint loopNum) const;
+        ImplicitCallFlags * GetLoopImplicitCallFlags() const { return loopImplicitCallFlags; }
 
         void RecordImplicitCallFlags(ImplicitCallFlags flags);
         ImplicitCallFlags GetImplicitCallFlags() const;
@@ -419,30 +448,11 @@ namespace Js
 #if JS_PROFILE_DATA_INTERFACE
         friend class ProfileDataObject;
 #endif
-
     private:
         // Have the dynamicProfileFunctionInfo after loaded from cache.
         // Replaced with the function body it is verified and matched (See DynamicProfileInfo::MatchFunctionBody)
         DynamicProfileFunctionInfo * dynamicProfileFunctionInfo;
-        struct CallSiteInfo
-        {
-            uint16 isArgConstant : 13;
-            uint16 isConstructorCall : 1;
-            uint16 dontInline : 1;
-            uint16 isPolymorphic : 1;
-            ValueType returnType;
-            InlineCacheIndex ldFldInlineCacheId;
-            union
-            {
-                struct
-                {
-                    Js::SourceId sourceId;
-                    Js::LocalFunctionId functionId;
-                } functionData;
-                // As of now polymorphic info is allocated only if the source Id is current
-                PolymorphicCallSiteInfo* polymorphicCallSiteInfo;
-            } u;
-        } *callSiteInfo;
+        CallSiteInfo *callSiteInfo;
         ValueType * returnTypeInfo; // return type of calls for non inline call sites
         ValueType * divideTypeInfo;
         ValueType * switchTypeInfo;
@@ -637,6 +647,8 @@ namespace Js
             Assert(loopFlags);
             return loopFlags->GetRange<LoopFlags>(loopNumber * LoopFlags::COUNT, LoopFlags::COUNT);
         }
+        BVFixed * GetLoopFlags() const { return loopFlags; }
+
         void SetLoopInterpreted(int loopNumber) { loopFlags->Set(loopNumber * LoopFlags::COUNT + LoopFlags::INTERPRETED); }
         void SetMemOpMinReached(int loopNumber) { loopFlags->Set(loopNumber * LoopFlags::COUNT + LoopFlags::MEMOP_MIN_COUNT_FOUND); }
         bool IsMemOpDisabled() const { return this->bits.disableMemOp; }

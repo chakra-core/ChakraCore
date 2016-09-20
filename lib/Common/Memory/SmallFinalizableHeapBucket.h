@@ -253,6 +253,7 @@ public:
     void TransferDisposedObjects();
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
     void FinalizeAllObjects();
+    static unsigned int GetHeapBucketOffset() { return offsetof(HeapBucketGroup<TBlockAttributes>, heapBucket); }
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetNonEmptyHeapBlockCount(bool checkCount) const;

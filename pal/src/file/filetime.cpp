@@ -658,7 +658,7 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
     FileTime = lpFileTime->dwHighDateTime;
     FileTime <<= 32;
     FileTime |= (UINT)lpFileTime->dwLowDateTime;
-    const size_t since1601 = SECS_BETWEEN_1601_AND_1970_EPOCHS * SECS_TO_100NS;
+    const UINT64 since1601 = SECS_BETWEEN_1601_AND_1970_EPOCHS * SECS_TO_100NS;
 
     if (FileTime > since1601 && since1601 >= 0) 
     {

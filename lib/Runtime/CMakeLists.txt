@@ -2,6 +2,7 @@ project(CHAKRA_RUNTIME)
 
 include_directories(
     .
+    ../JITIDL
     ../Common
     ../Backend
     ../Parser

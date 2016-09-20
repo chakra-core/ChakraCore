@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Js::Var*) vl;
 #else
-#if _M_X64
+#if defined(_M_X64) || defined(_M_IX86)
 // We use a custom calling convention to invoke JavascriptMethod based on
 // System V AMD64 ABI. At entry of JavascriptMethod the stack layout is:
 //      [Return Address] [function] [callInfo] [arg0] [arg1] ...
@@ -24,7 +24,7 @@
 #ifdef _WIN32
 #define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, ##__VA_ARGS__)
-#elif _M_X64
+#elif defined(_M_X64) || defined(_M_IX86)
 // Call an entryPoint (JavascriptMethod) with custom calling convention.
 //  RDI == function, RSI == callInfo, (RDX/RCX/R8/R9==null/unused),
 //  all parameters on stack.

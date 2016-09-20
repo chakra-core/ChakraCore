@@ -372,7 +372,8 @@ private:
 
 class ThreadContext sealed :
     public DefaultRecyclerCollectionWrapper,
-    public JsUtil::DoublyLinkedListElement<ThreadContext>
+    public JsUtil::DoublyLinkedListElement<ThreadContext>,
+    public ThreadContextInfo
 {
 public:
     static void GlobalInitialize();
@@ -402,9 +403,8 @@ public:
         this->isThreadBound = true;
     }
     bool IsJSRT() const { return !this->isThreadBound; }
-    bool GetIsThreadBound() const { return this->isThreadBound; }
+    virtual bool IsThreadBound() const override { return this->isThreadBound; }
     void SetStackProber(StackProber * stackProber);
-    PBYTE GetScriptStackLimit() const;
     static DWORD GetStackLimitForCurrentThreadOffset() { return offsetof(ThreadContext, stackLimitForCurrentThread); }
 
     template <class Fn>
@@ -425,7 +425,7 @@ public:
         return curImplicitCallFlags;
     }
 
-    void * GetAddressOfStackLimitForCurrentThread()
+    void * GetAddressOfStackLimitForCurrentThread() const
     {
         FAULTINJECT_SCRIPT_TERMINATION
 
@@ -439,6 +439,8 @@ public:
     IActiveScriptProfilerHeapEnum* GetHeapEnum();
     void SetHeapEnum(IActiveScriptProfilerHeapEnum* newHeapEnum);
     void ClearHeapEnum();
+
+    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) override;
 
 #ifdef ENABLE_BASIC_TELEMETRY
     Js::LanguageStats* GetLanguageStats()
@@ -489,8 +491,8 @@ private:
     static CriticalSection s_csThreadContext;
 
     StackProber * GetStackProber() const { return this->stackProber; }
-    PBYTE GetStackLimitForCurrentThread() const;
-    void SetStackLimitForCurrentThread(PBYTE limit);
+    size_t GetStackLimitForCurrentThread() const;
+    void SetStackLimitForCurrentThread(size_t limit);
 
     // The current heap enumeration object being used during enumeration.
     IActiveScriptProfilerHeapEnum* heapEnum;
@@ -520,12 +522,36 @@ private:
 public:
     typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
+    PropertyMap * propertyMap;
 
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
     typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
+
+    typedef JsUtil::List<const Js::PropertyRecord *, HeapAllocator> PropertyList;
+private:
+    intptr_t m_remoteThreadContextInfo;
+    intptr_t m_prereservedRegionAddr;
+
+#if ENABLE_NATIVE_CODEGEN
+    PropertyList * m_pendingJITProperties;
+public:
+
+    PropertyList * GetPendingJITProperties() const
+    {
+        return m_pendingJITProperties;
+    }
+
+    static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+    void EnsureJITThreadContext(bool allowPrereserveAlloc);
+
+    intptr_t GetRemoteThreadContextAddr() const
+    {
+        return m_remoteThreadContextInfo;
+    }
+#endif
 
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
@@ -619,16 +645,17 @@ private:
 
     ThreadContextFlags threadContextFlags;
     DWORD currentThreadId;
-    mutable PBYTE stackLimitForCurrentThread;
+    mutable size_t stackLimitForCurrentThread;
     StackProber * stackProber;
     bool isThreadBound;
     bool hasThrownPendingException;
     bool callDispose;
-    bool isAllJITCodeInPreReservedRegion;
 
     AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
+    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
+
     uint callRootLevel;
 
 #if ENABLE_BACKGROUND_PAGE_FREEING
@@ -651,7 +678,6 @@ private:
 
     static const Js::PropertyRecord * const builtInPropertyRecords[];
 
-    PropertyMap * propertyMap;
     PropertyNoCaseSetType * caseInvariantPropertySet;
 
     Js::ScriptContext * rootPendingClose;
@@ -666,7 +692,6 @@ private:
 
     Js::TypeId nextTypeId;
     uint32 polymorphicCacheState;
-    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
 #ifdef ENABLE_PROJECTION
     SListBase<ExternalWeakReferenceCache *> externalWeakReferenceCacheList;
@@ -679,7 +704,7 @@ private:
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
-    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
+    XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     CustomHeap::CodePageAllocators thunkPageAllocators;
 #endif
@@ -767,7 +792,6 @@ private:
 #ifdef _CONTROL_FLOW_GUARD
     Js::DelayLoadWinCoreMemory delayLoadWinCoreMemoryLibrary;
 #endif
-    Js::DelayLoadWinCoreProcessThreads delayLoadWinCoreProcessThreads;
 #endif
 
     // Number of script context attached with probe manager.
@@ -840,9 +864,6 @@ public:
     CustomHeap::CodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
 #endif // ENABLE_NATIVE_CODEGEN
 
-    void ResetIsAllJITCodeInPreReservedRegion() { isAllJITCodeInPreReservedRegion = false; }
-    bool IsAllJITCodeInPreReservedRegion() { return isAllJITCodeInPreReservedRegion; }
-
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
@@ -867,7 +888,6 @@ public:
 #ifdef _CONTROL_FLOW_GUARD
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
 #endif
-    Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -1048,6 +1068,12 @@ public:
     void ShutdownThreads()
     {
 #if ENABLE_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
+        {
+            JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
+            m_remoteThreadContextInfo = 0;
+        }
+
         if (jobProcessor)
         {
             jobProcessor->Close();
@@ -1195,9 +1221,14 @@ public:
     BOOL IsNativeAddress(void * pCodeAddr);
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
+    virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override { return (intptr_t)bailOutRegisterSaveSpace; }
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
         return codeGenNumberThreadAllocator;
+    }
+    XProcNumberPageSegmentManager * GetXProcNumberPageSegmentManager() const
+    {
+        return this->xProcNumberPageSegmentManager;
     }
 #endif
     void ResetFunctionCount() { Assert(this->GetScriptSiteHolderCount() == 0); this->functionCount = 0; }
@@ -1253,6 +1284,27 @@ public:
     void RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef);
     void RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache);
 #endif
+
+    virtual size_t GetScriptStackLimit() const override;
+
+    virtual HANDLE GetProcessHandle() const override;
+
+    virtual intptr_t GetThreadStackLimitAddr() const override;
+
+#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
+    virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
+#endif
+
+    virtual intptr_t GetDisableImplicitFlagsAddr() const override;
+    virtual intptr_t GetImplicitCallFlagsAddr() const override;
+
+    virtual intptr_t GetDebuggingFlagsAddr() const override;
+    virtual intptr_t GetDebugStepTypeAddr() const override;
+    virtual intptr_t GetDebugFrameAddressAddr() const override;
+    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
+
+    ptrdiff_t GetChakraBaseAddressDifference() const;
+    ptrdiff_t GetCRTBaseAddressDifference() const;
 
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
@@ -1623,7 +1675,6 @@ public:
     void* GetJSRTRuntime() const { return jsrtRuntime; }
     void SetJSRTRuntime(void* runtime);
 
-    bool CanBeFalsy(Js::TypeId typeId);
 private:
     BOOL ExecuteRecyclerCollectionFunctionCommon(Recycler * recycler, CollectionFunction function, CollectionFlags flags);
 

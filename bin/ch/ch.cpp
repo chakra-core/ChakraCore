@@ -22,6 +22,7 @@ byte ttUri[MAX_PATH * sizeof(wchar_t)];
 size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
+LPWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
 extern "C"
@@ -36,6 +37,9 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
     ChakraRTInterface::NotifyUnhandledException(ep);
 
+#if ENABLE_NATIVE_CODEGEN
+    JITProcessManager::TerminateJITServer();
+#endif
     bool crashOnException = false;
     ChakraRTInterface::GetCrashOnExceptionFlag(&crashOnException);
 
@@ -633,6 +637,83 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     return hr;
 }
 
+#ifdef _WIN32
+bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[])
+{
+    LPCWSTR flag = L"-jitserver:";
+    LPCWSTR flagWithoutColon = L"-jitserver";
+    size_t flagLen = wcslen(flag);
+
+    int i = 0;
+    for (i = 1; i < argc; ++i)
+    {
+        if (!_wcsicmp(argv[i], flagWithoutColon))
+        {
+            connectionUuidString = L"";
+            break;
+        }
+        else if (!_wcsnicmp(argv[i], flag, flagLen))
+        {
+            connectionUuidString = argv[i] + flagLen;
+            if (wcslen(connectionUuidString) == 0)
+            {
+                fwprintf(stdout, L"[FAILED]: must pass a UUID to -jitserver:\n");
+                return false;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    if (i == argc)
+    {
+        return false;
+    }
+
+    // remove this flag now
+    HostConfigFlags::RemoveArg(argc, argv, i);
+
+    return true;
+}
+
+typedef HRESULT(WINAPI *JsInitializeJITServerPtr)(UUID* connectionUuid, void* securityDescriptor, void* alpcSecurityDescriptor);
+
+int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
+{
+    ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
+    HINSTANCE chakraLibrary = nullptr;
+    bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+
+    if (!success)
+    {
+        wprintf(L"\nDll load failed\n");
+        return ERROR_DLL_INIT_FAILED;
+    }
+
+    UUID connectionUuid;
+    DWORD status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
+    if (status != RPC_S_OK)
+    {
+        return status;
+    }
+
+    JsInitializeJITServerPtr initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
+    HRESULT hr = initRpcServer(&connectionUuid, nullptr, nullptr);
+    if (FAILED(hr))
+    {
+        wprintf(L"InitializeJITServer failed by 0x%x\n", hr);
+        return hr;
+    }
+
+    if (chakraLibrary)
+    {
+        ChakraRTInterface::UnloadChakraDll(chakraLibrary);
+    }
+    return 0;
+}
+#endif
 
 unsigned int WINAPI StaticThreadProc(void *lpParam)
 {
@@ -656,12 +737,23 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 {
 #endif
 
+#ifdef _WIN32
+    bool runJITServer = HandleJITServerFlag(argc, argv);
+#endif
+
     if (argc < 2)
     {
         PrintUsage();
         PAL_Shutdown();
         return EXIT_FAILURE;
     }
+
+#ifdef _WIN32
+    if (runJITServer)
+    {
+        return RunJITServer(argc, argv);
+    }
+#endif
 
     int cpos = 0;
     for(int i = 0; i < argc; ++i)
@@ -736,6 +828,15 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     if (success)
     {
 #ifdef _WIN32
+#if ENABLE_NATIVE_CODEGEN
+        if (HostConfigFlags::flags.EnableOutOfProcJIT)
+        {
+            // TODO: Error checking
+            JITProcessManager::StartRpcServer(argc, argv);
+            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
+        }
+#endif
+
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
 
@@ -754,8 +855,18 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         // On linux, execute on the same thread
         ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
+
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+        JITProcessManager::StopRpcServer(chakraLibrary);
+#endif
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+    else
+    {
+        JITProcessManager::TerminateJITServer();
+    }
+#endif
 
     PAL_Shutdown();
     return 0;

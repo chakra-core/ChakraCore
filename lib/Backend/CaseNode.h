@@ -53,9 +53,14 @@ public:
         return GetIntConst(GetUpperBound());
     }
 
+    Js::JavascriptString* GetSrc2StringConstLocal()
+    {
+        AssertMsg(caseInstr->GetSrc2()->GetStackSym()->m_isStrConst,"Source2 operand is not an integer constant");
+        return Js::JavascriptString::FromVar(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress(true));
+    }
     Js::JavascriptString* GetUpperBoundStrConst()
     {
-        AssertMsg(IsUpperBoundStrConst(),"Source2 operand is not a string constant");
+        AssertMsg(IsUpperBoundStrConst(), "Upper bound operand is not a string constant");
         return GetStringConst(GetUpperBound());
     }
 

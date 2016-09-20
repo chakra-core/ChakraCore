@@ -24,6 +24,7 @@ add_library (Chakra.Runtime.Base OBJECT
     TempArenaAllocatorObject.cpp
     TestEtwEventSink.cpp
     ThreadBoundThreadContextManager.cpp
+    ThreadContextInfo.cpp
     ThreadContext.cpp
     ThreadContextTlsEntry.cpp
     ThreadServiceWrapperBase.cpp

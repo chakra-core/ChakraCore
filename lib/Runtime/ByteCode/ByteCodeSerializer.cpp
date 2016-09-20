@@ -1274,8 +1274,8 @@ public:
             return block;
         };
 
-        auto writeAuxPropertyIdArray = [&](uint offset, uint32 extraSlots) -> BufferBuilder* {
-            const PropertyIdArray * propIds = reader.ReadPropertyIdArray(offset, functionBody, extraSlots);
+        auto writeAuxPropertyIdArray = [&](uint offset, byte extraSlots) -> BufferBuilder* {
+            const PropertyIdArray * propIds = reader.ReadPropertyIdArray(offset, functionBody);
 
             typedef serialization_alignment SerializedPropertyIdArray T;
             T header(offset, propIds->count, extraSlots, propIds->hadDuplicates, propIds->has__proto__);
@@ -1289,7 +1289,7 @@ public:
                 PrependConstantInt32(builder, _u("Encoded Property Id"), encoded);
             }
             auto slots = propIds->elements + propIds->count;
-            for(uint32 i=0; i<extraSlots; i++)
+            for(byte i=0; i<extraSlots; i++)
             {
                 PrependConstantInt32(builder, _u("Extra Slot"), slots[i]);
             }
@@ -1767,14 +1767,14 @@ public:
         {
             size += PrependBool(builder, _u("ExportsIdArrayLength"), true);
 
-            int32 extraSlotCount = 0;
+            byte extraSlotCount = 0;
             if (function->HasCachedScopePropIds())
             {
                 extraSlotCount = ActivationObjectEx::ExtraSlotCount();
             }
 
             size += PrependInt32(builder, _u("ExportsIdArrayLength"), propIds->count);
-            size += PrependInt32(builder, _u("ExtraSlotsCount"), extraSlotCount);
+            size += PrependByte(builder, _u("ExtraSlotsCount"), extraSlotCount);
             size += PrependByte(builder, _u("ExportsIdArrayDups"), propIds->hadDuplicates);
             size += PrependByte(builder, _u("ExportsIdArray__proto__"), propIds->has__proto__);
             size += PrependByte(builder, _u("ExportsIdArrayHasNonSimpleParams"), propIds->hasNonSimpleParams);
@@ -1786,7 +1786,7 @@ public:
             }
 
             auto slots = propIds->elements + propIds->count;
-            for (int i = 0; i < extraSlotCount; i++)
+            for (byte i = 0; i < extraSlotCount; i++)
             {
                 size += PrependInt32(builder, _u("Extra Slot"), slots[i]);
             }
@@ -1855,6 +1855,7 @@ public:
         if (moduleInfo->GetExportsCount() > 0)
         {
             PropertyIdArray * propArray = moduleInfo->GetExportsIdArray();
+            size += PrependByte(builder, _u("ExtraSlotsCount"), propArray->extraSlots);
             size += PrependByte(builder, _u("ExportsIdArrayDups"), propArray->hadDuplicates);
             size += PrependByte(builder, _u("ExportsIdArray__proto__"), propArray->has__proto__);
             size += PrependInt32(builder, _u("ExportsIdArrayLength"), propArray->count);
@@ -2009,8 +2010,9 @@ public:
                   | FunctionInfo::Attributes::CapturesThis
                   | FunctionInfo::Attributes::Generator
                   | FunctionInfo::Attributes::ClassConstructor
-                  | FunctionInfo::Attributes::ClassMethod)) == 0,
-                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember attributes should be set on a serialized function");
+                  | FunctionInfo::Attributes::ClassMethod
+                  | FunctionInfo::Attributes::EnclosedByGlobalFunc)) == 0,
+                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc attributes should be set on a serialized function");
 
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)
@@ -3179,45 +3181,42 @@ public:
         bool isPropertyIdArrayAvailable = false;
         current = ReadBool(current, &isPropertyIdArrayAvailable);
 
-        if (!isPropertyIdArrayAvailable)
+        if (isPropertyIdArrayAvailable)
         {
-            return current;
-        }
+            uint32 count = 0;
+            current = ReadUInt32(current, &count);
 
-        uint32 count = 0;
-        current = ReadUInt32(current, &count);
+            byte extraSlotCount = 0;
+            current = ReadByte(current, &extraSlotCount);
 
-        int32 extraSlotCount = 0;
-        current = ReadInt32(current, &extraSlotCount);
+            PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId), count, extraSlotCount);
+            propIds->count = count;
 
-        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId),count);
-        propIds->count = count;
-        
+            bool hadDuplicates = false;
+            current = ReadBool(current, &hadDuplicates);
+            propIds->hadDuplicates = hadDuplicates;
 
-        bool hadDuplicates = false;
-        current = ReadBool(current, &hadDuplicates);
-        propIds->hadDuplicates = hadDuplicates;
+            bool has__proto__ = false;
+            current = ReadBool(current, &has__proto__);
+            propIds->has__proto__ = has__proto__;
 
-        bool has__proto__ = false;
-        current = ReadBool(current, &has__proto__);
-        propIds->has__proto__ = has__proto__;
+            bool hasNonSimpleParams = false;
+            current = ReadBool(current, &hasNonSimpleParams);
+            propIds->hasNonSimpleParams = hasNonSimpleParams;
 
-        bool hasNonSimpleParams = false;
-        current = ReadBool(current, &hasNonSimpleParams);
-        propIds->hasNonSimpleParams = hasNonSimpleParams;
+            int id = 0;
+            for (uint i = 0; i < propIds->count; ++i)
+            {
+                current = ReadInt32(current, &id);
+                PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
+                propIds->elements[i] = propertyId;
+            }
 
-        int id = 0;
-        for (uint i = 0; i < propIds->count; ++i)
-        {
-            current = ReadInt32(current, &id);
-            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
-            propIds->elements[i] = propertyId;
-        }
-
-        for (int i = 0; i < extraSlotCount; ++i)
-        {
-            current = ReadInt32(current, &id);
-            propIds->elements[propIds->count + i] = id;
+            for (int i = 0; i < extraSlotCount; ++i)
+            {
+                current = ReadInt32(current, &id);
+                propIds->elements[propIds->count + i] = id;
+            }
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3352,6 +3351,10 @@ public:
         if (exportsCount > 0)
         {
             PropertyIdArray * propArray = moduleInfo->GetExportsIdArray();
+
+            byte extraSlots;
+            current = ReadByte(current, &extraSlots);
+            propArray->extraSlots = extraSlots;
 
             bool boolVal;
             current = ReadBool(current, &boolVal);
@@ -3881,7 +3884,8 @@ public:
         Assert(serialized->offset + sizeof(PropertyIdArray) < deserializeInto->GetLength());
         auto result = (PropertyIdArray *)(deserializeInto->GetBuffer() + serialized->offset);
         result->count = propertyCount;
-        Assert(serialized->offset + result->GetDataSize(extraSlotCount) <= deserializeInto->GetLength());
+        result->extraSlots = extraSlotCount;
+        Assert(serialized->offset + result->GetDataSize() <= deserializeInto->GetLength());
         result->hadDuplicates = serialized->hadDuplicates;
         result->has__proto__ = serialized->has__proto__;
 
@@ -4245,7 +4249,7 @@ SerializedFloatArray::SerializedFloatArray( uint offset, int floatCount ) :
 
 }
 
-SerializedPropertyIdArray::SerializedPropertyIdArray( uint offset, int propertyCount, int extraSlots, bool hadDuplicates, bool has__proto__) :
+SerializedPropertyIdArray::SerializedPropertyIdArray( uint offset, int propertyCount, byte extraSlots, bool hadDuplicates, bool has__proto__) :
     SerializedAuxiliary(offset, sakPropertyIdArray), propertyCount(propertyCount), extraSlots(extraSlots), hadDuplicates(hadDuplicates), has__proto__(has__proto__)
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
     , magic(magicStartOfAuxPropIdArray)

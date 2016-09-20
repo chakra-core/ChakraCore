@@ -25,7 +25,6 @@ Recycler::IntegrateBlock(char * blockAddress, PageSegment * segment, size_t allo
     {
         TrackAllocData trackAllocData;
         ClearTrackAllocInfo(&trackAllocData);
-
         TrackIntegrate(blockAddress, SmallAllocationBlockAttributes::PageCount * AutoSystemInfo::PageSize, allocSize, objectSize, trackAllocData);
     }
 #endif

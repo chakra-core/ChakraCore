@@ -1205,8 +1205,8 @@ GlobOpt::NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *prop
     if (propertySymOpnd->MayNeedTypeCheckProtection())
     {
         bool isCheckFixedFld = instr->m_opcode == Js::OpCode::CheckFixedFld;
-        AssertMsg(!isCheckFixedFld || !PHASE_OFF(Js::FixedMethodsPhase, instr->m_func->GetJnFunction()) ||
-            !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func->GetJnFunction()), "CheckFixedFld with fixed method/data phase disabled?");
+        AssertMsg(!isCheckFixedFld || !PHASE_OFF(Js::FixedMethodsPhase, instr->m_func) ||
+            !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func), "CheckFixedFld with fixed method/data phase disabled?");
         Assert(!isStore || !isCheckFixedFld);
         // We don't share caches between field loads and stores.  We should never have a field store involving a proto cache.
         Assert(!isStore || !propertySymOpnd->IsLoadedFromProto());

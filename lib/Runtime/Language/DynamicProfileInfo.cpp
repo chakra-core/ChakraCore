@@ -222,7 +222,7 @@ namespace Js
                 Js::Configuration::Global.flags.ForceDynamicProfile ||
 #endif
                 !scriptContext->GetConfig()->IsNoNative() ||
-                functionBody->IsInDebugMode()
+                (functionBody && functionBody->IsInDebugMode())
 #ifdef DYNAMIC_PROFILE_STORAGE
                 || DynamicProfileStorage::DoCollectInfo()
 #endif
@@ -345,7 +345,7 @@ namespace Js
         return function->UpdateThunkEntryPoint(static_cast<FunctionEntryPointInfo*>(entryPoint), directEntryPoint);
     }
 
-    bool DynamicProfileInfo::hasLdFldCallSiteInfo()
+    bool DynamicProfileInfo::HasLdFldCallSiteInfo() const
     {
         return bits.hasLdFldCallSite;
     }
@@ -649,6 +649,7 @@ namespace Js
         ResetPolymorphicCallSiteInfo(callSiteId, CallSiteCrossContext);
     }
 
+    /* static */
     bool DynamicProfileInfo::HasCallSiteInfo(FunctionBody* functionBody)
     {
         SourceContextInfo *sourceContextInfo = functionBody->GetSourceContextInfo();

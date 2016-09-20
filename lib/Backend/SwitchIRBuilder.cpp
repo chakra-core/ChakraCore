@@ -195,7 +195,7 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
 
     if (hasProfile)
     {
-        const ValueType valueType(m_profiledSwitchInstr->m_func->GetProfileInfo()->GetSwitchProfileInfo(m_profiledSwitchInstr->m_func->GetJnFunction(), profileId));
+        const ValueType valueType(m_profiledSwitchInstr->m_func->GetReadOnlyProfileInfo()->GetSwitchProfileInfo(profileId));
         instr->AsProfiledInstr()->u.FldInfo().valueType = valueType;
         m_switchIntDynProfile = valueType.IsLikelyTaggedInt();
         m_switchStrDynProfile = valueType.IsLikelyString();
@@ -208,7 +208,7 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
             PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d: Expression Type : %S\n"),
-                m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
                 m_profiledSwitchInstr->AsProfiledInstr()->u.profileId, valueTypeStr);
         }
     }
@@ -235,13 +235,14 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
     const bool isIntConst = src2Opnd->IsIntConstOpnd() || sym->IsIntConst();
     const bool isStrConst = !isIntConst && sym->m_isStrConst;
 
-    if (isIntConst && m_intConstSwitchCases->TestAndSet(sym ? sym->GetIntConstValue() : src2Opnd->AsIntConstOpnd()->AsInt32()))
+    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && sym->m_isIntConst && m_intConstSwitchCases->TestAndSet(sym->GetIntConstValue()))
     {
         // We've already seen a case statement with the same int const value. No need to emit anything for this.
         return;
     }
 
-    if (isStrConst && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(sym->GetConstAddress())))
+    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && sym->m_isStrConst
+        && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(sym->GetConstAddress(true))))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
         return;
@@ -273,7 +274,7 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
         {
             CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
             m_caseNodes->Add(caseNode);
-            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStrConst()->GetLength() == 1;
+            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetSrc2StringConstLocal()->GetLength() == 1;
             deferred = true;
         }
     }
@@ -736,7 +737,7 @@ SwitchIRBuilder::BuildBailOnNotInteger()
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d:Optimized for Integers\n"),
-        m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+        m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
 
@@ -763,7 +764,7 @@ SwitchIRBuilder::BuildBailOnNotString()
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d:Optimized for Strings\n"),
-        m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+        m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
 
@@ -833,7 +834,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         generateDictionary = false;
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             Assert(str->GetLength() == 1);
             char16 currChar = str->GetString()[0];
             minChar = min(minChar, currChar);
@@ -854,9 +855,9 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
-            multiBranchInstr->AddtoDictionary(caseTargetOffset, str);
+            multiBranchInstr->AddtoDictionary(caseTargetOffset, str, m_caseNodes->Item(i)->GetSrc2StringConst());
         }
     }
     else
@@ -879,7 +880,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStrConst();
+            Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConstLocal();
             Assert(str->GetLength() == 1);
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoJumpTable(caseTargetOffset, str->GetString()[0] - minChar);

@@ -79,6 +79,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SmallNormalHeapBucket.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StressTest.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VirtualAllocWrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)MemUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonMemoryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -111,6 +112,7 @@
     <ClInclude Include="LeakReport.h" />
     <ClInclude Include="LargeHeapBucket.h" />
     <ClInclude Include="MarkContext.h" />
+    <ClInclude Include="MemUtils.h" />
     <ClInclude Include="MemoryTracking.h" />
     <ClInclude Include="PageAllocator.h" />
     <ClInclude Include="PageAllocatorDefines.h" />
@@ -157,6 +159,11 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_SAVE_REGISTERS.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

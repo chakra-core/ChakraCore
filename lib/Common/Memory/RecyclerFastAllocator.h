@@ -134,14 +134,23 @@ public:
     size_t GetAlignedAllocSize() const
     {
 #ifdef RECYCLER_MEMORY_VERIFY
-        if (recycler->VerifyEnabled())
+        return GetAlignedAllocSize(recycler->VerifyEnabled(), recycler->verifyPad);
+#else
+        return GetAlignedAllocSize(FALSE, 0);
+#endif
+    }
+
+    static size_t GetAlignedAllocSize(BOOL verifyEnabled, uint verifyPad)
+    {
+#ifdef RECYCLER_MEMORY_VERIFY
+        if (verifyEnabled)
         {
             CompileAssert(sizeof(T) <= (size_t)-1 - sizeof(size_t));
-            return HeapInfo::GetAlignedSize(AllocSizeMath::Add(sizeof(T) + sizeof(size_t), recycler->verifyPad));
+            return HeapInfo::GetAlignedSize(AllocSizeMath::Add(sizeof(T) + sizeof(size_t), verifyPad));
         }
 #endif
         // We should have structures large enough that would cause this to overflow
-        CompileAssert(((sizeof(T) + (HeapConstants::ObjectGranularity-1)) & ~(HeapConstants::ObjectGranularity-1)) != 0);
+        CompileAssert(((sizeof(T) + (HeapConstants::ObjectGranularity - 1)) & ~(HeapConstants::ObjectGranularity - 1)) != 0);
         return HeapInfo::GetAlignedSizeNoCheck(sizeof(T));
     }
 

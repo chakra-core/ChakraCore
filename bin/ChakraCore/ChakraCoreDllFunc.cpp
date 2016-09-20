@@ -47,7 +47,7 @@ static BOOL AttachProcess(HANDLE hmod)
     g_hInstance = hmod;
     AutoSystemInfo::SaveModuleFileName(hmod);
 
-#if defined(_M_IX86)
+#if defined(_M_IX86) && !defined(__clang__)
     // Enable SSE2 math functions in CRT if SSE2 is available
 #pragma prefast(suppress:6031, "We don't require SSE2, but will use it if available")
     _set_SSE2_enable(TRUE);
@@ -203,3 +203,19 @@ void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
     autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
     autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
 }
+
+#if !ENABLE_NATIVE_CODEGEN
+EXPORT_FUNC
+HRESULT JsInitializeJITServer(
+    __in GUID* connectionUuid,
+    __in_opt void* securityDescriptor,
+    __in_opt void* alpcSecurityDescriptor)
+{
+    return E_NOTIMPL;
+}
+EXPORT_FUNC
+HRESULT JsShutdownJITServer()
+{
+    return E_NOTIMPL;
+}
+#endif

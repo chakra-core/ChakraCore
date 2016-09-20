@@ -22,7 +22,8 @@ public:
         hasCalls(false),
         prologLabelId(0),
         epilogEndLabelId(0),
-        workItem(nullptr),
+        jitOutput(nullptr),
+        alloc(nullptr),
         xdataTotal(0),
         pdataIndex(0),
         savedScratchReg(false)
@@ -30,7 +31,7 @@ public:
     }
 
     void Init(Func * func);
-    void EmitUnwindInfo(CodeGenWorkItem *workItem);
+    void EmitUnwindInfo(JITOutput *jitOutput, EmitBufferAllocation * alloc);
     DWORD EmitLongUnwindInfoChunk(DWORD remainingLength);
 
     void SetFunc(Func *func)
@@ -150,7 +151,9 @@ private:
     size_t fragmentStart;
     int pdataIndex;
     int xdataTotal;
-    CodeGenWorkItem *workItem;
+    HANDLE processHandle;
+    JITOutput *jitOutput;
+    EmitBufferAllocation * alloc;
     DWORD fragmentLength;
     DWORD prologOffset;
     DWORD prologLabelId;
@@ -171,7 +174,6 @@ private:
     void EncodeExpandedUnwindData();
     BYTE * GetBaseAddress();
 
-    bool IsPdataPacked(const DWORD *pdata) const;
     bool IsR4SavedRegRange(bool saveR11) const;
     static bool IsR4SavedRegRange(DWORD saveRegMask);
 
@@ -188,10 +190,10 @@ private:
     DWORD EmitXdataEnd(BYTE xData[], DWORD byte);
     DWORD EmitXdataEndPlus16(BYTE xData[], DWORD byte);
     DWORD EmitXdataLocalsPointer(BYTE xData[], DWORD byte, BYTE regEncode);
-
     DWORD RelativeRegEncoding(RegNum reg, RegNum baseReg) const;
     DWORD WriteXdataBytes(BYTE xdata[], DWORD byte, DWORD encoding, DWORD length);
 
+    void RecordPdataEntry(DWORD beginAddress, DWORD unwindData);
     // Constants defined in the ABI.
 
     static const DWORD MaxPackedPdataFuncLength = 0xFFE;

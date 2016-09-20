@@ -145,8 +145,10 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
 
 #pragma warning(pop)
 
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
 // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
 extern _x86_SIMDValue X86_TEMP_SIMD[];
+#endif
 
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);

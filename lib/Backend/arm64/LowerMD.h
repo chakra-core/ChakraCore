@@ -59,7 +59,7 @@ public:
             void            Init(Lowerer *lowerer) { __debugbreak(); }
             void            FinalLower(){ __debugbreak(); }
             bool            FinalLowerAssign(IR::Instr* instr){ __debugbreak(); return 0;  };
-            IR::Opnd *      GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode = false) { __debugbreak(); return 0; }
+            IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false) { __debugbreak(); return 0; }
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = NULL,
                             IR::Opnd *opndInstance = NULL, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false) { __debugbreak(); return 0; }
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod) { __debugbreak(); return 0; }

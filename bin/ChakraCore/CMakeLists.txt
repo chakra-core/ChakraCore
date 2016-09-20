@@ -56,6 +56,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     )
 endif()
 
+if(CC_TARGETS_X86)
+  set(lib_target "${lib_target} -m32")
+endif()
+
 target_link_libraries (ChakraCore ${lib_target})
 
 if(NOT CC_XCODE_PROJECT)

@@ -7,8 +7,8 @@
 class InliningDecider
 {
 private:
+    InliningThreshold threshold;
     Js::FunctionBody *const topFunc;
-    InliningHeuristics inliningHeuristics;
     bool isLoopBody;     // We don't support inlining on jit loop bodies as of now.
     bool isInDebugMode;
 
@@ -33,16 +33,19 @@ public:
     uint16 GetConstantArgInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     bool HasCallSiteInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth = 0);
-    bool GetIsLoopBody() { return isLoopBody;};
+    bool GetIsLoopBody() const { return isLoopBody;};
+    bool ContinueInliningUserDefinedFunctions(uint32 bytecodeInlinedCount) const;
+    bool CanRecursivelyInline(Js::FunctionBody * inlinee, Js::FunctionBody * inliner, bool allowRecursiveInlining, uint recursiveInlineDepth);
+    bool DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::FunctionBody * inliner, bool isConstructorCall, bool isPolymorphicCall, uint16 constantArgInfo, uint recursiveInlineDepth, bool allowRecursiveInlining);
 
-    void SetAggressiveHeuristics() { inliningHeuristics.threshold.SetAggressiveHeuristics(); }
-    void ResetInlineHeuristics() { inliningHeuristics.threshold.Reset(); }
+    void SetAggressiveHeuristics() { this->threshold.SetAggressiveHeuristics(); }
+    void ResetInlineHeuristics() { this->threshold.Reset(); }
     void SetLimitOnInlineesWithLoop(uint countOfInlineesWithLoops)
     {
         // If we have determined in TryAggressiveInlining phase there are too many inlinees with loop, just set the limit such that we don't inline them.
-        if ((uint)inliningHeuristics.threshold.maxNumberOfInlineesWithLoop <= countOfInlineesWithLoops)
+        if ((uint)this->threshold.maxNumberOfInlineesWithLoop <= countOfInlineesWithLoops)
         {
-            inliningHeuristics.threshold.maxNumberOfInlineesWithLoop = 0;
+            this->threshold.maxNumberOfInlineesWithLoop = 0;
         }
         return;
     }
@@ -56,16 +59,32 @@ public:
 
 
     static bool GetBuiltInInfo(
+        const FunctionJITTimeInfo *const funcInfo,
+        Js::OpCode *const inlineCandidateOpCode,
+        ValueType *const returnType);
+
+    static bool GetBuiltInInfo(
         Js::FunctionInfo *const funcInfo,
         Js::OpCode *const inlineCandidateOpCode,
-        ValueType *const returnType,
-        Js::ScriptContext *const scriptContext = nullptr);
+        ValueType *const returnType);
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     static void TraceInlining(Js::FunctionBody *const inliner, const char16* inlineeName, const char16* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
         Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, bool isLoopBody, uint builtIn = -1);
 #endif
 
+private:
+    static bool GetBuiltInInfoCommon(
+        uint localFuncId,
+        Js::OpCode *const inlineCandidateOpCode,
+        ValueType *const returnType);
+
+    static bool IsInlineeLeaf(Js::FunctionBody * const inlinee)
+    {
+        return inlinee->HasDynamicProfileInfo()
+            && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->HasNonBuiltInCallee() : inlinee->GetProfiledCallSiteCount() == 0)
+            && !inlinee->GetAnyDynamicProfileInfo()->HasLdFldCallSiteInfo();
+    }
     PREVENT_COPY(InliningDecider)
 };
 

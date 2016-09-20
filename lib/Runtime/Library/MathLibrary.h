@@ -21,10 +21,12 @@ private:
     void Ensure();
 
 public:
+    static const LPCWSTR LibraryName;
+
     UCrtC99MathApis() : m_pfnlog2(nullptr), m_pfnlog1p(nullptr), m_pfnexpm1(nullptr), m_pfnacosh(nullptr), m_pfnasinh(nullptr), m_pfnatanh(nullptr), m_pfntrunc(nullptr), m_pfncbrt(nullptr) { }
     virtual ~UCrtC99MathApis() { }
 
-    virtual LPCWSTR GetLibraryName() const override { return _u("api-ms-win-crt-math-l1-1-0.dll"); }
+    virtual LPCWSTR GetLibraryName() const override { return LibraryName; }
 
     bool IsAvailable() { Ensure(); return DelayLoadLibrary::IsAvailable(); }
 

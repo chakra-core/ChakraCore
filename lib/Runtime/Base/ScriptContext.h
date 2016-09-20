@@ -340,10 +340,6 @@ namespace Js
         }
     };
 
-#ifdef ENABLE_DOM_FAST_PATH
-    typedef JsUtil::BaseDictionary<Js::FunctionInfo*, IR::JnHelperMethod, ArenaAllocator, PowerOf2SizePolicy> DOMFastPathIRHelperMap;
-#endif
-
     // valid if object!= NULL
     struct EnumeratedObjectCache {
         static const int kMaxCachedPropStrings=16;
@@ -380,7 +376,7 @@ namespace Js
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
     };
 
-    class ScriptContext : public ScriptContextBase
+    class ScriptContext : public ScriptContextBase, public ScriptContextInfo
     {
         friend class LowererMD;
         friend class RemoteScriptContext;
@@ -442,6 +438,10 @@ namespace Js
         {
             return isInvalidatedForHostObjects;
         }
+
+#if ENABLE_NATIVE_CODEGEN
+        void InitializeRemoteScriptContext();
+#endif
 
 #ifdef ENABLE_JS_ETW
         void EmitStackTraceEvent(__in UINT64 operationID, __in USHORT maxFrameCount, bool emitV2AsyncStackEvent);
@@ -520,6 +520,8 @@ namespace Js
         ArenaAllocator* guestArena;
 
         ArenaAllocator* diagnosticArena;
+
+        intptr_t m_remoteScriptContextAddr;
 
         bool startupComplete; // Indicates if the heuristic startup phase for this script context is complete
         bool isInvalidatedForHostObjects;  // Indicates that we've invalidate all objects in the host so stop calling them.
@@ -854,13 +856,6 @@ private:
         typedef void(*TransitionToDebugModeIfFirstSourceFn)(ScriptContext *, Utf8SourceInfo *);
         TransitionToDebugModeIfFirstSourceFn transitionToDebugModeIfFirstSourceFn;
 
-#ifdef ENABLE_DOM_FAST_PATH
-        // Theoretically we can put this in ThreadContext; don't want to keep the dictionary forever, and preserve the possibility of
-        // using JavascriptFunction as key.
-        DOMFastPathIRHelperMap* domFastPathIRHelperMap;
-#endif
-
-
         ScriptContext(ThreadContext* threadContext);
         void InitializeAllocations();
         void InitializePreGlobal();
@@ -899,7 +894,9 @@ private:
         DateTime::DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
         DateTime::Utility *GetDateUtility() { return &dateTimeUtility; }
 
-        bool IsClosed() const { return isClosed; }
+        virtual bool IsClosed() const override { return isClosed; }
+        void SetIsClosed();
+
         bool IsFinalized() const { return isFinalized; }
         void SetIsFinalized() { isFinalized = true; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
@@ -915,9 +912,8 @@ private:
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
-#ifdef ENABLE_DOM_FAST_PATH
-        DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();
-#endif
+        intptr_t GetRemoteScriptAddr() { return m_remoteScriptContextAddr; }
+
         char16 const * GetUrl() const { return url; }
         void SetUrl(BSTR bstr);
 #ifdef RUNTIME_DATA_COLLECTION
@@ -1218,8 +1214,6 @@ private:
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ config.SetCanOptimizeGlobalLookupFlag(f);}
         BOOL CanOptimizeGlobalLookup(){ return config.CanOptimizeGlobalLookup();}
 
-
-        bool IsClosed() { return isClosed; }
         bool IsFastDOMEnabled() { return fastDOMenabled; }
         void SetFastDOMenabled();
         BOOL VerifyAlive(BOOL isJSFunction = FALSE, ScriptContext* requestScriptContext = nullptr);
@@ -1710,11 +1704,65 @@ private:
 #endif
 
     public:
+        virtual intptr_t GetNullAddr() const override;
+        virtual intptr_t GetUndefinedAddr() const override;
+        virtual intptr_t GetTrueAddr() const override;
+        virtual intptr_t GetFalseAddr() const override;
+        virtual intptr_t GetUndeclBlockVarAddr() const override;
+        virtual intptr_t GetEmptyStringAddr() const override;
+        virtual intptr_t GetNegativeZeroAddr() const override;
+        virtual intptr_t GetNumberTypeStaticAddr() const override;
+        virtual intptr_t GetStringTypeStaticAddr() const override;
+        virtual intptr_t GetObjectTypeAddr() const override;
+        virtual intptr_t GetObjectHeaderInlinedTypeAddr() const override;
+        virtual intptr_t GetRegexTypeAddr() const override;
+        virtual intptr_t GetArrayTypeAddr() const override;
+        virtual intptr_t GetNativeIntArrayTypeAddr() const override;
+        virtual intptr_t GetNativeFloatArrayTypeAddr() const override;
+        virtual intptr_t GetArrayConstructorAddr() const override;
+        virtual intptr_t GetCharStringCacheAddr() const override;
+        virtual intptr_t GetSideEffectsAddr() const override;
+        virtual intptr_t GetArraySetElementFastPathVtableAddr() const override;
+        virtual intptr_t GetIntArraySetElementFastPathVtableAddr() const override;
+        virtual intptr_t GetFloatArraySetElementFastPathVtableAddr() const override;
+        virtual intptr_t GetLibraryAddr() const override;
+        virtual intptr_t GetGlobalObjectAddr() const override;
+        virtual intptr_t GetGlobalObjectThisAddr() const override;
+        virtual intptr_t GetNumberAllocatorAddr() const override;
+        virtual intptr_t GetRecyclerAddr() const override;
+        virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
+        virtual bool IsSIMDEnabled() const override;
+        virtual bool IsPRNGSeeded() const override;
+        virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
+
+#if ENABLE_NATIVE_CODEGEN
+        virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
+        virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
+#endif
+
+        virtual intptr_t GetAddr() const override;
+
+        virtual intptr_t GetVTableAddress(VTableValue vtableType) const override;
+
+        virtual bool IsRecyclerVerifyEnabled() const override;
+        virtual uint GetRecyclerVerifyPad() const override;
+ 
+        virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+
+        Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
+        {
+            return javascriptLibrary->GetModuleRecord(moduleId);
+        }
+
         void SetBuiltInLibraryFunction(JavascriptMethod entryPoint, JavascriptFunction* function);
         JavascriptFunction* GetBuiltInLibraryFunction(JavascriptMethod entryPoint);
 
     private:
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
+
+#if ENABLE_NATIVE_CODEGEN
+        JITDOMFastPathHelperMap * m_domFastPathHelperMap;
+#endif
 
 #ifdef RECYCLER_PERF_COUNTERS
         size_t bindReferenceCount;

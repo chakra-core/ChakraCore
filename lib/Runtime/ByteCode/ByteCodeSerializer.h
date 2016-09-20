@@ -84,10 +84,10 @@ namespace Js
         int magic; // magicStartOfAuxPropIdArray
 #endif
         int propertyCount;
-        int extraSlots;
+        byte extraSlots;
         bool hadDuplicates;
         bool has__proto__;
-        SerializedPropertyIdArray(uint offset, int propertyCount, int extraSlots, bool hadDuplicates, bool has__proto__);
+        SerializedPropertyIdArray(uint offset, int propertyCount, byte extraSlots, bool hadDuplicates, bool has__proto__);
     };
 
     // The in-memory layout of the serialized analog of FuncInfoArray

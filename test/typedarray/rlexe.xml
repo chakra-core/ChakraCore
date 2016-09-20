@@ -128,7 +128,7 @@
     <default>
       <files>samethread.js</files>
       <baseline>samethread.baseline</baseline>
-      <tags>typedarray</tags>
+      <tags>typedarray,Slow</tags>
     </default>
   </test>
   <!--

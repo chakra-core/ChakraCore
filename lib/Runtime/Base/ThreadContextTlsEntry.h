@@ -40,7 +40,7 @@ class ThreadContextScope
 public:
     ThreadContextScope(ThreadContext * threadContext)
     {
-        if (!threadContext->GetIsThreadBound())
+        if (!threadContext->IsThreadBound())
         {
             originalContext = ThreadContextTLSEntry::GetEntryForCurrentThread() ?
                 ThreadContextTLSEntry::GetEntryForCurrentThread()->GetThreadContext() : NULL;

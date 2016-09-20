@@ -16,7 +16,7 @@ namespace Js
     {
         ByteCodeReader reader;
         reader.Create(body);
-        StatementReader statementReader;
+        StatementReader<FunctionBody::StatementMapList> statementReader;
         statementReader.Create(body);
         body->DumpFullFunctionName();
         Output::Print(_u(" Asm.js ("));

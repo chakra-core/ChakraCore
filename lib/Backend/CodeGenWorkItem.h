@@ -17,18 +17,17 @@ protected:
         CodeGenWorkItemType type);
     ~CodeGenWorkItem();
 
+    CodeGenWorkItemIDL jitData;
+
     Js::FunctionBody *const functionBody;
     size_t codeAddress;
     ptrdiff_t codeSize;
-    ushort pdataCount;
-    ushort xdataSize;
 
-    CodeGenWorkItemType type;
-    ExecutionMode jitMode;
+public:
+    HRESULT codeGenResult;
 
 public:
     virtual uint GetByteCodeCount() const = 0;
-    virtual uint GetFunctionNumber() const = 0;
     virtual size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) = 0;
     virtual void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) = 0;
     virtual uint GetInterpretedCount() const = 0;
@@ -40,14 +39,23 @@ public:
     virtual void DumpNativeOffsetMaps() = 0;
     virtual void DumpNativeThrowSpanSequence() = 0;
 #endif
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) = 0;
 
-    ExecutionMode GetJitMode()
+    uint GetFunctionNumber() const
     {
-        return jitMode;
+        return this->jitData.jitData->bodyData->funcNumber;
     }
 
-    CodeGenWorkItemType Type() const { return type; }
+    ExecutionMode GetJitMode() const
+    {
+        return static_cast<ExecutionMode>(this->jitData.jitMode);
+    }
+
+    CodeGenWorkItemIDL * GetJITData()
+    {
+        return &this->jitData;
+    }
+
+    CodeGenWorkItemType Type() const { return static_cast<CodeGenWorkItemType>(this->jitData.type); }
 
     Js::ScriptContext* GetScriptContext()
     {
@@ -65,12 +73,6 @@ public:
     void SetCodeSize(ptrdiff_t codeSize) { this->codeSize = codeSize; }
     ptrdiff_t GetCodeSize() { return codeSize; }
 
-    void SetPdataCount(ushort pdataCount) { this->pdataCount = pdataCount; }
-    ushort GetPdataCount() { return pdataCount; }
-
-    void SetXdataSize(ushort xdataSize) { this->xdataSize = xdataSize; }
-    ushort GetXdataSize() { return xdataSize; }
-
 protected:
     virtual uint GetLoopNumber() const
     {
@@ -86,7 +88,6 @@ protected:
 
 private:
     bool isInJitQueue;                  // indicates if the work item has been added to the global jit queue
-    bool isJitInDebugMode;              // Whether JIT is in debug mode for this work item.
     bool isAllocationCommitted;         // Whether the EmitBuffer allocation has been committed
 
     QueuedFullJitWorkItem *queuedFullJitWorkItem;
@@ -114,11 +115,6 @@ public:
     }
 #endif
 private:
-
-    void SetAllocation(EmitBufferAllocation *allocation)
-    {
-        this->allocation = allocation;
-    }
     EmitBufferAllocation *GetAllocation() { return allocation; }
 
 public:
@@ -126,9 +122,6 @@ public:
     {
         return this->entryPointInfo;
     }
-
-    void RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize);
-    void RecordNativeCode(Func *func, const BYTE* sourceBuffer);
 
     Js::CodeGenRecyclableData *RecyclableData() const
     {
@@ -151,20 +144,20 @@ public:
 public:
     void ResetJitMode()
     {
-        jitMode = ExecutionMode::Interpreter;
+        this->jitData.jitMode = static_cast<uint8>(ExecutionMode::Interpreter);
     }
 
     void SetJitMode(const ExecutionMode jitMode)
     {
-        this->jitMode = jitMode;
+        this->jitData.jitMode = static_cast<uint8>(jitMode);
         VerifyJitMode();
     }
 
     void VerifyJitMode() const
     {
-        Assert(jitMode == ExecutionMode::SimpleJit || jitMode == ExecutionMode::FullJit);
-        Assert(jitMode != ExecutionMode::SimpleJit || GetFunctionBody()->DoSimpleJit());
-        Assert(jitMode != ExecutionMode::FullJit || GetFunctionBody()->DoFullJit());
+        Assert(GetJitMode() == ExecutionMode::SimpleJit || GetJitMode() == ExecutionMode::FullJit);
+        Assert(GetJitMode() != ExecutionMode::SimpleJit || GetFunctionBody()->DoSimpleJit());
+        Assert(GetJitMode() != ExecutionMode::FullJit || !PHASE_OFF(Js::FullJitPhase, GetFunctionBody()));
     }
 
     void OnAddToJitQueue();
@@ -183,45 +176,10 @@ public:
 
     bool IsJitInDebugMode() const
     {
-        return isJitInDebugMode;
+        return jitData.isJitInDebugMode != 0;
     }
-
-#if _M_X64 || _M_ARM
-    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size)
-    {
-#if _M_X64
-        Assert(offset == 0);
-        Assert(XDATA_SIZE >= size);
-        js_memcpy_s(GetAllocation()->allocation->xdata.address, XDATA_SIZE, unwindInfo, size);
-        return 0;
-#else
-        BYTE *xdataFinal = GetAllocation()->allocation->xdata.address + offset;
-
-        Assert(xdataFinal);
-        Assert(((DWORD)xdataFinal & 0x3) == 0); // 4 byte aligned
-        js_memcpy_s(xdataFinal, size, unwindInfo, size);
-        return (size_t)xdataFinal;
-#endif
-    }
-#endif
-
-#if _M_ARM
-    void RecordPdataEntry(int index, DWORD beginAddress, DWORD unwindData)
-    {
-        RUNTIME_FUNCTION *function = GetAllocation()->allocation->xdata.GetPdataArray() + index;
-        function->BeginAddress = beginAddress;
-        function->UnwindData = unwindData;
-    }
-
-    void FinalizePdata()
-    {
-        GetAllocation()->allocation->RegisterPdata((ULONG_PTR)GetCodeAddress(), GetCodeSize());
-    }
-#endif
 
     void OnWorkItemProcessFail(NativeCodeGenerator *codeGen);
-
-    void FinalizeNativeCode(Func *func);
 
     void RecordNativeThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeOffset, uint32 statementIndex)
     {
@@ -244,17 +202,13 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         bool isJitInDebugMode)
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsFunctionType)
     {
+        this->jitData.loopNumber = GetLoopNumber();
     }
 
 public:
     uint GetByteCodeCount() const override
     {
         return functionBody->GetByteCodeCount() +  functionBody->GetConstantCount();
-    }
-
-    uint GetFunctionNumber() const override
-    {
-        return functionBody->GetFunctionNumber();
     }
 
     size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) override
@@ -307,29 +261,20 @@ public:
         this->GetEntryPoint()->DumpNativeThrowSpanSequence();
     }
 #endif
-
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) override
-    {
-        reader.Create(this->functionBody, 0, IsJitInDebugMode());
-        statementReader.Create(this->functionBody, 0, IsJitInDebugMode());
-    }
 };
 
 struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 {
     JsLoopBodyCodeGen(
-        JsUtil::JobManager *const manager,
-        Js::FunctionBody *const functionBody,
-        Js::EntryPointInfo* entryPointInfo,
-        bool isJitInDebugMode)
-        : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType)
-        , symIdToValueTypeMap(nullptr)
+        JsUtil::JobManager *const manager, Js::FunctionBody *const functionBody,
+        Js::EntryPointInfo* entryPointInfo, bool isJitInDebugMode, Js::LoopHeader * loopHeader) :
+        CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType),
+        loopHeader(loopHeader)
     {
+        this->jitData.loopNumber = GetLoopNumber();
     }
 
     Js::LoopHeader * loopHeader;
-    typedef JsUtil::BaseDictionary<uint, ValueType, HeapAllocator> SymIdToValueTypeMap;
-    SymIdToValueTypeMap *symIdToValueTypeMap;
 
     uint GetLoopNumber() const override
     {
@@ -339,11 +284,6 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
     uint GetByteCodeCount() const override
     {
         return (loopHeader->endOffset - loopHeader->startOffset) + functionBody->GetConstantCount();
-    }
-
-    uint GetFunctionNumber() const override
-    {
-        return functionBody->GetFunctionNumber();
     }
 
     size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) override
@@ -388,18 +328,12 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         HeapDelete(this);
     }
 
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) override
-    {
-        reader.Create(this->functionBody, this->loopHeader->startOffset, IsJitInDebugMode());
-        statementReader.Create(this->functionBody, this->loopHeader->startOffset, IsJitInDebugMode());
-    }
-
     ~JsLoopBodyCodeGen()
     {
-        if (this->symIdToValueTypeMap)
+        if (this->jitData.symIdToValueTypeMap != nullptr)
         {
-            HeapDelete(this->symIdToValueTypeMap);
-            this->symIdToValueTypeMap = NULL;
+            HeapDeleteArray(this->jitData.symIdToValueTypeMapCount, this->jitData.symIdToValueTypeMap);
+            this->jitData.symIdToValueTypeMap = nullptr;
         }
     }
 };

@@ -140,7 +140,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsCoroutine())
+    if (this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -187,9 +187,9 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
         
-        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJnFunction()->GetInParamsCount() > 1)
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJnFunction()->GetDisplayName(), instrArgs->m_func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJITFunctionBody()->GetDisplayName(), instrArgs->m_func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -225,7 +225,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s3 = formal argument count (without counting "this").
-            uint32 formalsCount = func->GetJnFunction()->GetInParamsCount() - 1;
+            uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
             this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyUint32, func));
 
             // s2 = actual argument count (without counting "this").
@@ -301,9 +301,9 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
     {
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
-        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJnFunction()->GetInParamsCount() > 1)
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJnFunction()->GetDisplayName(), instrArgs->m_func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJITFunctionBody()->GetDisplayName(), instrArgs->m_func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -325,7 +325,13 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
         instrPrev = this->lowererMD->m_lowerer->LoadScriptContext(instrArgs);
 
         // s5 = array of property ID's
-        IR::Opnd * argArray = IR::AddrOpnd::New(instrArgs->m_func->GetJnFunction()->GetFormalsPropIdArrayOrNullObj(), IR::AddrOpndKindDynamicMisc, m_func);
+        intptr_t formalsPropIdArray = instrArgs->m_func->GetJITFunctionBody()->GetFormalsPropIdArrayAddr();
+        if (!formalsPropIdArray)
+        {
+            formalsPropIdArray = instrArgs->m_func->GetScriptContextInfo()->GetNullAddr();
+        }
+
+        IR::Opnd * argArray = IR::AddrOpnd::New(formalsPropIdArray, IR::AddrOpndKindDynamicMisc, m_func);
         this->LoadHelperArgument(instrArgs, argArray);
 
         // s4 = local frame instance
@@ -380,7 +386,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJnFunction()->IsCoroutine())
+            if (this->m_func->GetJITFunctionBody()->IsCoroutine())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -430,7 +436,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
     }
 
-    if (instrFuncExpr->m_func->GetJnFunction()->IsCoroutine())
+    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before
@@ -543,7 +549,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
               startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsI,
               "Problem with arg chain.");
     AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount ||
-              m_func->GetJnFunction()->GetIsAsmjsMode(),
+              m_func->GetJITFunctionBody()->IsAsmJsMode(),
         "ArgCount doesn't match StartCall count");
     //
     // Machine dependent lowering
@@ -565,7 +571,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     const uint32 argSlots = argCount + 1 + extraParams; // + 1 for call flags
     this->m_func->m_argSlotsForFunctionsCalled = max(this->m_func->m_argSlotsForFunctionsCalled, argSlots);
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
         GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
@@ -766,7 +772,7 @@ LowererMDArch::LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper
     if (callInstr->IsJitProfilingInstr())
     {
         Assert(callInstr->m_func->IsSimpleJit());
-        Assert(!Js::FunctionBody::IsNewSimpleJit());
+        Assert(!CONFIG_FLAG(NewSimpleJit));
 
         if(finalDst &&
             finalDst->IsRegOpnd() &&
@@ -911,8 +917,8 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym)
 
     // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
     // With SIMD, args are of variable length and we need to the argument position in the args list.
-    if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled() &&
-        m_func->GetJnFunction()->GetIsAsmJsFunction() &&
+    if (m_func->IsSIMDEnabled() &&
+        m_func->GetJITFunctionBody()->IsAsmJsMode() &&
         argSym != nullptr &&
         argSym->m_argPosition != 0)
     {
@@ -1444,7 +1450,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (this->m_func->GetMaxInlineeArgOutCount())
     {
-        this->m_func->m_workItem->GetFunctionBody()->SetFrameHeight(this->m_func->m_workItem->GetEntryPoint(), this->m_func->m_localStackHeight);
+        this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight);
     }
 
     //
@@ -1486,7 +1492,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (this->m_func->HasArgumentSlot() && (this->m_func->IsStackArgsEnabled() ||
         this->m_func->IsJitInDebugMode() ||
         // disabling apply inlining leads to explicit load from the zero-inited slot
-        this->m_func->GetJnFunction()->IsInlineApplyDisabled())
+        this->m_func->GetJITFunctionBody()->IsInlineApplyDisabled())
 #ifdef BAILOUT_INJECTION
         || Js::Configuration::Global.flags.IsEnabled(Js::BailOutFlag)
         || Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryLineFlag)
@@ -1548,14 +1554,13 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //
     // Now store all the arguments in the register in the stack slots
     //
-    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
         uint16 offset = 2;
         this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
-        for (uint16 i = 0; i < asmJsFuncInfo->GetArgCount() && i < 3; i++)
+        for (uint16 i = 0; i < m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgCount() && i < 3; i++)
         {
-            switch (asmJsFuncInfo->GetArgType(i).which())
+            switch (m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgType(i))
             {
             case Js::AsmJsVarType::Int:
                 this->MovArgFromReg2Stack(entryInstr, i == 0 ? RegRDX : i == 1 ? RegR8 : RegR9, offset, TyInt32);
@@ -1689,16 +1694,15 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     IR::Instr *insertInstr = entryInstr->m_next;
     IR::Instr *instr;
     IR::Opnd *stackLimitOpnd;
-    ThreadContext   *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-    bool doInterruptProbe = threadContext->DoInterruptProbe(this->m_func->GetJnFunction());
+    bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
     // MOV rax, ThreadContext::scriptStackLimit + frameSize
     stackLimitOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
-    if (doInterruptProbe || !threadContext->GetIsThreadBound())
+    if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
         // Load the current stack limit from the ThreadContext and add the current frame size.
         {
-            void *pLimit = threadContext->GetAddressOfStackLimitForCurrentThread();
+            intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
             IR::RegOpnd *baseOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
             this->lowererMD->CreateAssign(baseOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
             IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseOpnd, 0, TyMachReg, this->m_func);
@@ -1719,7 +1723,8 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     }
     else
     {
-        size_t scriptStackLimit = (size_t)this->m_func->GetScriptContext()->GetThreadContext()->GetScriptStackLimit();
+        // TODO: michhol, check this math
+        size_t scriptStackLimit = m_func->GetThreadContextInfo()->GetScriptStackLimit();
         this->lowererMD->CreateAssign(stackLimitOpnd, IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindConstant, this->m_func), insertInstr);
     }
 
@@ -1871,9 +1876,9 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     // Insert RET
     IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(0, TyInt32, this->m_func);
     IR::RegOpnd *retReg = nullptr;
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
-        switch (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetReturnType().which())
+        switch (m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType())
         {
         case Js::AsmJsRetType::Double:
         case Js::AsmJsRetType::Float:

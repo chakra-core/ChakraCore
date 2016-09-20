@@ -45,7 +45,7 @@
       <baseline>parseISO.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
       <!-- OSX doesn't provide expected DST for minus years -->
-      <tags>exclude_jenkins,exclude_mac</tags>
+      <tags>exclude_jenkins,exclude_mac,Slow</tags>
     </default>
   </test>
   <test>

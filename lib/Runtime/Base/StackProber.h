@@ -8,9 +8,9 @@ class StackProber
 {
 public:
     void Initialize();
-    PBYTE GetScriptStackLimit() const { return stackLimit; }
+    size_t GetScriptStackLimit() const { return stackLimit; }
 #if DBG
-    void AdjustKnownStackLimit(PBYTE sp, size_t size)
+    void AdjustKnownStackLimit(size_t sp, size_t size)
     {
         if (knownStackLimit == 0) knownStackLimit = sp - size;
         knownStackLimit = ((sp - size) < knownStackLimit) ? (sp - size) : knownStackLimit;
@@ -18,8 +18,8 @@ public:
 #endif
 
 private:
-    PBYTE stackLimit;
+    size_t stackLimit;
 #if DBG
-    PBYTE knownStackLimit;
+    size_t knownStackLimit;
 #endif
 };

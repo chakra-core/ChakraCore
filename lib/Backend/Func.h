@@ -97,9 +97,14 @@ typedef HashTable<FrameDisplayCheckRecord*, JitArenaAllocator> FrameDisplayCheck
 class Func
 {
 public:
-    Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
-        Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-        CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
+    Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+        ThreadContextInfo * threadContextInfo,
+        ScriptContextInfo * scriptContextInfo,
+        JITOutputIDL * outputData,
+        Js::EntryPointInfo* epInfo,
+        const FunctionJITRuntimeInfo *const runtimeInfo,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        CodeGenNumberAllocator * numberAllocator,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
@@ -125,6 +130,10 @@ public:
     {
         return &this->m_codeGenAllocators->emitBufferManager;
     }
+    XProcNumberPageSegmentImpl* GetXProcNumberAllocator()
+    {
+        return (XProcNumberPageSegmentImpl*)this->GetJITOutput()->GetOutputData()->numberPageSegments;
+    }
 
     Js::ScriptContextProfiler *GetCodeGenProfiler() const
     {
@@ -135,6 +144,8 @@ public:
 #endif
     }
 
+    bool IsOOPJIT() const { return JITManager::GetJITManager()->IsOOPJITEnabled(); }
+
     void InitLocalClosureSyms();
 
     bool HasAnyStackNestedFunc() const { return this->hasAnyStackNestedFunc; }
@@ -143,7 +154,7 @@ public:
     bool DoStackScopeSlots() const { return this->stackClosure; }
     bool IsBackgroundJIT() const { return this->m_isBackgroundJIT; }
     bool HasArgumentSlot() const { return this->GetInParamsCount() != 0 && !this->IsLoopBody(); }
-    bool IsLoopBody() const;
+    bool IsLoopBody() const { return m_workItem->IsLoopBody(); }
     bool IsLoopBodyInTry() const;
     bool CanAllocInPreReservedHeapPageSegment();
     void SetDoFastPaths();
@@ -152,7 +163,7 @@ public:
     bool DoLoopFastPaths() const
     {
         return
-            (!IsSimpleJit() || Js::FunctionBody::IsNewSimpleJit()) &&
+            (!IsSimpleJit() || CONFIG_FLAG(NewSimpleJit)) &&
             !PHASE_OFF(Js::FastPathPhase, this) &&
             !PHASE_OFF(Js::LoopFastPathPhase, this);
     }
@@ -160,7 +171,7 @@ public:
     bool DoGlobOpt() const
     {
         return
-            !PHASE_OFF(Js::GlobOptPhase, this->GetJnFunction()) && !IsSimpleJit() &&
+            !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch());
     }
 
@@ -177,16 +188,63 @@ public:
 
     bool CanOptimizeTryCatch() const
     {
-        return !this->HasFinally() && !this->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
+        return !this->HasFinally() && !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
     }
 
-    bool DoSimpleJitDynamicProfile() const { return IsSimpleJit() && GetTopFunc()->GetJnFunction()->DoSimpleJitDynamicProfile(); }
+    bool DoSimpleJitDynamicProfile() const;
     bool IsSimpleJit() const { return m_workItem->GetJitMode() == ExecutionMode::SimpleJit; }
 
-    void BuildIR();
-    void Codegen();
+    JITTimeWorkItem * GetWorkItem() const
+    {
+        return m_workItem;
+    }
 
-    void ThrowIfScriptClosed();
+    ThreadContextInfo * GetThreadContextInfo() const
+    {
+        return m_threadContextInfo;
+    }
+
+    ScriptContextInfo * GetScriptContextInfo() const
+    {
+        return m_scriptContextInfo;
+    }
+
+    JITOutput* GetJITOutput()
+    {
+        return &m_output;
+    }
+
+    const JITOutput* GetJITOutput() const
+    {
+        return &m_output;
+    }
+
+    const JITTimeFunctionBody * const GetJITFunctionBody() const
+    {
+        return m_workItem->GetJITFunctionBody();
+    }
+
+    Js::EntryPointInfo* GetInProcJITEntryPointInfo() const
+    {
+        Assert(!IsOOPJIT());
+        return m_entryPointInfo;
+    }
+
+    wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
+    {
+        return m_workItem->GetJITTimeInfo()->GetDebugNumberSet(bufferToWriteTo);
+    }
+
+    void TryCodegen();
+    static void Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+        ThreadContextInfo * threadContextInfo,
+        ScriptContextInfo * scriptContextInfo,
+        JITOutputIDL * outputData,
+        Js::EntryPointInfo* epInfo, // for in-proc jit only
+        const FunctionJITRuntimeInfo *const runtimeInfo,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        CodeGenNumberAllocator * numberAllocator,
+        Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT);
 
     int32 StackAllocate(int size);
     int32 StackAllocate(StackSym *stackSym, int size);
@@ -196,14 +254,26 @@ public:
     int32 GetHasLocalVarChangedOffset();
     bool IsJitInDebugMode();
     bool IsNonTempLocalVar(uint32 slotIndex);
-    int32 AdjustOffsetValue(int32 offset);
     void OnAddSym(Sym* sym);
+
+    uint GetLocalFunctionId() const
+    {
+        return m_workItem->GetJITTimeInfo()->GetLocalFunctionId();
+    }
+
+    uint GetSourceContextId() const
+    {
+        return m_workItem->GetJITFunctionBody()->GetSourceContextId();
+    }
+
 
 #ifdef MD_GROW_LOCALS_AREA_UP
     void AjustLocalVarSlotOffset();
 #endif
 
-    bool DoGlobOptsForGeneratorFunc();
+    bool DoGlobOptsForGeneratorFunc() const;
+
+    static int32 AdjustOffsetValue(int32 offset);
 
     static inline uint32 GetDiagLocalSlotSize()
     {
@@ -229,8 +299,17 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
 #endif
 
+    bool IsSIMDEnabled() const
+    {
+        return GetScriptContextInfo()->IsSIMDEnabled();
+    }
     uint32 GetInstrCount();
-    inline Js::ScriptContext* GetScriptContext() const { return m_workItem->GetScriptContext(); }
+    inline Js::ScriptContext* GetScriptContext() const
+    {
+        Assert(!IsOOPJIT());
+
+        return static_cast<Js::ScriptContext*>(this->GetScriptContextInfo());
+    }
     void NumberInstrs();
     bool IsTopFunc() const { return this->parentFunc == nullptr; }
     Func const * GetTopFunc() const;
@@ -240,59 +319,50 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     uint GetFunctionNumber() const
     {
-        Assert(this->IsTopFunc());
-        return this->m_workItem->GetFunctionNumber();
+        return m_workItem->GetJITFunctionBody()->GetFunctionNumber();
     }
-    uint GetLocalFunctionId() const
-    {
-        return this->m_workItem->GetFunctionBody()->GetLocalFunctionId();
-    }
-    uint GetSourceContextId() const
-    {
-        return this->m_workItem->GetFunctionBody()->GetSourceContextId();
-    }
+
     BOOL HasTry() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetHasTry();
+        return this->GetJITFunctionBody()->HasTry();
     }
     bool HasFinally() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetHasFinally();
+        return this->GetJITFunctionBody()->HasFinally();
     }
     bool HasThis() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetHasThis();
+        Assert(this->GetJITFunctionBody());     // For now we always have a function body
+        return this->GetJITFunctionBody()->HasThis();
     }
     Js::ArgSlot GetInParamsCount() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetInParamsCount();
+        return this->GetJITFunctionBody()->GetInParamsCount();
     }
     bool IsGlobalFunc() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetIsGlobalFunc();
+        return this->GetJITFunctionBody()->IsGlobalFunc();
     }
+    uint16 GetArgUsedForBranch() const;
+
+    intptr_t GetWeakFuncRef() const;
+
+    const FunctionJITRuntimeInfo * GetRuntimeInfo() const { return m_runtimeInfo; }
     bool IsLambda() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->IsLambda();
+        Assert(this->GetJITFunctionBody());     // For now we always have a function body
+        return this->GetJITFunctionBody()->IsLambda();
     }
     bool IsTrueLeaf() const
     {
         return !GetHasCalls() && !GetHasImplicitCalls();
     }
-    RecyclerWeakReference<Js::FunctionBody> *GetWeakFuncRef() const;
-    Js::FunctionBody * GetJnFunction() const { return m_jnFunction; }
 
     StackSym *EnsureLoopParamSym();
 
@@ -317,26 +387,25 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     StackSym *GetLocalFrameDisplaySym() const { return m_localFrameDisplaySym; }
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
 
-    uint8 *GetCallsCountAddress() const;
-    uint *GetJittedLoopIterationsSinceLastBailoutAddress() const;
-
+    intptr_t GetJittedLoopIterationsSinceLastBailoutAddress() const;
     void EnsurePinnedTypeRefs();
     void PinTypeRef(void* typeRef);
 
     void EnsureSingleTypeGuards();
-    Js::JitTypePropertyGuard* GetOrCreateSingleTypeGuard(Js::Type* type);
+    Js::JitTypePropertyGuard* GetOrCreateSingleTypeGuard(intptr_t typeAddr);
 
     void  EnsureEquivalentTypeGuards();
-    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(Js::Type* type, uint32 objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId);
 
+    void ThrowIfScriptClosed();
     void EnsurePropertyGuardsByPropertyId();
     void EnsureCtorCachesByPropertyId();
 
     void LinkGuardToPropertyId(Js::PropertyId propertyId, Js::JitIndexedPropertyGuard* guard);
-    void LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructorCache* cache);
+    void LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCache* cache);
 
-    Js::JitTimeConstructorCache* GetConstructorCache(const Js::ProfileId profiledCallSiteId);
-    void SetConstructorCache(const Js::ProfileId profiledCallSiteId, Js::JitTimeConstructorCache* constructorCache);
+    JITTimeConstructorCache * GetConstructorCache(const Js::ProfileId profiledCallSiteId);
+    void SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache);
 
     void EnsurePropertiesWrittenTo();
 
@@ -432,13 +501,14 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
         return this->isTJLoopBody;
     }
 
-    Js::ObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
-    Js::ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
-    void SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info);
+    Js::Var AllocateNumber(double value);
+
+    JITObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
+    JITObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.
-    Js::InlineCache *GetRuntimeInlineCache(const uint index) const;
-    Js::PolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
+    intptr_t GetRuntimeInlineCache(const uint index) const;
+    JITTimePolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
 
@@ -458,23 +528,30 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #if DBG_DUMP | defined(VTUNE_PROFILING)
     bool DoRecordNativeMap() const;
 #endif
+
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    void DumpFullFunctionName();
+#endif
+
 public:
     JitArenaAllocator *    m_alloc;
-    CodeGenWorkItem*    m_workItem;
-    const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;
-    const Js::FunctionCodeGenRuntimeData *const m_runtimeData;
-    Js::PolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
+    const FunctionJITRuntimeInfo *const m_runtimeInfo;
+    ThreadContextInfo * m_threadContextInfo;
+    ScriptContextInfo * m_scriptContextInfo;
+    JITTimeWorkItem * m_workItem;
+    JITTimePolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
 
     // This indicates how many constructor caches we inserted into the constructorCaches array, not the total size of the array.
     uint constructorCacheCount;
 
     // This array maps callsite ids to constructor caches. The size corresponds to the number of callsites in the function.
-    Js::JitTimeConstructorCache** constructorCaches;
+    JITTimeConstructorCache** constructorCaches;
 
     typedef JsUtil::BaseHashSet<void*, JitArenaAllocator, PowerOf2SizePolicy> TypeRefSet;
     TypeRefSet* pinnedTypeRefs;
 
-    typedef JsUtil::BaseDictionary<Js::Type*, Js::JitTypePropertyGuard*, JitArenaAllocator, PowerOf2SizePolicy> TypePropertyGuardDictionary;
+    typedef JsUtil::BaseDictionary<intptr_t, Js::JitTypePropertyGuard*, JitArenaAllocator, PowerOf2SizePolicy> TypePropertyGuardDictionary;
     TypePropertyGuardDictionary* singleTypeGuards;
 
     typedef SListCounted<Js::JitEquivalentTypeGuard*> EquivalentTypeGuardList;
@@ -484,7 +561,7 @@ public:
     typedef JsUtil::BaseDictionary<Js::PropertyId, IndexedPropertyGuardSet*, JitArenaAllocator, PowerOf2SizePolicy> PropertyGuardByPropertyIdMap;
     PropertyGuardByPropertyIdMap* propertyGuardsByPropertyId;
 
-    typedef JsUtil::BaseHashSet<Js::ConstructorCache*, JitArenaAllocator, PowerOf2SizePolicy> CtorCacheSet;
+    typedef JsUtil::BaseHashSet<intptr_t, JitArenaAllocator, PowerOf2SizePolicy> CtorCacheSet;
     typedef JsUtil::BaseDictionary<Js::PropertyId, CtorCacheSet*, JitArenaAllocator, PowerOf2SizePolicy> CtorCachesByPropertyIdMap;
     CtorCachesByPropertyIdMap* ctorCachesByPropertyId;
 
@@ -628,7 +705,7 @@ public:
                         bool isStackArgOptDisabled = false;
                         if (HasProfileInfo())
                         {
-                            isStackArgOptDisabled = GetProfileInfo()->IsStackArgOptDisabled();
+                            isStackArgOptDisabled = GetReadOnlyProfileInfo()->IsStackArgOptDisabled();
                         }
                         return this->hasStackArgs && !isStackArgOptDisabled && !PHASE_OFF1(Js::StackArgOptPhase);
     }
@@ -637,7 +714,7 @@ public:
     bool                IsStackArgsEnabled()
     {
                         Func* curFunc = this;
-                        bool isStackArgsEnabled = this->m_jnFunction->GetUsesArgumentsObject() && curFunc->GetHasStackArgs();
+                        bool isStackArgsEnabled = GetJITFunctionBody()->UsesArgumentsObject() && curFunc->GetHasStackArgs();
                         Func * topFunc = curFunc->GetTopFunc();
                         if (topFunc != nullptr)
                         {
@@ -708,8 +785,8 @@ public:
     bool                GetHasTempObjectProducingInstr() const { return this->hasTempObjectProducingInstr; }
     void                SetHasTempObjectProducingInstr(bool has) { this->hasTempObjectProducingInstr = has; }
 
-    Js::ReadOnlyDynamicProfileInfo * GetProfileInfo() const { return this->profileInfo; }
-    bool                HasProfileInfo() { return this->profileInfo->HasProfileInfo(); }
+    const JITTimeProfileInfo * GetReadOnlyProfileInfo() const { return GetJITFunctionBody()->GetReadOnlyProfileInfo(); }
+    bool                HasProfileInfo() const { return GetJITFunctionBody()->HasProfileInfo(); }
     bool                HasArrayInfo()
     {
         const auto top = this->GetTopFunc();
@@ -743,12 +820,12 @@ public:
         Js::BuiltinFunction index = Func::GetBuiltInIndex(opnd);
         switch (index)
         {
-        case Js::BuiltinFunction::String_CharAt:
-        case Js::BuiltinFunction::String_CharCodeAt:
-        case Js::BuiltinFunction::String_CodePointAt:
+        case Js::BuiltinFunction::JavascriptString_CharAt:
+        case Js::BuiltinFunction::JavascriptString_CharCodeAt:
+        case Js::BuiltinFunction::JavascriptString_CodePointAt:
         case Js::BuiltinFunction::Math_Abs:
-        case Js::BuiltinFunction::Array_Push:
-        case Js::BuiltinFunction::String_Replace:
+        case Js::BuiltinFunction::JavascriptArray_Push:
+        case Js::BuiltinFunction::JavascriptString_Replace:
             return true;
 
         default:
@@ -796,7 +873,7 @@ public:
     }
 
     IR::Instr * GetFunctionEntryInsertionPoint();
-    IR::IndirOpnd * GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode);
+    IR::IndirOpnd * GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode);
     void MarkConstantAddressSyms(BVSparse<JitArenaAllocator> * bv);
     void DisableConstandAddressLoadHoist() { canHoistConstantAddressLoad = false; }
 
@@ -841,11 +918,16 @@ public:
 
     IR::LabelInstr *    m_bailOutNoSaveLabel;
 
+    StackSym * GetNativeCodeDataSym() const;
+    void SetNativeCodeDataSym(StackSym * sym);
 private:
+
+    Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only
+
+    JITOutput m_output;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler *const m_codeGenProfiler;
 #endif
-    Js::FunctionBody*   m_jnFunction;
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
     uint                maxInlineeArgOutCount;
@@ -862,7 +944,6 @@ private:
     bool                hasNonSimpleParams;
     Cloner *            m_cloner;
     InstrMap *          m_cloneMap;
-    Js::ReadOnlyDynamicProfileInfo *const profileInfo;
     NativeCodeData::Allocator       nativeCodeDataAllocator;
     NativeCodeData::Allocator       transferDataAllocator;
     CodeGenNumberAllocator *        numberAllocator;
@@ -871,12 +952,12 @@ private:
     CodeGenAllocators *const m_codeGenAllocators;
     YieldOffsetResumeLabelList * m_yieldOffsetResumeLabelList;
     StackArgWithFormalsTracker * stackArgWithFormalsTracker;
-
+    JITObjTypeSpecFldInfo ** m_globalObjTypeSpecFldInfoArray;
     StackSym *CreateInlineeStackSym();
     IR::SymOpnd *GetInlineeOpndAtOffset(int32 offset);
     bool HasLocalVarSlotCreated() const { return m_localVarSlotsOffset != Js::Constants::InvalidOffset; }
     void EnsureLocalVarSlots();
-
+    StackSym * m_nativeCodeDataSym;
     SList<IR::RegOpnd *> constantAddressRegOpnd;
     IR::Instr * lastConstantAddressRegLoadInstr;
     bool canHoistConstantAddressLoad;
@@ -908,7 +989,7 @@ public:
     {
         Assert(this->func == func);
         Assert(this->phase == phase);
-        this->dump = dump && (PHASE_DUMP(Js::SimpleJitPhase, func->GetJnFunction()) || !func->IsSimpleJit());
+        this->dump = dump && (PHASE_DUMP(Js::SimpleJitPhase, func) || !func->IsSimpleJit());
         this->isPhaseComplete = isPhaseComplete;
     }
 private:
@@ -920,3 +1001,7 @@ private:
 #define BEGIN_CODEGEN_PHASE(func, phase) { AutoCodeGenPhase __autoCodeGen(func, phase);
 #define END_CODEGEN_PHASE(func, phase) __autoCodeGen.EndPhase(func, phase, true, true); }
 #define END_CODEGEN_PHASE_NO_DUMP(func, phase) __autoCodeGen.EndPhase(func, phase, false, true); }
+
+#ifdef PERF_HINT
+void WritePerfHint(PerfHints hint, Func* func, uint byteCodeOffset = Js::Constants::NoByteCodeOffset);
+#endif

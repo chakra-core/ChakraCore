@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -121,20 +121,20 @@ Using Debug channels at Run Time
     "stdout" or "stderr". If PAL_API_TRACING is not set, output will go to
     stderr.
 
-    ASSERT() messages cannot be controlled with PAL_DBG_CHANNELS; they can be 
-    globally disabled (in debug builds) by setting the environment variable 
-    PAL_DISABLE_ASSERTS to 1. In release builds, they will always be disabled                    
+    ASSERT() messages cannot be controlled with PAL_DBG_CHANNELS; they can be
+    globally disabled (in debug builds) by setting the environment variable
+    PAL_DISABLE_ASSERTS to 1. In release builds, they will always be disabled
 
-    The environment variable "PAL_API_LEVELS" determines how many levels of 
-    nesting will be allowed in ENTRY calls; if not set, the default is 1; a 
+    The environment variable "PAL_API_LEVELS" determines how many levels of
+    nesting will be allowed in ENTRY calls; if not set, the default is 1; a
     value of 0 will allow infinite nesting, but will not indent the output
 
-    It is possible to disable/enable all channels during the execution of a 
-    process; this involves using a debugger to modify a variable within the 
-    address space of the running process. the variable is named 
-    'dbg_master_switch'; if set to zero, all debug chanels will be closed; if 
+    It is possible to disable/enable all channels during the execution of a
+    process; this involves using a debugger to modify a variable within the
+    address space of the running process. the variable is named
+    'dbg_master_switch'; if set to zero, all debug chanels will be closed; if
     set to nonzero, channels will be open or closed based on PAL_DBG_CHANNELS
-    
+
     Notes :
     If _ENABLE_DEBUG_MESSAGES_ was not defined at build-time, no debug messages
     will be generated.
@@ -145,7 +145,7 @@ Using Debug channels at Run Time
     Normally, if the file specified by PAL_API_TRACING exists, its content will
     be overwritten when a PAL process starts using it. If --enable-appendtraces
     is used, debug output will be appended at the end of the file instead.
-  
+
 
 
  */
@@ -213,8 +213,8 @@ typedef enum
 
 /* extern variables */
 
-// Change W16_NULLSTRING to external variable to avoid multiple warnings showing up in prefast 
-extern LPCWSTR W16_NULLSTRING; 
+// Change W16_NULLSTRING to external variable to avoid multiple warnings showing up in prefast
+extern LPCWSTR W16_NULLSTRING;
 
 extern DWORD dbg_channel_flags[DCI_LAST];
 extern BOOL g_Dbg_asserts_enabled;
@@ -274,7 +274,7 @@ extern Volatile<BOOL> dbg_master_switch ;
 #define WARN_(x) \
     DBG_PRINTF(DLI_WARN,DCI_##x,TRUE)
 
-#if _DEBUG && defined(__APPLE__)
+#if _DEBUG && defined(__APPLE__) && !defined(__i686__)
 bool DBG_ShouldCheckStackAlignment();
 #define CHECK_STACK_ALIGN   if (DBG_ShouldCheckStackAlignment()) DBG_CheckStackAlignment()
 #else
@@ -298,7 +298,7 @@ bool DBG_ShouldCheckStackAlignment();
 
 #define LOGEXIT_(x) \
     DBG_PRINTF(DLI_EXIT, DCI_##x,TRUE)
-    
+
 #define DBGOUT \
     DBG_PRINTF(DLI_TRACE,defdbgchan,FALSE)
 
@@ -357,11 +357,11 @@ bool DBG_ShouldCheckStackAlignment();
 #if !defined(_DEBUG)
 
 #define ASSERT(args...)
-#define _ASSERT(expr) 
-#define _ASSERTE(expr) 
-#define _ASSERT_MSG(args...) 
+#define _ASSERT(expr)
+#define _ASSERTE(expr)
+#define _ASSERT_MSG(args...)
 
-#else /* defined(_DEBUG) */ 
+#else /* defined(_DEBUG) */
 
 #define ASSERT(args...)                                                 \
 {                                                                       \
@@ -400,9 +400,9 @@ bool DBG_ShouldCheckStackAlignment();
 #if !defined(_DEBUG)
 
 #define ASSERT(...)
-#define _ASSERT(expr) 
-#define _ASSERTE(expr) 
-#define _ASSERT_MSG(...) 
+#define _ASSERT(expr)
+#define _ASSERTE(expr)
+#define _ASSERT_MSG(...)
 
 #else /* defined(_DEBUG) */
 
@@ -419,7 +419,7 @@ bool DBG_ShouldCheckStackAlignment();
         DebugBreak();                                                   \
     }                                                                   \
 }
-    
+
 #define _ASSERT(expr) do { if (!(expr)) { ASSERT(""); } } while(0)
 #define _ASSERTE(expr) do { if (!(expr)) { ASSERT("Expression: " #expr "\n"); } } while(0)
 #define _ASSERT_MSG(expr, ...) \
@@ -433,9 +433,9 @@ bool DBG_ShouldCheckStackAlignment();
 #endif /* !_DEBUG */
 
 #else /* __STDC_VERSION__ */
-/* Not GNU C, not C99 :  
-   possible work around for the lack of variable-argument macros: 
-   by using 2 function calls; must wrap the whole thing in a critical 
+/* Not GNU C, not C99 :
+   possible work around for the lack of variable-argument macros:
+   by using 2 function calls; must wrap the whole thing in a critical
    section to avoid interleaved output from multiple threads */
 
 #error The compiler is missing support for variable-argument macros.
@@ -518,7 +518,7 @@ Notes :
 
 --*/
 #if __GNUC__ && CHECK_TRACE_SPECIFIERS
-/* if requested, use an __attribute__ feature to ask gcc to check that format 
+/* if requested, use an __attribute__ feature to ask gcc to check that format
    specifiers match their parameters */
 int DBG_printf_gcc(DBG_CHANNEL_ID channel, DBG_LEVEL_ID level, BOOL bHeader,
                    LPCSTR function, LPCSTR file, INT line, LPCSTR format, ...)
@@ -582,12 +582,12 @@ Function :
 
     retrieve current ENTRY nesting level and [optionnally] modify it
 
-Parameters :                                  
+Parameters :
     int new_level : value to which the nesting level must be set, or -1
 
 Return value :
     nesting level at the time the function was called
-    
+
 Notes:
 if new_level is -1, the nesting level will not be modified
 --*/
