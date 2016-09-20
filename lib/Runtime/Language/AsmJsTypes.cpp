@@ -800,7 +800,7 @@ namespace Js
         va_start( arguments, retType );
         for(ArgSlot iArg = 0; iArg < argCount; iArg++)
         {
-            SetArgType(va_arg(arguments, AsmJsType), iArg);
+            SetArgType(static_cast<AsmJsType::Which>(va_arg(arguments, int)), iArg);
         }
         va_end(arguments);
     }
@@ -1192,7 +1192,7 @@ namespace Js
         va_start(arguments, retType);
         for (ArgSlot iArg = 0; iArg < argCount; iArg++)
         {
-            SetArgType(va_arg(arguments, AsmJsType), iArg);
+            SetArgType(static_cast<AsmJsType::Which>(va_arg(arguments, int)), iArg);
         }
         va_end(arguments);
     }

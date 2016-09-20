@@ -232,7 +232,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->hasFinally = functionBody->GetHasFinally();
 
     jitBody->nameLength = functionBody->GetDisplayNameLength() + 1; // +1 for null terminator
-    jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
+    jitBody->displayName = (char16 *)functionBody->GetDisplayName();
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
@@ -1085,7 +1085,7 @@ JITTimeFunctionBody::InitializeStatementMap(Js::SmallSpanSequence * statementMap
     return true;
 }
 
-wchar_t*
+char16*
 JITTimeFunctionBody::GetDisplayName() const
 {
     return m_bodyData.displayName;

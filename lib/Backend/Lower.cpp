@@ -156,7 +156,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         // The instr can have just debugger bailout, or debugger bailout + other shared bailout.
         // Note that by the time we get here, we should not have aux-only bailout (in globopt we promote it to normal bailout).
         if (m_func->IsJitInDebugMode() && instr->HasBailOutInfo() &&
-            ((instr->GetBailOutKind() & IR::BailOutForDebuggerBits) && instr->m_opcode != Js::OpCode::BailForDebugger ||
+            (((instr->GetBailOutKind() & IR::BailOutForDebuggerBits) && instr->m_opcode != Js::OpCode::BailForDebugger) ||
             instr->HasAuxBailOut()))
         {
             instr = this->SplitBailForDebugger(instr);  // Change instr, as returned is the one we need to lower next.
@@ -3349,7 +3349,7 @@ Lowerer::TryGenerateFastBrEq(IR::Instr * instr)
 
     // Fast path for == null or == undefined
     // if (src == null || src == undefined)
-    if (isConst || srcReg2 && this->IsNullOrUndefRegOpnd(srcReg2))
+    if (isConst || (srcReg2 && this->IsNullOrUndefRegOpnd(srcReg2)))
     {
         IR::BranchInstr *newBranch;
         newBranch = this->GenerateFastBrConst(instr->AsBranchInstr(),
@@ -7036,7 +7036,7 @@ Lowerer::PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::Pro
         Output::Print(_u("PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n"),
             this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId,
-            typeRef == type.t ? L"strong" : L"weak", typeRef, type.t);
+            typeRef == type.t ? _u("strong") : _u("weak"), typeRef, type.t);
         Output::Flush();
     }
 }
@@ -13479,8 +13479,8 @@ bool Lowerer::ShouldGenerateArrayFastPath(
         return true;
     }
 
-    if( !supportsObjectsWithArrays && arrayValueType.GetObjectType() == ObjectType::ObjectWithArray ||
-        !supportsTypedArrays && arrayValueType.IsLikelyTypedArray())
+    if( (!supportsObjectsWithArrays && arrayValueType.GetObjectType() == ObjectType::ObjectWithArray) ||
+        (!supportsTypedArrays && arrayValueType.IsLikelyTypedArray()) )
     {
         // The fast path likely would not hit
         return false;
@@ -13935,8 +13935,8 @@ IR::BranchInstr *Lowerer::InsertCompareBranch(
             // Check for compare with zero, to prefer using Test instead of Cmp
             if( !compareSrc1->IsRegOpnd() ||
                 !(
-                    compareSrc2->IsIntConstOpnd() && compareSrc2->AsIntConstOpnd()->GetValue() == 0 ||
-                    compareSrc2->IsAddrOpnd() && !compareSrc2->AsAddrOpnd()->m_address
+                    (compareSrc2->IsIntConstOpnd() && compareSrc2->AsIntConstOpnd()->GetValue() == 0) ||
+                    (compareSrc2->IsAddrOpnd() && !compareSrc2->AsAddrOpnd()->m_address)
                 ) ||
                 branchOpCode == Js::OpCode::BrGt_A || branchOpCode == Js::OpCode::BrLe_A)
             {
@@ -14793,9 +14793,9 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         {
             if(pLabelSegmentLengthIncreased &&
                 !(
-                    baseValueType.IsArrayOrObjectWithArray() && baseValueType.HasNoMissingValues() ||
-                    (instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict) &&
-                        instr->IsProfiledInstr() && !instr->AsProfiledInstr()->u.stElemInfo->LikelyFillsMissingValue()
+                    (baseValueType.IsArrayOrObjectWithArray() && baseValueType.HasNoMissingValues()) ||
+                    ((instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict) &&
+                        instr->IsProfiledInstr() && !instr->AsProfiledInstr()->u.stElemInfo->LikelyFillsMissingValue())
                 ))
             {
                 // For arrays that are not guaranteed to have no missing values, before storing to an element where
@@ -15485,10 +15485,10 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
         const IR::AutoReuseOpnd autoReuseIndirOpnd(indirOpnd, m_func);
         const ValueType baseValueType(src1->AsIndirOpnd()->GetBaseOpnd()->GetValueType());
 
-        if (ldElem->HasBailOutInfo() &&
-            ldElem->GetByteCodeOffset() != Js::Constants::NoByteCodeOffset &&
-            ldElem->GetBailOutInfo()->bailOutOffset <= ldElem->GetByteCodeOffset() &&
-            dst->IsEqual(src1->AsIndirOpnd()->GetBaseOpnd()) ||
+        if ((ldElem->HasBailOutInfo() &&
+                ldElem->GetByteCodeOffset() != Js::Constants::NoByteCodeOffset &&
+                ldElem->GetBailOutInfo()->bailOutOffset <= ldElem->GetByteCodeOffset() &&
+                dst->IsEqual(src1->AsIndirOpnd()->GetBaseOpnd())) ||
             (src1->AsIndirOpnd()->GetIndexOpnd() && dst->IsEqual(src1->AsIndirOpnd()->GetIndexOpnd())))
         {
             // This is a pre-op bailout where the dst is the same as one of the srcs. The dst may be trashed before bailing out,
@@ -16331,7 +16331,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             InsertBranch(Js::OpCode::Br, labelFallThru, insertBeforeInstr);
         }
 
-        if (!(isStringIndex || baseValueType.IsArrayOrObjectWithArray() && baseValueType.HasNoMissingValues()))
+        if (!(isStringIndex || (baseValueType.IsArrayOrObjectWithArray() && baseValueType.HasNoMissingValues())))
         {
             if(!stElem->IsProfiledInstr() || stElem->AsProfiledInstr()->u.stElemInfo->LikelyFillsMissingValue())
             {

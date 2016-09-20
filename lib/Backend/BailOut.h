@@ -27,8 +27,8 @@ public:
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
         byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
         totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), outParamInlinedArgSlot(nullptr),
-        liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), 
-        liveFloat64Syms(nullptr), liveSimd128F4Syms(nullptr), 
+        liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr),
+        liveFloat64Syms(nullptr), liveSimd128F4Syms(nullptr),
         liveSimd128I4Syms(nullptr), liveSimd128I8Syms(nullptr), liveSimd128I16Syms(nullptr),
         liveSimd128U4Syms(nullptr), liveSimd128U8Syms(nullptr), liveSimd128U16Syms(nullptr),
         liveSimd128B4Syms(nullptr), liveSimd128B8Syms(nullptr), liveSimd128B16Syms(nullptr),
@@ -203,8 +203,8 @@ public:
     template <size_t N>
     void FillNativeRegToByteCodeRegMap(uint (&nativeRegToByteCodeRegMap)[N]);
 
-    void IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32, 
-        bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16, 
+    void IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32,
+        bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16,
         bool * pIsSimd128U4, bool * pIsSimd128U8, bool * pIsSimd128U16, bool * pIsSimd128B4, bool * pIsSimd128B8, bool * pIsSimd128B16) const;
 
     template <typename Fn>
@@ -263,8 +263,8 @@ protected:
         void * argoutRestoreAddress = nullptr) const;
     void RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStackLayout * layout, Js::Var * values, Js::ScriptContext * scriptContext,
         bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress,
-        uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32, 
-        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, 
+        uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32,
+        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16,
         bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16 ) const;
     void RestoreInlineFrame(InlinedFrameLayout *inlinedFrame, Js::JavascriptCallStackLayout * layout, Js::Var * registerSaves);
 
@@ -274,12 +274,14 @@ protected:
 
     Js::JavascriptCallStackLayout *GetStackLayout() const;
 
+public:
     struct StackLiteralBailOutRecord
     {
         Js::RegSlot regSlot;
         uint initFldCount;
     };
 
+protected:
     struct ArgOutOffsetInfo
     {
         BVFixed * argOutFloat64Syms;        // Used for float-type-specialized ArgOut symbols. Index = [0 .. BailOutInfo::totalOutParamCount].
@@ -305,7 +307,7 @@ protected:
             FixupNativeDataPointer(argOutFloat64Syms, chunkList);
             FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);            
+            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I8Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I16Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128U4Syms, chunkList);
@@ -321,7 +323,7 @@ protected:
 
             int* outParamOffsetsStart = outParamOffsets - argOutSymStart;
             NativeCodeData::AddFixupEntry(outParamOffsets, outParamOffsetsStart, &this->outParamOffsets, this, chunkList);
-            
+
         }
     };
 
@@ -469,8 +471,8 @@ struct GlobalBailOutRecordDataTable
     bool hasNonSimpleParams;
     bool hasStackArgOpt;
     void Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc);
-    void AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt, 
-        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16, 
+    void AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt,
+        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16,
         int32 offset, uint *lastUpdatedRowIndex);
 
     template<class Fn>
@@ -522,51 +524,52 @@ struct GlobalBailOutRecordDataTable
     }
 };
 #if DBG
-template<> void NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
-template<> void NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
-template<> void NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+template<> inline void NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+template<> inline void NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
+template<> inline void NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
 #else
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::Alloc(size_t requestedBytes)
 {
     return __super::Alloc(requestedBytes);
 }
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<BailOutRecord::StackLiteralBailOutRecord>::AllocZero(size_t requestedBytes)
 {
     return __super::AllocZero(requestedBytes);
 }
 
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::Alloc(size_t requestedBytes)
 {
     return __super::Alloc(requestedBytes);
 }
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<Js::EquivalentPropertyEntry>::AllocZero(size_t requestedBytes)
 {
     return __super::AllocZero(requestedBytes);
 }
 
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::Alloc(size_t requestedBytes)
 {
     return __super::Alloc(requestedBytes);
 }
 template<>
-char*
+inline char*
 NativeCodeData::AllocatorT<GlobalBailOutRecordDataRow>::AllocZero(size_t requestedBytes)
 {
     return __super::AllocZero(requestedBytes);
 }
 #endif
 
-template<> void NativeCodeData::AllocatorT<GlobalBailOutRecordDataTable*>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList)
+template<>
+inline void NativeCodeData::AllocatorT<GlobalBailOutRecordDataTable*>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList)
 {
     // for every pointer needs to update the table
     NativeCodeData::AddFixupEntryForPointerArray(pThis, chunkList);

@@ -769,8 +769,8 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
 
         // offset = indir.offset + (index << scale)
         int32 offset = index->m_sym->GetIntConstValue();
-        if(indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset) ||
-            indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset))
+        if((indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset)) ||
+           (indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset)))
         {
             return false;
         }

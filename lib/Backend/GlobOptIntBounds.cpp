@@ -538,7 +538,7 @@ void GlobOpt::UpdateIntBoundsForEqualBranch(
 {
     Assert(src1Value);
 
-    if(!DoPathDependentValues() || src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber())
+    if(!DoPathDependentValues() || (src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber()))
     {
         return;
     }
@@ -591,7 +591,7 @@ void GlobOpt::UpdateIntBoundsForNotEqualBranch(
 {
     Assert(src1Value);
 
-    if(!DoPathDependentValues() || src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber())
+    if(!DoPathDependentValues() || (src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber()))
     {
         return;
     }

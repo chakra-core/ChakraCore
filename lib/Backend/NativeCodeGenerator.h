@@ -12,6 +12,7 @@ namespace Js
 {
     class ObjTypeSpecFldInfo;
     class FunctionCodeGenJitTimeData;
+    class RemoteScriptContext;
 };
 
 class NativeCodeGenerator sealed : public JsUtil::WaitableJobManager

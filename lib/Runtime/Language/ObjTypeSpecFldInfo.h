@@ -363,7 +363,7 @@ namespace Js
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        const wchar_t *GetCacheLayoutString() const;
+        const char16 *GetCacheLayoutString() const;
 #endif
     };
 

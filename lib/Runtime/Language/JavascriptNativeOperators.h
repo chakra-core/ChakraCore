@@ -20,7 +20,7 @@ namespace Js
                 chunk->dataType = "BranchDictionary::Bucket";
                 if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                 {
-                    Output::Print(L"NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                    Output::Print(_u("NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
                         chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
                 }
 #endif
@@ -35,7 +35,7 @@ namespace Js
                 chunk->dataType = "BranchDictionary::Entries";
                 if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                 {
-                    Output::Print(L"NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                    Output::Print(_u("NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
                         chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
                 }
 #endif
@@ -52,7 +52,7 @@ namespace Js
             {
                 this->key = (TKey)remoteKey;
             }
-        };       
+        };
 
         typedef JsUtil::BaseDictionary<T, void*, DictAllocator, PowerOf2SizePolicy, DefaultComparer, SimpleDictionaryEntryWithFixUp> BranchBaseDictionary;
 

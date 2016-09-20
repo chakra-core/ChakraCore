@@ -145,7 +145,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
 bool
 Instr::IsEqual(IR::Instr *compareInstr) const
 {
-    Assert(this && compareInstr);
+    Assert(compareInstr);
     if (this->GetKind() == compareInstr->GetKind()
         && this->m_opcode == compareInstr->m_opcode)
     {
@@ -3221,8 +3221,8 @@ bool Instr::HasAnyImplicitCalls() const
     }
     if (OpCodeAttr::OpndHasImplicitCall(this->m_opcode))
     {
-        if (this->m_dst && 
-            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) || 
+        if (this->m_dst &&
+            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) ||
              this->m_dst->IsIndirOpnd()))
         {
             return true;
@@ -3438,7 +3438,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
             }
             else if(type.IsNumber())
             {
-                // TODO (michhol): OOP JIT. we may need to unbox before sending over const table                
+                // TODO (michhol): OOP JIT. we may need to unbox before sending over const table
 
                 if (!func->IsOOPJIT())
                 {
@@ -3447,7 +3447,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                 else
                 {
                     srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func
-#if !FLOATVAR               
+#if !FLOATVAR
                         ,varLocal
 #endif
                     );
@@ -3466,7 +3466,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                     // treated as int32s for the purposes of int specialization.
                     dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32(((IR::FloatConstOpnd*)srcOpnd)->m_value);
 
-                    
+
 #endif
                 }
             }
@@ -4029,6 +4029,9 @@ Instr::Dump(IRDumpFlags flags)
         Output::SkipToColumn(38);
     };
 
+    // forward decl before goto statement
+    Opnd * dst = nullptr;
+
     if(m_opcode == Js::OpCode::BoundCheck || m_opcode == Js::OpCode::UnsignedBoundCheck)
     {
         PrintOpCodeName();
@@ -4094,7 +4097,7 @@ Instr::Dump(IRDumpFlags flags)
 
     Output::SkipToColumn(4);
 
-    Opnd * dst = this->GetDst();
+    dst = this->GetDst();
 
     if (dst)
     {
@@ -4182,7 +4185,7 @@ Instr::Dump(IRDumpFlags flags)
             if(branchInstr->m_isMultiBranch && branchInstr->IsMultiBranch())
             {
                 IR::MultiBranchInstr * multiBranchInstr = branchInstr->AsMultiBrInstr();
-                
+
                 // If this MultiBranchInstr has been lowered to a machine instruction, which means
                 // its opcode is not Js::OpCode::MultiBr, there is no need to print the labels.
                 if (this->m_opcode == Js::OpCode::MultiBr)
@@ -4216,27 +4219,30 @@ Instr::Dump(IRDumpFlags flags)
         Output::Print(_u("#%d"), this->AsPragmaInstr()->m_statementIndex);
     }
 
-    Opnd * src1 = this->GetSrc1();
-    if (this->m_opcode == Js::OpCode::NewScFunc || this->m_opcode == Js::OpCode::NewScGenFunc)
+    // scope
     {
-        Assert(src1->IsIntConstOpnd());
-        Js::ParseableFunctionInfo * function = nullptr;
-        if (!m_func->IsOOPJIT())
+        Opnd * src1 = this->GetSrc1();
+        if (this->m_opcode == Js::OpCode::NewScFunc || this->m_opcode == Js::OpCode::NewScGenFunc)
         {
-            function = ((Js::ParseableFunctionInfo *)m_func->GetJITFunctionBody()->GetAddr())->GetNestedFunctionForExecution((uint)src1->AsIntConstOpnd()->GetValue())->GetParseableFunctionInfo();
+            Assert(src1->IsIntConstOpnd());
+            Js::ParseableFunctionInfo * function = nullptr;
+            if (!m_func->IsOOPJIT())
+            {
+                function = ((Js::ParseableFunctionInfo *)m_func->GetJITFunctionBody()->GetAddr())->GetNestedFunctionForExecution((uint)src1->AsIntConstOpnd()->GetValue())->GetParseableFunctionInfo();
+            }
+            Output::Print(_u("func:%s()"), function ? function->GetDisplayName() : _u("???"));
+            Output::Print(_u(", env:"));
+            this->GetSrc2()->AsRegOpnd()->m_sym->Dump(flags);
         }
-        Output::Print(_u("func:%s()"), function ? function->GetDisplayName() : _u("???"));
-        Output::Print(_u(", env:"));
-        this->GetSrc2()->AsRegOpnd()->m_sym->Dump(flags);
-    }
-    else if (src1)
-    {
-        src1->Dump(flags, this->m_func);
-        Opnd * src2 = this->GetSrc2();
-        if (src2)
+        else if (src1)
         {
-            Output::Print(_u(", "));
-            src2->Dump(flags, this->m_func);
+            src1->Dump(flags, this->m_func);
+            Opnd * src2 = this->GetSrc2();
+            if (src2)
+            {
+                Output::Print(_u(", "));
+                src2->Dump(flags, this->m_func);
+            }
         }
     }
 

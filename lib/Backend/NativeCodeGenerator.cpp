@@ -864,12 +864,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
 
     // TODO: oop jit can we be more efficient here?
-    ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
+    ArenaAllocator alloc(_u("JitData"), pageAllocator, Js::Throw::OutOfMemory);
 
     auto& jitData = workItem->GetJITData()->jitData;
     jitData = AnewStructZ(&alloc, FunctionJITTimeDataIDL);
     FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false);
-    
+
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
@@ -880,7 +880,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
     }
-    
+
     jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
 
     JITOutputIDL jitWriteData = {0};
@@ -917,7 +917,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         CodeGenAllocators *const allocators =
             foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
-        NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", pageAllocator, Js::Throw::OutOfMemory);
+        NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
@@ -953,7 +953,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         QueryPerformanceFrequency(&freq);
 
         Output::Print(
-            L"BackendMarshalOut - function: %s time:%8.6f mSec\r\n",
+            _u("BackendMarshalOut - function: %s time:%8.6f mSec\r\n"),
             workItem->GetFunctionBody()->GetDisplayName(),
             (((double)((end_time.QuadPart - jitWriteData.startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
@@ -1000,7 +1000,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                 if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                 {
-                    Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
+                    Output::Print(_u("NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n"),
                         record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
                 }
 
@@ -1011,7 +1011,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                     if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                     {
-                        Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
+                        Output::Print(_u("\tEntry: +%x %p(%p) ==> %p\n"), updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
                     }
 
                     *(void**)(addrToFixup) = targetAddr;
@@ -1029,7 +1029,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #if DBG
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
-                Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
+                Output::Print(_u("NativeCodeData Client Buffer: %p, len: %x\n"), jitWriteData.buffer->data, jitWriteData.buffer->len);
             }
 #endif
         }
@@ -1208,17 +1208,17 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
     {
         if (workItem->GetEntryPoint()->IsLoopBody())
         {
-            Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", body->GetDisplayName(), ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber());
+            Output::Print(_u("---BeginBackEnd: function: %s, loop:%d---\r\n"), body->GetDisplayName(), ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"---BeginBackEnd: function: %s---\r\n", body->GetDisplayName());
+            Output::Print(_u("---BeginBackEnd: function: %s---\r\n"), body->GetDisplayName());
         }
         Output::Flush();
     }
 #endif
 
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
     if (PHASE_TRACE(Js::BackEndPhase, body))
     {
@@ -1226,7 +1226,7 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
         if (workItem->GetEntryPoint()->IsLoopBody())
         {
             Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S",
+                _u("BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S"),
                 body->GetDisplayName(),
                 body->GetDebugNumberSet(debugStringBuffer),
                 body->GetLineNumber(),
@@ -1234,17 +1234,17 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
                 ExecutionModeName(workItem->GetJitMode()));
             if (body->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         else
         {
             Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), mode: %S",
+                _u("BeginBackEnd - function: %s (%s, line %u), mode: %S"),
                 body->GetDisplayName(),
                 body->GetDebugNumberSet(debugStringBuffer),
                 body->GetLineNumber(),
@@ -1252,11 +1252,11 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
 
             if (body->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         Output::Flush();
@@ -1268,18 +1268,18 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
         if (workItem->RecyclableData()->JitTimeData()->inlineCacheStats)
         {
             auto stats = workItem->RecyclableData()->JitTimeData()->inlineCacheStats;
-            Output::Print(L"ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n", body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
-            Output::Print(L"    overall: total %u, no profile info %u\n", stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
-            Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+            Output::Print(_u("ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n"), body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("    overall: total %u, no profile info %u\n"), stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
+            Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
                 stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
-            Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+            Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
                 stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
                 stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
                 stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
         }
         else
         {
-            Output::Print(L"EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n", body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n"), body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
         }
         Output::Flush();
     }
@@ -1290,7 +1290,7 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
 void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time)
 {
     Js::FunctionBody * body = workItem->GetFunctionBody();
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
     {
         if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
@@ -1324,7 +1324,7 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
     {
-        Output::Print(L"---EndBackEnd---\r\n");
+        Output::Print(_u("---EndBackEnd---\r\n"));
         Output::Flush();
     }
 #endif
@@ -1338,7 +1338,7 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
         if (workItem->GetEntryPoint()->IsLoopBody())
         {
             Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec",
+                _u("EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec"),
                 body->GetDisplayName(),
                 body->GetDebugNumberSet(debugStringBuffer),
                 body->GetLineNumber(),
@@ -1348,17 +1348,17 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
 
             if (body->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         else
         {
             Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec",
+                _u("EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec"),
                 body->GetDisplayName(),
                 body->GetDebugNumberSet(debugStringBuffer),
                 body->GetLineNumber(),
@@ -1367,11 +1367,11 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
 
             if (body->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         Output::Flush();
@@ -1496,15 +1496,16 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
         {
             Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
-        return reinterpret_cast<Js::JavascriptMethod>(entryPoint->GetNativeAddress());
+        return reinterpret_cast<Js::Var>(entryPoint->GetNativeAddress());
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
         Output::Print(_u("CodeGen Done for function: %s, Changing Entrypoint to Full JIT\n"), function->GetFunctionBody()->GetDisplayName());
     }
     // we will need to set the functionbody external and asmjs entrypoint to the fulljit entrypoint
-    return CheckCodeGenDone(functionBody, entryPoint, function);
+    return reinterpret_cast<Js::Var>(CheckCodeGenDone(functionBody, entryPoint, function));
 }
+
 Js::JavascriptMethod
 NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
 {
@@ -1548,6 +1549,13 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
 
     if(!nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
     {
+#ifdef ENABLE_SCRIPT_PROFILING
+#define originalEntryPoint_IS_ProfileDeferredParsingThunk \
+            (originalEntryPoint == ProfileDeferredParsingThunk)
+#else
+#define originalEntryPoint_IS_ProfileDeferredParsingThunk \
+            false
+#endif
         // Job was not yet processed
         // originalEntryPoint is the last known good entry point for the function body. Here we verify that
         // it either corresponds with this codegen episode (identified by function->entryPointIndex) of the function body
@@ -1557,7 +1565,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
             (
                 originalEntryPoint == DefaultEntryThunk
              || scriptContext->IsDynamicInterpreterThunk(originalEntryPoint)
-             || originalEntryPoint == ProfileDeferredParsingThunk
+             || originalEntryPoint_IS_ProfileDeferredParsingThunk
              || originalEntryPoint == DefaultDeferredParsingThunk
              || (
                     functionBody->GetSimpleJitEntryPointInfo() &&
@@ -3143,14 +3151,14 @@ NativeCodeGenerator::EnterScriptStart()
 }
 
 void
-FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, void * address)
+FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod address)
 {
     if (!scriptContext->GetNativeCodeGenerator())
     {
         return;
     }
 
-    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation(address);
+    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)address);
 }
 
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem)

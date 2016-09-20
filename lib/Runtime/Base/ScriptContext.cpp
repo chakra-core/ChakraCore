@@ -4824,9 +4824,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (JavascriptMethod)this->interpreterThunkEmitter->GetNextThunk(ppDynamicInterpreterThunk);
     }
 
-    BOOL ScriptContext::IsDynamicInterpreterThunk(void* address)
+    BOOL ScriptContext::IsDynamicInterpreterThunk(JavascriptMethod address)
     {
-        return this->interpreterThunkEmitter->IsInHeap(address);
+        return this->interpreterThunkEmitter->IsInHeap((void*)address);
     }
 
     void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)

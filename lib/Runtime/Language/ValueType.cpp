@@ -59,7 +59,7 @@ ValueType ValueType::GetNumberAndLikelyInt(const bool isLikelyTagged)
     return Verify(GetInt(isLikelyTagged).bits | Bits::Number);
 }
 
-inline ValueType ValueType::GetObject(const ObjectType objectType)
+ValueType ValueType::GetObject(const ObjectType objectType)
 {
     ValueType valueType(UninitializedObject);
     valueType.SetObjectType(objectType);
@@ -1483,7 +1483,7 @@ ValueType ValueType::FromObjectWithArray(Js::DynamicObject *const object)
     return FromObjectArray(JavascriptArray::FromVar(objectArray));
 }
 
-inline ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)
+ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)
 {
     using namespace Js;
     Assert(objectArray);
@@ -1491,7 +1491,7 @@ inline ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArr
     return FromArray(ObjectType::ObjectWithArray, objectArray, TypeIds_Array); // objects with native arrays are currently not supported
 }
 
-inline ValueType ValueType::FromArray(
+ValueType ValueType::FromArray(
     const ObjectType objectType,
     Js::JavascriptArray *const array,
     const Js::TypeId arrayTypeId)

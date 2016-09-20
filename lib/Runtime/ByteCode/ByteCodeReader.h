@@ -86,4 +86,25 @@ namespace Js
 #endif
     };
 
+    template<typename LayoutType>
+    inline const unaligned LayoutType * ByteCodeReader::GetLayout()
+    {
+        size_t layoutSize = sizeof(LayoutType);
+
+        AssertMsg((layoutSize > 0) && (layoutSize < 100), "Ensure valid layout size");
+
+        const byte * layoutData = m_currentLocation;
+        m_currentLocation += layoutSize;
+
+        Assert(m_currentLocation <= m_endLocation);
+
+        return reinterpret_cast<const unaligned LayoutType *>(layoutData);
+    }
+
+    template<>
+    inline const unaligned OpLayoutEmpty * ByteCodeReader::GetLayout<OpLayoutEmpty>()
+    {
+        return nullptr;
+    }
+
 } // namespace Js

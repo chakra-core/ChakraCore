@@ -200,6 +200,7 @@ namespace JsUtil
     {
     public:
         typedef ReadOnlyList<T, TAllocator, TComparer> ParentType;
+        typedef typename ParentType::TComparerType TComparerType;
         typedef T TElementType;         // For TRemovePolicy
         static const int DefaultIncrement = 4;
 
@@ -532,7 +533,7 @@ namespace JsUtil
         template<class TMapFunction>
         void MapAddress(TMapFunction map) const
         {
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < this->count; i++)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {
@@ -556,7 +557,7 @@ namespace JsUtil
         template<class TMapFunction>
         void ReverseMap(TMapFunction map)
         {
-            for (int i = count - 1; i >= 0; i--)
+            for (int i = this->count - 1; i >= 0; i--)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {

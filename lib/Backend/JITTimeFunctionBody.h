@@ -174,7 +174,7 @@ public:
 
     static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);
 
-    wchar_t* GetDisplayName() const;
+    char16* GetDisplayName() const;
 
     intptr_t GetAuxDataAddr(uint offset) const;
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;

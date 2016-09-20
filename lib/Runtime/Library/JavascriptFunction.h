@@ -90,7 +90,7 @@ namespace Js
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
         Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
         template <typename T>
-        static T CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
+        static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 

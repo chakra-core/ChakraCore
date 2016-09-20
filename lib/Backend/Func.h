@@ -65,11 +65,11 @@ private:
 
 public:
     StackArgWithFormalsTracker(JitArenaAllocator *alloc):
-        formalsArraySyms(nullptr), 
-        formalsIndexToStackSymMap(nullptr), 
+        formalsArraySyms(nullptr),
+        formalsIndexToStackSymMap(nullptr),
         m_scopeObjSym(nullptr),
         alloc(alloc)
-    {    
+    {
     }
 
     BVSparse<JitArenaAllocator> * GetFormalsArraySyms();
@@ -246,7 +246,7 @@ public:
         return m_entryPointInfo;
     }
 
-    wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
+    char16* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
     {
         return m_workItem->GetJITTimeInfo()->GetDebugNumberSet(bufferToWriteTo);
     }

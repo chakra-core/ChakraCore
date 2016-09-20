@@ -91,7 +91,7 @@ Opnd::IsWriteBarrierTriggerableValue()
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
     return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && this->AsAddrOpnd()->GetKind() == AddrOpndKindDynamicVar) ||
+        !((this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar) ||
           (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
 }
 
@@ -3141,7 +3141,7 @@ Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
 void
 Opnd::WriteToBuffer(_Outptr_result_buffer_(*count) char16 **buffer, size_t *count, const char16 *fmt, ...)
 {
-    va_list argptr = nullptr;
+    va_list argptr;
     va_start(argptr, fmt);
 
     int len = _vsnwprintf_s(*buffer, *count, _TRUNCATE, fmt, argptr);

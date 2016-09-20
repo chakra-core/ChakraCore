@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "BackEnd.h"
+#include "Backend.h"
 
 JITTimeProfileInfo::JITTimeProfileInfo(ProfileDataIDL * profileData) :
     m_profileData(*profileData)
