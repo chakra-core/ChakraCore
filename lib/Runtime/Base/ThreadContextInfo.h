@@ -67,6 +67,7 @@ public:
     intptr_t GetStringMatchNameAddr() const;
 #endif
 
+    void SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid = true);
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
 
@@ -104,8 +105,10 @@ public:
     bool IsJITActive();
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
+    Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 
+    Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 protected:

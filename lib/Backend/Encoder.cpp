@@ -341,6 +341,9 @@ Encoder::Encode()
 
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
+
+    m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_func->GetJITOutput()->GetCodeAddress());
+
     const bool isSimpleJit = m_func->IsSimpleJit();
 
     if (this->m_inlineeFrameMap->Count() > 0 &&

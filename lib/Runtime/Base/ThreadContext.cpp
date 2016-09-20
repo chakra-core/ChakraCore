@@ -4311,14 +4311,6 @@ void ThreadContext::ClearThreadContextFlag(ThreadContextFlags contextFlag)
 }
 
 #ifdef ENABLE_GLOBALIZATION
-#ifdef _CONTROL_FLOW_GUARD
-Js::DelayLoadWinCoreMemory * ThreadContext::GetWinCoreMemoryLibrary()
-{
-    delayLoadWinCoreMemoryLibrary.EnsureFromSystemDirOnly();
-    return &delayLoadWinCoreMemoryLibrary;
-}
-#endif
-
 Js::DelayLoadWinRtString * ThreadContext::GetWinRTStringLibrary()
 {
     delayLoadWinRtString.EnsureFromSystemDirOnly();
@@ -4377,80 +4369,6 @@ Js::DelayLoadWinRtFoundation* ThreadContext::GetWinRtFoundationLibrary()
 }
 #endif
 #endif // ENABLE_GLOBALIZATION
-
-bool ThreadContext::IsCFGEnabled()
-{
-#if defined(_CONTROL_FLOW_GUARD)
-    PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY CfgPolicy;
-    BOOL isGetMitigationPolicySucceeded = GetWinCoreProcessThreads()->GetMitigationPolicyForProcess(
-        GetCurrentProcess(),
-        ProcessControlFlowGuardPolicy,
-        &CfgPolicy,
-        sizeof(CfgPolicy));
-    Assert(isGetMitigationPolicySucceeded || !AutoSystemInfo::Data.IsCFGEnabled());
-    return CfgPolicy.EnableControlFlowGuard && AutoSystemInfo::Data.IsCFGEnabled();
-#else
-    return false;
-#endif
-}
-
-
-//Masking bits according to AutoSystemInfo::PageSize
-#define PAGE_START_ADDR(address) ((size_t)(address) & ~(size_t)(AutoSystemInfo::PageSize - 1))
-#define IS_16BYTE_ALIGNED(address) (((size_t)(address) & 0xF) == 0)
-#define OFFSET_ADDR_WITHIN_PAGE(address) ((size_t)(address) & (AutoSystemInfo::PageSize - 1))
-
-void ThreadContext::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid)
-{
-#ifdef _CONTROL_FLOW_GUARD
-    if (IsCFGEnabled())
-    {
-        AssertMsg(IS_16BYTE_ALIGNED(callTargetAddress), "callTargetAddress is not 16-byte page aligned?");
-
-        PVOID startAddressOfPage = (PVOID) (PAGE_START_ADDR(callTargetAddress));
-        size_t codeOffset = OFFSET_ADDR_WITHIN_PAGE(callTargetAddress);
-
-        CFG_CALL_TARGET_INFO callTargetInfo[1];
-
-        callTargetInfo[0].Offset = codeOffset;
-        callTargetInfo[0].Flags = (isSetValid? CFG_CALL_TARGET_VALID : 0);
-
-        AssertMsg((size_t)callTargetAddress - (size_t)startAddressOfPage <= AutoSystemInfo::PageSize - 1, "Only last bits corresponding to PageSize should be masked");
-        AssertMsg((size_t)startAddressOfPage + (size_t)codeOffset == (size_t)callTargetAddress, "Wrong masking of address?");
-
-        BOOL isCallTargetRegistrationSucceed = GetWinCoreMemoryLibrary()->SetProcessCallTargets(GetCurrentProcess(), startAddressOfPage, AutoSystemInfo::PageSize, 1, callTargetInfo);
-
-        if (!isCallTargetRegistrationSucceed)
-        {
-            if (GetLastError() == ERROR_COMMITMENT_LIMIT)
-            {
-                //Throw OOM, if there is not enough virtual memory for paging (required for CFG BitMap)
-                Js::Throw::OutOfMemory();
-            }
-            else
-            {
-                Js::Throw::InternalError();
-            }
-        }
-#if DBG
-        if (isSetValid)
-        {
-            _guard_check_icall((uintptr_t) callTargetAddress);
-        }
-
-        if (PHASE_TRACE1(Js::CFGPhase))
-        {
-            if (!isSetValid)
-            {
-                Output::Print(_u("DEREGISTER:"));
-            }
-            Output::Print(_u("CFGRegistration: StartAddr: 0x%p , Offset: 0x%x, TargetAddr: 0x%x \n"), (char*) startAddressOfPage, callTargetInfo[0].Offset, ((size_t) startAddressOfPage + (size_t) callTargetInfo[0].Offset));
-            Output::Flush();
-        }
-#endif
-    }
-#endif // _CONTROL_FLOW_GUARD
-}
 
 // Despite the name, callers expect this to return the highest propid + 1.
 

@@ -317,6 +317,9 @@ ServerFreeAllocation(
         return RPC_S_INVALID_ARG;
     }
 
+    //DeRegister Entry Point for CFG
+    context->SetValidCallTargetForCFG((PVOID)address, false);
+
     bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
     return succeeded ? S_OK : E_FAIL;
 }
