@@ -781,8 +781,8 @@ WasmBytecodeGenerator::EmitCall()
         argsList.Add(PopEvalStack());
     }
 
-    int32 argsBytesLeft = argSize;
-    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; --i)
+    int32 argsBytesLeft = 0;
+    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; i--)
     {
         EmitInfo info = argsList.Item(i);
         if (calleeSignature->GetParam(i) != info.type)
