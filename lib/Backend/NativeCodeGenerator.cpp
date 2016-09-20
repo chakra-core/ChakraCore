@@ -1056,16 +1056,34 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#if defined(_M_X64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
-#if defined(_M_ARM32_OR_ARM64)
-    xdataInfo->pdataCount = jitWriteData.pdataCount;
-    xdataInfo->xdataSize = jitWriteData.xdataSize;
-#endif
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
     epInfo->SetXDataInfo(xdataInfo);
 #endif
+
+
+#if defined(_M_ARM32_OR_ARM64)
+    // for in-proc jit we do registration in encoder
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
+        xdataInfo->pdataCount = jitWriteData.pdataCount;
+        xdataInfo->xdataSize = jitWriteData.xdataSize;
+        if (jitWriteData.buffer)
+        {
+            xdataInfo->address = jitWriteData.buffer->data + jitWriteData.xdataOffset;
+        }
+        else
+        {
+            xdataInfo->address = nullptr;
+        }
+        XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
+        epInfo->SetXDataInfo(xdataInfo);
+    }
+#endif
+
     scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 

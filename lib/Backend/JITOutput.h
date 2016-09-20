@@ -18,7 +18,9 @@ public:
     void SetArgUsedForBranch(uint8 param);
     void SetFrameHeight(uint val);
     void RecordThrowMap(Js::ThrowMapEntry * throwMap, uint mapCount);
-
+#ifdef _M_ARM
+    void RecordXData(BYTE * xdata);
+#endif
     uint16 GetArgUsedForBranch() const;
     intptr_t GetCodeAddress() const;
     size_t GetCodeSize() const;

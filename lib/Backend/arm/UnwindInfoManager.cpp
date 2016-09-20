@@ -540,10 +540,8 @@ DWORD UnwindInfoManager::EmitXdataStackAlloc(BYTE xData[], DWORD byte, DWORD sta
 void UnwindInfoManager::RecordPdataEntry(DWORD beginAddress, DWORD unwindData)
 {
     RUNTIME_FUNCTION *function = this->alloc->allocation->xdata.GetPdataArray() + this->pdataIndex;
-    RUNTIME_FUNCTION localFunc;
-    localFunc.BeginAddress = beginAddress;
-    localFunc.UnwindData = unwindData;
-    ChakraMemCopy(function, sizeof(RUNTIME_FUNCTION), &localFunc, sizeof(RUNTIME_FUNCTION), this->processHandle);
+    function->BeginAddress = beginAddress;
+    function->UnwindData = unwindData;
 }
 
 DWORD UnwindInfoManager::EmitXdataHomeParams(BYTE xData[], DWORD byte)

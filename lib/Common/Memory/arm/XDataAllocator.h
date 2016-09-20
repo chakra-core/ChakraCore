@@ -58,7 +58,7 @@ public:
     bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
     void Release(const SecondaryAllocation& address);
     bool CanAllocate();
-    DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
+    static DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
     {
         return sizeof(RUNTIME_FUNCTION) * pdataCount + xdataSize;
     }

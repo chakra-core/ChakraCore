@@ -324,8 +324,20 @@ Encoder::Encode()
 #elif _M_ARM
     m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), alloc);
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
-#endif
 
+    if (m_func->IsOOPJIT())
+    {
+        size_t allocSize = XDataAllocator::GetAllocSize(alloc->allocation->xdata.pdataCount, alloc->allocation->xdata.xdataSize);
+        BYTE * xprocXdata = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), BYTE, allocSize);
+        memcpy_s(xprocXdata, allocSize, alloc->allocation->xdata.address, allocSize);
+        m_func->GetJITOutput()->RecordXData(xprocXdata);
+    }
+    else
+    {
+        XDataAllocator::Register(&alloc->allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
+        m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&alloc->allocation->xdata);
+    }
+#endif
     const bool isSimpleJit = m_func->IsSimpleJit();
 
     if (this->m_inlineeFrameMap->Count() > 0 &&
