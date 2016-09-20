@@ -7790,9 +7790,9 @@ namespace Js
         
         if (this->numberPageSegments)
         {
-            auto numberChunks = this->GetScriptContext()->GetThreadContext()
+            auto numberArray = this->GetScriptContext()->GetThreadContext()
                 ->GetXProcNumberPageSegmentManager()->RegisterSegments(this->numberPageSegments);
-            this->SetNumberChunks(numberChunks);
+            this->SetNumberArray(numberArray);
             this->numberPageSegments = nullptr;
         }
     }
@@ -8701,11 +8701,21 @@ namespace Js
                 this->constructorCaches->Clear();
             }
 
-#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#if defined(_M_X64)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);
                 HeapDelete(this->xdataInfo);
+                this->xdataInfo = nullptr;
+            }
+#elif defined(_M_ARM32_OR_ARM64)
+            if (this->xdataInfo != nullptr)
+            {
+                XDataAllocator::Unregister(this->xdataInfo);
+                if (JITManager::GetJITManager()->IsOOPJITEnabled())
+                {
+                    HeapDelete(this->xdataInfo);
+                }
                 this->xdataInfo = nullptr;
             }
 #endif

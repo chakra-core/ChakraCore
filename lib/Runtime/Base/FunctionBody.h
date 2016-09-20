@@ -10,6 +10,7 @@
 struct CodeGenWorkItem;
 class SourceContextInfo;
 struct DeferredFunctionStub;
+struct CodeGenNumberChunk;
 #ifdef DYNAMIC_PROFILE_MUTATOR
 class DynamicProfileMutator;
 class DynamicProfileMutatorImpl;
@@ -512,7 +513,11 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
-        Js::JavascriptNumber** numberChunks;
+        union 
+        {
+            Js::JavascriptNumber** numberArray;
+            CodeGenNumberChunk* numberChunks;
+        };
         XProcNumberPageSegment* numberPageSegments;
 #endif
 
@@ -577,10 +582,15 @@ namespace Js
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
         void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
-        void SetNumberChunks(Js::JavascriptNumber** chunks)
+        void SetNumberChunks(CodeGenNumberChunk* chunks)
+        {
+            Assert(numberPageSegments == nullptr);
+            numberChunks = chunks; 
+        }
+        void SetNumberArray(Js::JavascriptNumber** array)
         {
             Assert(numberPageSegments != nullptr);
-            numberChunks = chunks; 
+            numberArray = array;
         }
         void SetNumberPageSegment(XProcNumberPageSegment * segments)
         {

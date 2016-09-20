@@ -630,6 +630,13 @@
   </test>
   <test>
     <default>
+      <files>return2.js</files>
+      <baseline>return2.baseline</baseline>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>returndouble.js</files>
       <baseline>returndouble.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
