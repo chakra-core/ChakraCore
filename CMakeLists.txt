@@ -191,7 +191,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         -D__STDC_WANT_LIB_EXT1__=1
-        -DDISABLE_JIT=1  # xplat-todo: enable the JIT for Linux
         )
 
     set(CMAKE_CXX_STANDARD 11)
@@ -286,6 +285,13 @@ endif(IS_64BIT_BUILD)
 if(CLR_CMAKE_PLATFORM_XPLAT)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_XPLAT)
+
+if(NO_JIT
+   OR CLR_CMAKE_PLATFORM_DARWIN)  # TODO: JIT for OSX
+    add_definitions(-DDISABLE_JIT=1)
+else()
+    set(BuildJIT 1)
+endif()
 
 if(WITHOUT_FEATURES)
    add_definitions(${WITHOUT_FEATURES})

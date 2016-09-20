@@ -37,7 +37,8 @@ PRINT_USAGE() {
     echo "      --icu=PATH       Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
     echo "  -n, --ninja          Build with ninja instead of make"
-    echo "  --no-icu             Compile without unicode/icu support"
+    echo "      --no-icu         Compile without unicode/icu support"
+    echo "      --no-jit         Disable JIT"
     echo "      --xcode          Generate XCode project"
     echo "  -t, --test-build     Test build (by default Release build)"
     echo "      --static         Build as static library (by default shared library)"
@@ -62,6 +63,7 @@ BUILD_TYPE="Release"
 CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
+NO_JIT=
 ICU_PATH="-DICU_SETTINGS_RESET=1"
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 WITHOUT_FEATURES=""
@@ -191,6 +193,10 @@ while [[ $# -gt 0 ]]; do
         ICU_PATH="-DNO_ICU_PATH_GIVEN_SH=1"
         ;;
 
+    --no-jit)
+        NO_JIT="-DNO_JIT=1"
+        ;;
+
     --xcode)
         CMAKE_GEN="-G Xcode -DCC_XCODE_PROJECT=1"
         MAKE=0
@@ -306,7 +312,7 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH -DCMAKE_BUILD_TYPE=$BUILD_TYPE $NO_JIT $WITHOUT_FEATURES ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
