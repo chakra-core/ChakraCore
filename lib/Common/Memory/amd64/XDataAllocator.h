@@ -7,9 +7,18 @@ CompileAssert(false)
 #endif
 #pragma once
 
+#ifndef _WIN32
+extern "C" void __register_frame(const void* ehframe);
+extern "C" void __deregister_frame(const void* ehframe);
+#endif
+
 namespace Memory
 {
+#ifdef _WIN32
 #define XDATA_SIZE (72)
+#else
+#define XDATA_SIZE (0x80)
+#endif
 
 struct XDataAllocation : public SecondaryAllocation
 {
@@ -24,8 +33,11 @@ struct XDataAllocation : public SecondaryAllocation
     {
         address = nullptr;
     }
+
+#ifdef _WIN32
     RUNTIME_FUNCTION pdata;
     FunctionTableHandle functionTable;
+#endif
 };
 
 //
@@ -69,15 +81,28 @@ public:
     void Release(const SecondaryAllocation& address);
     bool CanAllocate();
 
-    static void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize);
+    static void Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize);
     static void Unregister(XDataAllocation * xdataInfo);
 
 // -------- Private helpers ---------/
 private:
     BYTE* End() { return start + size; }
 
-    void ClearFreeList();
-    void PreparePdata(XDataAllocation* const xdata, ULONG_PTR functionStart, DWORD functionSize);
+#ifndef _WIN32
+    // Read .eh_frame data head (length record). 0 means empty.
+    static uint32 ReadHead(const void* p)
+    {
+        return *reinterpret_cast<const uint32*>(p);
+    }
 
+    // Clear .eh_frame data head (length record). Set to 0 to mark empty.
+    static void ClearHead(void* p)
+    {
+        *reinterpret_cast<uint32*>(p) = 0;
+    }
+#endif
+
+    void ClearFreeList();
 };
+
 }

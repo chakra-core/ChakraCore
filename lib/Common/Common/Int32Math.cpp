@@ -176,17 +176,31 @@ Int32Math::Not(int32 val, int32 *pResult)
 bool
 Int32Math::Inc(int32 val, int32 *pResult)
 {
+#ifdef _MSC_VER
     *pResult = val + 1;
     // Overflow if result ends up less than input
     return *pResult <= val;
+#elif defined(__APPLE__)
+    *pResult = val + 1;
+    return val == INT32_MAX; // Overflow if val was int max
+#else
+    return __builtin_add_overflow(val, 1, pResult);
+#endif
 }
 
 bool
 Int32Math::Dec(int32 val, int32 *pResult)
 {
+#ifdef _MSC_VER
     *pResult = val - 1;
     // Overflow if result ends up greater than input
     return *pResult >= val;
+#elif defined(__APPLE__)
+    *pResult = val - 1;
+    return val == INT32_MIN; // Overflow if val was int min
+#else
+    return __builtin_sub_overflow(val, 1, pResult);
+#endif
 }
 
 int32

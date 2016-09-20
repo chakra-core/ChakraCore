@@ -107,6 +107,169 @@ LOCAL_LABEL(function_done):
 NESTED_END amd64_CallFunction, _TEXT
 
 
+//------------------------------------------------------------------------------
+#ifdef _ENABLE_ASM_JS
+
+//extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
+//extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
+
+// float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+.balign 16
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+    jmp _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+
+// double CallAsmJsFunction<double>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+.balign 16
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+    jmp _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+
+// __m128 JavascriptFunction::CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
+//.balign 16
+//??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@PEAXIPEAPEAX@Z PROC FRAME
+//    jmp _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_
+//??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@PEAXIPEAPEAX@Z ENDP
+
+
+// int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+.balign 16
+NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT, NoHandler
+
+        // save these to stack for interpreter
+        mov qword ptr [rsp + 8h],  rcx
+        mov qword ptr [rsp + 10h], rdx
+        mov qword ptr [rsp + 18h], r8
+        mov qword ptr [rsp + 20h], r9
+
+        push rbx
+        push rsi
+        push rdi
+        push r12
+        push r13
+        push rbp
+        lea rbp, [rsp]
+
+        // The first 4 QWORD args are passed in rcx, rdx/xmm1, r8/xmm2 and r9/xmm3,
+        // upon entry rcx contains function *.
+        sub rsp, 8h
+
+
+
+        // rbx = argc
+        mov rbx, r8
+
+        // save entry point into rax.
+        mov rax, rdx
+
+        xor r10d, r10d
+
+        // rsi = argv
+        mov rsi, r9
+        add rsi, 8h
+
+        // get map of args sizes for this function
+        push rax
+        push rcx
+        sub rsp, 20h
+        call _ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE
+        mov r12, rax
+        add rsp, 20h
+        pop rcx
+        pop rax
+
+        // int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
+        // This will return 0x20 bytes if size is below minimum. Includes space for function*.
+        push rax
+        push rcx
+        sub rsp, 20h
+        call _ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE
+        mov r13, rax
+        add rsp, 20h
+        pop rcx
+        pop rax
+
+setup_stack_and_reg_args:
+
+        // OP_CallAsmInternal checks stack space
+
+stack_alloc:
+        sub  rsp, r13
+
+        // copy all args to the new stack frame.
+        lea r11, [rsi]
+        lea r10, [rsp + 8] // copy after ScriptFunction*
+copy_stack_args:
+        mov rdi, qword ptr [r11]
+        mov qword ptr [r10], rdi
+        add r11, 8
+        add r10, 8
+        sub r13, 8
+        cmp r13, 0
+        jg copy_stack_args
+
+        // r12 points to arg size map
+setup_reg_args_1:
+        lea r11, [rsi]
+        // argc < 1 ?
+        cmp rbx, 1h
+        jl setup_args_done
+        cmp dword ptr[r12], 10h
+        je SIMDArg1
+        mov rdx, qword ptr [r11]
+        movq xmm1, qword ptr [r11]
+        add r11, 8h
+        jmp setup_reg_args_2
+SIMDArg1:
+        movups xmm1, xmmword ptr [r11]
+        add r11, 10h
+
+setup_reg_args_2:
+        // argc < 2 ?
+        cmp rbx, 2h
+        jl setup_args_done
+
+        add r12, 4
+        cmp dword ptr[r12], 10h
+        je SIMDArg2
+        mov r8, qword ptr [r11]
+        movq xmm2, qword ptr [r11]
+        add r11, 8h
+        jmp setup_reg_args_3
+SIMDArg2:
+        movups xmm2, xmmword ptr [r11]
+        add r11, 10h
+
+setup_reg_args_3:
+        // argc < 3 ?
+        cmp rbx, 3h
+        jl setup_args_done
+        add r12, 4
+        cmp dword ptr[r12], 10h
+        je SIMDArg3
+        mov r9, qword ptr [r11]
+        movq xmm3, qword ptr [r11]
+SIMDArg3:
+        movups xmm3, xmmword ptr [r11]
+
+setup_args_done:
+        call rax
+done:
+        lea rsp, [rbp]
+        pop rbp
+        pop r13
+        pop r12
+        pop rdi
+        pop rsi
+        pop rbx
+        ret
+
+NESTED_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+
+#endif // _ENABLE_ASM_JS
+
+
+//------------------------------------------------------------------------------
 .balign 16
 NESTED_ENTRY _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
         push_nonvol_reg rbp
@@ -124,13 +287,18 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableOb
 
         pop_register rsi
         pop_register rdi
-        pop_nonvol_reg rbp
 
+        mov rdi, qword ptr [rbp + 10h]  // re-load function, might have been changed by DeferredParse.
+                                        // e.g. StackScriptFunction is Boxed
+                                        // previous push/pop rdi is for stack alignment
+
+        pop_nonvol_reg rbp
         jmp rax
 
 NESTED_END _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
 
 
+//------------------------------------------------------------------------------
 // Var JavascriptFunction::DeferredDeserializeThunk(
 //              RecyclableObject* function, CallInfo callInfo, ...)
 .balign 16
@@ -151,8 +319,8 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16Recyclab
 
         pop_register rsi
         pop_register rdi
-        pop_nonvol_reg rbp
 
+        pop_nonvol_reg rbp
         jmp rax
 
 NESTED_END _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT

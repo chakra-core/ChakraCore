@@ -7,6 +7,11 @@
 // Conditionally-compiled on x64 and arm
 #if PDATA_ENABLED
 
+#ifdef _WIN32
+// ----------------------------------------------------------------------------
+//  _WIN32 x64 unwind uses PDATA
+// ----------------------------------------------------------------------------
+
 void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_PTR functionStart, _In_ const ULONG_PTR functionEnd, _Out_ PVOID* pdataTable, ULONG entryCount, ULONG maxEntryCount)
 {
     BOOLEAN success = FALSE;
@@ -48,4 +53,22 @@ void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)
         Assert(success);
     }
 }
-#endif
+
+#else  // !_WIN32
+// ----------------------------------------------------------------------------
+//  !_WIN32 x64 unwind uses .eh_frame
+// ----------------------------------------------------------------------------
+
+void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_PTR functionStart, _In_ const ULONG_PTR functionEnd, _Out_ PVOID* pdataTable, ULONG entryCount, ULONG maxEntryCount)
+{
+    __register_frame(pdataStart);
+    *pdataTable = pdataStart;
+}
+
+void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)
+{
+    __deregister_frame(pdata);
+}
+
+#endif  // !_WIN32
+#endif  // PDATA_ENABLED

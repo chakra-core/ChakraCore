@@ -367,7 +367,7 @@ ThreadContextInfo::IsJITActive()
 
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 {
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_OOP_NATIVE_CODEGEN
     Assert(AutoSystemInfo::Data.IsJscriptModulePointer((void*)address));
     ptrdiff_t diff = 0;
     if (JITManager::GetJITManager()->IsJITServer())
@@ -387,10 +387,10 @@ intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 {
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_OOP_NATIVE_CODEGEN
     if (AutoSystemInfo::Data.IsJscriptModulePointer((void*)address))
     {
-        // the function is compiled to chakra.dll, or statically linked to crt 
+        // the function is compiled to chakra.dll, or statically linked to crt
         return SHIFT_ADDR(context, address);
     }
     ptrdiff_t diff = 0;

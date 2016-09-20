@@ -944,7 +944,7 @@ namespace Js
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-        RUNTIME_ARGUMENTS(args, callInfo);
+        RUNTIME_ARGUMENTS(args, spreadIndices, function, callInfo);
 
         return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
     }
