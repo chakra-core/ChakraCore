@@ -1324,6 +1324,13 @@
 </test>
 <test>
   <default>
+    <files>OS_8600339.js</files>
+    <compile-flags>-forceserialized</compile-flags>
+    <tags>exclude_dynapogo</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>iteratorclose.js</files>
     <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
   </default>

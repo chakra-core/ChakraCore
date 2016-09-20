@@ -2233,8 +2233,9 @@ public:
                   | FunctionInfo::Attributes::CapturesThis
                   | FunctionInfo::Attributes::Generator
                   | FunctionInfo::Attributes::ClassConstructor
-                  | FunctionInfo::Attributes::ClassMethod)) == 0,
-                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember attributes should be set on a serialized function");
+                  | FunctionInfo::Attributes::ClassMethod
+                  | FunctionInfo::Attributes::EnclosedByGlobalFunc)) == 0,
+                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc attributes should be set on a serialized function");
 
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)
