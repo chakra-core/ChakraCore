@@ -179,6 +179,10 @@ JITOutput::FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc)
     {
         func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(func->GetNativeCodeDataAllocator()->Finalize());
         func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(func->GetTransferDataAllocator()->Finalize());
+#if !FLOATVAR
+        CodeGenNumberChunk * numberChunks = func->GetNumberAllocator()->Finalize();
+        func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
+#endif
     }
 }
 

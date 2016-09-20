@@ -7790,9 +7790,9 @@ namespace Js
         
         if (this->numberPageSegments)
         {
-            auto numberChunks = this->GetScriptContext()->GetThreadContext()
+            auto numberArray = this->GetScriptContext()->GetThreadContext()
                 ->GetXProcNumberPageSegmentManager()->RegisterSegments(this->numberPageSegments);
-            this->SetNumberChunks(numberChunks);
+            this->SetNumberArray(numberArray);
             this->numberPageSegments = nullptr;
         }
     }
