@@ -41,9 +41,8 @@ enum OpndKind : BYTE {
 enum AddrOpndKind : BYTE {
     // The following address kinds are safe for relocatable JIT and regular
     // JIT
-    AddrOpndKindConstant,
+    AddrOpndKindConstantAddress,
     AddrOpndKindConstantVar, // a constant var value (null or tagged int)
-
     // NOTE: None of the following address kinds should be generated directly
     // or you WILL break relocatable JIT code. Each kind has a helper that
     // will generate correct code for relocatable code & non-relocatable code.

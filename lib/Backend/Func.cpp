@@ -1724,7 +1724,7 @@ void Func::ThrowIfScriptClosed()
     }
 }
 
-IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
+IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::Opnd * largeConstOpnd, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
 {
     Assert(this->GetTopFunc() == this);
     if (!canHoistConstantAddressLoad)
@@ -1737,7 +1737,10 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
     IR::RegOpnd ** foundRegOpnd = this->constantAddressRegOpnd.Find([address, &offset](IR::RegOpnd * regOpnd)
     {
         Assert(regOpnd->m_sym->IsSingleDef());
-        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address;
+        Assert(regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() || regOpnd->m_sym->m_instrDef->GetSrc1()->IsIntConstOpnd());
+        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() ?
+                      regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address :
+                      (void *)regOpnd->m_sym->m_instrDef->GetSrc1()->AsIntConstOpnd()->GetValue();
         ptrdiff_t diff = (uintptr_t)address - (uintptr_t)curr;
         if (!Math::FitsInDWord(diff))
         {
@@ -1761,7 +1764,7 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
             IR::Instr::New(
             loadOpCode,
             addressRegOpnd,
-            IR::AddrOpnd::New(address, kind, this, true),
+            largeConstOpnd,
             this);
         this->constantAddressRegOpnd.Prepend(addressRegOpnd);
 

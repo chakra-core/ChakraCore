@@ -897,7 +897,7 @@ public:
     }
 
     IR::Instr * GetFunctionEntryInsertionPoint();
-    IR::IndirOpnd * GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode);
+    IR::IndirOpnd * GetConstantAddressIndirOpnd(intptr_t address, IR::Opnd *largeConstOpnd, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode);
     void MarkConstantAddressSyms(BVSparse<JitArenaAllocator> * bv);
     void DisableConstandAddressLoadHoist() { canHoistConstantAddressLoad = false; }
 
