@@ -783,8 +783,12 @@ typedef struct JITOutputIDL
     unsigned int propertyGuardCount;
     unsigned int ctorCachesCount;
 
-    CHAKRA_PTR codeAddress;
+#if defined(_M_X64)
     CHAKRA_PTR xdataAddr;
+#elif defined(_M_ARM) || defined(_M_ARM64)
+    unsigned int xdataOffset;
+#endif
+    CHAKRA_PTR codeAddress;
     TypeGuardTransferEntryIDL* typeGuardEntries;
 
     IDL_DEF([size_is(ctorCachesCount)]) CtorCacheTransferEntryIDL ** ctorCacheEntries;
