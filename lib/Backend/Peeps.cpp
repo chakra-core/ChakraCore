@@ -753,9 +753,65 @@ Peeps::RetargetBrToBr(IR::BranchInstr *branchInstr, IR::LabelInstr * targetInstr
 
     IR::LabelInstr *lastLoopTop = NULL;
 
-    while (targetInstrNext->IsBranchInstr() && targetInstrNext->AsBranchInstr()->IsUnconditional())
+    while (true)
     {
-        IR::BranchInstr *branchAtTarget = targetInstrNext->AsBranchInstr();
+        // There's very few cases where we can safely follow a branch chain with intervening instrs.
+        // One of them, which comes up occasionally, is where there is a copy of a single-def symbol
+        // to another single-def symbol which is only used for the branch instruction (i.e. one dead
+        // after the branch). Another is where a single-def symbol is declared of a constant (e.g. a
+        // symbol created to store "True"
+        // Unfortuantely, to properly do this, we'd need to do it somewhere else (i.e. not in peeps)
+        // and make use of the additional information that we'd have there. Having the flow graph or
+        // just any more information about variable liveness is necessary to determine that the load
+        // instructions between jumps can be safely skipped.
+        // The general case where this would be useful, on a higher level, is where a long statement
+        // containing many branches returns a value; the branching here can put the result into some
+        // different stacksym at each level, meaning that there'd be a load between each branch. The
+        // result is that we don't currently optimize it.
+        IR::BranchInstr *branchAtTarget = nullptr;
+        if (targetInstrNext->IsBranchInstr())
+        {
+            branchAtTarget = targetInstrNext->AsBranchInstr();
+        }
+        else
+        {
+            // We don't have the information here to decide whether or not to continue the branch chain.
+            break;
+        }
+        // This used to just be a targetInstrNext->AsBranchInstr()->IsUnconditional(), but, in order
+        // to optimize further, it became necessary to handle more than just unconditional jumps. In
+        // order to keep the code relatively clean, the "is it an inherently-taken jump chain" check
+        // code now follows here:
+        if (!targetInstrNext->AsBranchInstr()->IsUnconditional())
+        {
+            bool safetofollow = false;
+            if(targetInstrNext->m_opcode == branchInstr->m_opcode)
+            {
+                // If it's the same branch instruction, with the same arguments, the branch decision should,
+                // similarly, be the same. There's a bit more that can be done with this (e.g. for inverted,
+                // but otherwise similar instructions like brTrue and brFalse, the destination could go down
+                // the other path), but this is something that should probably be done more generally, so we
+                // can optimize branch chains that have other interesting bechaviors.
+                if (
+                    (
+                        (branchInstr->GetSrc1() && targetInstrNext->GetSrc1() && branchInstr->GetSrc1()->IsEqual(targetInstrNext->GetSrc1())) ||
+                        !(branchInstr->GetSrc1() || targetInstrNext->GetSrc1())
+                    ) && (
+                        (branchInstr->GetSrc2() && targetInstrNext->GetSrc2() && branchInstr->GetSrc2()->IsEqual(targetInstrNext->GetSrc2())) ||
+                        !(branchInstr->GetSrc2() || targetInstrNext->GetSrc2())
+                    )
+                   )
+                {
+                    safetofollow = true;
+                }
+            }
+            if (!safetofollow)
+            {
+                // We can't say safely that this branch is something that we can implicitly take, so instead
+                // cut off the branch chain optimization here.
+                break;
+            }
+        }
 
         // We don't want to skip the loop entry, unless we're right before the encoder
         if (targetInstr->m_isLoopTop && !branchAtTarget->IsLowered())
