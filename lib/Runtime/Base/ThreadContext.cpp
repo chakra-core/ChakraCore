@@ -167,6 +167,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #if ENABLE_NATIVE_CODEGEN
     codeGenNumberThreadAllocator(nullptr),
     m_pendingJITProperties(nullptr),
+    m_reclaimedJITProperties(nullptr),
     xProcNumberPageSegmentManager(nullptr),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
@@ -489,6 +490,11 @@ ThreadContext::~ThreadContext()
         {
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
+        }
+        if (this->m_reclaimedJITProperties != nullptr)
+        {
+            HeapDelete(this->m_reclaimedJITProperties);
+            this->m_reclaimedJITProperties = nullptr;
         }
 #endif
         // Unpin the memory for leak report so we don't report this as a leak.
@@ -919,9 +925,6 @@ void ThreadContext::InitializePropertyMaps()
     try
     {
         this->propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
-#if ENABLE_NATIVE_CODEGEN
-        this->m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
-#endif
         this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
 
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
@@ -929,20 +932,6 @@ void ThreadContext::InitializePropertyMaps()
         Js::JavascriptLibrary::InitializeProperties(this);
         InitializeAdditionalProperties(this);
 
-#if ENABLE_NATIVE_CODEGEN
-        if (propertyMap->Count() > 0)
-        {
-            uint count = (uint)propertyMap->Count();
-            PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
-            auto iter = propertyMap->GetIterator();
-            while (iter.IsValid())
-            {
-                m_pendingJITProperties->Add(iter.CurrentValue());
-                iter.MoveNext();
-            }
-            HeapDeleteArray(count, propArray);
-        }
-#endif
         //Js::JavascriptLibrary::InitializeDOMProperties(this);
     }
     catch(...)
@@ -961,6 +950,11 @@ void ThreadContext::InitializePropertyMaps()
         {
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
+        }
+        if (this->m_reclaimedJITProperties != nullptr)
+        {
+            HeapDelete(this->m_reclaimedJITProperties);
+            this->m_reclaimedJITProperties = nullptr;
         }
 #endif
 
@@ -1119,9 +1113,11 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     propertyMap->Add(propertyRecord);
 
 #if ENABLE_NATIVE_CODEGEN
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (m_pendingJITProperties)
     {
+        Assert(m_reclaimedJITProperties);
         m_pendingJITProperties->Add(propertyRecord);
+        m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
     }
 #endif
 
@@ -1277,9 +1273,14 @@ bool ThreadContext::IsActivePropertyId(Js::PropertyId pid)
 void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * propertyRecord)
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
-
+#if ENABLE_NATIVE_CODEGEN
+    if (m_pendingJITProperties && !m_pendingJITProperties->Remove(propertyRecord))
+    {
+        // if it wasn't pending, that means it was already sent to the jit, so add to list that jit needs to reclaim
+        m_reclaimedJITProperties->PrependNoThrow(&HeapAllocator::Instance, propertyRecord->GetPropertyId());
+    }
+#endif
     this->propertyMap->Remove(propertyRecord);
-
     PropertyRecordTrace(_u("Reclaimed property '%s' at 0x%08x, pid = %d\n"),
         propertyRecord->GetBuffer(), propertyRecord, propertyRecord->GetPropertyId());
 }
@@ -1988,6 +1989,9 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 #if _M_IX86 || _M_AMD64
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
+
+    m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
+    m_pendingJITProperties = propertyMap->Clone();
 
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
 }

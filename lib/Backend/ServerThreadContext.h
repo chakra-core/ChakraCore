@@ -42,6 +42,7 @@ public:
     AllocationPolicyManager * GetAllocationPolicyManager();
     CustomHeap::CodePageAllocators * GetCodePageAllocators();
     PageAllocator* GetPageAllocator();
+    void RemoveFromPropertyMap(Js::PropertyId reclaimedId);
     void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
 private:

@@ -158,23 +158,28 @@ ServerCleanupThreadContext(
 }
 
 HRESULT
-ServerAddPropertyRecordArray(
+ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
-    /* [in] */ intptr_t threadContextRoot,
-    /* [in] */ uint count,
-    /* [in] */ __RPC__in_ecount_full(count) PropertyRecordIDL ** propertyRecordArray)
+    /* [in] */ intptr_t threadContextInfoAddress,
+    /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     if (threadContextInfo == nullptr)
     {
         return RPC_S_INVALID_ARG;
     }
-    for (uint i = 0; i < count; ++i)
+
+    for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
     {
-        threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecordArray[i]);
+        threadContextInfo->RemoveFromPropertyMap((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
+    }
+
+    for (uint i = 0; i < updatedProps->newRecordCount; ++i)
+    {
+        threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)updatedProps->newRecordArray[i]);
     }
 
     return S_OK;

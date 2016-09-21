@@ -801,3 +801,11 @@ typedef struct JITOutputIDL
     X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;
+
+typedef struct UpdatedPropertysIDL
+{
+    unsigned int reclaimedPropertyCount;
+    unsigned int newRecordCount;
+    [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
+    [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
+} UpdatedPropertysIDL;

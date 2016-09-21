@@ -1992,6 +1992,87 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
     }
 }
 
+void
+NativeCodeGenerator::UpdateJITState()
+{
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        // ensure jit contexts have been set up
+        if (!scriptContext->GetRemoteScriptAddr())
+        {
+            scriptContext->InitializeRemoteScriptContext();
+        }
+
+        bool allowPrereserveAlloc = true;
+#if !_M_X64_OR_ARM64
+        if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
+        {
+            allowPrereserveAlloc = false;
+        }
+#endif
+#ifndef _CONTROL_FLOW_GUARD
+        allowPrereserveAlloc = false;
+#endif
+        scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
+
+        // update all property records on server that have been changed since last jit
+        ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
+        PropertyRecordIDL ** newPropArray = nullptr;
+        uint newCount = 0;
+        if (pendingProps->Count() > 0)
+        {
+            newCount = (uint)pendingProps->Count();
+            newPropArray = HeapNewArray(PropertyRecordIDL*, newCount);
+            uint index = 0;
+            auto iter = pendingProps->GetIteratorWithRemovalSupport();
+            while (iter.IsValid())
+            {
+                newPropArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
+                iter.RemoveCurrent();
+                iter.MoveNext();
+            }
+            Assert(index == newCount);
+        }
+
+        ThreadContext::PropertyList * reclaimedProps = scriptContext->GetThreadContext()->GetReclaimedJITProperties();
+        int * reclaimedPropArray = nullptr;
+        uint reclaimedCount = 0;
+        if (reclaimedProps->Count() > 0)
+        {
+            reclaimedCount = (uint)reclaimedProps->Count();
+            reclaimedPropArray = HeapNewArray(int, reclaimedCount);
+            uint index = 0;
+            while (!reclaimedProps->Empty())
+            {
+                reclaimedPropArray[index++] = (int)reclaimedProps->Pop();
+            }
+            Assert(index == reclaimedCount);
+        }
+
+        if (newCount > 0 || reclaimedCount > 0)
+        {
+            UpdatedPropertysIDL props = {0};
+            props.reclaimedPropertyCount = reclaimedCount;
+            props.reclaimedPropertyIdArray = reclaimedPropArray;
+            props.newRecordCount = newCount;
+            props.newRecordArray = newPropArray;
+            HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
+            if (hr != S_OK)
+            {
+                Js::Throw::FatalInternalError();
+            }
+            if (newPropArray)
+            {
+                HeapDeleteArray(newCount, newPropArray);
+            }
+            if (reclaimedPropArray)
+            {
+                HeapDeleteArray(reclaimedCount, reclaimedPropArray);
+            }
+        }
+    }
+}
+
 JsUtil::Job *
 NativeCodeGenerator::GetJobToProcessProactively()
 {
@@ -2881,46 +2962,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
     } autoProfile(foregroundCodeGenProfiler);
 #endif
 
-    if (JITManager::GetJITManager()->IsOOPJITEnabled() )
-    {
-        // ensure jit contexts have been set up
-        if (!scriptContext->GetRemoteScriptAddr())
-        {
-            scriptContext->InitializeRemoteScriptContext();
-        }
-
-        bool allowPrereserveAlloc = true;
-#if !_M_X64_OR_ARM64
-        if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
-        {
-            allowPrereserveAlloc = false;
-        }
-#endif
-#ifndef _CONTROL_FLOW_GUARD
-        allowPrereserveAlloc = false;
-#endif
-        scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
-
-        // batch send all new property records
-        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
-        if (pendingProps->Count() > 0)
-        {
-            uint count = (uint)pendingProps->Count();
-            PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
-            uint index = 0;
-            while (pendingProps->Count() > 0)
-            {
-                propArray[index++] = (PropertyRecordIDL*)pendingProps->RemoveAtEnd();
-            }
-            Assert(index == count);
-            HRESULT hr = JITManager::GetJITManager()->AddPropertyRecordArray(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), count, (PropertyRecordIDL**)propArray);
-            if (hr != S_OK)
-            {
-                Js::Throw::FatalInternalError();
-            }
-            HeapDeleteArray(count, propArray);
-        }
-    }
+    UpdateJITState();
 
     const auto recycler = scriptContext->GetRecycler();
     {

@@ -77,6 +77,7 @@ private:
     JsUtil::Job *GetJobToProcessProactively();
     void AddToJitQueue(CodeGenWorkItem *const codeGenWorkItem, bool prioritize, bool lock, void* function = nullptr);
     void RemoveProactiveJobs();
+    void UpdateJITState();
     static void LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
     static void LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
     typedef SListCounted<Js::ObjTypeSpecFldInfo*, ArenaAllocator> ObjTypeSpecFldInfoList;

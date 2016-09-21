@@ -206,6 +206,27 @@ ServerThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
 }
 
 void
+ServerThreadContext::RemoveFromPropertyMap(Js::PropertyId reclaimedId)
+{
+    const Js::PropertyRecord * oldRecord = nullptr;
+    if (m_propertyMap->TryGetValue(reclaimedId, &oldRecord))
+    {
+        // if there was reclaimed property that had its pid reused, delete the old property record
+        m_propertyMap->Remove(oldRecord);
+
+        PropertyRecordTrace(_u("Reclaimed JIT property '%s' at 0x%08x, pid = %d\n"), oldRecord->GetBuffer(), oldRecord, oldRecord->pid);
+
+        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
+        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+    }
+    else
+    {
+        // we should only ever ask to reclaim properties which were previously added to the jit map
+        Assert(UNREACHED);
+    }
+}
+
+void
 ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
 {
     size_t allocLength = origRecord->byteCount + sizeof(char16) + (origRecord->isNumeric ? sizeof(uint32) : 0);
@@ -223,6 +244,16 @@ ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
         Assert(record->GetNumericValue() == origRecord->GetNumericValue());
     }
     record->pid = origRecord->pid;
+
+    const Js::PropertyRecord * oldRecord = nullptr;
+
+    // this should only happen if there was reclaimed property that we failed to add to reclaimed list due to a prior oom
+    if (m_propertyMap->TryGetValue(origRecord->GetPropertyId(), &oldRecord))
+    {
+        m_propertyMap->Remove(oldRecord);
+        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
+        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+    }
 
     m_propertyMap->Add(record);
 

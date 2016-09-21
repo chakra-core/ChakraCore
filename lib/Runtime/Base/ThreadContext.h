@@ -524,22 +524,29 @@ public:
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
+    typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
+
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
     typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
-    typedef JsUtil::List<const Js::PropertyRecord *, HeapAllocator> PropertyList;
 private:
     intptr_t m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyList * m_pendingJITProperties;
+    PropertyMap * m_pendingJITProperties;
+    PropertyList  * m_reclaimedJITProperties;
 public:
 
-    PropertyList * GetPendingJITProperties() const
+    PropertyList * GetReclaimedJITProperties() const
+    {
+        return m_reclaimedJITProperties;
+    }
+
+    PropertyMap * GetPendingJITProperties() const
     {
         return m_pendingJITProperties;
     }

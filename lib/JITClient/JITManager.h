@@ -26,10 +26,9 @@ public:
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
 
-    HRESULT AddPropertyRecordArray(
+    HRESULT UpdatePropertyRecordMap(
         __in intptr_t threadContextInfoAddress,
-        __in unsigned int count,
-        __in PropertyRecordIDL ** propertyRecordArray);
+        __in UpdatedPropertysIDL * updatedProps);
 
     HRESULT AddDOMFastPathHelper(
         __in intptr_t scriptContextInfoAddress,
