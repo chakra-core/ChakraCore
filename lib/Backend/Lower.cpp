@@ -17675,7 +17675,7 @@ Lowerer::GenerateFastInlineMathImul(IR::Instr* instr)
 IR::Instr *
 Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
 {
-    Assert(m_func->GetJnFunction()->IsWasmFunction());
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* dst = instr->GetDst();
 

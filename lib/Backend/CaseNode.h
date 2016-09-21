@@ -22,10 +22,10 @@ private:
         return opnd->IsIntConstOpnd() ? opnd->AsIntConstOpnd()->AsInt32() : opnd->GetStackSym()->GetIntConstValue();
     }
 
-    Js::JavascriptString* GetStringConst(IR::Opnd* opnd)
+    Js::JavascriptString* GetStringConst(IR::Opnd* opnd, bool useLocal = false)
     {
         Assert(IsStrConst(opnd));
-        return Js::JavascriptString::FromVar(opnd->GetStackSym()->GetConstAddress());
+        return Js::JavascriptString::FromVar(opnd->GetStackSym()->GetConstAddress(useLocal));
     }
 
     bool IsIntConst(IR::Opnd* opnd)
@@ -53,11 +53,12 @@ public:
         return GetIntConst(GetUpperBound());
     }
 
-    Js::JavascriptString* GetSrc2StringConstLocal()
+    Js::JavascriptString* GetUpperBoundStringConstLocal()
     {
-        AssertMsg(caseInstr->GetSrc2()->GetStackSym()->m_isStrConst,"Source2 operand is not an integer constant");
-        return Js::JavascriptString::FromVar(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress(true));
+        AssertMsg(IsUpperBoundStrConst(), "Upper bound operand is not a string constant");
+        return GetStringConst(GetUpperBound(), true);
     }
+
     Js::JavascriptString* GetUpperBoundStrConst()
     {
         AssertMsg(IsUpperBoundStrConst(), "Upper bound operand is not a string constant");

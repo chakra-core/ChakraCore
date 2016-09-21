@@ -29,6 +29,7 @@ public:
     intptr_t GetFloatTwoToFractionAddr() const;
     intptr_t GetDoubleNegTwoToFractionAddr() const;
     intptr_t GetDoubleNaNAddr() const;
+    intptr_t GetFloatNaNAddr() const;
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
     intptr_t GetFloatZeroAddr() const;

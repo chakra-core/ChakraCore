@@ -9314,8 +9314,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (dst->IsFloat32())
                 {
-				    todo fix using nan32 addr
-                    opndNaN = IR::MemRefOpnd::New((float*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
+                    opndNaN = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatNaNAddr(), IRType::TyFloat32, this->m_func);
                 }
                 else
                 {

@@ -438,7 +438,7 @@ IRBuilderAsmJs::BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Proper
 uint
 IRBuilderAsmJs::AddStatementBoundary(uint statementIndex, uint offset)
 {
-    if (m_func->GetJnFunction()->IsWasmFunction())
+    if (m_func->GetJITFunctionBody()->IsWasmFunction())
     {
         return 0;
     }
@@ -1580,7 +1580,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         }
         Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
         IR::RegOpnd * maskedOpnd = nullptr;
-        if (mask && !m_func->GetJnFunction()->IsWasmFunction())
+        if (mask && !m_func->GetJITFunctionBody()->IsWasmFunction())
         {
             maskedOpnd = IR::RegOpnd::New(TyUint32, m_func);
             maskInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, BuildSrcOpnd(indexRegSlot, TyInt32), IR::IntConstOpnd::New(mask, TyUint32, m_func), m_func);

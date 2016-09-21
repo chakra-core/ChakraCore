@@ -431,9 +431,11 @@ WasmBytecodeGenerator::GenerateFunction()
 void
 WasmBytecodeGenerator::EnregisterLocals()
 {
-    m_locals = AnewArray(&m_alloc, WasmLocal, m_funcInfo->GetLocalCount());
+    uint32 nLocals = m_funcInfo->GetLocalCount();
+    m_locals = AnewArray(&m_alloc, WasmLocal, nLocals);
 
-    for (uint i = 0; i < m_funcInfo->GetLocalCount(); ++i)
+    m_funcInfo->GetBody()->SetFirstTmpReg(nLocals);
+    for (uint i = 0; i < nLocals; ++i)
     {
         WasmTypes::WasmType type = m_funcInfo->GetLocal(i);
         WasmRegisterSpace * regSpace = GetRegisterSpace(type);

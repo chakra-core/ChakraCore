@@ -9497,7 +9497,7 @@ GlobOpt::OptConstFoldUnary(
         break;
 
     case Js::OpCode::Ctz:
-        Assert(func->GetJnFunction()->IsWasmFunction());
+        Assert(func->GetJITFunctionBody()->IsWasmFunction());
         Assert(!instr->HasBailOutInfo());
         DWORD ctz;
         if (_BitScanForward(&ctz, intConstantValue))
