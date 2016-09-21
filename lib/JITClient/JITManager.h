@@ -33,6 +33,15 @@ public:
         __in intptr_t threadContextInfoAddress,
         __in UpdatedPropertysIDL * updatedProps);
 
+    HRESULT DecommitInterpreterBufferManager(
+        __in intptr_t scriptContextInfoAddress,
+        __in boolean asmJsThunk);
+
+    HRESULT NewInterpreterThunkBlock(
+        __in intptr_t scriptContextInfoAddress,
+        __in boolean asmJsThunk,
+        __out InterpreterThunkInfoIDL * thunkInfo);
+
     HRESULT AddDOMFastPathHelper(
         __in intptr_t scriptContextInfoAddress,
         __in intptr_t funcInfoAddr,
@@ -77,6 +86,14 @@ public:
         __in CodeGenWorkItemIDL *workItemData,
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
+
+#if DBG
+    HRESULT IsInterpreterThunkAddr(
+        __in intptr_t scriptContextInfoAddress,
+        __in intptr_t address,
+        __in boolean asmjsThunk,
+        __out boolean * result);
+#endif
 
     HRESULT Shutdown();
 

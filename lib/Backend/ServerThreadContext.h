@@ -45,11 +45,13 @@ public:
     void RemoveFromPropertyMap(Js::PropertyId reclaimedId);
     void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
-
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators * GetThunkPageAllocators();
+#endif
     void AddRef();
     void Release();
     void Close();
-
+    PageAllocator * GetForegroundPageAllocator();
 #ifdef STACK_BACK_TRACE
     DWORD GetRuntimePid() { return m_pid; }
 #endif
@@ -65,8 +67,13 @@ private:
     AllocationPolicyManager m_policyManager;
     JsUtil::BaseDictionary<DWORD, PageAllocator*, HeapAllocator> m_pageAllocs;
     PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators m_thunkPageAllocators;
+#endif
     CustomHeap::CodePageAllocators m_codePageAllocators;
     CodeGenAllocators m_codeGenAlloc;
+    // only allocate with this from foreground calls (never from CodeGen calls)
+    PageAllocator m_pageAlloc;
 
     ThreadContextDataIDL m_threadContextData;
 

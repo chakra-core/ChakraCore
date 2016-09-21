@@ -808,3 +808,12 @@ typedef struct UpdatedPropertysIDL
     [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
     [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
 } UpdatedPropertysIDL;
+
+typedef struct InterpreterThunkInfoIDL
+{
+    unsigned int thunkCount;
+    X64_PAD4(0)
+    CHAKRA_PTR pdataTableStart;
+    CHAKRA_PTR epilogEndAddr;
+    CHAKRA_PTR thunkBlockAddr;
+} InterpreterThunkInfoIDL;

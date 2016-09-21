@@ -1209,11 +1209,11 @@ if (!sourceList)
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
 #endif
 
 #ifdef ASMJS_PLAT
-        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
+        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
             true);
 #endif
 
@@ -4848,10 +4848,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (JavascriptMethod)this->interpreterThunkEmitter->GetNextThunk(ppDynamicInterpreterThunk);
     }
 
+#if DBG
     BOOL ScriptContext::IsDynamicInterpreterThunk(JavascriptMethod address)
     {
         return this->interpreterThunkEmitter->IsInHeap((void*)address);
     }
+#endif
 
     void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)
     {

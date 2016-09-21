@@ -1062,7 +1062,30 @@ void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHand
     }
     else
     {
-        writeBuffer = HeapNewArray(BYTE, byteCount);
+        writeBuffer = HeapNewNoThrowArray(BYTE, byteCount);
+        // in oom scenario write element at a time
+        // TODO: OOP JIT, pre-allocate space so this can't happen
+        if (!writeBuffer)
+        {
+            for (size_t i = 0; i < byteCount; i+= sizeof(char16))
+            {
+                if (!WriteProcessMemory(processHandle, buffer + i, &pattern, sizeof(char16), NULL))
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                    Js::Throw::FatalInternalError();
+                }
+            }
+            if (byteCount % 2 != 0)
+            {
+                char lastByte = 0;
+                if (!WriteProcessMemory(processHandle, buffer + byteCount - 1, &lastByte, sizeof(BYTE), NULL))
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                    Js::Throw::FatalInternalError();
+                }
+            }
+            return;
+        }
     }
     wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
     if (byteCount % 2)

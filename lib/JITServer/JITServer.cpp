@@ -351,6 +351,107 @@ ServerCloseScriptContext(
 }
 
 HRESULT
+ServerDecommitInterpreterBufferManager(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ boolean asmJsManager)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    if (ServerContextManager::IsScriptContextAlive(scriptContext))
+    {
+        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContext);
+        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
+    }
+    return S_OK;
+}
+
+HRESULT
+ServerNewInterpreterThunkBlock(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfo,
+    /* [in] */ boolean asmJsThunk,
+    /* [out] */ __RPC__out InterpreterThunkInfoIDL * thunkInfo)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfo);
+
+    memset(thunkInfo, 0, sizeof(InterpreterThunkInfoIDL));
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContext);
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+        const DWORD bufferSize = InterpreterThunkEmitter::BlockSize;
+        DWORD thunkCount = 0;
+
+#if PDATA_ENABLED
+        PRUNTIME_FUNCTION pdataStart;
+        intptr_t epilogEnd;
+#endif
+        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
+        EmitBufferManager<> * emitBufferManager = scriptContext->GetEmitBufferManager(asmJsThunk != FALSE);
+
+        // REVIEW: OOP JIT should we clear arena at end?
+        ArenaAllocator * arena = scriptContext->GetSourceCodeArena();
+        BYTE * localBuffer = AnewArray(arena, BYTE, bufferSize);
+
+        BYTE* remoteBuffer;
+        EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(bufferSize, &remoteBuffer);
+
+        InterpreterThunkEmitter::FillBuffer(
+            arena,
+            threadContext,
+            asmJsThunk != FALSE,
+            (intptr_t)remoteBuffer,
+            bufferSize,
+            localBuffer,
+#if PDATA_ENABLED
+            &pdataStart,
+            &epilogEnd,
+#endif
+            &thunkCount
+        );
+
+        bool success = emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation);
+        Assert(success);
+
+        if (!WriteProcessMemory(threadContext->GetProcessHandle(), remoteBuffer, localBuffer, bufferSize, nullptr))
+        {
+            Js::Throw::JITOperationFailed(GetLastError());
+        }
+
+        success = emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, remoteBuffer, bufferSize);
+        Assert(success);
+
+        // Call to set VALID flag for CFG check
+        threadContext->SetValidCallTargetForCFG(remoteBuffer);
+
+        thunkInfo->thunkBlockAddr = (intptr_t)remoteBuffer;
+        thunkInfo->thunkCount = thunkCount;
+#if PDATA_ENABLED
+        thunkInfo->pdataTableStart = (intptr_t)pdataStart;
+        thunkInfo->epilogEndAddr = epilogEnd;
+#endif
+        arena->Clear();
+
+        return S_OK;
+    });
+}
+
+HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextInfo,
@@ -371,6 +472,35 @@ ServerFreeAllocation(
         return S_OK;
     });
 }
+
+#if DBG
+HRESULT
+ServerIsInterpreterThunkAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ intptr_t address,
+    /* [in] */ boolean asmjsThunk,
+    /* [out] */ __RPC__out boolean * result)
+{
+    ServerScriptContext * context = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (context == nullptr)
+    {
+        *result = false;
+        return RPC_S_INVALID_ARG;
+    }
+    EmitBufferManager<> * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    if (manager == nullptr)
+    {
+        *result = false;
+        return S_OK;
+    }
+
+    *result = manager->IsInHeap((void*)address);
+
+    return S_OK;
+}
+#endif
 
 HRESULT
 ServerIsNativeAddr(

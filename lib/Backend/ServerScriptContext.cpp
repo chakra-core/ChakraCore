@@ -12,6 +12,9 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_contextData(*contextData),
     threadContextInfo(threadContextInfo),
     m_isPRNGSeeded(false),
+    m_interpreterThunkBufferManager(nullptr),
+    m_asmJsInterpreterThunkBufferManager(nullptr),
+    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -44,6 +47,14 @@ ServerScriptContext::~ServerScriptContext()
         HeapDelete(m_codeGenProfiler);
     }
 #endif
+    if (m_asmJsInterpreterThunkBufferManager)
+    {
+        HeapDelete(m_asmJsInterpreterThunkBufferManager);
+    }
+    if (m_interpreterThunkBufferManager)
+    {
+        HeapDelete(m_interpreterThunkBufferManager);
+    }
 }
 
 intptr_t
@@ -269,6 +280,35 @@ void
 ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
     m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+}
+
+ArenaAllocator *
+ServerScriptContext::GetSourceCodeArena()
+{
+    return &m_sourceCodeArena;
+}
+
+void
+ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
+{
+    EmitBufferManager<> * manager = GetEmitBufferManager(asmJsManager);
+    if (manager != nullptr)
+    {
+        manager->Decommit();
+    }
+}
+
+EmitBufferManager<> *
+ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
+{
+    if (asmJsManager)
+    {
+        return m_asmJsInterpreterThunkBufferManager;
+    }
+    else
+    {
+        return m_interpreterThunkBufferManager;
+    }
 }
 
 IR::JnHelperMethod
