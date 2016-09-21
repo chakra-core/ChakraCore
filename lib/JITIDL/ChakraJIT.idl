@@ -27,11 +27,10 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress);
 
-    HRESULT AddPropertyRecordArray(
+    HRESULT UpdatePropertyRecordMap(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,
-        [in] unsigned int count,
-        [in, size_is(count)] PropertyRecordIDL ** propertyRecord);
+        [in] UpdatedPropertysIDL * updatedProps);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,

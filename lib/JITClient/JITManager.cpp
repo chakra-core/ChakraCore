@@ -420,17 +420,16 @@ JITManager::SetWellKnownHostTypeId(
 }
 
 HRESULT
-JITManager::AddPropertyRecordArray(
+JITManager::UpdatePropertyRecordMap(
     __in intptr_t threadContextInfoAddress,
-    __in uint count,
-    __in PropertyRecordIDL ** propertyRecordArray)
+    __in UpdatedPropertysIDL * updatedProps)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientAddPropertyRecordArray(m_rpcBindingHandle, threadContextInfoAddress, count, propertyRecordArray);
+        hr = ClientUpdatePropertyRecordMap(m_rpcBindingHandle, threadContextInfoAddress, updatedProps);
     }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

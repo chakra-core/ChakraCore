@@ -524,6 +524,8 @@ public:
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
+    typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
+
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
@@ -536,7 +538,13 @@ private:
 
 #if ENABLE_NATIVE_CODEGEN
     PropertyMap * m_pendingJITProperties;
+    PropertyList  * m_reclaimedJITProperties;
 public:
+
+    PropertyList * GetReclaimedJITProperties() const
+    {
+        return m_reclaimedJITProperties;
+    }
 
     PropertyMap * GetPendingJITProperties() const
     {
