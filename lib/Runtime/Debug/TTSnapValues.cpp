@@ -1508,9 +1508,12 @@ namespace TTD
 
             if(updateName)
             {
-                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, _u("get ")) == 0 || wcsstr(fbInfo->FunctionName.Contents, _u("set ")) == 0, "Does not start with get or set");
+                uint32 suffixWDotPos = (fbInfo->FunctionName.Length - 4);
+                uint32 suffixPos = (fbInfo->FunctionName.Length - 3);
 
-                resfb->SetDisplayName(fbInfo->FunctionName.Contents,fbInfo->FunctionName.Length, 3, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
+                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, _u(".get")) == (fbInfo->FunctionName.Contents + suffixWDotPos) || wcsstr(fbInfo->FunctionName.Contents, _u(".set")) == (fbInfo->FunctionName.Contents + suffixWDotPos), "Does not start with get or set");
+
+                resfb->SetDisplayName(fbInfo->FunctionName.Contents, fbInfo->FunctionName.Length, suffixPos, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
             }
 
             inflator->AddInflationFunctionBody(fbInfo->FunctionBodyId, resfb);

@@ -667,9 +667,16 @@ namespace TTD
         }
 
         //Make sure all objects/values have been matched
-        compareMap.DiagnosticAssert(comparedSlotArrays == snap1->m_slotArrayEntries.Count() && comparedSlotArrays == snap2->m_slotArrayEntries.Count());
-        compareMap.DiagnosticAssert(comparedScopes == snap1->m_scopeEntries.Count() && comparedScopes == snap2->m_scopeEntries.Count());
-        compareMap.DiagnosticAssert(comparedObjects == snap1->m_compoundObjectList.Count() && comparedObjects == snap2->m_compoundObjectList.Count());
+        //
+        //TODO: this is weird we do a < since weak sets/maps can't be checked without backtracking or some topo ordering on the keys 
+        //
+        compareMap.DiagnosticAssert(comparedSlotArrays <= snap1->m_slotArrayEntries.Count() && comparedSlotArrays <= snap2->m_slotArrayEntries.Count());
+        compareMap.DiagnosticAssert(comparedScopes <= snap1->m_scopeEntries.Count() && comparedScopes <= snap2->m_scopeEntries.Count());
+        compareMap.DiagnosticAssert(comparedObjects <= snap1->m_compoundObjectList.Count() && comparedObjects <= snap2->m_compoundObjectList.Count());
+
+        compareMap.DiagnosticAssert(snap1->m_slotArrayEntries.Count() == snap2->m_slotArrayEntries.Count());
+        compareMap.DiagnosticAssert(snap1->m_scopeEntries.Count() == snap2->m_scopeEntries.Count());
+        compareMap.DiagnosticAssert(snap1->m_compoundObjectList.Count() == snap2->m_compoundObjectList.Count());
 
         //
         //TODO: if we missed something we may want to put code here to identify it

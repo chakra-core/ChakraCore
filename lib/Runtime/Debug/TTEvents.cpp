@@ -388,9 +388,35 @@ namespace TTD
             }
         }
 
+        bool EventEntersScriptContext(const EventLogEntry* evt)
+        {
+            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::Enter) == ContextWrapperEnterExitStatus::Enter;
+        }
+
+        bool EventCompletesScriptContext(const EventLogEntry* evt)
+        {
+            return EventCompletesScriptContextNormally(evt) | EventCompletesScriptContextWithException(evt);
+        }
+
+        bool EventCompletesScriptContextNormally(const EventLogEntry* evt)
+        {
+            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ExitNormal) == ContextWrapperEnterExitStatus::ExitNormal;
+        }
+
+        bool EventCompletesScriptContextWithException(const EventLogEntry* evt)
+        {
+            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ExitException) == ContextWrapperEnterExitStatus::ExitException;
+        }
+
+        ContextWrapperEnterExitStatus GetEventScriptContextEnterExitKind(const EventLogEntry* evt)
+        {
+            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ContextKindMask);
+        }
+
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime)
         {
             evt->EventKind = tag;
+            evt->ContextMoveStatus = ContextWrapperEnterExitStatus::Clear;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = etime;
@@ -402,6 +428,7 @@ namespace TTD
             writer->WriteRecordStart(separator);
 
             writer->WriteTag<EventKind>(NSTokens::Key::eventKind, evt->EventKind);
+            writer->WriteTag<ContextWrapperEnterExitStatus>(NSTokens::Key::eventEnterExitStatus, evt->ContextMoveStatus, NSTokens::Separator::CommaSeparator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteInt64(NSTokens::Key::eventTime, evt->EventTimeStamp, NSTokens::Separator::CommaSeparator);
@@ -421,6 +448,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             evt->EventKind = reader->ReadTag<EventKind>(NSTokens::Key::eventKind);
+            evt->ContextMoveStatus = reader->ReadTag<ContextWrapperEnterExitStatus>(NSTokens::Key::eventEnterExitStatus, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = reader->ReadInt64(NSTokens::Key::eventTime, true);
@@ -708,7 +736,7 @@ namespace TTD
             return callEvt->AdditionalInfo->LastNestedEventTime;
         }
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double beginTime, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
             callEvt->AdditionalInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntry_AdditionalInfo>();
@@ -723,19 +751,19 @@ namespace TTD
             js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
 
             //Initialize this info in case we terminate without completing (e.g. exit(1))
+            callEvt->AdditionalInfo->BeginTime = beginTime;
+            callEvt->AdditionalInfo->EndTime = -1.0;
+
             callEvt->ReturnValue = nullptr;
-            callEvt->AdditionalInfo->HasScriptException = false;
-            callEvt->AdditionalInfo->HasTerminiatingException = false;
             callEvt->AdditionalInfo->LastNestedEventTime = TTD_EVENT_MAXTIME;
         }
 
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent)
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
+            callEvt->AdditionalInfo->EndTime = endTime;
             callEvt->ReturnValue = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
-            callEvt->AdditionalInfo->HasScriptException = hasScriptException;
-            callEvt->AdditionalInfo->HasTerminiatingException = hasTerminiatingException;
             callEvt->AdditionalInfo->LastNestedEventTime = lastNestedEvent;
         }
 
@@ -774,9 +802,10 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(callEvt->ReturnValue, writer, NSTokens::Separator::NoSeparator);
 
-            writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasTerminiatingException, NSTokens::Separator::CommaSeparator);
             writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEventTime, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteDouble(NSTokens::Key::beginTime, callEvt->AdditionalInfo->BeginTime, NSTokens::Separator::CommaSeparator);
+            writer->WriteDouble(NSTokens::Key::endTime, callEvt->AdditionalInfo->EndTime, NSTokens::Separator::CommaSeparator);
         }
 
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -803,9 +832,10 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             callEvt->ReturnValue = NSSnapValues::ParseTTDVar(false, reader);
 
-            callEvt->AdditionalInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
-            callEvt->AdditionalInfo->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
             callEvt->AdditionalInfo->LastNestedEventTime = reader->ReadInt64(NSTokens::Key::i64Val, true);
+
+            callEvt->AdditionalInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
+            callEvt->AdditionalInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
         }
     }
 }

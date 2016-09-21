@@ -195,15 +195,15 @@ namespace Js
         //
         if(scriptContext->ShouldPerformDebugAction())
         {
-            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
-
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
             scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
 
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
@@ -212,8 +212,8 @@ namespace Js
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
 
-            //no exception check below so I assume the external call cannot have an exception registered
-            logPopper.NormalReturn(false, result);
+            //Exceptions should be prohibited so no need to do extra work
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
         }
         else
         {
@@ -222,7 +222,7 @@ namespace Js
                 //The only way this should happen is if the debugger is requesting a value to display that is an external accessor 
                 //or the debugger is running something that can fail (and it is ok with that).
 
-                result = function->GetScriptContext()->GetLibrary()->GetUndefined();
+                result = scriptContext->GetLibrary()->GetUndefined();
             }
             else
             {
@@ -243,6 +243,7 @@ namespace Js
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
 #endif
+
         if (result == nullptr)
         {
 #pragma warning(push)
@@ -296,15 +297,15 @@ namespace Js
 #if ENABLE_TTD
         if(scriptContext->ShouldPerformDebugAction())
         {
-            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
-
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
             scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
 
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
@@ -312,8 +313,7 @@ namespace Js
             }
             END_LEAVE_SCRIPT(scriptContext);
 
-            //exception check is done explicitly below call can have an exception registered
-            logPopper.NormalReturn(true, result);
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
         }
         else
         {

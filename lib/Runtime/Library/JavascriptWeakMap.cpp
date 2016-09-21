@@ -249,7 +249,7 @@ namespace Js
         //TODO: This makes the map decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
         //      We want to improve this.
         //
-        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
+        if(scriptContext->ShouldPerformWeakRefPinAction())
         {
             scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
         }
@@ -339,6 +339,15 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptWeakMap::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        this->Map([&](DynamicObject* key, Js::Var value)
+        {
+            extractor->MarkVisitVar(key);
+            extractor->MarkVisitVar(value);
+        });
+    }
+
     TTD::NSSnapObjects::SnapObjectType JavascriptWeakMap::GetSnapTag_TTD() const
     {
         return TTD::NSSnapObjects::SnapObjectType::SnapMapObject;

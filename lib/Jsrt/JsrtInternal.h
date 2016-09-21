@@ -303,3 +303,46 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
 #define BEGIN_JSRT_NO_EXCEPTION  BEGIN_NO_EXCEPTION
 #define END_JSRT_NO_EXCEPTION    END_NO_EXCEPTION return JsNoError;
 #define RETURN_NO_EXCEPTION(x)   _PREPARE_RETURN_NO_EXCEPTION return x
+
+////
+//Define compact TTD macros for use in the JSRT API's
+#if ENABLE_TTD
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) (CTX)->ShouldPerformRecordAction()
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION(WRAPPER_TAG, CTX, ACTION_CODE, ...) TTD::TTDJsRTActionResultAutoRecorder _actionEntryPopper(WRAPPER_TAG); \
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) \
+    { \
+        (CTX)->GetThreadContext()->TTDLog->##ACTION_CODE##(_actionEntryPopper, ##__VA_ARGS__); \
+    }
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_GLOBALWRAPPER(ACTION_CODE, ...) PERFORM_JSRT_TTD_RECORD_ACTION(TTD::ContextWrapperEnterExitStatus::EnterGlobalAPIWrapper, scriptContext, ACTION_CODE, ##__VA_ARGS__)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_CONTEXTWRAPPER(ACTION_CODE, ...) PERFORM_JSRT_TTD_RECORD_ACTION(TTD::ContextWrapperEnterExitStatus::EnterContextAPIWrapper, scriptContext, ACTION_CODE, ##__VA_ARGS__)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_NOSCRIPTWRAPPER(ACTION_CODE, ...) PERFORM_JSRT_TTD_RECORD_ACTION(TTD::ContextWrapperEnterExitStatus::EnterContextAPINoScriptWrapper, scriptContext, ACTION_CODE, ##__VA_ARGS__)
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(RESULT) if(_actionEntryPopper.IsSetForRecord()) \
+        { \
+            _actionEntryPopper.NormalCompletionWResult(RESULT); \
+        }
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION_COMPLETE_NO_RESULT() if(_actionEntryPopper.IsSetForRecord()) \
+        { \
+            _actionEntryPopper.NormalCompletion(); \
+        }
+
+//TODO: find and replace all of the occourences of this in jsrt.cpp
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { AssertMsg(false, "Need to implement support here!!!"); }
+#else
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION(WRAPPER_TAG, CTX, ACTION_CODE, ...) 
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_GLOBALWRAPPER(ACTION_CODE, ...) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_CONTEXTWRAPPER(ACTION_CODE, ...) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_NOSCRIPTWRAPPER(ACTION_CODE, ...) 
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(RESULT) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_COMPLETE_NO_RESULT() 
+
+//TODO: find and replace all of the occourences of this in jsrt.cpp
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
+#endif
