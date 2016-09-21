@@ -72,8 +72,8 @@ public:
     bool IsGenerator() const;
     bool IsCoroutine() const;
     bool IsLambda() const;
-	bool IsAsmJsMode() const;
-	bool IsWasmFunction() const;
+    bool IsAsmJsMode() const;
+    bool IsWasmFunction() const;
     bool IsStrictMode() const;
     bool IsEval() const;
     bool HasImplicitArgIns() const;

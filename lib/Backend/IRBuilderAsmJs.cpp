@@ -1936,7 +1936,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         IR::IntConstOpnd* constZero = IR::IntConstOpnd::New(0, TyInt32, m_func);
         IR::IntConstOpnd* constSixteen = IR::IntConstOpnd::New(16, TyUint8, m_func);
- 	
+
         IR::Instr * instr = m_asmFuncInfo->UsesHeapBuffer() ?
             IR::Instr::New(Js::OpCode::ShrU_I4, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32), constSixteen, m_func) :
             IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, constZero, m_func);

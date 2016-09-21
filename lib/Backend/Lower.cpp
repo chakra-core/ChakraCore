@@ -3206,7 +3206,7 @@ Lowerer::LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverri
 
 IR::Opnd *
 Lowerer::LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue valueType)
-{    
+{
     ScriptContextInfo *scriptContext = instr->m_func->GetScriptContextInfo();
     bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
 
@@ -3553,7 +3553,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     propertyArrayOpnd = IR::AddrOpnd::New(propArrayAddr, IR::AddrOpndKindDynamicMisc, this->m_func);
 
     //#if 0 TODO: OOP JIT, obj literal types
-    // should pass in isShared bit through RPC, enable for in-proc jit to see perf impact    
+    // should pass in isShared bit through RPC, enable for in-proc jit to see perf impact
     Js::DynamicType * literalType = func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts) ? nullptr : *(Js::DynamicType **)literalTypeRef;
 
     if (literalType == nullptr || !literalType->GetIsShared())
@@ -6869,7 +6869,7 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
 
     if (hasTypeCheckBailout)
     {
-        AssertMsg(PHASE_ON1(Js::ObjTypeSpecIsolatedFldOpsWithBailOutPhase) || !propertySymOpnd->IsTypeDead(), 
+        AssertMsg(PHASE_ON1(Js::ObjTypeSpecIsolatedFldOpsWithBailOutPhase) || !propertySymOpnd->IsTypeDead(),
             "Why does a field store have a type check bailout, if its type is dead?");
 
         if (instrStFld->GetBailOutInfo()->bailOutInstr != instrStFld)
@@ -8908,10 +8908,10 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     // TEST firstPrototypeOpnd, firstPrototypeOpnd
     // JNE $helper
     IR::RegOpnd * firstPrototypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    InsertMove(firstPrototypeOpnd, 
+    InsertMove(firstPrototypeOpnd,
         IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfFirstPrototype(), TyMachPtr, this->m_func), instr);
     InsertTestBranch(firstPrototypeOpnd, firstPrototypeOpnd, Js::OpCode::BrNeq_A, labelHelper, instr);
-    
+
     // MOV currentEnumeratorOpnd, forInEnumerator->enumerator.currentEnumerator
     // TEST currentEnumeratorOpnd, currentEnumeratorOpnd
     // JNE $helper
@@ -8926,7 +8926,7 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     IR::RegOpnd * objectOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     InsertMove(objectOpnd,
         IR::IndirOpnd::New(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObject(), TyMachPtr, this->m_func), instr);
-    InsertTestBranch(objectOpnd, objectOpnd, Js::OpCode::BrEq_A, labelHelper, instr);   
+    InsertTestBranch(objectOpnd, objectOpnd, Js::OpCode::BrEq_A, labelHelper, instr);
 
     // MOV initialTypeOpnd, forInEnumerator->enumerator.initialType
     // CMP initialTypeOpnd, objectOpnd->type
@@ -8950,7 +8950,7 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     InsertCompareBranch(enumeratedCountOpnd,
         IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataCachedCount(), TyUint32, this->m_func),
         Js::OpCode::BrGe_A, labelHelper, instr);
-    
+
     // MOV propertyAttributesOpnd, cachedData->attributes
     // MOV objectPropertyAttributesOpnd, propertyAttributesOpnd[enumeratedCount]
     // CMP objectPropertyAttributesOpnd & PropertyEnumerable, PropertyEnumerable
@@ -8966,7 +8966,7 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
 
     InsertCompareBranch(andPropertyEnumerableInstr->GetDst(), IR::IntConstOpnd::New(PropertyEnumerable, TyUint8, this->m_func),
         Js::OpCode::BrNeq_A, labelHelper, instr);
-    
+
     IR::Opnd * opndDst = instr->GetDst(); // ForIn result propertyString
     Assert(opndDst->IsRegOpnd());
 
@@ -10247,7 +10247,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         this->m_lowererMD.ChangeToAssign(instrArgIn);
     }
 
-	JitAdelete(this->m_alloc, formalsBv);
+    JitAdelete(this->m_alloc, formalsBv);
 
     return instrResume;
 }
@@ -10289,8 +10289,8 @@ Lowerer::LoadGeneratorObject(IR::Instr * instrInsert)
     instrInsert->m_func->SetArgOffset(generatorSym, LowererMD::GetFormalParamOffset() * MachPtr);
     IR::SymOpnd * generatorSymOpnd = IR::SymOpnd::New(generatorSym, TyMachPtr, instrInsert->m_func);
     IR::RegOpnd * generatorRegOpnd = IR::RegOpnd::New(TyMachPtr, instrInsert->m_func);
-	instrInsert->m_func->SetHasImplicitParamLoad();
-	return LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
+    instrInsert->m_func->SetHasImplicitParamLoad();
+    return LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
 }
 
 IR::Instr *
@@ -10945,7 +10945,7 @@ Lowerer::LoadCallInfo(IR::Instr * instrInsert)
     {
         // Generator function arguments and ArgumentsInfo are not on the stack.  Instead they
         // are accessed off the generator object (which is prm1).
-		IR::Instr *genLoadInstr = LoadGeneratorObject(instrInsert);
+        IR::Instr *genLoadInstr = LoadGeneratorObject(instrInsert);
         IR::RegOpnd * generatorRegOpnd = genLoadInstr->GetDst()->AsRegOpnd();
 
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(generatorRegOpnd, Js::JavascriptGenerator::GetCallInfoOffset(), TyMachPtr, func);
@@ -12584,7 +12584,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             else
             {
                 indexOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
-            }             
+            }
 
             m_lowererMD.CreateAssign(
                 indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
@@ -20698,7 +20698,7 @@ Lowerer::GenerateLdHomeObjProto(IR::Instr* instr)
     //
     //  $Err:
     //  ThrowRuntimeReferenceError(JSERR_BadSuperReference);
-    //  
+    //
     //  $NoErr:
     //  instance = ((RecyclableObject*)instance)->GetPrototype();
     //  if (instance == nullptr) goto $Done;
