@@ -755,8 +755,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     }
 #endif
 
-    int cpos = 0;
-    for(int i = 0; i < argc; ++i)
+    int cpos = 1;
+    for(int i = 1; i < argc; ++i)
     {
         if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
         {
