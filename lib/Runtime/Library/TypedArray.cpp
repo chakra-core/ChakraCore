@@ -1730,6 +1730,24 @@ namespace Js
         return JavascriptArray::CopyWithinHelper(nullptr, typedArrayBase, typedArrayBase, length, args, scriptContext);
     }
 
+    Var TypedArrayBase::GetKeysEntriesValuesHelper(Arguments& args, ScriptContext *scriptContext, LPCWSTR apiName, JavascriptArrayIteratorKind kind)
+    {
+        if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
+        }
+
+        RecyclableObject* thisObj = TypedArrayBase::FromVar(args[0])->ToObject(scriptContext);
+        Assert(thisObj != nullptr);
+
+        if (TypedArrayBase::IsDetachedTypedArray(thisObj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, apiName);
+        }
+
+        return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, kind);
+    }
+
     Var TypedArrayBase::EntryEntries(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1740,23 +1758,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAEntriesCount);
 
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.entries"));
-        }
-
-        RecyclableObject* thisObj = nullptr;
-        if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.entries"));
-        }
-
-        if (TypedArrayBase::IsDetachedTypedArray(thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.entries"));
-        }
-
-        return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::KeyAndValue);
+        return GetKeysEntriesValuesHelper(args, scriptContext, _u("[TypedArray].prototype.entries"), JavascriptArrayIteratorKind::KeyAndValue);
     }
 
     Var TypedArrayBase::EntryEvery(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1842,10 +1844,6 @@ namespace Js
             thisArg = scriptContext->GetLibrary()->GetUndefined();
         }
 
-        // We won't construct the return object until after walking over the elements of the TypedArray
-        Var constructor = JavascriptOperators::SpeciesConstructor(
-            typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext);
-
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
@@ -1880,6 +1878,9 @@ namespace Js
             }
 
             uint32 captured = tempList->Count();
+
+            Var constructor = JavascriptOperators::SpeciesConstructor(
+                typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext);
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
@@ -2118,6 +2119,15 @@ namespace Js
         uint32 length = typedArrayBase->GetLength();
         JavascriptString* separator = nullptr;
 
+        if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
+        {
+            separator = JavascriptConversion::ToString(args[1], scriptContext);
+        }
+        else
+        {
+            separator = library->GetCommaDisplayString();
+        }
+
         if (length == 0)
         {
             return library->GetEmptyString();
@@ -2125,15 +2135,6 @@ namespace Js
         else if (length == 1)
         {
             return JavascriptConversion::ToString(typedArrayBase->DirectGetItem(0), scriptContext);
-        }
-
-        if (args.Info.Count > 1)
-        {
-            separator = JavascriptConversion::ToString(args[1], scriptContext);
-        }
-        else
-        {
-            separator = library->GetCommaDisplayString();
         }
 
         bool hasSeparator = (separator->GetLength() != 0);
@@ -2176,23 +2177,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAKeysCount);
 
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.keys"));
-        }
-
-        RecyclableObject* thisObj = nullptr;
-        if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.keys"));
-        }
-
-        if (TypedArrayBase::IsDetachedTypedArray(thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.keys"));
-        }
-
-        return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Key);
+        return GetKeysEntriesValuesHelper(args, scriptContext, _u("[TypedArray].prototype.keys"), JavascriptArrayIteratorKind::Key);
     }
 
     Var TypedArrayBase::EntryLastIndexOf(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2544,23 +2529,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAValuesCount);
 
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.values"));
-        }
-
-        RecyclableObject* thisObj = nullptr;
-        if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.values"));
-        }
-
-        if (TypedArrayBase::IsDetachedTypedArray(thisObj))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.values"));
-        }
-
-        return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
+        return GetKeysEntriesValuesHelper(args, scriptContext, _u("[TypedArray].prototype.values"), JavascriptArrayIteratorKind::Value);
     }
 
     BOOL TypedArrayBase::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

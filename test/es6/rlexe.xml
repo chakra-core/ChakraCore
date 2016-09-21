@@ -1349,4 +1349,11 @@
     <tags>BugFix</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>typedarray_bugs.js</files>
+    <compile-flags>-args summary -endargs</compile-flags>
+    <tags>BugFix</tags>
+  </default>
+</test>
 </regress-exe>
