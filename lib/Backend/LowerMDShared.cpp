@@ -790,6 +790,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 {
     IR::RegOpnd * retReg;
 
+#ifdef ASMJS_PLAT
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
         Js::AsmJsRetType::Which asmType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType();
@@ -846,6 +847,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturnAsmJs(regType), regType, m_func);
     }
     else
+#endif
     {
         retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturn(TyMachReg), TyMachReg, m_func);
     }

@@ -243,6 +243,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
 
+#ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
         jitBody->asmJsData = RecyclerNew(recycler, AsmJsDataIDL);
@@ -271,6 +272,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
     }
+#endif
 }
 
 intptr_t
