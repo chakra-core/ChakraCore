@@ -941,7 +941,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
             allocators, pNumberAllocator, codeGenProfiler, !foreground);
     }
-    if (PHASE_TRACE1(Js::BackEndPhase))
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && PHASE_VERBOSE_TRACE(Js::BackEndPhase, workItem->GetFunctionBody()))
     {
         LARGE_INTEGER freq;
         LARGE_INTEGER end_time;
