@@ -388,7 +388,7 @@ ServerRemoteCodeGen(
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
-    if (PHASE_TRACE1(Js::BackEndPhase))
+    if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
     {
         LARGE_INTEGER freq;
         LARGE_INTEGER end_time;
@@ -461,7 +461,7 @@ ServerRemoteCodeGen(
     }
 #endif
 
-    if (PHASE_TRACE1(Js::BackEndPhase))
+    if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
     {
         LARGE_INTEGER freq;
         LARGE_INTEGER end_time;
@@ -469,7 +469,7 @@ ServerRemoteCodeGen(
         QueryPerformanceFrequency(&freq);
 
         Output::Print(
-            L"EndBackEnd - function: %s time:%8.6f mSec\r\n",
+            L"EndBackEndInner - function: %s time:%8.6f mSec\r\n",
             jitWorkItem->GetJITFunctionBody()->GetDisplayName(),
             (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
