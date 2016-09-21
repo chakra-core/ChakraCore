@@ -10,17 +10,6 @@ namespace TTD
 {
     namespace NSLogEvents
     {
-        bool IsJsRTActionExecutedInScriptWrapper(EventKind tag)
-        {
-            switch(tag)
-            {
-            case EventKind::GetAndClearExceptionActionTag:
-                return false;
-            default:
-                return true;
-            }
-        }
-
         bool IsJsRTActionRootCall(const EventLogEntry* evt)
         {
             if(evt->EventKind != NSLogEvents::EventKind::CallExistingFunctionActionTag)
@@ -339,6 +328,18 @@ namespace TTD
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetAndClearExceptionActionTag>(ctx, evt, exception);
         }
 
+        void SetExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::SetExceptionActionTag>(evt);
+            Js::Var exception = InflateVarInReplay(ctx, action->Var1);
+            bool propagateToDebugger = action->u_bVal ? true : false;
+
+            Js::JavascriptExceptionObject *exceptionObject;
+            exceptionObject = RecyclerNew(ctx->GetRecycler(), Js::JavascriptExceptionObject, exception, ctx, nullptr);
+
+            ctx->RecordException(exceptionObject, propagateToDebugger);
+        }
+
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetPropertyActionTag>(evt);
@@ -406,7 +407,10 @@ namespace TTD
             Js::Var propertyDescriptor = InflateVarInReplay(ctx, action->Var2);
 
             Js::PropertyDescriptor propertyDescriptorValue;
-            Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, ctx);
+            if(!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, ctx))
+            {
+                return;
+            }
 
             Js::JavascriptOperators::DefineOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object), action->u_pid, propertyDescriptorValue, true, ctx);
         }
@@ -457,7 +461,12 @@ namespace TTD
             Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(var);
             Js::Var res = typedArrayBase->GetArrayBuffer();
 
-            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetTypedArrayInfoActionTag>(ctx, evt, res);
+            //Need to enter since JsRTActionHandleResultForReplay may allocate but GetTypedArrayInfo does not enter runtime
+            BEGIN_JS_RUNTIME_CALL(ctx);
+            {
+                JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetTypedArrayInfoActionTag>(ctx, evt, res);
+            }
+            END_JS_RUNTIME_CALL(ctx);
         }
 
         //////////////////
@@ -702,6 +711,12 @@ namespace TTD
 #endif
         }
 
+        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId)
+        {
+            JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(parseEvent);
+            cpAction->BodyCtrId = bodyCtrId;
+        }
+
         void JsRTCodeParseAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(evt);
@@ -738,19 +753,19 @@ namespace TTD
 
             Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
             CompileScriptException se;
-            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
-            {
-                function = ctx->LoadScript(script, scriptByteLength, &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
-            }
-            END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+            function = ctx->LoadScript(script, scriptByteLength, &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
             AssertMsg(function != nullptr, "Something went wrong");
 
             Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(function->GetParseableFunctionInfo());
 
             ////
             //We don't do this automatically in the eval helper so do it here
-            ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ctx->TTDContextInfo->RegisterLoadedScript(fb, cpAction->BodyCtrId);
+            BEGIN_JS_RUNTIME_CALL(ctx);
+            {
+                ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+                ctx->TTDContextInfo->RegisterLoadedScript(fb, cpAction->BodyCtrId);
+            }
+            END_JS_RUNTIME_CALL(ctx);
 
             const HostScriptContextCallbackFunctor& hostFunctor = ctx->TTDHostCallbackFunctor;
             if(hostFunctor.pfOnScriptLoadCallback != nullptr)
@@ -843,11 +858,10 @@ namespace TTD
             cfAction->AdditionalInfo->LastNestedEvent = TTD_EVENT_MAXTIME;
         }
 
-        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent)
+        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent)
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
 
-            cfAction->AdditionalInfo->EndTime = wallTime;
             cfAction->AdditionalInfo->LastNestedEvent = lastNestedEvent;
         }
 #endif
@@ -879,22 +893,7 @@ namespace TTD
             cfAction->AdditionalInfo->MarkedAsJustMyCode = false;
             cfAction->AdditionalInfo->LastExecutedLocation.Initialize();
 
-            //Set values in case we terminate in this handler without completing (e.g. exit(1))
-            cfAction->Result = nullptr;
-
-            cfAction->AdditionalInfo->HasScriptException = false;
-            cfAction->AdditionalInfo->HasTerminiatingException = false;
-        }
-
-        void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
-        {
-            JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
-            JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
-
-            cfAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
-
-            cfInfo->HasScriptException = hasScriptException;
-            cfInfo->HasTerminiatingException = hasTerminiatingException;
+            //Result is initialized when we register this with the popper
         }
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -915,57 +914,72 @@ namespace TTD
             }
             Js::Arguments jsArgs(callInfo, cfAction->AdditionalInfo->ExecArgs);
 
-            if(cfAction->CallbackDepth == 0)
+            //If this isn't a root function then just call it -- don't need to reset anything and exceptions can just continue
+            if(cfAction->CallbackDepth != 0)
+            {
+                Js::Var result = jsFunction->CallRootFunction(jsArgs, ctx, true);
+
+                //since we tag in JsRT we need to tag here too
+                JsRTActionHandleResultForReplay<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(ctx, evt, result);
+
+                AssertMsg(EventCompletesScriptContextNormally(evt), "Why did we get a different completion");
+            }
+            else
             {
                 threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime);
-            }
 
-            Js::Var result = nullptr;
-            try
-            {
-                result = jsFunction->CallRootFunction(jsArgs, ctx, true);
-            }
-            catch(Js::JavascriptExceptionObject*  exceptionObject)
-            {
-                AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
-
-                threadContext->SetRecordedException(exceptionObject);
-            }
-            catch(Js::ScriptAbortException)
-            {
-                AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
-
-                threadContext->SetRecordedException(threadContext->GetPendingTerminatedErrorObject());
-            }
-            catch(TTDebuggerAbortException)
-            {
-                throw; //re-throw my abort exception up to the top-level.
-            }
-            catch(...)
-            {
-                AssertMsg(false, "What else if dying here?");
-
-                //not sure of our best strategy so just run for now
-            }
-
-            //since we tag in JsRT we need to tag here too
-            JsRTActionHandleResultForReplay<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(ctx, evt, result);
-
-#if ENABLE_TTD_DEBUGGING
-            if(cfAction->CallbackDepth == 0)
-            {
-                bool markedAsJustMyCode = false;
-                TTDebuggerSourceLocation lastLocation;
-                threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, lastLocation);
-
-                JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), markedAsJustMyCode, lastLocation);
-
-                if(cfInfo->HasScriptException || cfInfo->HasTerminiatingException)
+                try
                 {
-                    throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(lastLocation.GetRootEventTime(), _u("Uncaught exception -- Propagate to top-level."));
+                    Js::Var result = jsFunction->CallRootFunction(jsArgs, ctx, true);
+
+                    //since we tag in JsRT we need to tag here too
+                    JsRTActionHandleResultForReplay<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(ctx, evt, result);
+
+                    AssertMsg(EventCompletesScriptContextNormally(evt), "Why did we get a different completion");
+                }
+                catch(Js::JavascriptExceptionObject*)
+                {
+#if ENABLE_TTD_DEBUGGING
+                    AssertMsg(EventCompletesScriptContextWithException(evt), "Why did we get a different exception");
+
+                    //convert to uncaught debugger exception for host
+                    bool markedAsJustMyCode = false;
+                    TTDebuggerSourceLocation lastLocation;
+                    threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, lastLocation);
+                    JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), markedAsJustMyCode, lastLocation);
+
+                    throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(lastLocation.GetRootEventTime(), _u("Uncaught JavaScript exception -- Propagate to top-level."));
+#else
+                    throw;
+#endif
+                }
+                catch(Js::ScriptAbortException)
+                {
+#if ENABLE_TTD_DEBUGGING
+                    AssertMsg(EventCompletesScriptContextWithException(evt), "Why did we get a different exception");
+
+                    //convert to uncaught debugger exception for host
+                    bool markedAsJustMyCode = false;
+                    TTDebuggerSourceLocation lastLocation;
+                    threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, lastLocation);
+                    JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), markedAsJustMyCode, lastLocation);
+
+                    throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(lastLocation.GetRootEventTime(), _u("Uncaught Script exception -- Propagate to top-level."));
+#else
+                    throw;
+#endif
+                }
+                catch(...)
+                {
+#if ENABLE_TTD_DEBUGGING
+                    bool markedAsJustMyCode = false;
+                    TTDebuggerSourceLocation lastLocation;
+                    threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(&markedAsJustMyCode, lastLocation);
+                    JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), markedAsJustMyCode, lastLocation);
+#endif
+                    throw;
                 }
             }
-#endif
         }
 
         void JsRTCallFunctionAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc)
@@ -1022,9 +1036,6 @@ namespace TTD
 
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->TopLevelCallbackEventTime, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteBool(NSTokens::Key::boolVal, cfInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, cfInfo->HasTerminiatingException, NSTokens::Separator::CommaSeparator);
-
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteInt64(NSTokens::Key::i64Val, cfInfo->LastNestedEvent, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::name, cfInfo->FunctionName, NSTokens::Separator::CommaSeparator);
@@ -1058,9 +1069,6 @@ namespace TTD
             cfInfo->CallEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
             cfInfo->TopLevelCallbackEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
-
-            cfInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
-            cfInfo->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             cfInfo->RtRSnap = nullptr;
             cfInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec

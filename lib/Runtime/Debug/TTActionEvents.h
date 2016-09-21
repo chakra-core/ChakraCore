@@ -10,9 +10,6 @@ namespace TTD
 {
     namespace NSLogEvents
     {
-        //true if this is exectued in the script context JsRT wrapper
-        bool IsJsRTActionExecutedInScriptWrapper(EventKind tag);
-
         //true if this is a root call function
         bool IsJsRTActionRootCall(const EventLogEntry* evt);
 
@@ -313,6 +310,7 @@ namespace TTD
 
         void HostProcessExitAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void SetExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -456,10 +454,6 @@ namespace TTD
         //A struct for additional info associated with calls to script parse
         struct JsRTCodeParseAction_AdditionalInfo
         {
-            //
-            //TODO: it kinda sucks to copy all the source here when we have it in the Log as well maybe we can just record the bodyCtrId and look up the other info during replay?
-            //
-
             //Is the code utf8
             bool IsUtf8;
 
@@ -487,6 +481,8 @@ namespace TTD
             JsRTCodeParseAction_AdditionalInfo* AdditionalInfo;
         };
 
+        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId);
+
         void JsRTCodeParseAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void JsRTCodeParseAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTCodeParseAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
@@ -503,12 +499,6 @@ namespace TTD
 
             //The event time that corresponds to the top-level event time around this call
             int64 TopLevelCallbackEventTime;
-
-            //
-            //TODO: later we should record more detail on the script exception for inflation if needed
-            //
-            bool HasScriptException;
-            bool HasTerminiatingException;
 
             //ready-to-run snapshot information -- null if not set and if we want to unload it we just throw it away
             SnapShot* RtRSnap;
@@ -549,11 +539,10 @@ namespace TTD
         int64 JsRTCallFunctionAction_GetLastNestedEventTime(const EventLogEntry* evt);
 
         void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
-        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent);
+        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
 #endif
 
         void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
-        void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void JsRTCallFunctionAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
