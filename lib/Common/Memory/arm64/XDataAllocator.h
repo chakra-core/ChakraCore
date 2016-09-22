@@ -6,7 +6,7 @@
 CompileAssert(false)
 #endif
 
-struct XDataAllocation sealed  : public SecondaryAllocation
+struct XDataAllocation sealed : public SecondaryAllocation
 {
     // ---- Methods ----- //
     XDataAllocation() :
@@ -45,23 +45,25 @@ struct XDataAllocation sealed  : public SecondaryAllocation
 //
 class XDataAllocator sealed : public SecondaryAllocator
 {
-// -------- Private members ---------/
+    // -------- Private members ---------/
 private:
-    ushort pdataCount;
-    FunctionTableHandle* functionTableHandles;
+    HANDLE processHandle;
 
-// --------- Public functions ---------/
+    // --------- Public functions ---------/
 public:
-    XDataAllocator(BYTE* address, uint size) { }
+    XDataAllocator(BYTE* address, uint size, HANDLE processHandle);
 
-    bool Initialize(_In_ void* segmentStart, _In_ void* segmentEnd) { __debugbreak(); return 0; }
-    void Delete() { __debugbreak(); }
-    bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation) { __debugbreak(); return 0; }
-    void Register(XDataAllocation& allocation, ULONG_PTR functionStart, DWORD functionSize) { __debugbreak(); }
-    void Release(const SecondaryAllocation& address) { __debugbreak(); }
-    bool CanAllocate() { __debugbreak(); return 0; }
-    DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
+    bool Initialize(void* segmentStart, void* segmentEnd);
+    void Delete();
+    bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
+    void Release(const SecondaryAllocation& address);
+    bool CanAllocate();
+    static DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
     {
-        return sizeof(RUNTIME_FUNCTION) * pdataCount + xdataSize;
+        __debugbreak();
+        return 0;
     }
+
+    static void Register(XDataAllocation * xdataInfo, intptr_t functionStart, DWORD functionSize);
+    static void Unregister(XDataAllocation * xdataInfo);
 };
