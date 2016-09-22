@@ -4965,3 +4965,17 @@ IR::Instr* LinearScan::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const
 
     return instrRet;
 }
+
+IR::Instr* LinearScan::InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr)
+{
+    IR::Instr *instrPrev = insertBeforeInstr->m_prev;
+
+    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr);
+
+    for (IR::Instr *instr = instrPrev->m_next; instr != insertBeforeInstr; instr = instr->m_next)
+    {
+        instr->CopyNumber(insertBeforeInstr);
+    }
+
+    return instrRet;
+}

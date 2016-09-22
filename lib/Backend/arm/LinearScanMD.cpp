@@ -298,14 +298,14 @@ LinearScanMD::GenerateBailOut(
         // ldimm r0, dataAddr
         intptr_t nativeDataAddr = func->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
         IR::RegOpnd * r0 = IR::RegOpnd::New(nullptr, RegR0, TyMachPtr, func);
-        Lowerer::InsertMove(r0, IR::AddrOpnd::New(nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func), instr);
+        LinearScan::InsertMove(r0, IR::AddrOpnd::New(nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func), instr);
 
         // mov r0, [r0]
-        Lowerer::InsertMove(r0, IR::IndirOpnd::New(r0, 0, TyMachPtr, func), instr);
+        LinearScan::InsertMove(r0, IR::IndirOpnd::New(r0, 0, TyMachPtr, func), instr);
 
         // lea r0, [r0 + bailoutRecord_offset]
         unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
-        Lowerer::InsertLea(
+        LinearScan::InsertLea(
             r0,
             IR::IndirOpnd::New(r0, bailoutRecordOffset, TyUint32,
 #if DBG
