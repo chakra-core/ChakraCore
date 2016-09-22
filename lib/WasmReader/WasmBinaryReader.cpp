@@ -308,14 +308,19 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 WasmOp
 WasmBinaryReader::ReadExpr()
 {
+    WasmOp op = (WasmOp)*m_pc++;
+    ++m_funcState.count;
+
     if (EndOfFunc())
     {
         // end of AST
+        if (op != wbEnd)
+        {
+            ThrowDecodingError(_u("missing function end opcode"));
+        }
         return wbFuncEnd;
     }
 
-    WasmOp op = (WasmOp)*m_pc++;
-    ++m_funcState.count;
     switch (op)
     {
     case wbBlock:
@@ -338,8 +343,6 @@ WasmBinaryReader::ReadExpr()
         BrTableNode();
         break;
     case wbReturn:
-        m_currentNode.ret.arity = ReadConst<UINT8>();
-        ++m_funcState.count;
         break;
     case wbI32Const:
         ConstNode<WasmTypes::I32>();
@@ -404,8 +407,6 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
@@ -420,8 +421,6 @@ void
 WasmBinaryReader::CallImportNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
@@ -436,8 +435,6 @@ void
 WasmBinaryReader::CallIndirectNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;

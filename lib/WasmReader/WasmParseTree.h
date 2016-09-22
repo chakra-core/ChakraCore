@@ -78,15 +78,9 @@ namespace Wasm
         uint32 defaultTarget;
     };
 
-    struct WasmReturnNode
-    {
-        uint32 arity;
-    };
-
     struct WasmCallNode
     {
         uint32 num; // function id
-        uint32 arity;
     };
 
     struct WasmNode
@@ -99,7 +93,6 @@ namespace Wasm
             WasmBrNode br;
             WasmBrTableNode brTable;
             WasmMemOpNode mem;
-            WasmReturnNode ret;
             WasmCallNode call;
         };
     };

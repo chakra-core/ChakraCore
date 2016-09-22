@@ -355,12 +355,6 @@ WasmBytecodeGenerator::GenerateFunction()
             {
                 throw WasmCompilationException(_u("Last expression return type mismatch return type"));
             }
-            uint32 arity = 0;
-            if (returnType != Wasm::WasmTypes::Void)
-            {
-                arity = 1;
-            }
-            GetReader()->m_currentNode.ret.arity = arity;
             EmitReturnExpr();
         }
         ExitEvalStackScope();
@@ -780,11 +774,6 @@ WasmBytecodeGenerator::EmitCall()
 
     m_writer.AsmStartCall(startCallOp, argSize);
 
-    if (calleeSignature->GetParamCount() != GetReader()->m_currentNode.call.arity)
-    {
-        throw WasmCompilationException(_u("Mismatch between call signature and arity"));
-    }
-
     //copy args into a list so they could be generated in the right order (FIFO)
     JsUtil::List<EmitInfo, ArenaAllocator> argsList(&m_alloc);
     for (int i = 0; i < (int)calleeSignature->GetParamCount(); i++)
@@ -793,7 +782,7 @@ WasmBytecodeGenerator::EmitCall()
     }
 
     int32 argsBytesLeft = 0;
-    for (int i = calleeSignature->GetParamCount() - 1; i >= 0 ; i--)
+    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; i--)
     {
         EmitInfo info = argsList.Item(i);
         if (calleeSignature->GetParam(i) != info.type)
@@ -1138,19 +1127,11 @@ WasmBytecodeGenerator::EmitReturnExpr()
 {
     if (m_funcInfo->GetResultType() == WasmTypes::Void)
     {
-        if (GetReader()->m_currentNode.ret.arity != 0)
-        {
-            throw WasmCompilationException(_u("Nonzero arity for return op in void function"));
-        }
         // TODO (michhol): consider moving off explicit 0 for return reg
         m_writer.AsmReg1(Js::OpCodeAsmJs::LdUndef, 0);
     }
     else
     {
-        if (GetReader()->m_currentNode.ret.arity != 1)
-        {
-            throw WasmCompilationException(_u("Unexpected arity for return op"));
-        }
         EmitInfo retExprInfo = PopEvalStack();
 
         if (m_funcInfo->GetResultType() != retExprInfo.type)
