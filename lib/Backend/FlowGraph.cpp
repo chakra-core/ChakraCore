@@ -3022,8 +3022,8 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     //
     //  t1 = ShrU_A x, 0
     //  t2 = 10;
-    //       ByteCodeUse t1
     //  BrUnGt x, t2, L
+    //       ByteCodeUse t1
     //
     // Hopefully dead-store can get rid of the ShrU
 
@@ -3090,7 +3090,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr->m_func);
     bytecodeInstr->SetByteCodeOffset(cmpInstr);
     bytecodeInstr->byteCodeUpwardExposedUsed = Anew(cmpInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>,cmpInstr->m_func->m_alloc);
-    cmpInstr->InsertBefore(bytecodeInstr);
+    cmpInstr->InsertAfter(bytecodeInstr);
 
     if (cmpSrc1 != newSrc1)
     {
