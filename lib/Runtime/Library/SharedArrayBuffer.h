@@ -71,9 +71,6 @@ namespace Js
 
     class SharedArrayBuffer : public ArrayBufferBase
     {
-    private:
-        static uint32 GetByteLengthFromVar(ScriptContext* scriptContext, Var length);
-
     public:
         DEFINE_VTABLE_CTOR_ABSTRACT(SharedArrayBuffer, ArrayBufferBase);
 

@@ -57,6 +57,40 @@ var tests = [
         test(Int8Array.prototype.entries);
     }
   },
+  {
+    name: "TypedArray.prototype.set out of bound offset should throw RangeError",
+    body: function () {
+        var v = new Int8Array(4);
+        assert.throws(() => v.set([1], -1), RangeError);
+        assert.throws(() => v.set([1], -1.001), RangeError);
+        assert.throws(() => v.set([1], -Infinity), RangeError);
+        assert.throws(() => v.set([1], v.length), RangeError);
+        assert.throws(() => v.set([1], Infinity), RangeError);
+    }
+  },
+  {
+    name: "TypedArray.prototype.subarray range",
+    body: function () {
+        var v = new Int8Array([11, 22]);
+        assert.areEqual(v.subarray(-Infinity), [11, 22], "-Infinity should make the 'begin' to 0");
+        assert.areEqual(v.subarray(Infinity), [], "Infinity makes the 'begin' to be same as length");
+        assert.areEqual(v.subarray(0, -Infinity), [], "This makes the 'end' to 0");
+        assert.areEqual(v.subarray(0, Infinity), [11, 22], "This makes the 'end' to be same as length");
+    }
+  },
+  {
+    name: "prototype of the typedarray object should be same when species create invoked",
+    body: function () {
+        [Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array].forEach(function(ctor) {
+            var base = new ctor(8);
+            
+            // This should invoke the TypedArraySpeciesCreate and this will create new typedarray object with same prototype
+            var test = base.subarray(0, 1);
+            
+            assert.areEqual(Object.getPrototypeOf(base), Object.getPrototypeOf(test), "both should have the same prototype");
+        });
+    }
+  },
   
 ];
 
