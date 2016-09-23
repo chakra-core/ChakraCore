@@ -132,7 +132,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         break;
                     }
 
-                    this->InlineGetterSetterFunction(instr, inlineeData, symThis, inlineCacheIndex, getter /*isGetter*/, recursiveInlineDepth);
+                    this->InlineGetterSetterFunction(instr, inlineeData, symThis, inlineCacheIndex, getter /*isGetter*/, &isInlined, recursiveInlineDepth);
 
                     break;
                 }
@@ -3294,7 +3294,7 @@ Inline::SimulateCallForGetterSetter(IR::Instr *accessorInstr, IR::Instr* insertI
 }
 
 IR::Instr *
-Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const uint inlineCacheIndex, bool isGetter, uint recursiveInlineDepth)
+Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const uint inlineCacheIndex, bool isGetter, bool *pIsInlined, uint recursiveInlineDepth)
 {
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
@@ -3302,6 +3302,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
         PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
+    *pIsInlined = true;
     IR::Instr *instrNext = accessorInstr->m_next;
 
     const JITTimeFunctionBody *funcCaller = accessorInstr->m_func->GetJITFunctionBody();
