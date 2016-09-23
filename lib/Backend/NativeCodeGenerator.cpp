@@ -849,9 +849,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-    ThreadContext *threadContext = scriptContext->GetThreadContext();
 #ifdef ENABLE_BASIC_TELEMETRY
-    double startTime = threadContext->JITTelemetry.Now();
+    double startTime = scriptContext->GetThreadContext()->JITTelemetry.Now();
 #endif
 
     if (body->GetScriptContext()->IsClosed())
@@ -885,7 +884,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
 
     JITOutputIDL jitWriteData = {0};
-    workItem->GetJITData()->xProcNumberPageSegment = threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
+
+#if !FLOATVAR
+    workItem->GetJITData()->xProcNumberPageSegment = scriptContext->GetThreadContext()->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
+#endif
 
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
@@ -919,9 +921,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
+#if !FLOATVAR
         CodeGenNumberAllocator* pNumberAllocator = nullptr;
 
-#if !FLOATVAR
         // the number allocator needs to be on the stack so that if we are doing foreground JIT
         // the chunk allocated from the recycler will be stacked pinned
         CodeGenNumberAllocator numberAllocator(
@@ -937,8 +939,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
 
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
-            scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(),
-            allocators, pNumberAllocator, codeGenProfiler, !foreground);
+            scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
+#if !FLOATVAR
+            pNumberAllocator, 
+#endif
+            codeGenProfiler, !foreground);
     }
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && PHASE_VERBOSE_TRACE(Js::BackEndPhase, workItem->GetFunctionBody()))
     {
@@ -1136,7 +1141,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
-    threadContext->JITTelemetry.LogTime(threadContext->JITTelemetry.Now() - startTime);
+    scriptContext->GetThreadContext()->JITTelemetry.LogTime(scriptContext->GetThreadContext()->JITTelemetry.Now() - startTime);
 #endif
 
 #ifdef BGJIT_STATS

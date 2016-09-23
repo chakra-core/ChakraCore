@@ -710,8 +710,10 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
     XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
+#endif
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     CustomHeap::CodePageAllocators thunkPageAllocators;
 #endif
@@ -1229,6 +1231,7 @@ public:
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override { return (intptr_t)bailOutRegisterSaveSpace; }
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
         return codeGenNumberThreadAllocator;
@@ -1237,6 +1240,7 @@ public:
     {
         return this->xProcNumberPageSegmentManager;
     }
+#endif
 #endif
     void ResetFunctionCount() { Assert(this->GetScriptSiteHolderCount() == 0); this->functionCount = 0; }
     void PushEntryExitRecord(Js::ScriptEntryExitRecord *);

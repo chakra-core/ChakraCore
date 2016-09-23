@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-
+#if !FLOATVAR
 CodeGenNumberThreadAllocator::CodeGenNumberThreadAllocator(Recycler * recycler)
     : recycler(recycler), currentNumberSegment(nullptr), currentChunkSegment(nullptr),
     numberSegmentEnd(nullptr), currentNumberBlockEnd(nullptr), nextNumber(nullptr), chunkSegmentEnd(nullptr),
@@ -245,7 +245,6 @@ CodeGenNumberAllocator::CodeGenNumberAllocator(CodeGenNumberThreadAllocator * th
 }
 
 // We should never call this function if we are using tagged float
-#if !FLOATVAR
 Js::JavascriptNumber *
 CodeGenNumberAllocator::Alloc()
 {
@@ -274,7 +273,7 @@ CodeGenNumberAllocator::Alloc()
     this->chunkTail->numbers[this->currentChunkNumberCount++] = newNumber;
     return newNumber;
 }
-#endif
+
 
 CodeGenNumberChunk *
 CodeGenNumberAllocator::Finalize()
@@ -290,8 +289,8 @@ CodeGenNumberAllocator::Finalize()
     return finalizedChunk;
 }
 
-uint XProcNumberPageSegmentImpl::sizeCat = sizeof(Js::JavascriptNumber);
 
+uint XProcNumberPageSegmentImpl::sizeCat = sizeof(Js::JavascriptNumber);
 Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, double value)
 {
     HANDLE hProcess = func->GetThreadContextInfo()->GetProcessHandle();
@@ -392,7 +391,10 @@ XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
 
 void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad)
 {
-    size_t allocSize = sizeof(Js::JavascriptNumber) + Js::Configuration::Global.flags.NumberAllocPlusSize;
+    size_t allocSize = sizeof(Js::JavascriptNumber);
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    allocSize += Js::Configuration::Global.flags.NumberAllocPlusSize;
+#endif
 #ifdef RECYCLER_MEMORY_VERIFY
     // TODO: share same pad size with main process
     if (recyclerVerifyEnabled)
@@ -542,7 +544,11 @@ void XProcNumberPageSegmentManager::Integrate()
 XProcNumberPageSegmentManager::XProcNumberPageSegmentManager(Recycler* recycler)
     :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0)
 {
+#ifdef RECYCLER_MEMORY_VERIFY
     XProcNumberPageSegmentImpl::Initialize(recycler->VerifyEnabled() == TRUE, recycler->GetVerifyPad());
+#else
+    XProcNumberPageSegmentImpl::Initialize(false, 0);
+#endif
 }
 
 XProcNumberPageSegmentManager::~XProcNumberPageSegmentManager()
@@ -555,3 +561,4 @@ XProcNumberPageSegmentManager::~XProcNumberPageSegmentManager()
         temp = (XProcNumberPageSegmentImpl*)next;
     }
 }
+#endif

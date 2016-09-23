@@ -165,10 +165,12 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     caseInvariantPropertySet(nullptr),
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
     codeGenNumberThreadAllocator(nullptr),
+    xProcNumberPageSegmentManager(nullptr),
+#endif
     m_pendingJITProperties(nullptr),
     m_reclaimedJITProperties(nullptr),
-    xProcNumberPageSegmentManager(nullptr),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
@@ -517,6 +519,7 @@ ThreadContext::~ThreadContext()
 #endif
 #endif
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
         if (this->codeGenNumberThreadAllocator)
         {
             HeapDelete(this->codeGenNumberThreadAllocator);
@@ -527,6 +530,7 @@ ThreadContext::~ThreadContext()
             HeapDelete(this->xProcNumberPageSegmentManager);
             this->xProcNumberPageSegmentManager = nullptr;
         }
+#endif
 #endif
 
         Assert(this->debugManager == nullptr);
@@ -2534,6 +2538,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
     {
         // Integrate allocated pages from background JIT threads
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
         if (codeGenNumberThreadAllocator)
         {
             codeGenNumberThreadAllocator->Integrate();
@@ -2542,6 +2547,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
         {
             this->xProcNumberPageSegmentManager->Integrate();
         }
+#endif
 #endif
     }
 

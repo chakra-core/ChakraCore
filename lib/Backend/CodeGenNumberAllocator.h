@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if !FLOATVAR
 /****************************************************************************
  * CodeGenNumberThreadAllocator
  *
@@ -185,4 +186,4 @@ struct XProcNumberPageSegmentManager
 
     void Integrate();
 };
-
+#endif

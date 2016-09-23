@@ -104,7 +104,9 @@ public:
         Js::EntryPointInfo* epInfo,
         const FunctionJITRuntimeInfo *const runtimeInfo,
         JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+#if !FLOATVAR
         CodeGenNumberAllocator * numberAllocator,
+#endif
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
@@ -122,14 +124,18 @@ public:
     {
         return &this->GetTopFunc()->transferDataAllocator;
     }
+#if !FLOATVAR
     CodeGenNumberAllocator * GetNumberAllocator()
     {
         return this->numberAllocator;
     }
+#endif
     EmitBufferManager<CriticalSection> *GetEmitBufferManager() const
     {
         return &this->m_codeGenAllocators->emitBufferManager;
     }
+
+#if !FLOATVAR
     XProcNumberPageSegmentImpl* GetXProcNumberAllocator()
     {
         if (this->GetJITOutput()->GetOutputData()->numberPageSegments == nullptr)
@@ -143,6 +149,7 @@ public:
         }
         return (XProcNumberPageSegmentImpl*)this->GetJITOutput()->GetOutputData()->numberPageSegments;
     }
+#endif
 
     Js::ScriptContextProfiler *GetCodeGenProfiler() const
     {
@@ -252,7 +259,9 @@ public:
         Js::EntryPointInfo* epInfo, // for in-proc jit only
         const FunctionJITRuntimeInfo *const runtimeInfo,
         JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+#if !FLOATVAR
         CodeGenNumberAllocator * numberAllocator,
+#endif
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT);
 
     int32 StackAllocate(int size);
@@ -955,7 +964,9 @@ private:
     InstrMap *          m_cloneMap;
     NativeCodeData::Allocator       nativeCodeDataAllocator;
     NativeCodeData::Allocator       transferDataAllocator;
+#if !FLOATVAR
     CodeGenNumberAllocator *        numberAllocator;
+#endif
     int32           m_localVarSlotsOffset;
     int32           m_hasLocalVarChangedOffset;    // Offset on stack of 1 byte which indicates if any local var has changed.
     CodeGenAllocators *const m_codeGenAllocators;

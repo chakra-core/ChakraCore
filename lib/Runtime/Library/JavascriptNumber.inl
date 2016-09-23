@@ -139,7 +139,7 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewCodeGenInstance(double value, ScriptContext* scriptContext)
     {
         return ToVar(value);
     }

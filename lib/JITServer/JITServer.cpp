@@ -255,9 +255,10 @@ ServerInitializeScriptContext(
     ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData);
     *scriptContextInfoAddress = (intptr_t)EncodePointer(contextInfo);
 
+#if !FLOATVAR
     // TODO: should move this to ServerInitializeThreadContext, also for the fields in IDL
     XProcNumberPageSegmentImpl::Initialize(contextInfo->IsRecyclerVerifyEnabled(), contextInfo->GetRecyclerVerifyPad());
-
+#endif
     return S_OK;
 }
 
@@ -446,7 +447,9 @@ ServerRemoteCodeGen(
             nullptr,
             jitWorkItem->GetPolymorphicInlineCacheInfo(),
             threadContextInfo->GetCodeGenAllocators(),
-            nullptr,
+#if !FLOATVAR
+            nullptr, // number allocator
+#endif
             profiler,
             true);
     }

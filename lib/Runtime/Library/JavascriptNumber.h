@@ -122,7 +122,11 @@ namespace Js
         static JavascriptNumber* InPlaceNew(double value, ScriptContext* scriptContext, JavascriptNumber* result);
 
 #if ENABLE_NATIVE_CODEGEN
+#if FLOATVAR
+        static Var NewCodeGenInstance(double value, ScriptContext* scriptContext);
+#else
         static Var NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext);
+#endif
 #endif
 
         inline static bool IsSpecial(double value, uint64 nSpecial) { return NumberUtilities::IsSpecial(value, nSpecial); }
