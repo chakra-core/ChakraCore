@@ -6049,7 +6049,7 @@ LowererMD::GenerateCopysign(IR::Instr * instr)
     {
         Assert(src1->IsFloat32());
         IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
-            IR::MemRefOpnd::New((void *)&Js::JavascriptNumber::SgnBitCst, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef),
+            IR::MemRefOpnd::New(this->m_func->GetThreadContextInfo()->GetSgnBitCst(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef),
             m_func);
         instr->InsertBefore(t2);
         Legalize(t2);

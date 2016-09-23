@@ -42,6 +42,11 @@ ThreadContextInfo::GetAbsFloatCstAddr() const
     return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsFloatCst);
 }
 
+intptr_t ThreadContextInfo::GetSgnBitCst() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnBitCst);
+}
+
 intptr_t
 ThreadContextInfo::GetMaskNegFloatAddr() const
 {

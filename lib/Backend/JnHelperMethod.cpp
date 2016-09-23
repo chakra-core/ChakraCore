@@ -208,18 +208,6 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
     case HelperDirectMath_CeilDb:
         return SHIFT_CRT_ADDR(context, (double(*)(double))ceil);
 
-    case HelperDirectMath_TruncDb:
-        return SHIFT_CRT_ADDR(context, (double(*)(double)) Wasm::WasmMath::Trunc<double>);
-
-    case HelperDirectMath_TruncFlt:
-        return SHIFT_CRT_ADDR(context, (float(*)(float)) Wasm::WasmMath::Trunc<float>);
-
-    case HelperDirectMath_NearestDb:
-        return SHIFT_CRT_ADDR(context, (double(*)(double)) Wasm::WasmMath::Nearest<double>);
-
-    case HelperDirectMath_NearestFlt:
-        return SHIFT_CRT_ADDR(context, (float(*)(float)) Wasm::WasmMath::Nearest<float>);
-
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
     //

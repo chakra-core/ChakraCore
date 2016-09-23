@@ -523,10 +523,10 @@ HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
 HELPERCALL(DirectMath_CeilDb, nullptr, 0)
 HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 
-HELPERCALL(DirectMath_TruncDb, nullptr, 0)
-HELPERCALL(DirectMath_TruncFlt, nullptr, 0)
-HELPERCALL(DirectMath_NearestDb, nullptr, 0)
-HELPERCALL(DirectMath_NearestFlt, nullptr, 0)
+HELPERCALL(DirectMath_TruncDb, (double(*)(double)) Wasm::WasmMath::Trunc<double>, 0)
+HELPERCALL(DirectMath_TruncFlt, (float(*)(float)) Wasm::WasmMath::Trunc<float>, 0)
+HELPERCALL(DirectMath_NearestDb, (double(*)(double)) Wasm::WasmMath::Nearest<double>, 0)
+HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<float>, 0)
 
 HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 
