@@ -112,6 +112,14 @@ namespace Js
         }
     }
 
+    bool DebugManager::IsMatchTopFrameStackAddress(DiagStackFrame* frame) const
+    {
+        return (frame != nullptr) && 
+            (this->pCurrentInterpreterLocation != nullptr) &&
+            (this->pCurrentInterpreterLocation->topFrame != nullptr) &&
+            (this->pCurrentInterpreterLocation->topFrame->GetStackAddress() == frame->GetStackAddress());
+    }
+
 #ifdef ENABLE_MUTATION_BREAKPOINT
     MutationBreakpoint* DebugManager::GetActiveMutationBreakpoint() const
     {
