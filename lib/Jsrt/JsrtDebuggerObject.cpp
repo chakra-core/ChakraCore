@@ -851,6 +851,7 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
 
         stackList->Map([&](int index, Js::DiagStackFrame* stackFrame)
         {
+            AssertMsg(index != 0 || stackFrame->IsTopFrame(), "Index 0 frame is not marked as top frame");
             Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, index);
             Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
             stackTraceArray->DirectSetItemAt(index, marshaledObj);
