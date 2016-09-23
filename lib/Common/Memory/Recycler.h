@@ -1448,6 +1448,7 @@ public:
     {
         FillCheckPad(address, size, alignedAllocSize, false);
     }
+    static void FillPadNoCheck(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized);
 
     void VerifyCheckPad(void * address, size_t size);
     void VerifyCheckPadExplicitFreeList(void * address, size_t size);

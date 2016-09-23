@@ -517,10 +517,16 @@ ThreadContext::~ThreadContext()
 #endif
 #endif
 #if ENABLE_NATIVE_CODEGEN
-        HeapDelete(this->codeGenNumberThreadAllocator);
-        this->codeGenNumberThreadAllocator = nullptr;
-        HeapDelete(this->xProcNumberPageSegmentManager);
-        this->xProcNumberPageSegmentManager = nullptr;
+        if (this->codeGenNumberThreadAllocator)
+        {
+            HeapDelete(this->codeGenNumberThreadAllocator);
+            this->codeGenNumberThreadAllocator = nullptr;
+        }
+        if (this->xProcNumberPageSegmentManager)
+        {
+            HeapDelete(this->xProcNumberPageSegmentManager);
+            this->xProcNumberPageSegmentManager = nullptr;
+        }
 #endif
 
         Assert(this->debugManager == nullptr);
@@ -758,11 +764,13 @@ Recycler* ThreadContext::EnsureRecycler()
 #if ENABLE_NATIVE_CODEGEN
         // This may throw, so it needs to be after the recycler is initialized,
         // otherwise, the recycler dtor may encounter problems
+#if !FLOATVAR
+        // TODO: we only need one of the following, one for OOP jit and one for in-proc BG JIT
         AutoPtr<CodeGenNumberThreadAllocator> localCodeGenNumberThreadAllocator(
             HeapNew(CodeGenNumberThreadAllocator, newRecycler));
         AutoPtr<XProcNumberPageSegmentManager> localXProcNumberPageSegmentManager(
             HeapNew(XProcNumberPageSegmentManager, newRecycler));
-        
+#endif
 #endif
 
         this->recyclableData.Root(RecyclerNewZ(newRecycler, RecyclableData, newRecycler), newRecycler);
@@ -793,8 +801,10 @@ Recycler* ThreadContext::EnsureRecycler()
 
             InitializePropertyMaps(); // has many dependencies on the recycler and other members of the thread context
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
             this->codeGenNumberThreadAllocator = localCodeGenNumberThreadAllocator.Detach();
             this->xProcNumberPageSegmentManager = localXProcNumberPageSegmentManager.Detach();
+#endif
 #endif
         }
         catch(...)

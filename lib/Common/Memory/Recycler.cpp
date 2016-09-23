@@ -6965,15 +6965,21 @@ Recycler::FillCheckPad(void * address, size_t size, size_t alignedAllocSize, boo
         // Actually this is filling the non-pad to zero
         VerifyCheckFill(addressToVerify, sizeToVerify - sizeof(size_t));
 
-        // Ignore the first word
-        if (!objectAlreadyInitialized && size > sizeof(FreeObject))
-        {
-            memset((char *)address + sizeof(FreeObject), 0, size - sizeof(FreeObject));
-        }
-
-        // write the pad size at the end;
-        *(size_t *)((char *)address + alignedAllocSize - sizeof(size_t)) = alignedAllocSize - size;
+        FillPadNoCheck(address, size, alignedAllocSize, objectAlreadyInitialized);
     }
+}
+
+void 
+Recycler::FillPadNoCheck(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized)
+{
+    // Ignore the first word
+    if (!objectAlreadyInitialized && size > sizeof(FreeObject))
+    {
+        memset((char *)address + sizeof(FreeObject), 0, size - sizeof(FreeObject));
+    }
+
+    // write the pad size at the end;
+    *(size_t *)((char *)address + alignedAllocSize - sizeof(size_t)) = alignedAllocSize - size;
 }
 
 void Recycler::Verify(Js::Phase phase)

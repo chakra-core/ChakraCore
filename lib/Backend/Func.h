@@ -132,6 +132,15 @@ public:
     }
     XProcNumberPageSegmentImpl* GetXProcNumberAllocator()
     {
+        if (this->GetJITOutput()->GetOutputData()->numberPageSegments == nullptr)
+        {
+            XProcNumberPageSegmentImpl* seg = (XProcNumberPageSegmentImpl*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+            if (seg == nullptr)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            this->GetJITOutput()->GetOutputData()->numberPageSegments = new (seg) XProcNumberPageSegmentImpl();
+        }
         return (XProcNumberPageSegmentImpl*)this->GetJITOutput()->GetOutputData()->numberPageSegments;
     }
 

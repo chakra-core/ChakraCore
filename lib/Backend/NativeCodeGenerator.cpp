@@ -885,8 +885,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
 
     JITOutputIDL jitWriteData = {0};
-    workItem->GetJITData()->xProcNumberPageSegment = AnewStructZ(&alloc, XProcNumberPageSegment);
-    threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
+    workItem->GetJITData()->xProcNumberPageSegment = threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
 
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);

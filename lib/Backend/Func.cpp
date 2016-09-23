@@ -1810,10 +1810,7 @@ Func::AllocateNumber(double value)
     }
     else // OOP JIT
     {
-        number = GetXProcNumberAllocator()->AllocateNumber(this->GetThreadContextInfo()->GetProcessHandle(),
-            value,
-            (Js::StaticType*)this->GetScriptContextInfo()->GetNumberTypeStaticAddr(),
-            (void*)this->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber));
+        number = GetXProcNumberAllocator()->AllocateNumber(this, value);
     }
 #endif
 
