@@ -8,6 +8,7 @@
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_policyManager(true),
+    m_propertyMap(nullptr),
     m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
