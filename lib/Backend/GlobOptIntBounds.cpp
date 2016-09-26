@@ -773,9 +773,10 @@ IntBounds *GlobOpt::GetIntBoundsToUpdate(
             // New relative bounds are not being set, will use IntRangeValueInfo instead
             return nullptr;
         }
+        return IntBounds::New(constantBounds, false, alloc);
     }
 
-    return IntBounds::New(constantBounds, false, alloc);
+    return nullptr;
 }
 
 ValueInfo *GlobOpt::UpdateIntBoundsForEqual(

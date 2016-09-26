@@ -330,4 +330,10 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>typespec_bug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
