@@ -267,6 +267,7 @@ namespace Js {
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value);
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value);
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags);
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags);
         virtual BOOL IsFixedProperty(PropertyId propertyId);
         virtual BOOL HasItem(uint32 index);
         virtual BOOL HasOwnItem(uint32 index);

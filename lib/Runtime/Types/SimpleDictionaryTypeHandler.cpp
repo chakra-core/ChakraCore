@@ -13,16 +13,6 @@ namespace Js
     // Used by both SimpleDictionaryTypeHandler and DictionaryTypeHandler.
     // ----------------------------------------------------------------------
 
-    PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyRecord* key)
-    {
-        return key->GetPropertyId();
-    }
-
-    PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, JavascriptString* key)
-    {
-        return scriptContext->GetOrAddPropertyIdTracked(key->GetSz(), key->GetLength());
-    }
-
     bool TMapKey_IsSymbol(const PropertyRecord* key, ScriptContext* scriptContext)
     {
         return key->IsSymbol();
@@ -1565,6 +1555,123 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteProperty(DynamicObject* instance, JavascriptString* propertyNameString, PropertyOperationFlags propertyOperationFlags)
+    {
+        AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
+            "Numeric property names should have been converted to uint or PropertyRecord* ");
+    
+        if (!GetIsLocked())
+        {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(ForceStringKeyedSimpleDictionaryTypeHandler) &&
+                !TMapKey_IsJavascriptString<TMapKey>() &&
+                !isUnordered && !hasNamelessPropertyId)
+            {
+                return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, JavascriptString*, IsNotExtensibleSupported>(instance)
+                    ->DeleteProperty(instance, propertyNameString, propertyOperationFlags);
+            }
+#endif
+    
+            ScriptContext* scriptContext = instance->GetScriptContext();
+    
+            JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+            SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
+            if (propertyMap->TryGetReference(propertyName, &descriptor))
+            {
+                if (descriptor->Attributes & PropertyDeleted)
+                {
+                    // If PropertyLetConstGlobal is present then we have a let/const and no global property,
+                    // since SimpleDictionaryTypeHandler does not support shadowing which means it can only
+                    // have one or the other.  Therefore return true for no property found if allowLetConstGlobal
+                    // is false.  If allowLetConstGlobal is true we will enter the else if branch below and
+                    // return false since let/const variables cannot be deleted.
+                    return true;
+                }
+                else if (!(descriptor->Attributes & PropertyConfigurable))
+                {
+                    JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, propertyNameString->GetString()); // or propertyName->GetBuffer
+    
+                    return false;
+                }
+                Assert(!(descriptor->Attributes & PropertyLetConstGlobal));
+                Var undefined = scriptContext->GetLibrary()->GetUndefined();
+                if (descriptor->propertyIndex != NoSlots)
+                {
+                    if (SupportsSwitchingToUnordered(scriptContext))
+                    {
+                        ++numDeletedProperties;
+                        if (numDeletedProperties >= CONFIG_FLAG(DeletedPropertyReuseThreshold))
+                        {
+                            // This type handler is being used as a hashtable. Start reusing deleted property indexes for new
+                            // property IDs. After this, enumeration order is nondeterministic.
+                            // Also use JavascriptString* as the property map key so that PropertyRecords can be avoided
+                            // entirely where possible.
+    
+                            // Check if prototype chain has enumerable properties, according to logic used in
+                            // ForInObjectEnumerator::Initialize().  If there are enumerable properties in the
+                            // prototype chain, then enumerating this object's properties will require keeping
+                            // track of properties so that shadowed properties are not included, but doing so
+                            // currently requires converting the property to a PropertyRecord with a PropertyId
+                            // for use in a bit vector that tracks shadowing.  To avoid having a string keyed
+                            // type handler hit this, only convert to the string keyed type handler if the
+                            // prototype chain does not have enumerable properties.
+                            bool fConvertToStringKeyedHandler =
+                                !hasNamelessPropertyId &&
+                                ForInObjectEnumerator::GetFirstPrototypeWithEnumerableProperties(instance) == nullptr;
+    
+                            if (fConvertToStringKeyedHandler)
+                            {
+                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning to string keyed SimpleDictionaryUnorderedTypeHandler\n"));
+                                // if TMapKey is already JavascriptString* we will not get here because we'd
+                                // already be unordered and SupportsSwitchingToUnordered would have returned false
+                                return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, JavascriptString*, IsNotExtensibleSupported>(instance)
+                                    ->DeleteProperty(instance, propertyNameString, propertyOperationFlags);
+                            }
+                            else
+                            {
+                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning to PropertyRecord keyed SimpleDictionaryUnorderedTypeHandler\n"));
+                                return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(instance)
+                                    ->DeleteProperty(instance, propertyNameString, propertyOperationFlags);
+                            }
+                        }
+                    }
+    
+                    Assert(this->singletonInstance == nullptr || instance == this->singletonInstance->Get());
+                    InvalidateFixedField(propertyNameString, descriptor, instance->GetScriptContext());
+    
+                    if (this->GetFlags() & IsPrototypeFlag)
+                    {
+                        scriptContext->InvalidateProtoCaches(scriptContext->GetOrAddPropertyIdTracked(propertyNameString->GetSz(), propertyNameString->GetLength()));
+                    }
+    
+                    // If this is an unordered type handler, register the deleted property index so that it can be reused for
+                    // other property IDs added later
+                    if (!isUnordered ||
+                        !AsUnordered()->TryRegisterDeletedPropertyIndex(instance, descriptor->propertyIndex))
+                    {
+                        SetSlotUnchecked(instance, descriptor->propertyIndex, undefined);
+                    }
+                }
+                descriptor->Attributes = PropertyDeletedDefaults;
+    
+                // Change the type so as we can invalidate the cache in fast path jit
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
+                SetPropertyUpdateSideEffect(instance, propertyName, nullptr, SideEffects_Any);
+                return true;
+            }
+        }
+        else
+        {
+            SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> *simpleBase = ConvertToNonSharedSimpleDictionaryType(instance);
+            return simpleBase->DeleteProperty(instance, propertyNameString, propertyOperationFlags);
+        }
+        return true;
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
         AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
@@ -1671,7 +1778,10 @@ namespace Js
                 descriptor->Attributes = PropertyDeletedDefaults;
 
                 // Change the type so as we can invalidate the cache in fast path jit
-                instance->ChangeType();
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
                 SetPropertyUpdateSideEffect(instance, propertyId, nullptr, SideEffects_Any);
                 return true;
             }

@@ -1209,7 +1209,7 @@ void ThreadContext::GetOrAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& pro
 const Js::PropertyRecord *
 ThreadContext::GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<char16> propertyName, bool bind)
 {
-    // Make sure the recyclers around so that we can take weak references to the property strings
+    // Make sure the recycler is around so that we can take weak references to the property strings
     EnsureRecycler();
 
     const Js::PropertyRecord * propertyRecord;

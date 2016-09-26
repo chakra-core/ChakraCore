@@ -54,6 +54,12 @@ namespace Js
         u.local.slotIndex = propertyIndex;
         u.local.requiredAuxSlotCapacity = requiredAuxSlotCapacity;
 
+        type->SetHasBeenCached();
+        if (typeWithoutProperty)
+        {
+            typeWithoutProperty->SetHasBeenCached();
+        }
+
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
 
 #if DBG_DUMP
@@ -117,6 +123,8 @@ namespace Js
             u.proto.type = TypeWithAuxSlotTag(type);
         }
 
+        prototypeObjectWithProperty->GetType()->SetHasBeenCached();
+
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
         Assert(u.proto.isMissing == (uint16)(u.proto.prototypeObject == requestContext->GetLibrary()->GetMissingPropertyHolder()));
 
@@ -179,6 +187,8 @@ namespace Js
         u.accessor.type = isInlineSlot ? type : TypeWithAuxSlotTag(type);
         u.accessor.slotIndex = propertyIndex;
         u.accessor.object = object;
+
+        type->SetHasBeenCached();
 
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
 

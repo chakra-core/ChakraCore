@@ -3841,6 +3841,18 @@ case_2:
         return __super::DeleteProperty(propertyId, propertyOperationFlags);
     }
 
+    BOOL JavascriptString::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), propertyNameString->GetString());
+
+            return FALSE;
+        }
+        return __super::DeleteProperty(propertyNameString, propertyOperationFlags);
+    }
+
     BOOL JavascriptString::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         stringBuilder->Append(_u('"'));

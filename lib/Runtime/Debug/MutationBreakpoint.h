@@ -99,6 +99,7 @@ namespace Js
         // Mutation handlers
         static bool HandleSetProperty(ScriptContext *scriptContext, RecyclableObject *object, PropertyId propertyId, Var newValue);
         static void HandleDeleteProperty(ScriptContext *scriptContext, Var instance, PropertyId propertyId);
+        static void HandleDeleteProperty(ScriptContext *scriptContext, Var instance, JavascriptString *propertyNameString);
 
         static const char16 * GetBreakMutationTypeName(MutationType mutationType);
         static const char16 * GetMutationTypeForConditionalEval(MutationType mutationType);

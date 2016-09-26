@@ -2803,6 +2803,37 @@ LABEL1:
         return result;
     }
 
+    BOOL JavascriptFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::caller.Equals(propertyName) || BuiltInPropertyRecords::arguments.Equals(propertyName))
+        {
+            if (this->HasRestrictedProperties())
+            {
+                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
+                return false;
+            }
+        }
+        else if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            if (this->IsScriptFunction())
+            {
+                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
+                return false;
+            }
+        }
+
+        BOOL result = DynamicObject::DeleteProperty(propertyNameString, flags);
+
+        if (result && (BuiltInPropertyRecords::prototype.Equals(propertyName) || BuiltInPropertyRecords::_symbolHasInstance.Equals(propertyName)))
+        {
+            InvalidateConstructorCacheOnPrototypeChange();
+            this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
+        }
+
+        return result;
+    }
+
     void JavascriptFunction::InvalidateConstructorCacheOnPrototypeChange()
     {
         Assert(this->constructorCache != nullptr);

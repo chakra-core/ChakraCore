@@ -869,6 +869,81 @@ namespace Js
     }
 
     template <typename T>
+    BOOL DictionaryTypeHandlerBase<T>::DeleteProperty(DynamicObject *instance, JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags)
+    {
+        AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
+            "Numeric property names should have been converted to uint or PropertyRecord* ");
+
+        ScriptContext* scriptContext = instance->GetScriptContext();
+        DictionaryPropertyDescriptor<T>* descriptor;
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+
+        if (propertyMap->TryGetReference(propertyName, &descriptor))
+        {
+            Assert(descriptor->SanityCheckFixedBits());
+
+            if (descriptor->Attributes & PropertyDeleted)
+            {
+                return true;
+            }
+            else if (!(descriptor->Attributes & PropertyConfigurable))
+            {
+                // Let/const properties do not have attributes and they cannot be deleted
+                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, propertyNameString->GetString());
+
+                return false;
+            }
+
+            Var undefined = scriptContext->GetLibrary()->GetUndefined();
+
+            if (descriptor->HasNonLetConstGlobal())
+            {
+                T dataSlot = descriptor->template GetDataPropertyIndex<false>();
+                if (dataSlot != NoSlots)
+                {
+                    SetSlotUnchecked(instance, dataSlot, undefined);
+                }
+                else
+                {
+                    Assert(descriptor->IsAccessor);
+                    SetSlotUnchecked(instance, descriptor->GetGetterPropertyIndex(), undefined);
+                    SetSlotUnchecked(instance, descriptor->GetSetterPropertyIndex(), undefined);
+                }
+
+                if (this->GetFlags() & IsPrototypeFlag)
+                {
+                    scriptContext->InvalidateProtoCaches(scriptContext->GetOrAddPropertyIdTracked(propertyNameString->GetString(), propertyNameString->GetLength()));
+                }
+
+                if ((descriptor->Attributes & PropertyLetConstGlobal) == 0)
+                {
+                    Assert(!descriptor->IsShadowed);
+                    descriptor->Attributes = PropertyDeletedDefaults;
+                }
+                else
+                {
+                    descriptor->Attributes &= ~PropertyDynamicTypeDefaults;
+                    descriptor->Attributes |= PropertyDeletedDefaults;
+                }
+                InvalidateFixedField(instance, propertyNameString, descriptor);
+
+                // Change the type so as we can invalidate the cache in fast path jit
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
+                SetPropertyUpdateSideEffect(instance, propertyName, nullptr, SideEffects_Any);
+                return true;
+            }
+
+            Assert(descriptor->Attributes & PropertyLetConstGlobal);
+            return false;
+        }
+
+        return true;
+    }
+
+    template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
         AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
@@ -945,7 +1020,10 @@ namespace Js
                 InvalidateFixedField(instance, propertyId, descriptor);
 
                 // Change the type so as we can invalidate the cache in fast path jit
-                instance->ChangeType();
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
                 SetPropertyUpdateSideEffect(instance, propertyId, nullptr, SideEffects_Any);
                 return true;
             }
@@ -2460,7 +2538,8 @@ namespace Js
     }
 
     template <typename T>
-    void DictionaryTypeHandlerBase<T>::InvalidateFixedField(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T>* descriptor)
+    template <typename TPropertyKey>
+    void DictionaryTypeHandlerBase<T>::InvalidateFixedField(DynamicObject* instance, TPropertyKey propertyKey, DictionaryPropertyDescriptor<T>* descriptor)
     {
         // DictionaryTypeHandlers are never shared, but if they were we would need to invalidate even if
         // there wasn't a singleton instance.  See SimpleDictionaryTypeHandler::InvalidateFixedFields.
@@ -2479,6 +2558,7 @@ namespace Js
                 // Invalidate any JIT-ed code that hard coded this method. No need to invalidate
                 // any store field inline caches, because they have never been populated.
 #if ENABLE_NATIVE_CODEGEN
+                PropertyId propertyId = TMapKey_GetPropertyId(instance->GetScriptContext(), propertyKey);
                 instance->GetScriptContext()->GetThreadContext()->InvalidatePropertyGuards(propertyId);
 #endif
                 descriptor->UsedAsFixed = false;
