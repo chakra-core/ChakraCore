@@ -9,6 +9,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
     m_contextData(*contextData),
     m_isPRNGSeeded(false),
     m_isClosed(false),
+    m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),

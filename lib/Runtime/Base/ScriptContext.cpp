@@ -66,6 +66,7 @@ namespace Js
 #endif
 #if ENABLE_NATIVE_CODEGEN
         nativeCodeGen(nullptr),
+        m_domFastPathHelperMap(nullptr),
 #endif
         threadContext(threadContext),
         scriptStartEventHandler(nullptr),

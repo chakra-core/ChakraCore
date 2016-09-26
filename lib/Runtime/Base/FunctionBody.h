@@ -646,6 +646,9 @@ namespace Js
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+#if _M_AMD64 || _M_ARM32_OR_ARM64
+            xdataInfo(nullptr),
+#endif
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
 #if ENABLE_DEBUG_STACK_BACK_TRACE
