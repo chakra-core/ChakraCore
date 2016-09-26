@@ -47,6 +47,10 @@
 #define CLANG_WNO_END
 #endif
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */

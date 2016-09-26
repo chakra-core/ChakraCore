@@ -124,10 +124,9 @@ public:
         __in intptr_t threadContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
-    HRESULT AddPropertyRecordArray(
+    HRESULT UpdatePropertyRecordMap(
         __in intptr_t threadContextInfoAddress,
-        __in unsigned int count,
-        __in PropertyRecordIDL ** propertyRecordArray)
+        __in UpdatedPropertysIDL * updatedProps)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddDOMFastPathHelper(

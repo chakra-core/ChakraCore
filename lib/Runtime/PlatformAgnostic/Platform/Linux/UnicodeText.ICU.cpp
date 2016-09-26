@@ -252,7 +252,8 @@ namespace PlatformAgnostic
                 Assert(false);
             }
 
-            if (U_FAILURE(errorCode))
+            if (U_FAILURE(errorCode) &&
+                !(destLength == 0 && errorCode == U_BUFFER_OVERFLOW_ERROR))
             {
                 *pErrorOut = TranslateUErrorCode(errorCode);
                 return -1;

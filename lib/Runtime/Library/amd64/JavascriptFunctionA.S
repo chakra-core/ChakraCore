@@ -135,135 +135,124 @@ LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObje
 // int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 .balign 16
 NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT, NoHandler
+        push_nonvol_reg rbp
+        mov rbp, rsp
 
-        // save these to stack for interpreter
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
+        // Set to compute CFA as: rbp + 2 words (RA, rbp)
+        set_cfa_register rbp, (2*8)
 
         push rbx
-        push rsi
-        push rdi
         push r12
         push r13
-        push rbp
-        lea rbp, [rsp]
+        push r15
 
-        // The first 4 QWORD args are passed in rcx, rdx/xmm1, r8/xmm2 and r9/xmm3,
-        // upon entry rcx contains function *.
-        sub rsp, 8h
+        // rdi: function
 
+        // rax: entry point
+        mov rax, rsi
 
+        // rbx: argc
+        mov rbx, rdx
 
-        // rbx = argc
-        mov rbx, r8
+        // r15: argv
+        mov r15, rcx
+        add r15, 8h
 
-        // save entry point into rax.
-        mov rax, rdx
-
-        xor r10d, r10d
-
-        // rsi = argv
-        mov rsi, r9
-        add rsi, 8h
-
-        // get map of args sizes for this function
+        // int GetArgsSizesArray(ScriptFunction* func)
         push rax
-        push rcx
-        sub rsp, 20h
-        call _ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE
+        push rdi
+        call C_FUNC(_ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE)
         mov r12, rax
-        add rsp, 20h
-        pop rcx
+        pop rdi
         pop rax
 
         // int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
         // This will return 0x20 bytes if size is below minimum. Includes space for function*.
         push rax
-        push rcx
-        sub rsp, 20h
-        call _ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE
+        push rdi
+        call C_FUNC(_ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE)
         mov r13, rax
-        add rsp, 20h
-        pop rcx
+        pop rdi
         pop rax
 
-setup_stack_and_reg_args:
+LOCAL_LABEL(setup_stack_and_reg_args):
 
         // OP_CallAsmInternal checks stack space
 
-stack_alloc:
+LOCAL_LABEL(stack_alloc):
         sub  rsp, r13
 
         // copy all args to the new stack frame.
-        lea r11, [rsi]
-        lea r10, [rsp + 8] // copy after ScriptFunction*
-copy_stack_args:
-        mov rdi, qword ptr [r11]
-        mov qword ptr [r10], rdi
+        lea r11, [r15]
+        lea r10, [rsp + 8]      // copy after ScriptFunction*
+        push r13                // save r13
+LOCAL_LABEL(copy_stack_args):
+        mov rsi, qword ptr [r11]
+        mov qword ptr [r10], rsi
         add r11, 8
         add r10, 8
         sub r13, 8
-        cmp r13, 0
-        jg copy_stack_args
+        cmp r13, 8  // skipped 1
+        jg LOCAL_LABEL(copy_stack_args)
+        pop r13                 // restore r13
 
         // r12 points to arg size map
-setup_reg_args_1:
-        lea r11, [rsi]
+LOCAL_LABEL(setup_reg_args_1):
+        lea r11, [r15]
         // argc < 1 ?
         cmp rbx, 1h
-        jl setup_args_done
+        jl LOCAL_LABEL(setup_args_done)
         cmp dword ptr[r12], 10h
-        je SIMDArg1
-        mov rdx, qword ptr [r11]
+        je LOCAL_LABEL(SIMDArg1)
+        mov rsi, qword ptr [r11]
         movq xmm1, qword ptr [r11]
         add r11, 8h
-        jmp setup_reg_args_2
-SIMDArg1:
+        jmp LOCAL_LABEL(setup_reg_args_2)
+LOCAL_LABEL(SIMDArg1):
         movups xmm1, xmmword ptr [r11]
         add r11, 10h
 
-setup_reg_args_2:
+LOCAL_LABEL(setup_reg_args_2):
         // argc < 2 ?
         cmp rbx, 2h
-        jl setup_args_done
+        jl LOCAL_LABEL(setup_args_done)
 
         add r12, 4
         cmp dword ptr[r12], 10h
-        je SIMDArg2
-        mov r8, qword ptr [r11]
+        je LOCAL_LABEL(SIMDArg2)
+        mov rdx, qword ptr [r11]
         movq xmm2, qword ptr [r11]
         add r11, 8h
-        jmp setup_reg_args_3
-SIMDArg2:
+        jmp LOCAL_LABEL(setup_reg_args_3)
+LOCAL_LABEL(SIMDArg2):
         movups xmm2, xmmword ptr [r11]
         add r11, 10h
 
-setup_reg_args_3:
+LOCAL_LABEL(setup_reg_args_3):
         // argc < 3 ?
         cmp rbx, 3h
-        jl setup_args_done
+        jl LOCAL_LABEL(setup_args_done)
         add r12, 4
         cmp dword ptr[r12], 10h
-        je SIMDArg3
-        mov r9, qword ptr [r11]
+        je LOCAL_LABEL(SIMDArg3)
+        mov rcx, qword ptr [r11]
         movq xmm3, qword ptr [r11]
-SIMDArg3:
+LOCAL_LABEL(SIMDArg3):
         movups xmm3, xmmword ptr [r11]
 
-setup_args_done:
+LOCAL_LABEL(setup_args_done):
+        // "home" arg0. other args already copied.
+        mov [rsp], rdi
         call rax
-done:
-        lea rsp, [rbp]
-        pop rbp
+        add rsp, r13            // restore stack
+
+// done:
+        pop r15
         pop r13
         pop r12
-        pop rdi
-        pop rsi
         pop rbx
+        pop_nonvol_reg rbp
         ret
-
 NESTED_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
 
 #endif // _ENABLE_ASM_JS

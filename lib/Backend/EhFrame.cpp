@@ -119,6 +119,8 @@ void EhFrame::Entry::Begin()
 
 void EhFrame::Entry::End()
 {
+    Assert(beginOffset != -1); // Must have called Begin()
+
     // padding
     size_t padding = (MachPtr - writer->Count() % MachPtr) % MachPtr;
     for (size_t i = 0; i < padding; i++)

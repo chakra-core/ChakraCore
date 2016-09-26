@@ -6149,7 +6149,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             //       and do ISB only for 1st time this entry point is called (potential working set regression though).
             _InstructionSynchronizationBarrier();
 #endif
-            uint newOffset = ::Math::PointerCastToIntegral<uint>(address(function, CallInfo(CallFlags_InternalFrame, 1), this));
+            uint newOffset = ::Math::PointerCastToIntegral<uint>(
+                CALL_ENTRYPOINT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
 
 #ifdef _M_IX86
             _asm

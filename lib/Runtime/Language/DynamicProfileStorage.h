@@ -52,7 +52,7 @@ private:
     static DWORD const FileFormatVersion;
 #ifdef _WIN32
     typedef DWORD TimeType;
-	static inline TimeType GetCreationTime() { return _time32(NULL); }
+    static inline TimeType GetCreationTime() { return _time32(NULL); }
 #else
     typedef time_t TimeType;
     static inline TimeType GetCreationTime() { return time(NULL); }

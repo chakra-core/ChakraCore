@@ -7,13 +7,11 @@
 #include "unixasmmacros.inc"
 
 
-#ifndef __APPLE__
 // BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
 // .extern _ZN13BailOutRecord7BailOutEPKS_
 
 // BranchBailOutRecord::BailOut(BranchBailOutRecord const * bailOutRecord, BOOL cond)
 // .extern _ZN19BranchBailOutRecord7BailOutEPKS_i
-#endif
 
 
 //------------------------------------------------------------------------------
@@ -103,7 +101,7 @@ NESTED_ENTRY _ZN12LinearScanMD26SaveAllRegistersAndBailOutEP13BailOutRecord, _TE
     sub rsp, 28h        // use the same as Windows x64 so register locations are the same
     .cfi_adjust_cfa_offset 0x28
 
-    call _ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord
+    call C_FUNC(_ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord)
 
     add rsp, 28h        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28
@@ -129,7 +127,7 @@ NESTED_ENTRY _ZN12LinearScanMD32SaveAllRegistersAndBranchBailOutEP19BranchBailOu
     sub rsp, 28h        // use the same as Windows x64 so register locations are the same
     .cfi_adjust_cfa_offset 0x28
 
-    call _ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord
+    call C_FUNC(_ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord)
 
     add rsp, 28h        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28

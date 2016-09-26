@@ -1732,7 +1732,7 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
     {
         Assert(regOpnd->m_sym->IsSingleDef());
         void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address;
-        ptrdiff_t diff = (intptr_t)address - (intptr_t)curr;
+        ptrdiff_t diff = (uintptr_t)address - (uintptr_t)curr;
         if (!Math::FitsInDWord(diff))
         {
             return false;

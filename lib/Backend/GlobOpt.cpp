@@ -8514,7 +8514,7 @@ GlobOpt::PropagateIntRangeBinary(IR::Instr *instr, int32 min1, int32 max1,
         {
             // Turn values like 0x1010 into 0x1111
             max = 1 << Math::Log2(max);
-            max = (max << 1) - 1;
+            max = (uint32)(max << 1) - 1;
             min = 0;
         }
 
@@ -8600,7 +8600,7 @@ GlobOpt::PropagateIntRangeBinary(IR::Instr *instr, int32 min1, int32 max1,
                 if (max1)
                 {
                     max1 = 1 << Math::Log2(max1);
-                    max1 = (max1 << 1) - 1;
+                    max1 = (uint32)(max1 << 1) - 1;
                 }
 
                 if (max1 > 0)

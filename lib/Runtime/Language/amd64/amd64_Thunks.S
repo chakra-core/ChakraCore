@@ -252,14 +252,14 @@ NESTED_END _ZN2Js21InterpreterStackFrame19InterpreterAsmThunkEPNS_20AsmJsCallSta
 
 //extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
 //extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
-// extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
+//extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
 //extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
 
 //extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
-// int Js::AsmJsExternalEntryPoint(RecyclableObject* entryObject, CallInfo callInfo, ...)// 
+// int Js::AsmJsExternalEntryPoint(RecyclableObject* entryObject, CallInfo callInfo, ...)
 .balign 16
-NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler        
+NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
         push_nonvol_reg rbp             // push rbp and adjust CFA offset
         lea  rbp, [rsp]
 
@@ -348,7 +348,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         pop r12         // r12: func
         pop r13         // r13: orig stack pointer
 
-        // "home" arg0. other args were read from stack and already homed. 
+        // "home" arg0. other args were read from stack and already homed.
         mov [rsp + 00h], rdi
 
         // call entry point

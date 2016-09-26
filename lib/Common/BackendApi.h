@@ -37,7 +37,7 @@ struct InlinedFrameLayout;
 
 typedef intptr_t IntConstType;
 typedef uintptr_t  UIntConstType;
-typedef IntMath<intptr_t>::Type IntConstMath;
+typedef IntMath<IntConstType>::Type IntConstMath;
 typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
