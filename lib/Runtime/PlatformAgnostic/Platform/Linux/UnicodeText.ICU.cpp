@@ -10,10 +10,16 @@
 #include <unicode/ustring.h>
 #include <unicode/normalizer2.h>
 #else
+#include <cctype>
 #define UErrorCode int
 #define U_ZERO_ERROR 0
 #define UChar char16
 #include <string.h>
+#define IS_CHAR(ch) \
+        (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+
+#define IS_NUMBER(ch) \
+        (ch >= '0' && ch <= '9')
 #endif
 
 namespace PlatformAgnostic
@@ -257,11 +263,18 @@ namespace PlatformAgnostic
             return resultStringLength;
         }
 #else
+
         bool IsWhitespace(codepoint_t ch)
         {
-            // todo : fix this!!!
-            char *asc = (char*)&ch;
-            return asc[0] == ' ' || asc[0] == '\n' || asc[0] == '\t' || asc[0] == '\r';
+            if (ch > 127)
+            {
+                return (ch == 160)   || // 0xA0
+                       (ch == 12288) || // IDEOGRAPHIC_SPACE
+                       (ch == 65279);   // 0xFEFF
+            }
+
+            char asc = (char)ch;
+            return asc == ' ' || asc == '\n' || asc == '\t' || asc == '\r';
         }
 
         bool IsNormalizedString(NormalizationForm normalizationForm, const char16* testString, int32 testStringLength) {
@@ -344,6 +357,25 @@ namespace PlatformAgnostic
         uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* stringToChange, uint32 bufferLength)
         {
 #ifndef HAS_REAL_ICU
+            // ASCII only
+            typedef int (*CaseFlipper)(int);
+            CaseFlipper flipper;
+            if (caseFlags == CaseFlagsUpper)
+            {
+                flipper = toupper;
+            }
+            else
+            {
+                flipper = tolower;
+            }
+            for(uint32 i = 0; i < bufferLength; i++)
+            {
+                if (stringToChange[i] > 0 && stringToChange[i] < 127)
+                {
+                    char ch = (char)stringToChange[i];
+                    stringToChange[i] = flipper(ch);
+                }
+            }
             return bufferLength;
 #else
             // Assert pointers
@@ -381,7 +413,33 @@ namespace PlatformAgnostic
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t ch)
         {
-#ifdef HAS_REAL_ICU
+#ifndef HAS_REAL_ICU
+            if (IS_CHAR(ch))
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassLetter;
+            }
+
+            if (IS_NUMBER(ch))
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassDigit;
+            }
+
+            if (ch == 8232) // U+2028
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassLineSeparator;
+            }
+
+            if (ch == 8233) // U+2029
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassParagraphSeparator;
+            }
+
+            if (IsWhitespace(ch))
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator;
+            }
+            // todo-xplat: implement the others ?
+#else
             int8_t charType = u_charType(ch);
 
             if (charType == U_LOWERCASE_LETTER ||
