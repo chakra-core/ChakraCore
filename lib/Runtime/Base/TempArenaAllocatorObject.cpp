@@ -14,12 +14,8 @@ namespace Js
             _u("temp"), threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
         if (isGuestArena)
         {
-            wrapper->externalGuestArenaRef = recycler->RegisterExternalGuestArena(wrapper->GetAllocator());
             wrapper->recycler = recycler;
-            if (wrapper->externalGuestArenaRef == nullptr)
-            {
-                Js::Throw::OutOfMemory();
-            }
+            wrapper->AdviseInUse();
         }
         return wrapper;
     }
@@ -51,6 +47,10 @@ namespace Js
             if (externalGuestArenaRef == nullptr)
             {
                 externalGuestArenaRef = this->recycler->RegisterExternalGuestArena(this->GetAllocator());
+                if (externalGuestArenaRef == nullptr)
+                {
+                    Js::Throw::OutOfMemory();
+                }
             }
         }
     }
