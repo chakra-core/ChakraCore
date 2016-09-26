@@ -1752,7 +1752,7 @@ namespace Js
         varArgs[0] = handler;
         varArgs[1] = target;
         varArgs[2] = GetName(scriptContext, propertyId);
-        varArgs[3] = newValue;
+        varArgs[3] = CrossSite::MarshalVar(scriptContext, newValue);
         varArgs[4] = receiver;
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
