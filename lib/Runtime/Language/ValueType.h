@@ -150,7 +150,11 @@ public:
 
     bool HasBeenString() const;
     bool IsString() const;
-    bool HasHadStringTag() const; // Note: this is likely not what you're looking for; this is a short-cut for LdLen optimization.
+    // Note: This function is primarily intended for heuristic purposes. There are some cases
+    // where an object can be either a string or undefined, but we want to emit fast code for
+    // the case where it's a string (since otherwise we lose a lot of perf). This simply says
+    // that there's the possibility that the valuetype being considered is a string.
+    bool HasHadStringTag() const;
     bool IsLikelyString() const;
     bool IsNotString() const;
 

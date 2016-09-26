@@ -6074,9 +6074,8 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
         newOpcode = opcode;
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
         Assert(newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjectSpread);
-        if (newOpcode == Js::OpCode::NewScObjectSpread || !this->m_func->HasProfileInfo())
+        if (!this->m_func->HasProfileInfo())
         {
-            // Testing required before enabling this for newscobjectspread
             returnType = ValueType::GetObject(ObjectType::UninitializedObject);
         }
         else

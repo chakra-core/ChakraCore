@@ -84,7 +84,7 @@ namespace Js
 
     bool OpCodeUtil::IsProfiledConstructorCall(OpCode op)
     {
-        return op >= Js::OpCode::NewScObject && op <= Js::OpCode::ProfiledNewScObjArraySpread && (OpCodeAttr::IsProfiledOp(op) || OpCodeAttr::IsProfiledOpWithICIndex(op));
+        return ((op >= Js::OpCode::NewScObject && op <= Js::OpCode::ProfiledNewScObjArraySpread) || op == Js::OpCode::ProfiledNewScObjectSpread) && (OpCodeAttr::IsProfiledOp(op) || OpCodeAttr::IsProfiledOpWithICIndex(op));
     }
 
     bool OpCodeUtil::IsProfiledReturnTypeCallOp(OpCode op)
