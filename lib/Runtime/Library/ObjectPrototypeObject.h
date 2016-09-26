@@ -32,6 +32,7 @@ namespace Js
         static Var Entry__proto__setter(RecyclableObject* function, CallInfo callInfo, ...);
 
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
 
         // Indicates if __proto__ is enabled currently (note that it can be disabled and re-enabled),
         // only useful for diagnostics to decide displaying __proto__ or [prototype].

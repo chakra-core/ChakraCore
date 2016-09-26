@@ -92,6 +92,7 @@ namespace Js
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(DynamicObject* instance, JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
 
         virtual PropertyIndex GetRootPropertyIndex(PropertyRecord const* propertyRecord) override;
 
@@ -198,7 +199,8 @@ namespace Js
     private:
         void CopySingletonInstance(DynamicObject* instance, DynamicTypeHandler* typeHandler);
 
-        void InvalidateFixedField(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T>* descriptor);
+        template <typename TPropertyKey>
+        void InvalidateFixedField(DynamicObject* instance, TPropertyKey propertyKey, DictionaryPropertyDescriptor<T>* descriptor);
 
     private:
         void SetNumDeletedProperties(const byte n) {}

@@ -64,6 +64,7 @@ namespace Js
             this->GetScriptContext()->SetHasUsedInlineCache(true);
         }
 
+        type->SetHasBeenCached();
         this->propCache->type = type;
         this->propCache->preventdataSlotIndexFalseRef = 1;
         this->propCache->dataSlotIndex = dataSlotIndex;

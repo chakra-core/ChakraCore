@@ -180,6 +180,7 @@ namespace Js
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual Var GetTypeOfString(ScriptContext * requestContext) override;

@@ -387,6 +387,11 @@ namespace Js
         return true;
     }
 
+    BOOL RecyclableObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        return true;
+    }
+
     BOOL RecyclableObject::IsFixedProperty(PropertyId propertyId)
     {
         return false;

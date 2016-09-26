@@ -308,6 +308,7 @@ namespace Js
 
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override;

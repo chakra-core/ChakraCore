@@ -11602,6 +11602,16 @@ Case0:
         return DynamicObject::DeleteProperty(propertyId, flags);
     }
 
+    BOOL JavascriptArray::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+        return DynamicObject::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL JavascriptArray::HasProperty(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)

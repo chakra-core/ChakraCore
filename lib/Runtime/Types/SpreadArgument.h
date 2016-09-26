@@ -33,6 +33,7 @@ namespace Js
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override{ AssertAndFailFast(); return FALSE;};
+        virtual BOOL DeleteProperty(JavascriptString * propertyNameString, PropertyOperationFlags flags) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return None; };
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return FALSE; };

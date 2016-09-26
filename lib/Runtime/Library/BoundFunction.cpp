@@ -425,6 +425,17 @@ namespace Js
         return JavascriptFunction::DeleteProperty(propertyId, flags);
     }
 
+    BOOL BoundFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL BoundFunction::IsWritable(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)

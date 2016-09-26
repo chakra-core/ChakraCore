@@ -547,13 +547,6 @@ namespace Js
             {
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ToString & possibleSideEffects));
             }
-            else if (IsMathLibraryId(propertyId))
-            {
-                if (instance == scriptContext->GetLibrary()->GetMathObject())
-                {
-                    scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_MathFunc & possibleSideEffects));
-                }
-            }
             else if (propertyId == PropertyIds::Math)
             {
                 if (instance == scriptContext->GetLibrary()->GetGlobalObject())
@@ -561,6 +554,47 @@ namespace Js
                     scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_MathFunc & possibleSideEffects));
                 }
             }
+            else if (IsMathLibraryId(propertyId))
+            {
+                if (instance == scriptContext->GetLibrary()->GetMathObject())
+                {
+                    scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_MathFunc & possibleSideEffects));
+                }
+            }
+        }
+    }
+
+    void DynamicTypeHandler::SetPropertyUpdateSideEffect(DynamicObject* instance, JsUtil::CharacterBuffer<WCHAR> const& propertyName, Var value, SideEffects possibleSideEffects)
+    {
+        if (possibleSideEffects)
+        {
+            ScriptContext* scriptContext = instance->GetScriptContext();
+            if (BuiltInPropertyRecords::valueOf.Equals(propertyName))
+            {
+                scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ValueOf & possibleSideEffects));
+            }
+            else if (BuiltInPropertyRecords::toString.Equals(propertyName))
+            {
+                scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ToString & possibleSideEffects));
+            }
+            else if (BuiltInPropertyRecords::Math.Equals(propertyName))
+            {
+                if (instance == scriptContext->GetLibrary()->GetGlobalObject())
+                {
+                    scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_MathFunc & possibleSideEffects));
+                }
+            }
+            else if (instance == scriptContext->GetLibrary()->GetMathObject())
+            {
+                PropertyRecord const* propertyRecord;
+                scriptContext->FindPropertyRecord(propertyName.GetBuffer(), propertyName.GetLength(), &propertyRecord);
+
+                if (propertyRecord && IsMathLibraryId(propertyRecord->GetPropertyId()))
+                {
+                    scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_MathFunc & possibleSideEffects));
+                }
+            }
+
         }
     }
 
@@ -697,6 +731,41 @@ namespace Js
     bool DynamicTypeHandler::CanBeSingletonInstance(DynamicObject * instance)
     {
         return !ThreadContext::IsOnStack(instance);
+    }
+
+    BOOL DynamicTypeHandler::DeleteProperty(DynamicObject* instance, JavascriptString* propertyNameString, PropertyOperationFlags flags)
+    {
+        PropertyRecord const *propertyRecord = nullptr;
+        if (!JavascriptOperators::CanShortcutOnUnknownPropertyName(instance))
+        {
+            instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        }
+        else
+        {
+            instance->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
+        }
+
+        if (propertyRecord == nullptr)
+        {
+            return TRUE;
+        }
+        
+        return DeleteProperty(instance, propertyRecord->GetPropertyId(), flags);
+    }
+
+    PropertyId DynamicTypeHandler::TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyId key)
+    {
+        return key;
+    }
+
+    PropertyId DynamicTypeHandler::TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyRecord* key)
+    {
+        return key->GetPropertyId();
+    }
+
+    PropertyId DynamicTypeHandler::TMapKey_GetPropertyId(ScriptContext* scriptContext, JavascriptString* key)
+    {
+        return scriptContext->GetOrAddPropertyIdTracked(key->GetSz(), key->GetLength());
     }
 
 #if ENABLE_TTD

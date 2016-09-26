@@ -50,6 +50,7 @@ namespace Js
             javascriptLibrary->GetScriptContext()->typeCount[typeId]++;
         }
 #endif
+        flags = flags & TypeFlagMask(~TypeFlagMask_HasBeenCached);
         Assert(! (prototype && CrossSite::NeedMarshalVar(prototype, javascriptLibrary->GetScriptContext())));
 
         // If the type property cache is copied over to this new type, then if a property ID caused the type to be changed for
