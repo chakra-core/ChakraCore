@@ -362,3 +362,4 @@ RT_ERROR_MSG(JSERR_NeedTypedArrayObject, 5662, "", "Atomics function called with
 RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)

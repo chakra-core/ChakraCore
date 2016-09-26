@@ -737,6 +737,21 @@ namespace Js
         return false;
     }
 
+    bool JavascriptError::ThrowCantDelete(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName)
+    {
+        bool isNonConfigThrow = (flags & PropertyOperation_ThrowOnDeleteIfNotConfig) == PropertyOperation_ThrowOnDeleteIfNotConfig;
+
+        if (isNonConfigThrow || flags & PropertyOperation_StrictMode)
+        {
+            if (scriptContext->GetThreadContext()->RecordImplicitException())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, isNonConfigThrow ? JSERR_CantDeleteNonConfigProp : JSERR_CantDeleteExpr, varName);
+            }
+            return true;
+        }
+        return false;
+    }
+
     bool JavascriptError::ThrowIfStrictModeUndefinedSetter(
         PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext)
     {

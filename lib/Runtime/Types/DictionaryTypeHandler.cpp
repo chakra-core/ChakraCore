@@ -889,7 +889,7 @@ namespace Js
             else if (!(descriptor->Attributes & PropertyConfigurable))
             {
                 // Let/const properties do not have attributes and they cannot be deleted
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, propertyNameString->GetString());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, propertyNameString->GetString());
 
                 return false;
             }
@@ -981,7 +981,7 @@ namespace Js
                 (allowLetConstGlobal && (descriptor->Attributes & PropertyLetConstGlobal)))
             {
                 // Let/const properties do not have attributes and they cannot be deleted
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 return false;
             }
