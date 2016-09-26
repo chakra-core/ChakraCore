@@ -63,13 +63,18 @@ FunctionJITTimeInfo::BuildJITTimeData(
             for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
             {
                 const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
-                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
                 if (inlineeJITData == codeGenData)
                 {
                     jitData->inlineesRecursionFlags[i] = TRUE;
                 }
                 else if (inlineeJITData != nullptr)
                 {
+                    const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = nullptr;
+                    if (inlineeJITData->GetFunctionInfo()->HasBody())
+                    {
+                        Js::FunctionBody * inlinee = inlineeJITData->GetFunctionInfo()->GetFunctionBody();
+                        inlineeRuntimeData = isInlinee ? runtimeData->GetInlineeForTargetInlinee(i, inlinee) : functionBody->GetInlineeCodeGenRuntimeDataForTargetInlinee(i, inlinee);
+                    }
                     jitData->inlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
                     BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true);
                 }
@@ -104,7 +109,6 @@ FunctionJITTimeInfo::BuildJITTimeData(
             {
                 const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetLdFldInlinee(i);
                 const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
-
                 if (inlineeJITData != nullptr)
                 {
                     jitData->ldFldInlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
@@ -121,11 +125,18 @@ FunctionJITTimeInfo::BuildJITTimeData(
             jitData->globalObjTypeSpecFldInfoArray = AnewArrayZ(alloc, ObjTypeSpecFldIDL, jitData->globalObjTypeSpecFldInfoCount);
             JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(alloc, globObjTypeSpecInfo, jitData->globalObjTypeSpecFldInfoCount, jitData->globalObjTypeSpecFldInfoArray);
         }
-        if (codeGenData->GetNext() != nullptr)
+        const Js::FunctionCodeGenJitTimeData * nextJITData = codeGenData->GetNext();
+        if (nextJITData != nullptr)
         {
+            // only inlinee should be polymorphic
+            Assert(isInlinee);
             jitData->next = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-            // TODO: OOP JIT, validate functionBody->GetCodeGenRuntimeDataWithLock()[1]
-             BuildJITTimeData(alloc, codeGenData->GetNext(), isInlinee ? runtimeData->GetNext() : functionBody->GetCodeGenRuntimeDataWithLock()[1], jitData->next);
+            const Js::FunctionCodeGenRuntimeData * nextRuntimeData = nullptr;
+            if (nextJITData->GetFunctionInfo()->HasBody())
+            {
+                nextRuntimeData = runtimeData->GetNextForTarget(nextJITData->GetFunctionInfo()->GetFunctionBody());
+            }
+            BuildJITTimeData(alloc, nextJITData, nextRuntimeData, jitData->next);
         }
     }
 }
