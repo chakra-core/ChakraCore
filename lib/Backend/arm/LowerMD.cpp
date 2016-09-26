@@ -6423,7 +6423,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     uint32 freeListOffset;
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
-    bool allowNativeCodeBumpAllocation = false; // TODO: pass through RPC
+    bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
     Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize,
         allocatorAddress, endAddressOffset, freeListOffset,
         allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
