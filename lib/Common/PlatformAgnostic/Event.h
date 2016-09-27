@@ -2,50 +2,48 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
-// xplat-todo: Support this on Linux too, currently tied to CreateEvent API
-#ifdef _WIN32
+#ifndef RUNTIME_PLATFORM_AGNOSTIC_COMMON_EVENT
+#define RUNTIME_PLATFORM_AGNOSTIC_COMMON_EVENT
+
+namespace PlatformAgnostic
+{
 class Event
 {
-private:
-    const HANDLE handle;
-
 public:
-    Event(const bool autoReset, const bool signaled = false);
+    typedef HANDLE EventHandle;
 
 private:
+    EventHandle handle;
+
     Event(const Event &) : handle(0)
     {
     }
 
-    Event &operator =(const Event &)
-    {
-        return *this;
-    }
-
 public:
-    ~Event()
-    {
-        CloseHandle(handle);
-    }
+    Event(const bool autoReset, const bool signaled = false);
 
-public:
-    HANDLE Handle() const
+    EventHandle Handle() const
     {
         return handle;
     }
 
-    void Set() const
+    operator bool() const
     {
-        SetEvent(handle);
+        return handle != nullptr;
     }
 
-    void Reset() const
-    {
-        ResetEvent(handle);
-    }
+    ~Event();
+
+    void Close() const;
+
+    void Set() const;
+
+    void Reset() const;
 
     bool Wait(const unsigned int milliseconds = INFINITE) const;
 };
-#endif
+} // namespace PlatformAgnostic
+
+#endif // RUNTIME_PLATFORM_AGNOSTIC_COMMON_EVENT
+

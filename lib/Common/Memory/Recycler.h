@@ -577,8 +577,8 @@ private:
 private:
     WorkFunc workFunc;
     Recycler * recycler;
-    HANDLE concurrentWorkReadyEvent;// main thread uses this event to tell concurrent threads that the work is ready
-    HANDLE concurrentWorkDoneEvent;// concurrent threads use this event to tell main thread that the work allocated is done
+    PlatformAgnostic::Event concurrentWorkReadyEvent;// main thread uses this event to tell concurrent threads that the work is ready
+    PlatformAgnostic::Event concurrentWorkDoneEvent;// concurrent threads use this event to tell main thread that the work allocated is done
     HANDLE concurrentThread;
     bool synchronizeOnStartup;
 };
@@ -921,8 +921,8 @@ private:
     byte backgroundRescanCount;             // for ETW events and stats
     byte backgroundFinishMarkCount;
     size_t backgroundRescanRootBytes;
-    HANDLE concurrentWorkReadyEvent; // main thread uses this event to tell concurrent threads that the work is ready
-    HANDLE concurrentWorkDoneEvent; // concurrent threads use this event to tell main thread that the work allocated is done
+    PlatformAgnostic::Event concurrentWorkReadyEvent; // main thread uses this event to tell concurrent threads that the work is ready
+    PlatformAgnostic::Event concurrentWorkDoneEvent; // concurrent threads use this event to tell main thread that the work allocated is done
     HANDLE concurrentThread;
 
     template <uint parallelId>
@@ -963,7 +963,7 @@ private:
     static const uint tickDiffToNextCollect = 300;
 
 #ifdef IDLE_DECOMMIT_ENABLED
-    HANDLE concurrentIdleDecommitEvent;
+    PlatformAgnostic::Event concurrentIdleDecommitEvent;
     DWORD needIdleDecommitSignal;
 #endif
 

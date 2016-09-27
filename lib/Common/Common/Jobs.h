@@ -202,11 +202,11 @@ namespace JsUtil
     private:
         Job *jobBeingWaitedUpon;
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
-        Event jobBeingWaitedUponProcessed;
+        PlatformAgnostic::Event jobBeingWaitedUponProcessed;
 #endif
         bool isWaitingForQueuedJobs;
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
-        Event queuedJobsProcessed;
+        PlatformAgnostic::Event queuedJobsProcessed;
 #endif
         
     protected:
@@ -415,7 +415,7 @@ namespace JsUtil
         bool isWaitingForJobs;
         bool canDecommit;
         Job *currentJob;
-        Event threadStartedOrClosing; //This is only used for shutdown scenario to indicate background thread is shutting down or starting
+        PlatformAgnostic::Event threadStartedOrClosing; //This is only used for shutdown scenario to indicate background thread is shutting down or starting
         PageAllocator backgroundPageAllocator;
         ArenaAllocator *threadArena;
         BackgroundJobProcessor *processor;
@@ -447,8 +447,8 @@ namespace JsUtil
     {
     private:
         CriticalSection criticalSection;
-        Event jobReady;                 //This is an auto reset event, only one thread wakes up when the event is signaled.
-        Event wakeAllBackgroundThreads; //This is a manual reset event.
+        PlatformAgnostic::Event jobReady;                 //This is an auto reset event, only one thread wakes up when the event is signaled.
+        PlatformAgnostic::Event wakeAllBackgroundThreads; //This is a manual reset event.
         unsigned int numJobs;
         ThreadContextId threadId;
         ThreadService *threadService;
@@ -467,7 +467,7 @@ namespace JsUtil
 
 
     private:
-        bool WaitWithThread(ParallelThreadData *parallelThreadData, const Event &e, const unsigned int milliseconds = INFINITE);
+        bool WaitWithThread(ParallelThreadData *parallelThreadData, const PlatformAgnostic::Event &e, const unsigned int milliseconds = INFINITE);
 
         bool WaitWithThreadForThreadStartedOrClosingEvent(ParallelThreadData *parallelThreadData, const unsigned int milliseconds = INFINITE);
         void WaitWithAllThreadsForThreadStartedOrClosingEvent();

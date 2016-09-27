@@ -39,7 +39,6 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)CfgLogger.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DateUtilities.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Event.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int32Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int64Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Jobs.cpp" />
@@ -60,7 +59,6 @@
     <ClInclude Include="CommonCommonPch.h" />
     <ClInclude Include="CfgLogger.h" />
     <ClInclude Include="DateUtilities.h" />
-    <ClInclude Include="Event.h" />
     <ClInclude Include="GetCurrentFrameId.h" />
     <ClInclude Include="Int32Math.h" />
     <ClInclude Include="Jobs.h" />

@@ -3,9 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#if ENABLE_CONCURRENT_GC
-#include <process.h>
-#endif
 
 #ifdef _M_AMD64
 #include "amd64.h"
@@ -960,7 +957,7 @@ void
 Recycler::LeaveIdleDecommit()
 {
 #ifdef IDLE_DECOMMIT_ENABLED
-    bool allowTimer = (this->concurrentIdleDecommitEvent != nullptr);
+    bool allowTimer = this->concurrentIdleDecommitEvent;
     IdleDecommitSignal idleDecommitSignalRecycler = recyclerPageAllocator.LeaveIdleDecommit(allowTimer);
     IdleDecommitSignal idleDecommitSignalRecyclerLargeBlock = recyclerLargeBlockPageAllocator.LeaveIdleDecommit(allowTimer);
     IdleDecommitSignal idleDecommitSignal = max(idleDecommitSignalRecycler, idleDecommitSignalRecyclerLargeBlock);
@@ -986,7 +983,7 @@ Recycler::LeaveIdleDecommit()
                 Output::Flush();
             }
 #endif
-            SetEvent(this->concurrentIdleDecommitEvent);
+            this->concurrentIdleDecommitEvent.Set();
         }
     }
 #else
@@ -4358,46 +4355,25 @@ Recycler::InitializeConcurrent(JsUtil::ThreadService *threadService)
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
 
-        concurrentWorkDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-        if (concurrentWorkDoneEvent == nullptr)
-        {
-            throw Js::OutOfMemoryException();
-        }
-
+        concurrentWorkDoneEvent = PlatformAgnostic::Event(FALSE, FALSE);
 #if DBG_DUMP
         markContext.GetPageAllocator()->debugName = _u("ConcurrentCollect");
 #endif
         if (!threadService->HasCallback())
         {
 #ifdef IDLE_DECOMMIT_ENABLED
-            concurrentIdleDecommitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-            if (concurrentIdleDecommitEvent == nullptr)
-            {
-                throw Js::OutOfMemoryException();
-            }
+            concurrentIdleDecommitEvent = PlatformAgnostic::Event(FALSE, FALSE);
 #endif
 
-            concurrentWorkReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-            if (concurrentWorkReadyEvent == nullptr)
-            {
-                throw Js::OutOfMemoryException();
-            }
+            concurrentWorkReadyEvent = PlatformAgnostic::Event(FALSE, FALSE);
         }
     }
     catch (Js::OutOfMemoryException)
     {
-        Assert(concurrentWorkReadyEvent == nullptr);
-        if (concurrentWorkDoneEvent)
-        {
-            CloseHandle(concurrentWorkDoneEvent);
-            concurrentWorkDoneEvent = nullptr;
-        }
+        Assert(!concurrentWorkReadyEvent);
+        concurrentWorkDoneEvent.Close();
 #ifdef IDLE_DECOMMIT_ENABLED
-        if (concurrentIdleDecommitEvent)
-        {
-            CloseHandle(concurrentIdleDecommitEvent);
-            concurrentIdleDecommitEvent = nullptr;
-        }
+        concurrentIdleDecommitEvent.Close();
 #endif
 
         return false;
@@ -4412,7 +4388,7 @@ bool Recycler::AbortConcurrent(bool restoreState)
     Assert(!this->CollectionInProgress() || this->IsConcurrentState());
 
     // In case the thread already died, wait for that too
-    HANDLE handle[2] = { concurrentWorkDoneEvent, concurrentThread };
+    HANDLE handle[2] = { concurrentWorkDoneEvent.Handle(), concurrentThread };
 
     // Note, concurrentThread will be null if we have a threadService.
     Assert(concurrentThread != NULL || threadService->HasCallback());
@@ -4449,7 +4425,7 @@ bool Recycler::AbortConcurrent(bool restoreState)
 
                 // AbortConcurrent already consumed the event from the concurrent thread, just signal it so
                 // FinishConcurrentCollect can wait for it again.
-                SetEvent(this->concurrentWorkDoneEvent);
+                this->concurrentWorkDoneEvent.Set();
 
                 EnsureNotCollecting();
             }
@@ -4540,9 +4516,9 @@ Recycler::FinalizeConcurrent(bool restoreState)
     if (aborted && this->concurrentThread != NULL)
     {
         // In case the thread already died, wait for that too
-        HANDLE handle[2] = { concurrentWorkDoneEvent, concurrentThread };
+        HANDLE handle[2] = { concurrentWorkDoneEvent.Handle(), (HANDLE)concurrentThread };
 
-        SetEvent(concurrentWorkReadyEvent);
+        concurrentWorkReadyEvent.Set();
 
         SetThreadPriority(this->concurrentThread, THREAD_PRIORITY_NORMAL);
         // In case the thread already died, wait for that too
@@ -4556,21 +4532,11 @@ Recycler::FinalizeConcurrent(bool restoreState)
     parallelThread2.Shutdown();
 
 #ifdef IDLE_DECOMMIT_ENABLED
-    if (concurrentIdleDecommitEvent != nullptr)
-    {
-        CloseHandle(concurrentIdleDecommitEvent);
-        concurrentIdleDecommitEvent = nullptr;
-    }
+    concurrentIdleDecommitEvent.Close();
 #endif
 
-    CloseHandle(concurrentWorkDoneEvent);
-    concurrentWorkDoneEvent = nullptr;
-
-    if (concurrentWorkReadyEvent != NULL)
-    {
-        CloseHandle(concurrentWorkReadyEvent);
-        concurrentWorkReadyEvent = nullptr;
-    }
+    concurrentWorkDoneEvent.Close();
+    concurrentWorkReadyEvent.Close();
 
     if (needCleanExitState)
     {
@@ -4657,7 +4623,7 @@ Recycler::EnableConcurrent(JsUtil::ThreadService *threadService, bool startAllTh
             if (concurrentThread != nullptr)
             {
                 // Wait for recycler thread to initialize
-                HANDLE handle[2] = { this->concurrentWorkDoneEvent, concurrentThread };
+                HANDLE handle[2] = { this->concurrentWorkDoneEvent.Handle(), concurrentThread };
                 DWORD ret = WaitForMultipleObjectsEx(2, handle, FALSE, INFINITE, FALSE);
                 if (ret == WAIT_OBJECT_0)
                 {
@@ -4685,22 +4651,10 @@ Recycler::EnableConcurrent(JsUtil::ThreadService *threadService, bool startAllTh
     this->enableParallelMark = false;
     this->enableConcurrentSweep = false;
 
-    if (concurrentWorkReadyEvent)
-    {
-        CloseHandle(concurrentWorkReadyEvent);
-        concurrentWorkReadyEvent = nullptr;
-    }
-    if (concurrentWorkDoneEvent)
-    {
-        CloseHandle(concurrentWorkDoneEvent);
-        concurrentWorkDoneEvent = nullptr;
-    }
+    concurrentWorkReadyEvent.Close();
+    concurrentWorkDoneEvent.Close();
 #ifdef IDLE_DECOMMIT_ENABLED
-    if (concurrentIdleDecommitEvent)
-    {
-        CloseHandle(concurrentIdleDecommitEvent);
-        concurrentIdleDecommitEvent = nullptr;
-    }
+    concurrentIdleDecommitEvent.Close();
 #endif
 
     return false;
@@ -4749,7 +4703,7 @@ Recycler::StartConcurrent(CollectionState const state)
     if (threadService->HasCallback())
     {
         Assert(concurrentThread == NULL);
-        Assert(concurrentWorkReadyEvent == NULL);
+        Assert(!concurrentWorkReadyEvent);
 
         if (!threadService->Invoke(Recycler::StaticBackgroundWorkCallback, this))
         {
@@ -4762,9 +4716,9 @@ Recycler::StartConcurrent(CollectionState const state)
     else
     {
         Assert(concurrentThread != NULL);
-        Assert(concurrentWorkReadyEvent != NULL);
+        Assert(concurrentWorkReadyEvent);
 
-        SetEvent(concurrentWorkReadyEvent);
+        concurrentWorkReadyEvent.Set();
         return true;
     }
 }
@@ -5198,7 +5152,7 @@ Recycler::WaitForConcurrentThread(DWORD waitTime)
         SetThreadPriority(this->concurrentThread, THREAD_PRIORITY_NORMAL);
     }
 
-    DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent, waitTime);
+    DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent.Handle(), waitTime);
 
     if (concurrentThread != NULL)
     {
@@ -5643,7 +5597,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
     }
 
-    SetEvent(this->concurrentWorkDoneEvent);
+    this->concurrentWorkDoneEvent.Set();
 
     collectionWrapper->WaitCollectionCallBack();
 }
@@ -5679,7 +5633,7 @@ Recycler::ThreadProc()
 #endif
 
     // Signal that the thread has started
-    SetEvent(this->concurrentWorkDoneEvent);
+    this->concurrentWorkDoneEvent.Set();
 
     SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 
@@ -5688,7 +5642,7 @@ Recycler::ThreadProc()
 #endif
 #ifdef IDLE_DECOMMIT_ENABLED
     DWORD handleCount = this->concurrentIdleDecommitEvent? 2 : 1;
-    HANDLE handles[2] = { this->concurrentWorkReadyEvent, this->concurrentIdleDecommitEvent };
+    HANDLE handles[2] = { this->concurrentWorkReadyEvent.Handle(), this->concurrentIdleDecommitEvent.Handle() };
 #endif
     do
     {
@@ -5753,7 +5707,7 @@ Recycler::ThreadProc()
             continue;
         }
 #else
-        DWORD result = WaitForSingleObject(this->concurrentWorkReadyEvent, INFINITE);
+        DWORD result = WaitForSingleObject(this->concurrentWorkReadyEvent.Handle(), INFINITE);
         Assert(result == WAIT_OBJECT_0);
 #endif
         if (this->collectionState == CollectionStateExit)
@@ -5767,7 +5721,7 @@ Recycler::ThreadProc()
         DoBackgroundWork();
     }
     while (true);
-    SetEvent(this->concurrentWorkDoneEvent);
+    this->concurrentWorkDoneEvent.Set();
 
 #if !defined(_UCRT)
     if (dllHandle)
@@ -6027,15 +5981,15 @@ RecyclerParallelThread::StartConcurrent()
         // This may be the first time.  If so, initialize by creating the doneEvent.
         if (this->concurrentWorkDoneEvent == NULL)
         {
-            this->concurrentWorkDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-            if (this->concurrentWorkDoneEvent == nullptr)
+            this->concurrentWorkDoneEvent = PlatformAgnostic::Event(FALSE, FALSE);
+            if (!this->concurrentWorkDoneEvent)
             {
                 return false;
             }
         }
 
         Assert(concurrentThread == NULL);
-        Assert(concurrentWorkReadyEvent == NULL);
+        Assert(!concurrentWorkReadyEvent);
 
         // Invoke thread service to process work
         if (!this->recycler->threadService->Invoke(RecyclerParallelThread::StaticBackgroundWorkCallback, this))
@@ -6053,10 +6007,10 @@ RecyclerParallelThread::StartConcurrent()
         else
         {
             Assert(this->concurrentThread != NULL);
-            Assert(this->concurrentWorkReadyEvent != NULL);
+            Assert(this->concurrentWorkReadyEvent);
 
             // signal that thread has been initialized
-            SetEvent(this->concurrentWorkReadyEvent);
+            this->concurrentWorkReadyEvent.Set();
         }
     }
     return true;
@@ -6067,21 +6021,20 @@ RecyclerParallelThread::EnableConcurrent(bool waitForThread)
 {
     this->synchronizeOnStartup = waitForThread;
 
-    Assert(this->concurrentWorkDoneEvent == NULL);
-    Assert(this->concurrentWorkReadyEvent == NULL);
+    Assert(!this->concurrentWorkDoneEvent);
+    Assert(!this->concurrentWorkReadyEvent);
     Assert(this->concurrentThread == NULL);
 
-    this->concurrentWorkDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (this->concurrentWorkDoneEvent == nullptr)
+    this->concurrentWorkDoneEvent = PlatformAgnostic::Event(FALSE, FALSE);
+    if (!this->concurrentWorkDoneEvent)
     {
         return false;
     }
 
-    this->concurrentWorkReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (this->concurrentWorkReadyEvent == nullptr)
+    this->concurrentWorkReadyEvent = PlatformAgnostic::Event(FALSE, FALSE);
+    if (!this->concurrentWorkReadyEvent)
     {
-        CloseHandle(this->concurrentWorkDoneEvent);
-        this->concurrentWorkDoneEvent = NULL;
+        this->concurrentWorkDoneEvent.Close();
         return false;
     }
 
@@ -6090,7 +6043,7 @@ RecyclerParallelThread::EnableConcurrent(bool waitForThread)
     if (this->concurrentThread != nullptr && waitForThread)
     {
         // Wait for thread to initialize
-        HANDLE handle[2] = { this->concurrentWorkDoneEvent, this->concurrentThread };
+        HANDLE handle[2] = { this->concurrentWorkDoneEvent.Handle(), this->concurrentThread };
         DWORD ret = WaitForMultipleObjectsEx(2, handle, FALSE, INFINITE, FALSE);
         if (ret == WAIT_OBJECT_0)
         {
@@ -6103,10 +6056,8 @@ RecyclerParallelThread::EnableConcurrent(bool waitForThread)
 
     if (this->concurrentThread == nullptr)
     {
-        CloseHandle(this->concurrentWorkDoneEvent);
-        this->concurrentWorkDoneEvent = NULL;
-        CloseHandle(this->concurrentWorkReadyEvent);
-        this->concurrentWorkReadyEvent = NULL;
+        this->concurrentWorkDoneEvent.Close();
+        this->concurrentWorkReadyEvent.Close();
         return false;
     }
 
@@ -6143,7 +6094,7 @@ RecyclerParallelThread::WaitForConcurrent()
     Assert(this->concurrentThread != NULL || this->recycler->threadService->HasCallback());
     Assert(this->concurrentWorkDoneEvent != NULL);
 
-    DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent, INFINITE);
+    DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent.Handle(), INFINITE);
     Assert(ret == WAIT_OBJECT_0);
 }
 
@@ -6154,19 +6105,15 @@ RecyclerParallelThread::Shutdown()
 
     if (this->recycler->threadService->HasCallback())
     {
-        if (this->concurrentWorkDoneEvent != NULL)
-        {
-            CloseHandle(this->concurrentWorkDoneEvent);
-            this->concurrentWorkDoneEvent = NULL;
-        }
+        this->concurrentWorkDoneEvent.Close();
     }
     else
     {
         if (this->concurrentThread != NULL)
         {
-            HANDLE handles[2] = { concurrentWorkDoneEvent, concurrentThread };
+            HANDLE handles[2] = { concurrentWorkDoneEvent.Handle(), concurrentThread };
 
-            SetEvent(concurrentWorkReadyEvent);
+            concurrentWorkReadyEvent.Set();
 
             // During process shutdown, OS might kill this (recycler parallel i.e. concurrent) thread and it will not get chance to signal concurrentWorkDoneEvent.
             // When we are performing shutdown of main (recycler) thread here, if we wait on concurrentWorkDoneEvent, WaitForObject() will never return.
@@ -6175,18 +6122,16 @@ RecyclerParallelThread::Shutdown()
             DWORD fRet = WaitForMultipleObjectsEx(2, handles, FALSE, INFINITE, FALSE);
             AssertMsg(fRet != WAIT_FAILED, "Check handles passed to WaitForMultipleObjectsEx.");
 
-            CloseHandle(this->concurrentWorkDoneEvent);
-            this->concurrentWorkDoneEvent = NULL;
-            CloseHandle(this->concurrentWorkReadyEvent);
-            this->concurrentWorkReadyEvent = NULL;
+            this->concurrentWorkDoneEvent.Close();
+            this->concurrentWorkReadyEvent.Close();
             CloseHandle(this->concurrentThread);
             this->concurrentThread = NULL;
         }
     }
 
     Assert(this->concurrentThread == NULL);
-    Assert(this->concurrentWorkReadyEvent == NULL);
-    Assert(this->concurrentWorkDoneEvent == NULL);
+    Assert(!this->concurrentWorkReadyEvent);
+    Assert(!this->concurrentWorkDoneEvent);
 }
 
 // static
@@ -6224,8 +6169,8 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
             if (mustWait)
             {
                 // Signal completion and wait for next work
-                SetEvent(parallelThread->concurrentWorkDoneEvent);
-                DWORD result = WaitForSingleObject(parallelThread->concurrentWorkReadyEvent, INFINITE);
+                parallelThread->concurrentWorkDoneEvent.Set();
+                DWORD result = WaitForSingleObject(parallelThread->concurrentWorkReadyEvent.Handle(), INFINITE);
                 Assert(result == WAIT_OBJECT_0);
             }
 
@@ -6246,7 +6191,7 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
         // Signal to main thread that we have stopped processing and will shut down.
         // Note that after this point, we cannot access anything on the Recycler instance
         // because the main thread may have torn it down already.
-        SetEvent(parallelThread->concurrentWorkDoneEvent);
+        parallelThread->concurrentWorkDoneEvent.Set();
 
 #if !defined(_UCRT)
         if (dllHandle)
@@ -6275,7 +6220,7 @@ RecyclerParallelThread::StaticBackgroundWorkCallback(void * callbackData)
 
     (recycler->*workFunc)();
 
-    SetEvent(parallelThread->concurrentWorkDoneEvent);
+    parallelThread->concurrentWorkDoneEvent.Set();
 }
 #endif
 
