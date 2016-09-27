@@ -13,7 +13,7 @@ extern "C" PVOID __guard_check_icall_fptr;
 
 namespace Js
 {
-    void JavascriptExceptionOperators::AutoCatchHandlerExists::FetchNonUserCodeStatus(ScriptContext * scriptContext)
+    void JavascriptExceptionOperators::AutoCatchHandlerExists::FetchNonUserCodeStatus(ScriptContext * scriptContext, bool isUserExceptionHandling)
     {
         Assert(scriptContext);
 
@@ -21,14 +21,22 @@ namespace Js
         // If the outer try catch was already in the user code, no need to go any further.
         if (!m_previousCatchHandlerToUserCodeStatus)
         {
-            Js::JavascriptFunction* caller;
-            if (JavascriptStackWalker::GetCaller(&caller, scriptContext))
+            if (!isUserExceptionHandling)
             {
-                Js::FunctionBody *funcBody = NULL;
-                if (caller != NULL && (funcBody = caller->GetFunctionBody()) != NULL)
+                fFound = true;
+                m_threadContext->SetIsUserCode(false);
+            }
+            else
+            {
+                Js::JavascriptFunction* caller;
+                if (JavascriptStackWalker::GetCaller(&caller, scriptContext))
                 {
-                    m_threadContext->SetIsUserCode(funcBody->IsNonUserCode() == false);
-                    fFound = true;
+                    Js::FunctionBody *funcBody = NULL;
+                    if (caller != NULL && (funcBody = caller->GetFunctionBody()) != NULL)
+                    {
+                        m_threadContext->SetIsUserCode(funcBody->IsNonUserCode() == false);
+                        fFound = true;
+                    }
                 }
             }
         }
@@ -40,7 +48,7 @@ namespace Js
         }
     }
 
-    JavascriptExceptionOperators::AutoCatchHandlerExists::AutoCatchHandlerExists(ScriptContext* scriptContext)
+    JavascriptExceptionOperators::AutoCatchHandlerExists::AutoCatchHandlerExists(ScriptContext* scriptContext, bool isUserExceptionHandling)
     {
         Assert(scriptContext);
         m_threadContext = scriptContext->GetThreadContext();
@@ -48,10 +56,7 @@ namespace Js
         m_previousCatchHandlerExists = m_threadContext->HasCatchHandler();
         m_threadContext->SetHasCatchHandler(TRUE);
         m_previousCatchHandlerToUserCodeStatus = m_threadContext->IsUserCode();
-        if (scriptContext->IsScriptContextInDebugMode())
-        {
-            FetchNonUserCodeStatus(scriptContext);
-        }
+        FetchNonUserCodeStatus(scriptContext, isUserExceptionHandling);
     }
 
     JavascriptExceptionOperators::AutoCatchHandlerExists::~AutoCatchHandlerExists()
@@ -62,7 +67,11 @@ namespace Js
 
     bool JavascriptExceptionOperators::CrawlStackForWER(Js::ScriptContext& scriptContext)
     {
-        return Js::Configuration::Global.flags.WERExceptionSupport && !scriptContext.GetThreadContext()->HasCatchHandler();
+        // If we have exception handling, but no user exception handling, we should make
+        // the additional backtrace information available, as that increases consistency
+        // between native and nonative approaches (native code has some automatic error-
+        // handling structures that get added)
+        return Js::Configuration::Global.flags.WERExceptionSupport && !(scriptContext.GetThreadContext()->HasCatchHandler() && scriptContext.GetThreadContext()->IsUserCode());
     }
 
     uint64 JavascriptExceptionOperators::StackCrawlLimitOnThrow(Var thrownObject, ScriptContext& scriptContext)
@@ -86,7 +95,7 @@ namespace Js
 
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, true);
             continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
         }
         catch (JavascriptExceptionObject *caughtException)
@@ -172,7 +181,7 @@ namespace Js
 
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, true);
 #if defined(_M_ARM)
             continuation = arm_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #elif defined(_M_ARM64)
@@ -271,7 +280,7 @@ namespace Js
 
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, true);
 
             // Adjust the frame pointer and call into the try.
             // If the try completes without raising an exception, it will pass back the continuation address.
