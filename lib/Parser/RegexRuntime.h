@@ -1439,7 +1439,7 @@ namespace UnifiedRegex
     {
         CharCount number;            // current iteration number
         CharCount startInputOffset;  // input offset where the iteration started
-        SList<CharCount>* offsetsOfFollowFirst; // list of offsets from startInputOffset where we matched with followFirst
+        JsUtil::List<CharCount, ArenaAllocator>* offsetsOfFollowFirst; // list of offsets from startInputOffset where we matched with followFirst
         
         inline void Reset()
         {
@@ -1449,7 +1449,7 @@ namespace UnifiedRegex
             startInputOffset = 0;
             if (offsetsOfFollowFirst)
             {
-                offsetsOfFollowFirst->Clear();
+                offsetsOfFollowFirst->ClearAndZero();
             }
 #endif
         }
@@ -1546,7 +1546,7 @@ namespace UnifiedRegex
         int loopId;
         LoopInfo origLoopInfo;
 
-        inline RestoreLoopCont(int loopId, LoopInfo& origLoopInfo) : Cont(RestoreLoop), loopId(loopId), origLoopInfo(origLoopInfo) {}
+        RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher);
 
         CONT_BODY
     };

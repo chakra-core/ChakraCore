@@ -2494,7 +2494,7 @@ namespace UnifiedRegex
         //    state before backtracking to it.
         if (!isGreedy && hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2565,7 +2565,7 @@ namespace UnifiedRegex
         // See comment (****) above.
         if (begin->hasInnerNondet)
         {
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2749,7 +2749,7 @@ namespace UnifiedRegex
         if (begin->hasInnerNondet)
         {
             // May end up backtracking into loop body for iteration just completed: see above.
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2816,7 +2816,7 @@ namespace UnifiedRegex
         if (begin->hasInnerNondet)
         {
             // May end up backtracking into loop body for iteration just completed: see above.
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2883,7 +2883,7 @@ namespace UnifiedRegex
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2992,7 +2992,7 @@ namespace UnifiedRegex
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -3055,18 +3055,21 @@ namespace UnifiedRegex
     inline bool LoopSetWithFollowFirstInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(loopId);
-        Assert(PHASE_OFF1(Js::RegexOptBTPhase) || !loopInfo->offsetsOfFollowFirst || loopInfo->offsetsOfFollowFirst->Empty());
-
+        
         // If loop is contained in an outer loop, continuation stack may already have a RewindLoopFixed entry for
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
         }
 
+        if (loopInfo->offsetsOfFollowFirst)
+        {
+            loopInfo->offsetsOfFollowFirst->Clear();
+        }
         // startInputOffset will stay here for all iterations, and we'll use number of length to figure out
         // where in the input to rewind to
         loopInfo->startInputOffset = inputOffset;
@@ -3090,7 +3093,7 @@ namespace UnifiedRegex
             if (!PHASE_OFF1(Js::RegexOptBTPhase) && input[inputOffset] == this->followFirst)
             {
                 loopInfo->EnsureOffsetsOfFollowFirst(matcher);
-                loopInfo->offsetsOfFollowFirst->Push(inputOffset - loopInfo->startInputOffset);
+                loopInfo->offsetsOfFollowFirst->Add(inputOffset - loopInfo->startInputOffset);
             }
             inputOffset++;
         }
@@ -3140,7 +3143,7 @@ namespace UnifiedRegex
         // for this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -3957,7 +3960,7 @@ namespace UnifiedRegex
     {
         if (this->offsetsOfFollowFirst == nullptr)
         {
-            this->offsetsOfFollowFirst = Anew(matcher.pattern->library->GetScriptContext()->RegexAllocator(), SList<CharCount>, matcher.pattern->library->GetScriptContext()->RegexAllocator());
+            this->offsetsOfFollowFirst = JsUtil::List<CharCount, ArenaAllocator>::New(matcher.pattern->library->GetScriptContext()->RegexAllocator());
         }
     }
 
@@ -4003,6 +4006,18 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
     // RestoreLoopCont
     // ----------------------------------------------------------------------
+
+    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(RestoreLoop), loopId(loopId)
+    {
+        this->origLoopInfo.number = origLoopInfo.number;
+        this->origLoopInfo.startInputOffset = origLoopInfo.startInputOffset;
+        this->origLoopInfo.offsetsOfFollowFirst = nullptr;
+        if (origLoopInfo.offsetsOfFollowFirst != nullptr)
+        {
+            this->origLoopInfo.offsetsOfFollowFirst = JsUtil::List<CharCount, ArenaAllocator>::New(matcher.pattern->library->GetScriptContext()->RegexAllocator());
+            this->origLoopInfo.offsetsOfFollowFirst->Copy(origLoopInfo.offsetsOfFollowFirst);
+        }
+    }
 
     inline bool RestoreLoopCont::Exec(REGEX_CONT_EXEC_PARAMETERS)
     {
@@ -4272,7 +4287,7 @@ namespace UnifiedRegex
                 else
                 {
                     // Backtrack to the previous offset where we matched the LoopSet's followFirst
-                    loopInfo->number = loopInfo->offsetsOfFollowFirst->Pop();
+                    loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
                 }
             }
         }
