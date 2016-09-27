@@ -135,6 +135,7 @@ ServerInitializeThreadContext(
 
     *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
     *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
+   
     return S_OK;
 }
 
@@ -253,6 +254,11 @@ ServerInitializeScriptContext(
 
     ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData);
     *scriptContextInfoAddress = (intptr_t)EncodePointer(contextInfo);
+
+#if !FLOATVAR
+    // TODO: should move this to ServerInitializeThreadContext, also for the fields in IDL
+    XProcNumberPageSegmentImpl::Initialize(contextInfo->IsRecyclerVerifyEnabled(), contextInfo->GetRecyclerVerifyPad());
+#endif
     return S_OK;
 }
 
@@ -414,19 +420,20 @@ ServerRemoteCodeGen(
         profiler->Initialize(threadContextInfo->GetPageAllocator(), nullptr);
     }
 #endif
-
-    jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
-    if (!jitData->numberPageSegments)
+    if (jitWorkItem->GetWorkItemData()->xProcNumberPageSegment)
     {
-        scriptContextInfo->EndJIT();
-        threadContextInfo->EndJIT();
+        jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+        if (!jitData->numberPageSegments)
+        {
+            scriptContextInfo->EndJIT();
+            threadContextInfo->EndJIT();
 
-        return E_OUTOFMEMORY;
+            return E_OUTOFMEMORY;
+        }
+        __analysis_assume(jitData->numberPageSegments);
+
+        memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
     }
-    __analysis_assume(jitData->numberPageSegments);
-
-    memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
-
     HRESULT hr = S_OK;
     try
     {
@@ -440,7 +447,9 @@ ServerRemoteCodeGen(
             nullptr,
             jitWorkItem->GetPolymorphicInlineCacheInfo(),
             threadContextInfo->GetCodeGenAllocators(),
-            nullptr,
+#if !FLOATVAR
+            nullptr, // number allocator
+#endif
             profiler,
             true);
     }

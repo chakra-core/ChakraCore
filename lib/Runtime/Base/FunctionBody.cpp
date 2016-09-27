@@ -7788,6 +7788,7 @@ namespace Js
     {
         ProcessJitTransferData();
         
+#if !FLOATVAR
         if (this->numberPageSegments)
         {
             auto numberArray = this->GetScriptContext()->GetThreadContext()
@@ -7795,6 +7796,7 @@ namespace Js
             this->SetNumberArray(numberArray);
             this->numberPageSegments = nullptr;
         }
+#endif
     }
 
     void EntryPointInfo::ProcessJitTransferData()

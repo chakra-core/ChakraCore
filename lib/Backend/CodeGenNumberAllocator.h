@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if !FLOATVAR
 /****************************************************************************
  * CodeGenNumberThreadAllocator
  *
@@ -157,14 +158,15 @@ namespace Js
 struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
 {
     XProcNumberPageSegmentImpl();
-    Js::JavascriptNumber* AllocateNumber(HANDLE hProcess, double value, Js::StaticType* numberTypeStatic, void* javascriptNumberVtbl);
+    Js::JavascriptNumber* AllocateNumber(Func* func, double value);
     unsigned int GetTotalSize() { return PageCount * AutoSystemInfo::PageSize; }
     void* GetEndAddress() { return (void*)(this->pageAddress + PageCount * AutoSystemInfo::PageSize); }
     void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
 
     static const uint BlockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
     static const uint PageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
-    static uint GetSizeCat();
+    static uint sizeCat;
+    static void Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad);
 };
 
 static_assert(sizeof(XProcNumberPageSegmentImpl) == sizeof(XProcNumberPageSegment), "should not have data member in XProcNumberPageSegmentImpl");
@@ -175,16 +177,13 @@ struct XProcNumberPageSegmentManager
     XProcNumberPageSegmentImpl* segmentsList;
     Recycler* recycler;
     unsigned int integratedSegmentCount;
-    XProcNumberPageSegmentManager(Recycler* recycler)
-        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0)
-    {
-    }
+    XProcNumberPageSegmentManager(Recycler* recycler);
 
     ~XProcNumberPageSegmentManager();
 
-    void GetFreeSegment(XProcNumberPageSegment * seg);
+    XProcNumberPageSegment * GetFreeSegment(Memory::ArenaAllocator* alloc);
     Js::JavascriptNumber** RegisterSegments(XProcNumberPageSegment* segments);
 
     void Integrate();
 };
-
+#endif
