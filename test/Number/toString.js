@@ -41,8 +41,10 @@ function runTest(numberToTestAsString)
 
     // test toFixed toString round formatting
     if ( !(1.25499999999999989342.toFixed(2) + "" == "1.25") ||
-         !(1.255.toFixed(2) + "" == "1.25") ) {
-        throw Error("1.255.toFixed(2) != 1.25 ??");
+         !(1.255.toFixed(2) + "" == "1.25") ||
+         !(1.245.toFixed(2) + "" == "1.25") ||
+         !(8.255.toFixed(2) + "" == "8.26") ) {
+        throw Error("1.255.toFixed(2) != 1.25 or 8.255.toFixed(2) != 8.26 ??");
     }
     writeLine("");
 }
