@@ -1068,7 +1068,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
 
 
-#if defined(_M_ARM32_OR_ARM64)
+#if defined(_M_ARM)
     // for in-proc jit we do registration in encoder
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
@@ -1083,7 +1083,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         {
             xdataInfo->address = nullptr;
         }
-        XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
+        // unmask thumb mode from code address
+        XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress & ~0x1, jitWriteData.codeSize);
         epInfo->SetXDataInfo(xdataInfo);
     }
 #endif

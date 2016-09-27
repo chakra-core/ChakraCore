@@ -323,8 +323,6 @@ Encoder::Encode()
         m_func->GetThreadContextInfo()->GetProcessHandle());
 #elif _M_ARM
     m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), alloc);
-    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
-
     if (m_func->IsOOPJIT())
     {
         size_t allocSize = XDataAllocator::GetAllocSize(alloc->allocation->xdata.pdataCount, alloc->allocation->xdata.xdataSize);
@@ -337,6 +335,8 @@ Encoder::Encode()
         XDataAllocator::Register(&alloc->allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
         m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&alloc->allocation->xdata);
     }
+
+    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
     const bool isSimpleJit = m_func->IsSimpleJit();
 
