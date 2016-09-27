@@ -365,12 +365,11 @@ namespace Js
             }
 #endif
 
-            // xplat-todo: use intrinsics here on linux
-#ifdef _MSC_VER
-#if defined(_M_IX86) || defined(_M_X64)
+#if (defined(_M_IX86) || defined(_M_X64)) \
+    && (__SSE4_1__ || _WIN32) // _mm_ceil_sd needs this
             if (AutoSystemInfo::Data.SSE4_1Available())
             {
-				__m128d input, output;
+                __m128d input, output;
                 input = _mm_load_sd(&x);
                 output = _mm_ceil_sd(input, input);
                 int intResult = _mm_cvtsd_si32(output);
@@ -395,7 +394,6 @@ namespace Js
                 }
             }
             else
-#endif
 #endif
             {
                 double result = ::ceil(x);
