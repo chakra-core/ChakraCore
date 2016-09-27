@@ -8277,19 +8277,6 @@ CommonNumber:
             return true;
         }
 
-        // Since the equivTypes cache is always compacted, if last entry is non-nullptr, it means the cache is full.
-        DynamicType * dynamicType = (type && DynamicType::Is(type->GetTypeId())) ? static_cast<DynamicType*>(type) : nullptr;
-        bool isEquivTypesCacheFull = equivTypes[EQUIVALENT_TYPE_CACHE_SIZE - 1] != nullptr;
-        if (dynamicType != nullptr)
-        {
-            if (!dynamicType->GetIsShared() && isEquivTypesCacheFull)
-            {
-                // If this is non-shared type and we don't have space to cache it, just consider
-                // it as non-equivalent so we will eventually bailout
-                return false;
-            }
-        }
-
         // If we didn't find the type in the cache, let's check if it's equivalent the slow way, by comparing
         // each of its relevant property slots to its equivalent in one of the cached types.
         // We are making a few assumption that simplify the process:
@@ -8331,6 +8318,41 @@ CommonNumber:
         // property guards, or maintain a whole separate list of equivalent slot indexes.
         Assert(cache->record.propertyCount > 0);
 
+        // Before checking for equivalence, track existing cached non-shared types
+        DynamicType * dynamicType = (type && DynamicType::Is(type->GetTypeId())) ? static_cast<DynamicType*>(type) : nullptr;
+        bool isEquivTypesCacheFull = equivTypes[EQUIVALENT_TYPE_CACHE_SIZE - 1] != nullptr;
+        int emptySlotIndex = -1;
+        int nonSharedTypeSlotIndex = -1;
+        for (int i = 0;i < EQUIVALENT_TYPE_CACHE_SIZE;i++)
+        {
+            // Track presence of cached non-shared type if cache is full
+            if (isEquivTypesCacheFull)
+            {
+                if (DynamicType::Is(equivTypes[i]->GetTypeId()) &&
+                    nonSharedTypeSlotIndex == -1 &&
+                    !(static_cast<DynamicType*>(equivTypes[i]))->GetIsShared())
+                {
+                    nonSharedTypeSlotIndex = i;
+                }
+            }
+            // Otherwise get the next available empty index
+            else if (equivTypes[i] == nullptr)
+            {
+                emptySlotIndex = i;
+                break;
+            };
+        }
+
+        // If we get non-shared type while cache is full and we don't have any non-shared type to evict
+        // consider this type as non-equivalent
+        if (dynamicType != nullptr &&
+            isEquivTypesCacheFull &&
+            !dynamicType->GetIsShared() &&
+            nonSharedTypeSlotIndex == -1)
+        {
+            return false;
+        }
+
         // CONSIDER (EquivObjTypeSpec): Impose a limit on the number of properties guarded by an equivalent type check.
         // The trick is where in the glob opt to make the cut off. Perhaps in the forward pass we could track the number of
         // field operations protected by a type check (keep a counter on the type's value info), and if that counter exceeds
@@ -8358,28 +8380,8 @@ CommonNumber:
             return false;
         }
 
-        int emptySlotIndex = -1;
-        int nonSharedTypeSlotIndex = -1;
-        for (int i = 0;i < EQUIVALENT_TYPE_CACHE_SIZE;i++)
-        {
-            if (equivTypes[i] == nullptr)
-            {
-                emptySlotIndex = i;
-                break;
-            };
+        AssertMsg(!isEquivTypesCacheFull || !dynamicType || dynamicType->GetIsShared() || nonSharedTypeSlotIndex > -1, "If equiv cache is full, then this should be sharedType or we will evict non-shared type.");
 
-            // If equivTypes cache is full, also look for
-            // non-shared type to evict
-            if (isEquivTypesCacheFull &&
-                DynamicType::Is(equivTypes[i]->GetTypeId()) &&
-                !(static_cast<DynamicType*>(equivTypes[i]))->GetIsShared())
-            {
-                nonSharedTypeSlotIndex = i;
-            }
-        }
-
-        AssertMsg(!isEquivTypesCacheFull || !dynamicType || dynamicType->GetIsShared(), "If equiv cache is full, then this should be sharedType.");
-        
         // If cache is full, then this is definitely a sharedType, so evict non-shared type.
         // Else evict next empty slot (only applicable for DynamicTypes)
         emptySlotIndex = (isEquivTypesCacheFull && dynamicType) ? nonSharedTypeSlotIndex : emptySlotIndex;
@@ -8421,7 +8423,7 @@ CommonNumber:
             }
             Assert(index < EQUIVALENT_TYPE_CACHE_SIZE);
             __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
-            equivTypes[index] = type;   
+            equivTypes[index] = type;
         }
         
         // Fixed field checks allow us to assume a specific type ID, but the assumption is only
