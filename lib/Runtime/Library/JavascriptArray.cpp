@@ -5202,7 +5202,7 @@ Case0:
                         ((SparseArraySegment<Var>*)seg)->ReverseSegment(recycler);
                     }
 
-                    seg->left = ((uint32)length) - (seg->left + seg->length);
+                    seg->left = ((uint32)length) > (seg->left + seg->length) ? ((uint32)length) - (seg->left + seg->length) : 0;
 
                     seg->next = prevSeg;
                     // Make sure size doesn't overlap with next segment.
