@@ -1871,7 +1871,9 @@ void LowererMD::LegalizeDst(IR::Instr *const instr, const uint forms)
 
     IR::Opnd *dst = instr->GetDst();
     Assert(dst);
-
+#ifndef _M_X64
+    AssertMsg(!dst->IsInt64(), "Int64 supported only on x64");
+#endif
     switch(dst->GetKind())
     {
         case IR::OpndKindReg:
@@ -1950,7 +1952,9 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
     Assert(src);
     Assert(src == instr->GetSrc1() || src == instr->GetSrc2());
     Assert(forms);
-
+#ifndef _M_X64
+    AssertMsg(!src->IsInt64(), "Int64 supported only on x64");
+#endif
     switch(src->GetKind())
     {
         case IR::OpndKindReg:
@@ -2968,6 +2972,19 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
 
     Assert(src1->IsRegOpnd());
 
+#ifndef _M_X64
+    Int64RegPair src1Pair, src2Pair;
+    if (isInt64Src)
+    {
+        Assert(src1->IsRegOpnd());
+        Assert(src2->IsRegOpnd());
+        src1Pair = this->m_lowerer->FindOrCreateInt64Pair(src1->AsRegOpnd());
+        src2Pair = this->m_lowerer->FindOrCreateInt64Pair(src2->AsRegOpnd());
+        src1 = src1Pair.high;
+        src2 = src2Pair.high;
+    }
+#endif
+
     IR::Instr * done;
     if (isFloatSrc)
     {
@@ -3027,6 +3044,21 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         newInstr = IR::BranchInstr::New(Js::OpCode::JP, done->AsLabelInstr(), this->m_func);
         done->InsertBefore(newInstr);
     }
+
+#ifndef _M_X64
+    if (isInt64Src)
+    {
+        IR::LabelInstr* skipLow = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+        newInstr = IR::BranchInstr::New(Js::OpCode::JNE, skipLow, this->m_func);
+        done->InsertBefore(newInstr);
+
+        newInstr = IR::Instr::New(cmpOp, this->m_func);
+        newInstr->SetSrc1(src1Pair.low);
+        newInstr->SetSrc2(src2Pair.low);
+        done->InsertBefore(newInstr);
+        done->InsertBefore(skipLow);
+    }
+#endif
 
     if (!isIntDst)
     {
@@ -8534,6 +8566,12 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
     instr->m_opcode = Js::OpCode::MOVD;
     Legalize(instr);
     return instr;
+}
+
+IR::Instr *
+LowererMD::LowerInt64Assign(IR::Instr * instr)
+{
+    return this->lowererMDArch.LowerInt64Assign(instr);
 }
 
 IR::Instr *

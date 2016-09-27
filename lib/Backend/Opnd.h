@@ -186,7 +186,7 @@ public:
     bool                IsSigned() const { return IRType_IsSignedInt(this->m_type); }
     bool                IsUnsigned() const { return IRType_IsUnsignedInt(this->m_type); }
     int                 GetSize() const { return TySize[this->m_type]; }
-    bool                IsInt64() const { return this->m_type == TyInt64; }
+    bool                IsInt64() const { return IRType_IsInt64(this->m_type); }
     bool                IsInt32() const { return this->m_type == TyInt32; }
     bool                IsUInt32() const { return this->m_type == TyUint32; }
     bool                IsFloat32() const { return this->m_type == TyFloat32; }

@@ -1749,9 +1749,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             // Fallthrough
-        case Js::OpCode::Ld_A:
         case Js::OpCode::Ld_I4:
+        case Js::OpCode::Ld_A:
         case Js::OpCode::InitConst:
+            if (instr->GetDst() && instr->GetDst()->IsInt64())
+            {
+                instrPrev = m_lowererMD.LowerInt64Assign(instr);
+                break;
+            }
+
             if (instr->IsJitProfilingInstr() && instr->AsJitProfilingInstr()->isBeginSwitch) {
                 LowerProfiledBeginSwitch(instr->AsJitProfilingInstr());
                 break;
@@ -8930,6 +8936,32 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     instr->InsertBefore(labelHelper);
     // $after
 }
+
+#ifndef _M_X64
+void Lowerer::EnsureInt64RegPairMap()
+{
+    if (!m_int64RegPairMap)
+    {
+        m_int64RegPairMap = Anew(m_alloc, Int64RegPairMap, m_alloc);
+    }
+}
+
+Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::RegOpnd* reg)
+{
+    Assert(IRType_IsInt64(reg->GetType()));
+    EnsureInt64RegPairMap();
+    Int64RegPair pair;
+    if (m_int64RegPairMap->TryGetValue(reg->m_sym->m_id, &pair))
+    {
+        return pair;
+    }
+    IRType type = reg->GetType() == TyInt64 ? TyInt32 : TyUint32;
+    pair.high = IR::RegOpnd::New(type, this->m_func);
+    pair.low = IR::RegOpnd::New(type, this->m_func);
+    m_int64RegPairMap->Add(reg->m_sym->m_id, pair);
+    return pair;
+}
+#endif
 
 ///----------------------------------------------------------------------------
 ///

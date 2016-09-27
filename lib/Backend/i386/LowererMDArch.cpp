@@ -24,17 +24,13 @@ LowererMDArch::GetRegShiftCount()
 RegNum
 LowererMDArch::GetRegReturn(IRType type)
 {
-    return ( IRType_IsFloat(type) || IRType_IsSimd128(type) ) ? RegNOREG : RegEAX;
+    return ( IRType_IsFloat(type) || IRType_IsSimd128(type) || IRType_IsInt64(type) ) ? RegNOREG : RegEAX;
 }
 
 RegNum
 LowererMDArch::GetRegReturnAsmJs(IRType type)
 {
-    if (IRType_IsFloat(type))
-    {
-        return RegXMM0;
-    }
-    else if (IRType_IsSimd128(type))
+    if (IRType_IsFloat(type) || IRType_IsSimd128(type) || IRType_IsInt64(type))
     {
         return RegXMM0;
     }
@@ -892,12 +888,29 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     if (callInstr->GetDst())
     {
         IRType dstType = callInstr->GetDst()->GetType();
-        IR::Instr * movInstr = callInstr->SinkDst(GetAssignOp(dstType));
+        RegNum returnReg = GetRegReturnAsmJs(dstType);
+        IR::Instr * movInstr;
+        if (IRType_IsInt64(dstType))
+        {
+            Assert(returnReg == RegXMM0);
+            Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(callInstr->GetDst()->AsRegOpnd());
+            callInstr->GetDst()->SetType(TyFloat64);
+            movInstr = callInstr->SinkDst(Js::OpCode::MOVD, returnReg);
+            movInstr->UnlinkDst();
+            movInstr->SetDst(dstPair.low);
 
-        RegNum returnReg = GetRegReturn(dstType);
-        callInstr->GetDst()->AsRegOpnd()->SetReg(returnReg);
-        movInstr->GetSrc1()->AsRegOpnd()->SetReg(returnReg);
-        retInstr = movInstr;
+            // Move the bits 63:32 to 31:0 (~equivalent to shift right by 32)
+            IR::Instr* shiftInstr = IR::Instr::New(Js::OpCode::SHUFPS, callInstr->GetDst(), callInstr->GetDst(), IR::IntConstOpnd::New(1, TyInt8, this->m_func), this->m_func);
+            movInstr->InsertAfter(shiftInstr);
+            IR::Instr* mov2Instr = IR::Instr::New(Js::OpCode::MOVD, dstPair.high, callInstr->GetDst(), this->m_func);
+            shiftInstr->InsertAfter(mov2Instr);
+            retInstr = mov2Instr;
+        }
+        else
+        {
+            movInstr = callInstr->SinkDst(GetAssignOp(dstType), returnReg);
+            retInstr = movInstr;
+        }
     }
 
     return retInstr;
@@ -1902,6 +1915,43 @@ LowererMDArch::LowerExitInstrCommon(IR::ExitInstr * exitInstr)
     exitInstr->InsertBefore(pushInstr);
 
     return exitInstr;
+}
+
+IR::Instr *
+LowererMDArch::LowerInt64Assign(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    if (dst && dst->IsRegOpnd() && src1)
+    {
+        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst->AsRegOpnd());
+        IR::Instr* lowLoadInstr = nullptr, *highLoadInstr = nullptr;
+        if (src1->IsImmediateOpnd())
+        {
+            int64 value = src1->GetImmediateValue();
+            lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, IR::IntConstOpnd::New((int32)value, TyInt32, this->m_func), this->m_func);
+            highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, IR::IntConstOpnd::New(value >> 32, TyInt32, this->m_func), this->m_func);
+        }
+        else if (src1->IsRegOpnd())
+        {
+            Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1->AsRegOpnd());
+            lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, this->m_func);
+            highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, this->m_func);
+        }
+        else
+        {
+            Assert(UNREACHED);
+            return instr;
+        }
+
+        lowererMD->ChangeToAssign(lowLoadInstr);
+        lowererMD->ChangeToAssign(highLoadInstr);
+        instr->InsertBefore(lowLoadInstr);
+        instr->InsertBefore(highLoadInstr);
+        instr->Remove();
+        return highLoadInstr;
+    }
+    return instr;
 }
 
 void

@@ -1953,6 +1953,13 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     return LowerExitInstr(exitInstr);
 }
 
+IR::Instr *
+LowererMDArch::LowerInt64Assign(IR::Instr * instr)
+{
+    this->lowererMD->ChangeToAssign(instr);
+    return instr;
+}
+
 void
 LowererMDArch::EmitPtrInstr(IR::Instr *instr)
 {

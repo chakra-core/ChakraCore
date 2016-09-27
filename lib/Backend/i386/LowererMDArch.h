@@ -71,6 +71,7 @@ public:
             IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
             IR::ExitInstr *     LowerExitInstrCommon(IR::ExitInstr * exitInstr);
+            IR::Instr *         LowerInt64Assign(IR::Instr * instr);
             void                GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSize);
             static void         EmitInt4Instr(IR::Instr *instr);
             static void         EmitPtrInstr(IR::Instr *instr);

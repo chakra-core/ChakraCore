@@ -87,6 +87,7 @@ public:
     IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
     IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
     IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
+    IR::Instr *         LowerInt64Assign(IR::Instr * instr);
     static void         EmitInt4Instr(IR::Instr *instr, bool signExtend = false);
     static void         EmitPtrInstr(IR::Instr *instr);
     void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
