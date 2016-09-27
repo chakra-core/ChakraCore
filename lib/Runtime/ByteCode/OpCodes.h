@@ -633,7 +633,7 @@ MACRO_BACKEND_ONLY(     BailOut,                     Empty,          OpSideEffec
 MACRO_BACKEND_ONLY(     BailOnEqual,                 Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     BailOnNotEqual,              Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     BailOnNegative,              Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)
-MACRO_BACKEND_ONLY(     BailOnNotStackArgs,          Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)    // Bail out if not stack args or actuals exceed InlineeCallInfo::MaxInlineeArgoutCount (15)
+MACRO_BACKEND_ONLY(     BailOnNotStackArgs,          Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources)    // Bail out if not stack args or actuals exceed InlineeCallInfo::MaxInlineeArgoutCount (15). Cannot do CSE in forward pass right now because lowerer depends on it which is in backward order
 MACRO_BACKEND_ONLY(     BailOnNotSpreadable,         Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     BailOnNotPolymorphicInlinee, Empty,          OpBailOutRec|OpTempNumberSources)
 MACRO_BACKEND_ONLY(     BailTarget,                  Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources)
