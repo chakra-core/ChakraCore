@@ -12257,7 +12257,19 @@ LOutsideSwitch:
 
                 varDst = IR::RegOpnd::New(intDst->m_sym->GetVarEquivSym(this->func), TyVar, this->func);
                 IR::Instr *convBoolInstr = IR::Instr::New(Js::OpCode::Conv_Bool, varDst, intDst, this->func);
-                instr->InsertAfter(convBoolInstr);
+                // In some cases (e.g. unsigned compare peep code), a comparison will use variables
+                // other than the ones initially intended for it, if we can determine that we would
+                // arrive at the same result. This means that we get a ByteCodeUses operation after
+                // the actual comparison. Since Inserting the Conv_bool just after the compare, and
+                // just before the ByteCodeUses, would cause issues later on with register lifetime
+                // calculation, we want to insert the Conv_bool after the whole compare instruction
+                // block.
+                IR::Instr *putAfter = instr;
+                while (putAfter->m_next && putAfter->m_next->m_opcode == Js::OpCode::ByteCodeUses)
+                {
+                    putAfter = putAfter->m_next;
+                }
+                putAfter->InsertAfter(convBoolInstr);
                 convBoolInstr->SetByteCodeOffset(instr);
 
                 this->ToVarRegOpnd(varDst, this->currentBlock);
