@@ -330,13 +330,18 @@ namespace TTD
             {
                 if(!obj->GetIsExtensible())
                 {
-                    AssertMsg(!obj->GetDynamicType()->GetIsShared() || obj->GetDynamicType()->GetTypeHandler()->GetIsShared(), "We are just changing the flag so if it is shared this might unexpectedly change another type!");
+                    AssertMsg(!(obj->GetDynamicType()->GetIsShared() || obj->GetDynamicType()->GetTypeHandler()->GetIsShared()), "We are just changing the flag so if it is shared this might unexpectedly change another type!");
 
                     obj->GetDynamicType()->GetTypeHandler()->SetExtensible_TTD();
                 }
             }
 
-            obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
+            if(snpObject->SnapType->HasNoEnumerableProperties != obj->GetDynamicType()->GetHasNoEnumerableProperties())
+            {
+                AssertMsg(!obj->GetDynamicType()->GetIsShared(), "This is shared so we are mucking something up.");
+
+                obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
+            }
         }
 
         void EmitObject(const SnapObject* snpObject, FileWriter* writer, NSTokens::Separator separator, const SnapObjectVTable* vtable, ThreadContext* threadContext)
