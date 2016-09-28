@@ -2530,7 +2530,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToLea(IR::Instr * instr)
+LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 {
     Assert(instr);
     Assert(instr->GetDst());
@@ -2540,7 +2540,7 @@ LowererMD::ChangeToLea(IR::Instr * instr)
     Assert(!instr->GetSrc2());
 
     instr->m_opcode = Js::OpCode::LEA;
-    Legalize(instr);
+    Legalize(instr, postRegAlloc);
     return instr;
 }
 

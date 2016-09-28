@@ -4970,7 +4970,7 @@ IR::Instr* LinearScan::InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *con
 {
     IR::Instr *instrPrev = insertBeforeInstr->m_prev;
 
-    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr);
+    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr, true);
 
     for (IR::Instr *instr = instrPrev->m_next; instr != insertBeforeInstr; instr = instr->m_next)
     {

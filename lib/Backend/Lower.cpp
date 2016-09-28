@@ -14085,7 +14085,7 @@ IR::Instr *Lowerer::InsertSub(
     return instr;
 }
 
-IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr)
+IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, bool postRegAlloc)
 {
     Assert(dst);
     Assert(src);
@@ -14097,7 +14097,7 @@ IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::I
     IR::Instr *const instr = IR::Instr::New(Js::OpCode::LEA, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-    return LowererMD::ChangeToLea(instr);
+    return LowererMD::ChangeToLea(instr, postRegAlloc);
 }
 
 #if _M_X64
