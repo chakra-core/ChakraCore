@@ -1565,7 +1565,7 @@ Get mantissa bytes (BCD).
 ***************************************************************************/
 _Success_(return)
 static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb)) byte *prgb,
-                          int *pwExp10, byte **ppbLim, const int highBound = 1)
+                          int *pwExp10, byte **ppbLim, const int nDigits = -1)
 {
     int ib;
     int iT;
@@ -1811,19 +1811,27 @@ static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb
         // the difference.
         prgb[ib++] = (bHL + bLH + 1) / 2;
     }
-    // We don't know whether BHL or BLH is the correct one
-    // When highBound is set, that means the consumer is not
-    // interested with the entire value. On the other hand, we may not
-    // just roundup to the higher bound. That breaks IEEE754
-    // Imagine LowerBound is 4999... while the UpperBoud is 50001..
-    // We need to know where actually the number is instead of picking
-    // either Lower or UpperBoud
-    // at this point, we should skip and fail
-    // let FDblToRgbPrecise do the math.
-    else if (highBound == 1 && (0 != luHL || !numHL.FZero() || 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
+
+    else if (0 != luHL || !numHL.FZero() || 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1))
     {
         Assert(ib < kcbMaxRgb);
         if(!(ib < kcbMaxRgb))
+            goto LFail;
+
+        // We don't know whether BHL or BLH is the correct number
+        // When nDigits is set(>=0), that means the consumer is not
+        // interested with the entire value.
+        // That means, we may not just roundup to the higher bound.
+        // Doing so would break IEEE754
+        // Imagine LowerBound is 4999... while the UpperBoud is 50001..
+        // We need to know where actually the number is instead of picking
+        // either Lower or UpperBoud
+        // In this case, we should skip and fail
+        // and let FDblToRgbPrecise do the math.
+        // Perf Check:
+        // Exception for a number that has smaller amount of fractional part
+        // than the number of digits are being asked.
+        if (nDigits > 0 && (ib - wExp10 >= nDigits))
             goto LFail;
 
         // We can just use bHL because this guarantees that we're bigger than
@@ -2307,10 +2315,9 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
             Js::NumberUtilities::LuHiDbl(dbl) &= 0x7FFFFFFF;
         }
 
-        const int hBound = nDigits == -1 ? 1 : 0;
         // in case we restrict the number of digits, do not push for a higher bound
-        if (!FDblToRgbFast(dbl, rgb, &wExp10, &pbLim, hBound) &&
-            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim, hBound))
+        if (!FDblToRgbFast(dbl, rgb, &wExp10, &pbLim, nDigits) &&
+            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim, nDigits != -1 ? 0 : 1))
         {
             AssertMsg(FALSE, "Failure in FDblToRgbPrecise");
             return FALSE;
