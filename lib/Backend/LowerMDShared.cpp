@@ -4572,8 +4572,9 @@ LowererMD::GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndS
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     if (opndSrc->IsWriteBarrierTriggerableValue())
     {
-        void * address = opndDst->AsMemRefOpnd()->GetMemLoc();
+        void * address = (void *)opndDst->AsMemRefOpnd()->GetMemLoc();
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
+        // WriteBarrier-TODO: need to pass card table address through RPC
         IR::MemRefOpnd * cardTableEntry = IR::MemRefOpnd::New(
             &RecyclerWriteBarrierManager::GetAddressOfCardTable()[RecyclerWriteBarrierManager::GetCardTableIndex(address)], TyInt8, insertBeforeInstr->m_func);
 
@@ -4617,7 +4618,7 @@ IR::Instr*
 LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
 {
 #if defined(RECYCLER_WRITE_BARRIER_BYTE)
-    PHASE_PRINT_TRACE(Js::JitWriteBarrierPhase, assignInstr->m_func->GetJnFunction(), _u("Generating write barrier\n"));
+    PHASE_PRINT_TRACE(Js::JitWriteBarrierPhase, assignInstr->m_func, _u("Generating write barrier\n"));
     IR::RegOpnd * indexOpnd = IR::RegOpnd::New(TyMachPtr, assignInstr->m_func);
     IR::Instr * loadIndexInstr = IR::Instr::New(Js::OpCode::LEA, indexOpnd, assignInstr->GetDst(), assignInstr->m_func);
     assignInstr->InsertBefore(loadIndexInstr);
@@ -5014,7 +5015,7 @@ LowererMD::CreateStackArgumentsSlotOpnd()
 }
 
 IR::RegOpnd *
-LowererMD::GenerateUntagVar(IR::RegOpnd * src, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateTagCheck)
+LowererMD::GenerateUntagVar(IR::RegOpnd * src, IR::LabelInstr * labelFail, IR::Instr * assignInstr, bool generateTagCheck)
 {
     Assert(src->IsVar());
 
@@ -5035,7 +5036,7 @@ LowererMD::GenerateUntagVar(IR::RegOpnd * src, IR::LabelInstr * labelFail, IR::I
 
     // Moving into r2 clears the tag bits on AMD64.
     IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, valueOpnd, opnd, this->m_func);
-    insertBeforeInstr->InsertBefore(instr);
+    assignInstr->InsertBefore(instr);
 #else
     IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, valueOpnd, opnd, this->m_func);
     assignInstr->InsertBefore(instr);
@@ -9465,7 +9466,7 @@ LowererMD::LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailO
     IR::Instr * insertBeforeInstr = instr->m_next;
     Assert(insertBeforeInstr->m_opcode == Js::OpCode::MOV);
 #ifdef _M_IX86
-    Assert(assignInstr->GetSrc1()->AsRegOpnd()->GetReg() == RegEAX);
+    Assert(insertBeforeInstr->GetSrc1()->AsRegOpnd()->GetReg() == RegEAX);
 #else
     Assert(insertBeforeInstr->GetSrc1()->AsRegOpnd()->GetReg() == RegRAX);
 #endif

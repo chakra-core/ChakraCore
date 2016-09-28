@@ -188,4 +188,4 @@ void *  __cdecl memset(_Out_writes_bytes_all_(_Size) WriteBarrierPtr<T> * _Dst, 
     CompileAssert(false);
 }
 
-#include <Memory\WriteBarrierMacros.h>
+#include <Memory/WriteBarrierMacros.h>
