@@ -12698,6 +12698,11 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     bailOutRecord->bailOutOpcode = bailOutInfo->bailOutOpcode;
 #endif
 
+    if (instr->m_opcode == Js::OpCode::BailOnNotStackArgs && instr->GetSrc1())
+    {
+        // src1 on BailOnNotStackArgs is helping CSE
+        instr->FreeSrc1();
+    }
     // Call the bail out wrapper
     instr->m_opcode = Js::OpCode::Call;
     if(instr->GetDst())
