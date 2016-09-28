@@ -1078,6 +1078,17 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         if (jitWriteData.buffer)
         {
             xdataInfo->address = jitWriteData.buffer->data + jitWriteData.xdataOffset;
+            for (ushort i = 0; i < xdataInfo->pdataCount; ++i)
+            {
+                RUNTIME_FUNCTION *function = xdataInfo->GetPdataArray() + i;
+                // if flag is 0, then we have separate .xdata, for which we need to fixup the address
+                if (function->Flag == 0)
+                {
+                    // UnwindData was set on server as the offset from the beginning of xdata buffer
+                    function->UnwindData = (DWORD)(xdataInfo->address + function->UnwindData);
+                    Assert(((DWORD)function->UnwindData & 0x3) == 0); // 4 byte aligned
+                }
+            }
         }
         else
         {

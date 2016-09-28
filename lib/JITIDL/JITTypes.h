@@ -741,9 +741,8 @@ typedef struct  CtorCacheTransferEntryIDL
 typedef struct NativeDataBuffer
 {
     unsigned int len;
-    unsigned int unused;
-    IDL_PAD2(0)
-    IDL_PAD1(1)
+    // pad so that buffer is always 8 byte aligned
+    IDL_PAD4(0)
     IDL_DEF([size_is(len)]) byte data[IDL_DEF(*)];
 } NativeDataBuffer;
 
