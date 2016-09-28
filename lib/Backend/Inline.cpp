@@ -2307,7 +2307,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     }
 
     // set src1 to avoid CSE on BailOnNotStackArgs for different arguments object
-    bailOutOnNotStackArgs->SetSrc1(ldHeapArguments->GetDst());
+    bailOutOnNotStackArgs->SetSrc1(ldHeapArguments->GetDst()->Copy(this->topFunc));
     bailOutOnNotStackArgsInsertionPoint->InsertBefore(bailOutOnNotStackArgs);
 
     // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after
@@ -2552,7 +2552,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* 
     IR::Instr *  bailOutOnNotStackArgs = IR::BailOutInstr::New(Js::OpCode::BailOnNotStackArgs, IR::BailOutOnInlineFunction,
         callInstr, callInstr->m_func);
     // set src1 to avoid CSE on BailOnNotStackArgs for different arguments object
-    bailOutOnNotStackArgs->SetSrc1(argumentsObjArgOut->GetSrc1());
+    bailOutOnNotStackArgs->SetSrc1(argumentsObjArgOut->GetSrc1()->Copy(this->topFunc));
     argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
 
     IR::Instr* byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
