@@ -412,6 +412,18 @@ void MiscCleanup(void)
      InternalDeleteCriticalSection(&gcsEnvironment);
 }
 
+int compare(const char *left, const char *right, int *last_index)
+{
+    int i;
+    int result = 0;
+    for(i = 0; left[i] != 0 && result == 0 && i < INT_MAX; i++)
+    {
+        result = (left[i] == right[i]) ? 0 : (left[i] < right[i] ? -1 : 1);
+    }
+    *last_index = i;
+    return result;
+}
+
 /*++
 Function:
   MiscGetenv
@@ -428,12 +440,11 @@ char *MiscGetenv(const char *name)
 
     InternalEnterCriticalSection(pthrCurrent, &gcsEnvironment);
 
-    length = strlen(name);
     if (palEnvironment)
     {
         for(i = 0; palEnvironment[i] != NULL; i++)
         {
-            if (memcmp(palEnvironment[i], name, length) == 0)
+            if (compare(palEnvironment[i], name, &length) == 0)
             {
                 equals = palEnvironment[i] + length;
                 if (*equals == '\0')
