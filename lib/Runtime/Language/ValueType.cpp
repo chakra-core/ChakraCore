@@ -418,6 +418,11 @@ bool ValueType::IsString() const
     return OneOnOthersOff(Bits::String, Bits::CanBeTaggedValue);
 }
 
+bool ValueType::HasHadStringTag() const
+{
+    return !!(bits & Bits::String);
+}
+
 bool ValueType::IsLikelyString() const
 {
     return OneOnOthersOff(Bits::String, Bits::Likely | Bits::CanBeTaggedValue);

@@ -4877,6 +4877,41 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->KillStateForGeneratorYield();
     }
 
+    // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
+    if (instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
+    {
+        IR::Opnd * opnd = instr->GetSrc1();
+        Sym *sym = opnd->AsSymOpnd()->m_sym;
+        if (sym->IsPropertySym())
+        {
+            PropertySym *originalPropertySym = sym->AsPropertySym();
+            IR::RegOpnd* newopnd = IR::RegOpnd::New(originalPropertySym->m_stackSym, IRType::TyVar, instr->m_func);
+            // only on .length
+            if (this->lengthEquivBv != nullptr && this->lengthEquivBv->Test(originalPropertySym->m_id))
+            {
+                Value *const objectValue = FindValue(originalPropertySym->m_stackSym);
+                // Only for things we'd emit a fast path for
+                if (
+                    objectValue->GetValueInfo()->IsLikelyAnyArray() ||
+                    objectValue->GetValueInfo()->HasHadStringTag() ||
+                    objectValue->GetValueInfo()->IsLikelyString() ||
+                    newopnd->IsArgumentsObject() ||
+                    (this->blockData.argObjSyms && IsArgumentsOpnd(newopnd))
+                   )
+                {
+                    IR::Instr *newinstr = IR::Instr::New(Js::OpCode::LdLen_A, instr->m_func);
+                    instr->TransferTo(newinstr);
+                    newinstr->UnlinkSrc1();
+                    newinstr->SetSrc1(newopnd);
+                    newinstr->GetSrc1()->SetValueType(objectValue->GetValueInfo()->Type());
+                    instr->InsertAfter(newinstr);
+                    instr->Remove();
+                    instr = newinstr;
+                }
+            }
+        }
+    }
+
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
