@@ -7296,6 +7296,11 @@ Case0:
         }
         else
         {
+            if (TypedArrayBase::IsDetachedTypedArray(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("Array.prototype.toLocalString"));
+            }
+
             RecyclableObject* obj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {

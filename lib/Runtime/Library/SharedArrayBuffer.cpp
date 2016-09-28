@@ -52,22 +52,6 @@ namespace Js
         }
     }
 
-    uint32 SharedArrayBuffer::GetByteLengthFromVar(ScriptContext* scriptContext, Var length)
-    {
-        if (TaggedInt::Is(length))
-        {
-            int32 byteCount = TaggedInt::ToInt32(length);
-            if (byteCount < 0)
-            {
-                JavascriptError::ThrowRangeError(
-                    scriptContext, JSERR_ArrayLengthConstructIncorrect);
-            }
-            return byteCount;
-        }
-
-        return JavascriptConversion::ToUInt32(length, scriptContext);
-    }
-
     Var SharedArrayBuffer::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -89,7 +73,7 @@ namespace Js
         uint32 byteLength = 0;
         if (args.Info.Count > 1)
         {
-            byteLength = GetByteLengthFromVar(scriptContext, args[1]);
+            byteLength = ArrayBuffer::ToIndex(args[1], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxSharedArrayBufferLength);
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateSharedArrayBuffer(byteLength);

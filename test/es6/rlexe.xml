@@ -439,7 +439,6 @@
     <default>
       <files>ES6TypedArrayExtensions.js</files>
       <compile-flags>-ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
-      <tags>Slow</tags>
     </default>
   </test>
   <test>

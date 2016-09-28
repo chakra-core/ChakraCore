@@ -44,7 +44,6 @@ namespace Js
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
         void ClearParentsLength(ArrayBufferParent* parent);
-        static uint32 GetByteLengthFromVar(ScriptContext* scriptContext, Var length);
     public:
         template <typename FreeFN>
         class ArrayBufferDetachedState : public ArrayBufferDetachedStateBase
@@ -132,6 +131,7 @@ namespace Js
         virtual bool IsSharedArrayBuffer() override { return false; }
         virtual ArrayBuffer * GetAsArrayBuffer() override { return ArrayBuffer::FromVar(this); }
 
+        static uint32 ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero = true);
     protected:
 
         typedef void __cdecl FreeFn(void* ptr);
