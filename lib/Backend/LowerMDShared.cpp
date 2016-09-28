@@ -750,7 +750,7 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToLea(IR::Instr * instr)
+LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 {
     Assert(instr);
     Assert(instr->GetDst());
