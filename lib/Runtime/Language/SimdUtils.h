@@ -104,6 +104,7 @@ struct _x86_SIMDValue
 
 #pragma warning(push)
 #pragma warning(disable:4838) // conversion from 'unsigned int' to 'int32' requires a narrowing conversion
+CLANG_WNO_BEGIN("-Wc++11-narrowing")
 
 // These global values are 16-byte aligned.
 const _x86_SIMDValue X86_ABS_MASK_F4 = { 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff };
@@ -141,8 +142,7 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
                                                { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
-
-
+CLANG_WNO_END // -Wc++11-narrowing
 #pragma warning(pop)
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)

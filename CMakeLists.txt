@@ -208,6 +208,8 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-system-headers\
+        -Wc++11-narrowing\
         -Wno-ignored-attributes\
         -Wno-deprecated-declarations\
         -Wno-parentheses-equality\
@@ -240,6 +242,9 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
 
+    add_compile_options(-fexceptions)
+    add_compile_options(-fstack-protector-all)
+
     # xplat-todo for release build
     # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
     # Release Builds: Not sure if this has to be as strict as the debug/test?
@@ -258,6 +263,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    add_compile_options(-gdwarf-4) # This is actually a GCC option (Clang translates this to -g ?)
     add_definitions(
         -DDBG=1
         -DDEBUG=1
