@@ -13,6 +13,7 @@ WASM_SECTION(ExportTable          , "export"             , fSectNone  , Function
 WASM_SECTION(StartFunction        , "start"              , fSectNone  , FunctionSignatures)
 WASM_SECTION(FunctionBodies       , "code"               , fSectNone  , FunctionSignatures)
 WASM_SECTION(DataSegments         , "data"               , fSectNone  , Memory            )
-WASM_SECTION(Names                , "name"               , fSectNone,   Signatures        )
+WASM_SECTION(Names                , "name"               , fSectNone  , Signatures        )
+WASM_SECTION(User                 , "user"               , fSectIgnore, Invalid           )
 
 #undef WASM_SECTION

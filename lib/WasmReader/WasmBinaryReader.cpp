@@ -150,6 +150,7 @@ WasmBinaryReader::ReadSectionHeader()
 {
     SectionHeader header;
     header.start = m_pc;
+    header.code = bSectInvalid;
 
     UINT len = 0;
     UINT32 sectionId = LEB128(len);
@@ -180,6 +181,7 @@ WasmBinaryReader::ReadSectionHeader()
         CheckBytesLeft(nameLength);
         sectionName = (char*)(m_pc);
         m_pc += nameLength; //skip section name for now
+        header.code = bSectUser;
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -193,6 +195,8 @@ WasmBinaryReader::ReadSectionHeader()
     }
     TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
 #endif
+
+    Assert(header.code != bSectInvalid);
     return header;
 }
 
