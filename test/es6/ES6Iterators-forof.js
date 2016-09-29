@@ -199,15 +199,10 @@ var tests = [
         }
     },
     {
-        name: "for-of does not execute loop body for null and undefined collections (i.e. before trying to call @@iterator)",
+        name: "for-of throws TypeError when expr is evaluated to undefined/null (because it should do the ToObject(expr))",
         body: function () {
-            for (let x of null) {
-                assert.fail("loop body should not execute for null iterator");
-            }
-
-            for (let x of undefined) {
-                assert.fail("loop body should not execute for undefined iterator");
-            }
+            assert.throws(function () { for (let x of undefined) { } }, TypeError, "throws when undefined", "Cannot convert null or undefined to object");
+            assert.throws(function () { for (let x of null) { } }, TypeError, "throws when null", "Cannot convert null or undefined to object");
         }
     },
     {
