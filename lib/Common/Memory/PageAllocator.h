@@ -725,6 +725,14 @@ private:
         return true;
     }
 
+    void ReportExternalAlloc(size_t byteCount)
+    {
+        if (policyManager != nullptr)
+        {
+            policyManager->RequestAlloc(byteCount, true);
+        }
+    }
+
     void ReportFree(size_t byteCount)
     {
         if (policyManager != nullptr)

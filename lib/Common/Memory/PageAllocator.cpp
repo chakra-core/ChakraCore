@@ -735,7 +735,7 @@ PageSegmentBase<T> *
 PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, void* address, uint pageCount, uint committedCount)
 {
     PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, address, pageCount, committedCount);
-
+    pageAllocator->ReportExternalAlloc(pageCount * AutoSystemInfo::PageSize);
     return segment;
 }
 
