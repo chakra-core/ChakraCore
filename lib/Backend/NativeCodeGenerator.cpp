@@ -3245,7 +3245,9 @@ void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* cod
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
+#if DBG
             this->waitingForStackJob = true;
+#endif
             this->stackJobProcessed = false;
             Processor()->AddJob(&stackJob);
         }
