@@ -3889,7 +3889,7 @@ namespace UnifiedRegex
                 //   LoopSet
                 //
                 Assert(body->IsSimpleOneChar());
-                if (followFirst == MaxChar)
+                if (followFirst == MaxChar || PHASE_OFF1(Js::RegexOptBTPhase))
                 {
                     EMIT(compiler, LoopSetInst, compiler.NextLoopId(), repeats, !isNotInLoop)->set.CloneFrom(compiler.rtAllocator, *body->firstSet);
                 }

@@ -3090,7 +3090,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.CompStats();
 #endif
-            if (!PHASE_OFF1(Js::RegexOptBTPhase) && input[inputOffset] == this->followFirst)
+            if (input[inputOffset] == this->followFirst)
             {
                 loopInfo->EnsureOffsetsOfFollowFirst(matcher);
                 loopInfo->offsetsOfFollowFirst->Add(inputOffset - loopInfo->startInputOffset);
@@ -4258,42 +4258,36 @@ namespace UnifiedRegex
         // loopInfo->number is the number of iterations completed before trying follow
         Assert(loopInfo->number > begin->repeats.lower);
         // Try follow with fewer iterations
-        if (!PHASE_OFF1(Js::RegexOptBTPhase))
+
+        if (loopInfo->offsetsOfFollowFirst == nullptr)
         {
-            if (loopInfo->offsetsOfFollowFirst == nullptr)
+            if (begin->followFirst != MaxUChar)
             {
-                if (begin->followFirst != MaxUChar)
-                {
-                    // We determined the first character in the follow set at compile time,
-                    // but didn't find a single match for it in the last iteration of the loop.
-                    // So, there is no benefit in backtracking.
-                    loopInfo->number = begin->repeats.lower; // stop backtracking
-                }
-                else
-                {
-                    // We couldn't determine the first character in the follow set at compile time;
-                    // fall back to backtracking by one character at a time.
-                    loopInfo->number--;
-                }
+                // We determined the first character in the follow set at compile time,
+                // but didn't find a single match for it in the last iteration of the loop.
+                // So, there is no benefit in backtracking.
+                loopInfo->number = begin->repeats.lower; // stop backtracking
             }
             else
             {
-                if (loopInfo->offsetsOfFollowFirst->Empty())
-                {
-                    // We have already backtracked to the first offset where we matched the LoopSet's followFirst;
-                    // no point in backtracking more.
-                    loopInfo->number = begin->repeats.lower; // stop backtracking
-                }
-                else
-                {
-                    // Backtrack to the previous offset where we matched the LoopSet's followFirst
-                    loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
-                }
+                // We couldn't determine the first character in the follow set at compile time;
+                // fall back to backtracking by one character at a time.
+                loopInfo->number--;
             }
         }
         else
         {
-            loopInfo->number--;
+            if (loopInfo->offsetsOfFollowFirst->Empty())
+            {
+                // We have already backtracked to the first offset where we matched the LoopSet's followFirst;
+                // no point in backtracking more.
+                loopInfo->number = begin->repeats.lower; // stop backtracking
+            }
+            else
+            {
+                // Backtrack to the previous offset where we matched the LoopSet's followFirst
+                loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
+            }
         }
 
         // Rewind input
