@@ -212,7 +212,9 @@ private:
             , autoClose(true)
             , isClosed(false)
             , stackJobProcessed(false)
+#if DBG
             , waitingForStackJob(false)
+#endif
         {
             Processor()->AddManager(this);
         }
@@ -240,9 +242,8 @@ private:
 
         FreeLoopBodyJob* GetJob(FreeLoopBodyJob* job)
         {
-            if (this->waitingForStackJob)
+            if (!job->heapAllocated)
             {
-                Assert(job->heapAllocated == false);
                 return this->stackJobProcessed ? nullptr : job;
             }
             else
@@ -284,8 +285,10 @@ private:
             }
             else
             {
+#if DBG
                 Assert(this->waitingForStackJob);
                 this->waitingForStackJob = false;
+#endif
                 this->stackJobProcessed = true;
             }
         }
@@ -297,7 +300,9 @@ private:
         bool autoClose;
         bool isClosed;
         bool stackJobProcessed;
+#if DBG
         bool waitingForStackJob;
+#endif
     };
 
     FreeLoopBodyJobManager freeLoopBodyManager;
