@@ -2802,19 +2802,30 @@ namespace Js
         FunctionBody * GetAndClearStackNestedFuncParent();
         void ClearStackNestedFuncParent();
         void SetStackNestedFuncParent(FunctionBody * parentFunctionBody);
-#if defined(_M_IX86) || defined(_M_X64)
-        bool DoStackClosure() const
+
+        uint GetScopeSlotArraySize() const
         {
-            return DoStackNestedFunc() && GetNestedCount() != 0 && !PHASE_OFF(StackClosurePhase, this) && scopeSlotArraySize != 0 && GetEnvDepth() != (uint16)-1;
+            return scopeSlotArraySize;
+        }
+
+#if defined(_M_IX86) || defined(_M_X64)
+        template <typename T>
+        static bool DoStackClosure(T functionBody)
+        {
+            return functionBody->DoStackNestedFunc()
+                && functionBody->GetNestedCount() != 0
+                && functionBody->GetScopeSlotArraySize() != 0
+                && functionBody->GetEnvDepth() != (uint16)-1;
         }
 #else
-        bool DoStackClosure() const
+        template <typename T>
+        static bool DoStackClosure(T functionBody)
         {
             return false;
         }
 #endif
-        bool DoStackFrameDisplay() const { return DoStackClosure(); }
-        bool DoStackScopeSlots() const { return DoStackClosure(); }
+        bool DoStackFrameDisplay() const { return DoStackClosure(this) && !PHASE_OFF(StackClosurePhase, this); }
+        bool DoStackScopeSlots() const { return DoStackClosure(this) && !PHASE_OFF(StackClosurePhase, this); }
 
         bool IsNonUserCode() const { return (flags & Flags_NonUserCode) != 0; }
         void SetIsNonUserCode(bool set);

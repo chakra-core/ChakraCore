@@ -529,10 +529,7 @@ JITTimeFunctionBody::DoStackNestedFunc() const
 bool
 JITTimeFunctionBody::DoStackClosure() const
 {
-    return DoStackNestedFunc()
-        && GetNestedCount() != 0
-        && GetScopeSlotArraySize() != 0
-        && GetEnvDepth() != (uint16)-1;
+    return Js::FunctionBody::DoStackClosure(this);
 }
 
 bool
