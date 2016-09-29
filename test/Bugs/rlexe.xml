@@ -336,4 +336,10 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>deletenonconfig.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
