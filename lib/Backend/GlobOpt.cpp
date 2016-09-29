@@ -4878,7 +4878,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 
     // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
-    if (instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
+    if ((instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld) || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
     {
         IR::Opnd * opnd = instr->GetSrc1();
         Sym *sym = opnd->AsSymOpnd()->m_sym;

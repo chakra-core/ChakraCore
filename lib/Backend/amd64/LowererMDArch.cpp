@@ -926,6 +926,13 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
 #define _V_ARG_INDEX(index) _vindex[(index) - 1]
 #endif
 
+    // xplat NOTE: Lower often loads "known args" with LoadHelperArgument() and
+    // variadic JS runtime args with LowerCallArgs(). So the full args length is
+    //      this->helperCallArgsCount + argCount
+    // "argCount > 0" indicates we have variadic JS runtime args and needs to
+    // manually home registers on xplat.
+    const bool shouldHomeParams = argCount > 0;
+
     while (argsLeft > 0)
     {
         IR::Opnd * helperSrc = this->helperCallArgs[this->helperCallArgsCount - argsLeft];
@@ -933,7 +940,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
         StackSym * helperSym = m_func->m_symTable->GetArgSlotSym(index);
         helperSym->m_type = ExtendHelperArg(helperSrc->GetType());
         Lowerer::InsertMove(
-            this->GetArgSlotOpnd(index, helperSym, /*isHelper*/true),
+            this->GetArgSlotOpnd(index, helperSym, /*isHelper*/!shouldHomeParams),
             helperSrc,
             callInstr);
         --argsLeft;
@@ -941,14 +948,14 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
 
 #ifndef _WIN32
     // Manually home args
-    if (argCount > 0)
+    if (shouldHomeParams)
     {
         static const RegNum s_argRegs[IntArgRegsCount] = {
     #define REG_INT_ARG(Index, Name)  Reg ## Name,
     #include "RegList.h"
         };
 
-        const int callArgCount = static_cast<int>(argCount) + this->helperCallArgsCount;
+        const int callArgCount = this->helperCallArgsCount + static_cast<int>(argCount);
         const int argRegs = min(callArgCount, static_cast<int>(IntArgRegsCount));
         for (int i = argRegs - 1; i >= 0; i--)
         {

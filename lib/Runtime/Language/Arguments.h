@@ -27,13 +27,16 @@
 
 inline Js::Var* _get_va(void* addrOfReturnAddress, int n)
 {
+    // All args are right after ReturnAddress by custom calling convention
     Js::Var* pArgs = reinterpret_cast<Js::Var*>(addrOfReturnAddress) + 1;
     return pArgs + n;
 }
 
 inline int _count_args(Js::CallInfo callInfo)
 {
-    return 2;  // for typical JsMethod with 2 known args "function, callInfo"
+    // This is to support typical runtime "ARGUMENTS(args, callInfo)" usage.
+    // Only "callInfo" listed, but we have 2 known args "function, callInfo".
+    return 2;
 }
 template <class T1>
 inline int _count_args(const T1&, Js::CallInfo callInfo)
