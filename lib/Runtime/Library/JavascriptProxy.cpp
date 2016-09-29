@@ -1708,7 +1708,7 @@ namespace Js
         //6. ReturnIfAbrupt(trap).
         //7. If trap is undefined, then
         //a.Return the result of calling the[[Set]] internal method of target with arguments P, V, and Receiver.
-        JavascriptFunction* setMethod = GetMethodHelper(PropertyIds::set, scriptContext);
+        JavascriptFunction* setMethod = GetMethodHelper(PropertyIds::set, requestContext);
         Var setPropertyResult;
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
         if (nullptr == setMethod)
@@ -1752,7 +1752,7 @@ namespace Js
         varArgs[0] = handler;
         varArgs[1] = target;
         varArgs[2] = GetName(scriptContext, propertyId);
-        varArgs[3] = CrossSite::MarshalVar(scriptContext, newValue);
+        varArgs[3] = newValue;
         varArgs[4] = receiver;
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
@@ -1821,7 +1821,7 @@ namespace Js
         //  3. If func is either undefined or null, return undefined.
         //  4. If IsCallable(func) is false, throw a TypeError exception.
         //  5. Return func.
-        BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, requestContext);
+        BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, GetScriptContext());
         if (!result || JavascriptOperators::IsUndefinedOrNull(varMethod))
         {
             return nullptr;
@@ -1830,6 +1830,9 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
+
+        varMethod = CrossSite::MarshalVar(requestContext, varMethod);
+
         return JavascriptFunction::FromVar(varMethod);
     }
 
