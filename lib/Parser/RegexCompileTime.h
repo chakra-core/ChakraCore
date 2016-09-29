@@ -508,6 +508,10 @@ namespace UnifiedRegex
     {
         Node* body;
         CountDomain repeats;
+
+        // If set and not equal to MaxChar, followFirst is the deterministic first character of the follow set of this node.
+        // Could be expanded to encompass the entire firstSet of the next node.
+        Char followFirst;
         bool isGreedy;
 
         enum CompilationScheme
@@ -534,6 +538,7 @@ namespace UnifiedRegex
             : Node(Loop)
             , repeats(lower, upper)
             , isGreedy(isGreedy)
+            , followFirst(MaxChar)
             , body(body)
             , scheme(BeginEnd)
         {
