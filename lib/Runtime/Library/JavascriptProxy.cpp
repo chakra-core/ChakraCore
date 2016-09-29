@@ -324,7 +324,7 @@ namespace Js
 
         RecyclableObject *target = this->target;
 
-        JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, scriptContext);
+        JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, requestContext);
         Var getGetResult;
         if (nullptr == getGetMethod || scriptContext->IsHeapEnumInProgress())
         {
