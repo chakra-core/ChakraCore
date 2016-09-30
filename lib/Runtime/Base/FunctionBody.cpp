@@ -2876,7 +2876,7 @@ namespace Js
     {
         if (this->NeedEnsureDynamicProfileInfo())
         {
-            m_scriptContext->AddDynamicProfileInfo(this, &this->dynamicProfileInfo);
+            m_scriptContext->AddDynamicProfileInfo(this, this->dynamicProfileInfo);
             Assert(!this->HasExecutionDynamicProfileInfo());
             this->hasExecutionDynamicProfileInfo = true;
         }

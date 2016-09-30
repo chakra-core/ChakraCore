@@ -4721,12 +4721,13 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
 #if ENABLE_PROFILE_INFO
-    void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo)
+    template<template<typename> class BarrierT>
+    void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo)
     {
         Assert(functionBody->GetScriptContext() == this);
         Assert(functionBody->HasValidSourceInfo());
 
-        DynamicProfileInfo * newDynamicProfileInfo = *dynamicProfileInfo;
+        DynamicProfileInfo * newDynamicProfileInfo = dynamicProfileInfo;
         // If it is a dynamic script - we should create a profile info bound to the threadContext for its lifetime.
         SourceContextInfo* sourceContextInfo = functionBody->GetSourceContextInfo();
         SourceDynamicProfileManager* profileManager = sourceContextInfo->sourceDynamicProfileManager;
@@ -4739,7 +4740,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = DynamicProfileInfo::New(this->GetRecycler(), functionBody, true /* persistsAcrossScriptContexts */);
                     profileManager->UpdateDynamicProfileInfo(functionBody->GetLocalFunctionId(), newDynamicProfileInfo);
-                    *dynamicProfileInfo = newDynamicProfileInfo;
+                    dynamicProfileInfo = newDynamicProfileInfo;
                 }
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
                 newDynamicProfileInfo->UpdateFunctionInfo(functionBody, this->GetRecycler());
@@ -4750,7 +4751,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
                 }
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
         }
         else
@@ -4758,7 +4759,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             if (newDynamicProfileInfo == nullptr)
             {
                 newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
             Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -4773,8 +4774,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
             }
         }
-        Assert(*dynamicProfileInfo != nullptr);
+        Assert(dynamicProfileInfo != nullptr);
     }
+    template void  ScriptContext::AddDynamicProfileInfo<WriteBarrierPtr>(FunctionBody *, WriteBarrierPtr<DynamicProfileInfo>&);
+    template void  ScriptContext::AddDynamicProfileInfo<NoWriteBarrierPtr>(FunctionBody *, NoWriteBarrierPtr<DynamicProfileInfo>&);
 #endif
 
     CharClassifier const * ScriptContext::GetCharClassifier(void) const

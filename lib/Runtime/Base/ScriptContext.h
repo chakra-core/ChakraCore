@@ -1700,7 +1700,8 @@ private:
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 
 #if ENABLE_PROFILE_INFO
-        void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);
+        template<template<typename> class BarrierT>
+        void AddDynamicProfileInfo(FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo);
 #endif
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         uint allocId;
