@@ -1299,6 +1299,7 @@ namespace Js
 
     typedef FunctionProxy** FunctionProxyArray;
     typedef FunctionProxy** FunctionProxyPtrPtr;
+    typedef FunctionProxy* FunctionProxyPtr;
 
     //
     // FunctionProxy represents a user defined function
@@ -1458,7 +1459,7 @@ namespace Js
         PointerNoBarrier(ScriptContext)  m_scriptContext;   // Memory context for this function body
         Pointer(Utf8SourceInfo) m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
-        FunctionProxyPtrPtr m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
+        PointerNoBarrier(FunctionProxyPtr) m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
         Pointer(ScriptFunctionType) deferredPrototypeType;
         Pointer(ProxyEntryPointInfo) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
@@ -1987,7 +1988,7 @@ namespace Js
                 friend class ByteCodeBufferBuilder;
 
             public:
-                SmallSpanSequence * pSpanSequence;
+                PointerNoBarrier(SmallSpanSequence) pSpanSequence;
 
                 RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
                 RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid

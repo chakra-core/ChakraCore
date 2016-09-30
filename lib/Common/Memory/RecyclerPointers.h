@@ -42,6 +42,9 @@ public:
     T * operator->() const { return this->value; }
     operator T*() const { return this->value; }
 
+    T const** operator&() const { return &value; }
+    T** operator&() { return &value; }
+
     // Setters
     NoWriteBarrierPtr& operator=(T const& value)
     {
@@ -91,6 +94,17 @@ public:
     // Getters
     T * operator->() const { return ptr; }
     operator T*() const { return ptr; }
+
+    //T const** operator&() const 
+    //{ 
+    //    //static_assert(false, "Might need to set barrier for this operation"); 
+    //    return &ptr; 
+    //}
+    //T** operator&() 
+    //{
+    //    //static_assert(false, "Might need to set barrier for this operation"); 
+    //    return &ptr; 
+    //}
 
     // Setters
     WriteBarrierPtr& operator=(T * ptr)

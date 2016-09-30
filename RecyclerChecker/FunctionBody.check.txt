@@ -11,11 +11,9 @@ In "Js::AuxPtrs::AllocAuxPtr"
   Allocating "AuxPtrsT" in write barriered memory
 Type with barrier found: "Js::CompactCounters"
 Type with barrier found: "Js::FunctionProxy"
-Unbarriered field: "Js::FunctionProxy::m_referenceInParentFunction"
 Type with barrier found: "Js::ParseableFunctionInfo"
 Type with barrier found: "Js::FunctionBody"
 Type with barrier found: "Js::FunctionBody::SourceInfo"
-Unbarriered field: "Js::FunctionBody::SourceInfo::pSpanSequence"
 In "Js::FunctionBody::NewFromRecycler"
   Allocating "class Js::FunctionBody" in write barriered memory
 In "Js::ParseableFunctionInfo::New"
@@ -97,11 +95,9 @@ pointerClasses
   Js::ExternalLibraryBase
   Js::FuncCacheEntry
   Js::FunctionBody::AuxStatementData
-  Js::FunctionBody::SourceInfo
   Js::FunctionCodeGenRuntimeData
   Js::FunctionEntryPointInfo
   Js::FunctionInfo
-  Js::FunctionProxy
   Js::GlobalObject
   Js::InlineCache
   Js::InlineCache::(anonymous union)::s_accessor
@@ -422,6 +418,8 @@ barrieredClasses
   Js::AuxPtrsFix
   Js::CompactCounters
   Js::FunctionBody
+  Js::FunctionBody::SourceInfo
+  Js::FunctionProxy
   Js::InlineCachePointerArray
   Js::ParseableFunctionInfo
 -------------------------
