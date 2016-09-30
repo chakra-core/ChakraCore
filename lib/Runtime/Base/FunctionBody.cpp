@@ -8711,24 +8711,6 @@ namespace Js
                 this->constructorCaches->Clear();
             }
 
-#if defined(_M_X64)
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-                HeapDelete(this->xdataInfo);
-                this->xdataInfo = nullptr;
-            }
-#elif defined(_M_ARM32_OR_ARM64)
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-                if (JITManager::GetJITManager()->IsOOPJITEnabled())
-                {
-                    HeapDelete(this->xdataInfo);
-                }
-                this->xdataInfo = nullptr;
-            }
-#endif
 #endif
 
             // This is how we set the CleanedUp state
@@ -8932,6 +8914,19 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
+#if PDATA_ENABLED
+            if (this->xdataInfo != nullptr)
+            {
+                XDataAllocator::Unregister(this->xdataInfo);
+#if defined(_M_ARM32_OR_ARM64)
+                if (JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
+                {
+                    HeapDelete(this->xdataInfo);
+                }
+                this->xdataInfo = nullptr;
+            }
+#endif
 #endif
 
             if(nativeEntryPointProcessed)
@@ -9246,6 +9241,19 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
+#if PDATA_ENABLED
+            if (this->xdataInfo != nullptr)
+            {
+                XDataAllocator::Unregister(this->xdataInfo);
+#if defined(_M_ARM32_OR_ARM64)
+                if (JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
+                {
+                    HeapDelete(this->xdataInfo);
+                }
+                this->xdataInfo = nullptr;
+            }
+#endif
 #endif
 
             if (!isShutdown)

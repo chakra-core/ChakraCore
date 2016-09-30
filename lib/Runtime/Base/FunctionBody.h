@@ -559,6 +559,9 @@ namespace Js
         InlineeFrameMap*  inlineeFrameMap;
         unsigned int inlineeFrameOffsetArrayOffset;
         unsigned int inlineeFrameOffsetArrayCount;
+#if PDATA_ENABLED
+        XDataAllocation * xdataInfo;
+#endif
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
@@ -615,9 +618,6 @@ namespace Js
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
         void **runtimeTypeRefs;
 
-#if _M_AMD64 || _M_ARM32_OR_ARM64
-        XDataAllocation * xdataInfo;
-#endif
 
         uint32 pendingPolymorphicCacheState;
 #endif
@@ -646,7 +646,7 @@ namespace Js
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
-#if _M_AMD64 || _M_ARM32_OR_ARM64
+#if PDATA_ENABLED
             xdataInfo(nullptr),
 #endif
 #endif
@@ -689,7 +689,7 @@ namespace Js
 
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
-#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#if PDATA_ENABLED
         XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
         void SetXDataInfo(XDataAllocation* xdataInfo) { this->xdataInfo = xdataInfo; }
 #endif
