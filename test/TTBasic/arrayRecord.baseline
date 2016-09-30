@@ -9,3 +9,13 @@ post update -- y[1]: non-null
 post update -- x[5] !== null: true
 post update -- x[5].bar: 3
 post update -- y[6]: 10
+q.length: 5
+q[3]: undefined
+qq.length: 3
+qq[3]: undefined
+qqq.length: 5
+qqq[3]: undefined
+a[o]: 50
+a[o1]: 50
+a["[object Object]"]: 50
+a["[object" + " Object]"]: 50

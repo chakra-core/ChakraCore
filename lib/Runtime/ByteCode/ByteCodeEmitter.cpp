@@ -2322,7 +2322,7 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL
     }
 
     // We already know pnode->sxCall.pnodeTarget->nop is super but we can't use the super register in case
-    // this is an eval and we will load super dynamically from the scope using ScopedLdSuper.
+    // this is an eval and we will load super dynamically from the scope using ScopedLdHomeObj.
     // That means we'll have to rely on the location of the call target to be sure.
     // We have to make sure to allocate the location for the node now, before we try to branch on it.
     Emit(pnode->sxCall.pnodeTarget, this, funcInfo, false, /*isConstructorCall*/ true); // reuse isConstructorCall ("new super()" is illegal)
@@ -2352,7 +2352,8 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL
     Js::ByteCodeLabel useSuperCallResultLabel = this->Writer()->DefineLabel();
     Js::ByteCodeLabel doneLabel = this->Writer()->DefineLabel();
 
-    this->Writer()->BrReg1(Js::OpCode::BrOnClassConstructor, useNewTargetForThisLabel, pnode->sxCall.pnodeTarget->location);
+    Js::RegSlot tmpReg = this->EmitLdObjProto(Js::OpCode::LdFuncObjProto, pnode->sxCall.pnodeTarget->location, funcInfo);
+    this->Writer()->BrReg1(Js::OpCode::BrOnClassConstructor, useNewTargetForThisLabel, tmpReg);
 
     this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, thisForSuperCall, funcInfo->newTargetRegister);
     this->Writer()->Br(Js::OpCode::Br, makeCallLabel);
@@ -3135,9 +3136,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             EmitInitCapturedThis(funcInfo, funcInfo->bodyScope);
         }
 
-        // Any function with a super reference or an eval call inside a class method needs to load super,
-        if ((funcInfo->HasSuperReference() || (funcInfo->GetCallsEval() && funcInfo->root->sxFnc.IsClassMember()))
-            // unless we are already inside the 'global' scope inside an eval (in which case 'ScopedLdSuper' is emitted at every 'super' reference).
+        // Any function with a super reference or an eval call inside a method or a constructor needs to load super,
+        if ((funcInfo->HasSuperReference() || (funcInfo->GetCallsEval() && (funcInfo->root->sxFnc.IsMethod() || funcInfo->root->sxFnc.IsConstructor())))
+            // unless we are already inside the 'global' scope inside an eval (in which case 'ScopedLdHomeObj' is emitted at every 'super' reference).
             && !((GetFlags() & fscrEval) && funcInfo->IsGlobalFunction()))
         {
             if (funcInfo->IsLambda())
@@ -3162,15 +3163,15 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                     // lambda in non-eval global scope
                     m_writer.Reg1(Js::OpCode::LdUndef, funcInfo->superRegister);
                 }
-                // lambda in eval global scope: ScopedLdSuper will handle error throwing
+                // lambda in eval global scope: ScopedLdHomeObj will handle error throwing
             }
             else
             {
-                m_writer.Reg1(Js::OpCode::LdSuper, funcInfo->superRegister);
+                m_writer.Reg1(Js::OpCode::LdHomeObj, funcInfo->superRegister);
 
                 if (funcInfo->superCtorRegister != Js::Constants::NoRegister) // super() is allowed only in derived class constructors
                 {
-                    m_writer.Reg1(Js::OpCode::LdSuperCtor, funcInfo->superCtorRegister);
+                    m_writer.Reg1(Js::OpCode::LdFuncObj, funcInfo->superCtorRegister);
                 }
 
                 if (!funcInfo->IsGlobalFunction())
@@ -3205,7 +3206,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             EmitInitCapturedNewTarget(funcInfo, bodyScope);
         }
 
-        // We don't want to load super if we are already in an eval. ScopedLdSuper will take care of loading super in that case.
+        // We don't want to load super if we are already in an eval. ScopedLdHomeObj will take care of loading super in that case.
         if (!(GetFlags() & fscrEval) && !bodyScope->GetIsObject())
         {
             if (funcInfo->superScopeSlot != Js::Constants::NoRegister)
@@ -3227,7 +3228,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                 Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunc(i);
                 if (nested->IsFunctionBody())
                 {
-                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction);
+                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
                 }
             }
         }
@@ -3460,6 +3461,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
+    byteCodeFunction->SetCompileCount(UInt32Math::Add(byteCodeFunction->GetCompileCount(), 1));
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
@@ -6958,7 +6960,8 @@ void EmitAssignment(
         uint cacheId = funcInfo->FindOrAddInlineCacheId(lhs->sxBin.pnode1->location, propertyId, false, true);
         if (lhs->sxBin.pnode1->nop == knopSuper)
         {
-            byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::StSuperFld, rhsLocation, lhs->sxBin.pnode1->location, funcInfo->thisPointerRegister, cacheId);
+            Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);
+            byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::StSuperFld, rhsLocation, tmpReg, funcInfo->thisPointerRegister, cacheId);
         }
         else
         {
@@ -7716,7 +7719,12 @@ void EmitCallTarget(
 
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
         Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
-        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
+        
+        Js::RegSlot protoLocation =
+            (pnodeTarget->sxBin.pnode1->nop == knopSuper) ?
+            byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo) :
+            pnodeTarget->sxBin.pnode1->location;
+
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodFld(pnodeTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
 
@@ -7740,7 +7748,12 @@ void EmitCallTarget(
         Emit(pnodeTarget->sxBin.pnode2, byteCodeGenerator, funcInfo, false);
 
         Js::RegSlot indexLocation = pnodeTarget->sxBin.pnode2->location;
-        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
+
+        Js::RegSlot protoLocation =
+            (pnodeTarget->sxBin.pnode1->nop == knopSuper) ?
+            byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo) :
+            pnodeTarget->sxBin.pnode1->location;
+
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodElem(pnodeTarget, protoLocation, indexLocation, byteCodeGenerator);
 
@@ -7894,7 +7907,15 @@ void EmitCallI(
 
         if (op == Js::OpCode::CallI || op == Js::OpCode::CallIFlags)
         {
-            byteCodeGenerator->Writer()->CallI(op, pnode->location, pnodeTarget->location, actualArgSlotCount, callSiteId, callFlags);
+            if (pnodeTarget->nop == knopSuper)
+            {
+                Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdFuncObjProto, pnodeTarget->location, funcInfo);
+                byteCodeGenerator->Writer()->CallI(op, pnode->location, tmpReg, actualArgSlotCount, callSiteId, callFlags);
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->CallI(op, pnode->location, pnodeTarget->location, actualArgSlotCount, callSiteId, callFlags);
+            }
         }
         else
         {
@@ -7909,7 +7930,15 @@ void EmitCallI(
                 options = Js::CallIExtended_SpreadArgs;
             }
 
-            byteCodeGenerator->Writer()->CallIExtended(op, pnode->location, pnodeTarget->location, actualArgSlotCount, options, spreadIndices, spreadIndicesSize, callSiteId, callFlags);
+            if (pnodeTarget->nop == knopSuper)
+            {
+                Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdFuncObjProto, pnodeTarget->location, funcInfo);
+                byteCodeGenerator->Writer()->CallIExtended(op, pnode->location, tmpReg, actualArgSlotCount, options, spreadIndices, spreadIndicesSize, callSiteId, callFlags);
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->CallIExtended(op, pnode->location, pnodeTarget->location, actualArgSlotCount, options, spreadIndices, spreadIndicesSize, callSiteId, callFlags);
+            }
         }
 
         if (pnode->sxCall.spreadArgCount > 0)
@@ -9692,7 +9721,7 @@ void EmitSuperFieldPatch(FuncInfo* funcInfo, ParseNode* pnode, ByteCodeGenerator
 
     if (byteCodeGenerator->GetFlags() & fscrEval)
     {
-        // If we are inside an eval, ScopedLdSuper will take care of the patch.
+        // If we are inside an eval, ScopedLdHomeObj will take care of the patch.
         return;
     }
 
@@ -10035,22 +10064,12 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             {
                 if ((byteCodeGenerator->GetFlags() & fscrEval))
                 {
-                    byteCodeGenerator->Writer()->Reg1(isConstructorCall ? Js::OpCode::ScopedLdSuperCtor : Js::OpCode::ScopedLdSuper, funcInfo->AcquireLoc(pnode));
+                    byteCodeGenerator->Writer()->Reg1(isConstructorCall ? Js::OpCode::ScopedLdFuncObj : Js::OpCode::ScopedLdHomeObj, funcInfo->AcquireLoc(pnode));
                 }
                 else
                 {
                     byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_BadSuperReference));
                 }
-            }
-            else
-            {
-                Js::ByteCodeLabel errLabel = byteCodeGenerator->Writer()->DefineLabel();
-                Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
-                byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrEq_A, errLabel, funcInfo->superRegister, funcInfo->undefinedConstantRegister);
-                byteCodeGenerator->Writer()->Br(Js::OpCode::Br, skipLabel);
-                byteCodeGenerator->Writer()->MarkLabel(errLabel);
-                byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_BadSuperReference));
-                byteCodeGenerator->Writer()->MarkLabel(skipLabel);
             }
         }
         break;
@@ -10481,8 +10500,17 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             Js::PropertyId propertyId = pexpr->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
             funcInfo->ReleaseLoc(pexpr->sxBin.pnode1);
             funcInfo->AcquireLoc(pnode);
-            byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->sxBin.pnode1->location,
-                funcInfo->FindOrAddReferencedPropertyId(propertyId));
+            
+            if (pexpr->sxBin.pnode1->nop == knopSuper)
+            {
+                byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_DeletePropertyWithSuper));
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->sxBin.pnode1->location,
+                    funcInfo->FindOrAddReferencedPropertyId(propertyId));
+            }
+
             break;
         }
         case knopIndex:
@@ -10545,10 +10573,16 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         funcInfo->AcquireLoc(pnode);
 
         Js::RegSlot callObjLocation = pnode->sxBin.pnode1->location;
-        Js::RegSlot protoLocation = callObjLocation;
+
+        Js::RegSlot protoLocation =
+            (pnode->sxBin.pnode1->nop == knopSuper) ?
+            byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo) :
+            callObjLocation;
+
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->sxBin.pnode2->location);
+
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
@@ -10579,7 +10613,8 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             {
                 if (pnode->sxBin.pnode1->nop == knopSuper)
                 {
-                    byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::LdSuperFld, pnode->location, protoLocation, funcInfo->thisPointerRegister, cacheId, isConstructorCall);
+                    Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);
+                    byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::LdSuperFld, pnode->location, tmpReg, funcInfo->thisPointerRegister, cacheId, isConstructorCall);
                 }
                 else
                 {

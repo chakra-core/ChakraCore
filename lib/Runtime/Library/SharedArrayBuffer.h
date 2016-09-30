@@ -1,0 +1,217 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+//  Implements SharedArrayBuffer according to http://tc39.github.io/ecmascript_sharedmem/shmem.html
+//----------------------------------------------------------------------------
+
+#pragma once
+namespace Js
+{
+
+    class WaiterList;
+
+    typedef JsUtil::List<DWORD_PTR, HeapAllocator> SharableAgents;
+    typedef JsUtil::BaseDictionary<uint, WaiterList *, HeapAllocator> IndexToWaitersMap;
+
+    class SharedContents
+    {
+    public:
+        BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
+        uint32 bufferLength;       // Number of bytes allocated
+
+        // Addref/release counter for current buffer, this is needed as the current buffer will be shared among different workers
+        uint refCount;
+        IndexToWaitersMap *indexToWaiterList;  // Map of agents waiting on a particular index.
+        bool isBufferCleared; /// This should be gone.
+
+#if DBG
+        // This is mainly used for validation purpose as the wait/wake APIs should be used on the agents (Workers) among which this buffer is shared.
+        SharableAgents *allowedAgents;
+        void AddAgent(DWORD_PTR agent);
+        bool IsValidAgent(DWORD_PTR agent);
+#endif
+
+        void Cleanup();
+
+        SharedContents(BYTE* b, uint32 l)
+            : buffer(b), bufferLength(l), refCount(1), indexToWaiterList(nullptr), isBufferCleared(false)
+#if DBG
+            , allowedAgents(nullptr)
+#endif
+        { 
+        }
+    };
+
+    // This state will be created when we are sharing on SharedArrayBuffer among different workers (agents)
+    class SharableState : public DetachedStateBase
+    {
+    public:
+        SharedContents *contents;
+        ArrayBufferAllocationType allocationType;
+        SharableState(SharedContents *c, ArrayBufferAllocationType t)
+            : DetachedStateBase(TypeIds_SharedArrayBuffer), contents(c), allocationType(t)
+        { }
+
+        virtual void ClearSelfOnly() override
+        {
+            HeapDelete(this);
+        }
+
+        virtual void DiscardState() override
+        {
+            Assert(false);
+        }
+
+        virtual void Discard() override
+        {
+            ClearSelfOnly();
+        }
+    };
+
+    class SharedArrayBuffer : public ArrayBufferBase
+    {
+    private:
+        static uint32 GetByteLengthFromVar(ScriptContext* scriptContext, Var length);
+
+    public:
+        DEFINE_VTABLE_CTOR_ABSTRACT(SharedArrayBuffer, ArrayBufferBase);
+
+        template <typename Allocator>
+        SharedArrayBuffer(uint32 length, DynamicType * type, Allocator allocator);
+
+        SharedArrayBuffer(SharedContents *contents, DynamicType * type);
+
+        class EntryInfo
+        {
+        public:
+            static FunctionInfo NewInstance;
+            static FunctionInfo Slice;
+            static FunctionInfo GetterByteLength;
+            static FunctionInfo GetterSymbolSpecies;
+        };
+
+        static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySlice(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterByteLength(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static bool Is(Var aValue);
+        static SharedArrayBuffer* FromVar(Var aValue);
+
+        virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
+        virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
+
+        virtual uint32 GetByteLength() const override;
+        virtual BYTE* GetBuffer() const override;
+
+        static int GetByteLengthOffset() { Assert(false); return 0; }
+        static int GetBufferOffset() { Assert(false); return 0; }
+        virtual bool IsArrayBuffer() override { return false; }
+        virtual bool IsSharedArrayBuffer() override { return true; }
+        virtual ArrayBuffer * GetAsArrayBuffer() { return nullptr; }
+        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override { return SharedArrayBuffer::FromVar(this); }
+
+        static SharedArrayBuffer* NewFromSharedState(DetachedStateBase* state, JavascriptLibrary *library);
+        static DetachedStateBase* GetSharableState(Var object);
+
+        WaiterList *GetWaiterList(uint index);
+        SharedContents *GetSharedContents() { return sharedContents; }
+
+#if _WIN64
+        //maximum 2G -1  for amd64
+        static const uint32 MaxSharedArrayBufferLength = 0x7FFFFFFF;
+#else
+        // maximum 1G to avoid arithmetic overflow.
+        static const uint32 MaxSharedArrayBufferLength = 1 << 30;
+#endif
+        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+
+    protected:
+        SharedContents *sharedContents;
+    };
+
+    class JavascriptSharedArrayBuffer : public SharedArrayBuffer
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptSharedArrayBuffer, SharedArrayBuffer);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptSharedArrayBuffer);
+
+    public:
+        static JavascriptSharedArrayBuffer* Create(uint32 length, DynamicType * type);
+        static JavascriptSharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
+        virtual void Dispose(bool isShutdown) override;
+        virtual void Finalize(bool isShutdown) override;
+        static void*__cdecl  AllocWrapper(size_t length)
+        {
+#if _WIN64
+            LPVOID address = VirtualAlloc(nullptr, MAX_ASMJS_ARRAYBUFFER_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
+            //throw out of memory
+            if (!address)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
+            if (!arrayAddress)
+            {
+                VirtualFree(address, 0, MEM_RELEASE);
+                Js::Throw::OutOfMemory();
+            }
+            return arrayAddress;
+#else
+            Assert(false);
+            return nullptr;
+#endif
+        }
+
+        static void FreeMemAlloc(Var ptr)
+        {
+            BOOL fSuccess = VirtualFree((LPVOID)ptr, 0, MEM_RELEASE);
+            Assert(fSuccess);
+        }
+
+        virtual bool IsValidVirtualBufferLength(uint length) override;
+
+    private:
+        JavascriptSharedArrayBuffer(uint32 length, DynamicType * type);
+        JavascriptSharedArrayBuffer(SharedContents *sharedContents, DynamicType * type);
+
+    };
+
+    // An agent can be viewed as a worker
+    struct AgentOfBuffer
+    {
+    public:
+        AgentOfBuffer() :identity(NULL), event(NULL) {}
+        AgentOfBuffer(DWORD_PTR agent, HANDLE e) :identity(agent), event(e) {}
+        static bool AgentCanSuspend(ScriptContext *scriptContext);
+
+        DWORD_PTR identity;
+        HANDLE event;
+    };
+
+    typedef JsUtil::List<AgentOfBuffer, HeapAllocator> Waiters;
+    class WaiterList
+    {
+    public:
+
+        WaiterList();
+        void Cleanup();
+
+        bool AddAndSuspendWaiter(DWORD_PTR waiter, uint32 timeout);
+        void RemoveWaiter(DWORD_PTR waiter);
+        uint32 RemoveAndWakeWaiters(int32 count);
+
+        CriticalSection * GetCriticalSectionForAccess() { return &csForAccess; }
+
+    private:
+        void InitWaiterList();
+        bool Contains(DWORD_PTR agent);
+
+        Waiters * m_waiters;
+
+        // Below CS is used for synchronizig access in wait/wake API
+        CriticalSection csForAccess;
+    };
+}
+

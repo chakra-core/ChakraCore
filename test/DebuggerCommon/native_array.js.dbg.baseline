@@ -1,0 +1,52 @@
+[
+  {
+    "evaluate": {
+      "arr1[arr1.length + 3] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr2[arr2.length + 3] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr3[arr3.length + 3] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr4[arr4.length + 3] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr4[2] == -0": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      " arr5[arr5.length + 3] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr5[arr5.length + 5] == 0x80000002": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "arr6[2] == 0x80000002": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr6[arr6.length + 4] == undefined": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arr6[arr6.length + 5] == -0": "boolean false"
+    }
+  }
+]

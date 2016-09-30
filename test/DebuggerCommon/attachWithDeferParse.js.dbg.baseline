@@ -1,0 +1,125 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "f1": "function <large string>",
+      "g": "function <large string>",
+      "a": "number 10",
+      "s": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "a": "number 10",
+      "s": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "t": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "a": "number 10",
+      "s": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 2"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "inEvalFunc1": "function <large string>"
+    }
+  }
+]

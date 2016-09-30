@@ -4,19 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
-#include "Library/NullEnumerator.h"
 
 namespace Js
 {
 
     ForInObjectEnumerator::ForInObjectEnumerator(RecyclableObject* object, ScriptContext * scriptContext, bool enumSymbols) :
-        embeddedEnumerator(scriptContext),
         scriptContext(scriptContext),
-        currentEnumerator(nullptr),
         propertyIds(nullptr),
         enumSymbols(enumSymbols)
     {
@@ -40,7 +34,7 @@ namespace Js
 
         if (currentObject == nullptr)
         {
-            currentEnumerator = scriptContext->GetLibrary()->GetNullEnumerator();
+            enumerator.Clear();
             this->object = nullptr;
             this->baseObject = nullptr;
             this->baseObjectType = nullptr;
@@ -51,9 +45,7 @@ namespace Js
         Assert(JavascriptOperators::GetTypeId(currentObject) != TypeIds_Null
             && JavascriptOperators::GetTypeId(currentObject) != TypeIds_Undefined);
 
-        if (this->currentEnumerator != NULL &&
-            !VirtualTableInfo<Js::NullEnumerator>::HasVirtualTable(this->currentEnumerator) &&
-            this->object == currentObject &&
+        if (this->object == currentObject &&
             this->baseObjectType == currentObject->GetType())
         {
             // We can re-use the enumerator, only if the 'object' and type from the previous enumeration
@@ -61,14 +53,14 @@ namespace Js
             // 'object' and 'currentEnumerator' would represent the prototype. Hence,
             // we cannot re-use it. Null objects are always equal, therefore, the enumerator cannot
             // be re-used.
-            currentEnumerator->Reset();
+            enumerator.Reset();
         }
         else
         {
             this->baseObjectType = currentObject->GetType();
             this->object = currentObject;
 
-            GetCurrentEnumerator();
+            InitializeCurrentEnumerator();
         }
 
         this->baseObject = currentObject;
@@ -108,30 +100,18 @@ namespace Js
         return firstPrototype;
     }
 
-    BOOL ForInObjectEnumerator::GetCurrentEnumerator()
+    BOOL ForInObjectEnumerator::InitializeCurrentEnumerator()
     {
         Assert(object);
         ScriptContext* scriptContext = GetScriptContext();
-
+        EnumeratorFlags flags = EnumeratorFlags::EnumNonEnumerable | EnumeratorFlags::SnapShotSemantics | (enumSymbols ? EnumeratorFlags::EnumSymbols : EnumeratorFlags::None);
         if (VirtualTableInfo<DynamicObject>::HasVirtualTable(object))
         {
             DynamicObject* dynamicObject = (DynamicObject*)object;
-            if (!dynamicObject->GetTypeHandler()->EnsureObjectReady(dynamicObject))
-            {
-                return false;
-            }
-            dynamicObject->GetDynamicType()->PrepareForTypeSnapshotEnumeration();
-            embeddedEnumerator.Initialize(dynamicObject, true);
-            currentEnumerator = &embeddedEnumerator;
-            return true;
+            return dynamicObject->DynamicObject::GetEnumerator(&enumerator, flags, scriptContext);
         }
 
-        if (!object->GetEnumerator(TRUE /*enumNonEnumerable*/, (Var *)&currentEnumerator, scriptContext, true /*preferSnapshotSemantics */, enumSymbols))
-        {
-            currentEnumerator = scriptContext->GetLibrary()->GetNullEnumerator();
-            return false;
-        }
-        return true;
+        return object->GetEnumerator(&enumerator, flags, scriptContext);
     }
 
     Var ForInObjectEnumerator::GetCurrentIndex()
@@ -155,18 +135,14 @@ namespace Js
     }
 
     Var ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
-    {
-        JavascriptEnumerator *pEnumerator = currentEnumerator;
+    {        
         PropertyRecord const * propRecord;
         PropertyAttributes attributes = PropertyNone;
 
         while (true)
         {
             propertyId = Constants::NoProperty;
-            currentIndex = pEnumerator->MoveAndGetNext(propertyId, &attributes);
-#if ENABLE_COPYONACCESS_ARRAY
-            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(currentIndex);
-#endif
+            currentIndex = enumerator.MoveAndGetNext(propertyId, &attributes);            
             if (currentIndex)
             {
                 if (firstPrototype == nullptr)
@@ -241,13 +217,12 @@ namespace Js
 
                 do
                 {
-                    if (!GetCurrentEnumerator())
+                    if (!InitializeCurrentEnumerator())
                     {
                         return nullptr;
                     }
 
-                    pEnumerator = currentEnumerator;
-                    if (!VirtualTableInfo<Js::NullEnumerator>::HasVirtualTable(pEnumerator))
+                    if (!enumerator.IsNullEnumerator())
                     {
                         break;
                     }
@@ -272,9 +247,8 @@ namespace Js
             propertyIds->ClearAll();
         }
 
-        currentIndex = nullptr;
-        currentEnumerator = nullptr;
-        GetCurrentEnumerator();
+        currentIndex = nullptr;        
+        InitializeCurrentEnumerator();
     }
 
     BOOL ForInObjectEnumerator::CanBeReused()

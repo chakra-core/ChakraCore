@@ -1,0 +1,48 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeGlobalTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "globals": {
+      "gA": "number 1",
+      "gConstB": "number 2",
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeGlobalTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "gC": "number 3",
+      "gD": "number 4",
+      "blockScopeGlobalTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "globals": {
+      "gA": "number 1",
+      "gConstB": "number 2",
+      "gC": "number 3",
+      "gD": "number 4",
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeGlobalTestFunc": "function <large string>"
+    }
+  }
+]

@@ -196,7 +196,18 @@ public:
     {
         return this->parentScopeInfo != nullptr;
     }
-    void RestoreScopeInfo(Js::FunctionBody* funcInfo);
+
+    Js::RegSlot EmitLdObjProto(Js::OpCode op, Js::RegSlot objReg, FuncInfo *funcInfo)
+    {
+        // LdHomeObjProto protoReg, objReg
+        // LdFuncObjProto protoReg, objReg
+        Js::RegSlot protoReg = funcInfo->AcquireTmpRegister();
+        this->Writer()->Reg2(op, protoReg, objReg);
+        funcInfo->ReleaseTmpRegister(protoReg);
+        return protoReg;
+    }
+
+    void RestoreScopeInfo(Js::ParseableFunctionInfo* funcInfo);
     FuncInfo *StartBindGlobalStatements(ParseNode *pnode);
     void AssignPropertyId(Symbol *sym, Js::ParseableFunctionInfo* functionInfo);
     void AssignPropertyId(IdentPtr pid);

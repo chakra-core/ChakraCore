@@ -1084,6 +1084,7 @@ namespace Js
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
         newInstance->isParamScopeDone = false;
+        newInstance->shouldCacheSP = true;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -1676,7 +1677,7 @@ namespace Js
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    __declspec(thread) int InterpreterThunkStackCountTracker::s_count = 0;
+    THREAD_LOCAL int InterpreterThunkStackCountTracker::s_count = 0;
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
@@ -1732,6 +1733,7 @@ namespace Js
         Assert(threadContext->IsInScript());
 
         FunctionBody* executeFunction = JavascriptFunction::FromVar(function)->GetFunctionBody();
+        executeFunction->SetInactiveCount(0);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {
@@ -1799,6 +1801,8 @@ namespace Js
 
         AssertMsg(!executeFunction->IsDeferredParseFunction(),
             "Non-intrinsic functions must provide byte-code to execute");
+
+        executeFunction->BeginExecution();
 
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
@@ -1928,8 +1932,6 @@ namespace Js
             exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
         }
 #endif
-
-        executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
 
@@ -3802,7 +3804,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+                JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
             }
             else
             {
@@ -3816,7 +3818,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices));
+                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
             }
             else
             {
@@ -4441,7 +4443,8 @@ namespace Js
     template <class T>
     inline void InterpreterStackFrame::DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
-        DoSetSuperProperty_NoFastPath(playout, instance, flags);
+        DoSetSuperProperty_NoFastPath(playout, instance, m_functionBody->GetIsStrictMode() ?
+            (PropertyOperationFlags)(flags | PropertyOperation_StrictMode) : flags);
     }
 
     template <class T>
@@ -4532,7 +4535,8 @@ namespace Js
             GetInlineCache(playout->PropertyIdIndex),
             playout->PropertyIdIndex,
             GetReg(playout->Value),
-            flags,
+            m_functionBody->GetIsStrictMode() ?
+                (PropertyOperationFlags)(flags | PropertyOperation_StrictMode ) : flags,
             GetJavascriptFunction(),
             thisInstance);
     }
@@ -6744,7 +6748,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
-            CacheSp();
+            if (shouldCacheSP)
+            {
+                CacheSp();
+            }
 
             if (this->IsInDebugMode())
             {
@@ -6772,10 +6779,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
         }
 
+        shouldCacheSP = !skipFinallyBlock;
+
         if (skipFinallyBlock)
         {
-            RestoreSp();
-
             // A leave occurred due to a yield
             return;
         }
@@ -7409,24 +7416,24 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->scriptContext->GetDebugContext()->GetProbeContainer()->SetCurrentTmpRegCount(playout->C1);
     }
 
-    Var InterpreterStackFrame::OP_LdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuper(function, scriptContext);
+        return JavascriptOperators::OP_LdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_LdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_LdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_LdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_LdFuncObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuper(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdHomeObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuper(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdHomeObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdSuperCtor(ScriptContext * scriptContext)
+    Var InterpreterStackFrame::OP_ScopedLdFuncObj(ScriptContext * scriptContext)
     {
-        return JavascriptOperators::OP_ScopedLdSuperCtor(function, scriptContext);
+        return JavascriptOperators::OP_ScopedLdFuncObj(function, scriptContext);
     }
 
     void InterpreterStackFrame::ValidateRegValue(Var value, bool allowStackVar, bool allowStackVarOnDisabledStackNestedFunc) const

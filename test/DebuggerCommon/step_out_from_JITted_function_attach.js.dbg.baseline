@@ -1,0 +1,57 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 4,
+        "sourceText": "c",
+        "function": "bar"
+      },
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 40,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "a": "string bar",
+      "b": {
+        "#__proto__": "Array []",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "Date Invalid Date"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    }
+  }
+]

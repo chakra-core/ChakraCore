@@ -27,16 +27,16 @@ namespace Js
 
     ScriptFunction::ScriptFunction(DynamicType * type) :
         ScriptFunctionBase(type), environment((FrameDisplay*)&NullFrameDisplay),
-        cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false),
+        cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false), homeObj(nullptr),
         isActiveScript(false)
     {}
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
-        : ScriptFunctionBase(deferredPrototypeType, proxy),
-        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
+        : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
+        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
         hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
-        Assert(proxy->GetFunctionProxy() == proxy);
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
         DebugOnly(VerifyEntryPoint());
 
@@ -260,31 +260,25 @@ namespace Js
     FunctionProxy * ScriptFunction::GetFunctionProxy() const
     {
         Assert(this->functionInfo->HasBody());
-        return reinterpret_cast<FunctionProxy *>(this->functionInfo);
+        return this->functionInfo->GetFunctionProxy();
     }
     JavascriptMethod ScriptFunction::UpdateUndeferredBody(FunctionBody* newFunctionInfo)
     {
         // Update deferred parsed/serialized function to the real function body
         Assert(this->functionInfo->HasBody());
-        if (this->functionInfo != newFunctionInfo)
+        Assert(this->functionInfo->GetFunctionBody() == newFunctionInfo);
+        Assert(!newFunctionInfo->IsDeferred());
+
+        DynamicType * type = this->GetDynamicType();
+
+        // If the type is shared, it must be the shared one in the old function proxy
+
+        this->functionInfo = newFunctionInfo->GetFunctionInfo();
+
+        if (type->GetIsShared())
         {
-            Assert(this->functionInfo->GetFunctionBody() == newFunctionInfo);
-            Assert(!newFunctionInfo->IsDeferred());
-            DynamicType * type = this->GetDynamicType();
-
-            // If the type is shared, it must be the shared one in the old function proxy
-
-            DebugOnly(FunctionProxy * oldProxy = this->GetFunctionProxy());
-            this->functionInfo = newFunctionInfo;
-
-            if (type->GetIsShared())
-            {
-                // if it is shared, it must still be the deferred prototype from the old proxy
-                Assert(type == oldProxy->GetDeferredPrototypeType());
-
-                // the type is still shared, we can't modify it, just migrate to the shared one in the function body
-                this->ReplaceType(newFunctionInfo->EnsureDeferredPrototypeType());
-            }
+            // the type is still shared, we can't modify it, just migrate to the shared one in the function body
+            this->ReplaceType(newFunctionInfo->EnsureDeferredPrototypeType());
         }
 
         // The type has change from the default, it is not share, just use that one.
@@ -297,8 +291,7 @@ namespace Js
 #endif
 
         Js::FunctionEntryPointInfo* defaultEntryPointInfo = newFunctionInfo->GetDefaultFunctionEntryPointInfo();
-        JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo,
-                directEntryPoint);
+        JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo, directEntryPoint);
 
         this->GetScriptFunctionType()->SetEntryPointInfo(defaultEntryPointInfo);
 
@@ -710,7 +703,7 @@ namespace Js
         uint totalCacheCount = isInstInlineCacheStart + isInstInlineCacheCount;
         if (this->GetHasInlineCaches() && this->m_inlineCaches && this->hasOwnInlineCaches)
         {
-            Js::ScriptContext* scriptContext = this->GetFunctionBody()->GetScriptContext();
+            Js::ScriptContext* scriptContext = this->GetParseableFunctionInfo()->GetScriptContext();
             uint i = 0;
             uint unregisteredInlineCacheCount = 0;
             uint plainInlineCacheEnd = rootObjectLoadInlineCacheStart;
@@ -753,8 +746,9 @@ namespace Js
                 }
             }
 
-            if (!isShutdown && unregisteredInlineCacheCount > 0 && !scriptContext->IsClosed())
+            if (unregisteredInlineCacheCount > 0)
             {
+                AssertMsg(!isShutdown && !scriptContext->IsClosed(), "Unregistration of inlineCache should only be done if this is not shutdown or scriptContext closing.");
                 scriptContext->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
             }
         }

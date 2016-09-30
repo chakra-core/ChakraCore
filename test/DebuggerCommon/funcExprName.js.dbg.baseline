@@ -1,0 +1,167 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "boolean false"
+    },
+    "locals": {
+      "a": "boolean false",
+      "closureFoo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string closureFoo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "boolean false"
+    },
+    "locals": {
+      "inner": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string inner",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "closureFoo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string closureFoo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      },
+      "a": "boolean false"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "scopes0": {
+      "closureFoo": "function <large string>",
+      "a": "boolean false"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 10"
+    },
+    "locals": {
+      "arg1": "number 10",
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "boolean false"
+    },
+    "locals": {
+      "a": "boolean false",
+      "closureFoo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string closureFoo",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "outer": "function <large string>"
+    }
+  }
+]

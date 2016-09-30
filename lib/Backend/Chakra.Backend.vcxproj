@@ -340,6 +340,7 @@
     <ClInclude Include="DbCheckPostLower.h" />
     <ClInclude Include="EmitBuffer.h" />
     <ClInclude Include="Encoder.h" />
+    <ClInclude Include="ExternalLowerer.h" />
     <ClInclude Include="FlowGraph.h" />
     <ClInclude Include="Func.h" />
     <ClInclude Include="GlobHashTable.h" />

@@ -2240,7 +2240,7 @@ case_2:
                 {
                     if (*i <= 'Z') { break; }
                     if (*i >= 192)
-                    { 
+                    {
                         if (*i < 223) { break; }
                         if (*i >= 255) { break; }
                     }
@@ -3823,10 +3823,11 @@ case_2:
         return this->GetItemAt(index, value);
     }
 
-    BOOL JavascriptString::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptStringEnumerator, this, requestContext);
-        return true;
+        return enumerator->Initialize(
+            RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptStringEnumerator, this, requestContext),
+            nullptr, nullptr, flags, requestContext);
     }
 
     BOOL JavascriptString::DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)

@@ -1,0 +1,46 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "e = 1",
+        "function": "bar3"
+      },
+      {
+        "line": 14,
+        "column": 17,
+        "sourceText": "i < 1 && bar3.call()",
+        "function": "test0"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "e = 1",
+        "function": "bar3"
+      },
+      {
+        "line": 14,
+        "column": 17,
+        "sourceText": "i < 1 && bar3.call()",
+        "function": "test0"
+      },
+      {
+        "line": 19,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

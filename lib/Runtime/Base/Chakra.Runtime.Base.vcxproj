@@ -80,7 +80,6 @@
     <ClInclude Include="CharStringCache.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="CrossSite.h" />
-    <ClInclude Include="CrossSiteEnumerator.h" />
     <ClInclude Include="CrossSiteObject.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DelayLoadLibrary.h" />

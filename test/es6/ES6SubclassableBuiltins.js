@@ -202,6 +202,7 @@ var tests = [
 
                 test(Array, false, "");
                 test(ArrayBuffer, false, "");
+                test(SharedArrayBuffer, false, "");
                 test(Boolean, false, "");
                 test(DataView, false, "new ArrayBuffer()");
                 test(Date, false, "");

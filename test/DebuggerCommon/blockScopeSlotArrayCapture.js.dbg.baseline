@@ -1,0 +1,101 @@
+[
+  {
+    "this": {},
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "level2Func": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string level2Func",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 1"
+      },
+      "level_1_identifier_1": "string level1_1",
+      "level_1_identifier_0": "string level1_0",
+      "level_1_identifier_2": "string [Uninitialized block variable]",
+      "level_0_identifier_0": "string level0",
+      "verify": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string verify",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 3"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "verify": "function function verify(){}",
+      "Run": "function <large string>",
+      "Run1": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "level_0_identifier_0": "string level0"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_0": "string level1_0"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "verify": "function function verify(){}",
+      "Run": "function <large string>",
+      "Run1": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "string level2"
+    },
+    "locals": {
+      "level_2_identifier_0": "string level2",
+      "level_2_identifier_1": "string level2"
+    },
+    "scopes0": {
+      "level_1_identifier_0": "string level1_0",
+      "level_1_identifier_2": "undefined undefined"
+    },
+    "scopes1": {
+      "verify": "function <large string>"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "verify": "function function verify(){}",
+      "Run": "function <large string>",
+      "Run1": "function <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_0": "string level1_0"
+    }
+  },
+  {
+    "evaluate": {
+      "level_2_identifier_1": "string level2"
+    }
+  },
+  {
+    "evaluate": {
+      "level_2_identifier_3": "string level2"
+    }
+  }
+]

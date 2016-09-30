@@ -1,16 +1,63 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+# Keep CMake from caching static/shared library
+# option. Otherwise, CMake fails to update cached
+# references
+if(SHARED_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY CACHE)
+  set(SHARED_LIBRARY 1)
+endif()
+
+if(STATIC_LIBRARY_SH)
+  unset(SHARED_LIBRARY_SH CACHE)
+  unset(STATIC_LIBRARY_SH CACHE)
+  unset(SHARED_LIBRARY CACHE)
+  set(STATIC_LIBRARY 1)
+endif()
+
+if(ICU_SETTINGS_RESET)
+  unset(ICU_SETTINGS_RESET CACHE)
+  unset(ICU_INCLUDE_PATH CACHE)
+  unset(ICU_INCLUDE_PATH_SH CACHE)
+  unset(NO_ICU_PATH_GIVEN_SH CACHE)
+  unset(NO_ICU_PATH_GIVEN CACHE)
+  unset(CC_EMBED_ICU_SH CACHE)
+endif()
+
+if(CC_EMBED_ICU_SH)
+  unset(CC_EMBED_ICU_SH CACHE)
+  set(CC_EMBED_ICU 1)
+  set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
+  add_definitions(-DU_STATIC_IMPLEMENTATION)
+endif()
+
+if(ICU_INCLUDE_PATH_SH)
+  set(ICU_INCLUDE_PATH ${ICU_INCLUDE_PATH_SH})
+  unset(NO_ICU_PATH_GIVEN_SH CACHE)
+  unset(NO_ICU_PATH_GIVEN CACHE)
+  unset(ICU_INCLUDE_PATH_SH CACHE)
+endif()
+
+if(NO_ICU_PATH_GIVEN_SH)
+  set(NO_ICU_PATH_GIVEN ${NO_ICU_PATH_GIVEN_SH})
+  unset(NO_ICU_PATH_GIVEN_SH CACHE)
+  unset(ICU_INCLUDE_PATH_SH CACHE)
+  unset(ICU_INCLUDE_PATH CACHE)
+endif()
 
 function(clr_unknown_arch)
-    if (WIN32)
-        message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
-    else()
-        message(FATAL_ERROR "Only AMD64 and ARM are supported")
-    endif()
+  if (WIN32)
+      message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
+  else()
+      message(FATAL_ERROR "Only AMD64 and ARM are supported")
+  endif()
 endfunction()
 
 if(ICU_INCLUDE_PATH)
+  add_definitions(-DHAS_REAL_ICU=1)
   set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
   find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
   find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
@@ -23,11 +70,26 @@ if(ICU_INCLUDE_PATH)
       ${ICUDATA}
       )
   endif()
-endif()
+elseif(CC_EMBED_ICU)
+  set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
+  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+  set(ICULIB
+    ${ICUUC}
+    ${ICU18}
+    ${ICUDATA}
+    )
+ endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     if(NOT ICULIB)
-      set(ICULIB "icuuc")
+      if(NOT NO_ICU_PATH_GIVEN)
+        if(NOT CC_EMBED_ICU)
+          set(ICULIB "icuuc")
+        endif()
+        add_definitions(-DHAS_REAL_ICU=1)
+      endif()
     endif()
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
@@ -43,11 +105,16 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     )
 
     if(NOT ICULIB)
-      set(ICULIB "icucore")
-      add_definitions(
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
-        )
-      message("using ICU from system default: ${ICULIB}")
+      if(NOT NO_ICU_PATH_GIVEN)
+        add_definitions(-DHAS_REAL_ICU=1)
+        if(NOT CC_EMBED_ICU)
+          set(ICULIB "icucore")
+          add_definitions(
+            -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
+            )
+        endif()
+        message("using ICU from system default: ${ICULIB}")
+      endif()
     endif()
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
@@ -57,8 +124,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
         clr_unknown_arch()
     endif()
     set(CLR_CMAKE_PLATFORM_DARWIN 1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -mmacosx-version-min=10.7")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -mmacosx-version-min=10.7")
 else()
-    clr_unknown_arch()
+    message(FATAL_ERROR "This OS is not supported")
 endif()
 
 if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
@@ -125,6 +198,8 @@ endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-deprecated-declarations\
+        -Wno-parentheses-equality\
         -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\

@@ -1,0 +1,10 @@
+[
+  {
+    "this": "Object {...}",
+    "locals": {
+      "console": "Object {...}",
+      "a": "number 1",
+      "x": "undefined undefined"
+    }
+  }
+]

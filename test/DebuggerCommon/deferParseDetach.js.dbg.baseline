@@ -1,0 +1,11 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "x": "string HELLO",
+      "z": "string test",
+      "s": "undefined undefined"
+    }
+  }
+]

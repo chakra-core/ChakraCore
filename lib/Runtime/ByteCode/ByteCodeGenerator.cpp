@@ -967,7 +967,7 @@ Js::RegSlot ByteCodeGenerator::EnregisterStringTemplateCallsiteConstant(ParseNod
 //
 // Restore all outer func scope info when reparsing a deferred func.
 //
-void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
+void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody)
 {
     if (functionBody && functionBody->GetScopeInfo())
     {
@@ -1040,7 +1040,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
 
 FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
 {
-    if (parentScopeInfo)
+    if (parentScopeInfo && parentScopeInfo->GetParent() && (!parentScopeInfo->GetParent()->GetIsGlobalFunc() || parentScopeInfo->GetParent()->IsEval()))
     {
         Assert(CONFIG_FLAG(DeferNested));
         trackEnvDepth = true;
@@ -1193,6 +1193,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         Assert(!parsedFunctionBody->IsDeferredParseFunction() || parsedFunctionBody->IsReparsed());
 
         pnode->sxFnc.SetDeclaration(parsedFunctionBody->GetIsDeclaration());
+        if (!pnode->sxFnc.CanBeDeferred())
+        {
+            parsedFunctionBody->SetAttributes(
+                (Js::FunctionInfo::Attributes)(parsedFunctionBody->GetAttributes() & ~Js::FunctionInfo::Attributes::CanDefer));
+        }
         funcExprWithName =
             !(parsedFunctionBody->GetIsDeclaration() || pnode->sxFnc.IsMethod()) &&
             pnode->sxFnc.pnodeName != nullptr &&
@@ -1211,8 +1216,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             Js::ParseableFunctionInfo *parent = parsedFunctionBody->GetScopeInfo()->GetParent();
             if (parent)
             {
-                Assert(parent->GetFunctionBody());
-                if (parent->GetFunctionBody()->GetHasOrParentHasArguments())
+                if (parent->GetHasOrParentHasArguments())
                 {
                     parsedFunctionBody->SetHasOrParentHasArguments(true);
                 }
@@ -1267,6 +1271,10 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         if (pnode->sxFnc.IsModule())
         {
             attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Module);
+		}
+        if (pnode->sxFnc.CanBeDeferred())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::CanDefer);
         }
 
         if (createFunctionBody)
@@ -1890,7 +1898,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
 
 void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
 {
-    if (!this->parentScopeInfo)
+    if (!this->parentScopeInfo || (this->parentScopeInfo->GetParent() && this->parentScopeInfo->GetParent()->GetIsGlobalFunc()))
     {
         return;
     }
@@ -1918,15 +1926,14 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
     else
     {
         // We have to wait until it is parsed before we populate the stack nested func parent.
-        Js::FunctionBody * parentFunctionBody = nullptr;
         FuncInfo * parentFunc = top->GetBodyScope()->GetEnclosingFunc();
         if (!parentFunc->IsGlobalFunction())
         {
-            parentFunctionBody = parentFunc->GetParsedFunctionBody();
-            Assert(parentFunctionBody != rootFuncBody);
-            if (parentFunctionBody->DoStackNestedFunc())
+            Assert(parentFunc->byteCodeFunction != rootFuncBody);
+            Js::ParseableFunctionInfo * parentFunctionInfo = parentFunc->byteCodeFunction;
+            if (parentFunctionInfo->DoStackNestedFunc())
             {
-                rootFuncBody->SetStackNestedFuncParent(parentFunctionBody);
+                rootFuncBody->SetStackNestedFuncParent(parentFunctionInfo->GetFunctionInfo());
             }
         }
     }
@@ -1935,12 +1942,17 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
     {
         FuncInfo * funcInfo = i.Data();
         Assert(funcInfo->IsRestored());
-        Js::FunctionBody * functionBody = funcInfo->GetParsedFunctionBody();
-        bool didStackNestedFunc = functionBody->DoStackNestedFunc();
+        Js::ParseableFunctionInfo * parseableFunctionInfo = funcInfo->byteCodeFunction;
+        bool didStackNestedFunc = parseableFunctionInfo->DoStackNestedFunc();
         if (!didStackNestedFunc)
         {
             return;
         }
+        if (!parseableFunctionInfo->IsFunctionBody())
+        {
+            continue;
+        }
+        Js::FunctionBody * functionBody = funcInfo->GetParsedFunctionBody();
         if (funcInfo->HasMaybeEscapedNestedFunc())
         {
             // This should box the rest of the parent functions.
@@ -4163,7 +4175,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         // VisitFunctionsInScope has already done binding within the declared function. Here, just record the fact
         // that the parent function has a local/global declaration in it.
         BindFuncSymbol(pnode, byteCodeGenerator);
-        if (pnode->sxFnc.IsGenerator())
+        if (pnode->sxFnc.IsCoroutine())
         {
             // Always assume generator functions escape since tracking them requires tracking
             // the resulting generators in addition to the function.
@@ -4675,7 +4687,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopFncDecl:
         if (!byteCodeGenerator->TopFuncInfo()->IsGlobalFunction())
         {
-            if (pnode->sxFnc.IsGenerator())
+            if (pnode->sxFnc.IsCoroutine())
             {
                 // Assume generators always escape; otherwise need to analyze if
                 // the return value of calls to generator function, the generator
@@ -4921,9 +4933,9 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             FuncInfo* parent = funcInfo;
             if (funcInfo->IsLambda())
             {
-                // If this is a lambda inside a class member, the class member will need to load super.
+                // If this is a lambda inside a method or a constructor, the enclosing function will need to load super.
                 parent = byteCodeGenerator->FindEnclosingNonLambda();
-                if (parent->root->sxFnc.IsClassMember())
+                if (parent->root->sxFnc.IsMethod() || parent->root->sxFnc.IsConstructor())
                 {
                     // Set up super reference
                     if (containsSuperReference)
@@ -4978,8 +4990,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 }
             }
 
-            // An eval call in a class member needs to load super.
-            if (funcInfo->root->sxFnc.IsClassMember())
+            // An eval call in a method or a constructor needs to load super.
+            if (funcInfo->root->sxFnc.IsMethod() || funcInfo->root->sxFnc.IsConstructor())
             {
                 funcInfo->AssignSuperRegister();
                 if (funcInfo->root->sxFnc.IsClassConstructor() && !funcInfo->root->sxFnc.IsBaseClassConstructor())

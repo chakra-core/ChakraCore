@@ -14,30 +14,28 @@ namespace UnifiedRegex
     {
     }
 
+#define PRINT_DEBUG_WRITER()                                        \
+    va_list argptr;                                                 \
+    va_start(argptr, form);                                         \
+    int len = _vsnwprintf_s(buf, bufLen, _TRUNCATE, form, argptr);  \
+    if (len < 0 || len >= bufLen - 1)                               \
+        Output::Print(_u("<not enough buffer space to format>"));   \
+    else                                                            \
+    {                                                               \
+        if (len > 0)                                                \
+            CheckForNewline();                                      \
+        Output::Print(_u("%s"), buf);                               \
+    }                                                               \
+    va_end(argptr)
+
     void __cdecl DebugWriter::Print(const Char *form, ...)
     {
-        va_list argptr;
-        va_start(argptr, form);
-        int len = _vsnwprintf_s(buf, bufLen, _TRUNCATE, form, argptr);
-        if (len < 0)
-            Output::Print(_u("<not enough buffer space to format>"));
-        else
-        {
-            if (len > 0)
-                CheckForNewline();
-            Output::Print(_u("%s"), buf);
-        }
+        PRINT_DEBUG_WRITER();
     }
 
     void __cdecl DebugWriter::PrintEOL(const Char *form, ...)
     {
-        va_list argptr;
-        va_start(argptr, form);
-        int len = _vsnwprintf_s(buf, bufLen, _TRUNCATE, form, argptr);
-        Assert(len >= 0 && len < bufLen - 1);
-        if (len > 0)
-            CheckForNewline();
-        Output::Print(_u("%s"), buf);
+        PRINT_DEBUG_WRITER();
         EOL();
     }
 

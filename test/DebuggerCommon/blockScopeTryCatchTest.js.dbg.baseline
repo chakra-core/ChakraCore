@@ -1,0 +1,52 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeTryCatchTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "a": "number 1",
+      "bConst": "number 2",
+      "ex": "string Exception!"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeTryCatchTestFunc": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "blockScopeTryCatchTestFunc": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "c": "number 3",
+      "dConst": "number 4",
+      "a": "number 1",
+      "bConst": "number 2",
+      "ex": "string Exception!"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "blockScopeTryCatchTestFunc": "function <large string>"
+    }
+  }
+]

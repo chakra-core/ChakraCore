@@ -5,10 +5,10 @@
 #include "RuntimeLibraryPch.h"
 namespace Js
 {
-    JavascriptRegExpEnumerator::JavascriptRegExpEnumerator(JavascriptRegExpConstructor* regExpObject, ScriptContext * requestContext, BOOL enumNonEnumerable) :
+    JavascriptRegExpEnumerator::JavascriptRegExpEnumerator(JavascriptRegExpConstructor* regExpObject, EnumeratorFlags flags, ScriptContext * requestContext) :
         JavascriptEnumerator(requestContext),
-        regExpObject(regExpObject),
-        enumNonEnumerable(enumNonEnumerable)
+        flags(flags),
+        regExpObject(regExpObject)        
     {
         index = (uint)-1;
     }
@@ -21,69 +21,19 @@ namespace Js
     Var JavascriptRegExpEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
-        ScriptContext* scriptContext = regExpObject->GetScriptContext();
-        if (++index < regExpObject->GetSpecialEnumerablePropertyCount())
+        ScriptContext* scriptContext = this->GetScriptContext();
+
+        Var item;
+        if (regExpObject->GetSpecialEnumerablePropertyName(++index, &item, scriptContext))
         {
             if (attributes != nullptr)
             {
                 *attributes = PropertyEnumerable;
             }
+            return item;
+        }
 
-            Var item;
-            if (regExpObject->GetSpecialEnumerablePropertyName(index, &item, scriptContext))
-            {
-                return item;
-            }
-            return regExpObject->GetScriptContext()->GetIntegerString(index);
-        }
-        else
-        {
-            index = regExpObject->GetSpecialEnumerablePropertyCount();
-            return nullptr;
-        }
-    }
-
-    JavascriptRegExpObjectEnumerator::JavascriptRegExpObjectEnumerator(JavascriptRegExpConstructor* regExpObject,
-        ScriptContext* scriptContext, BOOL enumNonEnumerable, bool enumSymbols) :
-        JavascriptEnumerator(scriptContext),
-        regExpObject(regExpObject),
-        enumNonEnumerable(enumNonEnumerable),
-        enumSymbols(enumSymbols)
-    {
-        Reset();
-    }
-
-    Var JavascriptRegExpObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
-    {
-        Var currentIndex;
-        if (regExpEnumerator != nullptr)
-        {
-            currentIndex = regExpEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            regExpEnumerator = nullptr;
-        }
-        if (objectEnumerator != nullptr)
-        {
-            currentIndex = objectEnumerator->MoveAndGetNext(propertyId, attributes);
-            if (currentIndex != nullptr)
-            {
-                return currentIndex;
-            }
-            objectEnumerator = nullptr;
-        }
+        index = regExpObject->GetSpecialEnumerablePropertyCount();
         return nullptr;
-    }
-
-    void JavascriptRegExpObjectEnumerator::Reset()
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
-        regExpEnumerator = RecyclerNew(recycler, JavascriptRegExpEnumerator, regExpObject, scriptContext, enumNonEnumerable);
-        Var enumerator;
-        regExpObject->DynamicObject::GetEnumerator(enumNonEnumerable, &enumerator, scriptContext, false, enumSymbols);
-        objectEnumerator = (JavascriptEnumerator*)enumerator;
     }
 }

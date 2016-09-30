@@ -4,6 +4,39 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
+#if defined(_X86_) || defined(_M_IX86)
+#define CPU_ARCH_TEXT "x86"
+#elif defined(_AMD64_) || defined(_IA64_) || defined(_M_AMD64) || defined(_M_IA64)
+#define CPU_ARCH_TEXT "x86_64"
+#elif defined(_ARM_) || defined(_M_ARM)
+#define CPU_ARCH_TEXT "ARM"
+#elif defined(_ARM64_) || defined(_M_ARM64)
+#define CPU_ARCH_TEXT "ARM64"
+#endif
+
+// do not change the order below
+// otherwise, i.e. android system can be marked as posix? etc..
+#ifdef _WIN32
+#define DEST_PLATFORM_TEXT "win32"
+#else // ! _WIN32
+#if defined(__APPLE__)
+#include <mach-o/dyld.h> // _NSGetExecutablePath
+#ifdef __IOS__
+#define DEST_PLATFORM_TEXT "ios"
+#else // ! iOS
+#define DEST_PLATFORM_TEXT "darwin"
+#endif // iOS ?
+#elif defined(__ANDROID__)
+#include <unistd.h> // readlink
+#define DEST_PLATFORM_TEXT "android"
+#elif defined(__linux__)
+#include <unistd.h> // readlink
+#define DEST_PLATFORM_TEXT "posix"
+#elif defined(__FreeBSD__) || defined(__unix__)
+#define DEST_PLATFORM_TEXT "bsd"
+#endif // FreeBSD or unix ?
+#endif // _WIN32 ?
+
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
 std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
 DWORD_PTR WScriptJsrt::sourceContext = 0;
@@ -687,9 +720,84 @@ bool WScriptJsrt::InstallObjectsOnObject(JsValueRef object, const char* name, Js
     return true;
 }
 
+#define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
+    str_len = (int) strlen(msg);                 \
+    memcpy(path, msg, (size_t)str_len);          \
+    path[str_len] = char(0)
+
+void GetBinaryLocation(char *path, const uint32_t size)
+{
+    AssertMsg(size >= 512 && path != nullptr, "Min path buffer size 512 and path can not be nullptr");
+    AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
+#ifdef _WIN32
+    LPWSTR wpath = (WCHAR*)malloc(sizeof(WCHAR) * size);
+    int str_len;
+    if (!wpath)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
+        return;
+    }
+    str_len = GetModuleFileNameW(NULL, wpath, size - 1);
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
+        free(wpath);
+        return;
+    }
+
+    str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
+    free(wpath);
+
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
+        return;
+    }
+
+    if ((uint32_t)str_len > size - 1)
+    {
+        str_len = (int) size - 1;
+    }
+    path[str_len] = char(0);
+#elif defined(__APPLE__)
+    uint32_t path_size = size;
+    char *tmp = nullptr;
+    int str_len;
+    if (_NSGetExecutablePath(path, &path_size))
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
+        return;
+    }
+
+    tmp = (char*)malloc(size);
+    char *result = realpath(path, tmp);
+    str_len = strlen(result);
+    memcpy(path, result, str_len);
+    free(tmp);
+    path[str_len] = char(0);
+#elif defined(__linux__)
+    int str_len = readlink("/proc/self/exe", path, size - 1);
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
+        return;
+    }
+    path[str_len] = char(0);
+#else
+#warning "Implement GetBinaryLocation for this platform"
+#endif
+}
+
 bool WScriptJsrt::Initialize()
 {
     HRESULT hr = S_OK;
+    char CH_BINARY_LOCATION[2048];
+#ifdef CHAKRA_STATIC_LIBRARY
+    const char* LINK_TYPE = "static";
+#else
+    const char* LINK_TYPE = "shared";
+#endif
+
     JsValueRef wscript;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&wscript), false);
 
@@ -707,6 +815,48 @@ bool WScriptJsrt::Initialize()
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
+
+    // Platform
+    JsValueRef platformObject;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&platformObject), false);
+    JsPropertyIdRef platformProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("Platform", &platformProperty), false);
+
+    // Set CPU arch
+    JsPropertyIdRef archProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("ARCH", &archProperty), false);
+    JsValueRef archValue;
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(CPU_ARCH_TEXT,strlen(CPU_ARCH_TEXT), &archValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, archProperty, archValue, true), false);
+
+    // Set Link Type [static / shared]
+    JsPropertyIdRef linkProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("LINK_TYPE", &linkProperty), false);
+    JsValueRef linkValue;
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(LINK_TYPE,strlen(LINK_TYPE), &linkValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, linkProperty, linkValue, true), false);
+
+    // Set Binary Location
+    JsValueRef binaryPathValue;
+    GetBinaryLocation(CH_BINARY_LOCATION, sizeof(CH_BINARY_LOCATION));
+
+    JsPropertyIdRef binaryPathProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("BINARY_PATH",
+                                                    &binaryPathProperty), false);
+
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(CH_BINARY_LOCATION,
+                          strlen(CH_BINARY_LOCATION), &binaryPathValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, binaryPathProperty,
+                                                  binaryPathValue, true), false);
+
+    // Set destination OS
+    JsPropertyIdRef osProperty;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("OS", &osProperty), false);
+    JsValueRef osValue;
+    IfJsrtErrorFail(ChakraRTInterface::JsPointerToStringUtf8(DEST_PLATFORM_TEXT, strlen(DEST_PLATFORM_TEXT), &osValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, osProperty, osValue, true), false);
+
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, platformProperty, platformObject, true), false);
 
     JsValueRef argsObject;
 

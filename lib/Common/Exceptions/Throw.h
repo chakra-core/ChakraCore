@@ -33,7 +33,7 @@ namespace Js {
     private:
         static CriticalSection csGenerateDump;
 #ifdef STACK_BACK_TRACE
-        __declspec(thread) static  StackBackTrace * stackBackTrace;
+        THREAD_LOCAL static  StackBackTrace * stackBackTrace;
 
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 40;
@@ -256,4 +256,4 @@ namespace Js {
     catch (ex) \
     {
 
-#define DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr) if (hr != S_OK) Debugger_AttachDetach_fatal_error();
+#define DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr) if (hr != S_OK) Debugger_AttachDetach_fatal_error(hr);

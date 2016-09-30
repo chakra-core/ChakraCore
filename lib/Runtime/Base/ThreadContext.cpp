@@ -69,7 +69,7 @@ CriticalSection ThreadContext::s_csThreadContext;
 size_t ThreadContext::processNativeCodeSize = 0;
 ThreadContext * ThreadContext::globalListFirst = nullptr;
 ThreadContext * ThreadContext::globalListLast = nullptr;
-__declspec(thread) uint ThreadContext::activeScriptSiteCount = 0;
+THREAD_LOCAL uint ThreadContext::activeScriptSiteCount = 0;
 
 const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 {
@@ -188,6 +188,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
+    redeferralState(InitialRedeferralState),
+    gcSinceLastRedeferral(0),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
@@ -1601,6 +1603,14 @@ ThreadContext::ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext
             this->CheckInterruptPoll();
         }
     }
+
+    if (PHASE_STRESS1(Js::RedeferralPhase))
+    {
+        if (JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext())
+        {
+            this->RedeferFunctionBodies();
+        }
+    }
 }
 
 void
@@ -2142,6 +2152,7 @@ ThreadContext::GetTemporaryGuestAllocator(LPCWSTR name)
     {
         temporaryGuestArenaAllocatorCount--;
         Js::TempGuestArenaAllocatorObject * allocator = recyclableData->temporaryGuestArenaAllocators[temporaryGuestArenaAllocatorCount];
+        allocator->AdviseInUse();
         recyclableData->temporaryGuestArenaAllocators[temporaryGuestArenaAllocatorCount] = nullptr;
         return allocator;
     }
@@ -2154,7 +2165,7 @@ ThreadContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject 
 {
     if (temporaryGuestArenaAllocatorCount < MaxTemporaryArenaAllocators)
     {
-        tempGuestAllocator->GetAllocator()->Reset();
+        tempGuestAllocator->AdviseNotInUse();
         recyclableData->temporaryGuestArenaAllocators[temporaryGuestArenaAllocatorCount] = tempGuestAllocator;
         temporaryGuestArenaAllocatorCount++;
         return;
@@ -2332,6 +2343,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
 #ifdef PERF_COUNTERS
     PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: deferparse - # of func: %d # deferparsed: %d\n"), PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferredFunctionCounter().GetValue());
 #endif
+
     // This needs to be done before ClearInlineCaches since that method can empty the list of
     // script contexts with inline caches
     this->ClearScriptContextCaches();
@@ -2408,12 +2420,142 @@ ThreadContext::PostCollectionCallBack()
 
     // Recycler is null in the case where the ThreadContext is in the process of creating the recycler and
     // we have a GC triggered (say because the -recyclerStress flag is passed in)
-    if (this->recycler != NULL && this->recycler->InCacheCleanupCollection())
+    if (this->recycler != NULL)
     {
-        this->recycler->ClearCacheCleanupCollection();
-        for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+        if (this->recycler->InCacheCleanupCollection())
         {
-            scriptContext->CleanupWeakReferenceDictionaries();
+            this->recycler->ClearCacheCleanupCollection();
+            for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+            {
+                scriptContext->CleanupWeakReferenceDictionaries();
+            }
+        }
+
+        if (PHASE_ON1(Js::RedeferralPhase) && this->redeferralState != InitialRedeferralState)
+        {
+            this->UpdateInactiveCounts();
+        }
+        if (this->DoRedeferralOnGc())
+        {
+            HRESULT hr = S_OK;
+            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            {
+                this->RedeferFunctionBodies();
+            }
+            END_TRANSLATE_OOM_TO_HRESULT(hr);
+            if (hr == S_OK)
+            {
+                gcSinceLastRedeferral = 0;
+                if (redeferralState == StartupRedeferralState)
+                {
+                    redeferralState = MainRedeferralState;
+                }
+            }
+        }
+    }
+}
+
+void
+ThreadContext::UpdateInactiveCounts()
+{
+    Js::ScriptContext *scriptContext;
+    for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
+    {
+        if (scriptContext->IsClosed())
+        {
+            continue;
+        }
+        scriptContext->UpdateInactiveCounts();
+    }
+}
+
+bool
+ThreadContext::DoRedeferralOnGc()
+{
+    if (!PHASE_ON1(Js::RedeferralPhase))
+    {
+        return false;
+    }
+
+    if (PHASE_FORCE1(Js::RedeferralPhase))
+    {
+        return true;
+    }
+
+    gcSinceLastRedeferral++;
+    Assert(gcSinceLastRedeferral != 0);
+    switch(redeferralState)
+    {
+        case InitialRedeferralState:
+            if (gcSinceLastRedeferral == InitialRedeferralDelay)
+            {
+                redeferralState = StartupRedeferralState;
+            }
+            return false;
+
+        case StartupRedeferralState:
+            return (gcSinceLastRedeferral >= StartupRedeferralCheckInterval);
+
+        case MainRedeferralState:
+            return (gcSinceLastRedeferral >= MainRedeferralCheckInterval);
+
+        default:
+            Assert(0);
+            return false;
+    }
+}
+
+void
+ThreadContext::RedeferFunctionBodies()
+{
+    // Collect the set of active functions.
+    ActiveFunctionSet *pActiveFuncs = nullptr;
+    pActiveFuncs = Anew(this->GetThreadAlloc(), ActiveFunctionSet, this->GetThreadAlloc());
+    this->GetActiveFunctions(pActiveFuncs);
+
+    uint inactiveThreshold = 0;
+    switch (redeferralState)
+    {
+        case StartupRedeferralState:
+            inactiveThreshold = StartupRedeferralInactiveThreshold;
+            break;
+        case MainRedeferralState:
+            inactiveThreshold = MainRedeferralInactiveThreshold;
+            break;
+        default:
+            Assert(PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase));
+            break;
+    }
+
+    Js::ScriptContext *scriptContext;
+    for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
+    {
+        if (scriptContext->IsClosed())
+        {
+            continue;
+        }
+        scriptContext->RedeferFunctionBodies(pActiveFuncs, inactiveThreshold);
+    }
+
+    Adelete(this->GetThreadAlloc(), pActiveFuncs);
+}
+
+void
+ThreadContext::GetActiveFunctions(ActiveFunctionSet * pActiveFuncs)
+{
+    if (!this->IsInScript())
+    {
+        return;
+    }
+
+    Js::JavascriptStackWalker walker(GetScriptContextList(), TRUE, NULL, true);
+    Js::JavascriptFunction *function = nullptr;
+    while (walker.GetCallerWithoutInlinedFrames(&function))
+    {
+        if (function->GetFunctionInfo()->HasBody())
+        {
+            Js::FunctionBody *body = function->GetFunctionInfo()->GetFunctionBody();
+            body->UpdateActiveFunctionSet(pActiveFuncs);
         }
     }
 }
@@ -2865,6 +3007,7 @@ ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheLi
     Assert(inlineCacheList != nullptr);
 
     uint cacheCount = 0;
+    uint nullCacheCount = 0;
     FOREACH_SLISTBASE_ENTRY(Js::InlineCache*, inlineCache, inlineCacheList)
     {
         cacheCount++;
@@ -2878,15 +3021,24 @@ ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheLi
 
             memset(inlineCache, 0, sizeof(Js::InlineCache));
         }
+        else
+        {
+            nullCacheCount++;
+        }
     }
     NEXT_SLISTBASE_ENTRY;
     Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
     this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ? this->registeredInlineCacheCount - cacheCount : 0;
+    this->unregisteredInlineCacheCount = this->unregisteredInlineCacheCount > nullCacheCount ? this->unregisteredInlineCacheCount - nullCacheCount : 0;
 }
 
 void
 ThreadContext::CompactInlineCacheInvalidationLists()
 {
+#if DBG
+    uint countOfNodesToCompact = this->unregisteredInlineCacheCount;
+    this->totalUnregisteredCacheCount = 0;
+#endif
     Assert(this->unregisteredInlineCacheCount > 0);
     CompactProtoInlineCaches();
 
@@ -2894,6 +3046,7 @@ ThreadContext::CompactInlineCacheInvalidationLists()
     {
         CompactStoreFieldInlineCaches();
     }
+    Assert(countOfNodesToCompact == this->totalUnregisteredCacheCount);
 }
 
 void
@@ -2931,10 +3084,18 @@ ThreadContext::CompactInlineCacheList(InlineCacheList* inlineCacheList)
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
 
+#if DBG
+    this->totalUnregisteredCacheCount += cacheCount;
+#endif
     if (cacheCount > 0)
     {
+        AssertMsg(this->unregisteredInlineCacheCount >= cacheCount, "Some codepaths didn't unregistered the inlineCaches which might leak memory.");
         this->unregisteredInlineCacheCount = this->unregisteredInlineCacheCount > cacheCount ?
             this->unregisteredInlineCacheCount - cacheCount : 0;
+
+        AssertMsg(this->registeredInlineCacheCount >= cacheCount, "Some codepaths didn't registered the inlineCaches which might leak memory.");
+        this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ?
+            this->registeredInlineCacheCount - cacheCount : 0;
     }
 }
 

@@ -621,6 +621,7 @@ namespace Js
 
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
+        fncNode->sxFnc.funcInfo->byteCodeFunction = funcBody;
 
         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
@@ -637,7 +638,6 @@ namespace Js
             }
         }
         GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->sxFnc.funcInfo);
-        fncNode->sxFnc.funcInfo->byteCodeFunction->SetBoundPropertyRecords(GetByteCodeGenerator()->EnsurePropertyRecordList());
         BindArguments(fncNode->sxFnc.pnodeParams);
         ASTPrepass(pnodeBody, func);
         GetByteCodeGenerator()->PopFuncInfo(_u("End asm.js AST prepass"));

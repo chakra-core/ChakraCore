@@ -158,6 +158,19 @@ function_name() to call the system's implementation
 #include "pal_perf.h"
 #endif
 
+#if defined(__APPLE__)
+#ifndef __IOS__
+#include "TargetConditionals.h"
+#if TARGET_IPHONE_SIMULATOR
+#define __IOS__
+#elif TARGET_OS_IPHONE
+#define __IOS__
+#elif TARGET_OS_MAC
+// macOS
+#endif
+#endif // __IOS__ ?
+#endif // __APPLE__ ?
+
 /* C runtime functions needed to be renamed to avoid duplicate definition
    of those functions when including standard C header files */
 #define div DUMMY_div
@@ -165,7 +178,6 @@ function_name() to call the system's implementation
 #define memcpy DUMMY_memcpy 
 #define memcmp DUMMY_memcmp 
 #define memset DUMMY_memset 
-#define memmove DUMMY_memmove 
 #define memchr DUMMY_memchr
 #define strlen DUMMY_strlen
 #define strnlen DUMMY_strnlen
@@ -569,7 +581,11 @@ function_name() to call the system's implementation
 #ifdef __APPLE__
 
 #undef GetCurrentThread
+#ifndef __IOS__
 #include <CoreServices/CoreServices.h>
+#else
+#include <CFNetwork/CFNetwork.h>
+#endif
 
 #include <malloc/malloc.h>
 

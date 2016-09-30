@@ -114,10 +114,10 @@ _NOINLINE void FromDOM_NoScriptScope_fatal_error()
     ReportFatalException(NULL, E_UNEXPECTED, EnterScript_FromDOM_NoScriptScope, scenario);
 }
 
-_NOINLINE void Debugger_AttachDetach_fatal_error()
+_NOINLINE void Debugger_AttachDetach_fatal_error(HRESULT hr)
 {
     int scenario = 5;
-    ReportFatalException(NULL, E_UNEXPECTED, Fatal_Debugger_AttachDetach_Failure, scenario);
+    ReportFatalException(NULL, hr, Fatal_Debugger_AttachDetach_Failure, scenario);
 }
 
 _NOINLINE void EntryExitRecord_Corrupted_fatal_error()

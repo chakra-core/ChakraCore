@@ -230,62 +230,70 @@ namespace TTD
                 AssertMsg(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
 
                 Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
-                TTDVar ttdVal = snpObject->VarArray[i];
-                Js::Var pVal = inflator->InflateTTDVar(ttdVal);
 
-                if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Data)
+                if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Uninitialized)
                 {
-                    BOOL success = FALSE;
-                    if(!obj->HasOwnProperty(pid))
-                    {
-                        //easy case just set the property
-                        success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
-                    }
-                    else
-                    {
-                        if(obj->IsWritable(pid))
-                        {
-                            //also easy just write the property
-                            success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
-                        }
-                        else
-                        {
-                            //get the value to see if it is alreay ok
-                            Js::Var currentValue = nullptr;
-                            Js::JavascriptOperators::GetProperty(obj, pid, obj->GetScriptContext(), nullptr);
+                    AssertMsg(!obj->HasOwnProperty(pid), "Shouldn't have this defined, or we should have cleared it, and nothing more to do.");
 
-                            if(currentValue == pVal)
-                            {
-                                //the right value is already there -- easy
-                                success = TRUE;
-                            }
-                            else
-                            {
-                                //Ok so now we force set the property
-                                success = obj->SetPropertyWithAttributes(pid, pVal, PropertyDynamicTypeDefaults, nullptr);
-                            }
-                        }
-                    }
+                    BOOL success = obj->EnsureProperty(pid);
+
                     AssertMsg(success, "Failed to set property during restore!!!");
                 }
                 else
                 {
-                    //
-                    //TODO: we could have a problem if we set a getter (and make it not writable say) then what happens with the setter -- or maybe set accessors just ignores this?
-                    //
+                    TTDVar ttdVal = snpObject->VarArray[i];
+                    Js::Var pVal = (ttdVal != nullptr) ? inflator->InflateTTDVar(ttdVal) : nullptr;
 
-                    NSSnapType::SnapEntryDataKindTag ttag = handler->PropertyInfoArray[i].DataKind;
-                    if(ttag == NSSnapType::SnapEntryDataKindTag::Getter)
+                    if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Data)
                     {
-                        obj->SetAccessors(pid, pVal, nullptr);
-                    }
-                    else if(ttag == NSSnapType::SnapEntryDataKindTag::Setter)
-                    {
-                        obj->SetAccessors(pid, nullptr, pVal);
+                        BOOL success = FALSE;
+                        if(!obj->HasOwnProperty(pid))
+                        {
+                            //easy case just set the property
+                            success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                        }
+                        else
+                        {
+                            if(obj->IsWritable(pid))
+                            {
+                                //also easy just write the property
+                                success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                            }
+                            else
+                            {
+                                //get the value to see if it is alreay ok
+                                Js::Var currentValue = nullptr;
+                                Js::JavascriptOperators::GetProperty(obj, pid, obj->GetScriptContext(), nullptr);
+
+                                if(currentValue == pVal)
+                                {
+                                    //the right value is already there -- easy
+                                    success = TRUE;
+                                }
+                                else
+                                {
+                                    //Ok so now we force set the property
+                                    success = obj->SetPropertyWithAttributes(pid, pVal, PropertyDynamicTypeDefaults, nullptr);
+                                }
+                            }
+                        }
+                        AssertMsg(success, "Failed to set property during restore!!!");
                     }
                     else
                     {
-                        AssertMsg(false, "Don't know how to restore this accesstag!!");
+                        NSSnapType::SnapEntryDataKindTag ttag = handler->PropertyInfoArray[i].DataKind;
+                        if(ttag == NSSnapType::SnapEntryDataKindTag::Getter)
+                        {
+                            obj->SetAccessors(pid, pVal, nullptr);
+                        }
+                        else if(ttag == NSSnapType::SnapEntryDataKindTag::Setter)
+                        {
+                            obj->SetAccessors(pid, nullptr, pVal);
+                        }
+                        else
+                        {
+                            AssertMsg(false, "Don't know how to restore this accesstag!!");
+                        }
                     }
                 }
 
@@ -550,7 +558,7 @@ namespace TTD
                 for(uint32 i = 0; i < handler2->MaxPropertyIndex; ++i)
                 {
                     const NSSnapType::SnapHandlerPropertyEntry spe = handler2->PropertyInfoArray[i];
-                    if(spe.DataKind != NSSnapType::SnapEntryDataKindTag::Clear)
+                    if(spe.DataKind != NSSnapType::SnapEntryDataKindTag::Clear && spe.DataKind != NSSnapType::SnapEntryDataKindTag::Uninitialized)
                     {
                         int64 locationTag = ComputeLocationTagForAssertCompare(spe);
 
@@ -1285,7 +1293,7 @@ namespace TTD
             const double* dateInfo1 = SnapObjectGetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(sobj1);
             const double* dateInfo2 = SnapObjectGetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(sobj2);
 
-            compareMap.DiagnosticAssert(*dateInfo1 == *dateInfo2);
+            compareMap.DiagnosticAssert(NSSnapValues::CheckSnapEquivTTDDouble(*dateInfo1, *dateInfo2));
         }
 #endif
 
@@ -1435,6 +1443,9 @@ namespace TTD
 
                 arrayObj->SetItemAttributes(entry->Index, entry->Attributes);
             }
+
+            //do length writable as needed
+            Js::JavascriptLibrary::SetLengthWritableES5Array_TTD(arrayObj, es5Info->IsLengthWritable);
         }
 
         void EmitAddtlInfo_SnapES5ArrayInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -1442,6 +1453,8 @@ namespace TTD
             SnapES5ArrayInfo* es5Info = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(snpObject);
 
             writer->WriteLengthValue(es5Info->GetterSetterCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, es5Info->IsLengthWritable, NSTokens::Separator::CommaSeparator);
+
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
             for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
             {
@@ -1471,6 +1484,8 @@ namespace TTD
             SnapES5ArrayInfo* es5Info = alloc.SlabAllocateStruct<SnapES5ArrayInfo>();
 
             es5Info->GetterSetterCount = reader->ReadLengthValue(true);
+            es5Info->IsLengthWritable = reader->ReadBool(NSTokens::Key::boolVal, true);
+
             if(es5Info->GetterSetterCount == 0)
             {
                 es5Info->GetterSetterEntries = nullptr;
@@ -1512,6 +1527,8 @@ namespace TTD
             SnapES5ArrayInfo* es5Info2 = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(sobj2);
 
             compareMap.DiagnosticAssert(es5Info1->GetterSetterCount == es5Info2->GetterSetterCount);
+            compareMap.DiagnosticAssert(es5Info1->IsLengthWritable == es5Info2->IsLengthWritable);
+
             for(uint32 i = 0; i < es5Info1->GetterSetterCount; ++i)
             {
                 const SnapES5ArrayGetterSetterEntry* entry1 = es5Info1->GetterSetterEntries + i;
@@ -1524,7 +1541,9 @@ namespace TTD
                 NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(entry1->Setter, entry2->Setter, compareMap, _u("es5Setter"), entry1->Index);
             }
 
-            AssertSnapEquiv_SnapArrayInfoCore<TTDVar>(es5Info1->BasicArrayData, es5Info2->BasicArrayData, compareMap);
+            compareMap.DiagnosticAssert(es5Info1->BasicArrayData->Length == es5Info2->BasicArrayData->Length);
+
+            AssertSnapEquiv_SnapArrayInfoCore<TTDVar>(es5Info1->BasicArrayData->Data, es5Info2->BasicArrayData->Data, compareMap);
         }
 #endif
 

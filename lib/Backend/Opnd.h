@@ -60,6 +60,7 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindDynamicMisc,
     // no profiling in dynamic JIT
     AddrOpndKindDynamicFunctionBody,
+    AddrOpndKindDynamicFunctionInfo,
     // use LoadRuntimeInlineCacheOpnd for runtime caches,
     // in relocatable JIT polymorphic inline caches aren't generated and can
     // be referenced directly (for now)

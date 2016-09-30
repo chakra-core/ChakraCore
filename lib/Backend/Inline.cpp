@@ -498,10 +498,10 @@ uint Inline::FillInlineesDataArray(
         }
 
         Js::FunctionBody *inlineeFunctionBody = inlineeJitTimeData->GetFunctionBody();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFunctionBody))
+        if (inlineeFunctionBody && !PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFunctionBody))
         {
-            const Js::FunctionCodeGenJitTimeData* rightInlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFunctionBody);
-            const Js::FunctionCodeGenRuntimeData* rightInlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFunctionBody);
+            const Js::FunctionCodeGenJitTimeData* rightInlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFunctionBody->GetFunctionInfo());
+            const Js::FunctionCodeGenRuntimeData* rightInlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFunctionBody->GetFunctionInfo());
 
             if (rightInlineeJitTimeData)
             {
@@ -550,17 +550,18 @@ void Inline::FillInlineesDataArrayUsingFixedMethods(
     while (inlineeJitTimeData)
     {
         inlineeFuncBody = inlineeJitTimeData->GetFunctionBody();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFuncBody) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeFuncBody))
+        if (inlineeFuncBody && !PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFuncBody) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeFuncBody))
         {
-            const Js::FunctionCodeGenJitTimeData* jitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody);
+            const Js::FunctionCodeGenJitTimeData* jitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());
             if (jitTimeData)
             {
                 for (uint16 i = 0; i < cachedFixedInlineeCount; i++)
                 {
-                    if (inlineeFuncBody == ((Js::JavascriptFunction*)(fixedFieldInfoArray[i].fieldValue))->GetFunctionBody())
+                    Js::ParseableFunctionInfo *info = ((Js::JavascriptFunction*)(fixedFieldInfoArray[i].fieldValue))->GetParseableFunctionInfo();
+                    if (info->IsFunctionBody() && inlineeFuncBody == info->GetFunctionBody())
                     {
-                        inlineesDataArray[i].inlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody);
-                        inlineesDataArray[i].inlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFuncBody);
+                        inlineesDataArray[i].inlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());
+                        inlineesDataArray[i].inlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());
                         inlineesDataArray[i].functionBody = inlineeFuncBody;
                         break;
                     }
@@ -760,7 +761,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const J
         if (i == 0)
         {
             // Do all the general, non-function-object-specific checks just once.
-            if (!TryOptimizeCallInstrWithFixedMethod(callInstr, (Js::FunctionInfo*)(inlineesDataArray[i].functionBody), true, false, false, true /*isInlined*/, safeThis, true /*dontOptimizeJustCheck*/, i))
+            if (!TryOptimizeCallInstrWithFixedMethod(callInstr, inlineesDataArray[i].functionBody->GetFunctionInfo(), true, false, false, true /*isInlined*/, safeThis, true /*dontOptimizeJustCheck*/, i))
             {
                 POLYMORPHIC_INLINE_TESTTRACE(_u("INLINING (Polymorphic; Using Fixed Methods): Skip Inline: can't optimize using Fixed Methods %d (Max: %d)\tInlinee: %s (%s):\tCaller: %s (%s)\n"),
                     inlineeCount, Js::DynamicProfileInfo::maxPolymorphicInliningSize,
@@ -772,7 +773,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const J
         else
         {
             if (methodPropertyOpnd->GetFieldValueAsFixedFunction(i) &&
-                methodPropertyOpnd->GetFieldValueAsFixedFunction(i)->GetFunctionInfo() != (Js::FunctionInfo*)(inlineesDataArray[i].functionBody))
+                methodPropertyOpnd->GetFieldValueAsFixedFunction(i)->GetFunctionInfo() != inlineesDataArray[i].functionBody->GetFunctionInfo())
             {
                 POLYMORPHIC_INLINE_TESTTRACE(_u("INLINING (Polymorphic; Using Fixed Methods): Skip Inline: can't optimize using Fixed Methods %d (Max: %d)\tInlinee: %s (%s):\tCaller: %s (%s)\n"),
                     inlineeCount, Js::DynamicProfileInfo::maxPolymorphicInliningSize,
@@ -1013,7 +1014,7 @@ Inline::InlinePolymorphicFunction(IR::Instr *callInstr, const Js::FunctionCodeGe
         IR::RegOpnd* functionObject = callInstr->GetSrc1()->AsRegOpnd();
         dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel,
             IR::IndirOpnd::New(functionObject, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, dispatchStartLabel->m_func),
-            IR::AddrOpnd::New(inlineesDataArray[i].functionBody, IR::AddrOpndKindDynamicFunctionBody, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
+            IR::AddrOpnd::New(inlineesDataArray[i].functionBody->GetFunctionInfo(), IR::AddrOpndKindDynamicFunctionInfo, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
     }
 
     CompletePolymorphicInlining(callInstr, returnValueOpnd, doneLabel, dispatchStartLabel, /*ldMethodFldInstr*/nullptr, IR::BailOutOnPolymorphicInlineFunction);
@@ -3444,11 +3445,11 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, StackSym* originalCallTargetS
 #endif
     if (callInstr->m_opcode == Js::OpCode::CallIFixed)
     {
-        Assert(callInstr->GetFixedFunction()->GetFunctionInfo() == funcBody);
+        Assert(callInstr->GetFixedFunction()->GetFunctionInfo() == funcBody->GetFunctionInfo());
     }
     else
     {
-        PrepareInsertionPoint(callInstr, funcBody, inlineBailoutChecksBeforeInstr);
+        PrepareInsertionPoint(callInstr, funcBody->GetFunctionInfo(), inlineBailoutChecksBeforeInstr);
     }
 
     Assert(formalCount <= Js::InlineeCallInfo::MaxInlineeArgoutCount);
@@ -3965,14 +3966,14 @@ Inline::InsertJsFunctionCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr
 }
 
 void
-Inline::InsertFunctionBodyCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, Js::FunctionInfo *funcInfo)
+Inline::InsertFunctionInfoCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, Js::FunctionInfo *funcInfo)
 {
     // if (JavascriptFunction::FromVar(r1)->functionInfo != funcInfo) goto noInlineLabel
     // BrNeq_I4 noInlineLabel, r1->functionInfo, funcInfo
-    IR::IndirOpnd* funcBody = IR::IndirOpnd::New(callInstr->GetSrc1()->AsRegOpnd(), Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, callInstr->m_func);
-    IR::AddrOpnd* inlinedFuncBody = IR::AddrOpnd::New(funcInfo, IR::AddrOpndKindDynamicFunctionBody, callInstr->m_func);
-    bailoutInstr->SetSrc1(funcBody);
-    bailoutInstr->SetSrc2(inlinedFuncBody);
+    IR::IndirOpnd* opndFuncInfo = IR::IndirOpnd::New(callInstr->GetSrc1()->AsRegOpnd(), Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, callInstr->m_func);
+    IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo, IR::AddrOpndKindDynamicFunctionInfo, callInstr->m_func);
+    bailoutInstr->SetSrc1(opndFuncInfo);
+    bailoutInstr->SetSrc2(inlinedFuncInfo);
 
     insertBeforeInstr->InsertBefore(bailoutInstr);
 }
@@ -3991,6 +3992,10 @@ Inline::InsertFunctionObjectCheck(IR::Instr *callInstr, IR::Instr *insertBeforeI
 IR::Instr *
 Inline::PrepareInsertionPoint(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind)
 {
+    if (callInstr->m_func == this->topFunc && this->topFunc->GetLocalFunctionId()==160 && callInstr->GetByteCodeOffset()==0x1f)
+    {
+        *(volatile int*)this;
+    }
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
     Assert(bailOutKind == IR::BailOutOnInlineFunction);
@@ -4010,7 +4015,7 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
     InsertFunctionTypeIdCheck(callInstr, insertBeforeInstr, bailOutIfNotJsFunction);
 
     // 3. Bailout if function body doesn't match funcInfo
-    InsertFunctionBodyCheck(callInstr, insertBeforeInstr, primaryBailOutInstr, funcInfo);
+    InsertFunctionInfoCheck(callInstr, insertBeforeInstr, primaryBailOutInstr, funcInfo);
 
     return primaryBailOutInstr;
 }
@@ -4714,8 +4719,8 @@ Inline::MapFormals(Func *inlinee,
             }
             break;
 
-        case Js::OpCode::LdSuper:
-        case Js::OpCode::LdSuperCtor:
+        case Js::OpCode::LdHomeObj:
+        case Js::OpCode::LdFuncObj:
             if (instr->m_func == inlinee)
             {
                 instr->SetSrc1(funcObjOpnd);

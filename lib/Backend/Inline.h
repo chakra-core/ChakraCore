@@ -134,7 +134,7 @@ private:
     void InsertObjectCheck(IR::Instr *callInstr, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
     void InsertFunctionTypeIdCheck(IR::Instr *callInstr, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
     void InsertJsFunctionCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind);
-    void InsertFunctionBodyCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, Js::FunctionInfo *funcInfo);
+    void InsertFunctionInfoCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, Js::FunctionInfo *funcInfo);
     void InsertFunctionObjectCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, Js::FunctionInfo *funcInfo);
 
     void TryResetObjTypeSpecFldInfoOn(IR::PropertySymOpnd* propertySymOpnd);

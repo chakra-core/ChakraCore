@@ -13,9 +13,6 @@
 #include "Library/ThrowErrorObject.h"
 #include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 
@@ -1016,19 +1013,6 @@ CommonNumber:
             }
             break;
 
-        case TypeIds_Function:
-            if (rightType == TypeIds_Function)
-            {
-                // In ES5 in certain cases (ES5 10.6.14(strict), 13.2.19(strict), 15.3.4.5.20-21) we return a function that throws type error.
-                // For different scenarios we return different instances of the function, which differ by exception/error message.
-                // According to ES5, this is the same [[ThrowTypeError]] (thrower) internal function, thus they should be equal.
-                if (JavascriptFunction::FromVar(aLeft)->IsThrowTypeErrorFunction() &&
-                    JavascriptFunction::FromVar(aRight)->IsThrowTypeErrorFunction())
-                {
-                    return true;
-                }
-            }
-            break;
 #ifdef ENABLE_SIMDJS
         case TypeIds_SIMDBool8x16:
         case TypeIds_SIMDInt8x16:
@@ -5346,9 +5330,10 @@ CommonNumber:
     {
         switch (state->GetTypeId())
         {
+        case TypeIds_SharedArrayBuffer:
+            return Js::SharedArrayBuffer::NewFromSharedState(state, library);
         case TypeIds_ArrayBuffer:
             return Js::ArrayBuffer::NewFromDetachedState(state, library);
-            break;
         default:
             AssertMsg(false, "We should explicitly have a case statement for each object which has detached state.");
             return nullptr;
@@ -5554,13 +5539,6 @@ CommonNumber:
                 ScriptFunction *func = entry->func;
 
                 FunctionProxy * proxy = func->GetFunctionProxy();
-                if (proxy != proxy->GetFunctionProxy())
-                {
-                    // The FunctionProxy has changed since the object was cached, e.g., due to execution
-                    // of a deferred function through a different object.
-                    proxy = proxy->GetFunctionProxy();
-                    func->SetFunctionInfo(proxy);
-                }
 
                 // Reset the function's type to the default type with no properties
                 // Use the cached type on the function proxy rather than the type in the func cache entry
@@ -6904,11 +6882,10 @@ CommonNumber:
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
-            JavascriptFunction* callerAccessor = library->GetThrowTypeErrorCallerAccessorFunction();            
-            argsObj->SetAccessors(PropertyIds::caller, callerAccessor, callerAccessor, PropertyOperation_NonFixedValue);
+            JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
+            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
-            JavascriptFunction* calleeAccessor = library->GetThrowTypeErrorCalleeAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::callee, calleeAccessor, calleeAccessor, PropertyOperation_NonFixedValue);
+            argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
         else
@@ -9391,6 +9368,8 @@ CommonNumber:
             return;
         }
 
+        uint unregisteredInlineCacheCount = 0;
+
         Assert(inlineCaches && size > 0);
 
         // If we're not shutting down (as in closing the script context), we need to remove our inline caches from
@@ -9407,7 +9386,10 @@ CommonNumber:
         {
             for (int i = 0; i < size; i++)
             {
-                inlineCaches[i].RemoveFromInvalidationList();
+                if (inlineCaches[i].RemoveFromInvalidationList())
+                {
+                    unregisteredInlineCacheCount++;
+                }
             }
 
             AllocatorDeleteArray(InlineCacheAllocator, functionBody->GetScriptContext()->GetInlineCacheAllocator(), size, inlineCaches);
@@ -9443,6 +9425,10 @@ CommonNumber:
         prev = next = nullptr;
         inlineCaches = nullptr;
         size = 0;
+        if (unregisteredInlineCacheCount > 0)
+        {
+            functionBody->GetScriptContext()->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+        }
     }
 
     JavascriptString * JavascriptOperators::Concat3(Var aLeft, Var aCenter, Var aRight, ScriptContext * scriptContext)
@@ -9490,7 +9476,7 @@ CommonNumber:
         scriptFunction->SetHomeObj(homeObj);
     }
 
-    Var JavascriptOperators::OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // Ensure this is not a stack ScriptFunction
         if (!ScriptFunction::Is(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
@@ -9504,12 +9490,24 @@ CommonNumber:
         // since the prototype could change.
         Var homeObj = instance->GetHomeObj();
 
+        return (homeObj != nullptr) ? homeObj : scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    Var JavascriptOperators::OP_LdHomeObjProto(Var homeObj, ScriptContext* scriptContext)
+    {
         if (homeObj == nullptr || !RecyclableObject::Is(homeObj))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         RecyclableObject *thisObjPrototype = RecyclableObject::FromVar(homeObj);
+
+        TypeId typeId = thisObjPrototype->GetTypeId();
+
+        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
+        }
 
         Assert(thisObjPrototype != nullptr);
 
@@ -9523,14 +9521,18 @@ CommonNumber:
         return superBase;
     }
 
-    Var JavascriptOperators::OP_LdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
         // use self as value of [[FunctionObject]] - this is true only for constructors
 
         Assert(RecyclableObject::Is(scriptFunction));
-        Assert(JavascriptOperators::IsClassConstructor(scriptFunction));  // non-constructors cannot have direct super
 
-        RecyclableObject *superCtor = RecyclableObject::FromVar(scriptFunction)->GetPrototype();
+        return scriptFunction;
+    }
+
+    Var JavascriptOperators::OP_LdFuncObjProto(Var funcObj, ScriptContext* scriptContext)
+    {
+        RecyclableObject *superCtor = RecyclableObject::FromVar(funcObj)->GetPrototype();
 
         if (superCtor == nullptr || !IsConstructor(superCtor))
         {
@@ -9540,7 +9542,7 @@ CommonNumber:
         return superCtor;
     }
 
-    Var JavascriptOperators::ScopedLdSuperHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
+    Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
     {
         ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);
         Var superRef = nullptr;
@@ -9583,14 +9585,14 @@ CommonNumber:
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
     }
 
-    Var JavascriptOperators::OP_ScopedLdSuperCtor(Var scriptFunction, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
     {
-        return JavascriptOperators::ScopedLdSuperHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
+        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
     }
 
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
@@ -9781,10 +9783,7 @@ CommonNumber:
     JavascriptOperators::GetDeferredDeserializedFunctionProxy(JavascriptFunction* func)
     {
         FunctionProxy* proxy = func->GetFunctionProxy();
-        if (proxy->GetFunctionProxy() != proxy)
-        {
-            proxy = proxy->GetFunctionProxy();
-        }
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() != proxy);
         return proxy;
     }
 

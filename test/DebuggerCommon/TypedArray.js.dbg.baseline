@@ -1,0 +1,350 @@
+[
+  {
+    "evaluate": {
+      "Int8Array": {
+        "#__proto__": {
+          "#__proto__": {
+            "#__proto__": "Object {...}",
+            "constructor": "function function Function() { [native code] }",
+            "length": "number 0",
+            "name": "string ",
+            "apply": "function function apply() { [native code] }",
+            "bind": "function function bind() { [native code] }",
+            "call": "function function call() { [native code] }",
+            "toString": "function function toString() { [native code] }",
+            "caller": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context",
+            "arguments": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context"
+          },
+          "length": "number 3",
+          "name": "string TypedArray",
+          "prototype": {
+            "#__proto__": "Object {...}",
+            "constructor": "function function() {\n    [native code]\n}",
+            "set": "function function set() { [native code] }",
+            "subarray": "function function subarray() { [native code] }",
+            "copyWithin": "function function copyWithin() { [native code] }",
+            "every": "function function every() { [native code] }",
+            "fill": "function function fill() { [native code] }",
+            "filter": "function function filter() { [native code] }",
+            "find": "function function find() { [native code] }",
+            "findIndex": "function function findIndex() { [native code] }",
+            "forEach": "function function forEach() { [native code] }",
+            "indexOf": "function function indexOf() { [native code] }",
+            "join": "function function join() { [native code] }",
+            "lastIndexOf": "function function lastIndexOf() { [native code] }",
+            "map": "function function map() { [native code] }",
+            "reduce": "function function reduce() { [native code] }",
+            "reduceRight": "function function reduceRight() { [native code] }",
+            "reverse": "function function reverse() { [native code] }",
+            "slice": "function function slice() { [native code] }",
+            "some": "function function some() { [native code] }",
+            "sort": "function function sort() { [native code] }",
+            "entries": "function function entries() { [native code] }",
+            "keys": "function function keys() { [native code] }",
+            "values": "function function values() { [native code] }",
+            "Symbol.iterator": "function function values() { [native code] }",
+            "includes": "function function includes() { [native code] }",
+            "buffer": "Error 'this' is not a typed array object",
+            "byteLength": "Error 'this' is not a typed array object",
+            "byteOffset": "Error 'this' is not a typed array object",
+            "length": "Error 'this' is not a typed array object",
+            "Symbol.toStringTag": "undefined undefined",
+            "toLocaleString": "function function toLocaleString() { [native code] }",
+            "toString": "function function toString() { [native code] }"
+          },
+          "from": {
+            "#__proto__": "function function() {\n    [native code]\n}",
+            "length": "number 1",
+            "name": "string from",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "of": {
+            "#__proto__": "function function() {\n    [native code]\n}",
+            "length": "number 0",
+            "name": "string of",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "[Symbol.species]": {
+            "#__proto__": "function function() {\n    [native code]\n}",
+            "length": "number 3",
+            "name": "string Int8Array",
+            "BYTES_PER_ELEMENT": "number 1",
+            "prototype": "Object {...}",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "caller": "object null",
+          "arguments": "object null"
+        },
+        "length": "number 3",
+        "name": "string Int8Array",
+        "BYTES_PER_ELEMENT": "number 1",
+        "prototype": {
+          "#__proto__": {
+            "#__proto__": "Object {...}",
+            "constructor": "function function() {\n    [native code]\n}",
+            "set": "function function set() { [native code] }",
+            "subarray": "function function subarray() { [native code] }",
+            "copyWithin": "function function copyWithin() { [native code] }",
+            "every": "function function every() { [native code] }",
+            "fill": "function function fill() { [native code] }",
+            "filter": "function function filter() { [native code] }",
+            "find": "function function find() { [native code] }",
+            "findIndex": "function function findIndex() { [native code] }",
+            "forEach": "function function forEach() { [native code] }",
+            "indexOf": "function function indexOf() { [native code] }",
+            "join": "function function join() { [native code] }",
+            "lastIndexOf": "function function lastIndexOf() { [native code] }",
+            "map": "function function map() { [native code] }",
+            "reduce": "function function reduce() { [native code] }",
+            "reduceRight": "function function reduceRight() { [native code] }",
+            "reverse": "function function reverse() { [native code] }",
+            "slice": "function function slice() { [native code] }",
+            "some": "function function some() { [native code] }",
+            "sort": "function function sort() { [native code] }",
+            "entries": "function function entries() { [native code] }",
+            "keys": "function function keys() { [native code] }",
+            "values": "function function values() { [native code] }",
+            "Symbol.iterator": "function function values() { [native code] }",
+            "includes": "function function includes() { [native code] }",
+            "buffer": "Error 'this' is not a typed array object",
+            "byteLength": "Error 'this' is not a typed array object",
+            "byteOffset": "Error 'this' is not a typed array object",
+            "length": "Error 'this' is not a typed array object",
+            "Symbol.toStringTag": "undefined undefined",
+            "toLocaleString": "function function toLocaleString() { [native code] }",
+            "toString": "function function toString() { [native code] }"
+          },
+          "constructor": {
+            "#__proto__": "function function() {\n    [native code]\n}",
+            "length": "number 3",
+            "name": "string Int8Array",
+            "BYTES_PER_ELEMENT": "number 1",
+            "prototype": "Object {...}",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "BYTES_PER_ELEMENT": "number 1"
+        },
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "ta": {
+        "#__proto__": {
+          "#__proto__": {
+            "#__proto__": "Object {...}",
+            "constructor": "function function() {\n    [native code]\n}",
+            "set": "function function set() { [native code] }",
+            "subarray": "function function subarray() { [native code] }",
+            "copyWithin": "function function copyWithin() { [native code] }",
+            "every": "function function every() { [native code] }",
+            "fill": "function function fill() { [native code] }",
+            "filter": "function function filter() { [native code] }",
+            "find": "function function find() { [native code] }",
+            "findIndex": "function function findIndex() { [native code] }",
+            "forEach": "function function forEach() { [native code] }",
+            "indexOf": "function function indexOf() { [native code] }",
+            "join": "function function join() { [native code] }",
+            "lastIndexOf": "function function lastIndexOf() { [native code] }",
+            "map": "function function map() { [native code] }",
+            "reduce": "function function reduce() { [native code] }",
+            "reduceRight": "function function reduceRight() { [native code] }",
+            "reverse": "function function reverse() { [native code] }",
+            "slice": "function function slice() { [native code] }",
+            "some": "function function some() { [native code] }",
+            "sort": "function function sort() { [native code] }",
+            "entries": "function function entries() { [native code] }",
+            "keys": "function function keys() { [native code] }",
+            "values": "function function values() { [native code] }",
+            "Symbol.iterator": "function function values() { [native code] }",
+            "includes": "function function includes() { [native code] }",
+            "buffer": "ArrayBuffer [object ArrayBuffer]",
+            "byteLength": "number 1",
+            "byteOffset": "number 0",
+            "length": "number 1",
+            "Symbol.toStringTag": "string Int8Array",
+            "toLocaleString": "function function toLocaleString() { [native code] }",
+            "toString": "function function toString() { [native code] }"
+          },
+          "constructor": {
+            "#__proto__": "function function() {\n    [native code]\n}",
+            "length": "number 3",
+            "name": "string Int8Array",
+            "BYTES_PER_ELEMENT": "number 1",
+            "prototype": "Object {...}",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "BYTES_PER_ELEMENT": "number 1"
+        },
+        "[0]": "string 1"
+      }
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 17,
+        "column": 0,
+        "sourceText": "ta.every(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "sourceText": "ta.filter(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 19,
+        "column": 0,
+        "sourceText": "ta.find(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 20,
+        "column": 0,
+        "sourceText": "ta.findIndex(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 21,
+        "column": 0,
+        "sourceText": "ta.forEach(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 22,
+        "column": 0,
+        "sourceText": "ta.map(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 23,
+        "column": 0,
+        "sourceText": "ta2.reduce(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 24,
+        "column": 0,
+        "sourceText": "ta2.reduceRight(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 25,
+        "column": 0,
+        "sourceText": "ta.some(callback)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return",
+        "function": "callback"
+      },
+      {
+        "line": 26,
+        "column": 0,
+        "sourceText": "ta2.sort(callback)",
+        "function": "Global code"
+      }
+    ]
+  }
+]

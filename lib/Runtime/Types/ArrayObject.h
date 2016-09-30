@@ -43,14 +43,12 @@ namespace Js
         uint32 GetLength() const { return length; }
         static uint32 GetOffsetOfLength() { return offsetof(ArrayObject, length); }
 
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
-
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) = 0;
         virtual BOOL SetItemAttributes(uint32 index, PropertyAttributes attributes);
         virtual BOOL SetItemAccessors(uint32 index, Var getter, Var setter);
         virtual BOOL IsObjectArrayFrozen();
-        virtual BOOL GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false);
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext) = 0;
     };
 
 #ifdef _M_X64_OR_ARM64

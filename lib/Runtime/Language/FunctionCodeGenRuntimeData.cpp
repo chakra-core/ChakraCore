@@ -112,7 +112,8 @@ namespace Js
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetRuntimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const
     {
         const FunctionCodeGenRuntimeData *next = this;
-        while (next && next->functionBody != polyFunctionInfo)
+        FunctionProxy *polyFunctionProxy = polyFunctionInfo->GetFunctionProxy();
+        while (next && next->functionBody != polyFunctionProxy)
         {
             next = next->next;
         }

@@ -147,25 +147,20 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         m_workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
 
-    if (m_workItem->Type() == JsFunctionType)
+    if (m_workItem->Type() == JsFunctionType &&
+        m_jnFunction->GetDoBackendArgumentsOptimization() && 
+        !m_jnFunction->GetHasTry())
     {
-        if (m_jnFunction->GetDoBackendArgumentsOptimization() && !m_jnFunction->GetHasTry())
-        {
-            // doBackendArgumentsOptimization bit is set when there is no eval inside a function
-            // as determined by the bytecode generator.
-            SetHasStackArgs(true);
-        }
-        if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0 &&
-            this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
-        {
-            Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));
-            stackNestedFunc = true;
-            this->GetTopFunc()->hasAnyStackNestedFunc = true;
-        }
+        // doBackendArgumentsOptimization bit is set when there is no eval inside a function
+        // as determined by the bytecode generator.
+        SetHasStackArgs(true);
     }
-    else
+    if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0 &&
+        (this->IsTopFunc() || this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType)) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
     {
-        Assert(m_workItem->Type() == JsLoopBodyWorkItemType);
+        Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));
+        stackNestedFunc = true;
+        this->GetTopFunc()->hasAnyStackNestedFunc = true;
     }
 
     if (m_jnFunction->GetHasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)

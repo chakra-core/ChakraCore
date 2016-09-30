@@ -35,10 +35,11 @@ namespace Js
         }
     }
 
-    BOOL JavascriptRegExpConstructor::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptRegExpConstructor::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptRegExpObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+        return GetEnumeratorWithPrefix(
+            RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptRegExpEnumerator, this, flags, requestContext),
+            enumerator, flags, requestContext);
     }
 
     void JavascriptRegExpConstructor::SetLastMatch(UnifiedRegex::RegexPattern* lastPattern, JavascriptString* lastInput, UnifiedRegex::GroupInfo lastMatch)

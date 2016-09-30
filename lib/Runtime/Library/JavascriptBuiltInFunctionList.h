@@ -8,10 +8,7 @@
 #endif
 
 BUILTIN(JavascriptExceptionOperators, StackTraceAccessor, StackTraceAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorAccessor, ThrowTypeErrorAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCallerAccessor, ThrowTypeErrorCallerAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCalleeAccessor, ThrowTypeErrorCalleeAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorArgumentsAccessor, ThrowTypeErrorArgumentsAccessor, FunctionInfo::DoNotProfile)
+BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorRestrictedPropertyAccessor, ThrowTypeErrorRestrictedPropertyAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptOperators, DefaultAccessor, DefaultAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(GlobalObject, Eval, EntryEval, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, ParseInt, EntryParseInt, FunctionInfo::ErrorOnNew)
@@ -948,7 +945,6 @@ BUILTIN(JavascriptPromise, AllResolveElementFunction, EntryAllResolveElementFunc
 BUILTIN(JavascriptPromise, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptReflect, DefineProperty, EntryDefineProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, DeleteProperty, EntryDeleteProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptReflect, Enumerate, EntryEnumerate, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Get, EntryGet, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetOwnPropertyDescriptor, EntryGetOwnPropertyDescriptor, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetPrototypeOf, EntryGetPrototypeOf, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
@@ -965,5 +961,22 @@ BUILTIN(JavascriptGeneratorFunction, NewInstance, NewInstance, FunctionInfo::Ski
 BUILTIN(JavascriptGenerator, Next, EntryNext, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Return, EntryReturn, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Throw, EntryThrow, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(SharedArrayBuffer, Slice, EntrySlice, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, GetterByteLength, EntryGetterByteLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(SharedArrayBuffer, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
+
+BUILTIN(AtomicsObject, Add, EntryAdd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, And, EntryAnd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, CompareExchange, EntryCompareExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Exchange, EntryExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, IsLockFree, EntryIsLockFree, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Load, EntryLoad, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Or, EntryOr, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Store, EntryStore, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Sub, EntrySub, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wake, EntryWake, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
 #undef BUILTIN_TEMPLATE

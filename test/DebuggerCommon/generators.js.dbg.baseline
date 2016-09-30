@@ -1,0 +1,610 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 24,
+        "column": 0,
+        "sourceText": "let g = gf1()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "yield 10",
+        "function": "gf1"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "g.next(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "yield 10",
+        "function": "gf1"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "g.next(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "yield 20",
+        "function": "gf1"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "g.next(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 57,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "yield 20",
+        "function": "gf1"
+      },
+      {
+        "line": 57,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 8,
+        "column": 4,
+        "sourceText": "yield 30",
+        "function": "gf1"
+      },
+      {
+        "line": 57,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 58,
+        "column": 0,
+        "sourceText": "g.next(4)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 8,
+        "column": 4,
+        "sourceText": "yield 30",
+        "function": "gf1"
+      },
+      {
+        "line": 58,
+        "column": 0,
+        "sourceText": "g.next(4)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "yield a()",
+        "function": "gf1"
+      },
+      {
+        "line": 58,
+        "column": 0,
+        "sourceText": "g.next(4)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 19,
+        "sourceText": "}",
+        "function": "a"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "yield a()",
+        "function": "gf1"
+      },
+      {
+        "line": 58,
+        "column": 0,
+        "sourceText": "g.next(4)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "yield a()",
+        "function": "gf1"
+      },
+      {
+        "line": 58,
+        "column": 0,
+        "sourceText": "g.next(4)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "yield a()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "yield b() + (yield c()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 19,
+        "sourceText": "}",
+        "function": "b"
+      },
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "yield b() + (yield c()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "yield b() + (yield c()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 19,
+        "sourceText": "}",
+        "function": "c"
+      },
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "yield b() + (yield c()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "yield b() + (yield c()",
+        "function": "gf1"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "g.next(5)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 60,
+        "column": 0,
+        "sourceText": "g.next(6)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "string [Uninitialized block variable]",
+      "p": "number 10",
+      "q": "number 20",
+      "a": "number 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "number 2",
+      "p": "number 10",
+      "q": "number 20",
+      "a": "number 1"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 85,
+        "column": 0,
+        "sourceText": "g = gf4()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 102,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 102,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 77,
+        "column": 4,
+        "sourceText": "yield 1",
+        "function": "gf3"
+      },
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 102,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 102,
+        "column": 0,
+        "sourceText": "g.next(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 103,
+        "column": 0,
+        "sourceText": "g.next(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 103,
+        "column": 0,
+        "sourceText": "g.next(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 104,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 104,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 78,
+        "column": 4,
+        "sourceText": "yield 2",
+        "function": "gf3"
+      },
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 104,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 104,
+        "column": 0,
+        "sourceText": "g.next(3)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 106,
+        "column": 0,
+        "sourceText": "g = gf3()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 132,
+        "column": 0,
+        "sourceText": "g.return(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 132,
+        "column": 0,
+        "sourceText": "g.return(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 77,
+        "column": 4,
+        "sourceText": "yield 1",
+        "function": "gf3"
+      },
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 132,
+        "column": 0,
+        "sourceText": "g.return(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 78,
+        "column": 4,
+        "sourceText": "yield 2",
+        "function": "gf3"
+      },
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 132,
+        "column": 0,
+        "sourceText": "g.return(2)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 4,
+        "sourceText": "yield* gf3()",
+        "function": "gf4"
+      },
+      {
+        "line": 132,
+        "column": 0,
+        "sourceText": "g.return(2)",
+        "function": "Global code"
+      }
+    ]
+  }
+]

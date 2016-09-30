@@ -47,6 +47,19 @@ Abstract:
 #include <ctype.h>
 #endif
 
+#if defined(__APPLE__)
+#ifndef __IOS__
+#include "TargetConditionals.h"
+#if TARGET_IPHONE_SIMULATOR
+#define __IOS__
+#elif TARGET_OS_IPHONE
+#define __IOS__
+#elif TARGET_OS_MAC
+// macOS
+#endif
+#endif // __IOS__ ?
+#endif // __APPLE__ ?
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -5462,6 +5475,30 @@ The function returns the initial value pointed to by Target.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchange8(
+    IN OUT char volatile *Target,
+    IN char Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchange16(
+    IN OUT short volatile *Target,
+    IN short Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchange(
@@ -5506,6 +5543,38 @@ Return Values
 The return value is the initial value of the destination.
 
 --*/
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedCompareExchange8(
+    IN OUT char volatile *Destination,
+    IN char Exchange,
+    IN char Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedCompareExchange16(
+    IN OUT short volatile *Destination,
+    IN short Exchange,
+    IN short Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
 EXTERN_C
 PALIMPORT
 inline
@@ -5593,6 +5662,30 @@ The return value is the original value that 'Addend' pointed to.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchangeAdd8(
+    IN OUT char volatile *Addend,
+    IN char Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchangeAdd16(
+    IN OUT short volatile *Addend,
+    IN short Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchangeAdd(
@@ -5629,6 +5722,30 @@ InterlockedExchangeAdd64(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedAnd8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short 
+PALAPI
+InterlockedAnd16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedAnd(
@@ -5641,6 +5758,30 @@ InterlockedAnd(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedOr8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedOr16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedOr(
@@ -5648,6 +5789,42 @@ InterlockedOr(
     IN LONG Value)
 {
     return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedXor8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedXor16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+LONG
+PALAPI
+InterlockedXor(
+    IN OUT LONG volatile *Destination,
+    IN LONG Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
 }
 
 #define BITS_IN_BYTE 8
@@ -6177,6 +6354,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define log           PAL_log
 #define log10         PAL_log10
 #define malloc        PAL_malloc
+#define memmove       memmove_xplat
 #define free          PAL_free
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
@@ -6224,7 +6402,6 @@ PALIMPORT div_t div(int numer, int denom);
 PALIMPORT void * __cdecl memcpy(void *, const void *, size_t);
 PALIMPORT int    __cdecl memcmp(const void *, const void *, size_t);
 PALIMPORT void * __cdecl memset(void *, int, size_t);
-PALIMPORT void * __cdecl memmove(void *, const void *, size_t);
 PALIMPORT void * __cdecl memchr(const void *, int, size_t);
 
 PALIMPORT size_t __cdecl strlen(const char *);
@@ -6266,6 +6443,7 @@ PALIMPORT int __cdecl toupper(int);
 
 PALIMPORT errno_t __cdecl memcpy_s(void *, size_t, const void *, size_t);
 PALIMPORT errno_t __cdecl memmove_s(void *, size_t, const void *, size_t);
+PALIMPORT void * __cdecl memmove_xplat(void *, const void *, size_t);
 PALIMPORT char * __cdecl _strlwr(char *);
 PALIMPORT int __cdecl _stricmp(const char *, const char *);
 PALIMPORT int __cdecl _snprintf(char *, size_t, const char *, ...);

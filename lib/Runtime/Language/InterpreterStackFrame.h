@@ -112,6 +112,7 @@ namespace Js
 
         bool closureInitDone : 1;
         bool isParamScopeDone : 1;
+        bool shouldCacheSP : 1; // Helps in determining if we need to cache the sp in ProcessTryFinally
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -248,6 +249,7 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
+        static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
         void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
@@ -660,10 +662,10 @@ namespace Js
         inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
         template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
-        inline Var OP_LdSuper(ScriptContext * scriptContext);
-        inline Var OP_LdSuperCtor(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuper(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuperCtor(ScriptContext * scriptContext);
+        inline Var OP_LdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_LdFuncObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);
         template <typename T> void OP_LdLocalElementUndefined(const unaligned OpLayoutT_ElementRootU<T>* playout);
         template <typename T> void OP_LdElementUndefinedScoped(const unaligned OpLayoutT_ElementScopedU<T>* playout);
@@ -786,7 +788,7 @@ namespace Js
         ~InterpreterThunkStackCountTracker() { --s_count; }
         static int GetCount() { return s_count; }
     private:
-        __declspec(thread) static int s_count;
+        THREAD_LOCAL static int s_count;
     };
 #endif
 

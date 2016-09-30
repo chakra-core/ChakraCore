@@ -1,0 +1,121 @@
+[
+  {
+    "this": {},
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string <large string>",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "integer": "number 1",
+      "string": "string 2",
+      "object": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "p1": "number 3",
+        "p2": "number 4"
+      },
+      "constInteger": "number 5",
+      "constString": "string 6",
+      "constObject": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "cp1": {
+          "#__proto__": "Object {...}",
+          "cp2": "number 7",
+          "cp3": "number 8"
+        },
+        "cp4": "number 9"
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function <large string>",
+        "RequestAsyncBreak": "function <large string>",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      },
+      "blockScopeBasicLetConstTestFunc": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string <large string>",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      }
+    }
+  }
+]

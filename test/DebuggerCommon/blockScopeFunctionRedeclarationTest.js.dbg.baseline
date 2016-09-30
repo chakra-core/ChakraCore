@@ -1,0 +1,9 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "test1": "function <large string>"
+    }
+  }
+]

@@ -208,11 +208,11 @@ namespace Js
         BOOL strictMode = FALSE;
 
         JavascriptFunction *pfuncScript;
-        ParseableFunctionInfo *pfuncBodyCache = NULL;
+        FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
-        if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
+        if (!scriptContext->IsInNewFunctionMap(key, &pfuncInfoCache))
         {
             // Validate formals here
             scriptContext->GetGlobalObject()->ValidateSyntax(
@@ -237,20 +237,15 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            scriptContext->AddToNewFunctionMap(key, functionInfo);
+            scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+        }
+        else if (pfuncInfoCache->IsCoroutine())
+        {
+            pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
         else
         {
-            // Get the latest proxy
-            FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsGenerator())
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
-            }
-            else
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
-            }
+            pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
 
 #if ENABLE_TTD
@@ -371,18 +366,6 @@ namespace Js
         }
 
         return library->GetUndefined();
-    }
-
-    BOOL JavascriptFunction::IsThrowTypeErrorFunction()
-    {
-        ScriptContext* scriptContext = this->GetScriptContext();
-        Assert(scriptContext);
-
-        return
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorCalleeAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction() ||
-            this == scriptContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
     }
 
     enum : unsigned { STACK_ARGS_ALLOCA_THRESHOLD = 8 }; // Number of stack args we allow before using _alloca
@@ -915,7 +898,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = CallSpreadFunction(functionObj, functionObj->GetEntryPoint(), newArgs, spreadIndices);
+            functionResult = CallSpreadFunction(functionObj, newArgs, spreadIndices);
         }
         else
         {
@@ -958,7 +941,7 @@ namespace Js
 
         RUNTIME_ARGUMENTS(args, callInfo);
 
-        return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+        return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
     uint32 JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1099,7 +1082,7 @@ namespace Js
         }
     }
 
-    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -1126,7 +1109,7 @@ namespace Js
 
         SpreadArgs(args, outArgs, spreadIndices, scriptContext);
 
-        return JavascriptFunction::CallFunction<true>(function, entryPoint, outArgs);
+        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs);
     }
 
     Var JavascriptFunction::CallFunction(Arguments args)
@@ -1544,7 +1527,6 @@ LABEL1:
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
 
         Assert(functionInfo);
-        Assert(functionInfo->HasBody());
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1659,7 +1641,7 @@ LABEL1:
         // calls the default entry point the next time around
         if (funcInfo->IsDeferredDeserializeFunction())
         {
-            DeferDeserializeFunctionInfo* deferDeserializeFunction = (DeferDeserializeFunctionInfo*) funcInfo;
+            DeferDeserializeFunctionInfo* deferDeserializeFunction = funcInfo->GetDeferDeserializeFunctionInfo();
 
             // This is the first call to the function, ensure dynamic profile info
             // Deserialize is a no-op if the function has already been deserialized
@@ -2257,17 +2239,10 @@ LABEL1:
             switch (propertyId)
             {
             case PropertyIds::caller:
-                if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
-                {
-                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                    return true;
-                }
-                break;
-
             case PropertyIds::arguments:
                 if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
                 {
-                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                    *setter = *getter = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                     return true;
                 }
                 break;
@@ -2311,27 +2286,12 @@ LABEL1:
         switch (propertyId)
         {
         case PropertyIds::caller:
-            if (this->HasRestrictedProperties()) {
-                PropertyValueInfo::SetNoCache(info, this);
-                if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
-                {
-                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                    *descriptorFlags = Accessor;
-                }
-                else
-                {
-                    *descriptorFlags = Data;
-                }
-                return true;
-            }
-            break;
-
         case PropertyIds::arguments:
             if (this->HasRestrictedProperties()) {
                 PropertyValueInfo::SetNoCache(info, this);
                 if (this->GetEntryPoint() == JavascriptFunction::PrototypeEntryPoint)
                 {
-                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                    *setterValue = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                     *descriptorFlags = Accessor;
                 }
                 else
@@ -2509,7 +2469,7 @@ LABEL1:
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
-                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
+                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                 *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
@@ -2564,7 +2524,7 @@ LABEL1:
                 // Note that for caller coming from remote context (see the check right above) we can't call IsStrictMode()
                 // unless CheckCrossDomainScriptContext succeeds. If it fails we don't know whether caller is strict mode
                 // function or not and throw if it's not, so just return Null.
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_AccessCallerRestricted);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_AccessRestrictedProperty);
             }
         }
 
@@ -2584,7 +2544,7 @@ LABEL1:
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
-                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
+                JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
                 *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;

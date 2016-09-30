@@ -1,0 +1,7 @@
+[
+  {
+    "evaluate": {
+      "var k = i; eval('k')": "number 30"
+    }
+  }
+]

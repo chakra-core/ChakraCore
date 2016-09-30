@@ -4,11 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library/ForInObjectEnumerator.h"
-
 namespace Js
 {
     Var JavascriptReflect::EntryDefineProperty(RecyclableObject* function, CallInfo callInfo, ...)
@@ -81,33 +76,6 @@ namespace Js
         Var propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
 
         return JavascriptOperators::OP_DeleteElementI(target, propertyKey, scriptContext);
-    }
-
-    Var JavascriptReflect::EntryEnumerate(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.enumerate"));
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        if  (args.Info.Flags & CallFlags_New)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.enumerate"));
-        }
-
-        if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.enumerate"));
-        }
-        Var target = args[1];
-
-        Var iterator = nullptr;
-        Recycler* recycler = scriptContext->GetRecycler();
-        ForInObjectEnumeratorWrapper* forinEnumerator = RecyclerNew(recycler, Js::ForInObjectEnumeratorWrapper, RecyclableObject::FromVar(target), scriptContext);
-        iterator = JavascriptEnumeratorIterator::Create(forinEnumerator, nullptr, scriptContext);
-        return iterator;
     }
 
     Var JavascriptReflect::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)

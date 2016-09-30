@@ -1,0 +1,90 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "f": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "x": {
+        "#__proto__": "Object {...}",
+        "a": "number 3",
+        "b": "number 5",
+        "c": "string test\"string"
+      },
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 1,
+        "sourceText": "var test = \"this is \\\" a string\"",
+        "function": "f"
+      },
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "f": "function <large string>"
+    },
+    "locals": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 0",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>"
+      },
+      "x": {
+        "#__proto__": "Object {...}",
+        "a": "number 3",
+        "b": "number 5",
+        "c": "string test\"string"
+      },
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 1,
+        "sourceText": "var test = \"this is \\\" a string\"",
+        "function": "f"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

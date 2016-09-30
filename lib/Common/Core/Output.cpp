@@ -75,6 +75,7 @@ Output::Trace(Js::Phase phase, const char16 *form, ...)
         va_list argptr;
         va_start(argptr, form);
         retValue += Output::VTrace(_u("%s: "), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
+        va_end(argptr);
     }
 
     return retValue;
@@ -90,6 +91,7 @@ Output::Trace2(Js::Phase phase, const char16 *form, ...)
         va_list argptr;
         va_start(argptr, form);
         retValue += Output::VPrint(form, argptr);
+        va_end(argptr);
     }
 
     return retValue;
@@ -107,6 +109,7 @@ Output::TraceWithPrefix(Js::Phase phase, const char16 prefix[], const char16 *fo
         WCHAR prefixValue[512];
         _snwprintf_s(prefixValue, _countof(prefixValue), _TRUNCATE, _u("%s: %s: "), Js::PhaseNames[static_cast<int>(phase)], prefix);
         retValue += Output::VTrace(_u("%s"), prefixValue, form, argptr);
+        va_end(argptr);
     }
 
     return retValue;
@@ -123,6 +126,7 @@ Output::TraceWithFlush(Js::Phase phase, const char16 *form, ...)
         va_start(argptr, form);
         retValue += Output::VTrace(_u("%s:"), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
         Output::Flush();
+        va_end(argptr);
     }
 
     return retValue;
@@ -139,6 +143,7 @@ Output::TraceWithFlush(Js::Flag flag, const char16 *form, ...)
         va_start(argptr, form);
         retValue += Output::VTrace(_u("[-%s]::"), Js::FlagNames[static_cast<int>(flag)], form, argptr);
         Output::Flush();
+        va_end(argptr);
     }
 
     return retValue;
@@ -215,7 +220,9 @@ Output::TraceStats(Js::Phase phase, const char16 *form, ...)
     {
         va_list argptr;
         va_start(argptr, form);
-        return Output::VPrint(form, argptr);
+        size_t ret_val = Output::VPrint(form, argptr);
+        va_end(argptr);
+        return ret_val;
     }
     return 0;
 }
@@ -236,7 +243,9 @@ Output::Print(const char16 *form, ...)
 {
     va_list argptr;
     va_start(argptr, form);
-    return Output::VPrint(form, argptr);
+    size_t ret_val = Output::VPrint(form, argptr);
+    va_end(argptr);
+    return ret_val;
 }
 
 size_t __cdecl
@@ -245,7 +254,9 @@ Output::Print(int column, const char16 *form, ...)
     Output::SkipToColumn(column);
     va_list argptr;
     va_start(argptr, form);
-    return Output::VPrint(form, argptr);
+    size_t ret_val = Output::VPrint(form, argptr);
+    va_end(argptr);
+    return ret_val;
 }
 
 size_t __cdecl

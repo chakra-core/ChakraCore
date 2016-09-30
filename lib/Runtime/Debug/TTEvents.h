@@ -86,7 +86,7 @@ namespace TTD
         int64 m_ltime;  //-1 indicates any ltime is OK
 
         //The document
-        wchar* m_sourceFile; //temp use until we make docid stable
+        char16* m_sourceFile; //temp use until we make docid stable
         uint32 m_docid;
 
         //The position of the function in the document

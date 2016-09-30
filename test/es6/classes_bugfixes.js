@@ -7,6 +7,18 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
   {
+    name: "GitHub ChakraCore #1465 - call syntax is allowed after class expression",
+    body: function () {
+      var s1 = class { }.toString();
+      var s2 = class x { }.toString();
+      var s3 = class x { }.toString(1, 2, 3); // arguments should not affect valid parse
+
+      assert.areEqual("class { }", s1, "Calling toString after a class expression with no name parses and behaves correctly");
+      assert.areEqual("class x { }", s2, "Calling toString after a class expression with a name parses and behaves correctly");
+      assert.areEqual("class x { }", s3, "Calling toString with arguments after a class expression with a name parses and behaves correctly");
+    }
+  },
+  {
     name: "BLUE 540289: AV on deferred parse of first class method",
     body: function () {
       assert.throws(function() { eval("function f() { var o = { \"a\": class { \"b\""); }, SyntaxError);

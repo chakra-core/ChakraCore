@@ -72,7 +72,7 @@ StackSym::IsArgSlotSym() const
 {
     if(m_isArgSlotSym)
     {
-        Assert(this->m_argSlotNum != 0);
+        Assert(this->m_slotNum != 0);
     }
     return m_isArgSlotSym;
 }
@@ -86,7 +86,7 @@ StackSym::IsArgSlotSym() const
 inline bool
 StackSym::IsParamSlotSym() const
 {
-    return m_paramSlotNum != InvalidSlot;
+	return m_isParamSym;
 }
 
 ///----------------------------------------------------------------------------

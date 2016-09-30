@@ -530,3 +530,8 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 {
     return (RegNum)(offset >= RegXMM0 ? (offset - RegXMM0) / (sizeof(SIMDValue) / sizeof(Js::Var)) + RegXMM0 : offset);
 }
+
+RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
+{
+	return RegNOREG;
+}

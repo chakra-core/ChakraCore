@@ -153,8 +153,8 @@ RT_ERROR_MSG(JSERR_CyclicProtoValue, 5040, "", "Cyclic __proto__ value", kjstErr
 
 RT_ERROR_MSG(JSERR_CantDeleteExpr, 5041, "Calling delete on '%s' is not allowed in strict mode", "Object member not configurable", kjstTypeError, 0) // string 4
 RT_ERROR_MSG(JSERR_RefErrorUndefVariable, 5042, "", "Variable undefined in strict mode",  kjstReferenceError, 0) // string 10
-RT_ERROR_MSG(JSERR_AccessCallerRestricted, 5043, "", "Accessing the 'caller' property is restricted in this context", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_AccessCallee, 5044, "", "Accessing the 'callee' property of an arguments object is not allowed in strict mode", kjstTypeError, 0) // string 2
+RT_ERROR_MSG(JSERR_AccessRestrictedProperty, 5043, "", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context", kjstTypeError, 0)
+// 5044 - Removed
 RT_ERROR_MSG(JSERR_CantAssignToReadOnly, 5045, "", "Assignment to read-only properties is not allowed in strict mode", kjstTypeError, 0) // string 5
 RT_ERROR_MSG(JSERR_NonExtensibleObject, 5046, "", "Cannot create property for a non-extensible object", kjstTypeError, 0) // string 6
 
@@ -213,9 +213,7 @@ RT_ERROR_MSG(JSERR_InvalidPropertySignature, 5092, "The property '%s' has an inv
 
 RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as an input parameter type", "invalid input parameter type", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as an output parameter", "invalid output parameter", kjstTypeError, 0)
-
-RT_ERROR_MSG(JSERR_AccessArgumentsRestricted, 5095, "", "Accessing the 'arguments' property is restricted in this context", kjstTypeError, 0)
-
+// 5095 - Removed
 RT_ERROR_MSG(JSERR_This_NeedInspectableObject, 5096, "%s: 'this' is not an Inspectable Object", "Inspectable Object expected", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
 
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedWinRTChar, 5097, "%s: could not convert argument to type 'char'", "Could not convert argument to type 'char'", kjstTypeError, 0)
@@ -269,7 +267,7 @@ RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String It
 RT_ERROR_MSG(JSERR_InvalidSpreadArgument, 5140, "%s: argument cannot be spread; expected Array or Object with a 'length' property", "Argument cannot be spread; expected Array or Object with a 'length' property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidSpreadLength, 5141, "%s: argument cannot be spread; the 'length' property must be a number or convert to a number", "Argument cannot be spread; the 'length' property must be a number or convert to a number", kjstTypeError, 0)
 
-RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "'super' can only be accessed from a subclass method", kjstReferenceError, 0)
+RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "Missing or invalid 'super' binding", kjstReferenceError, 0)
 RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s' which has a super reference", "Unable to delete property with a super reference", kjstReferenceError, 0)
 
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
@@ -359,3 +357,8 @@ RT_ERROR_MSG(JSERR_InvalidHint, 5658, "%s: invalid hint", "invalid hint", kjstTy
 
 RT_ERROR_MSG(JSERR_This_NeedNamespace, 5659, "%s: 'this' is not a Module Namespace object", "Module Namespace object expected", kjstTypeError, JSERR_This_NeedNamespace) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedListIterator, 5660, "%s: 'this' is not a List Iterator object", "List Iterator expected", kjstTypeError, 0) 
+RT_ERROR_MSG(JSERR_NeedSharedArrayBufferObject, 5661, "%s is not a SharedArrayBuffer", "SharedArrayBuffer object expected", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NeedTypedArrayObject, 5662, "", "Atomics function called with invalid typed array object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of range", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)

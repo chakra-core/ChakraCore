@@ -658,13 +658,11 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
     FileTime = lpFileTime->dwHighDateTime;
     FileTime <<= 32;
     FileTime |= (UINT)lpFileTime->dwLowDateTime;
-    bool isSafe = ClrSafeInt<UINT64>::subtraction(
-            FileTime,
-            SECS_BETWEEN_1601_AND_1970_EPOCHS * SECS_TO_100NS,
-            FileTime);
+    const size_t since1601 = SECS_BETWEEN_1601_AND_1970_EPOCHS * SECS_TO_100NS;
 
-    if (isSafe == true) 
+    if (FileTime > since1601 && since1601 >= 0) 
     {
+        FileTime -= since1601;
 #if HAVE_GMTIME_R
         struct tm timeBuf;
 #endif  /* HAVE_GMTIME_R */
@@ -786,4 +784,3 @@ FileTimeToDosDateTime(
     PERF_EXIT(FileTimeToDosDateTime);
     return bRetVal;
 }
-

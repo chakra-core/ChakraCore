@@ -99,6 +99,7 @@ enum FileVersionScheme : byte
     // Currently Chakra and ChakraCore versioning scheme is different.
     // Same version number for Chakra and ChakraCore doesn't mean they are the same.
     // Give the versioning scheme different value, so that byte code generate from one won't be use in the other.
+    LibraryByteCodeVersioningScheme = 0,
 #ifdef NTBUILD
     EngineeringVersioningScheme = 10,
     ReleaseVersioningScheme = 20,
@@ -417,34 +418,58 @@ public:
             expectedOpCodeCount.value = 0;
         }
 
-        // library alaways use the release versioning scheme
-        byte actualFileVersionScheme = GenerateLibraryByteCode()? ReleaseVersioningScheme : CurrentFileVersionScheme;
+        // Library bytecode uses its own scheme
+        byte actualFileVersionScheme = GenerateLibraryByteCode() ? LibraryByteCodeVersioningScheme : CurrentFileVersionScheme;
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.ForceSerializedBytecodeVersionSchema)
         {
             actualFileVersionScheme = (byte)Js::Configuration::Global.flags.ForceSerializedBytecodeVersionSchema;
         }
 #endif
+
         fileVersionKind.value = actualFileVersionScheme;
-        if (actualFileVersionScheme != ReleaseVersioningScheme)
+        switch (actualFileVersionScheme)
         {
-            Assert(!GenerateLibraryByteCode());
-            Assert(actualFileVersionScheme == EngineeringVersioningScheme);
-            DWORD jscriptMajor, jscriptMinor, buildDateHash, buildTimeHash;
-            Js::VerifyOkCatastrophic(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajor, &jscriptMinor, &buildDateHash, &buildTimeHash));
-            V1.value = jscriptMajor;
-            V2.value = jscriptMinor;
-            V3.value = buildDateHash;
-            V4.value = buildTimeHash;
+        case EngineeringVersioningScheme:
+            {
+                Assert(!GenerateLibraryByteCode());
+                DWORD jscriptMajor, jscriptMinor, buildDateHash, buildTimeHash;
+                Js::VerifyOkCatastrophic(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajor, &jscriptMinor, &buildDateHash, &buildTimeHash));
+                V1.value = jscriptMajor;
+                V2.value = jscriptMinor;
+                V3.value = buildDateHash;
+                V4.value = buildTimeHash;
+                break;
+            }
+
+        case ReleaseVersioningScheme:
+            {
+                Assert(!GenerateLibraryByteCode());
+                auto guidDWORDs = (DWORD*)(&byteCodeCacheReleaseFileVersion);
+                V1.value = guidDWORDs[0];
+                V2.value = guidDWORDs[1];
+                V3.value = guidDWORDs[2];
+                V4.value = guidDWORDs[3];
+                break;
+            }
+
+        case LibraryByteCodeVersioningScheme:
+            {
+                Assert(GenerateLibraryByteCode());
+                // To keep consistent library code between Chakra.dll and ChakraCore.dll, use a fixed version.
+                // This goes hand in hand with the bytecode verification unit tests.
+                V1.value = 0;
+                V2.value = 0;
+                V3.value = 0;
+                V4.value = 0;
+                break;
+            }
+
+        default:
+            Throw::InternalError();
+            break;
         }
-        else
-        {
-            auto guidDWORDs = (DWORD*)(&byteCodeCacheReleaseFileVersion);
-            V1.value = guidDWORDs[0];
-            V2.value = guidDWORDs[1];
-            V3.value = guidDWORDs[2];
-            V4.value = guidDWORDs[3];
-        }
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.ForceSerializedBytecodeMajorVersion)
         {
@@ -2197,7 +2222,7 @@ public:
             ;
 
         PrependInt32(builder, _u("BitFlags"), bitFlags);
-        PrependInt32(builder, _u("Relative Function ID"), function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
+        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
         PrependInt32(builder, _u("Attributes"), function->GetAttributes());
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
@@ -2388,7 +2413,7 @@ public:
 
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
     {
-        topFunctionId = function->functionId;
+        topFunctionId = function->GetLocalFunctionId();
         return AddFunctionBody(functionsTable, function, srcInfo);
     }
 
@@ -2768,7 +2793,7 @@ public:
         current = ReadConstantSizedInt32NoSize(current, &totalSize);
         current = ReadByte(current, &fileVersionScheme);
 
-        byte expectedFileVersionScheme = isLibraryCode? ReleaseVersioningScheme : CurrentFileVersionScheme;
+        byte expectedFileVersionScheme = isLibraryCode? LibraryByteCodeVersioningScheme : CurrentFileVersionScheme;
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.ForceSerializedBytecodeVersionSchema)
         {
@@ -2787,20 +2812,43 @@ public:
         DWORD expectedV3 = 0;
         DWORD expectedV4 = 0;
 
-        if (expectedFileVersionScheme != ReleaseVersioningScheme)
+        switch (expectedFileVersionScheme)
         {
-            Js::VerifyCatastrophic(!isLibraryCode);
-            Js::VerifyCatastrophic(expectedFileVersionScheme == EngineeringVersioningScheme);
-            Js::VerifyOkCatastrophic(AutoSystemInfo::GetJscriptFileVersion(&expectedV1, &expectedV2, &expectedV3, &expectedV4));
+        case EngineeringVersioningScheme:
+            {
+                Js::VerifyCatastrophic(!isLibraryCode);
+                Js::VerifyOkCatastrophic(AutoSystemInfo::GetJscriptFileVersion(&expectedV1, &expectedV2, &expectedV3, &expectedV4));
+                break;
+            }
+
+        case ReleaseVersioningScheme:
+            {
+                Js::VerifyCatastrophic(!isLibraryCode);
+                auto guidDWORDs = (DWORD*)(&byteCodeCacheReleaseFileVersion);
+                expectedV1 = guidDWORDs[0];
+                expectedV2 = guidDWORDs[1];
+                expectedV3 = guidDWORDs[2];
+                expectedV4 = guidDWORDs[3];
+                break;
+            }
+
+        case LibraryByteCodeVersioningScheme:
+            {
+                // To keep consistent library code between Chakra.dll and ChakraCore.dll, use a fixed version.
+                // This goes hand in hand with the bytecode verification unit tests.
+                Js::VerifyCatastrophic(isLibraryCode);
+                expectedV1 = 0;
+                expectedV2 = 0;
+                expectedV3 = 0;
+                expectedV4 = 0;
+                break;
+            }
+
+        default:
+            Throw::InternalError();
+            break;
         }
-        else
-        {
-            auto guidDWORDs = (DWORD*)(&byteCodeCacheReleaseFileVersion);
-            expectedV1 = guidDWORDs[0];
-            expectedV2 = guidDWORDs[1];
-            expectedV3 = guidDWORDs[2];
-            expectedV4 = guidDWORDs[3];
-        }
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.ForceSerializedBytecodeMajorVersion)
         {

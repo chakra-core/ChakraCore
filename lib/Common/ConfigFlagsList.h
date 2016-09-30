@@ -10,6 +10,7 @@ PHASE(All)
     PHASE(Parse)
         PHASE(RegexCompile)
         PHASE(DeferParse)
+        PHASE(Redeferral)
         PHASE(DeferEventHandlers)
         PHASE(FunctionSourceInfoParse)
         PHASE(StringTemplateParse)
@@ -203,6 +204,7 @@ PHASE(All)
         PHASE(EncodeConstants)
         PHASE(RegAlloc)
             PHASE(Liveness)
+                PHASE(RegParams)
             PHASE(LinearScan)
                 PHASE(OpHelperRegOpt)
                 PHASE(StackPack)
@@ -573,6 +575,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
 // ES6 DEFAULT BEHAVIOR
@@ -782,6 +785,14 @@ PHASE(All)
 // RELEASE FLAGS
 #define FLAGPR(Type, ParentName, Name, String, Default)     FLAG(Type, Name, String, Default, ParentName, FALSE)
 #define FLAGR(Type, Name, String, Default)                  FLAG(Type, Name, String, Default, NoParent, FALSE)
+
+// Release flags with parent and acronym
+#ifndef FLAGPRA
+#define FLAGPRA(Type, ParentName, Name, Acronym, String, Default) \
+        FLAGPR(Type, ParentName, Name, String, Default) \
+        FLAGNR(Type, Acronym, String, Default)
+#endif
+
 
 // RELEASE FLAGS WITH REGISTRY OVERRIDE
 #define FLAGPR_REGOVR_ASMJS(Type, ParentName, Name, String, Default) FLAG_REGOVR_ASMJS(Type, Name, String, Default, ParentName, FALSE)
@@ -1012,7 +1023,8 @@ FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose tra
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 
-FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"              , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable SharedArrayBuffer"                       , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
 
@@ -1473,5 +1485,6 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
 #undef FLAGNR
 #undef FLAGNRA
 #undef FLAGPNR
+#undef FLAGPRA
 
 #endif

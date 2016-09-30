@@ -76,8 +76,9 @@ namespace Js
         Assert(ThreadContext::IsOnStack(stackScriptFunction));
         Assert(stackScriptFunction->boxedScriptFunction == nullptr);
 
-        FunctionBody * functionParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
-        Assert(functionParent != nullptr);
+        FunctionInfo * functionInfoParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
+        Assert(functionInfoParent != nullptr);
+        FunctionBody * functionParent = functionInfoParent->GetFunctionBody();
 
         ScriptContext * scriptContext = stackScriptFunction->GetScriptContext();
         ScriptFunction * boxedFunction;
@@ -125,13 +126,14 @@ namespace Js
             for (uint i = 0; i < current->GetNestedCount(); i++)
             {
                 FunctionProxy * nested = current->GetNestedFunc(i);
-                functionObjectToBox.Add(nested->GetFunctionProxy());
+                functionObjectToBox.Add(nested);
                 if (nested->IsFunctionBody())
                 {
                     nested->GetFunctionBody()->ClearStackNestedFuncParent();
                 }
             }
-            current = current->GetAndClearStackNestedFuncParent();
+            FunctionInfo * functionInfo = current->GetAndClearStackNestedFuncParent();
+            current = functionInfo ? functionInfo->GetFunctionBody() : nullptr;
         }
         while (current && current->DoStackNestedFunc());
     }
@@ -143,7 +145,7 @@ namespace Js
 
     bool StackScriptFunction::BoxState::NeedBoxScriptFunction(ScriptFunction * scriptFunction)
     {
-        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy()->GetFunctionProxy());
+        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy());
     }
 
     void StackScriptFunction::BoxState::Box()
@@ -727,8 +729,7 @@ namespace Js
             Output::Flush();
         }
 
-        // Make sure we use the latest function proxy (if it is parsed or deserialized)
-        FunctionProxy * functionBody = stackFunction->GetFunctionProxy()->GetFunctionProxy();
+        FunctionProxy * functionBody = stackFunction->GetFunctionProxy();
         boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionBody);
         stackFunction->boxedScriptFunction = boxedFunction;
         stackFunction->SetEnvironment(boxedFrameDisplay);

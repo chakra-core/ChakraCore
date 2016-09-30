@@ -1,0 +1,93 @@
+[
+  {
+    "log": "start"
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "a1",
+        "function": "sub_expression_step_over"
+      },
+      {
+        "line": 28,
+        "column": 0,
+        "sourceText": "sub_expression_step_over()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOver1_at_obj_lit"
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "var obj = { \r\n        a: a1,  \r\n        b: a1 + 20, \r\n        c:  {\r\n                ca: a1 * 2, \r\n                cb: foo(),\r\n                cc: a1\r\n            }\r\n        }",
+        "function": "sub_expression_step_over"
+      },
+      {
+        "line": 28,
+        "column": 0,
+        "sourceText": "sub_expression_step_over()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOver2_next_statement"
+  },
+  {
+    "callStack": [
+      {
+        "line": 25,
+        "column": 4,
+        "sourceText": "WScript.Echo(JSON.stringify(obj))",
+        "function": "sub_expression_step_over"
+      },
+      {
+        "line": 28,
+        "column": 0,
+        "sourceText": "sub_expression_step_over()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "sub_expression_step_over": "function <large string>",
+      "a1": "number 10"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "functionCallsReturn": {
+      "[foo returned]": "number 50"
+    },
+    "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "a": "number 10",
+        "b": "number 30",
+        "c": "Object {...}"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "sub_expression_step_over": "function <large string>",
+      "a1": "number 10"
+    }
+  }
+]

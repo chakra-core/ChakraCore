@@ -1,0 +1,70 @@
+[
+  {
+    "this": {},
+    "locals": {
+      "arguments": "object null",
+      "o": {
+        "#__proto__": {
+          "constructor": "function function Object() { [native code] }",
+          "hasOwnProperty": "function function hasOwnProperty() { [native code] }",
+          "propertyIsEnumerable": "function function propertyIsEnumerable() { [native code] }",
+          "isPrototypeOf": "function function isPrototypeOf() { [native code] }",
+          "toLocaleString": "function function toLocaleString() { [native code] }",
+          "toString": "function function toString() { [native code] }",
+          "valueOf": "function function valueOf() { [native code] }",
+          "#__proto__": "object null",
+          "__defineGetter__": "function function __defineGetter__() { [native code] }",
+          "__defineSetter__": "function function __defineSetter__() { [native code] }",
+          "__lookupGetter__": "function function __lookupGetter__() { [native code] }",
+          "__lookupSetter__": "function function __lookupSetter__() { [native code] }"
+        },
+        "f": {
+          "#__proto__": "function function() {\n    [native code]\n}",
+          "prototype": "Object {...}",
+          "name": "string f",
+          "caller": "object null",
+          "arguments": "object null",
+          "length": "number 0"
+        },
+        "g": {
+          "#__proto__": "function function() {\n    [native code]\n}",
+          "prototype": "Object {...}",
+          "name": "string g",
+          "caller": "object null",
+          "arguments": "object null",
+          "length": "number 0"
+        }
+      }
+    },
+    "globals": {
+      "WScript": {
+        "#__proto__": "Object {...}",
+        "Echo": "function Echo",
+        "Quit": "function Quit",
+        "LoadScriptFile": "function LoadScriptFile",
+        "LoadScript": "function LoadScript",
+        "LoadModule": "function LoadModule",
+        "SetTimeout": "function SetTimeout",
+        "ClearTimeout": "function ClearTimeout",
+        "Attach": "function Attach",
+        "Detach": "function Detach",
+        "DumpFunctionPosition": "function DumpFunctionPosition",
+        "RequestAsyncBreak": "function RequestAsyncBreak",
+        "Edit": "function Edit",
+        "Platform": "Object {...}",
+        "Arguments": "Array []"
+      },
+      "print": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string print",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      }
+    }
+  }
+]
