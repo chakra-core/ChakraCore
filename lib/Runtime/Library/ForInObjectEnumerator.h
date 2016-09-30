@@ -15,7 +15,6 @@ namespace Js
         BVSparse<Recycler>* propertyIds;
         RecyclableObject *firstPrototype;
         Var currentIndex;
-        Type* baseObjectType;
         SListBase<Js::PropertyRecord const *> newPropertyStrings;
         ScriptContext * scriptContext;
         bool enumSymbols;
