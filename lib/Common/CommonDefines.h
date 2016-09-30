@@ -151,6 +151,15 @@
 #define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
 #define RECYCLER_PAGE_HEAP                          // PageHeap support
 
+#ifdef RECYCLER_WRITE_BARRIER
+#if defined(__clang__) 
+#define GLOBAL_FORCE_USE_WRITE_BARRIER 1
+#else
+#define GLOBAL_FORCE_USE_WRITE_BARRIER 1            // force turn on write barrier in windows
+#endif
+#endif
+
+
 // JIT features
 
 #if DISABLE_JIT

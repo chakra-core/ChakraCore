@@ -13,11 +13,59 @@ Type with barrier found: "Js::CompactCounters"
 Type with barrier found: "Js::FunctionProxy"
 Type with barrier found: "Js::ParseableFunctionInfo"
 Type with barrier found: "Js::FunctionBody"
+In "Js::FunctionBody::StatementMap::New"
+  Allocating "struct Js::FunctionBody::StatementMap" in write barriered memory
 Type with barrier found: "Js::FunctionBody::SourceInfo"
+In "Js::ScopeObjectChain::ScopeObjectChain"
+  Allocating "ScopeObjectChainList" in write barriered memory
+In "Js::JavascriptLibrary::EnsureReferencedPropertyRecordList"
+  Allocating "ReferencedPropertyRecordHashSet" in write barriered memory
+In "SRCINFO::Copy"
+  Allocating "class SRCINFO" in write barriered memory
+In "Js::SparseArraySegment::Allocate"
+  Allocating "SparseArraySegment<T>" in write barriered memory
+In "Js::FunctionBody::RecordStatementMap"
+  Allocating "StatementMapList" in write barriered memory
+In "Js::FunctionBody::RecordStatementAdjustment"
+  Allocating "StatementAdjustmentRecordList" in write barriered memory
 In "Js::FunctionBody::NewFromRecycler"
   Allocating "class Js::FunctionBody" in write barriered memory
+In "Js::FunctionBody::FunctionBody"
+  Allocating "FunctionEntryPointList" in write barriered memory
+In "Js::DeferDeserializeFunctionInfo::DeferDeserializeFunctionInfo"
+  Allocating "class Js::ProxyEntryPointInfo" in write barriered memory
+In "Js::DeferDeserializeFunctionInfo::New"
+  Allocating "class Js::DeferDeserializeFunctionInfo" in write barriered memory
+In "Js::ParseableFunctionInfo::ParseableFunctionInfo"
+  Allocating "struct Js::ParseableFunctionInfo::NestedArray" in write barriered memory
+In "Js::ParseableFunctionInfo::ParseableFunctionInfo"
+  Allocating "class Js::FunctionEntryPointInfo" in write barriered memory
+In "Js::ParseableFunctionInfo::ParseableFunctionInfo"
+  Allocating "class Js::ProxyEntryPointInfo" in write barriered memory
 In "Js::ParseableFunctionInfo::New"
   Allocating "class Js::ParseableFunctionInfo" in write barriered memory
+In "Js::FunctionProxy::EnsureFunctionObjectTypeList"
+  Allocating "FunctionTypeWeakRefList" in write barriered memory
+In "Js::ParseableFunctionInfo::Parse"
+  Allocating "Js::PropertyRecordList" in write barriered memory
+In "Js::PropertyIdOnRegSlotsContainer::New"
+  Allocating "struct Js::PropertyIdOnRegSlotsContainer" in write barriered memory
+In "Js::DebuggerScope::EnsurePropertyListIsAllocated"
+  Allocating "DebuggerScopePropertyList" in write barriered memory
+In "Js::FunctionBody::AllocatePropertyIdArrayForFormals"
+  Allocating "Js::PropertyIdArray" in write barriered memory
+In "Js::FunctionBody::CreateNewDefaultEntryPoint"
+  Allocating "class Js::FunctionEntryPointInfo" in write barriered memory
+In "Js::FunctionBody::RecordStartScopeObject"
+  Allocating "class Js::ScopeObjectChain" in write barriered memory
+In "Js::FunctionBody::AddScopeObject"
+  Allocating "class Js::DebuggerScope" in write barriered memory
+In "Js::FunctionBody::EnsureAuxStatementData"
+  Allocating "struct Js::FunctionBody::AuxStatementData" in write barriered memory
+In "Js::FunctionBody::RecordCrossFrameEntryExitRecord"
+  Allocating "CrossFrameEntryExitRecordList" in write barriered memory
+In "Js::EntryPointPolymorphicInlineCacheInfo::EnsureInlineeInfo"
+  Allocating "class Js::PolymorphicInlineCacheInfo" in write barriered memory
 -------------------------
 
 pointerClasses
@@ -380,6 +428,7 @@ pointerClasses
   UnifiedRegex::CharMap
   UnifiedRegex::CharSet<char16_t>::FullRep
   UnifiedRegex::CharTrie
+  UnifiedRegex::LoopInfo
   UnifiedRegex::Matcher
   UnifiedRegex::Program
   UnifiedRegex::Program::Instructions
@@ -427,52 +476,13 @@ barrieredClasses
 Recycler allocations
 -------------------------
 
-Alloc
--------------------------
-
-  Js::PropertyIdArray
--------------------------
-
--------------------------
-
-AllocFinalizedInlined
--------------------------
-
-  class Js::DeferDeserializeFunctionInfo
-  class Js::FunctionEntryPointInfo
--------------------------
-
--------------------------
-
 AllocFinalizedWithBarrierInlined
 -------------------------
 
+  class Js::DeferDeserializeFunctionInfo
   class Js::FunctionBody
+  class Js::FunctionEntryPointInfo
   class Js::ParseableFunctionInfo
--------------------------
-
--------------------------
-
-AllocInlined
--------------------------
-
-  CrossFrameEntryExitRecordList
-  DebuggerScopePropertyList
-  FunctionEntryPointList
-  FunctionTypeWeakRefList
-  Js::PropertyRecordList
-  ReferencedPropertyRecordHashSet
-  ScopeObjectChainList
-  StatementAdjustmentRecordList
-  StatementMapList
-  class Js::DebuggerScope
-  class Js::PolymorphicInlineCacheInfo
-  class Js::ProxyEntryPointInfo
-  class Js::ScopeObjectChain
-  class SRCINFO
-  struct Js::FunctionBody::AuxStatementData
-  struct Js::FunctionBody::StatementMap
-  struct Js::PropertyIdOnRegSlotsContainer
 -------------------------
 
 -------------------------
@@ -502,11 +512,27 @@ AllocWeakReferenceEntry
 
 -------------------------
 
-AllocZero
+AllocWithBarrier
 -------------------------
 
-  SparseArraySegment<T>
-  struct Js::ParseableFunctionInfo::NestedArray
+  CrossFrameEntryExitRecordList
+  DebuggerScopePropertyList
+  FunctionEntryPointList
+  FunctionTypeWeakRefList
+  Js::PropertyIdArray
+  Js::PropertyRecordList
+  ReferencedPropertyRecordHashSet
+  ScopeObjectChainList
+  StatementAdjustmentRecordList
+  StatementMapList
+  class Js::DebuggerScope
+  class Js::PolymorphicInlineCacheInfo
+  class Js::ProxyEntryPointInfo
+  class Js::ScopeObjectChain
+  class SRCINFO
+  struct Js::FunctionBody::AuxStatementData
+  struct Js::FunctionBody::StatementMap
+  struct Js::PropertyIdOnRegSlotsContainer
 -------------------------
 
 -------------------------
@@ -517,6 +543,8 @@ AllocZeroWithBarrier
   AuxPtrs16
   AuxPtrs32
   AuxPtrsT
+  SparseArraySegment<T>
+  struct Js::ParseableFunctionInfo::NestedArray
 -------------------------
 
 -------------------------
@@ -527,7 +555,29 @@ barrierAllocations
   AuxPtrs16
   AuxPtrs32
   AuxPtrsT
+  CrossFrameEntryExitRecordList
+  DebuggerScopePropertyList
+  FunctionEntryPointList
+  FunctionTypeWeakRefList
+  Js::PropertyIdArray
+  Js::PropertyRecordList
+  ReferencedPropertyRecordHashSet
+  ScopeObjectChainList
+  SparseArraySegment<T>
+  StatementAdjustmentRecordList
+  StatementMapList
+  class Js::DebuggerScope
+  class Js::DeferDeserializeFunctionInfo
   class Js::FunctionBody
+  class Js::FunctionEntryPointInfo
   class Js::ParseableFunctionInfo
+  class Js::PolymorphicInlineCacheInfo
+  class Js::ProxyEntryPointInfo
+  class Js::ScopeObjectChain
+  class SRCINFO
+  struct Js::FunctionBody::AuxStatementData
+  struct Js::FunctionBody::StatementMap
+  struct Js::ParseableFunctionInfo::NestedArray
+  struct Js::PropertyIdOnRegSlotsContainer
 -------------------------
 

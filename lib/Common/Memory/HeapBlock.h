@@ -122,6 +122,9 @@ enum ObjectInfoBits : unsigned short
     ClientTrackableLeafBits     = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
     ClientTrackableObjectBits   = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
 
+    ClientTrackableObjectWithBarrierBits = ClientTrackableObjectBits | WithBarrierBit,
+    ClientFinalizableObjectWithBarrierBits = ClientFinalizableObjectBits | WithBarrierBit,
+
     WeakReferenceEntryBits      = LeafBit,
 
     ImplicitRootLeafBits        = LeafBit | ImplicitRootBit,
