@@ -391,7 +391,7 @@ XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
 
 void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad)
 {
-    size_t allocSize = sizeof(Js::JavascriptNumber);
+    uint allocSize = (uint)sizeof(Js::JavascriptNumber);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     allocSize += Js::Configuration::Global.flags.NumberAllocPlusSize;
 #endif
@@ -399,7 +399,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
     // TODO: share same pad size with main process
     if (recyclerVerifyEnabled)
     {
-        size_t padAllocSize = AllocSizeMath::Add(sizeof(Js::JavascriptNumber) + sizeof(size_t), recyclerVerifyPad);
+        uint padAllocSize = (uint)AllocSizeMath::Add(sizeof(Js::JavascriptNumber) + sizeof(size_t), recyclerVerifyPad);
         allocSize = padAllocSize < allocSize ? allocSize : padAllocSize;
     }
 #endif    
@@ -409,7 +409,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
     if (BlockSize%allocSize != 0)
     {
         // align allocation sizeCat to be 2^n to make integration easier
-        allocSize = BlockSize / (1 << (Math::Log2(BlockSize / allocSize)));
+        allocSize = BlockSize / (1 << (Math::Log2((size_t)BlockSize / allocSize)));
     }
 
     sizeCat = allocSize;
