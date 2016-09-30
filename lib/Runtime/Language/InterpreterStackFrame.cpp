@@ -1553,29 +1553,38 @@ namespace Js
                 push layout;   // push stack layout
                 call InterpreterStackFrame::AsmJsInterpreter;
                 push eax; // push the return value into the stack
-                push layout;
+                push layout; // push arg1
                 call InterpreterStackFrame::GetDynamicRetType;
+                // setup return type mask from enum. e.g.: 3 => 0x8
                 mov ecx, eax;
                 mov eax, 1
                 shl eax, cl;
-                and eax, CannotUseEax;
-                jz end;
-                push eax;
-                push layout;
+                and eax, CannotUseEax; // Keep only types that need to read from memory
+                jz end; // if nothing is left, that means we simply use eax as return value
+
+                push eax; // save return type mask
+                push layout; // push arg1
                 call InterpreterStackFrame::GetAsmJsReturnValueOffset;
-                pop ecx;
-                and ecx, ~IsFloat;
-                jz ToXmmWord;
-                and ecx, ~(IsDouble | IsInt64);
-                jz ToXmmDWord;
-                jmp doSimd;
+                pop ecx; // restore return type mask
+
+                and ecx, ~IsFloat; // Remove float bit
+                jz ToXmmWord; // if nothing is left, that means the return type is float
+                and ecx, ~IsDouble; // Remove double bit
+                jz ToXmmDWord; // if nothing is left, that means the return type is double
+                and ecx, ~IsInt64; // Remove int64 bit
+                jz readHighWord; // if nothing is left, that means the return type is int64
+                jmp doSimd; // Otherwise, the return type is simd
             ToXmmWord:
                 // float
                 cvtsd2ss xmm0, [eax];
                 jmp end;
             ToXmmDWord:
-                // double and int64
+                // double
                 movsd xmm0, [eax];
+                jmp end;
+            readHighWord:
+                // save high int64 bits into ecx
+                mov ecx, [eax + 4];
                 jmp end;
             doSimd:
                 // simd value
@@ -1583,8 +1592,8 @@ namespace Js
            end:
                 push layout;
                 call InterpreterStackFrame::GetAsmJsArgSize;
-                mov ecx, eax;
-                pop eax;  // pop the return value from AsmJsInterpreter to eax
+                mov edx, eax;
+                pop eax; // pop the return value from AsmJsInterpreter to eax
 
                 // Epilog, callee cleanup
                 mov  esp, ebp;
@@ -1605,18 +1614,23 @@ namespace Js
                 // 0x0C InterpreterAsmThunk return address <- stack pointer
 
                 push eax; // save eax
-                lea eax, [esp+ecx*1+0xC] // eax will be our stack destination. we need to move backwards because memory might overlap
-                mov edx, [esp+0x10];
-                mov [eax], edx; // move the dynamic interpreter thunk return location
+                push ecx; // save ecx
+                // we have to do +0x8 on all stack addresses because we saved 2 registers
+
+                lea eax, [esp + edx * 1 + (0x8 + 0x8)]; // eax will be our stack destination. we need to move backwards because memory might overlap
+                mov ecx, [esp + (0xC + 0x8)];
+                mov [eax], ecx; // move the dynamic interpreter thunk return location
                 sub eax, 0x4;
-                mov edx, [esp+0xC];
-                mov [eax], edx; // move the dynamic interpreter thunk "push ebp" location
+                mov ecx, [esp + (0x8 + 0x8)];
+                mov [eax], ecx; // move the dynamic interpreter thunk "push ebp" location
                 // skip "push functionObject"
                 sub eax, 0x4;
-                mov edx, [esp+0x4];
-                mov [eax], edx; // move the return location
-                pop eax;
-                add  esp, ecx; // cleanup arguments
+                mov ecx, [esp + (0x0 + 0x8)];
+                mov [eax], ecx; // move the return location
+
+                pop ecx; // restore possible int64 return value
+                pop eax; // restore return value
+                add esp, edx; // cleanup arguments
                 ret;
             }
         }
@@ -2084,8 +2098,14 @@ namespace Js
             retVal = GetAsmJsRetVal<int>(newInstance);
             break;
         case AsmJsRetType::Int64:
-            function->GetScriptContext()->asmJsReturnValue.int64Val = GetAsmJsRetVal<int64>(newInstance);
+        {
+            int64 int64RetVal = GetAsmJsRetVal<int64>(newInstance);
+            function->GetScriptContext()->asmJsReturnValue.int64Val = int64RetVal;
+            // put the lower bits into eax
+            // we'll read the higher bits from memory
+            retVal = (int)int64RetVal;
             break;
+        }
         default:
             Assume(false);
         }
@@ -3763,14 +3783,18 @@ namespace Js
 #endif
                 push function;
             call entryPoint;
+            push ecx; // save possible int64 return value
             mov ecx, retType;
             mov edx, 1;
             shl edx, cl;
+            pop ecx; // restore possible int64 return value
             and edx, CannotUseEax;
             jz FromEax;
+            and edx, ~IsInt64;
+            jz FromEaxEcx;
             and edx, ~IsFloat;
             jz FromXmmWord;
-            and edx, ~(IsDouble | IsInt64);
+            and edx, ~IsDouble;
             jz FromXmmDWord;
             // simd
             movups retVals.retSimdVal, xmm0;
@@ -3778,14 +3802,18 @@ namespace Js
         FromEax:
             mov retVals.retIntVal, eax;
             jmp end;
+        FromEaxEcx:
+            mov retVals.retIntVal, eax;
+            mov retVals.retIntVal + 4, ecx;
+            jmp end;
         FromXmmWord:
             movss retVals.retFloatVal, xmm0;
             jmp end;
         FromXmmDWord:
             movsd retVals.retDoubleVal, xmm0;
         end:
-              // Restore ESP
-              mov esp, savedEsp;
+            // Restore ESP
+            mov esp, savedEsp;
         }
         switch (retType)
         {

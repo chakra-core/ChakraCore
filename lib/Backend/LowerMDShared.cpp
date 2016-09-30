@@ -810,6 +810,19 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         else if (asmType.which() == Js::AsmJsRetType::Int64)
         {
             regType = TyInt64;
+#ifdef _M_IX86
+            regType = TyInt32;
+            Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(retInstr->GetSrc1()->AsRegOpnd());
+
+            retInstr->UnlinkSrc1();
+            retInstr->SetSrc1(srcPair.low);
+
+            // Mov high bits to ecx
+            IR::RegOpnd* regEcx = IR::RegOpnd::New(TyInt32, this->m_func);
+            regEcx->SetReg(RegECX);
+            IR::Instr* movHighInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEcx, srcPair.high, this->m_func);
+            retInstr->InsertBefore(ChangeToAssign(movHighInstr));
+#endif
         }
         else if (asmType.which() == Js::AsmJsRetType::Float32x4)
         {

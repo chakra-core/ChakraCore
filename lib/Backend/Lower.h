@@ -616,7 +616,8 @@ private:
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
 #ifndef _M_X64
-    typedef BaseDictionary<SymID, Int64RegPair, JitArenaAllocator> Int64RegPairMap;
+    struct Int64SymPair { StackSym* high; StackSym* low; };
+    typedef BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64RegPairMap;
     Int64RegPairMap* m_int64RegPairMap;
 #endif
 };

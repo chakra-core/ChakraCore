@@ -30,13 +30,13 @@ LowererMDArch::GetRegReturn(IRType type)
 RegNum
 LowererMDArch::GetRegReturnAsmJs(IRType type)
 {
-    if (IRType_IsFloat(type) || IRType_IsSimd128(type) || IRType_IsInt64(type))
+    if (IRType_IsFloat(type) || IRType_IsSimd128(type))
     {
         return RegXMM0;
     }
     else
     {
-        Assert(type == TyInt32);
+        Assert(type == TyInt32 || type == TyInt64);
         return RegEAX;
     }
 }
@@ -892,18 +892,23 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
         IR::Instr * movInstr;
         if (IRType_IsInt64(dstType))
         {
-            Assert(returnReg == RegXMM0);
+            Assert(returnReg == RegEAX);
             Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(callInstr->GetDst()->AsRegOpnd());
-            callInstr->GetDst()->SetType(TyFloat64);
-            movInstr = callInstr->SinkDst(Js::OpCode::MOVD, returnReg);
+            callInstr->GetDst()->SetType(TyInt32);
+            movInstr = callInstr->SinkDst(GetAssignOp(TyInt32), returnReg);
             movInstr->UnlinkDst();
             movInstr->SetDst(dstPair.low);
 
-            // Move the bits 63:32 to 31:0 (~equivalent to shift right by 32)
-            IR::Instr* shiftInstr = IR::Instr::New(Js::OpCode::SHUFPS, callInstr->GetDst(), callInstr->GetDst(), IR::IntConstOpnd::New(1, TyInt8, this->m_func), this->m_func);
-            movInstr->InsertAfter(shiftInstr);
-            IR::Instr* mov2Instr = IR::Instr::New(Js::OpCode::MOVD, dstPair.high, callInstr->GetDst(), this->m_func);
-            shiftInstr->InsertAfter(mov2Instr);
+            // Make ecx alive as it contains the high bits for the int64 return value
+            IR::RegOpnd* highReg = IR::RegOpnd::New(TyInt32, this->m_func);
+            highReg->SetReg(RegECX);
+            // todo:: Remove the NOP in peeps
+            IR::Instr* nopInstr = IR::Instr::New(Js::OpCode::NOP, highReg, this->m_func);
+            movInstr->InsertBefore(nopInstr);
+
+            IR::Instr* mov2Instr = IR::Instr::New(GetAssignOp(TyInt32), dstPair.high, highReg, this->m_func);
+            movInstr->InsertAfter(mov2Instr);
+
             retInstr = mov2Instr;
         }
         else
@@ -1801,86 +1806,21 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     // get asm.js return type
     Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
     Js::AsmJsRetType asmRetType = asmJsFuncInfo->GetReturnType();
-    IRType regType;
-    if (asmRetType.which() == Js::AsmJsRetType::Double)
-    {
-        regType = TyFloat64;
-    }
-    else if (asmRetType.which() == Js::AsmJsRetType::Float)
-    {
-        regType = TyFloat32;
-    }
-    else if (asmRetType.toVarType().isFloat32x4())
-    {
-        regType = TySimd128F4;
-    }
-    else if (asmRetType.toVarType().isInt32x4())
-    {
-        regType = TySimd128I4;
-    }
-    else if (asmRetType.toVarType().isInt16x8())
-    {
-        regType = TySimd128I8;
-    }
-    else if (asmRetType.toVarType().isInt8x16())
-    {
-        regType = TySimd128I16;
-    }
-    else if (asmRetType.toVarType().isUint32x4())
-    {
-        regType = TySimd128U4;
-    }
-    else if (asmRetType.toVarType().isUint16x8())
-    {
-        regType = TySimd128U8;
-    }
-    else if (asmRetType.toVarType().isUint8x16())
-    {
-        regType = TySimd128U16;
-    }
-    else if (asmRetType.toVarType().isBool32x4())
-    {
-        regType = TySimd128B4;
-    }
-    else if (asmRetType.toVarType().isBool16x8())
-    {
-        regType = TySimd128B8;
-    }
-    else if (asmRetType.toVarType().isBool8x16())
-    {
-        regType = TySimd128B16;
-    }
-    else if (asmRetType.toVarType().isFloat64x2())
-    {
-        regType = TySimd128D2;
-    }
-    else
-    {
-        Assert(asmRetType.which() == Js::AsmJsRetType::Signed || asmRetType.which() == Js::AsmJsRetType::Void);
-        regType = TyInt32;
-    }
+    IR::IntConstOpnd* intSrc = nullptr;
     if (m_func->IsLoopBody())
     {
         // Insert RET
-        IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(0, TyMachReg, this->m_func);
-        IR::RegOpnd *eaxReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);
-        IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, this->m_func);
-        retInstr->SetSrc1(intSrc);
-        retInstr->SetSrc2(eaxReg);
-        exitInstr->InsertBefore(retInstr);
+        intSrc = IR::IntConstOpnd::New(0, TyMachReg, this->m_func);
     }
     else
     {
-
         // Generate RET
         int32 alignedSize = Math::Align<int32>(asmJsFuncInfo->GetArgByteSize(), MachStackAlignment);
-        IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(alignedSize + MachPtr, TyMachReg, m_func);
-        IR::RegOpnd * retReg = IR::RegOpnd::New(nullptr, GetRegReturnAsmJs(regType), regType, m_func);
-        IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, m_func);
-        retInstr->SetSrc1(intSrc);
-        retInstr->SetSrc2(retReg);
-        exitInstr->InsertBefore(retInstr);
+        intSrc = IR::IntConstOpnd::New(alignedSize + MachPtr, TyMachReg, m_func);
     }
+    IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, m_func);
+    retInstr->SetSrc1(intSrc);
+    exitInstr->InsertBefore(retInstr);
 
     return exitInstr;
 }

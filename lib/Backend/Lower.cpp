@@ -8950,15 +8950,18 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::RegOpnd* reg)
 {
     Assert(IRType_IsInt64(reg->GetType()));
     EnsureInt64RegPairMap();
-    Int64RegPair pair;
-    if (m_int64RegPairMap->TryGetValue(reg->m_sym->m_id, &pair))
-    {
-        return pair;
-    }
+
     IRType type = reg->GetType() == TyInt64 ? TyInt32 : TyUint32;
-    pair.high = IR::RegOpnd::New(type, this->m_func);
-    pair.low = IR::RegOpnd::New(type, this->m_func);
-    m_int64RegPairMap->Add(reg->m_sym->m_id, pair);
+    Int64SymPair symPair;
+    Int64RegPair pair;
+    if (!m_int64RegPairMap->TryGetValue(reg->m_sym->m_id, &symPair))
+    {
+        symPair.low = StackSym::New(type, this->m_func);
+        symPair.high = StackSym::New(type, this->m_func);
+        m_int64RegPairMap->Add(reg->m_sym->m_id, symPair);
+    }
+    pair.low = IR::RegOpnd::New(symPair.low, type, this->m_func);
+    pair.high = IR::RegOpnd::New(symPair.high, type, this->m_func);
     return pair;
 }
 #endif
