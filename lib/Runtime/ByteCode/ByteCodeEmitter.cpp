@@ -3461,6 +3461,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
+    byteCodeFunction->SetCompileCount(UInt32Math::Add(byteCodeFunction->GetCompileCount(), 1));
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch

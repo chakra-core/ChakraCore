@@ -102,6 +102,9 @@ namespace Js
         LocalFunctionId GetLocalFunctionId() const { return functionId; }
         void SetLocalFunctionId(LocalFunctionId functionId) { this->functionId = functionId; }
 
+        uint GetCompileCount() const { return compileCount; }
+        void SetCompileCount(uint count) { compileCount = count; }
+
         virtual void Finalize(bool isShutdown) override
         {
         }
@@ -125,6 +128,7 @@ namespace Js
         // However, proxies are not allocated as write barrier memory currently so its fine to not set the write barrier for this field
         FunctionProxy * functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
         LocalFunctionId functionId;        // Per host source context (source file) function Id
+        uint compileCount;
         Attributes attributes;
     };
 

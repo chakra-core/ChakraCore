@@ -1733,6 +1733,7 @@ namespace Js
         Assert(threadContext->IsInScript());
 
         FunctionBody* executeFunction = JavascriptFunction::FromVar(function)->GetFunctionBody();
+        executeFunction->SetInactiveCount(0);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {

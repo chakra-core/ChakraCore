@@ -496,7 +496,8 @@ namespace Js
         hasNestedLoop(false),
         recentlyBailedOutOfJittedLoopBody(false),
         m_isAsmJsScheduledForFullJIT(false),
-        m_asmJsTotalLoopCount(0)
+        m_asmJsTotalLoopCount(0),
+        inactiveCount(0)
         //
         // Even if the function does not require any locals, we must always have "R0" to propagate
         // a return value.  By enabling this here, we avoid unnecessary conditionals during execution.
@@ -529,6 +530,7 @@ namespace Js
 #endif
     {
         SetCountField(CounterFields::ConstantCount, 1);
+        SetInactiveCount(0);
 
         this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
         this->m_hasBeenParsed = true;
@@ -573,10 +575,21 @@ namespace Js
         }
     }
 
-    void FunctionBody::RedeferFunction()
+    void FunctionBody::RedeferFunction(uint inactiveThreshold)
     {
         bool isJitCandidate = false;
         Assert(this->CanBeDeferred());
+
+        if (!PHASE_FORCE(Js::RedeferralPhase, this) && !PHASE_STRESS(Js::RedeferralPhase, this))
+        {
+            uint inactiveCount;
+            auto fn = [&](){ inactiveCount = 0xFFFFFFFF; };
+            inactiveCount = UInt32Math::Mul(this->GetInactiveCount(), this->GetCompileCount(), fn);
+            if (inactiveCount < inactiveThreshold)
+            {
+                return;
+            }
+        }
 
         // Make sure the function won't be jitted
         MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo)

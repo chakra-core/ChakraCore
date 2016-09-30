@@ -1018,14 +1018,25 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs)
+    void ScriptContext::UpdateInactiveCounts()
+    {
+        Assert(!this->IsClosed());
+
+        auto fn = [&](FunctionBody *functionBody) {
+            functionBody->SetInactiveCount(UInt32Math::Add(functionBody->GetInactiveCount(), 1));
+        };
+
+        this->MapFunction(fn);
+    }
+
+    void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs, uint inactiveThreshold)
     {
         Assert(!this->IsClosed());
 
         auto fn = [&](FunctionBody *functionBody) {
             if (functionBody->GetFunctionInfo()->GetFunctionProxy() == functionBody && functionBody->CanBeDeferred() && !pActiveFuncs->Test(functionBody->GetFunctionNumber()) && functionBody->GetByteCode() != nullptr && functionBody->GetCanDefer())
             {
-                functionBody->RedeferFunction();
+                functionBody->RedeferFunction(inactiveThreshold);
             }
         };
 

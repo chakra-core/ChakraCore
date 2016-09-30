@@ -188,6 +188,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
+    redeferralState(InitialRedeferralState),
+    gcSinceLastRedeferral(0),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
@@ -2429,28 +2431,101 @@ ThreadContext::PostCollectionCallBack()
             }
         }
 
-        HRESULT hr = S_OK;
-        BEGIN_TRANSLATE_OOM_TO_HRESULT
+        if (PHASE_ON1(Js::RedeferralPhase) && this->redeferralState != InitialRedeferralState)
         {
-            this->RedeferFunctionBodies();
+            this->UpdateInactiveCounts();
         }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
+        if (this->DoRedeferralOnGc())
+        {
+            HRESULT hr = S_OK;
+            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            {
+                this->RedeferFunctionBodies();
+            }
+            END_TRANSLATE_OOM_TO_HRESULT(hr);
+            if (hr == S_OK)
+            {
+                gcSinceLastRedeferral = 0;
+                if (redeferralState == StartupRedeferralState)
+                {
+                    redeferralState = MainRedeferralState;
+                }
+            }
+        }
+    }
+}
+
+void
+ThreadContext::UpdateInactiveCounts()
+{
+    Js::ScriptContext *scriptContext;
+    for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
+    {
+        if (scriptContext->IsClosed())
+        {
+            continue;
+        }
+        scriptContext->UpdateInactiveCounts();
+    }
+}
+
+bool
+ThreadContext::DoRedeferralOnGc()
+{
+    if (!PHASE_ON1(Js::RedeferralPhase))
+    {
+        return false;
+    }
+
+    if (PHASE_FORCE1(Js::RedeferralPhase))
+    {
+        return true;
+    }
+
+    gcSinceLastRedeferral++;
+    Assert(gcSinceLastRedeferral != 0);
+    switch(redeferralState)
+    {
+        case InitialRedeferralState:
+            if (gcSinceLastRedeferral == InitialRedeferralDelay)
+            {
+                redeferralState = StartupRedeferralState;
+            }
+            return false;
+
+        case StartupRedeferralState:
+            return (gcSinceLastRedeferral >= StartupRedeferralCheckInterval);
+
+        case MainRedeferralState:
+            return (gcSinceLastRedeferral >= MainRedeferralCheckInterval);
+
+        default:
+            Assert(0);
+            return false;
     }
 }
 
 void
 ThreadContext::RedeferFunctionBodies()
 {
-    // TODO: Heuristic to decide whether we need/want to redefer now.
-    if (!PHASE_ON1(Js::RedeferralPhase))
-    {
-        return;
-    }
-
     // Collect the set of active functions.
     ActiveFunctionSet *pActiveFuncs = nullptr;
     pActiveFuncs = Anew(this->GetThreadAlloc(), ActiveFunctionSet, this->GetThreadAlloc());
     this->GetActiveFunctions(pActiveFuncs);
+
+    uint inactiveThreshold = 0;
+    switch (redeferralState)
+    {
+        case StartupRedeferralState:
+            inactiveThreshold = StartupRedeferralInactiveThreshold;
+            break;
+        case MainRedeferralState:
+            inactiveThreshold = MainRedeferralInactiveThreshold;
+            break;
+        default:
+            Assert(PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase));
+            break;
+    }
 
     Js::ScriptContext *scriptContext;
     for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
@@ -2459,7 +2534,7 @@ ThreadContext::RedeferFunctionBodies()
         {
             continue;
         }
-        scriptContext->RedeferFunctionBodies(pActiveFuncs);
+        scriptContext->RedeferFunctionBodies(pActiveFuncs, inactiveThreshold);
     }
 
     Adelete(this->GetThreadAlloc(), pActiveFuncs);

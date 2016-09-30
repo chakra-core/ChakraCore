@@ -7,7 +7,7 @@
 namespace Js
 {
     FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
-        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId)
+        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId), compileCount(0)
     {
 #if !DYNAMIC_INTERPRETER_THUNK
         Assert(entryPoint != nullptr);

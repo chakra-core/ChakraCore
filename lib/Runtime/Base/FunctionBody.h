@@ -1356,6 +1356,8 @@ namespace Js
 
         void UpdateFunctionBodyImpl(FunctionBody* body);
         bool IsFunctionBody() const;
+        uint GetCompileCount() const;
+        void SetCompileCount(uint count);
         ProxyEntryPointInfo* GetDefaultEntryPointInfo() const;
         ScriptFunctionType * GetDeferredPrototypeType() const;
         ScriptFunctionType * EnsureDeferredPrototypeType();
@@ -1633,6 +1635,20 @@ namespace Js
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
         return GetFunctionInfo()->IsModule();
+    }
+
+    inline uint FunctionProxy::GetCompileCount() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->GetCompileCount();
+    }
+
+    inline void FunctionProxy::SetCompileCount(uint count)
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        GetFunctionInfo()->SetCompileCount(count);
     }
 
     inline ParseableFunctionInfo* FunctionProxy::GetParseableFunctionInfo() const
@@ -2362,6 +2378,7 @@ namespace Js
         NoWriteBarrierField<uint16> committedProfiledIterations;
 
         NoWriteBarrierField<uint> m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
+        NoWriteBarrierField<uint> inactiveCount;
 
         uint32 interpretedCount;
         uint32 loopInterpreterLimit;
@@ -2435,8 +2452,10 @@ namespace Js
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
 
-        void RedeferFunction();
+        void RedeferFunction(uint inactiveThreshold);
         void UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const;
+        uint GetInactiveCount() const { return inactiveCount; }
+        void SetInactiveCount(uint count) { inactiveCount = count; }
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
