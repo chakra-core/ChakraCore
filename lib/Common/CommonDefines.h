@@ -186,6 +186,16 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1900 )
+#define HAS_CONSTEXPR 1
+#endif
+
+#ifdef HAS_CONSTEXPR
+#define OPT_CONSTEXPR constexpr
+#else
+#define OPT_CONSTEXPR
+#endif
+
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif

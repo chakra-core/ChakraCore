@@ -46,19 +46,13 @@ public:
 
     static JITJavascriptString * JITJavascriptString::FromVar(Js::Var var)
     {
-        JITJavascriptString * jitString = reinterpret_cast<JITJavascriptString*>(var);
-#if DBG
-        Assert(Is(var));
-        Assert(jitString->GetTypeId() == Js::TypeIds_String);
-        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
-        {
-            Js::JavascriptString * fullString = Js::JavascriptString::FromVar(var);
-            // ensure layouts are same
-            Assert(fullString->GetLength() == jitString->GetLength());
-            Assert(wmemcmp(fullString->GetString(), jitString->GetString(), jitString->GetLength()) == 0);
-        }
+#ifdef HAS_CONSTEXPR
+        CompileAssert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
+        CompileAssert(offsetof(JITJavascriptString, m_charLength) == Js::JavascriptString::GetOffsetOfcharLength());
 #endif
-        return jitString;
+        Assert(Is(var));
+
+        return reinterpret_cast<JITJavascriptString*>(var);
     }
 };
 
