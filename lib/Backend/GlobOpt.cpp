@@ -6996,8 +6996,7 @@ Value *
 GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
 {
     bool isVar = addrOpnd->IsVar();
-    // TODO: OOP JIT, fix string const stuff
-    bool isString = isVar && !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) && Js::JavascriptString::Is(addrOpnd->m_address);
+    bool isString = isVar && addrOpnd->m_localAddress && JITJavascriptString::Is(addrOpnd->m_localAddress);
     Value *val = nullptr;
     Value *cachedValue;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
@@ -7024,7 +7023,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
     }
     else if (isString)
     {
-        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(addrOpnd->m_address);
+        JITJavascriptString* jsString = JITJavascriptString::FromVar(addrOpnd->m_localAddress);
         Js::InternalString internalString(jsString->GetString(), jsString->GetLength());
         if (this->stringConstantToValueMap->TryGetValue(internalString, &cachedValue))
         {
@@ -7037,7 +7036,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
                     ValueInfo *const symStoreValueInfo = symStoreValue->GetValueInfo();
                     if (symStoreValueInfo->IsVarConstant())
                     {
-                        Js::JavascriptString * cachedString = Js::JavascriptString::FromVar(symStoreValue->GetValueInfo()->AsVarConstant()->VarValue());
+                        JITJavascriptString * cachedString = JITJavascriptString::FromVar(symStoreValue->GetValueInfo()->AsVarConstant()->VarValue(true));
                         Js::InternalString cachedInternalString(cachedString->GetString(), cachedString->GetLength());
                         if (Js::InternalStringComparer::Equals(internalString, cachedInternalString))
                         {
@@ -7061,12 +7060,12 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
 Value *
 GlobOpt::NewVarConstantValue(IR::AddrOpnd *addrOpnd, bool isString)
 {
-    VarConstantValueInfo *valueInfo = VarConstantValueInfo::New(this->alloc, addrOpnd->m_address, addrOpnd->GetValueType());
+    VarConstantValueInfo *valueInfo = VarConstantValueInfo::New(this->alloc, addrOpnd->m_address, addrOpnd->GetValueType(), false, addrOpnd->m_localAddress);
     Value * value = NewValue(valueInfo);
     this->addrConstantToValueMap->Item(addrOpnd->m_address, value);
     if (isString)
     {
-        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(addrOpnd->m_address);
+        JITJavascriptString* jsString = JITJavascriptString::FromVar(addrOpnd->m_localAddress);
         Js::InternalString internalString(jsString->GetString(), jsString->GetLength());
         this->stringConstantToValueMap->Item(internalString, value);
     }
@@ -7165,7 +7164,7 @@ GlobOpt::NewFixedFunctionValue(Js::JavascriptFunction *function, IR::AddrOpnd *a
 
     if(!val)
     {
-        VarConstantValueInfo *valueInfo = VarConstantValueInfo::New(this->alloc, function, addrOpnd->GetValueType(), true);
+        VarConstantValueInfo *valueInfo = VarConstantValueInfo::New(this->alloc, function, addrOpnd->GetValueType(), true, addrOpnd->m_localAddress);
         val = NewValue(valueInfo);
         this->addrConstantToValueMap->AddNew(addrOpnd->m_address, val);
     }

@@ -401,6 +401,13 @@ namespace Js
         return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
             JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetString(), str1->GetLength()));
     }
+
+    template <typename T>
+    class JavascriptStringHelpers
+    {
+    public:
+        static bool Equals(Var aLeft, Var aRight);
+    };
 }
 
 template <>

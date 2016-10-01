@@ -53,6 +53,7 @@ class LowererMDArch;
 class ByteCodeGenerator;
 interface IActiveScriptDataCache;
 class ActiveScriptProfilerHeapEnum;
+class JITJavascriptString;
 
 ////////
 

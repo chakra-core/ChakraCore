@@ -8,6 +8,10 @@
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 
+#if ENABLE_NATIVE_CODEGEN
+#include "../Backend/JITRecyclableObject.h"
+#endif
+
 namespace Js
 {
     // White Space characters are defined in ES6 Section 11.2
@@ -3002,21 +3006,7 @@ case_2:
 
     bool JavascriptString::Equals(Var aLeft, Var aRight)
     {
-        AssertMsg(JavascriptString::Is(aLeft) && JavascriptString::Is(aRight), "string comparison");
-
-        JavascriptString *leftString  = JavascriptString::FromVar(aLeft);
-        JavascriptString *rightString = JavascriptString::FromVar(aRight);
-
-        if (leftString->GetLength() != rightString->GetLength())
-        {
-            return false;
-        }
-
-        if (wmemcmp(leftString->GetString(), rightString->GetString(), leftString->GetLength()) == 0)
-        {
-            return true;
-        }
-        return false;
+        return JavascriptStringHelpers<JavascriptString>::Equals(aLeft, aRight);
     }
 
     //
@@ -3876,4 +3866,30 @@ case_2:
     {
         return requestContext->GetLibrary()->GetStringTypeDisplayString();
     }
+
+    /* static */
+    template <typename T>
+    bool JavascriptStringHelpers<T>::Equals(Var aLeft, Var aRight)
+    {
+        AssertMsg(T::Is(aLeft) && T::Is(aRight), "string comparison");
+
+        T *leftString = T::FromVar(aLeft);
+        T *rightString = T::FromVar(aRight);
+
+        if (leftString->GetLength() != rightString->GetLength())
+        {
+            return false;
+        }
+
+        if (wmemcmp(leftString->GetString(), rightString->GetString(), leftString->GetLength()) == 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+#if ENABLE_NATIVE_CODEGEN
+    template bool JavascriptStringHelpers<JITJavascriptString>::Equals(Var aLeft, Var aRight);
+#endif
+
 }
