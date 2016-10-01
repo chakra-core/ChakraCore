@@ -741,7 +741,7 @@ WasmBytecodeGenerator::EmitCall()
         argsList.Add(PopEvalStack());
     }
 
-    int32 argsBytesLeft = 0;
+    int32 argsBytesLeft = sizeof(Js::Var);
     for (int i = calleeSignature->GetParamCount() - 1; i >= 0 ; i--)
     {
         EmitInfo info = argsList.Item(i);
@@ -789,8 +789,8 @@ WasmBytecodeGenerator::EmitCall()
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
         }
-        argsBytesLeft += wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
         Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
+        argsBytesLeft += wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
     }

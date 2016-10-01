@@ -819,7 +819,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 
             // Mov high bits to ecx
             IR::RegOpnd* regEcx = IR::RegOpnd::New(TyInt32, this->m_func);
-            regEcx->SetReg(RegECX);
+            regEcx->SetReg(RegEDX);
             IR::Instr* movHighInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEcx, srcPair.high, this->m_func);
             retInstr->InsertBefore(ChangeToAssign(movHighInstr));
 #endif
@@ -2989,10 +2989,8 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     Int64RegPair src1Pair, src2Pair;
     if (isInt64Src)
     {
-        Assert(src1->IsRegOpnd());
-        Assert(src2->IsRegOpnd());
-        src1Pair = this->m_lowerer->FindOrCreateInt64Pair(src1->AsRegOpnd());
-        src2Pair = this->m_lowerer->FindOrCreateInt64Pair(src2->AsRegOpnd());
+        src1Pair = this->m_lowerer->FindOrCreateInt64Pair(src1);
+        src2Pair = this->m_lowerer->FindOrCreateInt64Pair(src2);
         src1 = src1Pair.high;
         src2 = src2Pair.high;
     }
@@ -7726,6 +7724,16 @@ void
 LowererMD::EmitPtrInstr(IR::Instr *instr)
 {
     LowererMDArch::EmitPtrInstr(instr);
+}
+
+void
+LowererMD::EmitInt64Instr(IR::Instr * instr)
+{
+#ifdef _M_IX86
+    lowererMDArch.EmitInt64Instr(instr);
+#else
+    Assert(UNREACHED);
+#endif
 }
 
 void

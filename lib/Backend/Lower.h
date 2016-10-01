@@ -21,8 +21,8 @@ enum RoundMode : BYTE {
 
 struct Int64RegPair
 {
-    IR::RegOpnd* high;
-    IR::RegOpnd* low;
+    IR::Opnd* high;
+    IR::Opnd* low;
     Int64RegPair(): high(nullptr), low(nullptr) {}
 };
 
@@ -311,7 +311,7 @@ private:
 
 #ifndef _M_X64
     void            EnsureInt64RegPairMap();
-    Int64RegPair    FindOrCreateInt64Pair(IR::RegOpnd*);
+    Int64RegPair    FindOrCreateInt64Pair(IR::Opnd*);
 #endif
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);

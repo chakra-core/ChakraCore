@@ -45,6 +45,7 @@ public:
             void                FinalLower();
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
 
+            IR::Instr *         LowerInt64CallDst(IR::Instr * callInstr);
             IR::Instr *         LowerAsmJsCallI(IR::Instr * callInstr);
             IR::Instr *         LowerAsmJsCallE(IR::Instr * callInstr);
             IR::Instr *         LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad = false, bool checkEndOffset = false);
@@ -60,6 +61,7 @@ public:
             int32               LowerStartCallAsmJs(IR::Instr * startCallInstr, IR::Instr * insertInstr, IR::Instr * callInstr);
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber = 1);
+            IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadStackArgPtr(IR::Instr * instr);
@@ -73,6 +75,7 @@ public:
             IR::ExitInstr *     LowerExitInstrCommon(IR::ExitInstr * exitInstr);
             IR::Instr *         LowerInt64Assign(IR::Instr * instr);
             void                GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSize);
+            void                EmitInt64Instr(IR::Instr *instr);
             static void         EmitInt4Instr(IR::Instr *instr);
             static void         EmitPtrInstr(IR::Instr *instr);
             void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);

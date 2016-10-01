@@ -798,6 +798,34 @@ LowererMDArch::LowerAsmJsCallE(IR::Instr *callInstr)
 }
 
 IR::Instr *
+LowererMDArch::LowerInt64CallDst(IR::Instr * callInstr)
+{
+    Assert(IRType_IsInt64(callInstr->GetDst()->GetType()));
+    RegNum lowReturnReg = RegEAX;
+    RegNum highReturnReg = RegEDX;
+    IR::Instr * movInstr;
+
+    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(callInstr->GetDst());
+    callInstr->GetDst()->SetType(TyInt32);
+    movInstr = callInstr->SinkDst(GetAssignOp(TyInt32), lowReturnReg);
+    movInstr->UnlinkDst();
+    movInstr->SetDst(dstPair.low);
+
+    // Make ecx alive as it contains the high bits for the int64 return value
+    IR::RegOpnd* highReg = IR::RegOpnd::New(TyInt32, this->m_func);
+    highReg->SetReg(highReturnReg);
+    // todo:: Remove the NOP in peeps
+    IR::Instr* nopInstr = IR::Instr::New(Js::OpCode::NOP, highReg, this->m_func);
+    movInstr->InsertBefore(nopInstr);
+
+    IR::Instr* mov2Instr = IR::Instr::New(GetAssignOp(TyInt32), dstPair.high, highReg, this->m_func);
+    movInstr->InsertAfter(mov2Instr);
+
+    return mov2Instr;
+}
+
+
+IR::Instr *
 LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 {
 
@@ -820,7 +848,16 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 
         // Mov each arg to it's argSlot
         src2 = argInstr->UnlinkSrc2();
-        lowererMD->ChangeToAssign(argInstr);
+
+        IR::Opnd* dst = argInstr->GetDst();
+        if (dst && IRType_IsInt64(dst->GetType()))
+        {
+            argInstr = LowerInt64Assign(argInstr);
+        }
+        else
+        {
+            lowererMD->ChangeToAssign(argInstr);
+        }
         ++argCount;
     }
 
@@ -888,31 +925,14 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     if (callInstr->GetDst())
     {
         IRType dstType = callInstr->GetDst()->GetType();
-        RegNum returnReg = GetRegReturnAsmJs(dstType);
-        IR::Instr * movInstr;
         if (IRType_IsInt64(dstType))
         {
-            Assert(returnReg == RegEAX);
-            Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(callInstr->GetDst()->AsRegOpnd());
-            callInstr->GetDst()->SetType(TyInt32);
-            movInstr = callInstr->SinkDst(GetAssignOp(TyInt32), returnReg);
-            movInstr->UnlinkDst();
-            movInstr->SetDst(dstPair.low);
-
-            // Make ecx alive as it contains the high bits for the int64 return value
-            IR::RegOpnd* highReg = IR::RegOpnd::New(TyInt32, this->m_func);
-            highReg->SetReg(RegECX);
-            // todo:: Remove the NOP in peeps
-            IR::Instr* nopInstr = IR::Instr::New(Js::OpCode::NOP, highReg, this->m_func);
-            movInstr->InsertBefore(nopInstr);
-
-            IR::Instr* mov2Instr = IR::Instr::New(GetAssignOp(TyInt32), dstPair.high, highReg, this->m_func);
-            movInstr->InsertAfter(mov2Instr);
-
-            retInstr = mov2Instr;
+            retInstr = LowerInt64CallDst(callInstr);
         }
         else
         {
+            RegNum returnReg = GetRegReturnAsmJs(dstType);
+            IR::Instr * movInstr;
             movInstr = callInstr->SinkDst(GetAssignOp(dstType), returnReg);
             retInstr = movInstr;
         }
@@ -1199,6 +1219,10 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
             movInstr = IR::Instr::New(assignOp, oldDst, newDstOpnd, this->m_func);
             floatPopInstr->InsertAfter(movInstr);
         }
+        if (IRType_IsInt64(dstType))
+        {
+            retInstr = movInstr = LowerInt64CallDst(callInstr);
+        }
         else
         {
             movInstr = callInstr->SinkDst(assignOp);
@@ -1373,6 +1397,30 @@ LowererMDArch::LoadDynamicArgument(IR::Instr * instr, uint argNumber /*ignore fo
     return instr;
 }
 
+
+IR::Instr *
+LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
+{
+    IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, this->m_func);
+
+    IR::Opnd * opnd = IR::IndirOpnd::New(espOpnd, -8, TyMachReg, this->m_func);
+    IR::Instr * instrPrev = IR::Instr::New(Js::OpCode::LEA, espOpnd, opnd, this->m_func);
+    instrInsert->InsertBefore(instrPrev);
+
+    Int64RegPair argPair = this->lowererMD->m_lowerer->FindOrCreateInt64Pair(opndArg);
+
+    opnd = IR::IndirOpnd::New(espOpnd, 0, TyInt32, this->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.high, this->m_func);
+    instrInsert->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+
+    opnd = IR::IndirOpnd::New(espOpnd, 4, TyInt32, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.low, this->m_func);
+    instrInsert->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+
+    return instrPrev;
+}
 
 IR::Instr *
 LowererMDArch::LoadDoubleHelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
@@ -1773,7 +1821,6 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     Security::InsertRandomFunctionPad(doneLabel);
 }
 
-
 ///----------------------------------------------------------------------------
 ///
 /// LowererMDArch::LowerExitInstr
@@ -1862,36 +1909,136 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 {
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
-    if (dst && dst->IsRegOpnd() && src1)
+    if (dst && (dst->IsRegOpnd() || dst->IsSymOpnd()) && src1)
     {
-        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst->AsRegOpnd());
-        IR::Instr* lowLoadInstr = nullptr, *highLoadInstr = nullptr;
-        if (src1->IsImmediateOpnd())
-        {
-            int64 value = src1->GetImmediateValue();
-            lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, IR::IntConstOpnd::New((int32)value, TyInt32, this->m_func), this->m_func);
-            highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, IR::IntConstOpnd::New(value >> 32, TyInt32, this->m_func), this->m_func);
-        }
-        else if (src1->IsRegOpnd())
-        {
-            Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1->AsRegOpnd());
-            lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, this->m_func);
-            highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, this->m_func);
-        }
-        else
-        {
-            Assert(UNREACHED);
-            return instr;
-        }
+        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
+        Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
+        IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, this->m_func);
+        IR::Instr* lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, this->m_func);
 
         lowererMD->ChangeToAssign(lowLoadInstr);
         lowererMD->ChangeToAssign(highLoadInstr);
-        instr->InsertBefore(lowLoadInstr);
+        // Must mov high bits first to follow calling convention
         instr->InsertBefore(highLoadInstr);
+        instr->InsertBefore(lowLoadInstr);
         instr->Remove();
-        return highLoadInstr;
+        return highLoadInstr->m_prev;
     }
     return instr;
+}
+
+
+void
+LowererMDArch::EmitInt64Instr(IR::Instr *instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+    Assert(!dst || dst->IsInt64());
+    Assert(!src1 || src1->IsInt64());
+    Assert(!src2 || src2->IsInt64());
+
+    const auto LowerToHelper = [&](IR::JnHelperMethod helper) {
+        LoadInt64HelperArgument(instr, src1);
+        LoadInt64HelperArgument(instr, src2);
+
+        IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
+        instr->InsertBefore(callInstr);
+        lowererMD->ChangeToHelperCall(callInstr, helper);
+        instr->Remove();
+        return callInstr;
+    };
+    Js::OpCode brOpcode, cmOpCode;
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::Sub_I4:
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Sub);
+        break;
+    case Js::OpCode::Mul_I4:
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Mul);
+        break;
+
+    case Js::OpCode::BrTrue_I4:
+        cmOpCode = Js::OpCode::CmEq_I4;
+        brOpcode = Js::OpCode::JNE;
+        goto br_Common;
+
+    case Js::OpCode::BrFalse_I4:
+        cmOpCode = Js::OpCode::CmEq_I4;
+        brOpcode = Js::OpCode::JEQ;
+        goto br_Common;
+
+    case Js::OpCode::BrEq_I4:
+        cmOpCode = Js::OpCode::CmEq_I4;
+        brOpcode = Js::OpCode::JEQ;
+        goto br_Common;
+
+    case Js::OpCode::BrNeq_I4:
+        cmOpCode = Js::OpCode::CmNeq_I4;
+        brOpcode = Js::OpCode::JNE;
+        goto br_Common;
+
+    case Js::OpCode::BrUnGt_I4:
+        cmOpCode = Js::OpCode::CmUnGt_I4;
+        brOpcode = Js::OpCode::JA;
+        goto br_Common;
+
+    case Js::OpCode::BrUnGe_I4:
+        cmOpCode = Js::OpCode::CmUnGe_I4;
+        brOpcode = Js::OpCode::JAE;
+        goto br_Common;
+
+    case Js::OpCode::BrUnLe_I4:
+        cmOpCode = Js::OpCode::CmUnLe_I4;
+        brOpcode = Js::OpCode::JBE;
+        goto br_Common;
+
+    case Js::OpCode::BrUnLt_I4:
+        cmOpCode = Js::OpCode::CmUnLt_I4;
+        brOpcode = Js::OpCode::JB;
+        goto br_Common;
+
+    case Js::OpCode::BrGt_I4:
+        cmOpCode = Js::OpCode::CmGt_I4;
+        brOpcode = Js::OpCode::JGT;
+        goto br_Common;
+
+    case Js::OpCode::BrGe_I4:
+        cmOpCode = Js::OpCode::CmGe_I4;
+        brOpcode = Js::OpCode::JGE;
+        goto br_Common;
+
+    case Js::OpCode::BrLe_I4:
+        cmOpCode = Js::OpCode::CmLe_I4;
+        brOpcode = Js::OpCode::JLE;
+        goto br_Common;
+
+    case Js::OpCode::BrLt_I4:
+        cmOpCode = Js::OpCode::CmLt_I4;
+        brOpcode = Js::OpCode::JLT;
+br_Common:
+        {
+            IR::Opnd* cmDst = IR::RegOpnd::New(TyInt32, this->m_func);
+            instr->UnlinkSrc1();
+            if (src2)
+            {
+                instr->UnlinkSrc2();
+            }
+            else
+            {
+                src2 = IR::Int64ConstOpnd::New(0, TyInt64, this->m_func);
+            }
+            IR::Instr* cmInstr = IR::Instr::New(cmOpCode, cmDst, src1, src2, this->m_func);
+            instr->InsertBefore(cmInstr);
+            // Todo::Emit the compare and jump directly instead of doing a compare first
+            lowererMD->GenerateFastCmXxI4(cmInstr);
+            instr->m_opcode = brOpcode;
+            break;
+        }
+
+    default:
+        AssertMsg(UNREACHED, "Int64 opcode not supported");
+    }
 }
 
 void

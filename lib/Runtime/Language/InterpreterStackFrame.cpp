@@ -1584,15 +1584,17 @@ namespace Js
                 jmp end;
             readHighWord:
                 // save high int64 bits into ecx
-                mov ecx, [eax + 4];
+                mov edx, [eax + 4];
                 jmp end;
             doSimd:
                 // simd value
                 movups xmm0, [eax];
            end:
+                push edx; // save possible int64 return value
                 push layout;
                 call InterpreterStackFrame::GetAsmJsArgSize;
-                mov edx, eax;
+                mov ecx, eax;
+                pop edx; // restore possible int64 return value
                 pop eax; // pop the return value from AsmJsInterpreter to eax
 
                 // Epilog, callee cleanup
@@ -1614,23 +1616,23 @@ namespace Js
                 // 0x0C InterpreterAsmThunk return address <- stack pointer
 
                 push eax; // save eax
-                push ecx; // save ecx
+                push edx; // save edx
                 // we have to do +0x8 on all stack addresses because we saved 2 registers
 
-                lea eax, [esp + edx * 1 + (0x8 + 0x8)]; // eax will be our stack destination. we need to move backwards because memory might overlap
-                mov ecx, [esp + (0xC + 0x8)];
-                mov [eax], ecx; // move the dynamic interpreter thunk return location
+                lea eax, [esp + ecx * 1 + (0x8 + 0x8)]; // eax will be our stack destination. we need to move backwards because memory might overlap
+                mov edx, [esp + (0xC + 0x8)];
+                mov [eax], edx; // move the dynamic interpreter thunk return location
                 sub eax, 0x4;
-                mov ecx, [esp + (0x8 + 0x8)];
-                mov [eax], ecx; // move the dynamic interpreter thunk "push ebp" location
+                mov edx, [esp + (0x8 + 0x8)];
+                mov [eax], edx; // move the dynamic interpreter thunk "push ebp" location
                 // skip "push functionObject"
                 sub eax, 0x4;
-                mov ecx, [esp + (0x0 + 0x8)];
-                mov [eax], ecx; // move the return location
+                mov edx, [esp + (0x0 + 0x8)];
+                mov [eax], edx; // move the return location
 
-                pop ecx; // restore possible int64 return value
+                pop edx; // restore possible int64 return value
                 pop eax; // restore return value
-                add esp, edx; // cleanup arguments
+                add esp, ecx; // cleanup arguments
                 ret;
             }
         }
@@ -3783,7 +3785,7 @@ namespace Js
 #endif
                 push function;
             call entryPoint;
-            push ecx; // save possible int64 return value
+            push edx; // save possible int64 return value
             mov ecx, retType;
             mov edx, 1;
             shl edx, cl;

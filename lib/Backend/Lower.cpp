@@ -981,6 +981,17 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::Ror_I4:
         case Js::OpCode::BrTrue_I4:
         case Js::OpCode::BrFalse_I4:
+#ifdef _M_IX86
+            if (
+                instr->GetDst() && instr->GetDst()->IsInt64() ||
+                instr->GetSrc1() && instr->GetSrc1()->IsInt64() ||
+                instr->GetSrc2() && instr->GetSrc2()->IsInt64()
+                )
+            {
+                m_lowererMD.EmitInt64Instr(instr);
+                break;
+            }
+#endif
             if(instr->HasBailOutInfo())
             {
                 const auto bailOutKind = instr->GetBailOutKind();
@@ -8946,22 +8957,69 @@ void Lowerer::EnsureInt64RegPairMap()
     }
 }
 
-Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::RegOpnd* reg)
+Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 {
     Assert(IRType_IsInt64(reg->GetType()));
-    EnsureInt64RegPairMap();
 
     IRType type = reg->GetType() == TyInt64 ? TyInt32 : TyUint32;
-    Int64SymPair symPair;
     Int64RegPair pair;
-    if (!m_int64RegPairMap->TryGetValue(reg->m_sym->m_id, &symPair))
+
+    if (reg->IsImmediateOpnd())
     {
-        symPair.low = StackSym::New(type, this->m_func);
-        symPair.high = StackSym::New(type, this->m_func);
-        m_int64RegPairMap->Add(reg->m_sym->m_id, symPair);
+        int64 value = reg->GetImmediateValue();
+        pair.low = IR::IntConstOpnd::New((int32)value, type, m_func);
+        pair.high = IR::IntConstOpnd::New((int32)(value >> 32), type, m_func);
+        return pair;
     }
-    pair.low = IR::RegOpnd::New(symPair.low, type, this->m_func);
-    pair.high = IR::RegOpnd::New(symPair.high, type, this->m_func);
+
+    EnsureInt64RegPairMap();
+    StackSym* stackSym = reg->GetStackSym();
+    if (!stackSym || !this->m_func->GetJnFunction()->IsWasmFunction())
+    {
+        AssertMsg(UNREACHED, "Invalid int64 operand type");
+        Js::Throw::FatalInternalError();
+    }
+
+    SymID symId = stackSym->m_id;
+    Int64SymPair symPair;
+    if (!m_int64RegPairMap->TryGetValue(symId, &symPair))
+    {
+        if (stackSym->IsArgSlotSym())
+        {
+            symPair.low = StackSym::NewArgSlotSym(stackSym->GetArgSlotNum() + 1, this->m_func, type);
+            symPair.low->m_allocated = true;
+            symPair.low->m_offset = stackSym->m_offset + 4;
+            symPair.high = StackSym::NewArgSlotSym(stackSym->GetArgSlotNum(), this->m_func, type);
+            symPair.high->m_allocated = true;
+            symPair.high->m_offset = stackSym->m_offset;
+        }
+        else if (stackSym->IsParamSlotSym())
+        {
+            symPair.low = StackSym::NewParamSlotSym(stackSym->GetParamSlotNum() + 1, this->m_func, type);
+            symPair.low->m_allocated = true;
+            symPair.low->m_offset = stackSym->m_offset + 4;
+            symPair.high = StackSym::NewParamSlotSym(stackSym->GetParamSlotNum(), this->m_func, type);
+            symPair.high->m_allocated = true;
+            symPair.high->m_offset = stackSym->m_offset;
+        }
+        else
+        {
+            symPair.low = StackSym::New(type, this->m_func);
+            symPair.high = StackSym::New(type, this->m_func);
+        }
+        m_int64RegPairMap->Add(symId, symPair);
+    }
+
+    if (reg->IsSymOpnd())
+    {
+        pair.low = IR::SymOpnd::New(symPair.low, reg->AsSymOpnd()->m_offset, type, this->m_func);
+        pair.high = IR::SymOpnd::New(symPair.high, reg->AsSymOpnd()->m_offset, type, this->m_func);
+    }
+    else
+    {
+        pair.low = IR::RegOpnd::New(symPair.low, type, this->m_func);
+        pair.high = IR::RegOpnd::New(symPair.high, type, this->m_func);
+    }
     return pair;
 }
 #endif
@@ -10242,9 +10300,18 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
     IR::Instr * instr = instrArgIn;
     for (int argNum = argCount - 1; argNum >= 0; --argNum)
     {
-        IR::Instr * instrPrev = instr->m_prev;
-        m_lowererMD.ChangeToAssign(instr);
-        instr = instrPrev;
+#ifdef _M_IX86
+        if (instr->GetDst()->IsInt64())
+        {
+            instr = m_lowererMD.LowerInt64Assign(instr);
+        }
+        else
+#endif
+        {
+            IR::Instr * instrPrev = instr->m_prev;
+            m_lowererMD.ChangeToAssign(instr);
+            instr = instrPrev;
+        }
     }
 
     return instr;

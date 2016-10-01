@@ -541,6 +541,9 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
+
+HELPERCALL(DirectMath_Int64Mul, Js::AsmJsMath::Mul<int64>, 0)
+HELPERCALL(DirectMath_Int64Sub, Js::AsmJsMath::Sub<int64>, 0)
 #elif defined(_M_X64)
 // AMD64 regular CRT calls -- on AMD64 calling convention is already what we want -- args in XMM0, XMM1 rather than on stack which is slower.
 HELPERCALL(DirectMath_Acos, nullptr, 0)
