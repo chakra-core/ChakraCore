@@ -742,7 +742,7 @@ private:
 
     struct GuestArenaAllocator : public ArenaAllocator
     {
-        GuestArenaAllocator(__in char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
+        GuestArenaAllocator(__in_z char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
             : ArenaAllocator(name, pageAllocator, outOfMemoryFunc), pendingDelete(false)
         {
         }

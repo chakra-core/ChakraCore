@@ -1613,7 +1613,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         size_t nameLength = strlen(name);
         if(addUnderscore)
             ++nameLength;
-        if(length + nameLength >= sizeof(str) / sizeof(str[0]))
+        if(length + nameLength >= VALUE_TYPE_MAX_STRING_SIZE)
             break;
 
         if(addUnderscore)
@@ -1624,7 +1624,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         else
             addUnderscore = !(b & Bits::Likely);
 
-        js_memcpy_s(&str[length], sizeof(str) / sizeof(str[0]) - 1 - length, name, nameLength);
+        js_memcpy_s(&str[length], VALUE_TYPE_MAX_STRING_SIZE - 1 - length, name, nameLength);
         length += nameLength;
 
         if((b & -b) == BitPattern(1, VALUE_TYPE_OBJECT_BIT_INDEX)) // if the bit that was just printed is the last common bit
@@ -1632,7 +1632,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         b &= b - 1; // unset the least significant set bit
     } while(!!b);
 
-    Assert(length < sizeof(str) / sizeof(str[0]));
+    Assert(length < VALUE_TYPE_MAX_STRING_SIZE);
     str[length] = '\0';
 }
 

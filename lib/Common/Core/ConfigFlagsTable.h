@@ -123,7 +123,7 @@ namespace Js
     // Construction
     public:
         inline String();
-        inline String(__in_opt const char16* psz);
+        inline String(__in_z_opt const char16* psz);
         inline ~String();
 
 
@@ -136,7 +136,7 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        String& operator=(__in_opt const char16* psz)
+        String& operator=(__in_z_opt const char16* psz)
         {
             Set(psz);
             return *this;
@@ -160,7 +160,7 @@ namespace Js
 
     // Implementation
     private:
-        void Set(__in_opt const char16* pszValue);
+        void Set(__in_z_opt const char16* pszValue);
     };
 
     class NumberSet

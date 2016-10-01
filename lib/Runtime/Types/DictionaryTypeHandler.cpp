@@ -2742,7 +2742,7 @@ namespace Js
             //
 
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
-            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
+            if((!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid)) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
             {
                 continue;
             }
