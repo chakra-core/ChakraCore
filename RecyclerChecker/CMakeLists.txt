@@ -15,7 +15,7 @@ add_definitions("-fno-rtti -std=c++11")
 add_definitions("-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS ")
 
 # target_link_libraries(clangRecyclerChecker ${CLANG_LIBS} ${LLVM_LIBS_CORE} )
-add_library(clangRecyclerChecker SHARED  RecyclerChecker.cpp)
+add_library(clangRecyclerChecker SHARED  RecyclerChecker.cpp RecyclerAnalyzer.cpp)
 
 # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --unresolved-symbols=report-all")
 target_link_libraries(clangRecyclerChecker ${CLANG_LIBS})

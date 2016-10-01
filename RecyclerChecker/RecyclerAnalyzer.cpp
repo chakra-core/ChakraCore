@@ -70,7 +70,7 @@ static bool isCastToRecycler(const CXXStaticCastExpr* castNode)
     QualType targetType = castNode->getTypeAsWritten();
     if (const IdentifierInfo* info = targetType.getBaseTypeIdentifier())
     {
-        printf("Cast to %s\n", info->getName().str().c_str());
+        //printf("Cast to %s\n", info->getName().str().c_str());
 
         return info->getName().equals("Recycler");
     }
@@ -98,11 +98,11 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
         if (firstArgNode != nullptr &&
             (castNode = const_cast<CXXStaticCastExpr*>(dyn_cast<CXXStaticCastExpr>(firstArgNode))))
         {
-            printf("Expr is %s\n", firstArgNode->getStmtClassName());
+            //printf("Expr is %s\n", firstArgNode->getStmtClassName());
             
             if (isCastToRecycler(castNode))
             {
-                printf("Recycler allocation found\n");
+                //printf("Recycler allocation found\n");
                 const Expr* secondArgNode = newExpr->getPlacementArg(1);
 
                 // Chakra has two types of allocating functions- throwing and non-throwing
@@ -115,7 +115,16 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
                     if (DeclRefExpr* declRef = cast<DeclRefExpr>(subExpr))
                     {
                         auto declNameInfo = declRef->getNameInfo();
-                        printf("Decl: %s\n", declNameInfo.getName().getAsString().c_str());
+                        printf("AllocFunc: %s\n", declNameInfo.getName().getAsString().c_str());
+                        
+                        if (const IdentifierInfo* info = newExpr->getAllocatedType().getBaseTypeIdentifier())
+                        {
+                            printf("Type: %s\n", info->getName().str().c_str());
+                        }
+                        else
+                        {
+                            printf("Can't get base type identifier\n");
+                        }
                     }
                     else
                     {
@@ -128,7 +137,7 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
                     printf("Expected unary node:\n");
                     secondArgNode->dump();
                 }
-                printf("-------------------\n");
+                //printf("-------------------\n");
             }
 /*
             else
