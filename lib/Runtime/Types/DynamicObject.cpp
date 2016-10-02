@@ -853,7 +853,7 @@ namespace Js
     {
         if(!TTD::IsDiagnosticOriginInformationValid(this->TTDDiagOriginInfo))
         {
-            if(this->GetScriptContext()->ShouldPerformRecordAction() | this->GetScriptContext()->ShouldPerformDebugAction())
+            if(this->GetScriptContext()->ShouldPerformRecordOrDebugAction())
             {
                 this->GetScriptContext()->GetThreadContext()->TTDLog->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
             }

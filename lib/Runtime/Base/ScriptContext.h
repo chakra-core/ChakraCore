@@ -1086,15 +1086,18 @@ private:
 
         ////
 
-        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
-        bool ShouldPerformRecordAction() const
+        //Memoized results for frequently used Record/Replay action checks
+        bool TTDShouldPerformRecordOrDebugAction;
+        bool TTDShouldPerformRecordAction;
+        bool TTDShouldPerformDebugAction;
+
+        bool ShouldPerformRecordAction_Compute() const
         {
             //return true if RecordEnabled and ~ExcludedExecution
             return (this->TTDMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
         }
 
-        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-        bool ShouldPerformDebugAction() const
+        bool ShouldPerformDebugAction_Compute() const
         {
 #if ENABLE_TTD_DEBUGGING
             //return true if DebuggingEnabled and ~ExcludedExecution
@@ -1103,6 +1106,43 @@ private:
 #else
             return false;
 #endif
+        }
+
+        void SetTTDMode(TTD::TTDMode m)
+        {
+            this->TTDMode = m;
+
+            this->TTDShouldPerformRecordAction = this->ShouldPerformRecordAction_Compute();
+            this->TTDShouldPerformDebugAction = this->ShouldPerformDebugAction_Compute();
+            this->TTDShouldPerformRecordOrDebugAction = (this->TTDShouldPerformRecordAction | this->TTDShouldPerformDebugAction);
+        }
+
+        bool ShouldPerformRecordOrDebugAction()
+        {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg((this->ShouldPerformRecordAction_Compute() | this->ShouldPerformDebugAction_Compute()) == this->TTDShouldPerformRecordOrDebugAction, "We have a stale value.");
+#endif
+
+                return this->TTDShouldPerformRecordOrDebugAction;
+        }
+
+        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordAction() const
+        {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->ShouldPerformRecordAction_Compute() == this->TTDShouldPerformRecordAction, "We have a stale value.");
+#endif
+            return this->TTDShouldPerformRecordAction;
+        }
+
+        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
+        bool ShouldPerformDebugAction() const
+        {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->ShouldPerformDebugAction_Compute() == this->TTDShouldPerformDebugAction, "We have a stale value.");
+#endif
+
+            return this->TTDShouldPerformDebugAction;
         }
 
         //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)

@@ -248,7 +248,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
-#if TTD_DYNAMIC_DECOMPILATION_WORK_AROUNDS
+#if TTD_DYNAMIC_DECOMPILATION_AND_JIT_WORK_AROUNDS
             if(threadContext->IsTTRecordRequested | threadContext->IsTTDebugRequested)
             {
                 //
@@ -3451,10 +3451,6 @@ CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime,
 
         //Make sure the thread context recycler is allocated before we do anything else
         threadContext->EnsureRecycler();
-
-#if ENABLE_TTD_DEBUGGING
-        threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
-#endif
 
         threadContext->InitTimeTravel(threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested);
 

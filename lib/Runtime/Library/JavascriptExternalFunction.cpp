@@ -190,49 +190,18 @@ namespace Js
 #if ENABLE_TTD
         Var result = nullptr;
 
-        //
-        //TODO: This may be a hot path so we may want to reduce the number of checks here and perhaps create a special TTD external function so only record code is needed here (see also in StdCallExternalFunctionThunk below).
-        //
-        if(scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->IsTTDActive())
         {
-            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+            result = JavascriptExternalFunction::HandleRecordReplayExternalFunction_Thunk(externalFunction, callInfo, args, scriptContext);
         }
-        else if(scriptContext->ShouldPerformRecordAction())
+        else
         {
-            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
-            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
-
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
                 // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
                 result = externalFunction->nativeMethod(function, callInfo, args.Values);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-
-            //Exceptions should be prohibited so no need to do extra work
-            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
-        }
-        else
-        {
-            if(externalFunction->nativeMethod == nullptr)
-            {
-                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor 
-                //or the debugger is running something that can fail (and it is ok with that).
-
-                result = scriptContext->GetLibrary()->GetUndefined();
-            }
-            else
-            {
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                {
-                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
-                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
-                }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-            }
         }
 #else
         Var result = nullptr;
@@ -295,25 +264,9 @@ namespace Js
         Var result = NULL;
 
 #if ENABLE_TTD
-        if(scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->IsTTDActive())
         {
-            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-        }
-        else if(scriptContext->ShouldPerformRecordAction())
-        {
-            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
-            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
-
-            BEGIN_LEAVE_SCRIPT(scriptContext)
-            {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
-            }
-            END_LEAVE_SCRIPT(scriptContext);
-
-            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
+            result = JavascriptExternalFunction::HandleRecordReplayExternalFunction_StdThunk(function, callInfo, args, scriptContext);
         }
         else
         {
@@ -397,6 +350,95 @@ namespace Js
         alloc.CopyStringIntoWLength(nameString->GetSz(), nameString->GetLength(), *snapName);
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTString*, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+    }
+
+    Var JavascriptExternalFunction::HandleRecordReplayExternalFunction_Thunk(Js::JavascriptFunction* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
+
+        Var result = nullptr;
+
+        if(scriptContext->ShouldPerformDebugAction())
+        {
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else if(scriptContext->ShouldPerformRecordAction())
+        {
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+
+            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+            {
+                // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                result = externalFunction->nativeMethod(function, callInfo, args.Values);
+            }
+            END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+            //Exceptions should be prohibited so no need to do extra work
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
+        }
+        else
+        {
+            if(externalFunction->nativeMethod == nullptr)
+            {
+                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor 
+                //or the debugger is running something that can fail (and it is ok with that).
+
+                result = scriptContext->GetLibrary()->GetUndefined();
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+            }
+        }
+
+        return result;
+    }
+
+    Var JavascriptExternalFunction::HandleRecordReplayExternalFunction_StdThunk(Js::RecyclableObject* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
+
+        Var result = nullptr;
+
+        if(scriptContext->ShouldPerformDebugAction())
+        {
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else if(scriptContext->ShouldPerformRecordAction())
+        {
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
+        }
+        else
+        {
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+
+        return result;
     }
 #endif
 }
