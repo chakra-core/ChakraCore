@@ -19,6 +19,11 @@ enum UnwindOp : unsigned __int8 {
     UWOP_SAVE_XMM128 =  8
 };
 
+#ifdef _WIN32
+// ----------------------------------------------------------------------------
+//  _WIN32 x64 unwind uses PDATA
+// ----------------------------------------------------------------------------
+
 class PrologEncoder
 {
 private:
@@ -147,11 +152,53 @@ public:
     //
     // Win8 PDATA registration.
     //
+    void Begin(size_t prologStartOffset) {}  // No op on _WIN32
+    void End() {}  // No op on _WIN32
     DWORD SizeOfUnwindInfo();
     BYTE *GetUnwindInfo();
-    void FinalizeUnwindInfo();
-
+    void FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize);
 private:
     UnwindCode *GetUnwindCode(unsigned __int8 nodeCount);
 
 };
+
+#else  // !_WIN32
+// ----------------------------------------------------------------------------
+//  !_WIN32 x64 unwind uses .eh_frame
+// ----------------------------------------------------------------------------
+#include "EhFrame.h"
+
+class PrologEncoder
+{
+private:
+    ArenaAllocator* alloc;
+    EhFrame* ehFrame;
+
+    size_t cfiInstrOffset;      // last cfi emit instr offset
+    size_t currentInstrOffset;  // current instr offset
+                                // currentInstrOffset - cfiInstrOffset == advance
+    unsigned cfaWordOffset;
+
+public:
+    PrologEncoder(ArenaAllocator *alloc)
+        : alloc(alloc), ehFrame(nullptr),
+          cfiInstrOffset(0), currentInstrOffset(0), cfaWordOffset(1)
+    {}
+
+    void RecordNonVolRegSave() {}
+    void RecordXmmRegSave() {}
+    void RecordAlloca(size_t size) {}
+    void EncodeInstr(IR::Instr *instr, uint8 size);
+
+    void EncodeSmallProlog(uint8 prologSize, size_t size);
+    DWORD SizeOfPData();
+    BYTE *Finalize(BYTE *functionStart, DWORD codeSize, BYTE *pdataBuffer);
+
+    void Begin(size_t prologStartOffset);
+    void End();
+    DWORD SizeOfUnwindInfo() { return SizeOfPData(); }
+    BYTE *GetUnwindInfo() { return ehFrame->Buffer(); }
+    void FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize);
+};
+
+#endif  // !_WIN32

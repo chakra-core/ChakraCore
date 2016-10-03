@@ -649,8 +649,8 @@ bool InliningDecider::GetBuiltInInfoCommon(
 bool InliningDecider::CanRecursivelyInline(Js::FunctionBody * inlinee, Js::FunctionBody *inliner, bool allowRecursiveInlining, uint recursiveInlineDepth)
 {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
 
@@ -659,7 +659,7 @@ bool InliningDecider::CanRecursivelyInline(Js::FunctionBody * inlinee, Js::Funct
         &&  inlinee == inliner
         &&  inlinee->CanInlineRecursively(recursiveInlineDepth))
     {
-        INLINE_TESTTRACE(L"INLINING: Inlined recursively\tInlinee: %s (%s)\tCaller: %s (%s)\tDepth: %d\n",
+        INLINE_TESTTRACE(_u("INLINING: Inlined recursively\tInlinee: %s (%s)\tCaller: %s (%s)\tDepth: %d\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2), recursiveInlineDepth);
         return true;
@@ -667,7 +667,7 @@ bool InliningDecider::CanRecursivelyInline(Js::FunctionBody * inlinee, Js::Funct
 
     if (!inlinee->CanInlineAgain())
     {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline: Do not inline recursive functions\tInlinee: %s (%s)\tCaller: %s (%s)\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline: Do not inline recursive functions\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2));
         return false;
@@ -759,9 +759,9 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
     if (inlinee->GetHasLoops())
@@ -874,14 +874,14 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
 bool InliningDecider::ContinueInliningUserDefinedFunctions(uint32 bytecodeInlinedCount) const
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || bytecodeInlinedCount <= (uint)this->threshold.inlineCountMax)
     {
         return true;
     }
 
-    INLINE_TESTTRACE(L"INLINING: Skip Inline: InlineCountMax threshold %d, reached: %s (#%s)\n",
+    INLINE_TESTTRACE(_u("INLINING: Skip Inline: InlineCountMax threshold %d, reached: %s (#%s)\n"),
         (uint)this->threshold.inlineCountMax,
         this->topFunc->GetDisplayName(), this->topFunc->GetDebugNumberSet(debugStringBuffer));
 

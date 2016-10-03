@@ -215,7 +215,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #ifdef ENABLE_CUSTOM_ENTROPY
     entropy.Initialize();
 #endif
-    
+
 #if ENABLE_NATIVE_CODEGEN
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
@@ -321,7 +321,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -329,7 +329,7 @@ ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 }
 #endif
 
-intptr_t 
+intptr_t
 ThreadContext::GetDisableImplicitFlagsAddr() const
 {
     return (intptr_t)&disableImplicitFlags;
@@ -1017,7 +1017,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction_SymbolCreation())
     {
         //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
-        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or
         //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
         if(isSymbol)
         {
@@ -1984,9 +1984,9 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
 #ifdef NTBUILD
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
+    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("Chakra.dll"));
 #else
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"ChakraCore.dll");
+    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("ChakraCore.dll"));
 #endif
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
@@ -2000,7 +2000,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;
-#if _M_IX86 || _M_AMD64
+#if defined(ENABLE_SIMDJS) && (_M_IX86 || _M_AMD64)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 
@@ -2102,7 +2102,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
 
 #if ENABLE_TTD
         //
-        //TODO: We leak any references that are JsReleased by the host in collection callbacks. Later we should defer these events to the end of the 
+        //TODO: We leak any references that are JsReleased by the host in collection callbacks. Later we should defer these events to the end of the
         //      top-level call or the next external call and then append them to the log.
         //
 
@@ -3277,7 +3277,7 @@ ThreadContext::RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWe
 
     bool foundExistingGuard;
 
-    
+
     PropertyGuardEntry* entry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
 
     entry->uniqueGuards.Item(guardWeakRef);
@@ -3357,7 +3357,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
 
     entry->uniqueGuards.Clear();
 
-    
+
     // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
     // the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)

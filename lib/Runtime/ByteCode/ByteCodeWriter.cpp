@@ -292,7 +292,7 @@ namespace Js
         return this->m_functionWrite->MapRegSlot(reg);
     }
 
-    inline void ByteCodeWriter::CheckOpen()
+    void ByteCodeWriter::CheckOpen()
     {
         AssertMsg(m_functionWrite != nullptr, "Must Begin() a function to write byte-code into");
     }
@@ -306,7 +306,7 @@ namespace Js
         AssertMsg(OpCodeUtil::GetOpCodeLayout(op) == layoutType, "Ensure correct layout for OpCode");
     }
 
-    inline void ByteCodeWriter::CheckLabel(ByteCodeLabel labelID)
+    void ByteCodeWriter::CheckLabel(ByteCodeLabel labelID)
     {
         AssertMsg(labelID < m_labelOffsets->Count(),
             "Label must be previously defined before being marked in the byte-code");
@@ -3276,7 +3276,7 @@ StoreCommon:
         return Write(rawData, byteSize);
     }
 
-    inline uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
     {
         // Simple case where the current chunk has enough space.
         uint bytesFree = current->RemainingBytes();

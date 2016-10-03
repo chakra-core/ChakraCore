@@ -32,7 +32,7 @@ namespace Js
         explicit CallInfo(ushort count)
             : Flags(CallFlags_None)
             , Count(count)
-#ifdef _WIN64
+#ifdef TARGET_64
             , unused(0)
 #endif
         {
@@ -41,7 +41,7 @@ namespace Js
         CallInfo(CallFlags flags, ushort count)
             : Flags(flags)
             , Count(count)
-#ifdef _WIN64
+#ifdef TARGET_64
             , unused(0)
 #endif
         {
@@ -58,7 +58,7 @@ namespace Js
         //
         unsigned  Count : 24;
         CallFlags Flags : 8;
-#ifdef _WIN64
+#ifdef TARGET_64
         unsigned unused : 32;
 #endif
 

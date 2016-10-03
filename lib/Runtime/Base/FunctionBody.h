@@ -88,11 +88,11 @@ namespace Js
     public:
         static PropertyGuard* New(Recycler* recycler) { return RecyclerNewLeaf(recycler, Js::PropertyGuard); }
         PropertyGuard() : value(GuardValue::Uninitialized) {}
-        PropertyGuard(intptr_t value) : value(value) 
-        { 
+        PropertyGuard(intptr_t value) : value(value)
+        {
             // GuardValue::Invalidated and GuardValue::Invalidated_DuringSweeping can only be set using
             // Invalidate() and InvalidatedDuringSweep() methods respectively.
-            Assert(this->value != GuardValue::Invalidated && this->value != GuardValue::Invalidated_DuringSweep); 
+            Assert(this->value != GuardValue::Invalidated && this->value != GuardValue::Invalidated_DuringSweep);
         }
 
         inline static size_t const GetSizeOfValue() { return sizeof(((PropertyGuard*)0)->value); }
@@ -105,7 +105,7 @@ namespace Js
         }
         bool IsInvalidatedDuringSweep() { return this->value == GuardValue::Invalidated_DuringSweep; }
         void SetValue(intptr_t value)
-        { 
+        {
             // GuardValue::Invalidated and GuardValue::Invalidated_DuringSweeping can only be set using
             // Invalidate() and InvalidatedDuringSweep() methods respectively.
             Assert(value != GuardValue::Invalidated && value != GuardValue::Invalidated_DuringSweep);
@@ -114,7 +114,7 @@ namespace Js
         intptr_t const* GetAddressOfValue() { return &this->value; }
         void Invalidate() { this->value = GuardValue::Invalidated; }
         void InvalidateDuringSweep()
-        { 
+        {
 #if DBG
             wasReincarnated = true;
 #endif
@@ -513,7 +513,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
-        union 
+        union
         {
             Js::JavascriptNumber** numberArray;
             CodeGenNumberChunk* numberChunks;
@@ -588,7 +588,7 @@ namespace Js
         void SetNumberChunks(CodeGenNumberChunk* chunks)
         {
             Assert(numberPageSegments == nullptr);
-            numberChunks = chunks; 
+            numberChunks = chunks;
         }
         void SetNumberArray(Js::JavascriptNumber** array)
         {
@@ -598,9 +598,9 @@ namespace Js
         void SetNumberPageSegment(XProcNumberPageSegment * segments)
         {
             Assert(numberPageSegments == nullptr);
-            numberPageSegments = segments; 
+            numberPageSegments = segments;
         }
-        
+
 #endif
 
     private:
@@ -1106,7 +1106,7 @@ namespace Js
     {
     public:
         LoopHeader* loopHeader;
-        uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out 
+        uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out
         uint totalJittedLoopIterations; // total number of times the loop has iterated in the jitted code for this entry point for a particular invocation of the loop
         LoopEntryPointInfo(LoopHeader* loopHeader, Js::JavascriptLibrary* library, void* validationCookie) :
             EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true),
@@ -1824,6 +1824,12 @@ namespace Js
 
         friend class ByteCodeBufferBuilder;
         friend class ByteCodeBufferReader;
+#ifdef DYNAMIC_PROFILE_MUTATOR
+        friend class ::DynamicProfileMutator;
+        friend class ::DynamicProfileMutatorImpl;
+#endif
+        friend class RemoteFunctionBody;
+
         public:
             // same as MachDouble, used in the Func.h
             static const uint DIAGLOCALSLOTSIZE = 8;
@@ -2165,7 +2171,7 @@ namespace Js
 #endif
         WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
 
-#if ENABLE_PROFILE_INFO 
+#if ENABLE_PROFILE_INFO
         WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
 #endif
 
@@ -2184,7 +2190,7 @@ namespace Js
 #endif
             );
 
-        void SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, Var directEntryPoint);
+        void SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, JavascriptMethod directEntryPoint);
 #if DYNAMIC_INTERPRETER_THUNK
         void GenerateDynamicInterpreterThunk();
 #endif
@@ -2855,8 +2861,8 @@ namespace Js
                 (GetIsStrictMode() || hasNonSimpleParams)
                 // Neither of the scopes are objects
                 && !HasScopeObject();
-            
-            return 
+
+            return
                 // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
                 (GetInParamsCount() > 1 || GetHasRestParameter())
                 && !dontNeedScopeObject;
@@ -3277,12 +3283,6 @@ namespace Js
 
         void EnsureAuxStatementData();
         StatementAdjustmentRecordList* GetStatementAdjustmentRecords();
-
-#ifdef DYNAMIC_PROFILE_MUTATOR
-        friend class DynamicProfileMutator;
-        friend class DynamicProfileMutatorImpl;
-#endif
-        friend class RemoteFunctionBody;
     };
 
     typedef SynchronizableList<FunctionBody*, JsUtil::List<FunctionBody*, ArenaAllocator, false, Js::FreeListedRemovePolicy> > FunctionBodyList;

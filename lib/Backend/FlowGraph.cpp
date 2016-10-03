@@ -35,7 +35,7 @@ FlowGraph::Build(void)
     // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to catch.
     if (this->func->HasTry() &&
         (this->func->DoOptimizeTryCatch() ||
-        this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()
+            (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())
         )
        )
     {

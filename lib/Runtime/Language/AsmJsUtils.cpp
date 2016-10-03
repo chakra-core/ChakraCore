@@ -287,21 +287,21 @@ namespace Js
                 case AsmJsType::Bool32x4:
                     if (!JavascriptSIMDBool32x4::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, _u("Bool32x4"));
                     }
                     simdVal = ((JavascriptSIMDBool32x4*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Bool16x8:
                     if (!JavascriptSIMDBool16x8::Is(*origArgs))
                         {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("Bool16x8"));
                     }
                     simdVal = ((JavascriptSIMDBool16x8*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Bool8x16:
                     if (!JavascriptSIMDBool8x16::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, _u("Bool8x16"));
                     }
                     simdVal = ((JavascriptSIMDBool8x16*)(*origArgs))->GetValue();
                     break;
@@ -322,35 +322,35 @@ namespace Js
                 case AsmJsType::Int16x8:
                     if (!JavascriptSIMDInt16x8::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, _u("Int16x8"));
                     }
                     simdVal = ((JavascriptSIMDInt16x8*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Int8x16:
                     if (!JavascriptSIMDInt8x16::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("Int8x16"));
                     }
                     simdVal = ((JavascriptSIMDInt8x16*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Uint32x4:
                     if (!JavascriptSIMDUint32x4::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("Uint32x4"));
                     }
                     simdVal = ((JavascriptSIMDUint32x4*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Uint16x8:
                     if (!JavascriptSIMDUint16x8::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, _u("Uint16x8"));
                     }
                     simdVal = ((JavascriptSIMDUint16x8*)(*origArgs))->GetValue();
                     break;
                 case AsmJsType::Uint8x16:
                     if (!JavascriptSIMDUint8x16::Is(*origArgs))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, _u("Uint8x16"));
                     }
                     simdVal = ((JavascriptSIMDUint8x16*)(*origArgs))->GetValue();
                     break;
@@ -560,21 +560,21 @@ namespace Js
                     case AsmJsType::Bool32x4:
                         if (i >= argInCount || !JavascriptSIMDBool32x4::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, _u("Bool32x4"));
                         }
                         simdVal = ((JavascriptSIMDBool32x4*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Bool16x8:
                         if (i >= argInCount || !JavascriptSIMDBool16x8::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("Bool16x8"));
                         }
                         simdVal = ((JavascriptSIMDBool16x8*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Bool8x16:
                         if (i >= argInCount || !JavascriptSIMDBool8x16::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, _u("Bool8x16"));
                         }
                         simdVal = ((JavascriptSIMDBool8x16*)(args.Values[i + 1]))->GetValue();
                         break;
@@ -595,35 +595,35 @@ namespace Js
                     case AsmJsType::Int16x8:
                         if (i >= argInCount || !JavascriptSIMDInt16x8::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, _u("Int16x8"));
                         }
                         simdVal = ((JavascriptSIMDInt16x8*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Int8x16:
                         if (i >= argInCount || !JavascriptSIMDInt8x16::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("Int8x16"));
                         }
                         simdVal = ((JavascriptSIMDInt8x16*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Uint32x4:
                         if (i >= argInCount || !JavascriptSIMDUint32x4::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("Uint32x4"));
                         }
                         simdVal = ((JavascriptSIMDUint32x4*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Uint16x8:
                         if (i >= argInCount || !JavascriptSIMDUint16x8::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, _u("Uint16x8"));
                         }
                         simdVal = ((JavascriptSIMDUint16x8*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Uint8x16:
                         if (i >= argInCount || !JavascriptSIMDUint8x16::Is(args.Values[i + 1]))
                         {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, _u("Uint8x16"));
                         }
                         simdVal = ((JavascriptSIMDUint8x16*)(args.Values[i + 1]))->GetValue();
                         break;

@@ -37,7 +37,7 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
     ChakraRTInterface::NotifyUnhandledException(ep);
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && _WIN32
     JITProcessManager::TerminateJITServer();
 #endif
     bool crashOnException = false;

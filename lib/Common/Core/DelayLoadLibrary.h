@@ -25,7 +25,7 @@ private:
 
 };
 
-#if PDATA_ENABLED
+#if PDATA_ENABLED && _WIN32
 
 // This needs to be delay loaded because it is available on
 // Win8 only

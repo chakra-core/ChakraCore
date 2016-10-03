@@ -18,19 +18,12 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
 {
     if (LowererMD::IsCall(instr))
     {
-        this->peeps->ClearReg(RegRAX);
-        this->peeps->ClearReg(RegRCX);
-        this->peeps->ClearReg(RegRDX);
-        this->peeps->ClearReg(RegR8);
-        this->peeps->ClearReg(RegR9);
-        this->peeps->ClearReg(RegR10);
-        this->peeps->ClearReg(RegR11);
-        this->peeps->ClearReg(RegXMM0);
-        this->peeps->ClearReg(RegXMM1);
-        this->peeps->ClearReg(RegXMM2);
-        this->peeps->ClearReg(RegXMM3);
-        this->peeps->ClearReg(RegXMM4);
-        this->peeps->ClearReg(RegXMM5);
+#define REGDAT(Name, Listing, Encode, Type, BitVec) \
+        if (!((BitVec) & (RA_CALLEESAVE | RA_DONTALLOCATE))) \
+        { \
+            this->peeps->ClearReg(Reg ## Name); \
+        }
+#include "RegList.h"
     }
     else if (instr->m_opcode == Js::OpCode::IMUL)
     {

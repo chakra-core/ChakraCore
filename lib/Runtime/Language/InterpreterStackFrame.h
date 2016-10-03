@@ -32,7 +32,7 @@ namespace Js
     {
         PREVENT_COPY(InterpreterStackFrame)
 
-        friend class BailOutRecord;
+        friend class ::BailOutRecord;
         friend class JavascriptGeneratorFunction;
         friend class JavascriptGenerator;
 
@@ -231,7 +231,7 @@ namespace Js
         UINT16 GetFlags() const { return m_flags; }
         void OrFlags(UINT16 addTo) { m_flags |= addTo; }
         bool IsInCatchOrFinallyBlock();
-        static bool IsDelayDynamicInterpreterThunk(void* entryPoint);
+        static bool IsDelayDynamicInterpreterThunk(JavascriptMethod entryPoint);
 
         Var LdEnv() const;
         void SetEnv(FrameDisplay *frameDisplay);
@@ -614,7 +614,7 @@ namespace Js
         inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
-        inline Var OP_LdHeapArguments(ScriptContext* scriptContext);
+        Var OP_LdHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdHeapArgsCached(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArgsCached(ScriptContext* scriptContext);

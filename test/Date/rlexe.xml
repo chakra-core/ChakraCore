@@ -93,7 +93,8 @@
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
       <!-- on DST pass Win OldDateAPI jumps back to 01:00 after 01:59 -->
       <!-- todo: Do not force OLDDateAPI ? -->
-      <tags>exclude_jenkins,exclude_mac</tags>
+      <!-- xplat: on Linux Test build (post JIT) mktime returns PST within series of PDT -->
+      <tags>exclude_jenkins,exclude_mac,exclude_xplat</tags>
     </default>
     <condition order="1" type="include">
       <os>win8</os>

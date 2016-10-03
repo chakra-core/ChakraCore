@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+class InliningDecider;
+
 struct InliningThreshold
 {
     uint nonLoadByteCodeCount;
@@ -26,7 +28,7 @@ struct InliningThreshold
 
 class InliningHeuristics
 {
-    friend class InliningDecider;
+    friend class ::InliningDecider;
 
     const FunctionJITTimeInfo * topFunc;
     InliningThreshold threshold;

@@ -47,7 +47,7 @@ public:
         return (NativeCodeData::DataChunk*)((char*)data - offsetof(NativeCodeData::DataChunk, data));
     }
 
-    static wchar_t* GetDataDescription(void* data, JitArenaAllocator * alloc);
+    static char16* GetDataDescription(void* data, JitArenaAllocator * alloc);
 
     static unsigned int GetDataTotalOffset(void* data)
     {
@@ -78,7 +78,7 @@ public:
 
         char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
         char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
-        char * AllocLeaf(__declspec(guard(overflow)) size_t requestedBytes);
+        char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
 
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
@@ -110,7 +110,7 @@ public:
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
             int count = NativeCodeData::GetDataChunk(this)->len / sizeof(T);
-            while (count-- > 0) 
+            while (count-- > 0)
             {
                 (((T*)this) + count)->Fixup(chunkList);
             }
@@ -128,8 +128,8 @@ public:
             DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
             chunk->dataType = typeid(T).name();
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-            {                
-                Output::Print(L"NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+            {
+                Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
                     chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
             }
 #endif
@@ -145,7 +145,7 @@ public:
             chunk->dataType = typeid(T).name();
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
-                Output::Print(L"NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
                     chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
             }
 #endif
@@ -172,7 +172,7 @@ public:
             chunk->dataType = typeid(T).name();
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
-                Output::Print(L"NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                Output::Print(_u("NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
                     chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
             }
 #endif
@@ -199,37 +199,40 @@ public:
     ~NativeCodeData();
 };
 
-char DataDesc_None[];
-char DataDesc_InlineeFrameRecord_ArgOffsets[];
-char DataDesc_InlineeFrameRecord_Constants[];
-char DataDesc_BailoutInfo_CotalOutParamCount[];
-char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[];
-char DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts[];
-char DataDesc_LowererMD_LoadFloatValue_Float[];
-char DataDesc_LowererMD_LoadFloatValue_Double[];
-char DataDesc_LowererMD_EmitLoadFloatCommon_Double[];
-char DataDesc_LowererMD_Simd128LoadConst[];
-
-template<char const *desc = DataDesc_None>
-struct IntType 
-{ 
-    int data; 
+enum DataDesc
+{
+    DataDesc_None,
+    DataDesc_InlineeFrameRecord_ArgOffsets,
+    DataDesc_InlineeFrameRecord_Constants,
+    DataDesc_BailoutInfo_CotalOutParamCount,
+    DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts,
+    DataDesc_ArgOutOffsetInfo_StartCallArgRestoreAdjustCounts,
+    DataDesc_LowererMD_LoadFloatValue_Float,
+    DataDesc_LowererMD_LoadFloatValue_Double,
+    DataDesc_LowererMD_EmitLoadFloatCommon_Double,
+    DataDesc_LowererMD_Simd128LoadConst,
 };
 
-template<char const *desc = DataDesc_None>
+template<DataDesc desc = DataDesc_None>
+struct IntType
+{
+    int data;
+};
+
+template<DataDesc desc = DataDesc_None>
 struct UIntType
 {
     uint data;
 };
 
-template<char const *desc = DataDesc_None>
+template<DataDesc desc = DataDesc_None>
 struct FloatType
 {
     FloatType(float val) :data(val) {}
     float data;
 };
 
-template<char const *desc = DataDesc_None>
+template<DataDesc desc = DataDesc_None>
 struct DoubleType
 {
     DoubleType() {}
@@ -237,7 +240,7 @@ struct DoubleType
     double data;
 };
 
-template<char const *desc = DataDesc_None>
+template<DataDesc desc = DataDesc_None>
 struct SIMDType
 {
     SIMDType() {}
@@ -245,7 +248,7 @@ struct SIMDType
     AsmJsSIMDValue data;
 };
 
-template<char const *desc = DataDesc_None>
+template<DataDesc desc = DataDesc_None>
 struct VarType
 {
     Js::Var data;
@@ -254,14 +257,16 @@ struct VarType
         AssertMsg(false, "Please specialize Fixup method for this Var type or use no-fixup allocator");
     }
 };
+
 template<>
-void VarType<DataDesc_InlineeFrameRecord_Constants>::Fixup(NativeCodeData::DataChunk* chunkList) 
+inline void VarType<DataDesc_InlineeFrameRecord_Constants>::Fixup(NativeCodeData::DataChunk* chunkList)
 {
     AssertMsg(false, "InlineeFrameRecord::constants contains Var from main process, should not fixup");
 }
 
 struct GlobalBailOutRecordDataTable;
-template<> void NativeCodeData::Array<GlobalBailOutRecordDataTable *>::Fixup(NativeCodeData::DataChunk* chunkList)
+template<>
+inline void NativeCodeData::Array<GlobalBailOutRecordDataTable *>::Fixup(NativeCodeData::DataChunk* chunkList)
 {
     NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
 }

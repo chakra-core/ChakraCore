@@ -15,9 +15,9 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     // TODO: OOP JIT, don't hardcode name
 #ifdef NTBUILD
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")),
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("Chakra.dll"))),
 #else
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"ChakraCore.dll")),
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("ChakraCore.dll"))),
 #endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
@@ -29,10 +29,10 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 
 ServerThreadContext::~ServerThreadContext()
 {
-    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?    
+    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
     if (this->m_propertyMap != nullptr)
     {
-        this->m_propertyMap->Map([](const Js::PropertyRecord* record) 
+        this->m_propertyMap->Map([](const Js::PropertyRecord* record)
         {
             size_t allocLength = record->byteCount + sizeof(char16) + (record->isNumeric ? sizeof(uint32) : 0);
             HeapDeletePlus(allocLength, const_cast<Js::PropertyRecord*>(record));
@@ -126,7 +126,7 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
-#if defined(_M_IX86) || defined(_M_X64)
+#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {

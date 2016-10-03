@@ -61,7 +61,7 @@ public:
         _Inout_updates_(arrayLength) ObjTypeSpecFldIDL * jitData);
 
     // TODO: OOP JIT, implement this
-    wchar_t* GetCacheLayoutString() { __debugbreak(); return nullptr; }
+    char16* GetCacheLayoutString() { __debugbreak(); return nullptr; }
 
 private:
     Js::ObjTypeSpecFldInfoFlags GetFlags() const;

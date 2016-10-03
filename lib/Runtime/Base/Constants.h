@@ -47,8 +47,8 @@ namespace Js
         static const ArgSlot            InvalidArgSlot              = (ArgSlot)-1;
         static const uint32             InvalidSymID = (uint32)-1;
 
-        static const uint64 ExponentMask = 0x3FF0000000000000;
-        static const uint64 MantissaMask = 0x000FFFFFFFFFFFFF;
+        static const uint64 ExponentMask;
+        static const uint64 MantissaMask;
 
         static const int ReservedTypeIds = 2048;
 

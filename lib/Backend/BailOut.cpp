@@ -323,8 +323,8 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
             Output::Flush(); \
         } \
     }
-char16 * const trueString = _u("true");
-char16 * const falseString = _u("false");
+const char16 * const trueString = _u("true");
+const char16 * const falseString = _u("false");
 #else
 #define REJIT_TESTTRACE(...)
 #define REJIT_KIND_TESTTRACE(...)
@@ -1478,7 +1478,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             // Initialize the interpreter stack frame (constants) but not the param, the bailout record will restore the value
 #if DBG
             // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-            Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
+            Js::Var invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
             memset(invalidVar, 0xFE, sizeof(Js::RecyclableObject));
             newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, stackAddr, invalidVar);
 #else
@@ -1528,7 +1528,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
         // Initialize the interpreter stack frame (constants) but not the param, the bailout record will restore the value
 #if DBG
-        Js::RecyclableObject * invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
+        Js::Var invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
         memset(invalidStackVar, 0xFE, sizeof(Js::RecyclableObject));
         newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, frameStackAddr, invalidStackVar);
 #else

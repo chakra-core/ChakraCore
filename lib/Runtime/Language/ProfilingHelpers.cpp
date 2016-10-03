@@ -81,7 +81,7 @@ namespace Js
 
             const int32 index = TaggedInt::ToInt32(varIndex);
             const uint32 offset = index;
-            if(index < 0 || offset >= headSegmentLength || array && array->IsMissingHeadSegmentItem(offset))
+            if(index < 0 || offset >= headSegmentLength || (array && array->IsMissingHeadSegmentItem(offset)))
             {
                 ldElemInfo.neededHelperCall = true;
                 break;
@@ -446,7 +446,7 @@ namespace Js
         CallInfo callInfo,
         ...)
     {
-        ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callee, framePointer, profileId, arrayProfileId, callInfo);
         return
             ProfiledNewScObjArray(
                 callee,

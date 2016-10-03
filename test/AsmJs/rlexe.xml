@@ -805,6 +805,7 @@
       <files>constloads.js</files>
       <baseline>constloads.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>

@@ -39,12 +39,10 @@ set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     )
 
 if(CC_TARGETS_AMD64)
-    # xplat-todo: Include platform\XDataAllocator.cpp
-    # Needed on windows, need a replacement for linux to do
-    # amd64 stack walking
     set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
+        amd64/XDataAllocator.cpp
         amd64/amd64_SAVE_REGISTERS.S
-        )
+    )
 endif()
 
 add_library (Chakra.Common.Memory OBJECT

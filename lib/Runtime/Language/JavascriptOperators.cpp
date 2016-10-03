@@ -1396,7 +1396,7 @@ CommonNumber:
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
 
-        Var iteratorVar = 
+        Var iteratorVar =
             threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor, [=]() -> Var
                 {
                     return CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), aRight);
@@ -2085,37 +2085,6 @@ CommonNumber:
     DescriptorFlags JavascriptOperators::GetterSetter(RecyclableObject* instance, JavascriptString * propertyName, Var* setterValue, PropertyValueInfo* info, ScriptContext* scriptContext)
     {
         return GetterSetter_Impl<JavascriptString*, false>(instance, propertyName, setterValue, info, scriptContext);
-    }
-
-    // Checks to see if any object in the prototype chain has a property descriptor for the given property
-    // that specifies either an accessor or a non-writable attribute.
-    // If TRUE, check flags for details.
-    template<typename PropertyKeyType, bool doFastProtoChainCheck, bool isRoot>
-    BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritablePropertyCore(RecyclableObject* instance,
-        PropertyKeyType propertyKey, Var* setterValue, DescriptorFlags* flags, PropertyValueInfo* info, ScriptContext* scriptContext)
-    {
-        Assert(setterValue);
-        Assert(flags);
-
-        // Do a quick check to see if all objects in the prototype chain are known to have only
-        // writable data properties (i.e. no accessors or non-writable properties).
-        if (doFastProtoChainCheck && CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(instance))
-        {
-            return FALSE;
-        }
-
-        if (isRoot)
-        {
-            *flags = JavascriptOperators::GetRootSetter(instance, propertyKey, setterValue, info, scriptContext);
-        }
-        if (*flags == None)
-        {
-            *flags = JavascriptOperators::GetterSetter(instance, propertyKey, setterValue, info, scriptContext);
-        }
-
-
-
-        return ((*flags & Accessor) == Accessor) || ((*flags & Proxy) == Proxy)|| ((*flags & Data) == Data && (*flags & Writable) == None);
     }
 
     void JavascriptOperators::OP_InvalidateProtoCaches(PropertyId propertyId, ScriptContext *scriptContext)
@@ -2931,7 +2900,7 @@ CommonNumber:
         // If we have console scope and no one in the scope had the property add it to console scope
         if ((length > 0) && ConsoleScopeActivationObject::Is(pDisplay->GetItem(length - 1)))
         {
-            // CheckPrototypesForAccessorOrNonWritableProperty does not check for const in global object. We should check it here. 
+            // CheckPrototypesForAccessorOrNonWritableProperty does not check for const in global object. We should check it here.
             if ((length > 1) && GlobalObject::Is(pDisplay->GetItem(length - 2)))
             {
                 GlobalObject* globalObject = GlobalObject::FromVar(pDisplay->GetItem(length - 2));
@@ -4925,7 +4894,7 @@ CommonNumber:
         return JavascriptOperators::OP_GetProperty(instance, PropertyIds::length, scriptContext);
     }
 
-    inline Var JavascriptOperators::GetThisFromModuleRoot(Var thisVar)
+    Var JavascriptOperators::GetThisFromModuleRoot(Var thisVar)
     {
         RootObjectBase * rootObject = static_cast<RootObjectBase*>(thisVar);
         RecyclableObject* hostObject = rootObject->GetHostObject();
@@ -5130,7 +5099,7 @@ CommonNumber:
         {
             return false;
         }
-        if (DynamicType::Is(typeId) && 
+        if (DynamicType::Is(typeId) &&
             static_cast<DynamicObject*>(instance)->GetTypeHandler()->IsStringTypeHandler())
         {
             return false;
@@ -5140,7 +5109,7 @@ CommonNumber:
             return false;
         }
         return !(instance->HasDeferredTypeHandler() &&
-                 JavascriptFunction::Is(instance) && 
+                 JavascriptFunction::Is(instance) &&
                  JavascriptFunction::FromVar(instance)->IsExternalFunction());
     }
 
@@ -5154,7 +5123,7 @@ CommonNumber:
             {
                 return false;
             }
-        }       
+        }
         return true;
     }
 
@@ -6814,8 +6783,8 @@ CommonNumber:
             formalsCount = propIds->count;
             Assert(formalsCount != 0 && propIds != nullptr);
         }
-        
-        HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);        
+
+        HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
         return FillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, propIds, argsObj, scriptContext, nonSimpleParamList, false);
     }
 
@@ -6826,11 +6795,11 @@ CommonNumber:
                   "Loading the arguments object in the global function?");
 
         HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
-        
+
         return FillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, nullptr, argsObj, scriptContext, nonSimpleParamList, true);
     }
 
-    Var JavascriptOperators::FillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, 
+    Var JavascriptOperators::FillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr,
         Js::PropertyIdArray *propIds, HeapArgumentsObject * argsObj, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope)
     {
         Assert(frameObj);
@@ -7007,7 +6976,7 @@ CommonNumber:
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
         {
             Var instOfHandler = JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolHasInstance, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(instOfHandler) 
+            if (JavascriptOperators::IsUndefinedObject(instOfHandler)
                 || instOfHandler == scriptContext->GetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint()))
             {
                 return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
@@ -8400,7 +8369,7 @@ CommonNumber:
         {
             // CONSIDER (EquivObjTypeSpec): Invent some form of least recently used eviction scheme.
             uintptr_t index = (reinterpret_cast<uintptr_t>(type) >> 4) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
-            
+
             if (cache->nextEvictionVictim == EQUIVALENT_TYPE_CACHE_SIZE)
             {
                 __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
@@ -8425,7 +8394,7 @@ CommonNumber:
             __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
             equivTypes[index] = type;
         }
-        
+
         // Fixed field checks allow us to assume a specific type ID, but the assumption is only
         // valid if we lock the type. Otherwise, the type ID may change out from under us without
         // evolving the type.
@@ -10760,20 +10729,6 @@ CommonNumber:
         else
         {
             return CheckPrototypesForAccessorOrNonWritablePropertyCore<JavascriptString*, true, false>(instance, propertyNameString, setterValue, flags, info, scriptContext);
-        }
-    }
-
-    template<typename PropertyKeyType>
-    BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritablePropertySlow(RecyclableObject* instance, PropertyKeyType propertyKey, Var* setterValue, DescriptorFlags* flags, bool isRoot, ScriptContext* scriptContext)
-    {
-        // This is used in debug verification, do not doFastProtoChainCheck to avoid side effect (doFastProtoChainCheck may update HasWritableDataOnly flags).
-        if (isRoot)
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<PropertyKeyType, /*doFastProtoChainCheck*/false, true>(instance, propertyKey, setterValue, flags, nullptr, scriptContext);
-        }
-        else
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<PropertyKeyType, /*doFastProtoChainCheck*/false, false>(instance, propertyKey, setterValue, flags, nullptr, scriptContext);
         }
     }
 

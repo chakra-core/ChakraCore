@@ -169,7 +169,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     }
 
     if (m_workItem->Type() == JsFunctionType &&
-        GetJITFunctionBody()->DoBackendArgumentsOptimization() && 
+        GetJITFunctionBody()->DoBackendArgumentsOptimization() &&
         !GetJITFunctionBody()->HasTry())
     {
         // doBackendArgumentsOptimization bit is set when there is no eval inside a function
@@ -184,7 +184,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         this->GetTopFunc()->hasAnyStackNestedFunc = true;
     }
 
-    if (GetJITFunctionBody()->HasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)
+    if (GetJITFunctionBody()->HasOrParentHasArguments() || (parentFunc && parentFunc->thisOrParentInlinerHasArguments))
     {
         thisOrParentInlinerHasArguments = true;
     }
@@ -622,7 +622,7 @@ Func::TryCodegen()
 #if DBG
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
-                Output::Print(L"NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n", jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
+                Output::Print(_u("NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n"), jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
             }
 #endif
         }
@@ -1553,14 +1553,14 @@ Func::IsFormalsArraySym(SymID symId)
     return stackArgWithFormalsTracker->GetFormalsArraySyms()->Test(symId);
 }
 
-void 
+void
 Func::TrackFormalsArraySym(SymID symId)
 {
     EnsureStackArgWithFormalsTracker();
     stackArgWithFormalsTracker->SetFormalsArraySyms(symId);
 }
 
-void 
+void
 Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
 {
     EnsureStackArgWithFormalsTracker();
@@ -1568,7 +1568,7 @@ Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
     stackArgWithFormalsTracker->SetStackSymInFormalsIndexMap(sym, formalsIndex, formalsCount);
 }
 
-StackSym * 
+StackSym *
 Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
 {
     if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
@@ -1613,7 +1613,7 @@ Func::SetNativeCodeDataSym(StackSym * opnd)
     m_nativeCodeDataSym = opnd;
 }
 
-StackSym* 
+StackSym*
 Func::GetScopeObjSym()
 {
     if (stackArgWithFormalsTracker == nullptr)
@@ -1623,7 +1623,7 @@ Func::GetScopeObjSym()
     return stackArgWithFormalsTracker->GetScopeObjSym();
 }
 
-BVSparse<JitArenaAllocator> * 
+BVSparse<JitArenaAllocator> *
 StackArgWithFormalsTracker::GetFormalsArraySyms()
 {
     return formalsArraySyms;
@@ -1639,13 +1639,13 @@ StackArgWithFormalsTracker::SetFormalsArraySyms(SymID symId)
     formalsArraySyms->Set(symId);
 }
 
-StackSym ** 
+StackSym **
 StackArgWithFormalsTracker::GetFormalsIndexToStackSymMap()
 {
     return formalsIndexToStackSymMap;
 }
 
-void 
+void
 StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::ArgSlot formalsIndex, Js::ArgSlot formalsCount)
 {
     if(formalsIndexToStackSymMap == nullptr)
@@ -1656,13 +1656,13 @@ StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::Arg
     formalsIndexToStackSymMap[formalsIndex] = sym;
 }
 
-void 
+void
 StackArgWithFormalsTracker::SetScopeObjSym(StackSym * sym)
 {
     m_scopeObjSym = sym;
 }
 
-StackSym * 
+StackSym *
 StackArgWithFormalsTracker::GetScopeObjSym()
 {
     return m_scopeObjSym;
@@ -1732,7 +1732,7 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
     {
         Assert(regOpnd->m_sym->IsSingleDef());
         void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address;
-        ptrdiff_t diff = (intptr_t)address - (intptr_t)curr;
+        ptrdiff_t diff = (uintptr_t)address - (uintptr_t)curr;
         if (!Math::FitsInDWord(diff))
         {
             return false;
@@ -1830,9 +1830,9 @@ Func::AllocateNumber(double value)
 void
 Func::DumpFullFunctionName()
 {
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-    Output::Print(L"Function %s (%s)", GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
+    Output::Print(_u("Function %s (%s)"), GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
 }
 #endif
 

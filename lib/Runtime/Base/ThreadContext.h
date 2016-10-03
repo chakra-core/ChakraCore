@@ -475,7 +475,7 @@ public:
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
 
 #if _M_IX86 || _M_AMD64
-    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
@@ -927,7 +927,7 @@ public:
         JITTelemetry.Reset();
     }
 #endif
-    
+
     ParserStats GetParserStats()
     {
         return ParserTelemetry.GetStats();
@@ -1302,7 +1302,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 
@@ -1508,7 +1508,7 @@ public:
         return entropy;
     }
 #endif
-    
+
     Js::ImplicitCallFlags * GetAddressOfImplicitCallFlags()
     {
         return &implicitCallFlags;

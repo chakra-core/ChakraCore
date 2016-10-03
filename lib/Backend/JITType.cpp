@@ -111,13 +111,13 @@ JITTypeHolder::operator!=(const JITTypeHolder& p) const
 }
 
 bool
-JITTypeHolder::operator==(const nullptr_t &p) const
+JITTypeHolder::operator==(const std::nullptr_t &p) const
 {
     return this->t == nullptr;
 }
 
 bool
-JITTypeHolder::operator!=(const nullptr_t &p) const
+JITTypeHolder::operator!=(const std::nullptr_t &p) const
 {
     return this->t != nullptr;
 }

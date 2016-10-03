@@ -30,6 +30,14 @@ SegmentBase<T>::~SegmentBase()
 {
     Assert(this->allocator != nullptr);
 
+    // Cleanup secondaryAllocator before releasing pages so the destructor
+    // still has access to segment memory.
+    if(this->secondaryAllocator)
+    {
+        this->secondaryAllocator->Delete();
+        this->secondaryAllocator = nullptr;
+    }
+
     if (this->address)
     {
         char* originalAddress = this->address - (leadingGuardPageCount * AutoSystemInfo::PageSize);
@@ -38,12 +46,6 @@ SegmentBase<T>::~SegmentBase()
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
         RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
 #endif
-    }
-
-    if(this->secondaryAllocator)
-    {
-        this->secondaryAllocator->Delete();
-        this->secondaryAllocator = nullptr;
     }
 }
 

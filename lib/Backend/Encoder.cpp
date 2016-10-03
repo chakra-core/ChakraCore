@@ -81,10 +81,12 @@ Encoder::Encode()
                 {
 #ifdef _M_X64
                 case Js::OpCode::PrologStart:
+                    m_func->m_prologEncoder.Begin(m_pc - m_encodeBuffer);
                     inProlog = true;
                     continue;
 
                 case Js::OpCode::PrologEnd:
+                    m_func->m_prologEncoder.End();
                     inProlog = false;
                     continue;
 #endif
@@ -313,8 +315,9 @@ Encoder::Encode()
     m_func->GetJITOutput()->RecordNativeCode(m_func, m_encodeBuffer, alloc);
 
 #ifdef _M_X64
-    m_func->m_prologEncoder.FinalizeUnwindInfo();
-    
+    m_func->m_prologEncoder.FinalizeUnwindInfo(
+        (BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
+
     m_func->GetJITOutput()->RecordUnwindInfo(
         0,
         m_func->m_prologEncoder.GetUnwindInfo(),
@@ -351,7 +354,7 @@ Encoder::Encode()
         {
             NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
 
-            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p) 
+            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
             {
                 pairs[i].offset = p.offset;
                 if (p.record)
@@ -560,7 +563,7 @@ Encoder::Encode()
                 (*entry)->propId = propertyId;
                 (*entry)->guardsCount = count;
                 (*entry)->next = nullptr;
-                
+
                 auto& guardOffsets = (*entry)->guardOffsets;
                 int guardIndex = 0;
                 srcSet->Map([&guardOffsets, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void

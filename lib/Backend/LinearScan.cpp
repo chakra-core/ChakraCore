@@ -3241,7 +3241,7 @@ LinearScan::InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionIns
     if (sym->m_isSingleDef)
     {
         IR::Instr * defInstr = sym->m_instrDef;
-        if (!sym->IsConst() && defInstr->GetDst()->AsRegOpnd()->GetReg() == RegNOREG
+        if ((!sym->IsConst() && defInstr->GetDst()->AsRegOpnd()->GetReg() == RegNOREG)
             || this->secondChanceRegs.Test(reg))
         {
             // This can happen if we were trying to allocate this lifetime,
@@ -4014,7 +4014,7 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
                                            IR::BranchInstr *branchInstr, IR::LabelInstr *labelInstr)
 {
     IR::Instr *prevInstr = branchInstr->GetPrevRealInstrOrLabel();
-    bool needsAirlock = branchInstr->IsConditional() || (prevInstr->IsBranchInstr() && prevInstr->AsBranchInstr()->IsConditional() || branchInstr->IsMultiBranch());
+    bool needsAirlock = branchInstr->IsConditional() || (prevInstr->IsBranchInstr() && prevInstr->AsBranchInstr()->IsConditional()) || branchInstr->IsMultiBranch();
     bool hasAirlock = false;
     IR::Instr *insertionInstr = branchInstr;
     IR::Instr *insertionStartInstr = branchInstr->m_prev;

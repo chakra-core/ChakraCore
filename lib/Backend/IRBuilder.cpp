@@ -791,8 +791,8 @@ IRBuilder::Build()
         {
             bool needBailoutForHelper = CONFIG_FLAG(EnableContinueAfterExceptionWrappersForHelpers) &&
                 (OpCodeAttr::NeedsPostOpDbgBailOut(newOpcode) ||
-                    m_lastInstr->m_opcode == Js::OpCode::CallHelper && m_lastInstr->GetSrc1() &&
-                    HelperMethodAttributes::CanThrow(m_lastInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper));
+                    (m_lastInstr->m_opcode == Js::OpCode::CallHelper && m_lastInstr->GetSrc1() &&
+                    HelperMethodAttributes::CanThrow(m_lastInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper)));
 
             if (needBailoutForHelper)
             {
@@ -2002,7 +2002,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             ValueType arrayType(ldElemInfo->GetArrayType());
             if(arrayType.IsLikelyNativeArray() &&
                 (
-                    !(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo() ||
+                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                     m_func->IsJitInDebugMode()
                 ))
             {
@@ -5282,7 +5282,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
     {
         if(arrayType.IsLikelyNativeArray() &&
             (
-                !(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo() ||
+                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                 m_func->IsJitInDebugMode()
             ))
         {

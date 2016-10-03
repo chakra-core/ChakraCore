@@ -73,7 +73,7 @@ namespace Js
             uint currentOffset;  // The global offset of last byte written to in the linked data structure
             bool fixedGrowthPolicy;
 
-            inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
             _NOINLINE void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 
@@ -201,8 +201,8 @@ namespace Js
 
         RegSlot ConsumeReg(RegSlot reg);
 
-        inline void CheckOpen();
-        inline void CheckLabel(ByteCodeLabel labelID);
+        void CheckOpen();
+        void CheckLabel(ByteCodeLabel labelID);
         inline void CheckOp(OpCode op, OpLayoutType layoutType);
         inline void CheckReg(RegSlot registerID);
 

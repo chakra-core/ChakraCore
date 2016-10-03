@@ -435,13 +435,13 @@ public:
 private:
     void            ClearNumber() { this->m_number = 0; }
     void            SetNumber(uint32 number);
-    friend class Func;
-    friend class Lowerer;
+    friend class ::Func;
+    friend class ::Lowerer;
 
     void            SetByteCodeOffset(uint32 number);
-    friend class IRBuilder;
-    friend class IRBuilderAsmJs;
-    friend class FlowGraph;
+    friend class ::IRBuilder;
+    friend class ::IRBuilderAsmJs;
+    friend class ::FlowGraph;
 
     void            SetBailOutKind_NoAssert(const IR::BailOutKind bailOutKind);
 

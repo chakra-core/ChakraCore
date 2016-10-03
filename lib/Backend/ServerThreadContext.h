@@ -19,7 +19,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if defined(_M_IX86) || defined(_M_X64)
+#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 

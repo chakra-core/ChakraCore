@@ -7,6 +7,9 @@
 #ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
+    enum EBinaryMathOpCodes: int;
+    enum EBinaryComparatorOpCodes: int;
+
     // Information about the expression that has been emitted
     struct EmitExpressionInfo
     {
@@ -94,11 +97,11 @@ namespace Js
         EmitExpressionInfo EmitUnaryNeg( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryNot( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryLogNot( ParseNode * pnode );
-        EmitExpressionInfo EmitBinaryMultiType( ParseNode * pnode, enum EBinaryMathOpCodes op );
+        EmitExpressionInfo EmitBinaryMultiType( ParseNode * pnode, EBinaryMathOpCodes op );
         EmitExpressionInfo EmitBinaryInt( ParseNode * pnode, OpCodeAsmJs op );
         EmitExpressionInfo EmitQMark( ParseNode * pnode );
         EmitExpressionInfo EmitSwitch( ParseNode * pnode );
-        EmitExpressionInfo EmitBinaryComparator( ParseNode * pnode, enum EBinaryComparatorOpCodes op);
+        EmitExpressionInfo EmitBinaryComparator( ParseNode * pnode, EBinaryComparatorOpCodes op);
         EmitExpressionInfo EmitLoop( ParseNode *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile = false );
         EmitExpressionInfo EmitIf( ParseNode * pnode );
         EmitExpressionInfo EmitBooleanExpression( ParseNode* pnodeCond, Js::ByteCodeLabel trueLabel, Js::ByteCodeLabel falseLabel );

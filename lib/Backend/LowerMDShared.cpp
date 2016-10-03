@@ -190,7 +190,7 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
         Assert(regArg->m_sym->m_isSingleDef);
         IR::Instr *instrArg = regArg->m_sym->m_instrDef;
 
-        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A || 
+        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A ||
             (helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope && instrArg->m_opcode == Js::OpCode::ExtendArg_A));
         prevInstr = LoadHelperArgument(prevInstr, instrArg->GetSrc1());
 
@@ -447,22 +447,22 @@ LowererMD::LowerLeaveNull(IR::Instr *finallyEndInstr)
 #if _M_X64
     {
         // amd64_ReturnFromCallWithFakeFrame expects to find the spill size and args size
-        // in r8 and r9.
+        // in REG_EH_SPILL_SIZE and REG_EH_ARGS_SIZE.
 
-        // MOV r8, spillSize
+        // MOV REG_EH_SPILL_SIZE, spillSize
         IR::Instr *movR8 = IR::Instr::New(Js::OpCode::LdSpillSize,
-                                          IR::RegOpnd::New(nullptr, RegR8, TyMachReg, m_func),
+                                          IR::RegOpnd::New(nullptr, REG_EH_SPILL_SIZE, TyMachReg, m_func),
                                           m_func);
         finallyEndInstr->InsertBefore(movR8);
 
 
-        // MOV r9, argsSize
+        // MOV REG_EH_ARGS_SIZE, argsSize
         IR::Instr *movR9 = IR::Instr::New(Js::OpCode::LdArgSize,
-                                          IR::RegOpnd::New(nullptr, RegR9, TyMachReg, m_func),
+                                          IR::RegOpnd::New(nullptr, REG_EH_ARGS_SIZE, TyMachReg, m_func),
                                           m_func);
         finallyEndInstr->InsertBefore(movR9);
 
-        IR::Opnd *targetOpnd = IR::RegOpnd::New(nullptr, RegRCX, TyMachReg, m_func);
+        IR::Opnd *targetOpnd = IR::RegOpnd::New(nullptr, REG_EH_TARGET, TyMachReg, m_func);
         IR::Instr *movTarget = IR::Instr::New(Js::OpCode::MOV,
             targetOpnd,
             IR::HelperCallOpnd::New(IR::HelperOp_ReturnFromCallWithFakeFrame, m_func),
@@ -1114,12 +1114,12 @@ void LowererMD::ChangeToAdd(IR::Instr *const instr, const bool needFlags)
     MakeDstEquSrc1(instr);
 
     // Prefer INC for add by one
-    if(instr->GetDst()->IsEqual(instr->GetSrc1()) &&
+    if((instr->GetDst()->IsEqual(instr->GetSrc1()) &&
             instr->GetSrc2()->IsIntConstOpnd() &&
-            instr->GetSrc2()->AsIntConstOpnd()->GetValue() == 1 ||
-        instr->GetDst()->IsEqual(instr->GetSrc2()) &&
+            instr->GetSrc2()->AsIntConstOpnd()->GetValue() == 1) ||
+        (instr->GetDst()->IsEqual(instr->GetSrc2()) &&
             instr->GetSrc1()->IsIntConstOpnd() &&
-            instr->GetSrc1()->AsIntConstOpnd()->GetValue() == 1)
+            instr->GetSrc1()->AsIntConstOpnd()->GetValue() == 1))
     {
         if(instr->GetSrc1()->IsIntConstOpnd())
         {
@@ -1500,8 +1500,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
 
         case Js::OpCode::TEST:
-            if(instr->GetSrc1()->IsImmediateOpnd() && !instr->GetSrc2()->IsImmediateOpnd() ||
-                instr->GetSrc2()->IsMemoryOpnd() && !instr->GetSrc1()->IsMemoryOpnd())
+            if((instr->GetSrc1()->IsImmediateOpnd() && !instr->GetSrc2()->IsImmediateOpnd()) ||
+                (instr->GetSrc2()->IsMemoryOpnd() && !instr->GetSrc1()->IsMemoryOpnd()))
             {
                 if (verify)
                 {
@@ -2410,33 +2410,33 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
     // if src1 is not string
     // generate object test, if not equal jump to $helper
     // compare type check to string, if not jump to $helper
-    // 
+    //
     // if strict mode generate string test as above for src1 and jump to $failure if failed any time
     // else if not strict generate string test as above for src1 and jump to $helper if failed any time
-    // 
+    //
     // Compare length of src1 and src2 if not equal goto $failure
-    // 
+    //
     // if src1 is not flat string jump to $helper
-    // 
+    //
     // if src1 and src2 m_pszValue pointer match goto $success
-    // 
+    //
     // if src2 is not flat string jump to $helper
-    // 
+    //
     // if first character of src1 and src2 doesn't match goto $failure
-    // 
+    //
     // shift left by 1 length of src1 (length*2)
-    // 
+    //
     // memcmp src1 and src2 flat strings till length * 2
-    // 
+    //
     // test eax (result of memcmp)
     // if equal jump to $success else to $failure
-    // 
+    //
     // $success
     //     jmp to $fallthrough
     // $failure
     //     jmp to $fallthrough
     // $helper
-    // 
+    //
     // $fallthrough
 
     // Generates:
@@ -5914,8 +5914,8 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
     bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
-    Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize, 
-        allocatorAddress, endAddressOffset, freeListOffset, 
+    Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize,
+        allocatorAddress, endAddressOffset, freeListOffset,
         allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
 
     endAddressOpnd = IR::MemRefOpnd::New((char*)allocatorAddress + endAddressOffset, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicRecyclerAllocatorEndAddressRef);
@@ -6071,7 +6071,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
     // s1 = XOR s1, FloatTag_Value
     // dst = s1
-    
+
     IR::Instr *setTag = IR::Instr::New(Js::OpCode::XOR,
                                        s1,
                                        s1,
@@ -7960,11 +7960,11 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     opnd = IR::IndirOpnd::New(baseOpnd, Js::ActivationObjectEx::GetOffsetOfCommitFlag(), TyInt8, this->m_func);
     instrCommit->SetDst(opnd);
     instrCommit->SetSrc1(IR::IntConstOpnd::New(1, TyInt8, this->m_func));
-    
+
     LowererMD::ChangeToAssign(instrCommit);
 
     const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJITFunctionBody()->GetFormalsPropIdArray();
-    
+
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
     {

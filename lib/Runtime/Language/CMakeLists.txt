@@ -1,3 +1,7 @@
+if(BuildJIT)
+    add_definitions(-D_ENABLE_DYNAMIC_THUNKS=1)
+endif()
+
 set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     AsmJs.cpp
     AsmJsByteCodeGenerator.cpp
@@ -26,32 +30,33 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     JavascriptStackWalker.cpp
     ModuleNamespace.cpp
     ModuleNamespaceEnumerator.cpp
+    ObjTypeSpecFldInfo.cpp
     ProfilingHelpers.cpp
     #ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
-    # SimdBool16x8Operation.cpp
-    # SimdBool16x8OperationX86X64.cpp
-    # SimdBool32x4Operation.cpp
-    # SimdBool32x4OperationX86X64.cpp
-    # SimdBool8x16Operation.cpp
-    # SimdBool8x16OperationX86X64.cpp
-    # SimdFloat32x4Operation.cpp
-    # SimdFloat32x4OperationX86X64.cpp
-    # SimdFloat64x2Operation.cpp
-    # SimdFloat64x2OperationX86X64.cpp
-    # SimdInt16x8Operation.cpp
-    # SimdInt16x8OperationX86X64.cpp
-    # SimdInt32x4Operation.cpp
-    # SimdInt32x4OperationX86X64.cpp
-    # SimdInt8x16Operation.cpp
-    # SimdInt8x16OperationX86X64.cpp
-    # SimdUint16x8Operation.cpp
-    # SimdUint16x8OperationX86X64.cpp
-    # SimdUint32x4Operation.cpp
-    # SimdUint32x4OperationX86X64.cpp
-    # SimdUint8x16Operation.cpp
-    # SimdUint8x16OperationX86X64.cpp
-    # SimdUtils.cpp
+    SimdBool16x8Operation.cpp
+    SimdBool16x8OperationX86X64.cpp
+    SimdBool32x4Operation.cpp
+    SimdBool32x4OperationX86X64.cpp
+    SimdBool8x16Operation.cpp
+    SimdBool8x16OperationX86X64.cpp
+    SimdFloat32x4Operation.cpp
+    SimdFloat32x4OperationX86X64.cpp
+    SimdFloat64x2Operation.cpp
+    SimdFloat64x2OperationX86X64.cpp
+    SimdInt16x8Operation.cpp
+    SimdInt16x8OperationX86X64.cpp
+    SimdInt32x4Operation.cpp
+    SimdInt32x4OperationX86X64.cpp
+    SimdInt8x16Operation.cpp
+    SimdInt8x16OperationX86X64.cpp
+    SimdUint16x8Operation.cpp
+    SimdUint16x8OperationX86X64.cpp
+    SimdUint32x4Operation.cpp
+    SimdUint32x4OperationX86X64.cpp
+    SimdUint8x16Operation.cpp
+    SimdUint8x16OperationX86X64.cpp
+    SimdUtils.cpp
     SourceDynamicProfileManager.cpp
     SourceTextModuleRecord.cpp
     StackTraceArguments.cpp
@@ -64,6 +69,7 @@ if(CC_TARGETS_AMD64)
         amd64/AsmJsJitTemplate.cpp
         amd64/StackFrame.SystemV.cpp
         amd64/JavascriptOperatorsA.S
+        amd64/amd64_Thunks.S
     )
 elseif(CC_TARGETS_X86)
     set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}

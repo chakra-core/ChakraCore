@@ -13,7 +13,7 @@ namespace JsUtil
     template<class TJobManager>
     void JobProcessor::PrioritizeManagerAndWait(TJobManager *const manager, const unsigned int milliseconds)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager> unused;
         Assert(manager);
         Assert(!isClosed);
 
@@ -31,7 +31,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void JobProcessor::AddJobAndProcessProactively(TJobManager *const manager, const TJobHolder holder)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!isClosed);
 
@@ -49,7 +49,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     bool JobProcessor::PrioritizeJob(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!isClosed);
 
@@ -89,7 +89,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void ForegroundJobProcessor::AddJobAndProcessProactively(TJobManager *const manager, const TJobHolder holder)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!IsClosed());
 
@@ -106,7 +106,7 @@ namespace JsUtil
     template<class TJobManager>
     void ForegroundJobProcessor::PrioritizeManagerAndWait(TJobManager *const manager, const unsigned int milliseconds)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager> unused;
         Assert(manager);
         Assert(manager->isWaitable);
         Assert(!IsClosed());
@@ -154,7 +154,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     bool ForegroundJobProcessor::PrioritizeJob(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!IsClosed());
 
@@ -219,7 +219,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void BackgroundJobProcessor::AddJobAndProcessProactively(TJobManager *const manager, const TJobHolder holder)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!IsClosed());
 
@@ -231,7 +231,7 @@ namespace JsUtil
     template<class TJobManager>
     void BackgroundJobProcessor::PrioritizeManagerAndWait(TJobManager *const manager, const unsigned int milliseconds)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager> unused;
         Assert(manager);
         Assert(manager->isWaitable);
 
@@ -316,7 +316,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     bool BackgroundJobProcessor::PrioritizeJob(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, JobManager> unused;
         Assert(manager);
         Assert(!IsClosed());
 

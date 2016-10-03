@@ -82,7 +82,7 @@ public:
     virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
 
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_IX86) || defined(_M_X64)
+#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
 #endif
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
@@ -114,7 +114,7 @@ private:
 
     uint m_activeJITCount;
     bool m_isAllJITCodeInPreReservedRegion;
-    
+
 };
 
 
