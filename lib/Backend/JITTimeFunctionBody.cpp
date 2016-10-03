@@ -49,12 +49,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                     }
                     else
                     {
-                        // irbuilder relies on this assertion
-                        Assert(!Js::JavascriptString::Is(varConst)
-                            || VirtualTableInfo<Js::LiteralString>::HasVirtualTable(varConst)
-                            || VirtualTableInfo<Js::PropertyString>::HasVirtualTable(varConst)
-                            || VirtualTableInfo<Js::SingleCharString>::HasVirtualTable(varConst));
-
                         jitBody->constTableContent->content[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
                     }
                 }
@@ -831,6 +825,19 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     Assert(location != 0);
 
     return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
+}
+
+JITRecyclableObject *
+JITTimeFunctionBody::GetConstantContent(Js::RegSlot location) const
+{
+    Assert(m_bodyData.constTableContent != nullptr);
+    Assert(m_bodyData.constTableContent->content != nullptr);
+    Assert(location < GetConstCount());
+    Assert(location != 0);
+
+    JITRecyclableObject * obj = (JITRecyclableObject *)m_bodyData.constTableContent->content[location - Js::FunctionBody::FirstRegSlot];
+    Assert(obj);
+    return obj;
 }
 
 intptr_t

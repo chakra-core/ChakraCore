@@ -761,7 +761,7 @@ private:
     */
 
 private:
-    typedef Js::JavascriptString* TBranchKey;
+    typedef JITJavascriptString* TBranchKey;
     typedef Js::BranchDictionaryWrapper<TBranchKey> BranchDictionaryWrapper;
     typedef BranchDictionaryWrapper::BranchDictionary BranchDictionary;
     typedef BranchJumpTableWrapper BranchJumpTable;

@@ -20073,7 +20073,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *p
                 Assert(instrSrc2->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
 
                 // We can't optimize non-javascript type strings.
-                Js::JavascriptString *typeNameJsString = Js::JavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
+                JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
                 const char16        *typeName         = typeNameJsString->GetString();
 
                 Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
@@ -21081,11 +21081,9 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     IR::IndirOpnd * dstLength = IR::IndirOpnd::New(concatStrOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func);
     IR::Opnd * srcLength;
 
-    // TODO: OOP JIT, String Length
-    if (!func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) && srcOpnd->m_sym->m_isStrConst)
+    if (srcOpnd->m_sym->m_isStrConst)
     {
-        srcLength = IR::IntConstOpnd::New(Js::JavascriptString::FromVar(srcOpnd->m_sym->GetConstAddress())->GetLength(),
-            TyUint32, func);
+        srcLength = IR::IntConstOpnd::New(JITJavascriptString::FromVar(srcOpnd->m_sym->GetConstAddress(true))->GetLength(), TyUint32, func);
     }
     else
     {
@@ -22413,7 +22411,7 @@ void Lowerer::GenerateSwitchStringLookup(IR::Instr * instr)
     charcount_t minLength = UINT_MAX;
     charcount_t maxLength = 0;
     BVUnit32 bvLength;
-    instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->dictionary.Map([&](Js::JavascriptString * str, void *)
+    instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->dictionary.Map([&](JITJavascriptString * str, void *)
     {
         charcount_t len = str->GetLength();
         minLength = min(minLength, str->GetLength());

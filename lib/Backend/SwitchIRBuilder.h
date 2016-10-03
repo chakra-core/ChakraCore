@@ -63,7 +63,7 @@ public:
 class SwitchIRBuilder {
 private:
     typedef JsUtil::List<CaseNode*, JitArenaAllocator>              CaseNodeList;
-    typedef JsUtil::List<Js::JavascriptString *, JitArenaAllocator> StrSwitchCaseList;
+    typedef JsUtil::List<JITJavascriptString *, JitArenaAllocator> StrSwitchCaseList;
 
     SwitchAdapter*                  m_adapter;
     Func*                           m_func;
@@ -114,7 +114,7 @@ public:
     void                FixUpMultiBrJumpTable(IR::MultiBranchInstr * multiBranchInstr, uint32 targetOffset);
     void                TryBuildBinaryTreeOrMultiBrForSwitchInts(IR::MultiBranchInstr * &multiBranchInstr, uint32 fallthrOffset,
         int startjmpTableIndex, int endjmpTableIndex, int startBinaryTravIndex, uint32 targetOffset);
-    bool                TestAndAddStringCaseConst(Js::JavascriptString * str);
+    bool                TestAndAddStringCaseConst(JITJavascriptString * str);
     void                BuildBailOnNotInteger();
     void                BuildBailOnNotString();
     IR::MultiBranchInstr * BuildMultiBrCaseInstrForInts(uint32 start, uint32 end, uint32 targetOffset);

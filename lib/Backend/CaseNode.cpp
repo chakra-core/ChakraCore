@@ -32,9 +32,9 @@ DefaultComparer<CaseNode *>::Equals(CaseNode * caseNode1, CaseNode* caseNode2)
     }
     else if(caseNode1->IsSrc2StrConst() && caseNode2->IsSrc2StrConst())
     {
-        Js::JavascriptString * caseVal1 = caseNode1->GetSrc2StringConst();
-        Js::JavascriptString * caseVal2 = caseNode2->GetSrc2StringConst();
-        return Js::JavascriptString::Equals(caseVal1, caseVal2);
+        JITJavascriptString * caseVal1 = caseNode1->GetSrc2StringConst();
+        JITJavascriptString * caseVal2 = caseNode2->GetSrc2StringConst();
+        return JITJavascriptString::Equals(caseVal1, caseVal2);
     }
     else
     {
