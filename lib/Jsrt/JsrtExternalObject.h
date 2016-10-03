@@ -64,5 +64,11 @@ public:
 
 private:
     void * slot;
+
+#if ENABLE_TTD
+public:
+    virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+    virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalObject, &Js::RecyclableObject::DumpObjectFunction);

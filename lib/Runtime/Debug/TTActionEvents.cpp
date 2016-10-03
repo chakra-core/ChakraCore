@@ -231,7 +231,8 @@ namespace TTD
 
         void AllocateExternalObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            Js::RecyclableObject* res = ctx->GetLibrary()->CreateObject();
+            Js::Var res = nullptr;
+            ctx->GetThreadContext()->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, &res);
 
             JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::AllocateExternalObjectActionTag>(ctx, evt, res);
         }

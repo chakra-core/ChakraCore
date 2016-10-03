@@ -613,6 +613,23 @@ namespace TTD
             }
         }
 
+        Js::RecyclableObject* DoObjectInflation_SnapExternalObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+            if(rcObj != nullptr)
+            {
+                return rcObj;
+            }
+            else
+            {
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+                Js::Var res = nullptr;
+                ctx->GetThreadContext()->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, &res);
+
+                return Js::RecyclableObject::FromVar(res);
+            }
+        }
+
         //////////////////
 
         Js::RecyclableObject* DoObjectInflation_SnapScriptFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)

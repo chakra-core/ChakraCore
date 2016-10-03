@@ -198,6 +198,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , TTDLog(nullptr)
     , TTDWriteInitializeFunction(nullptr)
     , TTDStreamFunctions({ 0 })
+    , TTDExternalObjectFunctions({ 0 })
 #endif
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     , directCallTelemetry(this)
