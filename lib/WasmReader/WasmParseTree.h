@@ -77,13 +77,10 @@ namespace Wasm
     struct WasmBrNode
     {
         uint32 depth;
-        uint32 arity;
-        bool hasSubExpr;
     };
 
     struct WasmBrTableNode
     {
-        uint32 arity;
         uint32 numTargets;
         uint32* targetTable;
         uint32 defaultTarget;
@@ -95,17 +92,23 @@ namespace Wasm
         bool isImport;
     };
 
+    struct WasmBlock
+    {
+        WasmTypes::WasmType sig;
+    };
+
     struct WasmNode
     {
         WasmOp op;
         union
         {
-            WasmVarNode var;
-            WasmConstLitNode cnst;
+            WasmBlock block;
             WasmBrNode br;
             WasmBrTableNode brTable;
-            WasmMemOpNode mem;
             WasmCallNode call;
+            WasmConstLitNode cnst;
+            WasmMemOpNode mem;
+            WasmVarNode var;
         };
     };
 

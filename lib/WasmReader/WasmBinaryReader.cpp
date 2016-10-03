@@ -342,6 +342,11 @@ WasmBinaryReader::ReadExpr()
     {
     case wbBlock:
     case wbLoop:
+    case wbIf:
+        BlockNode();
+        break;
+    case wbElse:
+        // no node attributes
         break;
     case wbCall:
         CallNode();
@@ -374,10 +379,6 @@ WasmBinaryReader::ReadExpr()
     case wbGetLocal:
     case wbTeeLocal:
         VarNode();
-        break;
-    case wbIf:
-    case wbElse:
-        // no node attributes
         break;
     case wbDrop:
         break;
@@ -451,37 +452,30 @@ WasmBinaryReader::CallIndirectNode()
     m_currentNode.call.isImport = false;
 }
 
+void WasmBinaryReader::BlockNode()
+{
+    uint8 sig = ReadConst<uint8>();
+    m_funcState.count++;
+    if (sig > 4)
+    {
+        ThrowDecodingError(_u("Invalid block signature type"));
+    }
+    m_currentNode.block.sig = (WasmTypes::WasmType)sig;
+}
+
 // control flow
 void
 WasmBinaryReader::BrNode()
 {
     UINT len = 0;
-    m_currentNode.br.arity = ReadConst<uint8>();
-    m_funcState.count++;
-
-    if (m_currentNode.br.arity > 1)
-    {
-        ThrowDecodingError(_u("NYI: br yielding more than 1 value"));
-    }
-
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
-
-    m_currentNode.br.hasSubExpr = m_currentNode.br.arity == 1;
 }
 
 void
 WasmBinaryReader::BrTableNode()
 {
     UINT len = 0;
-    m_currentNode.brTable.arity = LEB128(len);
-    m_funcState.count += len;
-
-    if (m_currentNode.brTable.arity > 1)
-    {
-        ThrowDecodingError(_u("NYI: br_table yielding more than 1 value"));
-    }
-
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
     m_currentNode.brTable.targetTable = AnewArray(m_alloc, UINT32, m_currentNode.brTable.numTargets);

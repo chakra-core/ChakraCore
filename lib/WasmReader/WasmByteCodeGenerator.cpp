@@ -157,7 +157,6 @@ WasmModuleGenerator::GenerateModule()
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
-    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), index);
     WasmFunctionInfo* wasmInfo = m_module->GetFunctionInfo(index);
     if (!wasmInfo)
     {
@@ -307,6 +306,12 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_f64RegSlots(ReservedRegisterCount),
     m_blockInfos(&m_alloc)
 {
+#if DBG_DUMP
+    m_i32RegSlots.mType = WAsmJs::RegisterSpace::INT32;
+    m_f32RegSlots.mType = WAsmJs::RegisterSpace::FLOAT32;
+    m_f64RegSlots.mType = WAsmJs::RegisterSpace::FLOAT64;
+#endif
+
     m_writer.Create();
     m_funcInfo = readerInfo->m_funcInfo;
     m_module = readerInfo->m_module;
@@ -321,6 +326,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
 void
 WasmBytecodeGenerator::GenerateFunction()
 {
+    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), m_funcInfo->GetNumber());
     if (PHASE_OFF(Js::WasmBytecodePhase, GetFunctionBody()))
     {
         throw WasmCompilationException(_u("Compilation skipped"));
@@ -338,25 +344,14 @@ WasmBytecodeGenerator::GenerateFunction()
         EnregisterLocals();
 
         WasmOp op = wbLimit;
-        EmitInfo exprInfo;
         EnterEvalStackScope();
         while ((op = GetReader()->ReadExpr()) != wbFuncEnd)
         {
-            exprInfo = EmitExpr(op);
+            EmitExpr(op);
         }
         DebugPrintOp(op);
-        // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
-        Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
 
-        // If the last expression yielded a value, return it
-        if (exprInfo.type != WasmTypes::Unreachable)
-        {
-            if (exprInfo.type != returnType && returnType != Wasm::WasmTypes::Void)
-            {
-                throw WasmCompilationException(_u("Last expression return type mismatch return type"));
-            }
-            EmitReturnExpr();
-        }
+        EmitReturnExpr();
         ExitEvalStackScope();
     }
     catch (...)
@@ -458,7 +453,7 @@ WasmBytecodeGenerator::EnregisterLocals()
     }
 }
 
-EmitInfo
+void
 WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
     DebugPrintOp(op);
@@ -480,7 +475,8 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitGetLocal();
         break;
     case wbSetLocal:
-        return EmitSetLocal(false);
+        EmitSetLocal(false);
+        return;
     case wbTeeLocal:
         info = EmitSetLocal(true);
         break;
@@ -528,8 +524,8 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitBrTable();
         break;
     case wbDrop:
-        info = EmitDrop();
-        break;
+        EmitDrop();
+        return;
     case wbNop:
         info = EmitInfo();
         break;
@@ -569,7 +565,6 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
     PushEvalStack(info);
-    return info;
 }
 
 EmitInfo
@@ -652,7 +647,6 @@ EmitInfo
 WasmBytecodeGenerator::EmitBlockCommon(bool* endOnElse /*= nullptr*/)
 {
     WasmOp op;
-    EmitInfo blockInfo;
     EnterEvalStackScope();
     if(endOnElse) *endOnElse = false;
     do {
@@ -666,20 +660,20 @@ WasmBytecodeGenerator::EmitBlockCommon(bool* endOnElse /*= nullptr*/)
             *endOnElse = true;
             break;
         }
-        blockInfo = EmitExpr(op);
+        EmitExpr(op);
     } while (true);
     DebugPrintOp(op);
-    ExitEvalStackScope();
-    return blockInfo;
+
+    return ExitEvalStackScope();
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlock(bool* endOnElse)
+WasmBytecodeGenerator::EmitBlock()
 {
     Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
 
     PushLabel(blockLabel);
-    EmitInfo blockInfo = EmitBlockCommon(endOnElse);
+    EmitInfo blockInfo = EmitBlockCommon();
     YieldToBlock(0, blockInfo);
     m_writer.MarkAsmJsLabel(blockLabel);
     blockInfo = PopLabel(blockLabel);
@@ -931,7 +925,6 @@ WasmBytecodeGenerator::EmitIfElseExpr()
         throw WasmCompilationException(_u("If expression must have type i32"));
     }
 
-    // TODO: save this so I can break
     Js::ByteCodeLabel falseLabel = m_writer.DefineLabel();
     Js::ByteCodeLabel endLabel = m_writer.DefineLabel();
 
@@ -939,8 +932,11 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_i32RegSlots.ReleaseLocation(&checkExpr);
 
+    PushLabel(endLabel);
+
     bool endOnElse = false;
-    EmitInfo trueExpr = EmitBlock(&endOnElse);
+    EmitInfo trueExpr = EmitBlockCommon(&endOnElse);
+    YieldToBlock(0, trueExpr);
 
     m_writer.AsmBr(endLabel);
 
@@ -950,34 +946,17 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     EmitInfo falseExpr;
     if (endOnElse)
     {
-        falseExpr = EmitBlock();
+        falseExpr = EmitBlockCommon();
+        YieldToBlock(0, falseExpr);
     }
-
-    if (!WasmTypes::IsLocalType(trueExpr.type) || falseExpr.type != trueExpr.type)
-    {
-        // if types are void or mismatched if/else doesn't yield a value
-        ReleaseLocation(&trueExpr);
-        ReleaseLocation(&falseExpr);
-    }
-    else
-    {
-        // EmitExpr always yields temp register, so these must be different
-        Assert(falseExpr.location != trueExpr.location);
-        // we will use result info true expr as our result info
-        m_writer.AsmReg2(GetLoadOp(falseExpr.type), trueExpr.location, falseExpr.location);
-        ReleaseLocation(&falseExpr);
-        retInfo = trueExpr;
-    }
-
     m_writer.MarkAsmJsLabel(endLabel);
 
-    return retInfo;
+    return PopLabel(endLabel);
 }
 
 EmitInfo
 WasmBytecodeGenerator::EmitBrTable()
 {
-    const uint arity = GetReader()->m_currentNode.brTable.arity;
     const uint numTargets = GetReader()->m_currentNode.brTable.numTargets;
     const UINT* targetTable = GetReader()->m_currentNode.brTable.targetTable;
     const UINT defaultEntry = GetReader()->m_currentNode.brTable.defaultTarget;
@@ -991,7 +970,7 @@ WasmBytecodeGenerator::EmitBrTable()
 
     m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
     EmitInfo yieldInfo;
-    if (arity == 1)
+    if (ShouldYieldToBlock(defaultEntry))
     {
         yieldInfo = PopEvalStack();
     }
@@ -1031,6 +1010,20 @@ WasmBytecodeGenerator::EmitBinExpr()
     EmitInfo rhs = PopEvalStack();
     EmitInfo lhs = PopEvalStack();
 
+    if (rhs.type == WasmTypes::Unreachable)
+    {
+        if (lhs.type != WasmTypes::Unreachable)
+        {
+            ReleaseLocation(&lhs);
+        }
+        return rhs;
+    }
+    if (lhs.type == WasmTypes::Unreachable)
+    {
+        ReleaseLocation(&rhs);
+        return lhs;
+    }
+
     if (lhsType != lhs.type)
     {
         throw WasmCompilationException(_u("Invalid type for LHS"));
@@ -1058,6 +1051,11 @@ WasmBytecodeGenerator::EmitUnaryExpr()
     WasmTypes::WasmType inputType = signature[1];
 
     EmitInfo info = PopEvalStack();
+
+    if (info.type == WasmTypes::Unreachable)
+    {
+        return info;
+    }
 
     if (inputType != info.type)
     {
@@ -1140,6 +1138,10 @@ WasmBytecodeGenerator::EmitReturnExpr()
     else
     {
         EmitInfo retExprInfo = PopEvalStack();
+        if (retExprInfo.type == WasmTypes::Unreachable)
+        {
+            return retExprInfo;
+        }
 
         if (m_funcInfo->GetResultType() != retExprInfo.type)
         {
@@ -1210,7 +1212,6 @@ EmitInfo
 WasmBytecodeGenerator::EmitBr()
 {
     UINT depth = GetReader()->m_currentNode.br.depth;
-    bool hasSubExpr = GetReader()->m_currentNode.br.hasSubExpr;
 
     EmitInfo conditionInfo;
     if (wasmOp == WasmOp::wbBrIf)
@@ -1223,7 +1224,7 @@ WasmBytecodeGenerator::EmitBr()
     }
 
     EmitInfo info;
-    if (hasSubExpr)
+    if (ShouldYieldToBlock(depth))
     {
         // TODO: Handle value that Break is supposed to "throw".
         info = PopEvalStack();
@@ -1322,28 +1323,7 @@ WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
     EmitInfo yieldEmitInfo;
     if (info.yieldInfo)
     {
-        BlockYieldInfo* yieldInfo = info.yieldInfo;
-        for (int type = WasmTypes::Void + 1; type < WasmTypes::Limit; ++type)
-        {
-            if (
-                yieldInfo->yieldLocs[type] != Js::Constants::NoRegister &&
-                type != yieldInfo->type // Do not release the location used
-            )
-            {
-                GetRegisterSpace((WasmTypes::WasmType)type)->ReleaseTmpRegister(yieldInfo->yieldLocs[type]);
-            }
-        }
-        if (WasmTypes::IsLocalType(yieldInfo->type))
-        {
-            Assert(yieldInfo->type < WasmTypes::Limit);
-            yieldEmitInfo.location = yieldInfo->yieldLocs[yieldInfo->type];
-            yieldEmitInfo.type = yieldInfo->type;
-        }
-        else
-        {
-            yieldEmitInfo.type = yieldInfo->type == WasmTypes::Limit ? WasmTypes::Unreachable : WasmTypes::Void;
-            yieldEmitInfo.location = Js::Constants::NoRegister;
-        }
+        yieldEmitInfo = *info.yieldInfo;
     }
     return yieldEmitInfo;
 }
@@ -1355,14 +1335,11 @@ WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo
     info.label = label;
     if (addBlockYieldInfo)
     {
-        info.yieldInfo = Anew(&m_alloc, BlockYieldInfo);
-        info.yieldInfo->yieldLocs[WasmTypes::I32] = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
-        info.yieldInfo->yieldLocs[WasmTypes::I64] = Js::Constants::NoRegister; // NYI
-        info.yieldInfo->yieldLocs[WasmTypes::F32] = GetRegisterSpace(WasmTypes::F32)->AcquireTmpRegister();
-        info.yieldInfo->yieldLocs[WasmTypes::F64] = GetRegisterSpace(WasmTypes::F64)->AcquireTmpRegister();
-
-        // Make sure we don't forget to add new types here
-        CompileAssert(WasmTypes::Limit == 5);
+        WasmTypes::WasmType type = GetReader()->m_currentNode.block.sig;
+        if (type != WasmTypes::Void)
+        {
+            info.yieldInfo = Anew(&m_alloc, EmitInfo, GetRegisterSpace(type)->AcquireTmpRegister(), type);
+        }
     }
     m_blockInfos.Push(info);
 }
@@ -1371,33 +1348,32 @@ void
 WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
 {
     BlockInfo info = GetBlockInfo(relativeDepth);
-    BlockYieldInfo* yieldInfo = info.yieldInfo;
-    if (
-        !yieldInfo || // Cannot yield value to this block
-        expr.type == WasmTypes::Unreachable // Do not modify this blocks type for unreachable
-    )
+    if (info.HasYield())
     {
-        return;
-    }
+        EmitInfo* yieldInfo = info.yieldInfo;
 
-    // If the type differs on any path, do not yield.
-    // This will introduce some dead code on the first paths that tried to Yield a valid type
-    if (
-        yieldInfo->type == WasmTypes::Void ||
-        expr.type == WasmTypes::Void ||
-        (yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type)
-    )
-    {
-        yieldInfo->type = WasmTypes::Void;
-        return;
-    }
+        // Do not yield unrechable expressions
+        if (expr.type == WasmTypes::Unreachable)
+        {
+            return;
+        }
 
-    yieldInfo->type = expr.type;
-    m_writer.AsmReg2(GetLoadOp(expr.type), yieldInfo->yieldLocs[expr.type], expr.location);
+        if (yieldInfo->type != expr.type)
+        {
+            throw WasmCompilationException(_u("Invalid yield type"));
+        }
+
+        m_writer.AsmReg2(GetLoadOp(expr.type), yieldInfo->location, expr.location);
+    }
+}
+
+bool WasmBytecodeGenerator::ShouldYieldToBlock(uint relativeDepth) const
+{
+    return GetBlockInfo(relativeDepth).HasYield();
 }
 
 Wasm::BlockInfo
-WasmBytecodeGenerator::GetBlockInfo(uint relativeDepth)
+WasmBytecodeGenerator::GetBlockInfo(uint relativeDepth) const
 {
     if (relativeDepth >= (uint)m_blockInfos.Count())
     {
@@ -1456,15 +1432,17 @@ WasmBytecodeGenerator::EnterEvalStackScope()
     m_evalStack.Push(EmitInfo(WasmTypes::Limit));
 }
 
-void
+EmitInfo
 WasmBytecodeGenerator::ExitEvalStackScope()
 {
     Assert(!m_evalStack.Empty());
-    EmitInfo info;
+    EmitInfo info, prevInfo;
     while(info = m_evalStack.Pop(), info.type != WasmTypes::Limit)
     {
+        prevInfo = info;
         ReleaseLocation(&info);
     }
+    return prevInfo;
 }
 
 void

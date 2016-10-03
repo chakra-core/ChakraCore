@@ -40,6 +40,7 @@ namespace Wasm
             UINT32 size;  // number of entries
         };
 
+        void BlockNode();
         void CallNode();
         void CallIndirectNode();
         void BrNode();
