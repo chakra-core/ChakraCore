@@ -42,7 +42,6 @@ namespace Wasm
 
         void CallNode();
         void CallIndirectNode();
-        void CallImportNode();
         void BrNode();
         void BrTableNode();
         WasmOp MemNode(WasmOp op);

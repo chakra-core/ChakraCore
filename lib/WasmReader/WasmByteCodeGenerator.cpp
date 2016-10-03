@@ -179,7 +179,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
             if (funcExport && funcExport->nameLength > 0)
             {
-                const uint32 funcIndex = funcExport->funcIndex;
+                const uint32 funcIndex = funcExport->funcIndex - m_module->GetImportCount();
                 if (funcIndex == wasmInfo->GetNumber())
                 {
                     nameLength = funcExport->nameLength + 16;
@@ -502,9 +502,6 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wbLoop:
         info = EmitLoop();
         break;
-    case wbCallImport:
-        info = EmitCall<wbCallImport>();
-        break;
     case wbCall:
         info = EmitCall<wbCall>();
         break;
@@ -726,27 +723,29 @@ WasmBytecodeGenerator::EmitCall()
     uint signatureId = Js::Constants::UninitializedValue;
     WasmSignature * calleeSignature = nullptr;
     EmitInfo indirectIndexInfo;
+    bool isImportCall = GetReader()->m_currentNode.call.isImport;
     switch (wasmOp)
     {
     case wbCall:
         funcNum = GetReader()->m_currentNode.call.num;
-        if (funcNum >= m_module->GetFunctionCount())
+        if (isImportCall)
         {
-            throw WasmCompilationException(_u("Call is to unknown function"));
+            if (funcNum >= m_module->GetImportCount())
+            {
+                throw WasmCompilationException(_u("Call is to unknown import"));
+            }
+            uint sigId = m_module->GetFunctionImport(funcNum)->sigId;
+            calleeSignature = m_module->GetSignature(sigId);
         }
-        calleeSignature = m_module->GetFunctionInfo(funcNum)->GetSignature();
-        break;
-    case wbCallImport:
-    {
-        funcNum = GetReader()->m_currentNode.call.num;
-        if (funcNum >= m_module->GetImportCount())
+        else
         {
-            throw WasmCompilationException(L"Call is to unknown function");
+            if (funcNum >= m_module->GetFunctionCount())
+            {
+                throw WasmCompilationException(_u("Call is to unknown function"));
+            }
+            calleeSignature = m_module->GetFunctionInfo(funcNum)->GetSignature();
         }
-        uint sigId = m_module->GetFunctionImport(funcNum)->sigId;
-        calleeSignature = m_module->GetSignature(sigId);
         break;
-    }
     case wbCallIndirect:
         signatureId = GetReader()->m_currentNode.call.num;
         calleeSignature = m_module->GetSignature(signatureId);
@@ -758,7 +757,7 @@ WasmBytecodeGenerator::EmitCall()
     // emit start call
     Js::ArgSlot argSize;
     Js::OpCodeAsmJs startCallOp;
-    if (wasmOp == wbCallImport)
+    if (isImportCall)
     {
         argSize = (Js::ArgSlot)(calleeSignature->GetParamCount() * sizeof(Js::Var));
         startCallOp = Js::OpCodeAsmJs::StartCall;
@@ -798,14 +797,14 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            if (wasmOp == wbCallImport)
+            if (isImportCall)
             {
                 throw WasmCompilationException(_u("External calls with float argument NYI"));
             }
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
-            if (wasmOp == wbCallImport)
+            if (isImportCall)
             {
                 argOp = Js::OpCodeAsmJs::ArgOut_Db;
             }
@@ -815,7 +814,7 @@ WasmBytecodeGenerator::EmitCall()
             }
             break;
         case WasmTypes::I32:
-            argOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
@@ -826,7 +825,7 @@ WasmBytecodeGenerator::EmitCall()
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
         }
-        argsBytesLeft += wasmOp == wbCallImport ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
+        argsBytesLeft += isImportCall ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
         Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
@@ -842,10 +841,14 @@ WasmBytecodeGenerator::EmitCall()
     switch (wasmOp)
     {
     case wbCall:
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetFuncOffset());
-        break;
-    case wbCallImport:
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetImportFuncOffset());
+        if (isImportCall)
+        {
+            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetImportFuncOffset());
+        }
+        else
+        {
+            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetFuncOffset());
+        }
         break;
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
@@ -865,7 +868,7 @@ WasmBytecodeGenerator::EmitCall()
     // calculate number of RegSlots the arguments consume
     Js::ArgSlot args;
     Js::OpCodeAsmJs callOp = Js::OpCodeAsmJs::Nop;
-    if (wasmOp == wbCallImport)
+    if (isImportCall)
     {
         args = (Js::ArgSlot)(calleeSignature->GetParamCount() + 1);
         callOp = Js::OpCodeAsmJs::Call;
@@ -888,15 +891,15 @@ WasmBytecodeGenerator::EmitCall()
         {
         case WasmTypes::F32:
             retInfo.location = m_f32RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
             break;
         case WasmTypes::F64:
             retInfo.location = m_f64RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
             break;
         case WasmTypes::I32:
             retInfo.location = m_i32RegSlots.AcquireTmpRegister();
-            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
             throw WasmCompilationException(_u("I64 return type NYI"));

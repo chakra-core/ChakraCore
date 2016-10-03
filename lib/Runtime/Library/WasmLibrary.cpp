@@ -214,34 +214,7 @@ namespace Js
         }
     }
 
-    Var WasmLibrary::WasmLoadExports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* localModuleFunctions)
-    {
-        Js::Var exportsNamespace = nullptr;
-
-        // Check for Default export
-        for (uint32 iExport = 0; iExport < wasmModule->GetExportCount(); ++iExport)
-        {
-            Wasm::WasmExport* funcExport = wasmModule->GetFunctionExport(iExport);
-            if (funcExport && funcExport->nameLength == 0)
-            {
-                const uint32 funcIndex = funcExport->funcIndex;
-                if (funcIndex < wasmModule->GetFunctionCount())
-                {
-                    exportsNamespace = localModuleFunctions[funcIndex];
-                    break;
-                }
-            }
-        }
-        // If no default export is present, create an empty object
-        if (exportsNamespace == nullptr)
-        {
-            exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(ctx);
-        }
-
-        return exportsNamespace;
-    }
-
-    void WasmLibrary::WasmBuildObject(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var* exportObj, bool* hasAnyLazyTraps, Var* localModuleFunctions)
+    void WasmLibrary::WasmBuildObject(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var* exportObj, bool* hasAnyLazyTraps, Var* localModuleFunctions, Var* importFunctions)
     {
         if (wasmModule->GetMemory()->minSize != 0 && wasmModule->GetMemory()->exported)
         {
@@ -269,14 +242,23 @@ namespace Js
                 ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
                 Var funcObj;
                 // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
-                if (funcExport->funcIndex < wasmModule->GetFunctionCount())
+                uint32 funcIndex = funcExport->funcIndex;
+                if (funcIndex >= wasmModule->GetImportCount())
                 {
-                    funcObj = localModuleFunctions[funcExport->funcIndex];
+                    funcIndex -= wasmModule->GetImportCount();
+                    if (funcIndex < wasmModule->GetFunctionCount())
+                    {
+                        funcObj = localModuleFunctions[funcExport->funcIndex];
+                    }
+                    else
+                    {
+                        Assert(UNREACHED);
+                        funcObj = ctx->GetLibrary()->GetUndefined();
+                    }
                 }
                 else
                 {
-                    Assert(UNREACHED);
-                    funcObj = ctx->GetLibrary()->GetUndefined();
+                    funcObj = importFunctions[funcIndex];
                 }
                 JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
             }
@@ -390,11 +372,12 @@ namespace Js
 
             bool hasAnyLazyTraps = false;
             WasmLoadFunctions(wasmModule, scriptContext, moduleEnvironmentPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
-            Js::Var exportsNamespace = WasmLoadExports(wasmModule, scriptContext, localModuleFunctions);
-            WasmBuildObject(wasmModule, scriptContext, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions);
-
+            
             Var* importFunctions = moduleEnvironmentPtr + wasmModule->GetImportFuncOffset();
             WasmLoadImports(wasmModule, scriptContext, importFunctions, ffi);
+
+            Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+            WasmBuildObject(wasmModule, scriptContext, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions, importFunctions);
 
             Var** indirectFunctionTables = (Var**)(moduleEnvironmentPtr + wasmModule->GetIndirFuncTableOffset());
             WasmLoadIndirectFunctionTables(wasmModule, scriptContext, indirectFunctionTables, localModuleFunctions);

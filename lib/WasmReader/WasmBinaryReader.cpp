@@ -164,16 +164,16 @@ WasmBinaryReader::ReadSectionHeader()
 
     if (sectionId > 0)
     {
-        int normId = sectionId - 1;
+        SectionCode sectCode = (SectionCode)(sectionId - 1);
 
-        if (normId >= bSectNames) // ">=" since "Name" isn't considered to be a known section
+        if (sectCode >= bSectNames) // ">=" since "Name" isn't considered to be a known section
         {
-            ThrowDecodingError(_u("Invalid known section opcode %d"), normId);
+            ThrowDecodingError(_u("Invalid known section opcode %d"), sectCode);
         }
 
-        sectionName = SectionInfo::All[normId].id;
-        header.code = (SectionCode)normId;
-        nameLength = static_cast<UINT32> (strlen(sectionName)); //sectionName (SectionInfo.id) is null-terminated
+        sectionName = SectionInfo::All[sectCode].id;
+        header.code = sectCode;
+        nameLength = static_cast<UINT32>(strlen(sectionName)); //sectionName (SectionInfo.id) is null-terminated
     }
     else
     {
@@ -346,9 +346,6 @@ WasmBinaryReader::ReadExpr()
     case wbCall:
         CallNode();
         break;
-    case wbCallImport:
-        CallImportNode();
-        break;
     case wbCallIndirect:
         CallIndirectNode();
         break;
@@ -427,23 +424,14 @@ WasmBinaryReader::CallNode()
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
-    if (funcNum >= m_module->GetFunctionCount())
+    m_currentNode.call.isImport = funcNum < m_module->GetImportCount();
+    if (!m_currentNode.call.isImport)
     {
-        ThrowDecodingError(_u("Function is out of bound"));
-    }
-    m_currentNode.call.num = funcNum;
-}
-
-void
-WasmBinaryReader::CallImportNode()
-{
-    UINT length = 0;
-
-    UINT32 funcNum = LEB128(length);
-    m_funcState.count += length;
-    if (funcNum >= m_module->GetImportCount())
-    {
-        ThrowDecodingError(_u("Function is out of bound"));
+        funcNum -= m_module->GetImportCount();
+        if (funcNum >= m_module->GetFunctionCount())
+        {
+            ThrowDecodingError(_u("Function is out of bound"));
+        }
     }
     m_currentNode.call.num = funcNum;
 }
@@ -460,6 +448,7 @@ WasmBinaryReader::CallIndirectNode()
         ThrowDecodingError(_u("Function is out of bound"));
     }
     m_currentNode.call.num = funcNum;
+    m_currentNode.call.isImport = false;
 }
 
 // control flow
@@ -661,15 +650,47 @@ void WasmBinaryReader::ReadExportTable()
 
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
-        uint32 funcIndex = LEB128(length);
-        if (funcIndex >= m_module->GetFunctionCount())
-        {
-            ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, funcIndex);
-        }
         uint32 nameLength;
         char16* exportName = ReadInlineName(length, nameLength);
-        TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, funcIndex, exportName);
-        m_module->SetFunctionExport(iExport, funcIndex, exportName, nameLength);
+
+        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        uint32 index = LEB128(length);
+        switch (kind)
+        {
+        case ImportKinds::Function:
+        {
+            if (index >= m_module->GetImportCount() + m_module->GetFunctionCount())
+            {
+                ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
+            }
+            m_module->SetFunctionExport(iExport, index, exportName, nameLength);
+            if (index < m_module->GetImportCount())
+            {
+                WasmImport* import = m_module->GetFunctionImport(index);
+                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, index, exportName);
+            }
+            else
+            {
+                TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, index, exportName);
+            }
+            break;
+        }
+        case ImportKinds::Memory:
+        {
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Invalid memory index %s"), index);
+            }
+            m_module->SetMemoryIsExported();
+            break;
+        }
+        case ImportKinds::Table:
+        case ImportKinds::Global:
+        default:
+            ThrowDecodingError(_u("Kind %d, NYI"), kind);
+            break;
+        }
+
     }
 }
 

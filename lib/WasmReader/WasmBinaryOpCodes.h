@@ -94,7 +94,6 @@ WASM_MISC_OPCODE(GetLocal,     0x14, Limit, false)
 WASM_MISC_OPCODE(SetLocal,     0x15, Limit, false)
 WASM_MISC_OPCODE(Call,         0x16, Limit, false)
 WASM_MISC_OPCODE(CallIndirect, 0x17, Limit, false)
-WASM_MISC_OPCODE(CallImport,   0x18, Limit, false)
 WASM_MISC_OPCODE(TeeLocal,     0x19, Limit, false)
 
 // Load memory expressions.

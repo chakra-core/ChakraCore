@@ -92,6 +92,7 @@ namespace Wasm
     struct WasmCallNode
     {
         uint32 num; // function id
+        bool isImport;
     };
 
     struct WasmNode
