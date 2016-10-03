@@ -1,0 +1,109 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "return await af1(10)",
+        "function": "af2"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "sourceText": "var p = af2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "await a",
+        "function": "af1"
+      },
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "return await af1(10)",
+        "function": "af2"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "sourceText": "var p = af2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "return await af1(10)",
+        "function": "af2"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "sourceText": "var p = af2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 10"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 4,
+        "sourceText": "return await foo.call({ x : 100 })",
+        "function": "af1"
+      }
+    ]
+  },
+  {
+    "this": {
+      "x": "number 100"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "af1": "function <large string>",
+      "af2": "function <large string>",
+      "p": "Promise [...]"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "return this.x",
+        "function": "foo"
+      },
+      {
+        "line": 11,
+        "column": 4,
+        "sourceText": "return await foo.call({ x : 100 })",
+        "function": "af1"
+      }
+    ]
+  }
+]
