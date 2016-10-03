@@ -14,7 +14,7 @@ namespace Wasm
     private:
         struct Memory
         {
-            Memory() : minSize(0)
+            Memory() : minSize(0), maxSize(0), exported(false)
             {
             }
             uint64 minSize;
@@ -25,7 +25,8 @@ namespace Wasm
     public:
         WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength);
 
-        void InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
+        void InitializeMemory(uint32 minSize, uint32 maxSize);
+        void SetMemoryIsExported() { m_memory.exported = true; }
 
         const Memory* GetMemory() const;
 

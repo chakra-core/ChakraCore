@@ -34,7 +34,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
 }
 
 void
-WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
+WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 {
     if (m_memory.minSize != 0)
     {
@@ -49,7 +49,6 @@ WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
     CompileAssert(Memory::PAGE_SIZE < INT_MAX);
     m_memory.minSize = (uint64)minPage * Memory::PAGE_SIZE;
     m_memory.maxSize = (uint64)maxPage * Memory::PAGE_SIZE;
-    m_memory.exported = exported;
 }
 
 const WasmModule::Memory *

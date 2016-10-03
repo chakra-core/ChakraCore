@@ -572,10 +572,23 @@ void
 WasmBinaryReader::ReadMemorySection()
 {
     UINT length = 0;
-    UINT32 minPage = LEB128(length);
-    UINT32 maxPage = LEB128(length);
-    bool exported = ReadConst<UINT8>() != FALSE;
-    m_module->InitializeMemory(minPage, maxPage, exported);
+    UINT32 count = LEB128(length);
+    if (count > 1)
+    {
+        ThrowDecodingError(_u("Maximum of 1 memory allowed"));
+    }
+
+    if (count > 0)
+    {
+        uint32 flags = LEB128(length);
+        uint32 minPage = LEB128(length);
+        uint32 maxPage = minPage;
+        if (flags & 0x1)
+        {
+            maxPage = LEB128(length);
+        }
+        m_module->InitializeMemory(minPage, maxPage);
+    }
 }
 
 void
