@@ -5005,14 +5005,16 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         // We do not care about small script contexts without much activity - unless t
         if (PHASE_STATS1(Js::BGJitPhase) && (this->interpretedCount > 50 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag)))
         {
+
+#define MAX_BUCKETS 15
             uint loopJitCodeUsed = 0;
             uint bucketSize1 = 20;
             uint bucketSize2 = 100;
             uint size1CutOffbucketId = 4;
-            uint totalBuckets[15] = { 0 };
-            uint nativeCodeBuckets[15] = { 0 };
-            uint usedNativeCodeBuckets[15] = { 0 };
-            uint rejits[15] = { 0 };
+            uint totalBuckets[MAX_BUCKETS] = { 0 };
+            uint nativeCodeBuckets[MAX_BUCKETS] = { 0 };
+            uint usedNativeCodeBuckets[MAX_BUCKETS] = { 0 };
+            uint rejits[MAX_BUCKETS] = { 0 };
             uint zeroInterpretedFunctions = 0;
             uint oneInterpretedFunctions = 0;
             uint nonZeroBytecodeFunctions = 0;
@@ -5077,15 +5079,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     }
                     else
                     {
-                        bucket = _countof(totalBuckets) - 1;
+                        bucket = MAX_BUCKETS - 1;
                     }
 
                     // Explicitly assume that the bucket count is less than the following counts (which are all equal)
-                    // This is because min will return _countof(totalBuckets) - 1 if the count exceeds _countof(totalBuckets) - 1.
-                    __analysis_assume(bucket < _countof(totalBuckets));
-                    __analysis_assume(bucket < _countof(nativeCodeBuckets));
-                    __analysis_assume(bucket < _countof(usedNativeCodeBuckets));
-                    __analysis_assume(bucket < _countof(rejits));
+                    // This is because min will return MAX_BUCKETS - 1 if the count exceeds MAX_BUCKETS - 1.
+                    __analysis_assume(bucket < MAX_BUCKETS);
 
                     totalBuckets[bucket]++;
                     if (isNativeCode)
@@ -5159,6 +5158,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             }
             Output::Print(_u("\n\n"));
         }
+#undef MAX_BUCKETS
 #endif
 
 #ifdef REJIT_STATS
