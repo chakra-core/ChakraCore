@@ -761,18 +761,31 @@ WasmBinaryReader::ReadImportEntries()
     }
     for (uint32 i = 0; i < entries; ++i)
     {
-        uint32 sigId = LEB128(len);
         uint32 modNameLen = 0, fnNameLen = 0;
-
-        if (sigId >= m_module->GetSignatureCount())
-        {
-            ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
-        }
-
         char16* modName = ReadInlineName(len, modNameLen);
         char16* fnName = ReadInlineName(len, fnNameLen);
-        TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\""), i, modName, fnName);
-        m_module->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
+
+        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\", kind: %d"), i, modName, fnName, kind);
+        switch (kind)
+        {
+        case ImportKinds::Function:
+        {
+            uint32 sigId = LEB128(len);
+            if (sigId >= m_module->GetSignatureCount())
+            {
+                ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
+            }
+            m_module->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
+            break;
+        }
+        case ImportKinds::Table:
+        case ImportKinds::Memory:
+        case ImportKinds::Global:
+        default:
+            ThrowDecodingError(_u("Kind %d, NYI"), kind);
+            break;
+        }
     }
 }
 

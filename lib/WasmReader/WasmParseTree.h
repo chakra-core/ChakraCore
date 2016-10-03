@@ -23,6 +23,17 @@ namespace Wasm
         bool IsLocalType(WasmTypes::WasmType type);
     }
 
+    namespace ImportKinds
+    {
+        enum ImportKind
+        {
+            Function = 0,
+            Table = 1,
+            Memory = 2,
+            Global = 3
+        };
+    }
+
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)

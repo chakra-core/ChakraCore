@@ -14,7 +14,7 @@ namespace Wasm
         byte* end;
     };
 
-    static const unsigned int experimentalVersion = 0xb;
+    static const unsigned int experimentalVersion = 0xc;
 
     class WasmBinaryReader
     {
