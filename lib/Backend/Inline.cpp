@@ -4799,7 +4799,26 @@ Inline::MapFormals(Func *inlinee,
                     // "this" is a constant, so map it now.
                     // Don't bother mapping if it's not an object, though, since we'd have to create a
                     // boxed value at JIT time, and that case doesn't seem worth it.
-                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeIdNoCheck(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()));
+                    Js::TypeId typeId = Js::TypeIds_Limit;
+                    Js::Var localVar = thisConstSym->GetConstAddress(topFunc->IsOOPJIT());
+                    if (localVar != nullptr)
+                    {
+                        typeId = Js::JavascriptOperators::GetTypeIdNoCheck(localVar);
+                    }
+                    else
+                    {
+                        Assert(JITManager::GetJITManager()->IsJITServer());
+                        // with OOP JIT we may create const Opnds for library vars without materializing a JITRecyclableObject
+                        IR::Opnd * thisConstOpnd = thisConstSym->GetConstOpnd();
+                        if (thisConstOpnd->GetValueType().IsUndefined())
+                        {
+                            typeId = Js::TypeIds_Undefined;
+                        }
+                        else if (thisConstOpnd->GetValueType().IsNull())
+                        {
+                            typeId = Js::TypeIds_Null;
+                        }
+                    }
                     if (Js::JavascriptOperators::IsObjectType(typeId) ||
                         Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
                     {
@@ -4810,7 +4829,7 @@ Inline::MapFormals(Func *inlinee,
                             int moduleId = instr->GetSrc2()->AsIntConstOpnd()->AsInt32();
                             // TODO OOP JIT, create and use server copy of module roots
                             Assert(!topFunc->IsOOPJIT() || moduleId == 0);
-                            thisConstVar = Js::JavascriptOperators::GetThisHelper(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()), typeId, moduleId, scriptContext);
+                            thisConstVar = Js::JavascriptOperators::GetThisHelper(localVar, typeId, moduleId, scriptContext);
                             instr->FreeSrc2();
                         }
                         else if (typeId == Js::TypeIds_ActivationObject)
