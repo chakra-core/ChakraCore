@@ -1616,8 +1616,12 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 L_None);
             break;
 
+#ifdef _M_IX86
+        case Js::OpCode::ADC:
+#endif
         case Js::OpCode::ADD:
         case Js::OpCode::SUB:
+        case Js::OpCode::SBB:
         case Js::OpCode::AND:
         case Js::OpCode::OR:
         case Js::OpCode::XOR:
@@ -7694,6 +7698,9 @@ LowererMD::MakeDstEquSrc1(IR::Instr *const instr)
     {
         switch(instr->m_opcode)
         {
+#ifdef _M_IX86
+            case Js::OpCode::ADC:
+#endif
             case Js::OpCode::Add_I4:
             case Js::OpCode::Mul_I4:
             case Js::OpCode::Or_I4:
