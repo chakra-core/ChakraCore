@@ -664,19 +664,30 @@ void WasmBinaryReader::ReadIndirectFunctionTable()
 {
     uint32 length;
     uint32 entries = LEB128(length);
-    TRACE_WASM_DECODER(_u("Indirect table: %u entries = ["), entries);
-    m_module->AllocateIndirectFunctions(entries);
-    for (uint32 i = 0; i < entries; i++)
+    if (entries > 1)
     {
-        uint32 functionIndex = LEB128(length);
-        if (functionIndex >= m_module->GetFunctionCount())
-        {
-            ThrowDecodingError(_u("Indirect function index %u is out of bound (max %u)"), functionIndex, m_module->GetFunctionCount());
-        }
-        TRACE_WASM_DECODER(_u("%u, "), functionIndex);
-        m_module->SetIndirectFunction(functionIndex, i);
+        ThrowDecodingError(_u("Maximum of one table allowed"));
     }
-    TRACE_WASM_DECODER(_u("]"), entries);
+
+    if (entries > 0)
+    {
+        uint8 elementType = ReadConst<uint8>();
+        if (elementType != 0x20)
+        {
+            ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
+        }
+        uint32 flags = LEB128(length);
+        uint32 initialLength = LEB128(length);
+        if (flags & 0x1)
+        {
+            uint32 maximumLength = LEB128(length);
+
+            // Allocate maximum length for now until resizing supported
+            initialLength = maximumLength;
+        }
+        m_module->AllocateIndirectFunctions(initialLength);
+        TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
+    }
 }
 
 void
