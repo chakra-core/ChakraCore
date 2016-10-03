@@ -293,9 +293,11 @@ MACRO_EXTEND_WMS( CurrentMemory_Int          , AsmReg1         , None           
 
 #include "OpCodesSimd.h"
 
+MACRO_EXTEND(AsmJsEntryTracing, Empty, None)
+
+
 // help the caller to undefine all the macros
 #undef MACRO
 #undef MACRO_WMS
 #undef MACRO_EXTEND
 #undef MACRO_EXTEND_WMS
-#undef MACRO_BACKEND_ONLY

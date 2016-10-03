@@ -14,6 +14,8 @@ namespace WAsmJs
     static const double INT_SLOTS_SPACE = (sizeof(int) / (double)sizeof(Js::Var)); // 1 in x86 and 0.5 in x64
     static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Js::Var)); // 4 in x86 and 2 in x64
 
+    void TraceAsmJsArgsIn(int n, ...);
+
     typedef Js::RegSlot RegSlot;
 
     template<typename ToType> uint32 ConvertOffset(uint32 ptr, uint32 fromSize)

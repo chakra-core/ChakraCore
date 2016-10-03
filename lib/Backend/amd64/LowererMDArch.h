@@ -73,6 +73,7 @@ public:
     IR::Instr *         LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad = false, bool checkEndOffset = false);
     IR::Instr *         LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore = false, bool checkEndOffset = false);
 
+    IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber);
     IR::Instr *         LoadDynamicArgumentUsingLength(IR::Instr *instr);

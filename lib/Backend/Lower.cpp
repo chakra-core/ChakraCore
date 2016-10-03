@@ -770,6 +770,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
         }
+        case Js::OpCode::AsmJsEntryTracing:
         case Js::OpCode::AsmJsCallI:
             m_lowererMD.LowerAsmJsCallI(instr);
             break;
@@ -8984,23 +8985,18 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
     Int64SymPair symPair;
     if (!m_int64RegPairMap->TryGetValue(symId, &symPair))
     {
-        if (stackSym->IsArgSlotSym())
+        if (stackSym->IsArgSlotSym() || stackSym->IsParamSlotSym())
         {
-            symPair.low = StackSym::NewArgSlotSym(stackSym->GetArgSlotNum() + 1, this->m_func, type);
+            const bool isArg = stackSym->IsArgSlotSym();
+            typedef StackSym* (*SymConstr)(Js::ArgSlot, Func *, IRType);
+            SymConstr Constr = isArg ? &StackSym::NewArgSlotSym : (SymConstr)&StackSym::NewParamSlotSym;
+            Js::ArgSlot slotNumber = isArg ? stackSym->GetArgSlotNum() : stackSym->GetParamSlotNum();
+            symPair.low = Constr(slotNumber, this->m_func, type);
             symPair.low->m_allocated = true;
-            symPair.low->m_offset = stackSym->m_offset + 4;
-            symPair.high = StackSym::NewArgSlotSym(stackSym->GetArgSlotNum(), this->m_func, type);
+            symPair.low->m_offset = stackSym->m_offset;
+            symPair.high = Constr(slotNumber + 1, this->m_func, type);
             symPair.high->m_allocated = true;
-            symPair.high->m_offset = stackSym->m_offset;
-        }
-        else if (stackSym->IsParamSlotSym())
-        {
-            symPair.low = StackSym::NewParamSlotSym(stackSym->GetParamSlotNum() + 1, this->m_func, type);
-            symPair.low->m_allocated = true;
-            symPair.low->m_offset = stackSym->m_offset + 4;
-            symPair.high = StackSym::NewParamSlotSym(stackSym->GetParamSlotNum(), this->m_func, type);
-            symPair.high->m_allocated = true;
-            symPair.high->m_offset = stackSym->m_offset;
+            symPair.high->m_offset = stackSym->m_offset + 4;
         }
         else
         {
@@ -10296,8 +10292,9 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
 
-    Js::ArgSlot argCount = m_func->argInsCount;
+    int argCount = (int)(int16)m_func->argInsCount;
     IR::Instr * instr = instrArgIn;
+
     for (int argNum = argCount - 1; argNum >= 0; --argNum)
     {
 #ifdef _M_IX86

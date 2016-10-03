@@ -528,6 +528,7 @@ HELPERCALL(DirectMath_TruncFlt, nullptr, 0)
 HELPERCALL(DirectMath_NearestDb, nullptr, 0)
 HELPERCALL(DirectMath_NearestFlt, nullptr, 0)
 
+HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)
 HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 HELPERCALL(PopCnt64, Wasm::WasmMath::PopCnt<int64>, 0)
 

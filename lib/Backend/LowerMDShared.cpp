@@ -286,6 +286,12 @@ LowererMD::LowerCallPut(IR::Instr * callInstr)
 }
 
 IR::Instr *
+LowererMD::LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd)
+{
+    return this->lowererMDArch.LoadInt64HelperArgument(instr, opnd);
+}
+
+IR::Instr *
 LowererMD::LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg)
 {
     return this->lowererMDArch.LoadHelperArgument(instr, opndArg);

@@ -220,10 +220,15 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     }
     if (paramCount > 0)
     {
-        body->SetHasImplicitArgIns(true);
+        // +1 here because asm.js includes the this pointer
         body->SetInParamsCount(paramCount + 1);
         body->SetReportedInParamsCount(paramCount + 1);
         info->SetArgTypeArray(RecyclerNewArrayLeaf(m_recycler, Js::AsmJsVarType::Which, paramCount));
+    }
+    else
+    {
+        // overwrite default value in this case
+        body->SetHasImplicitArgIns(false);
     }
     Js::ArgSlot paramSize = 0;
     for (Js::ArgSlot i = 0; i < paramCount; ++i)

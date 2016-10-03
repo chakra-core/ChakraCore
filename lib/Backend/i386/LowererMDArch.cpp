@@ -878,6 +878,19 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     const uint32 argSlots = argCount + (stackAlignment / 4) + 1;
     m_func->m_argSlotsForFunctionsCalled = max(m_func->m_argSlotsForFunctionsCalled, argSlots);
 
+    if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
+    {
+        callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
+        //     lea esp, [esp + sizeValue]
+        IR::IntConstOpnd * sizeOpnd = startCallInstr->GetSrc1()->AsIntConstOpnd();
+
+        IntConstType sizeValue = sizeOpnd->GetValue() + stackAlignment;
+        IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, m_func);
+        IR::Instr * fixStack = IR::Instr::New(Js::OpCode::LEA, espOpnd, IR::IndirOpnd::New(espOpnd, sizeValue, TyMachReg, m_func), m_func);
+        callInstr->InsertAfter(fixStack);
+        return fixStack;
+    }
+
     IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
 
     // we will not have function object mem ref in the case of function table calls, so we cannot calculate the call address ahead of time
@@ -937,7 +950,6 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
             retInstr = movInstr;
         }
     }
-
     return retInstr;
 }
 IR::Instr*
@@ -1397,7 +1409,6 @@ LowererMDArch::LoadDynamicArgument(IR::Instr * instr, uint argNumber /*ignore fo
     return instr;
 }
 
-
 IR::Instr *
 LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
 {
@@ -1410,12 +1421,12 @@ LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndA
     Int64RegPair argPair = this->lowererMD->m_lowerer->FindOrCreateInt64Pair(opndArg);
 
     opnd = IR::IndirOpnd::New(espOpnd, 0, TyInt32, this->m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.high, this->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.low, this->m_func);
     instrInsert->InsertBefore(instr);
     LowererMD::Legalize(instr);
 
     opnd = IR::IndirOpnd::New(espOpnd, 4, TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.low, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.high, this->m_func);
     instrInsert->InsertBefore(instr);
     LowererMD::Legalize(instr);
 
@@ -1913,14 +1924,13 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
     {
         Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
         Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
-        IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, this->m_func);
         IR::Instr* lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, this->m_func);
+        IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, this->m_func);
 
         lowererMD->ChangeToAssign(lowLoadInstr);
         lowererMD->ChangeToAssign(highLoadInstr);
-        // Must mov high bits first to follow calling convention
-        instr->InsertBefore(highLoadInstr);
         instr->InsertBefore(lowLoadInstr);
+        instr->InsertBefore(highLoadInstr);
         instr->Remove();
         return highLoadInstr->m_prev;
     }

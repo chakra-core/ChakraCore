@@ -9,6 +9,38 @@
 
 namespace WAsmJs
 {
+
+    void TraceAsmJsArgsIn(int n, ...)
+    {
+        va_list argptr;
+        va_start(argptr, n);
+        Output::Print(_u("Executing function ("));
+        for (int i = 0; i < n ; i++)
+        {
+            IRType type = (IRType)va_arg(argptr, int32);
+            switch (type)
+            {
+            case TyInt32:
+            case TyUint32:
+                Output::Print(_u("%d, "), va_arg(argptr, int32));
+                break;
+            case TyInt64:
+            case TyUint64:
+                Output::Print(_u("%lld, "), va_arg(argptr, int64));
+                break;
+            case TyFloat32:
+                Output::Print(_u("%.2f, "), va_arg(argptr, float));
+                break;
+            case TyFloat64:
+                Output::Print(_u("%.2f, "), va_arg(argptr, double));
+                break;
+            default:
+                break;
+            }
+        }
+        Output::Print(_u("){\n"));
+    }
+
     uint32 GetTypeByteSize(Types type)
     {
         // Since this needs to be done manually for each type, this assert will make sure to not forget to update this if a new type is added

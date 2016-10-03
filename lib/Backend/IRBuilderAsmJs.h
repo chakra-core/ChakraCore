@@ -73,6 +73,7 @@ private:
     void                    CreateLoadConstInstrForType(byte* table, Js::RegSlot& regAllocated, uint32 constCount, uint32 offset, IRType irType, ValueType valueType, Js::OpCode opcode, F extraProcess);
     void                    BuildConstantLoads();
     void                    BuildImplicitArgIns();
+    void                    BuildArgInTracing();
     void                    InsertLabels();
     IR::LabelInstr *        CreateLabel(IR::BranchInstr * branchInstr, uint& offset);
 #if DBG
