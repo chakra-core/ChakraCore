@@ -104,12 +104,6 @@ JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ush
 
     EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
 
-#if DBG
-    MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQueryEx(func->GetThreadContextInfo()->GetProcessHandle(), allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
-#endif
-
     Assert(allocation != nullptr);
     if (buffer == nullptr)
         Js::Throw::OutOfMemory();
