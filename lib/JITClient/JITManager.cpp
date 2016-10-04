@@ -443,6 +443,7 @@ JITManager::UpdatePropertyRecordMap(
 HRESULT
 JITManager::InitializeScriptContext(
     __in ScriptContextDataIDL * data,
+    __in intptr_t threadContextInfoAddress,
     __out intptr_t * scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
@@ -450,7 +451,7 @@ JITManager::InitializeScriptContext(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, scriptContextInfoAddress);
+        hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, threadContextInfoAddress, scriptContextInfoAddress);
     }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

@@ -100,9 +100,8 @@ public:
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
 
     bool IsCFGEnabled();
-    void BeginJIT();
-    void EndJIT();
-    bool IsJITActive();
+    bool IsClosed();
+    
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
@@ -113,10 +112,9 @@ public:
 #endif
 protected:
     Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
-private:
 
-    uint m_activeJITCount;
     bool m_isAllJITCodeInPreReservedRegion;
+    bool m_isClosed;
 
 };
 

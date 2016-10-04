@@ -47,6 +47,7 @@ public:
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
+        __in  intptr_t threadContextInfoAddress,
         __out intptr_t *scriptContextInfoAddress);
 
     HRESULT CleanupProcess();
@@ -78,6 +79,7 @@ public:
 
     HRESULT Shutdown();
 
+
     static JITManager * GetJITManager();
 private:
     JITManager();
@@ -96,6 +98,7 @@ private:
     bool m_isJITServer;
 
     static JITManager s_jitManager;
+
 };
 
 #else  // !ENABLE_OOP_NATIVE_CODEGEN
@@ -148,6 +151,7 @@ public:
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
+        __in intptr_t threadContextInfoAddress,
         __out intptr_t *scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 

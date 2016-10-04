@@ -1979,6 +1979,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     {
         return;
     }
+
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
 

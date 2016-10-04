@@ -909,6 +909,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             Js::Throw::OutOfMemory();
         case VBSERR_OutOfStack:
             throw Js::StackOverflowException();
+        case E_ACCESSDENIED:
+            // OOP JIT TODO: if server side can't handle request any more, use better error code and turn off JIT
+            throw Js::JITOperationFailedException(workItem->codeGenResult);
         default:
             Js::Throw::FatalInternalError();
         }
@@ -2026,18 +2029,6 @@ NativeCodeGenerator::UpdateJITState()
             scriptContext->InitializeRemoteScriptContext();
         }
 
-        bool allowPrereserveAlloc = true;
-#if !_M_X64_OR_ARM64
-        if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
-        {
-            allowPrereserveAlloc = false;
-        }
-#endif
-#ifndef _CONTROL_FLOW_GUARD
-        allowPrereserveAlloc = false;
-#endif
-        scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
-
         // update all property records on server that have been changed since last jit
         ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
         PropertyRecordIDL ** newPropArray = nullptr;
@@ -2080,10 +2071,7 @@ NativeCodeGenerator::UpdateJITState()
             props.newRecordCount = newCount;
             props.newRecordArray = newPropArray;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
-            if (hr != S_OK)
-            {
-                Js::Throw::FatalInternalError();
-            }
+
             if (newPropArray)
             {
                 HeapDeleteArray(newCount, newPropArray);
@@ -2091,6 +2079,12 @@ NativeCodeGenerator::UpdateJITState()
             if (reclaimedPropArray)
             {
                 HeapDeleteArray(reclaimedCount, reclaimedPropArray);
+            }
+
+            if (hr != S_OK)
+            {
+                // OOP JIT TODO: use better exception when failed to update JIT server state
+                Js::Throw::OutOfMemory();
             }
         }
     }

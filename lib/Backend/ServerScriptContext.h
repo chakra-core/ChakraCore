@@ -8,7 +8,7 @@
 class ServerScriptContext : public ScriptContextInfo
 {
 public:
-    ServerScriptContext(ScriptContextDataIDL * contextData);
+    ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo);
     ~ServerScriptContext();
     virtual intptr_t GetNullAddr() const override;
     virtual intptr_t GetUndefinedAddr() const override;
@@ -62,11 +62,12 @@ public:
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
 
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
+    ServerThreadContext* GetThreadContext() { return threadContextInfo; }
 
     void Close();
-    void BeginJIT();
-    void EndJIT();
-    bool IsJITActive();
+    void AddRef();
+    void Release();
+
 private:
     JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 #ifdef PROFILE_EXEC
@@ -74,7 +75,9 @@ private:
 #endif
 
     ScriptContextDataIDL m_contextData;
-    uint m_activeJITCount;
+
+    ServerThreadContext* threadContextInfo;
+    uint m_refCount;
 
     bool m_isPRNGSeeded;
     bool m_isClosed;

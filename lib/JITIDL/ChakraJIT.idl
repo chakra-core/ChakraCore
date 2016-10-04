@@ -52,6 +52,7 @@ interface IChakraJIT
     HRESULT InitializeScriptContext(
         [in] handle_t binding,
         [in] ScriptContextDataIDL * scriptContextData,
+        [in] CHAKRA_PTR threadContextInfoAddress,
         [out] CHAKRA_PTR * scriptContextInfoAddress);
 
     HRESULT CloseScriptContext(

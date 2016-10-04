@@ -260,3 +260,20 @@ ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
 
     PropertyRecordTrace(_u("Added JIT property '%s' at 0x%08x, pid = %d\n"), record->GetBuffer(), record, record->pid);
 }
+
+void ServerThreadContext::AddRef()
+{
+    InterlockedExchangeAdd(&m_refCount, (uint)1);
+}
+void ServerThreadContext::Release()
+{
+    InterlockedExchangeSubtract(&m_refCount, (uint)1);
+    if (m_isClosed && m_refCount == 0)
+    {
+        HeapDelete(this);
+    }
+}
+void ServerThreadContext::Close()
+{
+    this->m_isClosed = true;
+}
