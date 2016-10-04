@@ -894,27 +894,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        workItem->codeGenResult = JITManager::GetJITManager()->RemoteCodeGenCall(
+        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
             scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
-        switch (workItem->codeGenResult)
-        {
-        case S_OK:
-            break;
-        case E_ABORT:
-            throw Js::OperationAbortedException();
-        case E_OUTOFMEMORY:
-            Js::Throw::OutOfMemory();
-        case VBSERR_OutOfStack:
-            throw Js::StackOverflowException();
-        case E_ACCESSDENIED:
-            // OOP JIT TODO: if server side can't handle request any more, use better error code and turn off JIT
-            throw Js::JITOperationFailedException(workItem->codeGenResult);
-        default:
-            Js::Throw::FatalInternalError();
-        }
+        JITManager::HandleServerCallResult(hr);
     }
     else
     {
@@ -2070,6 +2055,7 @@ NativeCodeGenerator::UpdateJITState()
             props.reclaimedPropertyIdArray = reclaimedPropArray;
             props.newRecordCount = newCount;
             props.newRecordArray = newPropArray;
+
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
 
             if (newPropArray)
@@ -2081,11 +2067,7 @@ NativeCodeGenerator::UpdateJITState()
                 HeapDeleteArray(reclaimedCount, reclaimedPropArray);
             }
 
-            if (hr != S_OK)
-            {
-                // OOP JIT TODO: use better exception when failed to update JIT server state
-                Js::Throw::OutOfMemory();
-            }
+            JITManager::HandleServerCallResult(hr);
         }
     }
 }
@@ -3189,6 +3171,7 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
         ThreadContext * context = this->scriptContext->GetThreadContext();
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
+            // OOP JIT TODO: need error handling?
             JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
         }
         else
@@ -3221,6 +3204,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             // TODO: OOP JIT, should we always just queue this in background?
+            // OOP JIT TODO: need error handling?
             JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
             return;
         }
@@ -3662,4 +3646,22 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     trace.Done(true);
 #endif
     return true;
+}
+
+void
+JITManager::HandleServerCallResult(HRESULT hr)
+{
+    switch (hr)
+    {
+    case S_OK:
+        break;
+    case E_ABORT:
+        throw Js::OperationAbortedException();
+    case E_OUTOFMEMORY:
+        Js::Throw::OutOfMemory();
+    case VBSERR_OutOfStack:
+        throw Js::StackOverflowException();
+    default:
+        Js::Throw::FatalInternalError();
+    }
 }

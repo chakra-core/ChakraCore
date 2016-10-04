@@ -81,6 +81,7 @@ public:
 
 
     static JITManager * GetJITManager();
+    static void HandleServerCallResult(HRESULT hr);
 private:
     JITManager();
     ~JITManager();

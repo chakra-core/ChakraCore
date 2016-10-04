@@ -845,10 +845,11 @@ namespace Js
                 {
                     scriptContext->InitializeRemoteScriptContext();
                 }
-                JITManager::GetJITManager()->AddModuleRecordInfo(
+                HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
                     scriptContext->GetRemoteScriptAddr(),
                     this->GetModuleId(),
                     (intptr_t)this->GetLocalExportSlots());
+                JITManager::HandleServerCallResult(hr);
             }
 #endif
         }
