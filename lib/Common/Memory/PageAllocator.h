@@ -442,8 +442,8 @@ public:
     uint GetMaxAllocPageCount();
 
     //VirtualAllocator APIs
-    TVirtualAlloc * GetVirtualAllocator() { return virtualAllocator; }
-    bool IsPreReservedPageAllocator() { return virtualAllocator != nullptr; }
+    TVirtualAlloc * GetVirtualAllocator() { Assert(virtualAllocator != nullptr); return virtualAllocator; }
+    bool IsPreReservedPageAllocator();
 
 
     PageAllocation * AllocPagesForBytes(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
@@ -517,6 +517,8 @@ public:
     char16 const * debugName;
 #endif
 protected:
+    void InitVirtualAllocator(TVirtualAlloc * virtualAllocator);
+
     SegmentBase<TVirtualAlloc> * AllocSegment(DECLSPEC_GUARD_OVERFLOW size_t pageCount);
     void ReleaseSegment(SegmentBase<TVirtualAlloc> * segment);
 
@@ -596,7 +598,9 @@ protected:
     bool disableAllocationOutOfMemory;
     bool excludeGuardPages;
     AllocationPolicyManager * policyManager;
+private:
     TVirtualAlloc * virtualAllocator;
+protected:
 
 #ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;

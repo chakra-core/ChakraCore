@@ -69,7 +69,7 @@ namespace Js
 
     // FunctionProxy methods
     FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
-        FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
+        FunctionInfo(entryPoint, attributes, functionId, this),
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
         m_scriptContext(scriptContext),

@@ -52,7 +52,7 @@ SegmentBase<T>::~SegmentBase()
 template<typename T>
 bool SegmentBase<T>::IsInPreReservedHeapPageAllocator() const
 {
-    return this->allocator->GetVirtualAllocator() != nullptr;
+    return this->allocator->IsPreReservedPageAllocator();
 }
 
 template<typename T>
@@ -638,6 +638,8 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
     this->memoryData = MemoryProfiler::GetPageMemoryData(type);
 #endif
 
+    InitVirtualAllocator(nullptr);
+
     PageTracking::PageAllocatorCreated((PageAllocator*)this);
 }
 
@@ -1112,10 +1114,42 @@ PageAllocatorBase<T>::AllocSegment(size_t pageCount)
 }
 
 template <>
+void PageAllocatorBase<VirtualAllocWrapper>::InitVirtualAllocator(VirtualAllocWrapper * virtualAllocator)
+{
+    Assert(this->virtualAllocator == nullptr || this->virtualAllocator == &VirtualAllocWrapper::Instance);
+    Assert(virtualAllocator == nullptr || virtualAllocator == &VirtualAllocWrapper::Instance);
+
+    this->virtualAllocator = &VirtualAllocWrapper::Instance;  // Init to single instance
+}
+
+template <>
+void PageAllocatorBase<PreReservedVirtualAllocWrapper>::InitVirtualAllocator(PreReservedVirtualAllocWrapper * virtualAllocator)
+{
+    Assert(this->virtualAllocator == nullptr);
+
+    this->virtualAllocator = virtualAllocator;  // Init to given virtualAllocator, may be nullptr
+}
+
+template <>
+bool PageAllocatorBase<VirtualAllocWrapper>::IsPreReservedPageAllocator()
+{
+    Assert(virtualAllocator == &VirtualAllocWrapper::Instance);
+    return false;
+}
+
+template <>
+bool PageAllocatorBase<PreReservedVirtualAllocWrapper>::IsPreReservedPageAllocator()
+{
+    Assert(virtualAllocator != nullptr &&  // intentionally stronger check, must have init to non-null
+        (void*)virtualAllocator != (void*)&VirtualAllocWrapper::Instance);
+    return true;
+}
+
+template <>
 char *
 PageAllocatorBase<VirtualAllocWrapper>::Alloc(size_t * pageCount, SegmentBase<VirtualAllocWrapper> ** segment)
 {
-    Assert(virtualAllocator == nullptr);
+    Assert(!IsPreReservedPageAllocator());
     return AllocInternal<false>(pageCount, segment);
 }
 
@@ -1123,7 +1157,7 @@ template <>
 char *
 PageAllocatorBase<PreReservedVirtualAllocWrapper>::Alloc(size_t * pageCount, SegmentBase<PreReservedVirtualAllocWrapper> ** segment)
 {
-    Assert(virtualAllocator);
+    Assert(IsPreReservedPageAllocator());
     return AllocInternal<false>(pageCount, segment);
 }
 
@@ -1201,7 +1235,7 @@ template<>
 char *
 PageAllocatorBase<VirtualAllocWrapper>::AllocPages(uint pageCount, PageSegmentBase<VirtualAllocWrapper> ** pageSegment)
 {
-    Assert(virtualAllocator == nullptr);
+    Assert(!IsPreReservedPageAllocator());
     return AllocPagesInternal<true /* noPageAligned */>(pageCount, pageSegment);
 }
 
@@ -1209,7 +1243,7 @@ template<>
 char *
 PageAllocatorBase<PreReservedVirtualAllocWrapper>::AllocPages(uint pageCount, PageSegmentBase<PreReservedVirtualAllocWrapper> ** pageSegment)
 {
-    Assert(virtualAllocator);
+    Assert(IsPreReservedPageAllocator());
     return AllocPagesInternal<true /* noPageAligned */>(pageCount, pageSegment);
 }
 
@@ -2304,7 +2338,7 @@ HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager,
         processHandle),
     allocXdata(allocXdata)
 {
-    this->virtualAllocator = virtualAllocator;
+    this->InitVirtualAllocator(virtualAllocator);
 }
 
 template<typename T>
@@ -2342,7 +2376,7 @@ HeapPageAllocator<T>::DecommitPages(__in char* address, size_t pageCount = 1)
 {
     Assert(pageCount <= MAXUINT32);
 #pragma prefast(suppress:__WARNING_WIN32UNRELEASEDVADS, "The remainder of the clean-up is done later.");
-    this->virtualAllocator->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+    this->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
     this->LogFreePages(pageCount);
     this->LogDecommitPages(pageCount);
 }

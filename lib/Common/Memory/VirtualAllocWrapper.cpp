@@ -8,15 +8,16 @@
 * class VirtualAllocWrapper
 */
 
+VirtualAllocWrapper VirtualAllocWrapper::Instance;  // single instance
+
 LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process)
 {
-    Assert(this == nullptr);
     LPVOID address = nullptr;
 
 #if defined(ENABLE_JIT_CLAMP)
     bool makeExecutable;
 
-    if ((isCustomHeapAllocation) || 
+    if ((isCustomHeapAllocation) ||
         (protectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)))
     {
         makeExecutable = true;
@@ -82,7 +83,6 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
 
 BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process)
 {
-    Assert(this == nullptr);
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
     size_t bytes = (dwFreeType == MEM_RELEASE)? 0 : dwSize;
 #pragma warning(suppress: 28160) // Calling VirtualFreeEx without the MEM_RELEASE flag frees memory but not address descriptors (VADs)
@@ -111,7 +111,6 @@ PreReservedVirtualAllocWrapper::PreReservedVirtualAllocWrapper(HANDLE process) :
 
 PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
 {
-    Assert(this);
     if (IsPreReservedRegionPresent())
     {
         BOOL success = VirtualFreeEx(processHandle, preReservedStartAddress, 0, MEM_RELEASE);
@@ -132,14 +131,13 @@ PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
 bool
 PreReservedVirtualAllocWrapper::IsPreReservedRegionPresent()
 {
-    Assert(this);
     return preReservedStartAddress != nullptr;
 }
 
 bool
 PreReservedVirtualAllocWrapper::IsInRange(void * address)
 {
-    if (this == nullptr || !this->IsPreReservedRegionPresent())
+    if (!this->IsPreReservedRegionPresent())
     {
         return false;
     }
@@ -180,7 +178,6 @@ PreReservedVirtualAllocWrapper::IsInRange(void * regionStart, void * address)
 LPVOID
 PreReservedVirtualAllocWrapper::GetPreReservedStartAddress()
 {
-    Assert(this);
     return preReservedStartAddress;
 }
 
@@ -237,7 +234,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 #if !_M_X64_OR_ARM64
 #if _M_IX86
     // We want to restrict the number of prereserved segment for 32-bit process so that we don't use up the address space
-   
+
     // Note: numPreReservedSegment is for the whole process, and access and update to it is not protected by a global lock.
     // So we may allocate more than the maximum some of the time if multiple thread check it simutaniously and allocate pass the limit.
     // It doesn't affect functionally, and it should be OK if we exceed.
@@ -266,7 +263,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 #endif
     }
 #endif
-    
+
 
     return startAddress;
 }
@@ -281,7 +278,6 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process)
 {
     Assert(process == this->processHandle);
-    Assert(this);
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
     AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
     Assert(dwSize != 0);
@@ -433,7 +429,6 @@ BOOL
 PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process)
 {
     Assert(process == this->processHandle);
-    Assert(this);
     {
         AutoCriticalSection autocs(&this->cs);
 
@@ -551,7 +546,7 @@ AutoEnableDynamicCodeGen::AutoEnableDynamicCodeGen(bool enable) : enabled(false)
     //      really does not allow thread opt-out, then the call below will fail
     //      benignly.
     //
-    
+
     if ((processPolicy.ProhibitDynamicCode == 0) || (processPolicy.AllowThreadOptOut == 0))
     {
         return;
@@ -562,7 +557,7 @@ AutoEnableDynamicCodeGen::AutoEnableDynamicCodeGen(bool enable) : enabled(false)
         return;
     }
 
-    // 
+    //
     // If dynamic code is already allowed for this thread, then don't attempt to allow it again.
     //
 
