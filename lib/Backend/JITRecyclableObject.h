@@ -11,6 +11,11 @@ private:
     intptr_t remoteVTable;
     Js::TypeId * typeId;
 public:
+    static bool Is(Js::Var var)
+    {
+        return !Js::TaggedNumber::Is(var);
+    }
+
     Js::TypeId GetTypeId() const
     {
         return *typeId;
@@ -33,18 +38,22 @@ public:
         return m_charLength;
     }
 
-    static bool JITJavascriptString::Equals(Js::Var aLeft, Js::Var aRight)
+    static bool Equals(Js::Var aLeft, Js::Var aRight)
     {
         return Js::JavascriptStringHelpers<JITJavascriptString>::Equals(aLeft, aRight);
     }
 
-    static bool JITJavascriptString::Is(Js::Var var)
+    static bool Is(Js::Var var)
     {
+        if (!JITRecyclableObject::Is(var))
+        {
+            return false;
+        }
         JITRecyclableObject * jitObj = reinterpret_cast<JITRecyclableObject*>(var);
         return jitObj->GetTypeId() == Js::TypeIds_String;
     }
 
-    static JITJavascriptString * JITJavascriptString::FromVar(Js::Var var)
+    static JITJavascriptString * FromVar(Js::Var var)
     {
 #ifdef HAS_CONSTEXPR
         CompileAssert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
