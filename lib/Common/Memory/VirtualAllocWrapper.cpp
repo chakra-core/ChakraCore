@@ -54,9 +54,16 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
         if ((allocationType & MEM_COMMIT) == MEM_COMMIT) // The access protection value can be set only on committed pages.
         {
             BOOL result = VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
-            if (result == FALSE && process != GetCurrentProcess())
+            if (result == FALSE)
             {
-                Js::Throw::CheckAndThrowJITOperationFailed();
+                if (process != GetCurrentProcess())
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
+                else
+                {
+                    CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                }
             }
         }
     }
