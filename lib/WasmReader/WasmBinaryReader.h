@@ -31,7 +31,7 @@ namespace Wasm
 #if DBG_DUMP
         void PrintOps();
 #endif
-
+        intptr_t GetCurrentOffset() const { return m_pc - m_start; }
         WasmNode    m_currentNode;
     private:
         struct ReaderState

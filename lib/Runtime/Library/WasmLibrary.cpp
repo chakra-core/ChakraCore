@@ -171,15 +171,27 @@ namespace Js
         catch (Wasm::WasmCompilationException& ex)
         {
             char16* originalMessage = ex.ReleaseErrorMessage();
-            Wasm::WasmCompilationException newEx = Wasm::WasmCompilationException(_u("function %s: %s"), body->GetDisplayName(), originalMessage);
+            intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
+            intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
+            uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
+
+            Wasm::WasmCompilationException newEx = Wasm::WasmCompilationException(
+                _u("function %s at offset %d/%d: %s"),
+                body->GetDisplayName(),
+                offset - start,
+                size,
+                originalMessage
+            );
             SysFreeString(originalMessage);
             if (propagateError)
             {
                 throw newEx;
             }
+            char16* msg = newEx.ReleaseErrorMessage();
+            //Output::Print(_u("%s\n"), msg);
             Js::JavascriptLibrary *library = scriptContext->GetLibrary();
             Js::JavascriptError *pError = library->CreateError();
-            Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
+            Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, msg, scriptContext);
 
             func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
             entypointInfo->jsMethod = WasmLazyTrapCallback;
