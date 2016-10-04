@@ -297,7 +297,7 @@ HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
-    /* [in] */ __RPC__in intptr_t threadContextInfoAddress,
+    /* [in] */ intptr_t threadContextInfoAddress,
     /* [out] */ __RPC__out intptr_t * scriptContextInfoAddress)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -494,6 +494,13 @@ ServerRemoteCodeGen(
     UNREFERENCED_PARAMETER(binding);
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
+    LARGE_INTEGER start_time = { 0 };
+    if (PHASE_TRACE1(Js::BackEndPhase))
+    {
+        QueryPerformanceCounter(&start_time);
+    }
+    memset(jitData, 0, sizeof(JITOutputIDL));
+
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
 
@@ -517,13 +524,6 @@ ServerRemoteCodeGen(
 
     return ServerCallWrapper(threadContextInfo, [&]() ->HRESULT
     {
-        LARGE_INTEGER start_time = { 0 };
-        if (PHASE_TRACE1(Js::BackEndPhase))
-        {
-            QueryPerformanceCounter(&start_time);
-        }
-        memset(jitData, 0, sizeof(JITOutputIDL));
-
         NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
