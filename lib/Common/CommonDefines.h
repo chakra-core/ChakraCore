@@ -192,7 +192,8 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1900 )
+// VS2015 RTM has bugs with constexpr, so require min of VS2015 Update 3 (known good version)
+#if !defined(_MSC_VER) || _MSC_FULL_VER >= 190024210
 #define HAS_CONSTEXPR 1
 #endif
 
