@@ -34,6 +34,16 @@ namespace Wasm
         };
     }
 
+    namespace FunctionIndexTypes
+    {
+        enum Type
+        {
+            Invalid = -1,
+            Function,
+            Import
+        };
+    }
+
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)
@@ -127,5 +137,4 @@ namespace Wasm
         uint32 fnNameLen;
         char16* fnName;
     };
-
 }

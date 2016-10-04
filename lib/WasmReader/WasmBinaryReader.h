@@ -45,7 +45,7 @@ namespace Wasm
         void CallIndirectNode();
         void BrNode();
         void BrTableNode();
-        WasmOp MemNode(WasmOp op);
+        void MemNode();
         void VarNode();
 
         // Module readers
@@ -56,11 +56,12 @@ namespace Wasm
         void ReadFunctionsSignatures();
         bool ReadFunctionHeaders();
         void ReadExportTable();
-        void ReadIndirectFunctionTable();
+        void ReadTableSection();
         void ReadDataSegments();
         void ReadImportEntries();
         void ReadStartFunction();
         void ReadNamesSection();
+        void ReadElementSection();
 
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
@@ -69,6 +70,7 @@ namespace Wasm
         char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
         UINT LEB128(UINT &length, bool sgn = false);
         INT SLEB128(UINT &length);
+        WasmNode ReadInitExpr();
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();

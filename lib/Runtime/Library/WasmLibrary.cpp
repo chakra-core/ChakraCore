@@ -192,9 +192,9 @@ namespace Js
         FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
         frameDisplay->SetItem(0, moduleMemoryPtr);
 
-        for (uint i = 0; i < wasmModule->GetFunctionCount(); ++i)
+        for (uint i = 0; i < wasmModule->GetWasmFunctionCount(); ++i)
         {
-            AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetFunctionInfo(i)->GetBody());
+            AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
             funcObj->SetModuleMemory(moduleMemoryPtr);
             FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
             entypointInfo->SetIsAsmJSFunction(true);
@@ -246,9 +246,9 @@ namespace Js
                 if (funcIndex >= wasmModule->GetImportCount())
                 {
                     funcIndex -= wasmModule->GetImportCount();
-                    if (funcIndex < wasmModule->GetFunctionCount())
+                    if (funcIndex < wasmModule->GetWasmFunctionCount())
                     {
-                        funcObj = localModuleFunctions[funcExport->funcIndex];
+                        funcObj = localModuleFunctions[funcIndex];
                     }
                     else
                     {
@@ -308,24 +308,38 @@ namespace Js
         }
     }
 
-    void WasmLibrary::WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions)
+    void WasmLibrary::WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions)
     {
-        for (uint i = 0; i < wasmModule->GetIndirectFunctionCount(); ++i)
+        for (uint i = 0; i < wasmModule->GetTableSize(); ++i)
         {
-            uint funcIndex = wasmModule->GetIndirectFunctionIndex(i);
-            if (funcIndex >= wasmModule->GetFunctionCount())
+            uint funcIndex = wasmModule->GetTableValue(i);
+            if (funcIndex == Js::Constants::UninitializedValue)
             {
-                throw Wasm::WasmCompilationException(_u("Invalid function index %U for indirect function table"), funcIndex);
+                // todo:: are we suppose to invalidate here, or do a runtime error if this is accessed?
+                continue;
             }
-            Wasm::WasmFunctionInfo * indirFunc = wasmModule->GetFunctionInfo(funcIndex);
-            uint sigId = indirFunc->GetSignature()->GetSignatureId();
+
+            uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
             if (!indirectFunctionTables[sigId])
             {
                 // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
                 // now, indirect func call to invalid type will give nullptr deref
-                indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetIndirectFunctionCount());
+                indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
             }
-            indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
+            Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
+            uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcIndex);
+            switch (funcType)
+            {
+            case Wasm::FunctionIndexTypes::Function:
+                indirectFunctionTables[sigId][i] = localModuleFunctions[normIndex];
+                break;
+            case Wasm::FunctionIndexTypes::Import:
+                indirectFunctionTables[sigId][i] = importFunctions[normIndex];
+                break;
+            default:
+                Assert(UNREACHED);
+                break;
+            }
         }
     }
 
@@ -379,14 +393,28 @@ namespace Js
             Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
             WasmBuildObject(wasmModule, scriptContext, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions, importFunctions);
 
-            Var** indirectFunctionTables = (Var**)(moduleEnvironmentPtr + wasmModule->GetIndirFuncTableOffset());
-            WasmLoadIndirectFunctionTables(wasmModule, scriptContext, indirectFunctionTables, localModuleFunctions);
+            Var** indirectFunctionTables = (Var**)(moduleEnvironmentPtr + wasmModule->GetTableEnvironmentOffset());
+            WasmLoadIndirectFunctionTables(wasmModule, scriptContext, indirectFunctionTables, localModuleFunctions, importFunctions);
             uint32 startFuncIdx = wasmModule->GetStartFunction();
             if (start)
             {
                 if (startFuncIdx != Js::Constants::UninitializedValue)
                 {
-                    *start = localModuleFunctions[startFuncIdx];
+                    Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(startFuncIdx);
+                    uint32 normIndex = wasmModule->NormalizeFunctionIndex(startFuncIdx);
+                    switch (funcType)
+                    {
+                    case Wasm::FunctionIndexTypes::Function:
+                        *start = localModuleFunctions[normIndex];
+                        break;
+                    case Wasm::FunctionIndexTypes::Import:
+                        *start = importFunctions[normIndex];
+                        break;
+                    default:
+                        Assert(UNREACHED);
+                        *start = nullptr;
+                        break;
+                    }
                 }
                 else
                 {

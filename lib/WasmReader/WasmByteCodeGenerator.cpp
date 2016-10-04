@@ -104,10 +104,10 @@ WasmModuleGenerator::GenerateModule()
         gen->m_module->SetFuncOffset(gen->m_module->GetImportFuncOffset() + gen->m_module->GetImportCount());
     };
     afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
-        gen->m_module->SetIndirFuncTableOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetFunctionCount());
+        gen->m_module->SetTableEnvironmentOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetWasmFunctionCount());
     };
     afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
-        uint32 funcCount = gen->m_module->GetFunctionCount();
+        uint32 funcCount = gen->m_module->GetWasmFunctionCount();
         for (uint32 i = 0; i < funcCount; ++i)
         {
             gen->GenerateFunctionHeader(i);
@@ -157,7 +157,7 @@ WasmModuleGenerator::GenerateModule()
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
-    WasmFunctionInfo* wasmInfo = m_module->GetFunctionInfo(index);
+    WasmFunctionInfo* wasmInfo = m_module->GetWasmFunctionInfo(index);
     if (!wasmInfo)
     {
         throw WasmCompilationException(_u("Invalid function index %u"), index);
@@ -178,8 +178,8 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
             if (funcExport && funcExport->nameLength > 0)
             {
-                const uint32 funcIndex = funcExport->funcIndex - m_module->GetImportCount();
-                if (funcIndex == wasmInfo->GetNumber())
+                if (m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
+                    m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
                 {
                     nameLength = funcExport->nameLength + 16;
                     functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
@@ -722,23 +722,7 @@ WasmBytecodeGenerator::EmitCall()
     {
     case wbCall:
         funcNum = GetReader()->m_currentNode.call.num;
-        if (isImportCall)
-        {
-            if (funcNum >= m_module->GetImportCount())
-            {
-                throw WasmCompilationException(_u("Call is to unknown import"));
-            }
-            uint sigId = m_module->GetFunctionImport(funcNum)->sigId;
-            calleeSignature = m_module->GetSignature(sigId);
-        }
-        else
-        {
-            if (funcNum >= m_module->GetFunctionCount())
-            {
-                throw WasmCompilationException(_u("Call is to unknown function"));
-            }
-            calleeSignature = m_module->GetFunctionInfo(funcNum)->GetSignature();
-        }
+        calleeSignature = m_module->GetFunctionSignature(funcNum);
         break;
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
@@ -842,11 +826,11 @@ WasmBytecodeGenerator::EmitCall()
     case wbCall:
         if (isImportCall)
         {
-            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetImportFuncOffset());
+            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, m_module->NormalizeFunctionIndex(funcNum) + m_module->GetImportFuncOffset());
         }
         else
         {
-            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->GetFuncOffset());
+            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, m_module->NormalizeFunctionIndex(funcNum) + m_module->GetFuncOffset());
         }
         break;
     case wbCallIndirect:
@@ -855,7 +839,7 @@ WasmBytecodeGenerator::EmitCall()
             throw WasmCompilationException(_u("Indirect call index must be int type"));
         }
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetIndirFuncTableOffset());
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetTableEnvironmentOffset());
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
         break;
     default:

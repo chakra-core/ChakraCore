@@ -12,7 +12,7 @@ WASM_SECTION(Memory               , "memory"             , fSectNone  , Invalid 
 WASM_SECTION(Global               , "global"             , fSectIgnore, Invalid           )
 WASM_SECTION(ExportTable          , "export"             , fSectNone  , FunctionSignatures)
 WASM_SECTION(StartFunction        , "start"              , fSectNone  , FunctionSignatures)
-WASM_SECTION(Element              , "element"            , fSectIgnore, IndirectFunctionTable)
+WASM_SECTION(Element              , "element"            , fSectNone  , IndirectFunctionTable)
 WASM_SECTION(FunctionBodies       , "code"               , fSectNone  , FunctionSignatures)
 WASM_SECTION(DataSegments         , "data"               , fSectNone  , Memory            )
 WASM_SECTION(Names                , "name"               , fSectNone  , Signatures        )
