@@ -689,26 +689,22 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     }
     catch (Js::JITOperationFailedException& ex)
     {
+        // pass the HRESULT back to content process
+        // TODO: looks mostly the error is E_ACCESSDENIED because the content process is gone
+        // however, it might be some other error if the content process is in middle of terminating
+        // like VM is in a state of removing but not completed yet
         hr = HRESULT_FROM_WIN32(ex.LastError);
 
-        if (hr == E_ACCESSDENIED)
+        DWORD exitCode;
+        if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
         {
-            // target process might be terminated
-            DWORD exitCode;
-            if (GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
-            {
-                if (exitCode != STILL_ACTIVE)
-                {
-                    threadContextInfo->Close();
-                    ServerContextManager::UnRegisterThreadContext(threadContextInfo);
-
-                }
-            }
+            Assert(false); // fail to check target process
         }
-        else
+
+        if (exitCode != STILL_ACTIVE)
         {
-            // OOPJIT TODO: other error code might need to be handled
-            Assert(false);
+            threadContextInfo->Close();
+            ServerContextManager::UnRegisterThreadContext(threadContextInfo);
         }
     }
 
