@@ -1069,6 +1069,7 @@ void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHand
     {
         if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
         {
+            Js::Throw::CheckAndThrowJITOperationFailed();
             Js::Throw::FatalInternalError();
         }
         HeapDeleteArray(byteCount, writeBuffer);

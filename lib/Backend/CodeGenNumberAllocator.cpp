@@ -333,6 +333,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, &bytesWritten)
                 || bytesWritten != sizeCat)
             {
+                Js::Throw::CheckAndThrowJITOperationFailed();
                 Output::Print(_u("FATAL ERROR: WriteProcessMemory failed, GLE: %d\n"), GetLastError());
                 Js::Throw::FatalInternalError(); // TODO: don't bring down whole server process, but pass the last error to main process
             }
