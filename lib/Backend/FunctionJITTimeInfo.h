@@ -14,7 +14,8 @@ public:
         __in const Js::FunctionCodeGenJitTimeData * codeGenData,
         __in_opt const Js::FunctionCodeGenRuntimeData * runtimeData,
         __out FunctionJITTimeDataIDL * jitData,
-        bool isInlinee = true);
+        bool isInlinee,
+        bool isForegroundJIT);
 
     uint GetInlineeCount() const;
     bool IsLdFldInlineePresent() const;

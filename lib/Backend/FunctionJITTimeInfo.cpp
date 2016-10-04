@@ -18,7 +18,8 @@ FunctionJITTimeInfo::BuildJITTimeData(
     __in const Js::FunctionCodeGenJitTimeData * codeGenData,
     __in_opt const Js::FunctionCodeGenRuntimeData * runtimeData,
     __out FunctionJITTimeDataIDL * jitData,
-    bool isInlinee)
+    bool isInlinee,
+    bool isForegroundJIT)
 {
     jitData->bodyData = codeGenData->GetJITBody();
     jitData->functionInfoAddr = (intptr_t)codeGenData->GetFunctionInfo();
@@ -38,7 +39,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
         {
             Assert(jitData->bodyData != nullptr);
             ProfileDataIDL * profileData = AnewStruct(alloc, ProfileDataIDL);
-            JITTimeProfileInfo::InitializeJITProfileData(functionBody->GetAnyDynamicProfileInfo(), functionBody, profileData);
+            JITTimeProfileInfo::InitializeJITProfileData(alloc, functionBody->GetAnyDynamicProfileInfo(), functionBody, profileData, isForegroundJIT);
 
             jitData->bodyData->profileData = profileData;
 
@@ -76,7 +77,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
                         inlineeRuntimeData = isInlinee ? runtimeData->GetInlineeForTargetInlinee(i, inlinee) : functionBody->GetInlineeCodeGenRuntimeDataForTargetInlinee(i, inlinee);
                     }
                     jitData->inlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true);
+                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true, isForegroundJIT);
                 }
             }
         }
@@ -112,7 +113,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
                 if (inlineeJITData != nullptr)
                 {
                     jitData->ldFldInlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->ldFldInlinees[i]);
+                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->ldFldInlinees[i], true, isForegroundJIT);
                 }
             }
         }
@@ -136,7 +137,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
             {
                 nextRuntimeData = runtimeData->GetNextForTarget(nextJITData->GetFunctionInfo()->GetFunctionBody());
             }
-            BuildJITTimeData(alloc, nextJITData, nextRuntimeData, jitData->next);
+            BuildJITTimeData(alloc, nextJITData, nextRuntimeData, jitData->next, true, isForegroundJIT);
         }
     }
 }

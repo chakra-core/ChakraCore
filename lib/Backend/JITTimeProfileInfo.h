@@ -11,9 +11,11 @@ public:
     JITTimeProfileInfo(ProfileDataIDL * profileData);
 
     static void InitializeJITProfileData(
+        __in ArenaAllocator * alloc,
         __in Js::DynamicProfileInfo * profileInfo,
         __in Js::FunctionBody *functionBody,
-        __out ProfileDataIDL * data);
+        __out ProfileDataIDL * data,
+        bool isForegroundJIT);
 
     const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId) const;
     const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId) const;
