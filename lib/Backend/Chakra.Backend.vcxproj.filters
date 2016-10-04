@@ -125,7 +125,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
-    <ClCompile Include="JITTimeFixedField.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFixedField.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -334,6 +334,8 @@
     <ClInclude Include="ServerThreadContext.h" />
     <ClInclude Include="ServerScriptContext.h" />
     <ClInclude Include="JITTimeFixedField.h" />
+    <ClInclude Include="ExternalLowerer.h" />
+    <ClInclude Include="JITRecyclableObject.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

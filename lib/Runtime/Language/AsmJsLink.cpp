@@ -158,7 +158,7 @@ namespace Js{
                 AsmJsSIMDBuiltinFunction simdBuiltinFunc = (AsmJsSIMDBuiltinFunction)i;
                 if (!CheckSimdLibraryMethod(scriptContext, asmSimdObject, simdBuiltinFunc))
                 {
-                    AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : SIMD builtin function is invalid");
+                    AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : SIMD builtin function is invalid"));
                     return false;
                 }
             }
@@ -620,8 +620,8 @@ namespace Js{
     }
 #endif
 
-    
-        
+
+
 
     bool ASMLink::CheckParams(ScriptContext* scriptContext, AsmJsModuleInfo* info, const Var stdlib, const Var foreign, const Var bufferView)
     {

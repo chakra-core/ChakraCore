@@ -1117,6 +1117,20 @@ private:
             return (this->TTDMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
         }
 
+        //
+        //TODO: there is a memory leak associated with this we need to relax later
+        //
+        //A special record check because we want to pin weak references even if we aren't actively logging (but are planning to do so in the future)
+        bool ShouldPerformWeakRefPinAction() const
+        {
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool modeIsDebugging = (this->TTDMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord | modeIsDebugging) & inDebugableCode);
+        }
+
         //A special record check because we want to record code load even if we aren't actively logging (but are planning to do so in the future)
         bool ShouldPerformRecordTopLevelFunction() const
         {
@@ -1557,7 +1571,7 @@ private:
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
 #endif
-        
+
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
 
@@ -1633,7 +1647,7 @@ private:
 #if DYNAMIC_INTERPRETER_THUNK
         JavascriptMethod GetNextDynamicAsmJsInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         JavascriptMethod GetNextDynamicInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
-        BOOL IsDynamicInterpreterThunk(void* address);
+        BOOL IsDynamicInterpreterThunk(JavascriptMethod address);
         void ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList);
         void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
 #endif

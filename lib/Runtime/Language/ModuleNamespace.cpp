@@ -231,8 +231,24 @@ namespace Js
         //Assert: IsPropertyKey(P) is true.
         //Let exports be O.[[Exports]].
         //If P is an element of exports, return false.
-        //Return true.        
+        //Return true.
         return !HasProperty(propertyId);
+    }
+
+    BOOL ModuleNamespace::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        //Assert: IsPropertyKey(P) is true.
+        //Let exports be O.[[Exports]].
+        //If P is an element of exports, return false.
+        //Return true.
+        PropertyRecord const *propertyRecord = nullptr;
+        if (JavascriptOperators::ShouldTryDeleteProperty(this, propertyNameString, &propertyRecord))
+        {
+            Assert(propertyRecord);
+            return DeleteProperty(propertyRecord->GetPropertyId(), flags);
+        }
+
+        return TRUE;
     }
 
     BOOL ModuleNamespace::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

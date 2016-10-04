@@ -52,6 +52,7 @@ namespace TTD
     class TTDebuggerAbortException;
     class TTDebuggerSourceLocation;
 }
+
 ////////
 //Memory allocators used by the TT code
 #define TT_HEAP_NEW(T, ...) HeapNewNoThrow(T, __VA_ARGS__)
@@ -163,6 +164,27 @@ namespace TTD
         TTDShouldSupressGetterActionMask = (DebuggingEnabled | DebuggerSuppressGetter)
     };
     DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
+
+    class TTModeStack
+    {
+    private:
+        TTDMode* m_stackEntries;
+
+        uint32 m_stackTop;
+        uint32 m_stackMax;
+
+    public:
+        TTModeStack();
+        ~TTModeStack();
+
+        uint32 Count() const;
+        TTDMode GetAt(uint32 index) const;
+        void SetAt(uint32 index, TTDMode m);
+
+        void Push(TTDMode m);
+        TTDMode Peek() const;
+        void Pop();
+    };
 
     namespace NSSnapObjects
     {

@@ -331,6 +331,18 @@ namespace Js
         return DynamicObject::DeleteProperty(propertyId, flags);
     }
 
+    BOOL JavascriptStringObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), propertyNameString->GetString());
+
+            return FALSE;
+        }
+        return DynamicObject::DeleteProperty(propertyNameString, propertyOperationFlags);
+    }
+
     BOOL JavascriptStringObject::HasItem(uint32 index)
     {
         if (this->InternalUnwrap()->HasItem(index))

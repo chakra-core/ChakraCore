@@ -55,6 +55,7 @@ namespace Js
         DWORD_PTR AllocateSecondaryHostSourceContext();
         void SetCurrentInterpreterLocation(InterpreterHaltState* pHaltState);
         void UnsetCurrentInterpreterLocation();
+        bool IsMatchTopFrameStackAddress(DiagStackFrame* frame) const;
         uint32 GetDebugSessionNumber() const { return debugSessionNumber; }
 #ifdef ENABLE_MUTATION_BREAKPOINT
         MutationBreakpoint* GetActiveMutationBreakpoint() const;

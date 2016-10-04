@@ -110,6 +110,7 @@ namespace Js
         virtual BOOL SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(Js::PropertyId propertyId, Js::PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, Js::PropertyOperationFlags flags) override;
         virtual BOOL GetItemReference(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext) override;
         virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext) override;
@@ -131,7 +132,8 @@ namespace Js
         // Returns false if this is not a TypedArray or it's not detached
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
-        static void ValidateTypedArray(Var aValue, ScriptContext *scriptContext);
+        static TypedArrayBase * ValidateTypedArray(Var aValue, ScriptContext *scriptContext, LPCWSTR apiName);
+        static TypedArrayBase * ValidateTypedArray(Arguments &args, ScriptContext *scriptContext, LPCWSTR apiName);
         static Var TypedArrayCreate(Var constructor, Arguments *args, uint32 length, ScriptContext *scriptContext);
 
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) = 0;
@@ -171,10 +173,13 @@ namespace Js
         Var FindMinOrMax(Js::ScriptContext * scriptContext, TypeId typeId, bool findMax);
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
 
+        static Var GetKeysEntriesValuesHelper(Arguments& args, ScriptContext *scriptContext, LPCWSTR apiName, JavascriptArrayIteratorKind kind);
+
+        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
+
     protected:
         static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
-        static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
         typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);

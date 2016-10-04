@@ -66,7 +66,7 @@ public:
     static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type) { __debugbreak(); return 0; }
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr) { __debugbreak(); return 0; }
+    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false) { __debugbreak(); return 0; }
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr) { __debugbreak(); return 0; }
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum) { __debugbreak(); }
 

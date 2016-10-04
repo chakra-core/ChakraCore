@@ -388,6 +388,38 @@ namespace Js
         }
     }
 
+    BOOL JavascriptRegExpConstructor::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::input.Equals(propertyName)
+            || BuiltInPropertyRecords::$_.Equals(propertyName)
+            || BuiltInPropertyRecords::length.Equals(propertyName)
+            || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
+            || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
+            || BuiltInPropertyRecords::lastParen.Equals(propertyName)
+            || BuiltInPropertyRecords::$Plus.Equals(propertyName)
+            || BuiltInPropertyRecords::leftContext.Equals(propertyName)
+            || BuiltInPropertyRecords::$BackTick.Equals(propertyName)
+            || BuiltInPropertyRecords::rightContext.Equals(propertyName)
+            || BuiltInPropertyRecords::$Tick.Equals(propertyName)
+            || BuiltInPropertyRecords::$1.Equals(propertyName)
+            || BuiltInPropertyRecords::$2.Equals(propertyName)
+            || BuiltInPropertyRecords::$3.Equals(propertyName)
+            || BuiltInPropertyRecords::$4.Equals(propertyName)
+            || BuiltInPropertyRecords::$5.Equals(propertyName)
+            || BuiltInPropertyRecords::$6.Equals(propertyName)
+            || BuiltInPropertyRecords::$7.Equals(propertyName)
+            || BuiltInPropertyRecords::$8.Equals(propertyName)
+            || BuiltInPropertyRecords::$9.Equals(propertyName)
+            || BuiltInPropertyRecords::index.Equals(propertyName))
+        {
+            JavascriptError::ThrowCantDeleteIfStrictMode(flags, GetScriptContext(), propertyNameString->GetString());
+            return false;
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL JavascriptRegExpConstructor::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         stringBuilder->AppendCppLiteral(JS_DIAG_VALUE_JavascriptRegExpConstructor);

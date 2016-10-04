@@ -439,7 +439,6 @@
     <default>
       <files>ES6TypedArrayExtensions.js</files>
       <compile-flags>-ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
-      <tags>Slow</tags>
     </default>
   </test>
   <test>
@@ -1346,6 +1345,13 @@
     <files>bug_issue_1496.js</files>
     <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
     <baseline>bug_issue_1496.baseline</baseline>
+    <tags>BugFix</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>typedarray_bugs.js</files>
+    <compile-flags>-args summary -endargs</compile-flags>
     <tags>BugFix</tags>
   </default>
 </test>

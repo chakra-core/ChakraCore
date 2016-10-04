@@ -667,7 +667,7 @@
   <test>
     <default>
       <files>622043.js</files>
-      <compile-flags>/force:deferparse /mic:1 /off:bailonnoprofile /force:inline /off:simplejit</compile-flags>
+      <compile-flags>-force:deferparse -mic:1 -off:bailonnoprofile -force:inline -off:simplejit</compile-flags>
       <tags>exclude_dynapogo,exclude_fre</tags>
     </default>
   </test>

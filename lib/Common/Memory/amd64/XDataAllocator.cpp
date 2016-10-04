@@ -66,8 +66,16 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     }
     else
     {
+        xdata->address = nullptr;
         OUTPUT_TRACE(Js::XDataAllocatorPhase, _u("No space for XDATA.\n"));
     }
+
+#ifndef _WIN32
+    if (xdata->address)
+    {
+        ClearHead(xdata->address);  // mark empty .eh_frame
+    }
+#endif
 
     return xdata->address != nullptr;
 }
@@ -111,6 +119,7 @@ void XDataAllocator::ClearFreeList()
 /* static */
 void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize)
 {
+#ifdef _WIN32
     ULONG_PTR baseAddress = functionStart;
     xdataInfo->pdata.BeginAddress = (DWORD)(functionStart - baseAddress);
     xdataInfo->pdata.EndAddress = (DWORD)(xdataInfo->pdata.BeginAddress + functionSize);
@@ -143,11 +152,17 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
     RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)functionStart, &imageBase, nullptr);
     Assert(runtimeFunction != NULL);
 #endif
+
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __register_frame(xdataInfo->address);
+#endif
 }
 
 /* static */
 void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
+#ifdef _WIN32
     // Delete the table
     if (AutoSystemInfo::Data.IsWin8OrLater())
     {
@@ -159,4 +174,8 @@ void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
         Assert(success);
     }
 
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __deregister_frame(xdataInfo->address);
+#endif
 }

@@ -180,8 +180,24 @@
 #endif
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
+#ifdef _WIN32
+#define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
+#endif
+#endif
+
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1900 )
+#define HAS_CONSTEXPR 1
+#endif
+
+#ifdef HAS_CONSTEXPR
+#define OPT_CONSTEXPR constexpr
+#else
+#define OPT_CONSTEXPR
+#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
@@ -566,7 +582,6 @@
 #define ENABLE_WASM
 #endif
 
-#if _WIN32 || _WIN64
 #if _M_IX86
 #define I386_ASM 1
 #endif //_M_IX86
@@ -580,7 +595,6 @@
 #define ALLOC_XDATA (false)
 #endif
 #endif
-#endif // _WIN32 || _WIN64
 
 #ifndef _WIN32
 #define DISABLE_SEH 1

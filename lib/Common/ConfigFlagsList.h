@@ -286,6 +286,7 @@ PHASE(All)
         PHASE(Host)
         PHASE(BailOut)
         PHASE(RegexQc)
+        PHASE(RegexOptBT)
         PHASE(InlineCache)
         PHASE(PolymorphicInlineCache)
         PHASE(MissingPropertyCache)
@@ -1446,6 +1447,9 @@ FLAGNR(Boolean, ZeroMemoryWithNonTemporalStore, "Zero free memory with non-tempo
 // recycler memory restrict test flags
 FLAGNR(Number,  MaxMarkStackPageCount , "Restrict recycler mark stack size (in pages)", -1)
 FLAGNR(Number,  MaxTrackedObjectListCount,  "Restrict recycler tracked object count during GC", -1)
+
+// make the recycler page integration path easier to hit
+FLAGNR(Number, NumberAllocPlusSize, "Additional bytes to allocate with JavascriptNumber from number allocator (0~496)", 0)
 
 #if DBG
 FLAGNR(Boolean, InitializeInterpreterSlotsWithInvalidStackVar, "Enable the initialization of the interpreter local slots with invalid stack vars", false)

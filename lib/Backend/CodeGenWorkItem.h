@@ -227,7 +227,7 @@ public:
     void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) override
     {
          Assert(entrypoint);
-         *entrypoint = this->GetEntryPoint()->jsMethod;
+         *entrypoint = (void*)this->GetEntryPoint()->jsMethod;
          *size = this->GetEntryPoint()->GetCodeSize();
     }
 

@@ -244,7 +244,7 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
     }
 
     if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && isStrConst
-        && TestAndAddStringCaseConst(Js::JavascriptString::FromVar(sym->GetConstAddress(true))))
+        && TestAndAddStringCaseConst(JITJavascriptString::FromVar(sym->GetConstAddress(true))))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
         return;
@@ -781,7 +781,7 @@ SwitchIRBuilder::BuildBailOnNotString()
 ///----------------------------------------------------------------------------
 
 bool
-SwitchIRBuilder::TestAndAddStringCaseConst(Js::JavascriptString * str)
+SwitchIRBuilder::TestAndAddStringCaseConst(JITJavascriptString * str)
 {
     Assert(m_strConstSwitchCases);
 
@@ -836,7 +836,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         generateDictionary = false;
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
+            JITJavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
             Assert(str->GetLength() == 1);
             char16 currChar = str->GetString()[0];
             minChar = min(minChar, currChar);
@@ -857,7 +857,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
+            JITJavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoDictionary(caseTargetOffset, str, m_caseNodes->Item(i)->GetUpperBoundStrConst());
         }
@@ -882,7 +882,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         //Adding normal cases to the instruction (except the default case, which we do it later)
         for (uint i = 0; i < caseCount; i++)
         {
-            Js::JavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
+            JITJavascriptString * str = m_caseNodes->Item(i)->GetUpperBoundStringConstLocal();
             Assert(str->GetLength() == 1);
             uint32 caseTargetOffset = m_caseNodes->Item(i)->GetTargetOffset();
             multiBranchInstr->AddtoJumpTable(caseTargetOffset, str->GetString()[0] - minChar);

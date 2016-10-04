@@ -135,6 +135,7 @@ ServerInitializeThreadContext(
 
     *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
     *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
+   
     return S_OK;
 }
 
@@ -158,23 +159,28 @@ ServerCleanupThreadContext(
 }
 
 HRESULT
-ServerAddPropertyRecordArray(
+ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
-    /* [in] */ intptr_t threadContextRoot,
-    /* [in] */ uint count,
-    /* [in] */ __RPC__in_ecount_full(count) PropertyRecordIDL ** propertyRecordArray)
+    /* [in] */ intptr_t threadContextInfoAddress,
+    /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     if (threadContextInfo == nullptr)
     {
         return RPC_S_INVALID_ARG;
     }
-    for (uint i = 0; i < count; ++i)
+
+    for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
     {
-        threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecordArray[i]);
+        threadContextInfo->RemoveFromPropertyMap((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
+    }
+
+    for (uint i = 0; i < updatedProps->newRecordCount; ++i)
+    {
+        threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)updatedProps->newRecordArray[i]);
     }
 
     return S_OK;
@@ -248,6 +254,11 @@ ServerInitializeScriptContext(
 
     ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData);
     *scriptContextInfoAddress = (intptr_t)EncodePointer(contextInfo);
+
+#if !FLOATVAR
+    // TODO: should move this to ServerInitializeThreadContext, also for the fields in IDL
+    XProcNumberPageSegmentImpl::Initialize(contextInfo->IsRecyclerVerifyEnabled(), contextInfo->GetRecyclerVerifyPad());
+#endif
     return S_OK;
 }
 
@@ -388,7 +399,7 @@ ServerRemoteCodeGen(
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
-    if (PHASE_TRACE1(Js::BackEndPhase))
+    if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
     {
         LARGE_INTEGER freq;
         LARGE_INTEGER end_time;
@@ -409,19 +420,20 @@ ServerRemoteCodeGen(
         profiler->Initialize(threadContextInfo->GetPageAllocator(), nullptr);
     }
 #endif
-
-    jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
-    if (!jitData->numberPageSegments)
+    if (jitWorkItem->GetWorkItemData()->xProcNumberPageSegment)
     {
-        scriptContextInfo->EndJIT();
-        threadContextInfo->EndJIT();
+        jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
+        if (!jitData->numberPageSegments)
+        {
+            scriptContextInfo->EndJIT();
+            threadContextInfo->EndJIT();
 
-        return E_OUTOFMEMORY;
+            return E_OUTOFMEMORY;
+        }
+        __analysis_assume(jitData->numberPageSegments);
+
+        memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
     }
-    __analysis_assume(jitData->numberPageSegments);
-
-    memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
-
     HRESULT hr = S_OK;
     try
     {
@@ -435,7 +447,9 @@ ServerRemoteCodeGen(
             nullptr,
             jitWorkItem->GetPolymorphicInlineCacheInfo(),
             threadContextInfo->GetCodeGenAllocators(),
-            nullptr,
+#if !FLOATVAR
+            nullptr, // number allocator
+#endif
             profiler,
             true);
     }
@@ -461,7 +475,7 @@ ServerRemoteCodeGen(
     }
 #endif
 
-    if (PHASE_TRACE1(Js::BackEndPhase))
+    if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
     {
         LARGE_INTEGER freq;
         LARGE_INTEGER end_time;
@@ -469,7 +483,7 @@ ServerRemoteCodeGen(
         QueryPerformanceFrequency(&freq);
 
         Output::Print(
-            L"EndBackEnd - function: %s time:%8.6f mSec\r\n",
+            L"EndBackEndInner - function: %s time:%8.6f mSec\r\n",
             jitWorkItem->GetJITFunctionBody()->GetDisplayName(),
             (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();

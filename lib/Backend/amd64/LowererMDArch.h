@@ -58,7 +58,7 @@ public:
         return Math::FitsInDWord((size_t)opnd->GetMemLoc());
     }
 
-    IR::Opnd *          GetArgSlotOpnd(Js::ArgSlot slotIndex, StackSym * argSym = nullptr);
+    IR::Opnd *          GetArgSlotOpnd(Js::ArgSlot slotIndex, StackSym * argSym = nullptr, bool isHelper = false);
     IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
     IR::Instr *         LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd = nullptr);
     int32               LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot extraParams = 1 /* for function object */, IR::IntConstOpnd **callInfoOpndRef = nullptr);
@@ -134,3 +134,6 @@ private:
     void                SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/);
 };
 
+#define REG_EH_TARGET      RegArg0
+#define REG_EH_SPILL_SIZE  RegArg2
+#define REG_EH_ARGS_SIZE   RegArg3

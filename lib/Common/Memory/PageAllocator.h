@@ -376,8 +376,8 @@ private:
 template<typename TVirtualAlloc>
 class PageAllocatorBase
 {
-    friend class CodeGenNumberThreadAllocator;
-    friend struct XProcNumberPageSegmentManager;
+    friend class ::CodeGenNumberThreadAllocator;
+    friend struct ::XProcNumberPageSegmentManager;
     // Allowing recycler to report external memory allocation.
     friend class Recycler;
 public:
@@ -723,6 +723,14 @@ private:
         }
 
         return true;
+    }
+
+    void ReportExternalAlloc(size_t byteCount)
+    {
+        if (policyManager != nullptr)
+        {
+            policyManager->RequestAlloc(byteCount, true);
+        }
     }
 
     void ReportFree(size_t byteCount)

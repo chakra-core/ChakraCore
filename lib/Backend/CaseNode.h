@@ -22,12 +22,6 @@ private:
         return opnd->IsIntConstOpnd() ? opnd->AsIntConstOpnd()->AsInt32() : opnd->GetStackSym()->GetIntConstValue();
     }
 
-    Js::JavascriptString* GetStringConst(IR::Opnd* opnd, bool useLocal = false)
-    {
-        Assert(IsStrConst(opnd));
-        return Js::JavascriptString::FromVar(opnd->GetStackSym()->GetConstAddress(useLocal));
-    }
-
     bool IsIntConst(IR::Opnd* opnd)
     {
         return opnd->IsIntConstOpnd() || opnd->GetStackSym()->IsIntConst();
@@ -53,16 +47,16 @@ public:
         return GetIntConst(GetUpperBound());
     }
 
-    Js::JavascriptString* GetUpperBoundStringConstLocal()
+    JITJavascriptString* GetUpperBoundStringConstLocal()
     {
         AssertMsg(IsUpperBoundStrConst(), "Upper bound operand is not a string constant");
-        return GetStringConst(GetUpperBound(), true);
+        return JITJavascriptString::FromVar(GetUpperBound()->GetStackSym()->GetConstAddress(true));
     }
 
-    Js::JavascriptString* GetUpperBoundStrConst()
+    JITJavascriptString* GetUpperBoundStrConst()
     {
         AssertMsg(IsUpperBoundStrConst(), "Upper bound operand is not a string constant");
-        return GetStringConst(GetUpperBound());
+        return static_cast<JITJavascriptString*>(GetUpperBound()->GetStackSym()->GetConstAddress(false));
     }
 
     bool IsUpperBoundIntConst()
@@ -79,12 +73,6 @@ public:
     {
         AssertMsg(IsLowerBoundIntConst(), "LowerBound is not an integer constant");
         return GetIntConst(lowerBound);
-    }
-
-    Js::JavascriptString* GetLowerBoundStrConst()
-    {
-        AssertMsg(IsLowerBoundStrConst(), "LowerBound is not a string constant");
-        return GetStringConst(lowerBound);
     }
 
     bool IsLowerBoundIntConst()

@@ -1,3 +1,7 @@
+if(BuildJIT)
+    set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
+endif()
+
 add_library (Chakra.Jsrt STATIC
     Jsrt.cpp
     JsrtDebugUtils.cpp
@@ -14,7 +18,8 @@ add_library (Chakra.Jsrt STATIC
     JsrtSourceHolder.cpp
     JsrtThreadService.cpp
     $<TARGET_OBJECTS:Chakra.Jsrt.Core>
-#   Do not take this in. We need to control the 
+    ${chakra_backend_objects}
+#   Do not take this in. We need to control the
 #   linker order because of global constructors
 #   and cross dependencies among them
 #   $<TARGET_OBJECTS:Chakra.Common.Core>
@@ -36,12 +41,14 @@ add_library (Chakra.Jsrt STATIC
     )
 
 add_subdirectory(Core)
-  
+
 target_include_directories (
     Chakra.Jsrt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ../Backend
     ../JITIDL
     ../Runtime
     ../Runtime/Base
+    ../Runtime/ByteCode
     ../Runtime/Debug
     ../Parser
     )

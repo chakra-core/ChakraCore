@@ -6,6 +6,7 @@
 
 #ifdef ENABLE_NATIVE_CODEGEN
 #ifdef _M_X64
+#ifdef _WIN32
 const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 23;
 const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 27;
 const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 37;
@@ -52,6 +53,44 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
     0x48, 0x83, 0xC4, StackAllocSize,                              // add         rsp,28h
     0xC3                                                           // ret
 };
+#else  // Sys V AMD64
+const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 7;
+const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 11;
+const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 21;
+const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 35;
+const BYTE InterpreterThunkEmitter::ErrorOffset = 44;
+const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 57;
+
+const BYTE InterpreterThunkEmitter::PrologSize = 56;
+const BYTE InterpreterThunkEmitter::StackAllocSize = 0x0;
+
+const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+    0x55,                                                       // push   rbp                   // Prolog - setup the stack frame
+    0x48, 0x89, 0xe5,                                           // mov    rbp, rsp
+    0x48, 0x8b, 0x47, 0x00,                                     // mov    rax, qword ptr [rdi + FunctionBodyOffset]
+    0x48, 0x8b, 0x50, 0x00,                                     // mov    rdx, qword ptr [rax + DynamicThunkAddressOffset]
+                                                                                                // Range Check for Valid call target
+    0x48, 0x83, 0xE2, 0xF8,                                     // and    rdx, 0xfffffffffffffff8   // Force 8 byte alignment
+    0x48, 0x89, 0xd1,                                           // mov    rcx, rdx
+    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // mov    rax, CallBlockStartAddress
+    0x48, 0x29, 0xc1,                                           // sub    rcx, rax
+    0x48, 0x81, 0xf9, 0x00, 0x00, 0x00, 0x00,                   // cmp    rcx, ThunkSize
+    0x76, 0x09,                                                 // jbe    safe
+    0x48, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,                   // mov    rcx, errorcode
+    0xcd, 0x29,                                                 // int    29h       <-- xplat TODO: just to exit
+
+    // safe:
+    0x48, 0x8d, 0x7c, 0x24, 0x10,                               // lea    rdi, [rsp+0x10]
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // mov    rax, <thunk>          // stack already 16-byte aligned
+    0xff, 0xe2,                                                 // jmp    rdx
+    0xcc, 0xcc, 0xcc, 0xcc, 0xcc                                // int    3                     // for alignment to size of 8
+};
+
+const BYTE InterpreterThunkEmitter::Epilog[] = {
+    0x5d,                                                       // pop    rbp
+    0xc3                                                        // ret
+};
+#endif
 #elif defined(_M_ARM)
 const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 8;
 const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 18;
@@ -260,12 +299,12 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ASMJS_PLAT
     if (isAsmInterpreterThunk)
     {
-        interpreterThunk = Js::InterpreterStackFrame::InterpreterAsmThunk;
+        interpreterThunk = (void*)Js::InterpreterStackFrame::InterpreterAsmThunk;
     }
     else
 #endif
     {
-        interpreterThunk = Js::InterpreterStackFrame::InterpreterThunk;
+        interpreterThunk = (void*)Js::InterpreterStackFrame::InterpreterThunk;
     }
 
     allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);

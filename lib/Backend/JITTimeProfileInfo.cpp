@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "BackEnd.h"
+#include "Backend.h"
 
 JITTimeProfileInfo::JITTimeProfileInfo(ProfileDataIDL * profileData) :
     m_profileData(*profileData)
@@ -191,7 +191,7 @@ JITTimeProfileInfo::GetThisInfo() const
 ValueType
 JITTimeProfileInfo::GetReturnType(Js::OpCode opcode, Js::ProfileId callSiteId) const
 {
-    if (opcode < Js::OpCode::ProfiledReturnTypeCallI)
+    if (opcode < Js::OpCode::ProfiledReturnTypeCallI || (opcode > Js::OpCode::ProfiledReturnTypeCallIFlags && opcode < Js::OpCode::ProfiledReturnTypeCallIExtended) || opcode > Js::OpCode::ProfiledReturnTypeCallIExtendedFlags)
     {
         Assert(Js::DynamicProfileInfo::IsProfiledCallOp(opcode));
         Assert(callSiteId < GetProfiledCallSiteCount());

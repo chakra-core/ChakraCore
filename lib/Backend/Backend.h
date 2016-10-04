@@ -110,8 +110,11 @@ enum IRDumpFlags
 // BackEnd includes
 //
 
+#ifdef _WIN32
 #include "ChakraJIT.h"
+#endif
 #include "JITTimeProfileInfo.h"
+#include "JITRecyclableObject.h"
 #include "JITTimeFixedField.h"
 #include "JITTimePolymorphicInlineCache.h"
 #include "JITTimePolymorphicInlineCacheInfo.h"

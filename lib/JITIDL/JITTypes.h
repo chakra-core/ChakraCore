@@ -742,9 +742,8 @@ typedef struct  CtorCacheTransferEntryIDL
 typedef struct NativeDataBuffer
 {
     unsigned int len;
-    unsigned int unused;
-    IDL_PAD2(0)
-    IDL_PAD1(1)
+    // pad so that buffer is always 8 byte aligned
+    IDL_PAD4(0)
     IDL_DEF([size_is(len)]) byte data[IDL_DEF(*)];
 } NativeDataBuffer;
 
@@ -802,3 +801,11 @@ typedef struct JITOutputIDL
     X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;
+
+typedef struct UpdatedPropertysIDL
+{
+    unsigned int reclaimedPropertyCount;
+    unsigned int newRecordCount;
+    [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
+    [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
+} UpdatedPropertysIDL;

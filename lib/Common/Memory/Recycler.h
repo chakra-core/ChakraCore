@@ -624,8 +624,8 @@ class Recycler
     friend class ActiveScriptProfilerHeapEnum;
 #endif
     friend class ScriptEngineBase;  // This is for disabling GC for certain Host operations.
-    friend class CodeGenNumberThreadAllocator;
-    friend struct XProcNumberPageSegmentManager;
+    friend class ::CodeGenNumberThreadAllocator;
+    friend struct ::XProcNumberPageSegmentManager;
 public:
     static const uint ConcurrentThreadStackSize = 300000;
     static const bool FakeZeroLengthArray = true;
@@ -742,7 +742,7 @@ private:
 
     struct GuestArenaAllocator : public ArenaAllocator
     {
-        GuestArenaAllocator(__in char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
+        GuestArenaAllocator(__in_z char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
             : ArenaAllocator(name, pageAllocator, outOfMemoryFunc), pendingDelete(false)
         {
         }
@@ -1448,6 +1448,7 @@ public:
     {
         FillCheckPad(address, size, alignedAllocSize, false);
     }
+    static void FillPadNoCheck(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized);
 
     void VerifyCheckPad(void * address, size_t size);
     void VerifyCheckPadExplicitFreeList(void * address, size_t size);
@@ -2047,7 +2048,7 @@ public:
     void* GetObjectAddress() const { return m_address; }
 
 #ifdef RECYCLER_PAGE_HEAP
-    bool IsPageHeapAlloc() 
+    bool IsPageHeapAlloc()
     {
         return isUsingLargeHeapBlock && ((LargeHeapBlock*)m_heapBlock)->InPageHeapMode();
     }

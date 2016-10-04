@@ -37,7 +37,6 @@ namespace Js
             enumerator.Clear();
             this->object = nullptr;
             this->baseObject = nullptr;
-            this->baseObjectType = nullptr;
             this->firstPrototype = nullptr;
             return;
         }
@@ -45,23 +44,9 @@ namespace Js
         Assert(JavascriptOperators::GetTypeId(currentObject) != TypeIds_Null
             && JavascriptOperators::GetTypeId(currentObject) != TypeIds_Undefined);
 
-        if (this->object == currentObject &&
-            this->baseObjectType == currentObject->GetType())
-        {
-            // We can re-use the enumerator, only if the 'object' and type from the previous enumeration
-            // remains the same. If the previous enumeration involved prototype enumeration
-            // 'object' and 'currentEnumerator' would represent the prototype. Hence,
-            // we cannot re-use it. Null objects are always equal, therefore, the enumerator cannot
-            // be re-used.
-            enumerator.Reset();
-        }
-        else
-        {
-            this->baseObjectType = currentObject->GetType();
-            this->object = currentObject;
+        this->object = currentObject;
 
-            InitializeCurrentEnumerator();
-        }
+        InitializeCurrentEnumerator();
 
         this->baseObject = currentObject;
         firstPrototype = GetFirstPrototypeWithEnumerableProperties(object);

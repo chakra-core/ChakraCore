@@ -57,7 +57,7 @@ namespace Js
 
     namespace ArrayBufferView
     {
-        enum ViewType
+        enum ViewType: int
         {
             TYPE_INT8 = 0,
             TYPE_UINT8,
@@ -72,7 +72,7 @@ namespace Js
 
     } /* namespace ArrayBufferView */
     // The asm.js spec recognizes this set of builtin Math functions.
-    enum AsmJSMathBuiltinFunction
+    enum AsmJSMathBuiltinFunction: int
     {
 #define ASMJS_MATH_FUNC_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
@@ -534,7 +534,7 @@ namespace Js
         {
             if( !mConstMap.ContainsKey( val ) )
             {
-                mConstMap.Add( val, AcquireConstRegister() );
+                mConstMap.Add( val, this->AcquireConstRegister() );
             }
         }
 

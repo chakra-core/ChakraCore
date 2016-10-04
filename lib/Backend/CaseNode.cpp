@@ -32,9 +32,9 @@ DefaultComparer<CaseNode *>::Equals(CaseNode * caseNode1, CaseNode* caseNode2)
     }
     else if(caseNode1->IsUpperBoundStrConst() && caseNode2->IsUpperBoundStrConst())
     {
-        Js::JavascriptString * caseVal1 = caseNode1->GetUpperBoundStrConst();
-        Js::JavascriptString * caseVal2 = caseNode2->GetUpperBoundStrConst();
-        return Js::JavascriptString::Equals(caseVal1, caseVal2);
+        JITJavascriptString * caseVal1 = caseNode1->GetUpperBoundStrConst();
+        JITJavascriptString * caseVal2 = caseNode2->GetUpperBoundStrConst();
+        return JITJavascriptString::Equals(caseVal1, caseVal2);
     }
     else
     {

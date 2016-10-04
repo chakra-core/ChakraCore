@@ -45,6 +45,11 @@
       <!-- Since there are more then one XDataAllocator.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
       <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\XDataAllocator.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
+      <!-- Since there are more then one XDataAllocator.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
+      <ObjectFileName Condition="'$(Platform)'!='Arm64'">$(IntDir)\arm64</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ArenaAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomHeap.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EtwMemoryTracking.cpp" />
@@ -93,6 +98,9 @@
     <ClInclude Include="ArenaAllocator.h" />
     <ClInclude Include="arm\XDataAllocator.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="arm64\XDataAllocator.h">
+      <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AutoAllocatorObjectPtr.h" />
     <ClInclude Include="AutoPtr.h" />

@@ -791,8 +791,8 @@ IRBuilder::Build()
         {
             bool needBailoutForHelper = CONFIG_FLAG(EnableContinueAfterExceptionWrappersForHelpers) &&
                 (OpCodeAttr::NeedsPostOpDbgBailOut(newOpcode) ||
-                    m_lastInstr->m_opcode == Js::OpCode::CallHelper && m_lastInstr->GetSrc1() &&
-                    HelperMethodAttributes::CanThrow(m_lastInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper));
+                    (m_lastInstr->m_opcode == Js::OpCode::CallHelper && m_lastInstr->GetSrc1() &&
+                    HelperMethodAttributes::CanThrow(m_lastInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper)));
 
             if (needBailoutForHelper)
             {
@@ -1472,15 +1472,8 @@ IRBuilder::BuildConstantLoads()
             if (m_func->IsOOPJIT())
             {
                 // must be either PropertyString or LiteralString
-                Js::JavascriptString * constStr;
-                if (m_func->GetJITFunctionBody()->IsConstRegPropertyString(reg, m_func->GetScriptContextInfo()))
-                {
-                    constStr = m_func->GetJITFunctionBody()->GetConstAsT<Js::PropertyString>(reg);
-                }
-                else
-                {
-                    constStr = m_func->GetJITFunctionBody()->GetConstAsT<Js::LiteralString>(reg);
-                }
+                JITRecyclableObject * jitObj = m_func->GetJITFunctionBody()->GetConstantContent(reg);
+                JITJavascriptString * constStr = JITJavascriptString::FromVar(jitObj);
                 instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func, constStr);
             }
             else
@@ -2009,7 +2002,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             ValueType arrayType(ldElemInfo->GetArrayType());
             if(arrayType.IsLikelyNativeArray() &&
                 (
-                    !(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo() ||
+                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                     m_func->IsJitInDebugMode()
                 ))
             {
@@ -5289,7 +5282,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
     {
         if(arrayType.IsLikelyNativeArray() &&
             (
-                !(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo() ||
+                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                 m_func->IsJitInDebugMode()
             ))
         {
@@ -6074,7 +6067,15 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
         newOpcode = opcode;
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
         Assert(newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjectSpread);
-        returnType = ValueType::GetObject(ObjectType::UninitializedObject);
+        if (!this->m_func->HasProfileInfo())
+        {
+            returnType = ValueType::GetObject(ObjectType::UninitializedObject);
+        }
+        else
+        {
+            // If we have profile data, make use of it
+            returnType = this->m_func->GetReadOnlyProfileInfo()->GetReturnType(opcode, profileId);
+        }
     }
     else
     {
@@ -6122,7 +6123,7 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
     IR::Instr * callInstr = BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, profileId, inlineCacheIndex);
     callInstr->isCallInstrProtectedByNoProfileBailout = isProtectedByNoProfileBailout;
 
-    if (callInstr->GetDst() && callInstr->GetDst()->GetValueType().IsUninitialized())
+    if (callInstr->GetDst() && (callInstr->GetDst()->GetValueType().IsUninitialized() || callInstr->GetDst()->GetValueType() == ValueType::UninitializedObject))
     {
         callInstr->GetDst()->SetValueType(returnType);
     }

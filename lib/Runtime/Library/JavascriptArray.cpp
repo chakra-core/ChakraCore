@@ -4740,7 +4740,7 @@ Case0:
             {
                 element = scriptContext->GetLibrary()->GetUndefined();
             }
-            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetSmallIndex(), PropertyOperation_ThrowIfNotExtensible));
+            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetSmallIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
 
             // Set the new length
             h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(index.GetSmallIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
@@ -4751,7 +4751,7 @@ Case0:
             {
                 element = scriptContext->GetLibrary()->GetUndefined();
             }
-            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetBigIndex(), PropertyOperation_ThrowIfNotExtensible));
+            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetBigIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
 
             // Set the new length
             h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(index.GetBigIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
@@ -5308,7 +5308,7 @@ Case0:
                         else
                         {
                             // This will always fail for a TypedArray if lower < length
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowIfNotExtensible));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowOnDeleteIfNotConfig));
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                     }
@@ -5318,7 +5318,7 @@ Case0:
                         {
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
                             // This will always fail for a TypedArray if upper < length
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowIfNotExtensible));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowOnDeleteIfNotConfig));
                         }
                     }
                 }
@@ -5345,7 +5345,7 @@ Case0:
                     }
                     else
                     {
-                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, lower, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, lower, PropertyOperation_ThrowOnDeleteIfNotConfig));
                         h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(obj, obj, upper, lowerValue, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                     }
                 }
@@ -5354,7 +5354,7 @@ Case0:
                     if (upperExists)
                     {
                         h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(obj, obj, lower, upperValue, scriptContext, PropertyOperation_ThrowIfNotExtensible));
-                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, upper, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, upper, PropertyOperation_ThrowOnDeleteIfNotConfig));
                     }
                 }
             }
@@ -5582,7 +5582,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
             }
 
@@ -5595,18 +5595,18 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
             }
 
             if (length.IsSmallIndex())
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetSmallIndex(), PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetSmallIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
                 h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(length.GetSmallIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
             }
             else
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetBigIndex(), PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetBigIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
                 h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(length.GetBigIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
             }
         }
@@ -7240,7 +7240,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, start + insertLen + j, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, start + insertLen + j, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
                 j++;
             }
@@ -7248,7 +7248,7 @@ Case0:
             // Clean up the rest
             for (uint32 i = len; i > len - deleteLen + insertLen; i--)
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, i - 1, PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, i - 1, PropertyOperation_ThrowOnDeleteIfNotConfig));
             }
         }
 
@@ -7296,6 +7296,11 @@ Case0:
         }
         else
         {
+            if (TypedArrayBase::IsDetachedTypedArray(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("Array.prototype.toLocalString"));
+            }
+
             RecyclableObject* obj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
@@ -7331,7 +7336,7 @@ Case0:
                     }
                     else
                     {
-                        h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowOnDeleteIfNotConfig));
                     }
 
                     --dst;
@@ -7351,7 +7356,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
 
                 --dst;
@@ -8618,7 +8623,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptOperators::OP_DeleteElementI(obj, JavascriptNumber::ToVar(toVal, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    JavascriptOperators::OP_DeleteElementI(obj, JavascriptNumber::ToVar(toVal, scriptContext), scriptContext, PropertyOperation_ThrowOnDeleteIfNotConfig);
                 }
 
                 fromVal += direction;
@@ -8660,7 +8665,7 @@ Case0:
                 }
                 else
                 {
-                    obj->DeleteItem(toIndex, PropertyOperation_ThrowIfNotExtensible);
+                    obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig);
                 }
 
                 fromIndex += direction;
@@ -11600,6 +11605,16 @@ Case0:
             return false;
         }
         return DynamicObject::DeleteProperty(propertyId, flags);
+    }
+
+    BOOL JavascriptArray::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+        return DynamicObject::DeleteProperty(propertyNameString, flags);
     }
 
     BOOL JavascriptArray::HasProperty(PropertyId propertyId)

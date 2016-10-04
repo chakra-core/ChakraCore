@@ -48,7 +48,7 @@ void __stdcall ConnectJITServer(HANDLE processHandle, void* serverSecurityDescri
     ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
 }
 #endif
-#endif 
+#endif
 
 void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 {
@@ -162,7 +162,7 @@ HRESULT OnChakraCoreLoaded()
 #undef FLAG_NumberSet
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberRange
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && _WIN32
         ConnectJITServer,
 #endif
         NotifyUnhandledException

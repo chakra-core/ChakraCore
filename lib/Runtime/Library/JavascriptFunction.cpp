@@ -944,7 +944,7 @@ namespace Js
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-        RUNTIME_ARGUMENTS(args, callInfo);
+        RUNTIME_ARGUMENTS(args, spreadIndices, function, callInfo);
 
         return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
     }
@@ -2795,6 +2795,37 @@ LABEL1:
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
         if (result && (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance))
+        {
+            InvalidateConstructorCacheOnPrototypeChange();
+            this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
+        }
+
+        return result;
+    }
+
+    BOOL JavascriptFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::caller.Equals(propertyName) || BuiltInPropertyRecords::arguments.Equals(propertyName))
+        {
+            if (this->HasRestrictedProperties())
+            {
+                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
+                return false;
+            }
+        }
+        else if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            if (this->IsScriptFunction())
+            {
+                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
+                return false;
+            }
+        }
+
+        BOOL result = DynamicObject::DeleteProperty(propertyNameString, flags);
+
+        if (result && (BuiltInPropertyRecords::prototype.Equals(propertyName) || BuiltInPropertyRecords::_symbolHasInstance.Equals(propertyName)))
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);

@@ -475,7 +475,7 @@ public:
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
 
 #if _M_IX86 || _M_AMD64
-    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
@@ -524,22 +524,29 @@ public:
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
+    typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
+
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
     typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
-    typedef JsUtil::List<const Js::PropertyRecord *, HeapAllocator> PropertyList;
 private:
     intptr_t m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyList * m_pendingJITProperties;
+    PropertyMap * m_pendingJITProperties;
+    PropertyList  * m_reclaimedJITProperties;
 public:
 
-    PropertyList * GetPendingJITProperties() const
+    PropertyList * GetReclaimedJITProperties() const
+    {
+        return m_reclaimedJITProperties;
+    }
+
+    PropertyMap * GetPendingJITProperties() const
     {
         return m_pendingJITProperties;
     }
@@ -703,8 +710,10 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
     XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
+#endif
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     CustomHeap::CodePageAllocators thunkPageAllocators;
 #endif
@@ -918,7 +927,7 @@ public:
         JITTelemetry.Reset();
     }
 #endif
-    
+
     ParserStats GetParserStats()
     {
         return ParserTelemetry.GetStats();
@@ -1222,6 +1231,7 @@ public:
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override { return (intptr_t)bailOutRegisterSaveSpace; }
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
         return codeGenNumberThreadAllocator;
@@ -1230,6 +1240,7 @@ public:
     {
         return this->xProcNumberPageSegmentManager;
     }
+#endif
 #endif
     void ResetFunctionCount() { Assert(this->GetScriptSiteHolderCount() == 0); this->functionCount = 0; }
     void PushEntryExitRecord(Js::ScriptEntryExitRecord *);
@@ -1291,7 +1302,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 
@@ -1497,7 +1508,7 @@ public:
         return entropy;
     }
 #endif
-    
+
     Js::ImplicitCallFlags * GetAddressOfImplicitCallFlags()
     {
         return &implicitCallFlags;

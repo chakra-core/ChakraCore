@@ -240,7 +240,7 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
                 {
                     // Record that the usedSymID may propagate to dstSymID and all the symbols
                     // that it may propagate to as well
-                    AddTransferDependencies(usedSymID, dstSymID, this->tempTransferDependencies);
+                    this->AddTransferDependencies(usedSymID, dstSymID, this->tempTransferDependencies);
 #if DBG_DUMP
                     if (T::DoTrace(backwardPass))
                     {
@@ -258,7 +258,7 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
     {
         this->tempTransferredSyms.Set(usedSymID);
         PropertySym * propertySym = instr->GetDst()->AsSymOpnd()->m_sym->AsPropertySym();
-        PropagateTempPropertyTransferStoreDependencies(usedSymID, propertySym, backwardPass);
+        this->PropagateTempPropertyTransferStoreDependencies(usedSymID, propertySym, backwardPass);
 
 #if DBG_DUMP
         if (T::DoTrace(backwardPass) && this->tempTransferDependencies)
@@ -1000,6 +1000,8 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     // Special case ArgOut_A which communicate information about CallDirect
     switch (opcode)
     {
+    case Js::OpCode::LdLen_A:
+        return instr->GetSrc1()->AsRegOpnd()->GetStackSym() == sym;
     case Js::OpCode::ArgOut_A:
         return instr->dstIsTempObject;
     case Js::OpCode::LdFld:
@@ -1029,7 +1031,7 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     case Js::OpCode::StElemI_A_Strict:
         return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
     case Js::OpCode::Memset:
-        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym == sym;
+        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym == sym);
     case Js::OpCode::Memcopy:
         return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
 

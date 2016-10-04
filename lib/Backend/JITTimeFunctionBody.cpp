@@ -49,12 +49,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                     }
                     else
                     {
-                        // irbuilder relies on this assertion
-                        Assert(!Js::JavascriptString::Is(varConst)
-                            || VirtualTableInfo<Js::LiteralString>::HasVirtualTable(varConst)
-                            || VirtualTableInfo<Js::PropertyString>::HasVirtualTable(varConst)
-                            || VirtualTableInfo<Js::SingleCharString>::HasVirtualTable(varConst));
-
                         jitBody->constTableContent->content[reg - Js::FunctionBody::FirstRegSlot] = (RecyclableObjectIDL*)varConst;
                     }
                 }
@@ -238,7 +232,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->hasFinally = functionBody->GetHasFinally();
 
     jitBody->nameLength = functionBody->GetDisplayNameLength() + 1; // +1 for null terminator
-    jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
+    jitBody->displayName = (char16 *)functionBody->GetDisplayName();
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
@@ -531,10 +525,7 @@ JITTimeFunctionBody::DoStackNestedFunc() const
 bool
 JITTimeFunctionBody::DoStackClosure() const
 {
-    return DoStackNestedFunc()
-        && GetNestedCount() != 0
-        && GetScopeSlotArraySize() != 0
-        && GetEnvDepth() != (uint16)-1;
+    return Js::FunctionBody::DoStackClosure(this);
 }
 
 bool
@@ -844,6 +835,19 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
+JITRecyclableObject *
+JITTimeFunctionBody::GetConstantContent(Js::RegSlot location) const
+{
+    Assert(m_bodyData.constTableContent != nullptr);
+    Assert(m_bodyData.constTableContent->content != nullptr);
+    Assert(location < GetConstCount());
+    Assert(location != 0);
+
+    JITRecyclableObject * obj = (JITRecyclableObject *)m_bodyData.constTableContent->content[location - Js::FunctionBody::FirstRegSlot];
+    Assert(obj);
+    return obj;
+}
+
 intptr_t
 JITTimeFunctionBody::GetInlineCache(uint index) const
 {
@@ -1089,7 +1093,7 @@ JITTimeFunctionBody::InitializeStatementMap(Js::SmallSpanSequence * statementMap
     return true;
 }
 
-wchar_t*
+char16*
 JITTimeFunctionBody::GetDisplayName() const
 {
     return m_bodyData.displayName;

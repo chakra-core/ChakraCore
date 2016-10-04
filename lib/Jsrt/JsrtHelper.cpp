@@ -6,6 +6,10 @@
 #include "jsrtHelper.h"
 #include "Base/ThreadContextTlsEntry.h"
 
+#ifdef DYNAMIC_PROFILE_STORAGE
+#include "Language/DynamicProfileStorage.h"
+#endif
+
 #ifdef CHAKRA_STATIC_LIBRARY
 #include "Core/ConfigParser.h"
 

@@ -115,9 +115,7 @@ struct Allocation
         }
         return allocator;
     }
-
 #endif
-
 };
 
 // Wrapper for the two HeapPageAllocator with and without the prereserved segment.
@@ -400,7 +398,7 @@ public:
     void DecommitAll();
     void FreeAll();
     bool IsInHeap(__in void* address);
-   
+
     // A page should be in full list if:
     // 1. It does not have any space
     // 2. Parent segment cannot allocate any more XDATA

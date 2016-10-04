@@ -8,15 +8,16 @@
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_policyManager(true),
+    m_propertyMap(nullptr),
     m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     // TODO: OOP JIT, don't hardcode name
 #ifdef NTBUILD
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")),
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("Chakra.dll"))),
 #else
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"ChakraCore.dll")),
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("ChakraCore.dll"))),
 #endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
@@ -28,10 +29,10 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 
 ServerThreadContext::~ServerThreadContext()
 {
-    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?    
+    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
     if (this->m_propertyMap != nullptr)
     {
-        this->m_propertyMap->Map([](const Js::PropertyRecord* record) 
+        this->m_propertyMap->Map([](const Js::PropertyRecord* record)
         {
             size_t allocLength = record->byteCount + sizeof(char16) + (record->isNumeric ? sizeof(uint32) : 0);
             HeapDeletePlus(allocLength, const_cast<Js::PropertyRecord*>(record));
@@ -125,7 +126,7 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
-#if defined(_M_IX86) || defined(_M_X64)
+#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -206,6 +207,27 @@ ServerThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
 }
 
 void
+ServerThreadContext::RemoveFromPropertyMap(Js::PropertyId reclaimedId)
+{
+    const Js::PropertyRecord * oldRecord = nullptr;
+    if (m_propertyMap->TryGetValue(reclaimedId, &oldRecord))
+    {
+        // if there was reclaimed property that had its pid reused, delete the old property record
+        m_propertyMap->Remove(oldRecord);
+
+        PropertyRecordTrace(_u("Reclaimed JIT property '%s' at 0x%08x, pid = %d\n"), oldRecord->GetBuffer(), oldRecord, oldRecord->pid);
+
+        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
+        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+    }
+    else
+    {
+        // we should only ever ask to reclaim properties which were previously added to the jit map
+        Assert(UNREACHED);
+    }
+}
+
+void
 ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
 {
     size_t allocLength = origRecord->byteCount + sizeof(char16) + (origRecord->isNumeric ? sizeof(uint32) : 0);
@@ -223,6 +245,16 @@ ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
         Assert(record->GetNumericValue() == origRecord->GetNumericValue());
     }
     record->pid = origRecord->pid;
+
+    const Js::PropertyRecord * oldRecord = nullptr;
+
+    // this should only happen if there was reclaimed property that we failed to add to reclaimed list due to a prior oom
+    if (m_propertyMap->TryGetValue(origRecord->GetPropertyId(), &oldRecord))
+    {
+        m_propertyMap->Remove(oldRecord);
+        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
+        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+    }
 
     m_propertyMap->Add(record);
 

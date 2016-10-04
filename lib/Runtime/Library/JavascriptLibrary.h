@@ -989,7 +989,9 @@ namespace Js
         JavascriptExternalFunction* CreateWrappedExternalFunction(JavascriptExternalFunction* wrappedFunction);
 
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
         JavascriptNumber* CreateCodeGenNumber(CodeGenNumberAllocator *alloc, double value);
+#endif
 #endif
 
         DynamicObject* CreateGeneratorConstructorPrototypeObject();

@@ -106,7 +106,9 @@ set(SOURCES
   safecrt/strcpy_s.c
   safecrt/strncat_s.c
   safecrt/strncpy_s.c
+  safecrt/swprintf.c
   safecrt/vsprintf.c
+  safecrt/vswprint.c
   safecrt/wcscpy_s.c
   safecrt/wcsncpy_s.c
   safecrt/xtoa_s.c
@@ -146,6 +148,7 @@ set(SOURCES
   objmgr/shmobject.cpp
   objmgr/shmobjectmanager.cpp
   shmemory/shmemory.cpp
+  synchobj/event.cpp
   synchobj/mutex.cpp
   synchmgr/synchcontrollers.cpp
   synchmgr/synchmanager.cpp

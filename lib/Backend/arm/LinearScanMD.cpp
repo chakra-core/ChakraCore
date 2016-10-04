@@ -293,12 +293,35 @@ LinearScanMD::GenerateBailOut(
         linearScan->SetSrcRegs(newInstr);
     }
 
-    // Pass in the bailout record
-    //     ldimm r0, bailOutRecord
-    LinearScan::InsertMove(
-        IR::RegOpnd::New(nullptr, RegR0, TyMachPtr, func),
-        IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
-        instr);
+    if (func->IsOOPJIT())
+    {
+        // ldimm r0, dataAddr
+        intptr_t nativeDataAddr = func->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
+        IR::RegOpnd * r0 = IR::RegOpnd::New(nullptr, RegR0, TyMachPtr, func);
+        LinearScan::InsertMove(r0, IR::AddrOpnd::New(nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func), instr);
+
+        // mov r0, [r0]
+        LinearScan::InsertMove(r0, IR::IndirOpnd::New(r0, 0, TyMachPtr, func), instr);
+
+        // lea r0, [r0 + bailoutRecord_offset]
+        unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
+        LinearScan::InsertLea(
+            r0,
+            IR::IndirOpnd::New(r0, bailoutRecordOffset, TyUint32,
+#if DBG
+                NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
+#endif
+                this->func), instr);
+    }
+    else
+    {
+        // Pass in the bailout record
+        //     ldimm r0, bailOutRecord
+        LinearScan::InsertMove(
+            IR::RegOpnd::New(nullptr, RegR0, TyMachPtr, func),
+            IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
+            instr);
+    }
 
     firstInstr = firstInstr->m_next;
     for(uint i = 0; i < registerSaveSymsCount; i++)
@@ -349,6 +372,6 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 
 RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 {
-	/* TODO - Add ARM32 support according to register calling convention */
-	return RegNOREG;
+    /* TODO - Add ARM32 support according to register calling convention */
+    return RegNOREG;
 }

@@ -573,6 +573,17 @@ GetModuleHandleW(
     return (HMODULE)&exe_module;
 }
 
+BOOL
+PALAPI
+GetModuleHandleExW(
+    IN DWORD dwFlags,
+    IN OPTIONAL LPCWSTR lpModuleName,
+    OUT HMODULE *phModule)
+{
+    *phModule = NULL;
+    return FALSE;
+}
+
 /*
 Function:
   PAL_LoadLibraryDirect

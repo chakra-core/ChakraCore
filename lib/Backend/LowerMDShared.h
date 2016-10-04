@@ -86,7 +86,7 @@ public:
 
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr);
+    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
 
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);

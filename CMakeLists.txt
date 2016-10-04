@@ -125,6 +125,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif()
 
     set(CLR_CMAKE_PLATFORM_LINUX 1)
+    # OSX 10.12 Clang deprecates libstdc++ [See GH #1599]
+    # So, -Werror is linux only for now
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror"
+        )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
         -DPLATFORM_UNIX
@@ -186,7 +191,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         -D__STDC_WANT_LIB_EXT1__=1
-        -DDISABLE_JIT=1  # xplat-todo: enable the JIT for Linux
         )
 
     set(CMAKE_CXX_STANDARD 11)
@@ -200,15 +204,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # do not set to `fvisibility=hidden` as it is going to
     # prevent the required interface is being exported
     # clang by default sets fvisibility=default
-
-if(NOT CC_XCODE_PROJECT)
-    # todo: enable for XCode too
-    # XCode is a bit more strict
-    # keep this until we fix all the warnings there.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Werror"
-        )
-endif()
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
@@ -258,7 +253,15 @@ endif()
     add_compile_options(
         -fasm-blocks
         -fms-extensions
+        -fwrapv                 # Treat signed integer overflow as two's complement
     )
+
+    # Clang -fsanitize.
+    if (CLANG_SANITIZE_SH)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+        set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+        unset(CLANG_SANITIZE_SH CACHE)      # don't cache
+    endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -291,9 +294,19 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(WITHOUT_FEATURES)
-   add_definitions(${WITHOUT_FEATURES})
-endif(WITHOUT_FEATURES)
+if(NO_JIT_SH
+   OR CLR_CMAKE_PLATFORM_DARWIN)  # TODO: JIT for OSX
+    unset(NO_JIT_SH CACHE)      # don't cache
+    unset(BuildJIT CACHE)       # also clear it just in case
+    add_definitions(-DDISABLE_JIT=1)
+else()
+    set(BuildJIT 1)
+endif()
+
+if(WITHOUT_FEATURES_SH)
+    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
+    add_definitions(${WITHOUT_FEATURES_SH})
+endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
 

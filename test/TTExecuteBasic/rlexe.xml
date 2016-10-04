@@ -192,4 +192,20 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>try.js</files>
+      <compile-flags>-TTRecord=~tryTest -TTSnapInterval=0</compile-flags>
+      <baseline>tryRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug=~tryTest -TTDStartEvent=2</compile-flags>
+      <baseline>tryReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
 </regress-exe>

@@ -88,11 +88,11 @@ namespace Js
     public:
         static PropertyGuard* New(Recycler* recycler) { return RecyclerNewLeaf(recycler, Js::PropertyGuard); }
         PropertyGuard() : value(GuardValue::Uninitialized) {}
-        PropertyGuard(intptr_t value) : value(value) 
-        { 
+        PropertyGuard(intptr_t value) : value(value)
+        {
             // GuardValue::Invalidated and GuardValue::Invalidated_DuringSweeping can only be set using
             // Invalidate() and InvalidatedDuringSweep() methods respectively.
-            Assert(this->value != GuardValue::Invalidated && this->value != GuardValue::Invalidated_DuringSweep); 
+            Assert(this->value != GuardValue::Invalidated && this->value != GuardValue::Invalidated_DuringSweep);
         }
 
         inline static size_t const GetSizeOfValue() { return sizeof(((PropertyGuard*)0)->value); }
@@ -105,7 +105,7 @@ namespace Js
         }
         bool IsInvalidatedDuringSweep() { return this->value == GuardValue::Invalidated_DuringSweep; }
         void SetValue(intptr_t value)
-        { 
+        {
             // GuardValue::Invalidated and GuardValue::Invalidated_DuringSweeping can only be set using
             // Invalidate() and InvalidatedDuringSweep() methods respectively.
             Assert(value != GuardValue::Invalidated && value != GuardValue::Invalidated_DuringSweep);
@@ -114,7 +114,7 @@ namespace Js
         intptr_t const* GetAddressOfValue() { return &this->value; }
         void Invalidate() { this->value = GuardValue::Invalidated; }
         void InvalidateDuringSweep()
-        { 
+        {
 #if DBG
             wasReincarnated = true;
 #endif
@@ -513,7 +513,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
-        union 
+        union
         {
             Js::JavascriptNumber** numberArray;
             CodeGenNumberChunk* numberChunks;
@@ -559,6 +559,9 @@ namespace Js
         InlineeFrameMap*  inlineeFrameMap;
         unsigned int inlineeFrameOffsetArrayOffset;
         unsigned int inlineeFrameOffsetArrayCount;
+#if PDATA_ENABLED
+        XDataAllocation * xdataInfo;
+#endif
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
@@ -585,7 +588,7 @@ namespace Js
         void SetNumberChunks(CodeGenNumberChunk* chunks)
         {
             Assert(numberPageSegments == nullptr);
-            numberChunks = chunks; 
+            numberChunks = chunks;
         }
         void SetNumberArray(Js::JavascriptNumber** array)
         {
@@ -595,9 +598,9 @@ namespace Js
         void SetNumberPageSegment(XProcNumberPageSegment * segments)
         {
             Assert(numberPageSegments == nullptr);
-            numberPageSegments = segments; 
+            numberPageSegments = segments;
         }
-        
+
 #endif
 
     private:
@@ -615,9 +618,6 @@ namespace Js
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
         void **runtimeTypeRefs;
 
-#if _M_AMD64 || _M_ARM32_OR_ARM64
-        XDataAllocation * xdataInfo;
-#endif
 
         uint32 pendingPolymorphicCacheState;
 #endif
@@ -646,6 +646,9 @@ namespace Js
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+#if PDATA_ENABLED
+            xdataInfo(nullptr),
+#endif
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
 #if ENABLE_DEBUG_STACK_BACK_TRACE
@@ -686,7 +689,7 @@ namespace Js
 
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
-#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#if PDATA_ENABLED
         XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
         void SetXDataInfo(XDataAllocation* xdataInfo) { this->xdataInfo = xdataInfo; }
 #endif
@@ -1103,7 +1106,7 @@ namespace Js
     {
     public:
         LoopHeader* loopHeader;
-        uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out 
+        uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out
         uint totalJittedLoopIterations; // total number of times the loop has iterated in the jitted code for this entry point for a particular invocation of the loop
         LoopEntryPointInfo(LoopHeader* loopHeader, Js::JavascriptLibrary* library, void* validationCookie) :
             EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true),
@@ -1823,6 +1826,12 @@ namespace Js
 
         friend class ByteCodeBufferBuilder;
         friend class ByteCodeBufferReader;
+#ifdef DYNAMIC_PROFILE_MUTATOR
+        friend class ::DynamicProfileMutator;
+        friend class ::DynamicProfileMutatorImpl;
+#endif
+        friend class RemoteFunctionBody;
+
         public:
             // same as MachDouble, used in the Func.h
             static const uint DIAGLOCALSLOTSIZE = 8;
@@ -2164,7 +2173,7 @@ namespace Js
 #endif
         WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
 
-#if ENABLE_PROFILE_INFO 
+#if ENABLE_PROFILE_INFO
         WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
 #endif
 
@@ -2183,7 +2192,7 @@ namespace Js
 #endif
             );
 
-        void SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, Var directEntryPoint);
+        void SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, JavascriptMethod directEntryPoint);
 #if DYNAMIC_INTERPRETER_THUNK
         void GenerateDynamicInterpreterThunk();
 #endif
@@ -2810,19 +2819,30 @@ namespace Js
         FunctionBody * GetAndClearStackNestedFuncParent();
         void ClearStackNestedFuncParent();
         void SetStackNestedFuncParent(FunctionBody * parentFunctionBody);
-#if defined(_M_IX86) || defined(_M_X64)
-        bool DoStackClosure() const
+
+        uint GetScopeSlotArraySize() const
         {
-            return DoStackNestedFunc() && GetNestedCount() != 0 && !PHASE_OFF(StackClosurePhase, this) && scopeSlotArraySize != 0 && GetEnvDepth() != (uint16)-1;
+            return scopeSlotArraySize;
+        }
+
+#if defined(_M_IX86) || defined(_M_X64)
+        template <typename T>
+        static bool DoStackClosure(T functionBody)
+        {
+            return functionBody->DoStackNestedFunc()
+                && functionBody->GetNestedCount() != 0
+                && functionBody->GetScopeSlotArraySize() != 0
+                && functionBody->GetEnvDepth() != (uint16)-1;
         }
 #else
-        bool DoStackClosure() const
+        template <typename T>
+        static bool DoStackClosure(T functionBody)
         {
             return false;
         }
 #endif
-        bool DoStackFrameDisplay() const { return DoStackClosure(); }
-        bool DoStackScopeSlots() const { return DoStackClosure(); }
+        bool DoStackFrameDisplay() const { return DoStackClosure(this) && !PHASE_OFF(StackClosurePhase, this); }
+        bool DoStackScopeSlots() const { return DoStackClosure(this) && !PHASE_OFF(StackClosurePhase, this); }
 
         bool IsNonUserCode() const { return (flags & Flags_NonUserCode) != 0; }
         void SetIsNonUserCode(bool set);
@@ -2852,8 +2872,8 @@ namespace Js
                 (GetIsStrictMode() || hasNonSimpleParams)
                 // Neither of the scopes are objects
                 && !HasScopeObject();
-            
-            return 
+
+            return
                 // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
                 (GetInParamsCount() > 1 || GetHasRestParameter())
                 && !dontNeedScopeObject;
@@ -3274,12 +3294,6 @@ namespace Js
 
         void EnsureAuxStatementData();
         StatementAdjustmentRecordList* GetStatementAdjustmentRecords();
-
-#ifdef DYNAMIC_PROFILE_MUTATOR
-        friend class DynamicProfileMutator;
-        friend class DynamicProfileMutatorImpl;
-#endif
-        friend class RemoteFunctionBody;
     };
 
     typedef SynchronizableList<FunctionBody*, JsUtil::List<FunctionBody*, ArenaAllocator, false, Js::FreeListedRemovePolicy> > FunctionBodyList;

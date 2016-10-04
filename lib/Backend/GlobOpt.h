@@ -111,6 +111,7 @@ public:
 
     using ValueType::HasBeenString;
     using ValueType::IsString;
+    using ValueType::HasHadStringTag;
     using ValueType::IsLikelyString;
     using ValueType::IsNotString;
 
@@ -438,18 +439,19 @@ class VarConstantValueInfo : public ValueInfo
 {
 private:
     Js::Var const varValue;
+    Js::Var const localVarValue;
     bool isFunction;
 
 public:
-    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false)
+    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
         : ValueInfo(valueType, ValueStructureKind::VarConstant),
-        varValue(varValue), isFunction(isFunction)
+        varValue(varValue), localVarValue(localVarValue), isFunction(isFunction)
     {
     }
 
-    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false)
+    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
     {
-        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction);
+        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction, localVarValue);
     }
 
     VarConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
@@ -458,9 +460,16 @@ public:
     }
 
 public:
-    Js::Var VarValue() const
+    Js::Var VarValue(bool useLocal = false) const
     {
-        return this->varValue;
+        if(useLocal && this->localVarValue)
+        {
+            return this->localVarValue;
+        }
+        else
+        {
+            return this->varValue;
+        }
     }
 
     bool IsFunction() const
@@ -614,7 +623,7 @@ public:
         Assert(allocator);
 
         return
-            copyHeadSegment && headSegmentSym || copyHeadSegmentLength && headSegmentLengthSym || copyLength && lengthSym
+            (copyHeadSegment && headSegmentSym) || (copyHeadSegmentLength && headSegmentLengthSym) || (copyLength && lengthSym)
                 ? New(
                     allocator,
                     Type(),
@@ -1131,8 +1140,8 @@ public:
 
         return
             killsAllArrays ||
-            killsArraysWithNoMissingValues && valueType.HasNoMissingValues() ||
-            killsNativeArrays && !valueType.HasVarElements();
+            (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
+            (killsNativeArrays && !valueType.HasVarElements());
     }
 
     bool AreSubsetOf(const JsArrayKills &other) const

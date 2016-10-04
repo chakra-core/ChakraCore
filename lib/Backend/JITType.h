@@ -44,8 +44,8 @@ public:
     bool operator< (const JITTypeHolder& p) const;
     bool operator<= (const JITTypeHolder& p) const;
     void operator =(const JITTypeHolder &p);
-    bool operator== (const nullptr_t &p) const;
-    bool operator!= (const nullptr_t &p) const;
+    bool operator== (const std::nullptr_t &p) const;
+    bool operator!= (const std::nullptr_t &p) const;
 
 private:
     // prevent implicit conversion

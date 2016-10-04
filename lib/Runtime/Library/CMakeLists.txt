@@ -1,3 +1,7 @@
+if(BuildJIT)
+    add_definitions(-D_ENABLE_ASM_JS=1)
+endif()
+
 set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
@@ -56,18 +60,19 @@ set(CRLIB_SOURCE_CODES
     JavascriptRegularExpressionResult.cpp
     JavascriptSet.cpp
     JavascriptSetIterator.cpp
-    # JavascriptSimdBool16x8.cpp
-    # JavascriptSimdBool32x4.cpp
-    # JavascriptSimdBool8x16.cpp
-    # JavascriptSimdFloat32x4.cpp
-    # JavascriptSimdFloat64x2.cpp
-    # JavascriptSimdInt16x8.cpp
-    # JavascriptSimdInt32x4.cpp
-    # JavascriptSimdInt8x16.cpp
-    # JavascriptSimdObject.cpp
-    # JavascriptSimdUint16x8.cpp
-    # JavascriptSimdUint32x4.cpp
-    # JavascriptSimdUint8x16.cpp
+    JavascriptSimdBool16x8.cpp
+    JavascriptSimdBool32x4.cpp
+    JavascriptSimdBool8x16.cpp
+    JavascriptSimdFloat32x4.cpp
+    JavascriptSimdFloat64x2.cpp
+    JavascriptSimdInt16x8.cpp
+    JavascriptSimdInt32x4.cpp
+    JavascriptSimdInt8x16.cpp
+    JavascriptSimdObject.cpp
+    JavascriptSimdType.cpp
+    JavascriptSimdUint16x8.cpp
+    JavascriptSimdUint32x4.cpp
+    JavascriptSimdUint8x16.cpp
     JavascriptString.cpp
     JavascriptStringEnumerator.cpp
     JavascriptStringIterator.cpp
@@ -89,19 +94,18 @@ set(CRLIB_SOURCE_CODES
     RuntimeFunction.cpp
     RuntimeLibraryPch.cpp
     ScriptFunction.cpp
-    # xplat-todo: enable SIMDjs on Linux
-    # SimdBool16x8Lib.cpp
-    # SimdBool32x4Lib.cpp
-    # SimdBool8x16Lib.cpp
-    # SimdFloat32x4Lib.cpp
-    # SimdFloat64x2Lib.cpp
-    # SimdInt16x8Lib.cpp
-    # SimdInt32x4Lib.cpp
-    # SimdInt8x16Lib.cpp
-    # SimdUint16x8Lib.cpp
-    # SimdUint32x4Lib.cpp
-    # SimdUint8x16Lib.cpp
     SharedArrayBuffer.cpp
+    SimdBool16x8Lib.cpp
+    SimdBool32x4Lib.cpp
+    SimdBool8x16Lib.cpp
+    SimdFloat32x4Lib.cpp
+    SimdFloat64x2Lib.cpp
+    SimdInt16x8Lib.cpp
+    SimdInt32x4Lib.cpp
+    SimdInt8x16Lib.cpp
+    SimdUint16x8Lib.cpp
+    SimdUint32x4Lib.cpp
+    SimdUint8x16Lib.cpp
     SingleCharString.cpp
     SparseArraySegment.cpp
     StackScriptFunction.cpp

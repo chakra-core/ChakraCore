@@ -131,10 +131,32 @@ namespace TTD
 
     //////////////////
 
+    //An enumeration that indicates if the event moves into/out-of context status 
+    enum class ContextWrapperEnterExitStatus : uint16
+    {
+        Clear = 0x0,
+
+        Enter = 0x1,
+        ExitNormal = 0x2,
+        ExitException = 0x4,
+
+        GlobalAPIWrapper = 0x10,
+        ContextAPIWrapper = 0x20,
+        ContextAPINoScriptWrapper = 0x40,
+
+        //handy combinations
+        NoNewEntry = Clear,
+        EnterGlobalAPIWrapper = Enter | GlobalAPIWrapper,
+        EnterContextAPIWrapper = Enter | ContextAPIWrapper,
+        EnterContextAPINoScriptWrapper = Enter | ContextAPINoScriptWrapper,
+        ContextKindMask = GlobalAPIWrapper | ContextAPIWrapper | ContextAPINoScriptWrapper
+    };
+    DEFINE_ENUM_FLAG_OPERATORS(ContextWrapperEnterExitStatus)
+
     namespace NSLogEvents
     {
         //An enumeration of the event kinds in the system
-        enum class EventKind : uint32
+        enum class EventKind : uint16
         {
             Invalid = 0x0,
             //Tags for internal engine events
@@ -184,6 +206,7 @@ namespace TTD
 
             HostExitProcessTag,
             GetAndClearExceptionActionTag,
+            SetExceptionActionTag,
 
             GetPropertyActionTag,
             GetIndexActionTag,
@@ -240,6 +263,9 @@ namespace TTD
             //The kind of the event
             EventKind EventKind;
 
+            //infor on the event moving into/out of script context mode
+            ContextWrapperEnterExitStatus ContextMoveStatus;
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The event time for this event
             int64 EventTimeStamp;
@@ -263,6 +289,14 @@ namespace TTD
 
             return reinterpret_cast<T*>(evt->EventData);
         }
+
+        bool EventEntersScriptContext(const EventLogEntry* evt);
+        bool EventCompletesScriptContext(const EventLogEntry* evt);
+        bool EventCompletesScriptContextNormally(const EventLogEntry* evt);
+        bool EventCompletesScriptContextWithException(const EventLogEntry* evt);
+
+        //Get the kind of the context we are enter/exiting without the entry/exit info
+        ContextWrapperEnterExitStatus GetEventScriptContextEnterExitKind(const EventLogEntry* evt);
 
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
@@ -415,11 +449,9 @@ namespace TTD
         //A struct containing additional information on the external call
         struct ExternalCallEventLogEntry_AdditionalInfo
         {
-            //
-            //TODO: later we should record more detail on the script exception for inflation if needed
-            //
-            bool HasScriptException;
-            bool HasTerminiatingException;
+            //The wall clock times for this action
+            double BeginTime;
+            double EndTime;
 
             //The last event time that is nested in this external call
             int64 LastNestedEventTime;
@@ -452,8 +484,8 @@ namespace TTD
 
         int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double beginTime, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);

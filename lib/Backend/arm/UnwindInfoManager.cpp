@@ -494,8 +494,10 @@ void UnwindInfoManager::EncodeExpandedUnwindData()
     size_t totalSize = (xDataDwordCount * 4);
 
     size_t xdataFinal = this->jitOutput->RecordUnwindInfo(this->xdataTotal, xData, totalSize, this->alloc->allocation->xdata.address, this->processHandle);
+    // for OOP JIT, we will set UnwindData to be the offset to it. we can fix it up on other side
+    DWORD unwindField = (DWORD)(JITManager::GetJITManager()->IsOOPJITEnabled() ? this->xdataTotal : xdataFinal);
     this->xdataTotal += totalSize;
-    RecordPdataEntry((DWORD)(this->GetFragmentStart() + this->GetPrologOffset()) | 1, (DWORD)xdataFinal);
+    RecordPdataEntry((DWORD)(this->GetFragmentStart() + this->GetPrologOffset()) | 1, unwindField);
 }
 
 DWORD UnwindInfoManager::EmitXdataStackAlloc(BYTE xData[], DWORD byte, DWORD stack)

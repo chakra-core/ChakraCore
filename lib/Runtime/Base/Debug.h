@@ -40,7 +40,7 @@ WCHAR* DumpCallStack(uint frameCount = -1);
    if(PHASE_TRACE((Phase), (Func))) \
       { \
         WCHAR prefixValue[512]; \
-        swprintf_s(prefixValue, L"%s (#%d.%u, #%u)", (Func)->GetJITFunctionBody()->GetDisplayName(), \
+        swprintf_s(prefixValue, _u("%s (#%d.%u, #%u)"), (Func)->GetJITFunctionBody()->GetDisplayName(), \
            (int)(Func)->GetJITFunctionBody()->GetSourceContextId(), (Func)->GetWorkItem()->GetJITTimeInfo()->GetLocalFunctionId(), (Func)->GetJITFunctionBody()->GetFunctionNumber()); \
         Output::TraceWithPrefix((Phase), prefixValue, __VA_ARGS__); \
       }

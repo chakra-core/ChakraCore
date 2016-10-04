@@ -2530,7 +2530,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToLea(IR::Instr * instr)
+LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 {
     Assert(instr);
     Assert(instr->GetDst());
@@ -2540,7 +2540,7 @@ LowererMD::ChangeToLea(IR::Instr * instr)
     Assert(!instr->GetSrc2());
 
     instr->m_opcode = Js::OpCode::LEA;
-    Legalize(instr);
+    Legalize(instr, postRegAlloc);
     return instr;
 }
 
@@ -6423,7 +6423,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     uint32 freeListOffset;
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
-    bool allowNativeCodeBumpAllocation = false; // TODO: pass through RPC
+    bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
     Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize,
         allocatorAddress, endAddressOffset, freeListOffset,
         allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
@@ -7709,7 +7709,7 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     // For ARM, offset for implicit params always start at 0
     // TODO: Consider not to use the argSlot number for the param slot sym, which can
     // be confused with arg slot number from javascript
-    StackSym * stackSym = StackSym::NewImplicitParamSym(argSlot, func);
+    StackSym * stackSym = StackSym::NewParamSlotSym(argSlot, func);
     func->SetArgOffset(stackSym, argSlot * MachPtr);
     func->SetHasImplicitParamLoad();
     return stackSym;

@@ -385,6 +385,7 @@
     <ClInclude Include="IRTypeList.h" />
     <ClInclude Include="JITObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
+    <ClInclude Include="JITRecyclableObject.h" />
     <ClInclude Include="JITTimeConstructorCache.h" />
     <ClInclude Include="JITTimeFixedField.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />

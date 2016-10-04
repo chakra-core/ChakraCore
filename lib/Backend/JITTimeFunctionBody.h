@@ -9,6 +9,7 @@
 class AsmJsJITInfo;
 class JITTimeProfileInfo;
 class FunctionJITRuntimeInfo;
+class JITRecyclableObject;
 
 class JITTimeFunctionBody
 {
@@ -104,6 +105,8 @@ public:
     void * ReadFromAuxContextData(uint offset) const;
     intptr_t GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
+    JITRecyclableObject * GetConstantContent(Js::RegSlot location) const;
+
     template<class T>
     T* GetConstAsT(Js::RegSlot location) const
     {
@@ -172,7 +175,7 @@ public:
 
     static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);
 
-    wchar_t* GetDisplayName() const;
+    char16* GetDisplayName() const;
 
     intptr_t GetAuxDataAddr(uint offset) const;
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;

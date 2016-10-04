@@ -81,10 +81,12 @@ Encoder::Encode()
                 {
 #ifdef _M_X64
                 case Js::OpCode::PrologStart:
+                    m_func->m_prologEncoder.Begin(m_pc - m_encodeBuffer);
                     inProlog = true;
                     continue;
 
                 case Js::OpCode::PrologEnd:
+                    m_func->m_prologEncoder.End();
                     inProlog = false;
                     continue;
 #endif
@@ -313,8 +315,9 @@ Encoder::Encode()
     m_func->GetJITOutput()->RecordNativeCode(m_func, m_encodeBuffer, alloc);
 
 #ifdef _M_X64
-    m_func->m_prologEncoder.FinalizeUnwindInfo();
-    
+    m_func->m_prologEncoder.FinalizeUnwindInfo(
+        (BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
+
     m_func->GetJITOutput()->RecordUnwindInfo(
         0,
         m_func->m_prologEncoder.GetUnwindInfo(),
@@ -323,8 +326,6 @@ Encoder::Encode()
         m_func->GetThreadContextInfo()->GetProcessHandle());
 #elif _M_ARM
     m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), alloc);
-    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
-
     if (m_func->IsOOPJIT())
     {
         size_t allocSize = XDataAllocator::GetAllocSize(alloc->allocation->xdata.pdataCount, alloc->allocation->xdata.xdataSize);
@@ -337,6 +338,8 @@ Encoder::Encode()
         XDataAllocator::Register(&alloc->allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
         m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&alloc->allocation->xdata);
     }
+
+    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
     const bool isSimpleJit = m_func->IsSimpleJit();
 
@@ -351,7 +354,7 @@ Encoder::Encode()
         {
             NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
 
-            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p) 
+            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
             {
                 pairs[i].offset = p.offset;
                 if (p.record)
@@ -560,7 +563,7 @@ Encoder::Encode()
                 (*entry)->propId = propertyId;
                 (*entry)->guardsCount = count;
                 (*entry)->next = nullptr;
-                
+
                 auto& guardOffsets = (*entry)->guardOffsets;
                 int guardIndex = 0;
                 srcSet->Map([&guardOffsets, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void

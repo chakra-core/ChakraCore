@@ -165,9 +165,12 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     caseInvariantPropertySet(nullptr),
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
     codeGenNumberThreadAllocator(nullptr),
-    m_pendingJITProperties(nullptr),
     xProcNumberPageSegmentManager(nullptr),
+#endif
+    m_pendingJITProperties(nullptr),
+    m_reclaimedJITProperties(nullptr),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
@@ -212,7 +215,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #ifdef ENABLE_CUSTOM_ENTROPY
     entropy.Initialize();
 #endif
-    
+
 #if ENABLE_NATIVE_CODEGEN
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
@@ -318,7 +321,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -326,7 +329,7 @@ ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 }
 #endif
 
-intptr_t 
+intptr_t
 ThreadContext::GetDisableImplicitFlagsAddr() const
 {
     return (intptr_t)&disableImplicitFlags;
@@ -490,6 +493,11 @@ ThreadContext::~ThreadContext()
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
         }
+        if (this->m_reclaimedJITProperties != nullptr)
+        {
+            HeapDelete(this->m_reclaimedJITProperties);
+            this->m_reclaimedJITProperties = nullptr;
+        }
 #endif
         // Unpin the memory for leak report so we don't report this as a leak.
         recyclableData.Unroot(recycler);
@@ -511,10 +519,18 @@ ThreadContext::~ThreadContext()
 #endif
 #endif
 #if ENABLE_NATIVE_CODEGEN
-        HeapDelete(this->codeGenNumberThreadAllocator);
-        this->codeGenNumberThreadAllocator = nullptr;
-        HeapDelete(this->xProcNumberPageSegmentManager);
-        this->xProcNumberPageSegmentManager = nullptr;
+#if !FLOATVAR
+        if (this->codeGenNumberThreadAllocator)
+        {
+            HeapDelete(this->codeGenNumberThreadAllocator);
+            this->codeGenNumberThreadAllocator = nullptr;
+        }
+        if (this->xProcNumberPageSegmentManager)
+        {
+            HeapDelete(this->xProcNumberPageSegmentManager);
+            this->xProcNumberPageSegmentManager = nullptr;
+        }
+#endif
 #endif
 
         Assert(this->debugManager == nullptr);
@@ -752,11 +768,13 @@ Recycler* ThreadContext::EnsureRecycler()
 #if ENABLE_NATIVE_CODEGEN
         // This may throw, so it needs to be after the recycler is initialized,
         // otherwise, the recycler dtor may encounter problems
+#if !FLOATVAR
+        // TODO: we only need one of the following, one for OOP jit and one for in-proc BG JIT
         AutoPtr<CodeGenNumberThreadAllocator> localCodeGenNumberThreadAllocator(
             HeapNew(CodeGenNumberThreadAllocator, newRecycler));
         AutoPtr<XProcNumberPageSegmentManager> localXProcNumberPageSegmentManager(
             HeapNew(XProcNumberPageSegmentManager, newRecycler));
-        
+#endif
 #endif
 
         this->recyclableData.Root(RecyclerNewZ(newRecycler, RecyclableData, newRecycler), newRecycler);
@@ -787,8 +805,10 @@ Recycler* ThreadContext::EnsureRecycler()
 
             InitializePropertyMaps(); // has many dependencies on the recycler and other members of the thread context
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
             this->codeGenNumberThreadAllocator = localCodeGenNumberThreadAllocator.Detach();
             this->xProcNumberPageSegmentManager = localXProcNumberPageSegmentManager.Detach();
+#endif
 #endif
         }
         catch(...)
@@ -919,9 +939,6 @@ void ThreadContext::InitializePropertyMaps()
     try
     {
         this->propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
-#if ENABLE_NATIVE_CODEGEN
-        this->m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
-#endif
         this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
 
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
@@ -929,20 +946,6 @@ void ThreadContext::InitializePropertyMaps()
         Js::JavascriptLibrary::InitializeProperties(this);
         InitializeAdditionalProperties(this);
 
-#if ENABLE_NATIVE_CODEGEN
-        if (propertyMap->Count() > 0)
-        {
-            uint count = (uint)propertyMap->Count();
-            PropertyRecordIDL ** propArray = HeapNewArray(PropertyRecordIDL*, count);
-            auto iter = propertyMap->GetIterator();
-            while (iter.IsValid())
-            {
-                m_pendingJITProperties->Add(iter.CurrentValue());
-                iter.MoveNext();
-            }
-            HeapDeleteArray(count, propArray);
-        }
-#endif
         //Js::JavascriptLibrary::InitializeDOMProperties(this);
     }
     catch(...)
@@ -961,6 +964,11 @@ void ThreadContext::InitializePropertyMaps()
         {
             HeapDelete(this->m_pendingJITProperties);
             this->m_pendingJITProperties = nullptr;
+        }
+        if (this->m_reclaimedJITProperties != nullptr)
+        {
+            HeapDelete(this->m_reclaimedJITProperties);
+            this->m_reclaimedJITProperties = nullptr;
         }
 #endif
 
@@ -1009,7 +1017,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction_SymbolCreation())
     {
         //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
-        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or
         //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
         if(isSymbol)
         {
@@ -1119,9 +1127,11 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     propertyMap->Add(propertyRecord);
 
 #if ENABLE_NATIVE_CODEGEN
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (m_pendingJITProperties)
     {
+        Assert(m_reclaimedJITProperties);
         m_pendingJITProperties->Add(propertyRecord);
+        m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
     }
 #endif
 
@@ -1213,7 +1223,7 @@ void ThreadContext::GetOrAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& pro
 const Js::PropertyRecord *
 ThreadContext::GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<char16> propertyName, bool bind)
 {
-    // Make sure the recyclers around so that we can take weak references to the property strings
+    // Make sure the recycler is around so that we can take weak references to the property strings
     EnsureRecycler();
 
     const Js::PropertyRecord * propertyRecord;
@@ -1277,9 +1287,14 @@ bool ThreadContext::IsActivePropertyId(Js::PropertyId pid)
 void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * propertyRecord)
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
-
+#if ENABLE_NATIVE_CODEGEN
+    if (m_pendingJITProperties && !m_pendingJITProperties->Remove(propertyRecord))
+    {
+        // if it wasn't pending, that means it was already sent to the jit, so add to list that jit needs to reclaim
+        m_reclaimedJITProperties->PrependNoThrow(&HeapAllocator::Instance, propertyRecord->GetPropertyId());
+    }
+#endif
     this->propertyMap->Remove(propertyRecord);
-
     PropertyRecordTrace(_u("Reclaimed property '%s' at 0x%08x, pid = %d\n"),
         propertyRecord->GetBuffer(), propertyRecord, propertyRecord->GetPropertyId());
 }
@@ -1969,9 +1984,9 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
 #ifdef NTBUILD
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
+    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("Chakra.dll"));
 #else
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"ChakraCore.dll");
+    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("ChakraCore.dll"));
 #endif
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
@@ -1985,9 +2000,12 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;
-#if _M_IX86 || _M_AMD64
+#if defined(ENABLE_SIMDJS) && (_M_IX86 || _M_AMD64)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
+
+    m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
+    m_pendingJITProperties = propertyMap->Clone();
 
     JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
 }
@@ -2084,7 +2102,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
 
 #if ENABLE_TTD
         //
-        //TODO: We leak any references that are JsReleased by the host in collection callbacks. Later we should defer these events to the end of the 
+        //TODO: We leak any references that are JsReleased by the host in collection callbacks. Later we should defer these events to the end of the
         //      top-level call or the next external call and then append them to the log.
         //
 
@@ -2520,6 +2538,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
     {
         // Integrate allocated pages from background JIT threads
 #if ENABLE_NATIVE_CODEGEN
+#if !FLOATVAR
         if (codeGenNumberThreadAllocator)
         {
             codeGenNumberThreadAllocator->Integrate();
@@ -2528,6 +2547,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
         {
             this->xProcNumberPageSegmentManager->Integrate();
         }
+#endif
 #endif
     }
 
@@ -3257,7 +3277,7 @@ ThreadContext::RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWe
 
     bool foundExistingGuard;
 
-    
+
     PropertyGuardEntry* entry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
 
     entry->uniqueGuards.Item(guardWeakRef);
@@ -3337,7 +3357,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
 
     entry->uniqueGuards.Clear();
 
-    
+
     // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
     // the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)

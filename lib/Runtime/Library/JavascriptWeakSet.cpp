@@ -107,7 +107,7 @@ namespace Js
         //This makes the set decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
         //      We want to improve this.
         //
-        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
+        if(scriptContext->ShouldPerformWeakRefPinAction())
         {
             scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
         }
@@ -196,6 +196,14 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptWeakSet::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        this->Map([&](DynamicObject* key)
+        {
+            extractor->MarkVisitVar(key);
+        });
+    }
+
     TTD::NSSnapObjects::SnapObjectType JavascriptWeakSet::GetSnapTag_TTD() const
     {
         return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;

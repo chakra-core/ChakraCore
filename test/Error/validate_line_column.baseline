@@ -38,3 +38,7 @@ ReferenceError: 'a' is undefined
 	at Anonymous function (validate_line_column.js:60:5)
 	at foo (validate_line_column.js:10:9)
 	at Global code (validate_line_column.js:58:1)
+ReferenceError: 'unresolved' is undefined
+	at Anonymous function (validate_line_column.js:65:11)
+	at foo (validate_line_column.js:10:9)
+	at Global code (validate_line_column.js:63:1)

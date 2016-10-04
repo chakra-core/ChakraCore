@@ -554,7 +554,7 @@ namespace Js
             }
             if (!(descriptors[index].Attributes & PropertyConfigurable))
             {
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 return false;
             }
