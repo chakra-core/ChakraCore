@@ -340,10 +340,12 @@ WasmBytecodeGenerator::GenerateFunction()
     m_writer.Begin(GetFunctionBody(), &m_alloc, true, true, false);
     try
     {
-        m_funcInfo->SetExitLabel(m_writer.DefineLabel());
+        Js::ByteCodeLabel exitLabel = m_writer.DefineLabel();
+        m_funcInfo->SetExitLabel(exitLabel);
         EnregisterLocals();
 
         WasmOp op = wbLimit;
+        PushLabel(exitLabel, false);
         EnterEvalStackScope();
         while ((op = GetReader()->ReadExpr()) != wbFuncEnd)
         {
@@ -353,6 +355,7 @@ WasmBytecodeGenerator::GenerateFunction()
 
         EmitReturnExpr();
         ExitEvalStackScope();
+        PopLabel(exitLabel);
     }
     catch (...)
     {
