@@ -30,7 +30,7 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
 #endif
 
 #if defined(_CONTROL_FLOW_GUARD)
-    DWORD oldProtectFlags;
+    DWORD oldProtectFlags = 0;
     if (AutoSystemInfo::Data.IsCFGEnabled() && isCustomHeapAllocation)
     {
         //We do the allocation in two steps - CFG Bitmap in kernel will be created only on allocation with EXECUTE flag.
@@ -51,10 +51,13 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
             Js::Throw::CheckAndThrowJITOperationFailed();
         }
 
-        BOOL result = VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
-        if (result == FALSE && process != GetCurrentProcess())
+        if ((allocationType & MEM_COMMIT) == MEM_COMMIT) // The access protection value can be set only on committed pages.
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
+            BOOL result = VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
+            if (result == FALSE && process != GetCurrentProcess())
+            {
+                Js::Throw::CheckAndThrowJITOperationFailed();
+            }
         }
     }
     else

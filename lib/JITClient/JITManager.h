@@ -184,7 +184,6 @@ public:
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
-        __in intptr_t threadContextInfoAddress,
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData)
         { Assert(false); return E_FAIL; }
@@ -194,6 +193,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
+    static void HandleServerCallResult(HRESULT hr);
 
 private:
     static JITManager s_jitManager;
