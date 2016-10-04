@@ -548,7 +548,6 @@ JITManager::IsNativeAddr(
 HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemIDL *workItemData,
-    __in intptr_t threadContextInfoAddress,
     __in intptr_t scriptContextInfoAddress,
     __out JITOutputIDL *jitData)
 {
@@ -557,7 +556,7 @@ JITManager::RemoteCodeGenCall(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData);
+        hr = ClientRemoteCodeGen(m_rpcBindingHandle, scriptContextInfoAddress, workItemData, jitData);
     }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

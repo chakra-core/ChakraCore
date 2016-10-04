@@ -132,17 +132,21 @@ ServerInitializeThreadContext(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
     ServerThreadContext * contextInfo = HeapNewNoThrow(ServerThreadContext, threadContextData);
-    if (contextInfo == nullptr) 
+    if (contextInfo == nullptr)
     {
         return E_OUTOFMEMORY;
     }
 
-    ServerContextManager::RegisterThreadContext(contextInfo);
+    AutoReleaseContext<ServerThreadContext> autoThreadContext(contextInfo);
+    return ServerCallWrapper(contextInfo, [&]()->HRESULT
+    {
+        ServerContextManager::RegisterThreadContext(contextInfo);
 
-    *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
-    *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
-   
-    return S_OK;
+        *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
+        *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
+
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -285,12 +289,9 @@ ServerSetWellKnownHostTypeId(
     }
 
     AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
-    return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
-    {
-        threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
-        return S_OK;
-    });
+    threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
 
+    return S_OK;
 }
 
 HRESULT
@@ -374,15 +375,13 @@ ServerCleanupScriptContext(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
+    if (ServerContextManager::IsScriptContextAlive(scriptContextInfo))
     {
-        return E_ACCESSDENIED;
+        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);        
+        scriptContextInfo->Close();
+        ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
     }
 
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
-
-    scriptContextInfo->Close();
-    ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
     return S_OK;
 }
 
@@ -486,14 +485,11 @@ ServerSetIsPRNGSeeded(
 HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
-    /* [in] */ intptr_t threadContextInfoAddress,
     /* [in] */ intptr_t scriptContextInfoAddress,
     /* [in] */ __RPC__in CodeGenWorkItemIDL *workItemData,
     /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
-    UNREFERENCED_PARAMETER(binding);
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     LARGE_INTEGER start_time = { 0 };
     if (PHASE_TRACE1(Js::BackEndPhase))
     {
@@ -501,17 +497,11 @@ ServerRemoteCodeGen(
     }
     memset(jitData, 0, sizeof(JITOutputIDL));
 
-    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
 
-    if (threadContextInfo == nullptr || scriptContextInfo == nullptr)
+    if (scriptContextInfo == nullptr)
     {
         return RPC_S_INVALID_ARG;
-    }
-
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
-    {
-        return E_ACCESSDENIED;
     }
 
     if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
@@ -519,11 +509,12 @@ ServerRemoteCodeGen(
         return E_ACCESSDENIED;
     }
 
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
     AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
 
-    return ServerCallWrapper(threadContextInfo, [&]() ->HRESULT
+    return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT
     {
+        ServerThreadContext * threadContextInfo = scriptContextInfo->GetThreadContext();
+
         NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 

@@ -81,7 +81,6 @@ interface IChakraJIT
 
     HRESULT RemoteCodeGen(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
         [in] CHAKRA_PTR scriptContextInfoAddress,
         [in] CodeGenWorkItemIDL * workItemData,
         [out] JITOutputIDL * jitData);
