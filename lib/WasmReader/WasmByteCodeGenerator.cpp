@@ -690,12 +690,10 @@ WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopLandingPadLabel = m_writer.DefineLabel();
 
     uint loopId = m_writer.EnterLoop(loopHeadLabel);
-    PushLabel(loopTailLabel);
     // We don't want nested block to jump directly to the loop header
     // instead, jump to the landing pad and let it jump back to the loop header
     PushLabel(loopLandingPadLabel, false);
     EmitInfo loopInfo = EmitBlockCommon();
-    YieldToBlock(1, loopInfo);
 
     // By default we don't loop, jump over the landing pad
     m_writer.AsmBr(loopTailLabel);
@@ -703,7 +701,6 @@ WasmBytecodeGenerator::EmitLoop()
     m_writer.AsmBr(loopHeadLabel);
     m_writer.MarkAsmJsLabel(loopTailLabel);
     PopLabel(loopLandingPadLabel);
-    loopInfo = PopLabel(loopTailLabel);
     m_writer.ExitLoop(loopId);
 
     return loopInfo;
