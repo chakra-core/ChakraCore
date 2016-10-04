@@ -8854,8 +8854,8 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
         // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
         // and the caller of EmitBooleanExpression expects to be able to release this register.
 
-        // For diagnostics purposes, register the name and dot to the statement list.
-        if (expr->nop == knopName || expr->nop == knopDot)
+        // For diagnostics purposes, register the name/dot/index to the statement list.
+        if (expr->nop == knopName || expr->nop == knopDot || expr->nop == knopIndex)
         {
             byteCodeGenerator->StartStatement(expr);
             Emit(expr, byteCodeGenerator, funcInfo, false);
