@@ -548,8 +548,8 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(true); \
-        break;
+        EmitMemAccess<wb##opname, WasmOpCodeSignatures::sig>(true); \
+        return;
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 3);\
@@ -741,8 +741,10 @@ WasmBytecodeGenerator::EmitCall()
         }
         break;
     case wbCallIndirect:
+        indirectIndexInfo = PopEvalStack();
         signatureId = GetReader()->m_currentNode.call.num;
         calleeSignature = m_module->GetSignature(signatureId);
+        ReleaseLocation(&indirectIndexInfo);
         break;
     default:
         Assume(UNREACHED);
@@ -848,7 +850,6 @@ WasmBytecodeGenerator::EmitCall()
         }
         break;
     case wbCallIndirect:
-        indirectIndexInfo = PopEvalStack();
         if (indirectIndexInfo.type != WasmTypes::I32)
         {
             throw WasmCompilationException(_u("Indirect call index must be int type"));
@@ -856,7 +857,6 @@ WasmBytecodeGenerator::EmitCall()
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetIndirFuncTableOffset());
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
-        ReleaseLocation(&indirectIndexInfo);
         break;
     default:
         Assume(UNREACHED);
@@ -1102,8 +1102,6 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
         m_i32RegSlots.ReleaseTmpRegister(tempReg);
     }
 
-    Js::RegSlot resultReg;
-
     if (isStore) // Stores
     {
         if (rhsInfo.type != type)
@@ -1114,19 +1112,12 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
-        resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
-        if (resultReg != rhsInfo.location)
-        {
-            m_writer.AsmReg2(GetLoadOp(type), resultReg, rhsInfo.location);
-        }
-    }
-    else // Loads
-    {
-        ReleaseLocation(&exprInfo);
-        resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
-        m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, GetViewType(wasmOp));
+        return EmitInfo();
     }
 
+    ReleaseLocation(&exprInfo);
+    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+    m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, GetViewType(wasmOp));
     return EmitInfo(resultReg, type);
 }
 
