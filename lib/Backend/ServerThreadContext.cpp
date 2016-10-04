@@ -7,6 +7,7 @@
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
+    m_refCount(0),
     m_policyManager(true),
     m_propertyMap(nullptr),
     m_pageAllocs(&HeapAllocator::Instance),

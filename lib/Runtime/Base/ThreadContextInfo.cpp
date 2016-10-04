@@ -12,7 +12,8 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined)
+    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined), 
+    m_isClosed(false)
 {
 }
 

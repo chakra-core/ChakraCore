@@ -14,7 +14,8 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
 #endif
-    m_refCount(0)
+    m_refCount(0),
+    m_isClosed(false)
 {
 #ifdef PROFILE_EXEC
     if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
