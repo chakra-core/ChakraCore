@@ -771,17 +771,20 @@ WasmBytecodeGenerator::EmitCall()
 
     m_writer.AsmStartCall(startCallOp, argSize);
 
+    uint32 nArgs = calleeSignature->GetParamCount();
     //copy args into a list so they could be generated in the right order (FIFO)
     JsUtil::List<EmitInfo, ArenaAllocator> argsList(&m_alloc);
-    for (int i = 0; i < (int)calleeSignature->GetParamCount(); i++)
+    for (uint32 i = 0; i < nArgs; i++)
     {
         argsList.Add(PopEvalStack());
     }
+    Assert((uint32)argsList.Count() == nArgs);
 
-    int32 argsBytesLeft = 0;
-    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; i--)
+    // Size of the this pointer (aka undefined)
+    int32 argsBytesLeft = sizeof(Js::Var);
+    for (uint32 i = 0; i < nArgs; ++i)
     {
-        EmitInfo info = argsList.Item(i);
+        EmitInfo info = argsList.Item(nArgs - i - 1);
         if (calleeSignature->GetParam(i) != info.type)
         {
             throw WasmCompilationException(_u("Call argument does not match formal type"));
@@ -819,14 +822,14 @@ WasmBytecodeGenerator::EmitCall()
         {
             throw WasmCompilationException(_u("Error while emitting call arguments"));
         }
-        argsBytesLeft += isImportCall ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
         Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
+        argsBytesLeft += isImportCall ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
     }
 
     //registers need to be released from higher ordinals to lower
-    for (int i = 0; i < argsList.Count(); i++)
+    for (uint32 i = 0; i < nArgs; i++)
     {
         ReleaseLocation(&(argsList.Item(i)));
     }
