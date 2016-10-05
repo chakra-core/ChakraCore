@@ -34,6 +34,14 @@ namespace Wasm
         };
     }
 
+    namespace ElementTypes
+    {
+        enum Type
+        {
+            anyfunc = 0x20
+        };
+    }
+
     namespace FunctionIndexTypes
     {
         enum Type

@@ -448,7 +448,7 @@ void WasmBinaryReader::BlockNode()
 {
     uint8 sig = ReadConst<uint8>();
     m_funcState.count++;
-    if (sig > 4)
+    if (sig >= WasmTypes::Limit)
     {
         ThrowDecodingError(_u("Invalid block signature type"));
     }
@@ -695,7 +695,7 @@ void WasmBinaryReader::ReadTableSection()
     if (entries > 0)
     {
         uint8 elementType = ReadConst<uint8>();
-        if (elementType != 0x20)
+        if (elementType != ElementTypes::anyfunc)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
         }

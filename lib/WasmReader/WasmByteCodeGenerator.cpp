@@ -824,15 +824,12 @@ WasmBytecodeGenerator::EmitCall()
     switch (wasmOp)
     {
     case wbCall:
-        if (isImportCall)
-        {
-            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, m_module->NormalizeFunctionIndex(funcNum) + m_module->GetImportFuncOffset());
-        }
-        else
-        {
-            m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, m_module->NormalizeFunctionIndex(funcNum) + m_module->GetFuncOffset());
-        }
+    {
+        uint32 offset = isImportCall ? m_module->GetImportFuncOffset() : m_module->GetFuncOffset();
+        uint32 index = UInt32Math::Add(offset, m_module->NormalizeFunctionIndex(funcNum));
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index);
         break;
+    }
     case wbCallIndirect:
         if (indirectIndexInfo.type != WasmTypes::I32)
         {
