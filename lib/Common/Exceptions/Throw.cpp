@@ -18,6 +18,7 @@
 #include "InternalErrorException.h"
 #include "OutOfMemoryException.h"
 #include "NotImplementedException.h"
+#include "JITOperationFailedException.h"
 
 // Header files required before including ConfigFlagsTable.h
 
@@ -119,6 +120,30 @@ namespace Js {
             AssertMsg(false, "We shouldn't be here");
         }
         throw StackOverflowException();
+    }
+
+    void Throw::JITOperationFailed(DWORD lastError)
+    {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (CONFIG_FLAG(PrintSystemException))
+        {
+            Output::Print(_u("SystemException: JITOperationFailed\n"));
+            Output::Flush();
+        }
+#endif
+        throw JITOperationFailedException(lastError);
+    }
+
+    void Throw::CheckAndThrowJITOperationFailed()
+    {
+        DWORD lastError = GetLastError();
+        // currently this is used for virtual memory(Virtual*Ex) operations only
+        // which 0 indicate succeed
+        if (lastError != 0) 
+        {
+            Throw::JITOperationFailed(lastError);
+        }
+        
     }
 
     void Throw::NotImplemented()

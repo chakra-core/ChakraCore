@@ -1979,6 +1979,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     {
         return;
     }
+
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
 
@@ -2007,7 +2008,8 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
     m_pendingJITProperties = propertyMap->Clone();
 
-    JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    JITManager::HandleServerCallResult(hr);
 }
 #endif
 
@@ -2248,7 +2250,8 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
 #if ENABLE_NATIVE_CODEGEN
         if (this->m_remoteThreadContextInfo != 0)
         {
-            JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
+            HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
+            JITManager::HandleServerCallResult(hr);
         }
 #endif
     }
@@ -3873,11 +3876,9 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
             return false;
         }
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
-        if (FAILED(hr))
-        {
-            // TODO: OOP JIT, what to do in failure case?
-            Js::Throw::FatalInternalError();
-        }
+
+        // TODO: OOP JIT, can we throw here?
+        JITManager::HandleServerCallResult(hr);
         return result;
     }
     else

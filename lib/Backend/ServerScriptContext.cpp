@@ -5,16 +5,17 @@
 
 #include "Backend.h"
 
-ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
+ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo) :
     m_contextData(*contextData),
+    threadContextInfo(threadContextInfo),
     m_isPRNGSeeded(false),
-    m_isClosed(false),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
 #endif
-    m_activeJITCount(0)
+    m_refCount(0),
+    m_isClosed(false)
 {
 #ifdef PROFILE_EXEC
     if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
@@ -279,21 +280,19 @@ ServerScriptContext::Close()
 }
 
 void
-ServerScriptContext::BeginJIT()
+ServerScriptContext::AddRef()
 {
-    InterlockedExchangeAdd(&m_activeJITCount, 1u);
+    InterlockedExchangeAdd(&m_refCount, 1u);
 }
 
 void
-ServerScriptContext::EndJIT()
+ServerScriptContext::Release()
 {
-    InterlockedExchangeSubtract(&m_activeJITCount, 1u);
-}
-
-bool
-ServerScriptContext::IsJITActive()
-{
-    return m_activeJITCount != 0;
+    InterlockedExchangeSubtract(&m_refCount, 1u);
+    if (m_isClosed && m_refCount == 0)
+    {
+        HeapDelete(this);
+    }
 }
 
 Js::Var*
@@ -328,3 +327,4 @@ ServerScriptContext::GetCodeGenProfiler() const
     return nullptr;
 #endif
 }
+

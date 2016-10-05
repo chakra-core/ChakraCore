@@ -4495,7 +4495,21 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             contextData.vtableAddresses[i] = vtblAddresses[i];
         }
-        JITManager::GetJITManager()->InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
+
+        bool allowPrereserveAlloc = true;
+#if !_M_X64_OR_ARM64
+        if (this->webWorkerId != Js::Constants::NonWebWorkerContextId)
+        {
+            allowPrereserveAlloc = false;
+        }
+#endif
+#ifndef _CONTROL_FLOW_GUARD
+        allowPrereserveAlloc = false;
+#endif
+        this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
+
+        HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+        JITManager::HandleServerCallResult(hr);
     }
 #endif
 

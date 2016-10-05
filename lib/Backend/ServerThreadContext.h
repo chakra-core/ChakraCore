@@ -45,6 +45,11 @@ public:
     void RemoveFromPropertyMap(Js::PropertyId reclaimedId);
     void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
+
+    void AddRef();
+    void Release();
+    void Close();    
+
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
@@ -61,7 +66,10 @@ private:
 
     ThreadContextDataIDL m_threadContextData;
 
-    ThreadContext * m_threadContext;
+    DWORD m_pid; //save client process id for easier diagnose
+    
     intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
+    uint m_refCount;
+
 };

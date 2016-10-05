@@ -12,8 +12,8 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
-    m_activeJITCount(0)
+    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined), 
+    m_isClosed(false)
 {
 }
 
@@ -411,24 +411,11 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 #endif // _CONTROL_FLOW_GUARD
 }
 
-void
-ThreadContextInfo::BeginJIT()
+bool 
+ThreadContextInfo::IsClosed()
 {
-    InterlockedExchangeAdd(&m_activeJITCount, (uint)1);
+    return m_isClosed;
 }
-
-void
-ThreadContextInfo::EndJIT()
-{
-    InterlockedExchangeSubtract(&m_activeJITCount, (uint)1);
-}
-
-bool
-ThreadContextInfo::IsJITActive()
-{
-    return m_activeJITCount != 0;
-}
-
 
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address)
 {

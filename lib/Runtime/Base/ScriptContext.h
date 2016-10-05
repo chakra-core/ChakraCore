@@ -913,7 +913,16 @@ private:
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
-        intptr_t GetRemoteScriptAddr() { return m_remoteScriptContextAddr; }
+        intptr_t GetRemoteScriptAddr() 
+        {
+#if ENABLE_OOP_NATIVE_CODEGEN
+            if (!m_remoteScriptContextAddr)
+            {
+                InitializeRemoteScriptContext();
+            }
+#endif
+            return m_remoteScriptContextAddr; 
+        }
 
         char16 const * GetUrl() const { return url; }
         void SetUrl(BSTR bstr);

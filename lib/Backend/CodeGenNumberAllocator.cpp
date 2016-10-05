@@ -333,7 +333,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, &bytesWritten)
                 || bytesWritten != sizeCat)
             {
-                Output::Print(_u("FATAL ERROR: WriteProcessMemory failed, GLE: %d\n"), GetLastError());
+                Js::Throw::CheckAndThrowJITOperationFailed();
                 Js::Throw::FatalInternalError(); // TODO: don't bring down whole server process, but pass the last error to main process
             }
 
@@ -345,9 +345,13 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
         {
             Assert((unsigned int)((char*)tail->GetEndAddress() - (char*)tail->GetCommitEndAddress()) >= BlockSize);
             // TODO: implement guard pages (still necessary for OOP JIT?)
-            auto ret = ::VirtualAllocEx(hProcess, tail->GetCommitEndAddress(), BlockSize, MEM_COMMIT, PAGE_READWRITE);
-            if (!ret)
+            LPVOID addr = ::VirtualAllocEx(hProcess, tail->GetCommitEndAddress(), BlockSize, MEM_COMMIT, PAGE_READWRITE);
+            if (addr == nullptr)
             {
+                if (hProcess != GetCurrentProcess())
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
                 Js::Throw::OutOfMemory();
             }
             tail->committedEnd += BlockSize;
@@ -359,6 +363,10 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
     void* pages = ::VirtualAllocEx(hProcess, nullptr, PageCount * AutoSystemInfo::PageSize, MEM_RESERVE, PAGE_READWRITE);
     if (pages == nullptr)
     {
+        if (hProcess != GetCurrentProcess())
+        {
+            Js::Throw::CheckAndThrowJITOperationFailed();
+        }
         Js::Throw::OutOfMemory();
     }
 

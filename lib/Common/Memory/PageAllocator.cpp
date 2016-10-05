@@ -210,7 +210,11 @@ PageSegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         {
             DWORD oldProtect;
             BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, this->address, this->GetAvailablePageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
-            Assert(vpresult && oldProtect == PAGE_READWRITE);
+            if (vpresult == FALSE)
+            {
+                Js::Throw::CheckAndThrowJITOperationFailed();
+            }
+            Assert(oldProtect == PAGE_READWRITE);
         }
         return true;
     }
@@ -294,6 +298,10 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
                 DWORD oldProtect;
                 BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+                if (vpresult == FALSE)
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
                 Assert(vpresult && oldProtect == PAGE_NOACCESS);
 #endif
             return allocAddress;
@@ -394,6 +402,10 @@ PageSegmentBase<T>::ReleasePages(__in void * address, uint pageCount)
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
     DWORD oldProtect;
     BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
+    if (vpresult == FALSE)
+    {
+        Js::Throw::CheckAndThrowJITOperationFailed();
+    }
     Assert(vpresult && oldProtect == PAGE_READWRITE);
 #endif
 
@@ -921,6 +933,7 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
         readBuffer = HeapNewArray(byte, bufferSize);
         if (!ReadProcessMemory(this->processHandle, address, readBuffer, bufferSize, NULL))
         {
+            Js::Throw::CheckAndThrowJITOperationFailed();
             Js::Throw::InternalError();
         }
     }
@@ -2370,6 +2383,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
         || address < segment->GetAddress()
         || ((uint)(((char *)address) - segment->GetAddress()) > (segment->GetPageCount() - pageCount) * AutoSystemInfo::PageSize))
     {
+        // OOPJIT TODO: don't bring down the whole JIT process
         CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
         return FALSE;
     }
@@ -2378,6 +2392,13 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     // check old protection on all pages about to change, ensure the fidelity
     size_t bytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
+    if (bytes == 0)
+    {
+        if (this->processHandle != GetCurrentProcess())
+        {
+            Js::Throw::CheckAndThrowJITOperationFailed();
+        }
+    }
     if (bytes == 0
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
         || desiredOldProtectFlag != memBasicInfo.Protect)
@@ -2392,6 +2413,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
         (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) &&
         ((dwVirtualProtectFlags & PAGE_TARGETS_NO_UPDATE) == 0))
     {
+        // OOPJIT TODO: don't bring down the whole JIT process
         CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
         return FALSE;
     }

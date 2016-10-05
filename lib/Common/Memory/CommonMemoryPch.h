@@ -20,6 +20,7 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 // Exceptions
 #include "Exceptions/ExceptionBase.h"
 #include "Exceptions/OutOfMemoryException.h"
+#include "Exceptions/JITOperationFailedException.h"
 
 // Other Memory headers
 #include "Memory/LeakReport.h"

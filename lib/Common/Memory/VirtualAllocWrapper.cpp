@@ -30,7 +30,7 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
 #endif
 
 #if defined(_CONTROL_FLOW_GUARD)
-    DWORD oldProtectFlags;
+    DWORD oldProtectFlags = 0;
     if (AutoSystemInfo::Data.IsCFGEnabled() && isCustomHeapAllocation)
     {
         //We do the allocation in two steps - CFG Bitmap in kernel will be created only on allocation with EXECUTE flag.
@@ -44,13 +44,37 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
         {
             allocProtectFlags = PAGE_EXECUTE_READWRITE;
         }
+
         address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, allocProtectFlags);
-        VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
+        if (address == nullptr && process != GetCurrentProcess())
+        {
+            Js::Throw::CheckAndThrowJITOperationFailed();
+        }
+
+        if ((allocationType & MEM_COMMIT) == MEM_COMMIT) // The access protection value can be set only on committed pages.
+        {
+            BOOL result = VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
+            if (result == FALSE)
+            {
+                if (process != GetCurrentProcess())
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
+                else
+                {
+                    CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                }
+            }
+        }
     }
     else
 #endif
     {
         address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
+        if (address == nullptr && process != GetCurrentProcess())
+        {
+            Js::Throw::CheckAndThrowJITOperationFailed();
+        }
     }
 
     return address;
@@ -62,7 +86,12 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
     size_t bytes = (dwFreeType == MEM_RELEASE)? 0 : dwSize;
 #pragma warning(suppress: 28160) // Calling VirtualFreeEx without the MEM_RELEASE flag frees memory but not address descriptors (VADs)
-    return VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
+    BOOL ret = VirtualFreeEx(process, lpAddress, bytes, dwFreeType);
+    if (ret == FALSE && process != GetCurrentProcess())
+    {
+        // OOP JIT TODO: check if we need to cleanup the context related to this content process
+    }
+    return ret;
 }
 
 /*
@@ -88,9 +117,9 @@ PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
         BOOL success = VirtualFreeEx(processHandle, preReservedStartAddress, 0, MEM_RELEASE);
         PreReservedHeapTrace(_u("MEM_RELEASE the PreReservedSegment. Start Address: 0x%p, Size: 0x%x * 0x%x bytes"), preReservedStartAddress, PreReservedAllocationSegmentCount,
             AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-        if (!success)
+        if (!success && this->processHandle != GetCurrentProcess())
         {
-            Assert(false);
+            // OOP JIT TODO: check if we need to cleanup the context related to this content process
         }
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
@@ -119,10 +148,14 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     //Check if the region is in MEM_COMMIT state.
     MEMORY_BASIC_INFORMATION memBasicInfo;
     size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
-    if (bytes == 0 || memBasicInfo.State != MEM_COMMIT)
+    if (bytes == 0)
     {
-        AssertMsg(false, "Memory not committed? Checking for uncommitted address region?");
+        if (this->processHandle != GetCurrentProcess())
+        {
+            Js::Throw::CheckAndThrowJITOperationFailed();
+        }
     }
+    AssertMsg(memBasicInfo.State == MEM_COMMIT, "Memory not committed? Checking for uncommitted address region?");
 #endif
     return result;
 }
@@ -291,6 +324,13 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
             size_t bytes = VirtualQueryEx(processHandle, addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
+            if (bytes == 0)
+            {
+                if (this->processHandle != GetCurrentProcess())
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
+            }
             if (bytes == 0
                 || memBasicInfo.RegionSize < requestedNumOfSegments * AutoSystemInfo::Data.GetAllocationGranularityPageSize()
                 || memBasicInfo.State == MEM_COMMIT
@@ -345,7 +385,11 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 
                 if (allocatedAddress != nullptr)
                 {
-                    VirtualProtectEx(processHandle, allocatedAddress, dwSize, protectFlags, &oldProtect);
+                    BOOL result = VirtualProtectEx(processHandle, allocatedAddress, dwSize, protectFlags, &oldProtect);
+                    if (result == FALSE && this->processHandle != GetCurrentProcess())
+                    {
+                        Js::Throw::CheckAndThrowJITOperationFailed();
+                    }
                     AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
                 }
             }
@@ -353,6 +397,10 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 #endif
             {
                 allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, protectFlags);
+                if (allocatedAddress == nullptr && this->processHandle != GetCurrentProcess())
+                {
+                    Js::Throw::CheckAndThrowJITOperationFailed();
+                }
             }
         }
         else
@@ -425,6 +473,12 @@ PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
             freeSegments.SetRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
             PreReservedHeapTrace(_u("MEM_RELEASE: Address: 0x%p of size: 0x%x * 0x%x bytes\n"), lpAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
         }
+
+        if (success == FALSE && process != GetCurrentProcess())
+        {
+            // OOP JIT TODO: check if we need to cleanup the context related to this content process
+        }
+
         return success;
     }
 }

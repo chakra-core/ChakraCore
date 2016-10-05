@@ -5,10 +5,15 @@
 
 #pragma once
 
-#include "Common.h"
+namespace Js {
 
-#include "ChakraJIT.h"
+    class JITOperationFailedException : public ExceptionBase
+    {
+    public:
+        JITOperationFailedException(DWORD lastError)
+            :LastError(lastError)
+        {}
+        DWORD LastError;
+    };
 
-#include "Runtime.h"
-#include "Backend.h"
-#include "JITServer.h"
+} // namespace Js

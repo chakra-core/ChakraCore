@@ -14,6 +14,7 @@
 #include "Exceptions/OperationAbortedException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/StackOverflowException.h"
+#include "Exceptions/JITOperationFailedException.h"
 
 #include "TemplateParameter.h"
 #include "DataStructures/DoublyLinkedListElement.h"
@@ -1002,6 +1003,14 @@ namespace JsUtil
             // context is closed while the job is being processed in the background
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             job->failureReason = Job::FailureReason::Aborted;
+#endif
+        }
+        catch (Js::JITOperationFailedException)
+        {
+            // This can happen for any reason a job needs to be aborted while executing, like for instance, if the script
+            // context is closed while the job is being processed in the background
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            job->failureReason = Job::FailureReason::Unknown;
 #endif
         }
 
