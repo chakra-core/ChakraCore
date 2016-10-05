@@ -1,0 +1,3 @@
+TypeError: Unable to get property 'prop5' of undefined or null reference
+	at func12() (useruncaught.js:9:3)
+	at Global code (useruncaught.js:11:1)
