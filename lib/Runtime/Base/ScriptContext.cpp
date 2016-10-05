@@ -670,9 +670,10 @@ namespace Js
             // Guard the closing and deleting of DebugContext as in meantime PDM might
             // call OnBreakFlagChange
             AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
-            this->debugContext->Close();
-            HeapDelete(this->debugContext);
+            DebugContext* tempDebugContext = this->debugContext;
             this->debugContext = nullptr;
+            tempDebugContext->Close();
+            HeapDelete(tempDebugContext);
         }
 
         // Need to print this out before the native code gen is deleted
