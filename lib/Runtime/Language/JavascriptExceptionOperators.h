@@ -36,7 +36,7 @@ namespace Js
             bool m_previousCatchHandlerExists;
             bool m_previousCatchHandlerToUserCodeStatus;
             ThreadContext* m_threadContext;
-            void FetchNonUserCodeStatus(ScriptContext *scriptContext, bool isUserExecptionHandling);
+            void FetchNonUserCodeStatus(ScriptContext *scriptContext, bool isUserExeceptionHandling);
 
           public:
             AutoCatchHandlerExists(ScriptContext* scriptContext, bool isUserExceptionHandling);

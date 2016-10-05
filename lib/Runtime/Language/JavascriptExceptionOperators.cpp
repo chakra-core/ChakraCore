@@ -17,14 +17,13 @@ namespace Js
     {
         Assert(scriptContext);
 
-        bool fFound = false;
         // If the outer try catch was already in the user code, no need to go any further.
         if (!m_previousCatchHandlerToUserCodeStatus)
         {
             if (!isUserExceptionHandling)
             {
-                fFound = true;
                 m_threadContext->SetIsUserCode(false);
+                return;
             }
             else
             {
@@ -35,17 +34,14 @@ namespace Js
                     if (caller != NULL && (funcBody = caller->GetFunctionBody()) != NULL)
                     {
                         m_threadContext->SetIsUserCode(funcBody->IsNonUserCode() == false);
-                        fFound = true;
+                        return;
                     }
                 }
             }
         }
 
-        if (!fFound)
-        {
-            // If not successfully able to find the caller, set this catch handler belongs to the user code.
-            m_threadContext->SetIsUserCode(true);
-        }
+        // If not successfully able to find the caller, set this catch handler belongs to the user code.
+        m_threadContext->SetIsUserCode(true);
     }
 
     JavascriptExceptionOperators::AutoCatchHandlerExists::AutoCatchHandlerExists(ScriptContext* scriptContext, bool isUserExceptionHandling)
