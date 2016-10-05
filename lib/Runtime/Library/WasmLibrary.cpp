@@ -253,24 +253,21 @@ namespace Js
                 PropertyRecord const * propertyRecord = nullptr;
                 ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
                 Var funcObj;
-                // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
-                uint32 funcIndex = funcExport->funcIndex;
-                if (funcIndex >= wasmModule->GetImportCount())
+
+                Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcExport->funcIndex);
+                uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcExport->funcIndex);
+                switch (funcType)
                 {
-                    funcIndex -= wasmModule->GetImportCount();
-                    if (funcIndex < wasmModule->GetWasmFunctionCount())
-                    {
-                        funcObj = localModuleFunctions[funcIndex];
-                    }
-                    else
-                    {
-                        Assert(UNREACHED);
-                        funcObj = ctx->GetLibrary()->GetUndefined();
-                    }
-                }
-                else
-                {
-                    funcObj = importFunctions[funcIndex];
+                case Wasm::FunctionIndexTypes::Function:
+                    funcObj = localModuleFunctions[normIndex];
+                    break;
+                case Wasm::FunctionIndexTypes::Import:
+                    funcObj = importFunctions[normIndex];
+                    break;
+                default:
+                    funcObj = ctx->GetLibrary()->GetUndefined();
+                    Assert(UNREACHED);
+                    break;
                 }
                 JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
             }
