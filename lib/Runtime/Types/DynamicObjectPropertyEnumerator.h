@@ -9,16 +9,15 @@ namespace Js
     class DynamicObjectPropertyEnumerator
     {
     private:
-        ScriptContext * requestContext;
+        ScriptContext * scriptContext;
         DynamicObject * object;
         DynamicType * initialType;              // for snapshot enumeration
         BigPropertyIndex objectIndex;
         BigPropertyIndex initialPropertyCount;
         int enumeratedCount;
-        
+
         EnumeratorFlags flags;
 
-        DynamicType * cachedDataType;           // for cached type check
         struct CachedData
         {
             ScriptContext * scriptContext;
@@ -26,6 +25,7 @@ namespace Js
             BigPropertyIndex * indexes;
             PropertyAttributes * attributes;
             int cachedCount;
+            int propertyCount;
             bool completed;
             bool enumNonEnumerable;
             bool enumSymbols;
@@ -34,32 +34,39 @@ namespace Js
         DynamicType * GetTypeToEnumerate() const;
         JavascriptString * MoveAndGetNextWithCache(PropertyId& propertyId, PropertyAttributes* attributes);
         JavascriptString * MoveAndGetNextNoCache(PropertyId& propertyId, PropertyAttributes * attributes);
-
-
+        
+        void Initialize(DynamicType * type, CachedData * data, Js::BigPropertyIndex initialPropertyCount);
     public:
         DynamicObject * GetObject() const { return object; }
-        EnumeratorFlags GetFlags() const { return flags; }     
+        EnumeratorFlags GetFlags() const { return flags; }
         bool GetEnumNonEnumerable() const;
         bool GetEnumSymbols() const;
         bool GetSnapShotSemantics() const;
-        ScriptContext * GetRequestContext() { return requestContext; }
+        bool GetUseCache() const;
+        ScriptContext * GetScriptContext() const { return scriptContext; }
 
-        bool Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext);
+        bool Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
         bool IsNullEnumerator() const;
         void Reset();
-        void Clear();
+        void Clear(EnumeratorFlags flags, ScriptContext * requestContext);
         Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes);
 
-        static uint32 GetOffsetOfCachedDataType() { return offsetof(DynamicObjectPropertyEnumerator, cachedDataType); }
+        bool CanUseJITFastPath() const;
+        static uint32 GetOffsetOfScriptContext() { return offsetof(DynamicObjectPropertyEnumerator, scriptContext); }
+        static uint32 GetOffsetOfInitialType() { return offsetof(DynamicObjectPropertyEnumerator, initialType); }
         static uint32 GetOffsetOfObject() { return offsetof(DynamicObjectPropertyEnumerator, object); }
         static uint32 GetOffsetOfObjectIndex() { return offsetof(DynamicObjectPropertyEnumerator, objectIndex); }
-
+        static uint32 GetOffsetOfInitialPropertyCount() { return offsetof(DynamicObjectPropertyEnumerator, initialPropertyCount); }
         static uint32 GetOffsetOfEnumeratedCount() { return offsetof(DynamicObjectPropertyEnumerator, enumeratedCount); }
         static uint32 GetOffsetOfCachedData() { return offsetof(DynamicObjectPropertyEnumerator, cachedData); }
-
+        static uint32 GetOffsetOfFlags() { return offsetof(DynamicObjectPropertyEnumerator, flags); 
+        }
         static uint32 GetOffsetOfCachedDataStrings() { return offsetof(CachedData, strings); }
         static uint32 GetOffsetOfCachedDataIndexes() { return offsetof(CachedData, indexes); }
+        static uint32 GetOffsetOfCachedDataPropertyCount() { return offsetof(CachedData, propertyCount); }
         static uint32 GetOffsetOfCachedDataCachedCount() { return offsetof(CachedData, cachedCount); }
         static uint32 GetOffsetOfCachedDataPropertyAttributes() { return offsetof(CachedData, attributes); }
+        static uint32 GetOffsetOfCachedDataCompleted() { return offsetof(CachedData, completed); }        
+        static uint32 GetOffsetOfCachedDataEnumNonEnumerable() { return offsetof(CachedData, enumNonEnumerable); }
     };
 };

@@ -12,7 +12,7 @@
 
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
-
+#include "Library/ForInObjectEnumerator.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -608,11 +608,11 @@
 
 #define PROCESS_BRBS(name, func) PROCESS_BRBS_COMMON(name, func,)
 
-#define PROCESS_BRBReturnP1toA1_COMMON(name, func, type, suffix) \
+#define PROCESS_BRBReturnP1toA1_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
-        PROCESS_READ_LAYOUT(name, BrReg2, suffix); \
-        SetReg(playout->R1, func((type)GetNonVarReg(playout->R2))); \
+        PROCESS_READ_LAYOUT(name, BrReg1Unsigned1, suffix); \
+        SetReg(playout->R1, func(GetForInEnumerator(playout->C2))); \
         if (!GetReg(playout->R1)) \
         { \
             ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
@@ -620,7 +620,7 @@
         break; \
     }
 
-#define PROCESS_BRBReturnP1toA1(name, func, type) PROCESS_BRBReturnP1toA1_COMMON(name, func, type,)
+#define PROCESS_BRBReturnP1toA1(name, func) PROCESS_BRBReturnP1toA1_COMMON(name, func,)
 
 #define PROCESS_BRBMem_ALLOW_STACK_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -732,11 +732,21 @@
     case OpCode::name: \
     { \
         PROCESS_READ_LAYOUT(name, Reg1Unsigned1, suffix); \
-        func(GetNonVarReg(playout->R0), playout->C1); \
+        func(GetReg(playout->R0), playout->C1); \
         break; \
     }
 
 #define PROCESS_A1U1toXX(name, func) PROCESS_A1U1toXX_COMMON(name, func,)
+
+#define PROCESS_A1U1toXXWithCache_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ProfiledReg1Unsigned1, suffix); \
+        func(GetReg(playout->R0), playout->C1, playout->profileId); \
+        break; \
+    }
+
+#define PROCESS_A1U1toXXWithCache(name, func) PROCESS_A1U1toXXWithCache_COMMON(name, func,)
 
 #define PROCESS_EnvU1toXX_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -983,14 +993,14 @@ namespace Js
     }
 
     const int k_stackFrameVarCount = (sizeof(InterpreterStackFrame) + sizeof(Var) - 1) / sizeof(Var);
-    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool inlinee)
-        : function(function), inParams(args.Values), inSlotsCount(args.Info.Count), executeFunction(function->GetFunctionBody()), callFlags(args.Info.Flags), bailedOutOfInlinee(inlinee)
+    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool bailedOut, bool inlinee)
+        : function(function), inParams(args.Values), inSlotsCount(args.Info.Count), executeFunction(function->GetFunctionBody()), callFlags(args.Info.Flags), bailedOutOfInlinee(inlinee), bailedOut(bailedOut)
     {
         SetupInternal();
     }
 
-    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Var * inParams, int inSlotsCount, bool inlinee)
-        : function(function), inParams(inParams), inSlotsCount(inSlotsCount), executeFunction(function->GetFunctionBody()), callFlags(CallFlags_None), bailedOutOfInlinee(inlinee)
+    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Var * inParams, int inSlotsCount)
+        : function(function), inParams(inParams), inSlotsCount(inSlotsCount), executeFunction(function->GetFunctionBody()), callFlags(CallFlags_None), bailedOutOfInlinee(false), bailedOut(false)
     {
         SetupInternal();
     }
@@ -1020,8 +1030,10 @@ namespace Js
             extraVarCount += (sizeof(ImplicitCallFlags) * this->executeFunction->GetLoopCount() + sizeof(Var) - 1) / sizeof(Var);
         }
 #endif
-
-        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + extraVarCount + this->executeFunction->GetInnerScopeCount();
+        // If we bailed out, we will use the JIT frame's for..in enumerators
+        uint forInVarCount = bailedOut? 0 : (this->executeFunction->GetForInLoopDepth() * (sizeof(Js::ForInObjectEnumerator) / sizeof(Var)));
+        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + forInVarCount +
+            extraVarCount + this->executeFunction->GetInnerScopeCount();
 
         if (this->executeFunction->DoStackNestedFunc() && this->executeFunction->GetNestedCount() != 0)
         {
@@ -1156,6 +1168,17 @@ namespace Js
         newInstance->savedLoopImplicitCallFlags = nullptr;
 #endif
         char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth());
+
+        // If we bailed out, we will use the JIT frame's for..in enumerators
+        if (bailedOut || this->executeFunction->GetForInLoopDepth() == 0)
+        {
+            newInstance->forInObjectEnumerators = nullptr;
+        }
+        else
+        {
+            newInstance->forInObjectEnumerators = (ForInObjectEnumerator *)nextAllocBytes;
+            nextAllocBytes += sizeof(ForInObjectEnumerator) * this->executeFunction->GetForInLoopDepth();
+        }
 
         if (this->executeFunction->GetInnerScopeCount())
         {
@@ -8449,6 +8472,23 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         // Return the address of the first param after "this".
         return m_inParams + 1;
+    }
+
+    ForInObjectEnumerator * InterpreterStackFrame::GetForInEnumerator(uint forInLoopLevel)
+    {
+        Assert(forInLoopLevel < this->m_functionBody->GetForInLoopDepth());
+        return &this->forInObjectEnumerators[forInLoopLevel];
+    }
+
+    void InterpreterStackFrame::OP_InitForInEnumerator(Var object, uint forInLoopLevel)
+    {
+        JavascriptOperators::OP_InitForInEnumerator(object, GetForInEnumerator(forInLoopLevel), this->GetScriptContext());
+    }
+
+    void InterpreterStackFrame::OP_InitForInEnumeratorWithCache(Var object, uint forInLoopLevel, ProfileId profileId)
+    {
+        JavascriptOperators::OP_InitForInEnumerator(object, GetForInEnumerator(forInLoopLevel), this->GetScriptContext(),
+            m_functionBody->GetForInCache(profileId));
     }
 
     // Called for the debug purpose, to create the arguments object explicitly even though script has not declared it.

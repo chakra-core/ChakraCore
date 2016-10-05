@@ -3456,6 +3456,18 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&(double)%f)"), *(double *)address);
             break;
+        case AddrOpndKindForInCache:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (ForInCache)"));
+            break;
+        case AddrOpndKindForInCacheType:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->type)"));
+            break;
+        case AddrOpndKindForInCacheData:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->data)"));
+            break;
         case AddrOpndKindDynamicNativeCodeDataRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&NativeCodeData)"));

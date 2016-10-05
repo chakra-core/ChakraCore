@@ -90,6 +90,9 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindDynamicDoubleRef,
     AddrOpndKindDynamicNativeCodeDataRef,
     AddrOpndKindDynamicAuxBufferRef,
+    AddrOpndKindForInCache,
+    AddrOpndKindForInCacheType,
+    AddrOpndKindForInCacheData,
 };
 
 ///---------------------------------------------------------------------------

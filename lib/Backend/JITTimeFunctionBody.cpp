@@ -175,6 +175,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->thisRegisterForEventHandler = functionBody->GetThisRegisterForEventHandler();
     jitBody->funcExprScopeRegister = functionBody->GetFuncExprScopeRegister();
     jitBody->recursiveCallSiteCount = functionBody->GetNumberOfRecursiveCallSites();
+    jitBody->forInLoopDepth = functionBody->GetForInLoopDepth();
     jitBody->argUsedForBranch = functionBody->m_argUsedForBranch;
 
     jitBody->flags = functionBody->GetFlags();
@@ -201,6 +202,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     //CompileAssert(sizeof(PropertyIdArrayIDL) == sizeof(Js::PropertyIdArray));
     jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
     jitBody->formalsPropIdArrayAddr = (intptr_t)functionBody->GetFormalsPropIdArray(false);
+    jitBody->forInCacheArrayAddr = (intptr_t)functionBody->GetForInCacheArray();
 
     if (functionBody->HasDynamicProfileInfo() && Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
     {
@@ -355,6 +357,12 @@ uint
 JITTimeFunctionBody::GetRecursiveCallSiteCount() const
 {
     return m_bodyData.recursiveCallSiteCount;
+}
+
+uint
+JITTimeFunctionBody::GetForInLoopDepth() const
+{
+    return m_bodyData.forInLoopDepth;
 }
 
 Js::RegSlot
@@ -1042,6 +1050,12 @@ Js::PropertyIdArray *
 JITTimeFunctionBody::GetFormalsPropIdArray() const
 {
     return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
+}
+
+Js::ForInCache *
+JITTimeFunctionBody::GetForInCache(uint profileId) const
+{
+    return  &((Js::ForInCache *)m_bodyData.forInCacheArrayAddr)[profileId];
 }
 
 bool

@@ -211,8 +211,6 @@ namespace Js {
 
         virtual RecyclableObject* GetPrototypeSpecial();
 
-        RecyclableObject() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
-
     public:
         static bool Is(Var aValue);
         static RecyclableObject* FromVar(Var varValue);
@@ -279,7 +277,7 @@ namespace Js {
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) { return None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags);
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags);
-        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext);
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr);
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext * requestContext);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None);
         virtual BOOL Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext);

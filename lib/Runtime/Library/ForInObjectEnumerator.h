@@ -6,67 +6,58 @@
 
 namespace Js
 {
-    class ForInObjectEnumerator : public WeakReferenceCache<ForInObjectEnumerator>
+    class ForInObjectEnumerator
     {
     private:
         JavascriptStaticEnumerator enumerator;
-        RecyclableObject *object;
-        RecyclableObject *baseObject;
-        BVSparse<Recycler>* propertyIds;
-        RecyclableObject *firstPrototype;
-        Var currentIndex;
-        SListBase<Js::PropertyRecord const *> newPropertyStrings;
-        ScriptContext * scriptContext;
-        bool enumSymbols;
+        struct ShadowData
+        {
+            ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler);
+            RecyclableObject * currentObject;
+            RecyclableObject * firstPrototype;
+            BVSparse<Recycler> propertyIds;
+            SListBase<Js::PropertyRecord const *> newPropertyStrings;
+        } *shadowData;
+
+        // States
+        bool canUseJitFastPath;
+        bool enumeratingPrototype;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);
-        BOOL InitializeCurrentEnumerator();
-
-        // Only used by the vtable ctor for ForInObjectEnumeratorWrapper
-        friend class ForInObjectEnumeratorWrapper;
-        ForInObjectEnumerator() { }
+        BOOL InitializeCurrentEnumerator(RecyclableObject * object, ForInCache * forInCache = nullptr);
+        BOOL InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
 
     public:
-        ForInObjectEnumerator(RecyclableObject* object, ScriptContext * requestContext, bool enumSymbols = false);
+        ForInObjectEnumerator(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false);
         ~ForInObjectEnumerator() { Clear(); }
 
-        ScriptContext * GetScriptContext() const { return scriptContext; }
-        BOOL CanBeReused();
-        void Initialize(RecyclableObject* currentObject, ScriptContext * scriptContext);
+        ScriptContext * GetScriptContext() const { return enumerator.GetScriptContext(); }
+        void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, ForInCache * forInCache = nullptr);
         void Clear();
-        Var GetCurrentIndex();
-        BOOL MoveNext();
-        void Reset();
         Var MoveAndGetNext(PropertyId& propertyId);
 
-        static uint32 GetOffsetOfFirstPrototype() { return offsetof(ForInObjectEnumerator, firstPrototype); }
-        static uint32 GetOffsetOfEnumeratorCurrentEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCurrentEnumerator(); }
-        static uint32 GetOffsetOfEnumeratorObject() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObject(); }
-        static uint32 GetOffsetOfEnumeratorCachedDataType() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCachedDataType(); }
-        static uint32 GetOffsetOfEnumeratorEnumeratedCount() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfEnumeratedCount(); }
-        static uint32 GetOffsetOfEnumeratorCachedData() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCachedData(); }     
-        static uint32 GetOffsetOfEnumeratorObjectIndex() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObjectIndex(); }
         static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object);
-    };
 
-    // Use when we want to use the ForInObject as if they are normal javascript enumerator
-    class ForInObjectEnumeratorWrapper : public JavascriptEnumerator
-    {
-    public:
-        ForInObjectEnumeratorWrapper(RecyclableObject* object, ScriptContext * requestContext)
-            : JavascriptEnumerator(requestContext), forInObjectEnumerator(object, requestContext)
-        {
+
+        static uint32 GetOffsetOfCanUseJitFastPath() { return offsetof(ForInObjectEnumerator, canUseJitFastPath); }
+        static uint32 GetOffsetOfEnumeratorScriptContext() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfScriptContext(); }
+        static uint32 GetOffsetOfEnumeratorObject() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObject(); }
+        static uint32 GetOffsetOfEnumeratorInitialType() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfInitialType(); }
+        static uint32 GetOffsetOfEnumeratorInitialPropertyCount() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfInitialPropertyCount(); }
+        static uint32 GetOffsetOfEnumeratorEnumeratedCount() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfEnumeratedCount(); }
+        static uint32 GetOffsetOfEnumeratorCachedData() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCachedData(); }
+        static uint32 GetOffsetOfEnumeratorObjectIndex() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObjectIndex(); }
+        static uint32 GetOffsetOfEnumeratorFlags() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfFlags(); }
+
+        static uint32 GetOffsetOfEnumeratorCurrentEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfCurrentEnumerator(); }
+        static uint32 GetOffsetOfEnumeratorPrefixEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfPrefixEnumerator(); }
+        static uint32 GetOffsetOfEnumeratorArrayEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfArrayEnumerator(); }
+
+        static uint32 GetOffsetOfShadowData() { return offsetof(ForInObjectEnumerator, shadowData); }
+        static uint32 GetOffsetOfStates() 
+        { 
+            CompileAssert(offsetof(ForInObjectEnumerator, enumeratingPrototype) == offsetof(ForInObjectEnumerator, canUseJitFastPath) + 1);            
+            return offsetof(ForInObjectEnumerator, canUseJitFastPath); 
         }
-
-        virtual void Reset() override { forInObjectEnumerator.Reset(); }
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr)
-        {
-            return forInObjectEnumerator.MoveAndGetNext(propertyId);
-        }
-    protected:
-        DEFINE_VTABLE_CTOR(ForInObjectEnumeratorWrapper, JavascriptEnumerator);
-
-    private:
-        ForInObjectEnumerator forInObjectEnumerator;
     };
 }

@@ -3399,6 +3399,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         byteCodeFunction->CheckAndSetVarCount(funcInfo->varRegsCount);
         byteCodeFunction->CheckAndSetOutParamMaxDepth(funcInfo->outArgsMaxDepth);
+        byteCodeFunction->SetForInLoopDepth(funcInfo->GetMaxForInLoopLevel());
 
         // Do a uint32 add just to verify that we haven't overflowed the reg slot type.
         UInt32Math::Add(funcInfo->varRegsCount, funcInfo->constRegsCount);
@@ -9128,13 +9129,16 @@ void EmitForIn(ParseNode *loopNode,
     BOOL fReturnValue)
 {
     Assert(loopNode->nop == knopForIn);
+    Assert(loopNode->location == Js::Constants::NoRegister);
 
     // Grab registers for the enumerator and for the current enumerated item.
     // The enumerator register will be released after this call returns.
     loopNode->sxForInOrForOf.itemLocation = funcInfo->AcquireTmpRegister();
 
+    uint forInLoopLevel = funcInfo->AcquireForInLoopLevel();
+
     // get enumerator from the collection
-    byteCodeGenerator->Writer()->Reg2(Js::OpCode::GetForInEnumerator, loopNode->location, loopNode->sxForInOrForOf.pnodeObj->location);
+    byteCodeGenerator->Writer()->Reg1Unsigned1(Js::OpCode::InitForInEnumerator, loopNode->sxForInOrForOf.pnodeObj->location, forInLoopLevel);
 
     // The StartStatement is already done in the caller of the current function, which is EmitForInOrForOf
     byteCodeGenerator->EndStatement(loopNode);
@@ -9147,13 +9151,13 @@ void EmitForIn(ParseNode *loopNode,
     byteCodeGenerator->StartStatement(loopNode->sxForInOrForOf.pnodeLval);
 
     // branch past loop when MoveAndGetNext returns nullptr
-    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrOnEmpty, continuePastLoop, loopNode->sxForInOrForOf.itemLocation, loopNode->location);
+    byteCodeGenerator->Writer()->BrReg1Unsigned1(Js::OpCode::BrOnEmpty, continuePastLoop, loopNode->sxForInOrForOf.itemLocation, forInLoopLevel);
     
     EmitForInOfLoopBody(loopNode, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, fReturnValue);
 
     byteCodeGenerator->Writer()->ExitLoop(loopId);
 
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::ReleaseForInEnumerator, loopNode->location);
+    funcInfo->ReleaseForInLoopLevel(forInLoopLevel);
 
     if (!byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
     {
@@ -9169,7 +9173,10 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
     BeginEmitBlock(loopNode->sxForInOrForOf.pnodeBlock, byteCodeGenerator, funcInfo);
 
     byteCodeGenerator->StartStatement(loopNode);
-    funcInfo->AcquireLoc(loopNode);
+    if (!isForIn)
+    {
+        funcInfo->AcquireLoc(loopNode);
+    }
 
     // Record the branch bytecode offset.
     // This is used for "ignore exception" and "set next stmt" scenarios. See ProbeContainer::GetNextUserStatementOffsetForAdvance:

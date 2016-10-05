@@ -221,7 +221,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             AssertMsg(false, "Not valid types");
             break;
 
-        case Js::TypeIds_JavascriptEnumeratorIterator:
         case Js::TypeIds_ModuleRoot:
         case Js::TypeIds_HostObject:
         case Js::TypeIds_ActivationObject:

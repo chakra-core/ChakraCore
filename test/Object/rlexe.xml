@@ -407,4 +407,11 @@
       <compile-flags>-mic:1 -forcejitloopbody -off:interpreterautoprofile</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ForInInline.js</files>
+      <baseline>ForInInline.baseline</baseline>
+      <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
+    </default>
+  </test>
 </regress-exe>

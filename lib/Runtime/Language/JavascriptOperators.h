@@ -364,8 +364,7 @@ namespace Js
         static void OP_InitComputedProperty(Var object, Var elementName, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static void OP_InitProto(Var object, PropertyId propertyId, Var value);
 
-        static ForInObjectEnumerator * OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext);
-        static void OP_ReleaseForInEnumerator(ForInObjectEnumerator * enumerator, ScriptContext* scriptContext);
+        static void OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, ForInCache * forInCache = nullptr);
         static Var OP_BrOnEmpty(ForInObjectEnumerator * enumerator);
         static BOOL OP_BrHasSideEffects(int se,ScriptContext* scriptContext);
         static BOOL OP_BrNotHasSideEffects(int se,ScriptContext* scriptContext);

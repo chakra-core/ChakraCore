@@ -36,6 +36,7 @@ public:
     uint GetInnerScopeCount() const;
     uint GetInlineCacheCount() const;
     uint GetRecursiveCallSiteCount() const;
+    uint GetForInLoopDepth() const;
     Js::RegSlot GetLocalFrameDisplayReg() const;
     Js::RegSlot GetLocalClosureReg() const;
     Js::RegSlot GetEnvReg() const;
@@ -180,6 +181,7 @@ public:
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
 
+    Js::ForInCache * GetForInCache(uint profileId) const;
     bool InitializeStatementMap(Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;

@@ -747,7 +747,7 @@ namespace Js
                     }
                     else if (!scriptContext->IsClosed())
                     {
-                        AllocatorDelete(IsInstInlineCacheAllocator, scriptContext->GetIsInstInlineCacheAllocator(), (IsInstInlineCache*)this->m_inlineCaches[i]);
+                        AllocatorDelete(CacheAllocator, scriptContext->GetIsInstInlineCacheAllocator(), (IsInstInlineCache*)this->m_inlineCaches[i]);
                     }
                     this->m_inlineCaches[i] = nullptr;
                 }
@@ -812,7 +812,7 @@ namespace Js
             }
             for (; i < totalCacheCount; i++)
             {
-                inlineCaches[i] = AllocatorNewStructZ(IsInstInlineCacheAllocator,
+                inlineCaches[i] = AllocatorNewStructZ(CacheAllocator,
                     functionBody->GetScriptContext()->GetIsInstInlineCacheAllocator(), IsInstInlineCache);
             }
 #if DBG

@@ -3813,11 +3813,11 @@ case_2:
         return this->GetItemAt(index, value);
     }
 
-    BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
+    BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
         return enumerator->Initialize(
             RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptStringEnumerator, this, requestContext),
-            nullptr, nullptr, flags, requestContext);
+            nullptr, nullptr, flags, requestContext, forInCache);
     }
 
     BOOL JavascriptString::DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)

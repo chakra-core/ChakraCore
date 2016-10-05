@@ -1191,6 +1191,7 @@ public:
 #endif
                 DEFAULT_LAYOUT(BrS);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg2);
                 DEFAULT_LAYOUT(StartCall);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Profiled2CallI);
@@ -3962,6 +3963,8 @@ public:
             current = ReadSlotArrayDebuggerScopes(current, *functionBody, debuggerScopeCount);
 
             (*functionBody)->AllocateObjectLiteralTypeArray();
+
+            (*functionBody)->AllocateForInCache();
 
             // Literal regexes
             (*functionBody)->AllocateLiteralRegexArray();

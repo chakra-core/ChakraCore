@@ -35,11 +35,11 @@ namespace Js
         }
     }
 
-    BOOL JavascriptRegExpConstructor::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
+    BOOL JavascriptRegExpConstructor::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
         return GetEnumeratorWithPrefix(
             RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptRegExpEnumerator, this, flags, requestContext),
-            enumerator, flags, requestContext);
+            enumerator, flags, requestContext, forInCache);
     }
 
     void JavascriptRegExpConstructor::SetLastMatch(UnifiedRegex::RegexPattern* lastPattern, JavascriptString* lastInput, UnifiedRegex::GroupInfo lastMatch)

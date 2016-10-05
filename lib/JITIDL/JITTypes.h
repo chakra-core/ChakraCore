@@ -511,7 +511,7 @@ typedef struct FunctionBodyDataIDL
     unsigned int loopCount;
     unsigned int recursiveCallSiteCount;
     unsigned int isInstInlineCacheCount; // TODO: only used in Assert
-
+    unsigned int forInLoopDepth;
     unsigned int byteCodeLength;
     unsigned int constCount;
     unsigned int inlineCacheCount;
@@ -571,6 +571,7 @@ typedef struct FunctionBodyDataIDL
     CHAKRA_PTR auxDataBufferAddr;
     CHAKRA_PTR objectLiteralTypesAddr;
     CHAKRA_PTR formalsPropIdArrayAddr;
+    CHAKRA_PTR forInCacheArrayAddr;
 } FunctionBodyDataIDL;
 
 typedef struct FunctionJITTimeDataIDL

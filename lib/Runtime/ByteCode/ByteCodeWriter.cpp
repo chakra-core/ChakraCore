@@ -194,6 +194,7 @@ namespace Js
 
         m_functionWrite->AllocateInlineCache();
         m_functionWrite->AllocateObjectLiteralTypeArray();
+        m_functionWrite->AllocateForInCache();
 
         if (!PHASE_OFF(Js::ScriptFunctionWithInlineCachePhase, m_functionWrite) && !PHASE_OFF(Js::InlineApplyTargetPhase, m_functionWrite))
         {
@@ -209,6 +210,8 @@ namespace Js
         {
             AllocateLoopHeaders();
         }
+
+        
 
         m_functionWrite->MarkScript(finalByteCodeBlock, finalAuxiliaryBlock, finalAuxiliaryContextBlock,
             m_byteCodeCount, m_byteCodeInLoopCount, m_byteCodeWithoutLDACount);
@@ -792,6 +795,33 @@ namespace Js
         R1 = ConsumeReg(R1);
 
         MULTISIZE_LAYOUT_WRITE(BrReg1, op, labelID, R1);
+    }
+
+    template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteBrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C2)
+    {
+        OpLayoutT_BrReg1Unsigned1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.C2, C2))
+        {
+            size_t const offsetOfRelativeJumpOffsetFromEnd = sizeof(OpLayoutT_BrReg2<SizePolicy>) - offsetof(OpLayoutT_BrReg2<SizePolicy>, RelativeJumpOffset);
+            layout.RelativeJumpOffset = offsetOfRelativeJumpOffsetFromEnd;
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            AddJumpOffset(op, labelID, offsetOfRelativeJumpOffsetFromEnd);
+            return true;
+        }
+        return false;
+    }
+
+    void ByteCodeWriter::BrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C2)
+    {
+        CheckOpen();
+        CheckOp(op, OpLayoutType::BrReg1Unsigned1);
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+        CheckLabel(labelID);
+
+        R1 = ConsumeReg(R1);
+
+        MULTISIZE_LAYOUT_WRITE(BrReg1Unsigned1, op, labelID, R1, C2);
     }
 
     template <typename SizePolicy>
@@ -2240,9 +2270,11 @@ StoreCommon:
         R0 = ConsumeReg(R0);
 
         ProfileId profileId = Constants::NoProfileId;
-        bool isProfiled = DoProfileNewScArrayOp(op) &&
+        bool isProfiled = (DoProfileNewScArrayOp(op) &&
             DoDynamicProfileOpcode(NativeArrayPhase, true) &&
-            this->m_functionWrite->AllocProfiledArrayCallSiteId(&profileId);
+            this->m_functionWrite->AllocProfiledArrayCallSiteId(&profileId))
+            || (op == OpCode::InitForInEnumerator &&
+                this->m_functionWrite->AllocProfiledForInLoopCount(&profileId));
 
         if (isProfiled)
         {

@@ -18,19 +18,19 @@ namespace Js
     {
     }
 
-    ModuleNamespaceEnumerator* ModuleNamespaceEnumerator::New(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext)
+    ModuleNamespaceEnumerator* ModuleNamespaceEnumerator::New(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext, ForInCache * forInCache)
     {
         ModuleNamespaceEnumerator* enumerator = RecyclerNew(scriptContext->GetRecycler(), ModuleNamespaceEnumerator, nsObject, flags, scriptContext);
-        if (enumerator->Init())
+        if (enumerator->Init(forInCache))
         {
             return enumerator;
         }
         return nullptr;
     }
 
-    BOOL ModuleNamespaceEnumerator::Init()
+    BOOL ModuleNamespaceEnumerator::Init(ForInCache * forInCache)
     {
-        if (!nsObject->DynamicObject::GetEnumerator(&symbolEnumerator, flags, GetScriptContext()))
+        if (!nsObject->DynamicObject::GetEnumerator(&symbolEnumerator, flags, GetScriptContext(), forInCache))
         {
             return FALSE;
         }

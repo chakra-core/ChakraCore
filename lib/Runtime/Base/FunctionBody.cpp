@@ -5326,6 +5326,46 @@ namespace Js
         return false;
     }
 
+    void FunctionBody::AllocateForInCache()
+    {
+        uint profiledForInLoopCount = this->GetProfiledForInLoopCount();
+        if (profiledForInLoopCount == 0)
+        {
+            return;
+        }
+        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), ForInCache, profiledForInLoopCount));
+    }
+
+    ForInCache * FunctionBody::GetForInCache(uint index)
+    {
+        Assert(index < this->GetProfiledForInLoopCount());
+        return &((ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray))[index];
+    }
+
+    ForInCache * FunctionBody::GetForInCacheArray()
+    {
+        return ((ForInCache *)this->GetAuxPtrWithLock(AuxPointerType::ForInCacheArray));
+    }
+
+    void FunctionBody::CleanUpForInCache(bool isShutdown)
+    {
+        uint profiledForInLoopCount = this->GetProfiledForInLoopCount();
+        if (profiledForInLoopCount == 0)
+        {
+            return;
+        }
+        ForInCache * forInCacheArray = (ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
+        if (isShutdown)
+        {
+            memset(forInCacheArray, 0, sizeof(ForInCache) * profiledForInLoopCount);
+        }
+        else
+        {
+            AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
+            this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
+        }
+    }
+
     void FunctionBody::AllocateInlineCache()
     {
         Assert(this->inlineCaches == nullptr);
@@ -5375,7 +5415,7 @@ namespace Js
             }
             for (; i < totalCacheCount; i++)
             {
-                inlineCaches[i] = AllocatorNewStructZ(IsInstInlineCacheAllocator,
+                inlineCaches[i] = AllocatorNewStructZ(CacheAllocator,
                     this->m_scriptContext->GetIsInstInlineCacheAllocator(), IsInstInlineCache);
             }
 #if DBG
@@ -7095,7 +7135,7 @@ namespace Js
                     }
                     else
                     {
-                        AllocatorDelete(IsInstInlineCacheAllocator, this->m_scriptContext->GetIsInstInlineCacheAllocator(), inlineCache);
+                        AllocatorDelete(CacheAllocator, this->m_scriptContext->GetIsInstInlineCacheAllocator(), inlineCache);
                     }
                 }
             }
@@ -7253,6 +7293,8 @@ namespace Js
 #endif
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
+        CleanUpForInCache(isScriptContextClosing);
+
         this->ResetObjectLiteralTypes();
 
         // Manually clear these values to break any circular references

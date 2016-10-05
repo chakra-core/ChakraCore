@@ -107,7 +107,7 @@ enum TypeId
     TypeIds_MapIterator = 64,
     TypeIds_SetIterator = 65,
     TypeIds_StringIterator = 66,
-    TypeIds_JavascriptEnumeratorIterator = 67,
+    TypeIds_JavascriptEnumeratorIterator = 67,      /* Unused */
     TypeIds_Generator = 68,
     TypeIds_Promise = 69,
     TypeIds_SharedArrayBuffer = 70,

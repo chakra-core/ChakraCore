@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
+#include "Library/ForInObjectEnumerator.h"
+
 #pragma prefast(push)
 #pragma prefast(disable:28652, "Prefast complains that the OR are causing the compiler to emit dynamic initializers and the variable to be allocated in read/write mem...")
 
@@ -1254,6 +1256,40 @@ IRBuilder::BuildSrcStackSymID(Js::RegSlot regSlot)
     return symID;
 }
 
+IR::RegOpnd *
+IRBuilder::EnsureLoopBodyForInEnumeratorArrayOpnd()
+{
+    Assert(this->IsLoopBody());
+    IR::RegOpnd * loopBodyForInEnumeratorArrayOpnd = this->m_loopBodyForInEnumeratorArrayOpnd;
+    if (loopBodyForInEnumeratorArrayOpnd == nullptr)
+    {
+        loopBodyForInEnumeratorArrayOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+        this->m_loopBodyForInEnumeratorArrayOpnd = loopBodyForInEnumeratorArrayOpnd;
+        StackSym *loopParamSym = m_func->EnsureLoopParamSym();
+        IR::RegOpnd *loopParamOpnd = IR::RegOpnd::New(loopParamSym, TyMachPtr, m_func);
+
+        IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, loopBodyForInEnumeratorArrayOpnd,
+            IR::IndirOpnd::New(loopParamOpnd, Js::InterpreterStackFrame::GetOffsetOfForInEnumerators(), TyMachPtr, this->m_func),
+            this->m_func);
+        m_func->m_headInstr->InsertAfter(ldInstr);
+    }
+    return loopBodyForInEnumeratorArrayOpnd;
+}
+
+IR::Opnd *
+IRBuilder::BuildForInEnumeratorOpnd(uint forInLoopLevel)
+{
+    Assert(forInLoopLevel < this->m_func->GetJITFunctionBody()->GetForInLoopDepth());
+    if (!this->IsLoopBody())
+    {
+        StackSym *stackSym = StackSym::New(TyMisc, this->m_func);
+        stackSym->m_offset = forInLoopLevel;
+        return IR::SymOpnd::New(stackSym, TyMachPtr, this->m_func);
+    }
+    return IR::IndirOpnd::New(
+        EnsureLoopBodyForInEnumeratorArrayOpnd(), forInLoopLevel * sizeof(Js::ForInObjectEnumerator), TyMachPtr, this->m_func);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::BuildSrcOpnd
@@ -1615,7 +1651,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             }
             return;
         }
-    case Js::OpCode::ReleaseForInEnumerator:
+
     case Js::OpCode::ObjectFreeze:
         {
             srcOpnd = this->BuildSrcOpnd(srcRegOpnd);
@@ -1852,12 +1888,6 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         {
             IR::JitProfilingInstr* newInstr = IR::JitProfilingInstr::New(Js::OpCode::StrictLdThis, dstOpnd, src1Opnd, m_func);
             instr = newInstr;
-        }
-        break;
-    case Js::OpCode::GetForInEnumerator:
-        if (dstSym->m_isSingleDef)
-        {
-            dstSym->m_isNotInt = true;
         }
         break;
     case Js::OpCode::Delete_A:
@@ -2801,8 +2831,18 @@ IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset)
 void
 IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, int32 C1, Js::ProfileId profileId)
 {
-    Assert(newOpcode == Js::OpCode::ProfiledNewScArray);
+    Assert(newOpcode == Js::OpCode::ProfiledNewScArray || newOpcode == Js::OpCode::ProfiledInitForInEnumerator);
     Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
+
+    if (newOpcode == Js::OpCode::InitForInEnumerator)
+    {
+        IR::RegOpnd * src1Opnd = this->BuildSrcOpnd(R0);
+        IR::Opnd * src2Opnd = this->BuildForInEnumeratorOpnd(C1);
+        IR::Instr *instr = IR::ProfiledInstr::New(Js::OpCode::InitForInEnumerator, nullptr, src1Opnd, src2Opnd, m_func);
+        instr->AsProfiledInstr()->u.profileId = profileId;
+        this->AddInstr(instr, offset);
+        return;
+    }
 
     IR::Instr *instr;
     Js::RegSlot     dstRegSlot = R0;
@@ -2924,6 +2964,15 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
             {
                 dstOpnd->m_sym->m_isNotInt = true;
             }
+            this->AddInstr(instr, offset);
+            return;
+        }
+
+        case Js::OpCode::InitForInEnumerator:
+        {
+            IR::Instr *instr = IR::Instr::New(Js::OpCode::InitForInEnumerator, m_func);
+            instr->SetSrc1(this->BuildSrcOpnd(R0));
+            instr->SetSrc2(this->BuildForInEnumeratorOpnd(C1));
             this->AddInstr(instr, offset);
             return;
         }
@@ -6543,10 +6592,30 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset)
     BuildBrReg2(newOpcode, offset, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset, layout->R1, layout->R2);
 }
 
+template <typename SizePolicy>
 void
-IRBuilder::BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, Js::RegSlot SrcRegSlot, uint32 targetOffset)
+IRBuilder::BuildBrReg1Unsigned1(Js::OpCode newOpcode, uint32 offset)
 {
-    IR::RegOpnd *     srcOpnd = this->BuildSrcOpnd(SrcRegSlot);
+    Assert(newOpcode == Js::OpCode::BrOnEmpty
+        /* || newOpcode == Js::OpCode::BrOnNotEmpty */     // BrOnNotEmpty not generate by the byte code
+    );
+
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrReg1Unsigned1<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R1);
+    }
+
+    BuildBrBReturn(newOpcode, offset, layout->R1, layout->C2, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset);
+}
+
+void
+IRBuilder::BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, uint32 forInLoopLevel, uint32 targetOffset)
+{
+    IR::Opnd *srcOpnd = this->BuildForInEnumeratorOpnd(forInLoopLevel);
     IR::RegOpnd *     destOpnd = this->BuildDstOpnd(DestRegSlot);
     IR::BranchInstr * branchInstr = IR::BranchInstr::New(newOpcode, destOpnd, nullptr, srcOpnd, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);

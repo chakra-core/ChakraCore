@@ -569,8 +569,16 @@ private:
     void            SetHasBailedOut(IR::Instr * bailoutInstr);
     IR::Instr*      EmitEHBailoutStackRestore(IR::Instr * bailoutInstr);
     void            EmitSaveEHBailoutReturnValueAndJumpToRetThunk(IR::Instr * instr);
-    void            EmitRestoreReturnValueFromEHBailout(IR::LabelInstr * restoreLabel, IR::LabelInstr * epilogLabel);
+    void            EmitRestoreReturnValueFromEHBailout(IR::LabelInstr * restoreLabel, IR::LabelInstr * epilogLabel);   
+    void            LowerInitForInEnumerator(IR::Instr * instr);
+    void            AllocStackForInObjectEnumeratorArray();
+    IR::RegOpnd *   GenerateForInEnumeratorLoad(IR::Opnd * forInEnumeratorOpnd, IR::Instr * insertBeforeInstr);
+    IR::Opnd *      GetForInEnumeratorFieldOpnd(IR::Opnd * forInEnumeratorOpnd, uint fieldOffset, IRType type);
 
+    void            GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache * forInCache);
+    void            GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typeOpnd, IR::LabelInstr * hasObjectArray, IR::Instr * insertBeforeInstr);
+
+    IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
 public:
     static IRType   GetImplicitCallFlagsType()
     {
@@ -599,5 +607,4 @@ private:
     BVSparse<JitArenaAllocator> * initializedTempSym;
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
-
 };
