@@ -1358,6 +1358,24 @@
   </test>
   <test>
     <default>
+      <files>async.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:async.js.dbg.baseline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async_step_out.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:async_step_out.js.dbg.baseline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async_step_over.js</files>
+      <compile-flags>-debuglaunch -dbgbaseline:async_step_over.js.dbg.baseline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>TypedArray.js</files>
       <compile-flags>-ES6Species -debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
     </default>
