@@ -199,7 +199,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                *propertyStringName = type->GetScriptContext()->GetPropertyString(*propertyId);
+                *propertyStringName = scriptContext->GetPropertyString(*propertyId);
 
                 return TRUE;
             }
