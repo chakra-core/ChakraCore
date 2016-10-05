@@ -14,7 +14,7 @@ namespace Wasm
         byte* end;
     };
 
-    static const unsigned int experimentalVersion = 0xb;
+    static const unsigned int experimentalVersion = 0xc;
 
     class WasmBinaryReader
     {
@@ -31,7 +31,7 @@ namespace Wasm
 #if DBG_DUMP
         void PrintOps();
 #endif
-
+        intptr_t GetCurrentOffset() const { return m_pc - m_start; }
         WasmNode    m_currentNode;
     private:
         struct ReaderState
@@ -40,12 +40,12 @@ namespace Wasm
             UINT32 size;  // number of entries
         };
 
+        void BlockNode();
         void CallNode();
         void CallIndirectNode();
-        void CallImportNode();
         void BrNode();
         void BrTableNode();
-        WasmOp MemNode(WasmOp op);
+        void MemNode();
         void VarNode();
 
         // Module readers
@@ -56,11 +56,12 @@ namespace Wasm
         void ReadFunctionsSignatures();
         bool ReadFunctionHeaders();
         void ReadExportTable();
-        void ReadIndirectFunctionTable();
+        void ReadTableSection();
         void ReadDataSegments();
         void ReadImportEntries();
         void ReadStartFunction();
         void ReadNamesSection();
+        void ReadElementSection();
 
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
@@ -69,6 +70,7 @@ namespace Wasm
         char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
         UINT LEB128(UINT &length, bool sgn = false);
         INT SLEB128(UINT &length);
+        WasmNode ReadInitExpr();
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();

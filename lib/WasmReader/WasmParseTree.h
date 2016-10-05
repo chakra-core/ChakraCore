@@ -23,6 +23,35 @@ namespace Wasm
         bool IsLocalType(WasmTypes::WasmType type);
     }
 
+    namespace ImportKinds
+    {
+        enum ImportKind
+        {
+            Function = 0,
+            Table = 1,
+            Memory = 2,
+            Global = 3
+        };
+    }
+
+    namespace ElementTypes
+    {
+        enum Type
+        {
+            anyfunc = 0x20
+        };
+    }
+
+    namespace FunctionIndexTypes
+    {
+        enum Type
+        {
+            Invalid = -1,
+            Function,
+            Import
+        };
+    }
+
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)
@@ -66,13 +95,10 @@ namespace Wasm
     struct WasmBrNode
     {
         uint32 depth;
-        uint32 arity;
-        bool hasSubExpr;
     };
 
     struct WasmBrTableNode
     {
-        uint32 arity;
         uint32 numTargets;
         uint32* targetTable;
         uint32 defaultTarget;
@@ -81,6 +107,12 @@ namespace Wasm
     struct WasmCallNode
     {
         uint32 num; // function id
+        bool isImport;
+    };
+
+    struct WasmBlock
+    {
+        WasmTypes::WasmType sig;
     };
 
     struct WasmNode
@@ -88,12 +120,13 @@ namespace Wasm
         WasmOp op;
         union
         {
-            WasmVarNode var;
-            WasmConstLitNode cnst;
+            WasmBlock block;
             WasmBrNode br;
             WasmBrTableNode brTable;
-            WasmMemOpNode mem;
             WasmCallNode call;
+            WasmConstLitNode cnst;
+            WasmMemOpNode mem;
+            WasmVarNode var;
         };
     };
 
@@ -112,5 +145,4 @@ namespace Wasm
         uint32 fnNameLen;
         char16* fnName;
     };
-
 }

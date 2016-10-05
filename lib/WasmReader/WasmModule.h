@@ -14,7 +14,7 @@ namespace Wasm
     private:
         struct Memory
         {
-            Memory() : minSize(0)
+            Memory() : minSize(0), maxSize(0), exported(false)
             {
             }
             uint64 minSize;
@@ -25,8 +25,15 @@ namespace Wasm
     public:
         WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength);
 
-        void InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
+        // The index used by those methods is the function index as describe by the WebAssembly design, ie: imports first then wasm functions
+        uint32 GetMaxFunctionIndex() const;
+        WasmSignature* GetFunctionSignature(uint32 funcIndex) const;
+        FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex) const;
+        // Returns index in the respective table's type
+        uint32 NormalizeFunctionIndex(uint32 funcIndex) const;
 
+        void InitializeMemory(uint32 minSize, uint32 maxSize);
+        void SetMemoryIsExported() { m_memory.exported = true; }
         const Memory* GetMemory() const;
 
         void SetSignature(uint32 index, WasmSignature * signature);
@@ -34,15 +41,15 @@ namespace Wasm
         void SetSignatureCount(uint32 count);
         uint32 GetSignatureCount() const;
 
-        void AllocateIndirectFunctions(uint32 entries);
-        void SetIndirectFunction(uint32 funcIndex, uint32 indirectIndex);
-        uint32 GetIndirectFunctionIndex(uint32 indirTableIndex) const;
-        uint32 GetIndirectFunctionCount() const;
+        void AllocateTable(uint32 entries);
+        void SetTableValue(uint32 funcIndex, uint32 indirectIndex);
+        uint32 GetTableValue(uint32 indirTableIndex) const;
+        uint32 GetTableSize() const;
 
-        uint GetFunctionCount() const;
-        void AllocateFunctions(uint32 count);
-        bool SetFunctionInfo(WasmFunctionInfo* funsig, uint32 index);
-        WasmFunctionInfo* GetFunctionInfo(uint index) const;
+        uint GetWasmFunctionCount() const;
+        void AllocateWasmFunctions(uint32 count);
+        bool SetWasmFunctionInfo(WasmFunctionInfo* funsig, uint32 index);
+        WasmFunctionInfo* GetWasmFunctionInfo(uint index) const;
 
         void AllocateFunctionExports(uint32 entries);
         uint GetExportCount() const { return m_exportCount; }
@@ -70,8 +77,8 @@ namespace Wasm
         void SetFuncOffset(uint val) { funcOffset = val; }
         uint GetImportFuncOffset() const { return importFuncOffset; }
         void SetImportFuncOffset(uint val) { importFuncOffset = val; }
-        uint GetIndirFuncTableOffset() const { return indirFuncTableOffset; }
-        void SetIndirFuncTableOffset(uint val) { indirFuncTableOffset = val; }
+        uint GetTableEnvironmentOffset() const { return indirFuncTableOffset; }
+        void SetTableEnvironmentOffset(uint val) { indirFuncTableOffset = val; }
 
         WasmBinaryReader* GetReader() const { return m_reader; }
 

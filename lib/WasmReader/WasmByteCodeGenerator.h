@@ -57,16 +57,11 @@ namespace Wasm
         };
     };
 
-    struct BlockYieldInfo
-    {
-        Js::RegSlot yieldLocs[WasmTypes::Limit];
-        WasmTypes::WasmType type = WasmTypes::Limit;
-    };
-
     struct BlockInfo
     {
-        BlockYieldInfo* yieldInfo = nullptr;
+        EmitInfo* yieldInfo = nullptr;
         Js::ByteCodeLabel label;
+        bool HasYield() const { return yieldInfo != nullptr; }
     };
 
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
@@ -112,8 +107,8 @@ namespace Wasm
     private:
         void GenerateFunction();
 
-        EmitInfo EmitExpr(WasmOp op);
-        EmitInfo EmitBlock(bool* endOnElse = nullptr);
+        void EmitExpr(WasmOp op);
+        EmitInfo EmitBlock();
         EmitInfo EmitBlockCommon(bool* endOnElse = nullptr);
         EmitInfo EmitLoop();
 
@@ -150,7 +145,8 @@ namespace Wasm
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
         void PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
         void YieldToBlock(uint relativeDepth, EmitInfo expr);
-        BlockInfo GetBlockInfo(uint relativeDepth);
+        bool ShouldYieldToBlock(uint relativeDepth) const;
+        BlockInfo GetBlockInfo(uint relativeDepth) const;
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
@@ -160,7 +156,7 @@ namespace Wasm
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
         void EnterEvalStackScope();
-        void ExitEvalStackScope();
+        EmitInfo ExitEvalStackScope();
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
