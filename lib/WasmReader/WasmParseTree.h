@@ -62,7 +62,6 @@ namespace Wasm
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpcodes.h"
-        wbFuncEnd,
         wbLimit
     };
 
@@ -107,7 +106,7 @@ namespace Wasm
     struct WasmCallNode
     {
         uint32 num; // function id
-        bool isImport;
+        FunctionIndexTypes::Type funcType;
     };
 
     struct WasmBlock
