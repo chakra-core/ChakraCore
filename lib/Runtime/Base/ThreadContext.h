@@ -554,8 +554,9 @@ public:
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
     void EnsureJITThreadContext(bool allowPrereserveAlloc);
 
-    intptr_t GetRemoteThreadContextAddr() const
+    intptr_t GetRemoteThreadContextAddr()
     {
+        Assert(m_remoteThreadContextInfo);
         return m_remoteThreadContextInfo;
     }
 #endif

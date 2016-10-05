@@ -841,10 +841,6 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (JITManager::GetJITManager()->IsOOPJITEnabled())
             {
-                if (!scriptContext->GetRemoteScriptAddr())
-                {
-                    scriptContext->InitializeRemoteScriptContext();
-                }
                 HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
                     scriptContext->GetRemoteScriptAddr(),
                     this->GetModuleId(),

@@ -2008,7 +2008,8 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
     m_pendingJITProperties = propertyMap->Clone();
 
-    JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    JITManager::HandleServerCallResult(hr);
 }
 #endif
 

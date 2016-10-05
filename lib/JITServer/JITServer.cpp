@@ -159,19 +159,16 @@ ServerCleanupThreadContext(
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
     if (threadContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
+    if (ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
-        return E_ACCESSDENIED;
+        AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
+        threadContextInfo->Close();
+        ServerContextManager::UnRegisterThreadContext(threadContextInfo);
     }
-
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
-
-    threadContextInfo->Close();
-    ServerContextManager::UnRegisterThreadContext(threadContextInfo);
-
     return S_OK;
 }
 
@@ -187,11 +184,13 @@ ServerUpdatePropertyRecordMap(
 
     if (threadContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
+        Assert(false);
         return E_ACCESSDENIED;
     }
 
@@ -225,12 +224,14 @@ ServerAddDOMFastPathHelper(
 
     if (scriptContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
     {
-        return RPC_S_INVALID_ARG;
+        Assert(false);
+        return E_ACCESSDENIED;
     }
 
     AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
@@ -253,12 +254,14 @@ ServerAddModuleRecordInfo(
     ServerScriptContext * serverScriptContext = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
     if (serverScriptContext == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsScriptContextAlive(serverScriptContext))
     {
-        return RPC_S_INVALID_ARG;
+        Assert(false);
+        return E_ACCESSDENIED;
     }
 
     AutoReleaseContext<ServerScriptContext> autoScriptContext(serverScriptContext);
@@ -280,11 +283,13 @@ ServerSetWellKnownHostTypeId(
 
     if (threadContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
+        Assert(false);
         return E_ACCESSDENIED;
     }
 
@@ -307,11 +312,13 @@ ServerInitializeScriptContext(
 
     if (threadContextInfo == nullptr)
     {
-        return E_ACCESSDENIED;
+        Assert(false);
+        return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
+        Assert(false);
         return E_ACCESSDENIED;
     }
 
@@ -340,26 +347,26 @@ ServerCloseScriptContext(
 
     if (scriptContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
+    if (ServerContextManager::IsScriptContextAlive(scriptContextInfo))
     {
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
+        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
 
 #ifdef PROFILE_EXEC
-    auto profiler = scriptContextInfo->GetCodeGenProfiler();
-    if (profiler && profiler->IsInitialized())
-    {
-        profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-    }
+        auto profiler = scriptContextInfo->GetCodeGenProfiler();
+        if (profiler && profiler->IsInitialized())
+        {
+            profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        }
 #endif
 
-    scriptContextInfo->Close();
-    ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
+        scriptContextInfo->Close();
+        ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
+    }
+
     return S_OK;
 }
 
@@ -372,6 +379,7 @@ ServerCleanupScriptContext(
 
     if (scriptContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
@@ -396,20 +404,18 @@ ServerFreeAllocation(
 
     if (context == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(context))
+    if (ServerContextManager::IsThreadContextAlive(context))
     {
-        return E_ACCESSDENIED;
-    }
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(context);
-    return ServerCallWrapper(context, [&]()->HRESULT
-    {
+        AutoReleaseContext<ServerThreadContext> autoThreadContext(context);
         context->SetValidCallTargetForCFG((PVOID)address, false);
-        bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
-        return succeeded ? S_OK : E_FAIL;
-    });
+        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
+    }
+ 
+    return S_OK;
 }
 
 HRESULT
@@ -424,12 +430,14 @@ ServerIsNativeAddr(
     if (context == nullptr)
     {
         *result = false;
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsThreadContextAlive(context))
     {
         *result = false;
+        Assert(false);
         return E_ACCESSDENIED;
     }
 
@@ -465,21 +473,19 @@ ServerSetIsPRNGSeeded(
 
     if (scriptContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
     {
-        return RPC_S_INVALID_ARG;
+        Assert(false);
+        return E_ACCESSDENIED;
     }
 
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);    
-
-    return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
-    {
-        scriptContextInfo->SetIsPRNGSeeded(value != FALSE);
-        return S_OK;
-    });
+    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
+    scriptContextInfo->SetIsPRNGSeeded(value != FALSE);
+    return S_OK;
 }
 
 HRESULT
@@ -501,11 +507,13 @@ ServerRemoteCodeGen(
 
     if (scriptContextInfo == nullptr)
     {
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
     {
+        Assert(false);
         return E_ACCESSDENIED;
     }
 
@@ -686,7 +694,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
         // like VM is in a state of removing but not completed yet
         hr = HRESULT_FROM_WIN32(ex.LastError);
 
-        DWORD exitCode;
+        DWORD exitCode = STILL_ACTIVE;
         if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
         {
             Assert(false); // fail to check target process
@@ -696,6 +704,12 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
         {
             threadContextInfo->Close();
             ServerContextManager::UnRegisterThreadContext(threadContextInfo);
+            return hr;
+        }
+        else
+        {
+            // The content process is still alive, the falure most likely an OOM
+            return E_OUTOFMEMORY;
         }
     }
 
@@ -708,6 +722,7 @@ HRESULT ServerCallWrapper(ServerScriptContext* scriptContextInfo, Fn fn)
     ServerThreadContext* threadContextInfo = scriptContextInfo->GetThreadContext();
     if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
+        Assert(false);
         return E_ACCESSDENIED;
     }
     AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);

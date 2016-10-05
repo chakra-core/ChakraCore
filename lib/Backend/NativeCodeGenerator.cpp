@@ -2007,12 +2007,6 @@ NativeCodeGenerator::UpdateJITState()
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        // ensure jit contexts have been set up
-        if (!scriptContext->GetRemoteScriptAddr())
-        {
-            scriptContext->InitializeRemoteScriptContext();
-        }
-
         // update all property records on server that have been changed since last jit
         ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
         PropertyRecordIDL ** newPropArray = nullptr;
