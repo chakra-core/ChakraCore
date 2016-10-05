@@ -915,10 +915,12 @@ private:
 
         intptr_t GetRemoteScriptAddr() 
         {
+#if ENABLE_OOP_NATIVE_CODEGEN
             if (!m_remoteScriptContextAddr)
             {
                 InitializeRemoteScriptContext();
             }
+#endif
             return m_remoteScriptContextAddr; 
         }
 
