@@ -765,8 +765,18 @@ WasmBinaryReader::ReadDataSegments()
 
     for (uint32 i = 0; i < entries; ++i)
     {
+        UINT32 index = LEB128(len);
+        if (index != 0)
+        {
+            ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
+        }
         TRACE_WASM_DECODER(L"Data Segment #%u", i);
-        UINT32 offset = LEB128(len);
+        WasmNode initExpr = ReadInitExpr();
+        if (initExpr.op != wbI32Const)
+        {
+            ThrowDecodingError(_u("Only i32.const supported for data segment offset"));
+        }
+        UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
