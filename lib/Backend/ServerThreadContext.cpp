@@ -22,7 +22,9 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 #endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
     m_pid = GetProcessId((HANDLE)data->processHandle);
+#endif
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;

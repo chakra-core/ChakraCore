@@ -313,12 +313,14 @@ ServerInitializeScriptContext(
     if (threadContextInfo == nullptr)
     {
         Assert(false);
+        *scriptContextInfoAddress = 0;
         return RPC_S_INVALID_ARG;
     }
 
     if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
     {
         Assert(false);
+        *scriptContextInfoAddress = 0;
         return E_ACCESSDENIED;
     }
 
@@ -408,14 +410,19 @@ ServerFreeAllocation(
         return RPC_S_INVALID_ARG;
     }
 
-    if (ServerContextManager::IsThreadContextAlive(context))
+    if (!ServerContextManager::IsThreadContextAlive(context))
+    {
+        Assert(false);
+        return E_ACCESSDENIED;
+    }
+
+    return ServerCallWrapper(context, [&]()->HRESULT 
     {
         AutoReleaseContext<ServerThreadContext> autoThreadContext(context);
         context->SetValidCallTargetForCFG((PVOID)address, false);
         context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
-    }
- 
-    return S_OK;
+        return S_OK;
+    });
 }
 
 HRESULT
