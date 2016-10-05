@@ -2007,6 +2007,12 @@ NativeCodeGenerator::UpdateJITState()
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        // TODO: OOP JIT, move server calls to background thread to reduce foreground thread delay
+        if (!scriptContext->GetRemoteScriptAddr())
+        {
+            return;
+        }
+
         // update all property records on server that have been changed since last jit
         ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
         PropertyRecordIDL ** newPropArray = nullptr;
