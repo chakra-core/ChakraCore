@@ -54,6 +54,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                 }
             }
         }
+        else if (functionBody->IsWasmFunction())
+        {
+            // no consts in wasm
+            Assert(jitBody->constTable == nullptr);
+            jitBody->constCount = 0;
+        }
     }
 
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
