@@ -8787,40 +8787,35 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::ByteCodeLabel falseLabel, ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
+    byteCodeGenerator->StartStatement(expr);
     switch (expr->nop)
     {
 
     case knopLogOr:
     {
-        byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
         EmitBooleanExpression(expr->sxBin.pnode1, trueLabel, leftFalse, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxBin.pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftFalse);
         EmitBooleanExpression(expr->sxBin.pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxBin.pnode2);
-        byteCodeGenerator->EndStatement(expr);
         break;
     }
 
     case knopLogAnd:
     {
-        byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
         EmitBooleanExpression(expr->sxBin.pnode1, leftTrue, falseLabel, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxBin.pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftTrue);
         EmitBooleanExpression(expr->sxBin.pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxBin.pnode2);
-        byteCodeGenerator->EndStatement(expr);
         break;
     }
 
     case knopLogNot:
-        byteCodeGenerator->StartStatement(expr);
         EmitBooleanExpression(expr->sxUni.pnode1, falseLabel, trueLabel, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxUni.pnode1);
-        byteCodeGenerator->EndStatement(expr);
         break;
 
     case knopEq:
@@ -8831,47 +8826,31 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
     case knopLe:
     case knopGe:
     case knopGt:
-        byteCodeGenerator->StartStatement(expr);
         EmitBinaryOpnds(expr->sxBin.pnode1, expr->sxBin.pnode2, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->sxBin.pnode2);
         funcInfo->ReleaseLoc(expr->sxBin.pnode1);
         byteCodeGenerator->Writer()->BrReg2(nopToOp[expr->nop], trueLabel, expr->sxBin.pnode1->location,
             expr->sxBin.pnode2->location);
         byteCodeGenerator->Writer()->Br(falseLabel);
-        byteCodeGenerator->EndStatement(expr);
         break;
     case knopTrue:
-        byteCodeGenerator->StartStatement(expr);
         byteCodeGenerator->Writer()->Br(trueLabel);
-        byteCodeGenerator->EndStatement(expr);
         break;
     case knopFalse:
-        byteCodeGenerator->StartStatement(expr);
         byteCodeGenerator->Writer()->Br(falseLabel);
-        byteCodeGenerator->EndStatement(expr);
         break;
     default:
         // Note: we usually release the temp assigned to a node after we Emit it.
         // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
         // and the caller of EmitBooleanExpression expects to be able to release this register.
 
-        // For diagnostics purposes, register the name/dot/index to the statement list.
-        if (expr->nop == knopName || expr->nop == knopDot || expr->nop == knopIndex)
-        {
-            byteCodeGenerator->StartStatement(expr);
-            Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
-            byteCodeGenerator->Writer()->Br(falseLabel);
-            byteCodeGenerator->EndStatement(expr);
-        }
-        else
-        {
-            Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
-            byteCodeGenerator->Writer()->Br(falseLabel);
-        }
+        Emit(expr, byteCodeGenerator, funcInfo, false);
+        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+        byteCodeGenerator->Writer()->Br(falseLabel);
         break;
     }
+
+    byteCodeGenerator->EndStatement(expr);
 }
 
 // used by while and for loops
