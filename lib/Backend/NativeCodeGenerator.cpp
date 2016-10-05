@@ -958,8 +958,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             (((double)((end_time.QuadPart - jitWriteData.startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
     }
-    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
-
 
     workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.frameHeight);
 
@@ -1150,6 +1148,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         scriptContext->codeSize += workItem->GetEntryPoint()->GetCodeSize();
     }
 #endif
+
+    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef ENABLE_BASIC_TELEMETRY
     scriptContext->GetThreadContext()->JITTelemetry.LogTime(scriptContext->GetThreadContext()->JITTelemetry.Now() - startTime);
