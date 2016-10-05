@@ -428,6 +428,23 @@ namespace Js
         return JavascriptFunction::DeleteProperty(propertyId, flags);
     }
 
+    BOOL JavascriptGeneratorFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+
+        if (BuiltInPropertyRecords::caller.Equals(propertyName) || BuiltInPropertyRecords::arguments.Equals(propertyName))
+        {
+            // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
+            return DynamicObject::DeleteProperty(propertyNameString, flags);
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL JavascriptGeneratorFunction::IsWritable(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)

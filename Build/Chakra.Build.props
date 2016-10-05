@@ -58,6 +58,10 @@
         oleaut32.lib;
         version.lib
     </ChakraCommonLinkDependencies>
+    <RLCommonLinkDependencies>
+        kernel32.lib;
+        ole32.lib
+    </RLCommonLinkDependencies>
   </PropertyGroup>
   <PropertyGroup Condition="'$(OptimizedBuild)'!='true'">
     <ChakraCommonLinkDependencies>

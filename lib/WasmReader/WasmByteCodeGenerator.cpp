@@ -205,7 +205,8 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
         wasmInfo->GetNumber(),
         nullptr,
-        Js::FunctionInfo::Attributes::None
+        Js::FunctionInfo::Attributes::None,
+        Js::FunctionBody::Flags_None
 #ifdef PERF_COUNTERS
         , false /* is function from deferred deserialized proxy */
 #endif
@@ -421,9 +422,11 @@ WasmBytecodeGenerator::GenerateFunction()
 void
 WasmBytecodeGenerator::EnregisterLocals()
 {
-    m_locals = AnewArray(&m_alloc, WasmLocal, m_funcInfo->GetLocalCount());
+    uint32 nLocals = m_funcInfo->GetLocalCount();
+    m_locals = AnewArray(&m_alloc, WasmLocal, nLocals);
 
-    for (uint i = 0; i < m_funcInfo->GetLocalCount(); ++i)
+    m_funcInfo->GetBody()->SetFirstTmpReg(nLocals);
+    for (uint i = 0; i < nLocals; ++i)
     {
         WasmTypes::WasmType type = m_funcInfo->GetLocal(i);
         WasmRegisterSpace * regSpace = GetRegisterSpace(type);

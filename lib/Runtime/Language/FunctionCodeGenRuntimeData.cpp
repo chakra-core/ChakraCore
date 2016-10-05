@@ -27,6 +27,16 @@ namespace Js
         return &clonedInlineCaches;
     }
 
+    FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::GetNextForTarget(FunctionBody *targetFuncBody) const
+    {
+        FunctionCodeGenRuntimeData * next = this->next;
+        if (next->GetFunctionBody() != targetFuncBody)
+        {
+            next = next->next;
+        }
+        return next;
+    }
+
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetInlinee(const ProfileId profiledCallSiteId) const
     {
         Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());

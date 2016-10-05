@@ -63,18 +63,19 @@ public:
         memoryLimit = newLimit;
     }
 
-    bool RequestAlloc(DECLSPEC_GUARD_OVERFLOW size_t byteCount)
+    bool RequestAlloc(DECLSPEC_GUARD_OVERFLOW size_t byteCount, bool externalAlloc = false)
     {
         if (supportConcurrency)
         {
             AutoCriticalSection auto_cs(&cs);
-            return RequestAllocImpl(byteCount);
+            return RequestAllocImpl(byteCount, externalAlloc);
         }
         else
         {
-            return RequestAllocImpl(byteCount);
+            return RequestAllocImpl(byteCount, externalAlloc);
         }
     }
+
 
     void ReportFailure(size_t byteCount)
     {
@@ -119,7 +120,7 @@ public:
     }
 
 private:
-    inline bool RequestAllocImpl(size_t byteCount)
+    inline bool RequestAllocImpl(size_t byteCount, bool externalAlloc = false)
     {
         size_t newCurrentMemory = currentMemory + byteCount;
 
@@ -130,6 +131,12 @@ private:
             if (memoryAllocationCallback != NULL)
             {
                 memoryAllocationCallback(context, MemoryAllocateEvent::MemoryFailure, byteCount);
+            }
+            
+            // oopjit number allocator allocated pages, we can't stop it from allocating so just increase the usage number
+            if (externalAlloc)
+            {
+                currentMemory = newCurrentMemory;
             }
 
             return false;

@@ -185,7 +185,10 @@ namespace Js {
         // No need to check for undeclared let/const in case of console scope (as this operation is initializing the let/const)
         PropertyOperation_AllowUndeclInConsoleScope     = 0x100,
 
-        PropertyOperation_ThrowIfNonWritable   = 0x300
+        PropertyOperation_ThrowIfNonWritable            = 0x200,
+
+        // This will be passed during delete operation. This will make the delete operation throw when the property not configurable.
+        PropertyOperation_ThrowOnDeleteIfNotConfig      = 0x400,
     };
 
     class RecyclableObject : public FinalizableObject
@@ -267,6 +270,7 @@ namespace Js {
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value);
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value);
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags);
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags);
         virtual BOOL IsFixedProperty(PropertyId propertyId);
         virtual BOOL HasItem(uint32 index);
         virtual BOOL HasOwnItem(uint32 index);

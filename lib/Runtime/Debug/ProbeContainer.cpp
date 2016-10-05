@@ -127,7 +127,7 @@ namespace Js
                     {
                         if (dispatchHaltFrameAddress == 0 || interpreterFrame->GetStackAddress() > dispatchHaltFrameAddress)
                         {
-                            frm = Anew(pDiagArena, DiagInterpreterStackFrame, interpreterFrame, frameIndex);
+                            frm = Anew(pDiagArena, DiagInterpreterStackFrame, interpreterFrame);
                         }
                     }
                     else
@@ -139,14 +139,14 @@ namespace Js
                             if (func->IsScriptFunction())
                             {
                                 frm = Anew(pDiagArena, DiagNativeStackFrame,
-                                    ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), stackAddress, walker.GetCurrentCodeAddr(), frameIndex);
+                                    ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), stackAddress, walker.GetCurrentCodeAddr());
                             }
                             else
 #else
                             Assert(!func->IsScriptFunction());
 #endif
                             {
-                                frm = Anew(pDiagArena, DiagRuntimeStackFrame, func, walker.GetCurrentNativeLibraryEntryName(), stackAddress, frameIndex);
+                                frm = Anew(pDiagArena, DiagRuntimeStackFrame, func, walker.GetCurrentNativeLibraryEntryName(), stackAddress);
                             }
                         }
                     }
@@ -160,6 +160,7 @@ namespace Js
 
             return false;
         });
+
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::UpdateFramePointers: detected %d frames (this=%p, fMatchWithCurrentScriptContext=%d)\n"),
             tempFramePointers->Count(), this, fMatchWithCurrentScriptContext);
 
@@ -175,6 +176,12 @@ namespace Js
         {
             UpdateFramePointers(/*fMatchWithCurrentScriptContext*/true, dispatchHaltFrameAddress);
             this->debugSessionNumber = debugManager->GetDebugSessionNumber();
+
+            if ((framePointers->Count() > 0) &&
+                debugManager->IsMatchTopFrameStackAddress(framePointers->Peek(0)))
+            {
+                framePointers->Peek(0)->SetIsTopFrame();
+            }
         }
 
         ReferencedArenaAdapter* pRefArena = debugManager->GetDiagnosticArena();
@@ -195,6 +202,7 @@ namespace Js
         if (pHaltState->framePointers->Count() > 0)
         {
             pHaltState->topFrame = pHaltState->framePointers->Peek(0);
+            pHaltState->topFrame->SetIsTopFrame();
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::InitializeLocation (end): this=%p, pHaltState=%p, fMatch=%d, topFrame=%p\n"),

@@ -50,7 +50,7 @@ bool DelayLoadLibrary::IsAvailable()
     return m_hModule != nullptr;
 }
 
-#if PDATA_ENABLED
+#if PDATA_ENABLED && _WIN32
 
 static NtdllLibrary NtdllLibraryObject;
 NtdllLibrary* NtdllLibrary::Instance = &NtdllLibraryObject;

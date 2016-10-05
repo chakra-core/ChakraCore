@@ -114,8 +114,8 @@ namespace PlatformAgnostic
         static TRet ExecuteWithThreadContext(Fn fn, TRet defaultValue)
         {
             // TODO: We should remove the depedency on ThreadContext for this layer
-            // Currently, this exists since Windows.Globalization.dll is delay loaded and the 
-            // handle is stored on the thread context. We should move the management of the 
+            // Currently, this exists since Windows.Globalization.dll is delay loaded and the
+            // handle is stored on the thread context. We should move the management of the
             // lifetime of that DLL to this layer, so that we can move the PAIL out of Runtime
             // into Common.
             ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
@@ -147,7 +147,7 @@ namespace PlatformAgnostic
                 return defaultValue;
             }, defaultValue);
         }
- 
+
         template <typename Fn>
         static bool ExecuteWinGlobCodepointCheckApi(codepoint_t codepoint, Fn fn)
         {
@@ -157,8 +157,8 @@ namespace PlatformAgnostic
                 Assert(SUCCEEDED(hr));
                 return (returnValue != 0);
             }, false);
-        }        
-        
+        }
+
         // Helper Win32 conversion utilities
         static NORM_FORM TranslateToWin32NormForm(NormalizationForm normalizationForm)
         {
@@ -198,48 +198,6 @@ namespace PlatformAgnostic
             }
         }
 
-        // Win32 implementation of platform-agnostic Unicode interface
-        // These are the public APIs of this interface
-        CharacterClassificationType GetLegacyCharacterClassificationType(char16 ch)
-        {
-            WORD charType = 0;
-            BOOL res = ::GetStringTypeW(CT_CTYPE1, &ch, 1, &charType);
-
-            if (res == TRUE)
-            {
-                // BOM ( 0xfeff) is recognized as GetStringTypeW as WS.
-                if ((0x03FF & charType) == 0x0200)
-                {
-                    // Some of the char types changed for Whistler (Unicode 3.0).
-                    // They will return 0x0200 on Whistler, indicating a defined char
-                    // with no type attributes. We want to continue to support these
-                    // characters, so we return the Win2K (Unicode 2.1) attributes.
-                    // We only return the ones we care about - ALPHA for ALPHA, PUNCT
-                    // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
-                    WORD wOldCharType = oFindOldCharType(ch);
-                    if (0 == wOldCharType)
-                        return CharacterClassificationType::Invalid;
-
-                    charType = wOldCharType;
-                }
-
-                if (charType & C1_ALPHA)
-                {
-                    return CharacterClassificationType::Letter;
-                }
-                else if (charType & (C1_DIGIT | C1_PUNCT))
-                {
-                    return CharacterClassificationType::DigitOrPunct;
-                }
-                else if (charType & (C1_SPACE | C1_BLANK))
-                {
-                    return CharacterClassificationType::Whitespace;
-                }
-            }
-
-            return CharacterClassificationType::Invalid;
-        }
-
         int32 NormalizeString(NormalizationForm normalizationForm, const char16* sourceString, uint32 sourceLength, char16* destString, int32 destLength, ApiError* pErrorOut)
         {
             // Assert pointers
@@ -247,7 +205,7 @@ namespace PlatformAgnostic
             Assert(destString != nullptr || destLength == 0);
 
             // This is semantically different than the Win32 NormalizeString API
-            // For our usage, we always pass in the length rather than letting Windows 
+            // For our usage, we always pass in the length rather than letting Windows
             // calculate the length for us
             Assert(sourceLength > 0);
             Assert(destLength >= 0);
@@ -287,7 +245,7 @@ namespace PlatformAgnostic
             Assert(sourceString != nullptr);
             Assert(destString != nullptr || destLength == 0);
 
-            // LCMapString does not allow the source length to be set to 0 
+            // LCMapString does not allow the source length to be set to 0
             Assert(sourceLength > 0);
 
             *pErrorOut = NoError;
@@ -317,7 +275,7 @@ namespace PlatformAgnostic
             {
                 return 0;
             }
-            
+
             if (caseFlags == CaseFlagsUpper)
             {
                 return (uint32) CharUpperBuff(sourceString, sourceLength);
@@ -326,7 +284,7 @@ namespace PlatformAgnostic
             {
                 return (uint32) CharLowerBuff(sourceString, sourceLength);
             }
- 
+
             AssertMsg(false, "Invalid flags passed to ChangeStringCaseInPlace");
             return 0;
         }
@@ -335,7 +293,7 @@ namespace PlatformAgnostic
         {
             return ExecuteWinGlobApi([&](IUnicodeCharactersStatics* pUnicodeCharStatics) {
                 UnicodeGeneralCategory category = UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned;
-                
+
                 HRESULT hr = pUnicodeCharStatics->GetGeneralCategory(codepoint, &category);
                 Assert(SUCCEEDED(hr));
                 if (SUCCEEDED(hr))
@@ -410,13 +368,54 @@ namespace PlatformAgnostic
 
         int LogicalStringCompare(const char16* string1, const char16* string2)
         {
-            // CompareStringW called with these flags is equivalent to calling StrCmpLogicalW 
+            // CompareStringW called with these flags is equivalent to calling StrCmpLogicalW
             // and we have the added advantage of not having to link with shlwapi.lib just for one function
             int i = CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE | SORT_DIGITSASNUMBERS, string1, -1, string2, -1);
 
             return i - CSTR_EQUAL;
         }
 
+        // Win32 implementation of platform-agnostic Unicode interface
+        // These are the public APIs of this interface
+        CharacterClassificationType GetLegacyCharacterClassificationType(char16 ch)
+        {
+            WORD charType = 0;
+            BOOL res = ::GetStringTypeW(CT_CTYPE1, &ch, 1, &charType);
+
+            if (res == TRUE)
+            {
+                // BOM ( 0xfeff) is recognized as GetStringTypeW as WS.
+                if ((0x03FF & charType) == 0x0200)
+                {
+                    // Some of the char types changed for Whistler (Unicode 3.0).
+                    // They will return 0x0200 on Whistler, indicating a defined char
+                    // with no type attributes. We want to continue to support these
+                    // characters, so we return the Win2K (Unicode 2.1) attributes.
+                    // We only return the ones we care about - ALPHA for ALPHA, PUNCT
+                    // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
+                    WORD wOldCharType = oFindOldCharType(ch);
+                    if (0 == wOldCharType)
+                        return CharacterClassificationType::Invalid;
+
+                    charType = wOldCharType;
+                }
+
+                if (charType & C1_ALPHA)
+                {
+                    return CharacterClassificationType::Letter;
+                }
+                else if (charType & (C1_DIGIT | C1_PUNCT))
+                {
+                    return CharacterClassificationType::DigitOrPunct;
+                }
+                else if (charType & (C1_SPACE | C1_BLANK))
+                {
+                    return CharacterClassificationType::Whitespace;
+                }
+            }
+
+            return CharacterClassificationType::Invalid;
+        }
     };
 };
 

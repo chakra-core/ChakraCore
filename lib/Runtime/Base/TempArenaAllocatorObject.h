@@ -18,6 +18,8 @@ namespace Js
 
     public:
 
+        void AdviseInUse();
+        void AdviseNotInUse();
 
         static TempArenaAllocatorWrapper* Create(ThreadContext * threadContext);
 

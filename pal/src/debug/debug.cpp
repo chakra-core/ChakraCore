@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -105,7 +105,7 @@ DBGWriteProcMem_IntWithMask(DWORD processId, int *addr, int data,
 
 #if !HAVE_VM_READ && !HAVE_PROCFS_CTL
 
-static BOOL 
+static BOOL
 DBGAttachProcess(CPalThread *pThread, HANDLE hProcess, DWORD dwProcessId);
 
 static BOOL
@@ -175,15 +175,15 @@ OutputDebugStringA(
     ENTRY("OutputDebugStringA (lpOutputString=%p (%s))\n",
           lpOutputString?lpOutputString:"NULL",
           lpOutputString?lpOutputString:"NULL");
-    
+
     /* as we don't support debug events, we are going to output the debug string
       to stderr instead of generating OUT_DEBUG_STRING_EVENT */
-    if ( (lpOutputString != NULL) && 
+    if ( (lpOutputString != NULL) &&
          (NULL != MiscGetenv(PAL_OUTPUTDEBUGSTRING)))
     {
         fprintf(stderr, "%s", lpOutputString);
     }
-        
+
     LOGEXIT("OutputDebugStringA returns\n");
     PERF_EXIT(OutputDebugStringA);
 }
@@ -206,15 +206,15 @@ OutputDebugStringW(
     ENTRY("OutputDebugStringW (lpOutputString=%p (%S))\n",
           lpOutputString ? lpOutputString: W16_NULLSTRING,
           lpOutputString ? lpOutputString: W16_NULLSTRING);
-    
-    if (lpOutputString == NULL) 
+
+    if (lpOutputString == NULL)
     {
         OutputDebugStringA("");
         goto EXIT;
     }
 
-    if ((strLen = WideCharToMultiByte(CP_ACP, 0, lpOutputString, -1, NULL, 0, 
-                                      NULL, NULL)) 
+    if ((strLen = WideCharToMultiByte(CP_ACP, 0, lpOutputString, -1, NULL, 0,
+                                      NULL, NULL))
         == 0)
     {
         ASSERT("failed to get wide chars length\n");
@@ -230,15 +230,15 @@ OutputDebugStringW(
         goto EXIT;
     }
 
-    if(! WideCharToMultiByte(CP_ACP, 0, lpOutputString, -1, 
-                             lpOutputStringA, strLen, NULL, NULL)) 
+    if(! WideCharToMultiByte(CP_ACP, 0, lpOutputString, -1,
+                             lpOutputStringA, strLen, NULL, NULL))
     {
         ASSERT("failed to convert wide chars to multibytes\n");
         SetLastError(ERROR_INTERNAL_ERROR);
         InternalFree(lpOutputStringA);
         goto EXIT;
     }
-    
+
     OutputDebugStringA(lpOutputStringA);
     InternalFree(lpOutputStringA);
 
@@ -291,7 +291,7 @@ run_debug_command (const char *command)
     }
 
     printf("Spawning command: %s\n", command);
-    
+
     pid = fork();
     if (pid == -1) {
         return -1;
@@ -350,10 +350,10 @@ DebugBreakCommand()
         {
             libNameLength = PAL_wcslen(exe_module.lib_name);
         }
-        
+
         SIZE_T dwexe_buf = strlen(EXE_TEXT) + libNameLength + 1;
         CHAR * exe_buf = exe_bufString.OpenStringBuffer(dwexe_buf);
-        
+
         if (NULL == exe_buf)
         {
             goto FAILED;
@@ -407,7 +407,7 @@ DebugBreak(
         TRACE("Calling DBG_DebugBreak\n");
         DBG_DebugBreak();
     }
-    
+
     LOGEXIT("DebugBreak returns\n");
     PERF_EXIT(DebugBreak);
 }
@@ -422,7 +422,13 @@ Function:
 BOOL
 IsInDebugBreak(void *addr)
 {
+#ifdef _M_IX86
+    // TODO: enable this
+    // When enabled, lldb/ch fails prematurely at initialization phase
+    return FALSE;
+#else
     return (addr >= (void *)DBG_DebugBreak) && (addr <= (void *)DBG_DebugBreak_End);
+#endif
 }
 
 /*++
@@ -442,7 +448,7 @@ GetThreadContext(
     CPalThread *pTargetThread;
     IPalObject *pobjThread = NULL;
     BOOL ret = FALSE;
-    
+
     PERF_ENTRY(GetThreadContext);
     ENTRY("GetThreadContext (hThread=%p, lpContext=%p)\n",hThread,lpContext);
 
@@ -481,7 +487,7 @@ GetThreadContext(
     {
         pobjThread->ReleaseReference(pThread);
     }
-    
+
     LOGEXIT("GetThreadContext returns ret:%d\n", ret);
     PERF_EXIT(GetThreadContext);
     return ret;
@@ -504,7 +510,7 @@ SetThreadContext(
     CPalThread *pTargetThread;
     IPalObject *pobjThread = NULL;
     BOOL ret = FALSE;
-    
+
     PERF_ENTRY(SetThreadContext);
     ENTRY("SetThreadContext (hThread=%p, lpContext=%p)\n",hThread,lpContext);
 
@@ -543,7 +549,7 @@ SetThreadContext(
     {
         pobjThread->ReleaseReference(pThread);
     }
-        
+
     return ret;
 }
 
@@ -591,20 +597,20 @@ ReadProcessMemory(
           lpBuffer, (unsigned int)nSize, lpNumberOfBytesRead);
 
     pThread = InternalGetCurrentThread();
-    
+
     if (!(processId = PROCGetProcessIDFromHandle(hProcess)))
     {
         ERROR("Invalid process handler hProcess:%p.",hProcess);
-        SetLastError(ERROR_INVALID_HANDLE);        
+        SetLastError(ERROR_INVALID_HANDLE);
         goto EXIT;
     }
-    
-    // Check if the read request is for the current process. 
+
+    // Check if the read request is for the current process.
     // We don't need ptrace in that case.
-    if (GetCurrentProcessId() == processId) 
+    if (GetCurrentProcessId() == processId)
     {
         TRACE("We are in the same process, so ptrace is not needed\n");
-        
+
         struct Param
         {
             LPCVOID lpBaseAddress;
@@ -622,7 +628,7 @@ ReadProcessMemory(
         PAL_TRY(Param *, pParam, &param)
         {
             SIZE_T i;
-            
+
             // Seg fault in memcpy can't be caught
             // so we simulate the memcpy here
 
@@ -642,7 +648,7 @@ ReadProcessMemory(
 
         numberOfBytesRead = param.numberOfBytesRead;
         ret = param.ret;
-        goto EXIT;        
+        goto EXIT;
     }
 
 #if HAVE_VM_READ
@@ -664,7 +670,7 @@ ReadProcessMemory(
     while (nSize > 0)
     {
         vm_size_t bytesRead;
-        
+
         bytesToRead = VIRTUAL_PAGE_SIZE - offset;
         if (bytesToRead > (LONG_PTR)nSize)
         {
@@ -718,7 +724,7 @@ ReadProcessMemory(
         SetLastError(ERROR_INVALID_ACCESS);
         goto PROCFSCLEANUP;
     }
-    
+
     numberOfBytesRead = read(fd, lpBuffer, nSize);
     ret = TRUE;
 
@@ -729,12 +735,12 @@ ReadProcessMemory(
 #if HAVE_TTRACE
         if (ttrace(TT_PROC_RDDATA, processId, 0, (__uint64_t)lpBaseAddress, (__uint64_t)nSize, (__uint64_t)lpBuffer) == -1)
         {
-            if (errno == EFAULT) 
+            if (errno == EFAULT)
             {
                 ERROR("ttrace(TT_PROC_RDDATA, pid:%d, 0, addr:%p, data:%d, addr2:%d) failed"
                       " errno=%d (%s)\n", processId, lpBaseAddress, (int)nSize, lpBuffer,
                       errno, strerror(errno));
-                
+
                 SetLastError(ERROR_ACCESS_DENIED);
             }
             else
@@ -750,15 +756,15 @@ ReadProcessMemory(
 
         numberOfBytesRead = nSize;
         ret = TRUE;
-        
+
 #else   // HAVE_TTRACE
 
         offset = (SIZE_T)lpBaseAddress % sizeof(int);
         lpBaseAddressAligned =  (int*)((char*)lpBaseAddress - offset);
-        nbInts = (nSize + offset)/sizeof(int) + 
+        nbInts = (nSize + offset)/sizeof(int) +
                  ((nSize + offset)%sizeof(int) ? 1:0);
-        
-        /* before transferring any data to lpBuffer we should make sure that all 
+
+        /* before transferring any data to lpBuffer we should make sure that all
            data is accessible for read. so we need to use a temp buffer for that.*/
         if (!(lpTmpBuffer = (int*)InternalMalloc((nbInts * sizeof(int)))))
         {
@@ -766,22 +772,22 @@ ReadProcessMemory(
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
             goto CLEANUP1;
         }
-        
+
         for (ptrInt = lpTmpBuffer; nbInts; ptrInt++,
             lpBaseAddressAligned++, nbInts--)
         {
             errno = 0;
             *ptrInt =
                 PAL_PTRACE(PAL_PT_READ_D, processId, lpBaseAddressAligned, 0);
-            if (*ptrInt == -1 && errno) 
+            if (*ptrInt == -1 && errno)
             {
-                if (errno == EFAULT) 
+                if (errno == EFAULT)
                 {
                     ERROR("ptrace(PT_READ_D, pid:%d, addr:%p, data:0) failed"
                           " errno=%d (%s)\n", processId, lpBaseAddressAligned,
                           errno, strerror(errno));
-                    
-                    SetLastError(ptrInt == lpTmpBuffer ? ERROR_ACCESS_DENIED : 
+
+                    SetLastError(ptrInt == lpTmpBuffer ? ERROR_ACCESS_DENIED :
                                                          ERROR_PARTIAL_COPY);
                 }
                 else
@@ -791,21 +797,21 @@ ReadProcessMemory(
                           errno, strerror(errno));
                     SetLastError(ERROR_INTERNAL_ERROR);
                 }
-                
+
                 goto CLEANUP2;
             }
         }
-        
+
         /* transfer data from temp buffer to lpBuffer */
         memcpy( (char *)lpBuffer, ((char*)lpTmpBuffer) + offset, nSize);
         numberOfBytesRead = nSize;
         ret = TRUE;
-#endif // HAVE_TTRACE        
+#endif // HAVE_TTRACE
     }
     else
     {
         /* Failed to attach processId */
-        goto EXIT;    
+        goto EXIT;
     }
 #endif  // HAVE_PROCFS_CTL
 
@@ -814,10 +820,10 @@ PROCFSCLEANUP:
     if (fd != -1)
     {
         close(fd);
-    }    
+    }
 #elif !HAVE_TTRACE
 CLEANUP2:
-    if (lpTmpBuffer) 
+    if (lpTmpBuffer)
     {
         InternalFree(lpTmpBuffer);
     }
@@ -885,10 +891,10 @@ WriteProcessMemory(
     PERF_ENTRY(WriteProcessMemory);
     ENTRY("WriteProcessMemory (hProcess=%p,lpBaseAddress=%p, lpBuffer=%p, "
            "nSize=%u, lpNumberOfBytesWritten=%p)\n",
-           hProcess,lpBaseAddress, lpBuffer, (unsigned int)nSize, lpNumberOfBytesWritten); 
+           hProcess,lpBaseAddress, lpBuffer, (unsigned int)nSize, lpNumberOfBytesWritten);
 
     pThread = InternalGetCurrentThread();
-    
+
     if (!(nSize && (processId = PROCGetProcessIDFromHandle(hProcess))))
     {
         ERROR("Invalid nSize:%u number or invalid process handler "
@@ -896,13 +902,13 @@ WriteProcessMemory(
         SetLastError(ERROR_INVALID_PARAMETER);
         goto EXIT;
     }
-    
+
     // Check if the write request is for the current process.
     // In that case we don't need ptrace.
-    if (GetCurrentProcessId() == processId) 
+    if (GetCurrentProcessId() == processId)
     {
         TRACE("We are in the same process so we don't need ptrace\n");
-        
+
         struct Param
         {
             LPVOID lpBaseAddress;
@@ -920,7 +926,7 @@ WriteProcessMemory(
         PAL_TRY(Param *, pParam, &param)
         {
             SIZE_T i;
-            
+
             // Seg fault in memcpy can't be caught
             // so we simulate the memcpy here
 
@@ -931,7 +937,7 @@ WriteProcessMemory(
 
             pParam->numberOfBytesWritten = pParam->nSize;
             pParam->ret = TRUE;
-        } 
+        }
         PAL_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
             SetLastError(ERROR_ACCESS_DENIED);
@@ -940,7 +946,7 @@ WriteProcessMemory(
 
         numberOfBytesWritten = param.numberOfBytesWritten;
         ret = param.ret;
-        goto EXIT;        
+        goto EXIT;
     }
 
 #if HAVE_VM_READ
@@ -951,7 +957,7 @@ WriteProcessMemory(
         SetLastError(ERROR_INVALID_HANDLE);
         goto EXIT;
     }
-    result = vm_write(task, (vm_address_t) lpBaseAddress, 
+    result = vm_write(task, (vm_address_t) lpBaseAddress,
                       (vm_address_t) lpBuffer, nSize);
     if (result != KERN_SUCCESS)
     {
@@ -993,7 +999,7 @@ WriteProcessMemory(
         SetLastError(ERROR_INVALID_ACCESS);
         goto PROCFSCLEANUP;
     }
-    
+
     bytesWritten = write(fd, lpBuffer, nSize);
     if (bytesWritten < 0)
     {
@@ -1012,12 +1018,12 @@ WriteProcessMemory(
 #if HAVE_TTRACE
         if (ttrace(TT_PROC_WRDATA, processId, 0, (__uint64_t)lpBaseAddress, (__uint64_t)nSize, (__uint64_t)lpBuffer) == -1)
         {
-            if (errno == EFAULT) 
+            if (errno == EFAULT)
             {
                 ERROR("ttrace(TT_PROC_WRDATA, pid:%d, addr:%p, data:%d, addr2:%d) failed"
                       " errno=%d (%s)\n", processId, lpBaseAddress, nSize, lpBuffer,
                       errno, strerror(errno));
-                
+
                 SetLastError(ERROR_ACCESS_DENIED);
             }
             else
@@ -1033,17 +1039,17 @@ WriteProcessMemory(
 
         numberOfBytesWritten = nSize;
         ret = TRUE;
-        
+
 #else   // HAVE_TTRACE
 
-        FirstIntOffset = (SIZE_T)lpBaseAddress % sizeof(int);    
+        FirstIntOffset = (SIZE_T)lpBaseAddress % sizeof(int);
         FirstIntMask = -1;
         FirstIntMask <<= (FirstIntOffset * 8);
-        
-        nbInts = (nSize + FirstIntOffset) / sizeof(int) + 
+
+        nbInts = (nSize + FirstIntOffset) / sizeof(int) +
                  (((nSize + FirstIntOffset)%sizeof(int)) ? 1:0);
         lpBaseAddressAligned = (int*)((char*)lpBaseAddress - FirstIntOffset);
-        
+
         if ((lpTmpBuffer = (int*)InternalMalloc((nbInts * sizeof(int)))) == NULL)
         {
             ERROR("Insufficient memory available !\n");
@@ -1060,7 +1066,7 @@ WriteProcessMemory(
 
         if (nbInts == 1)
         {
-            if (DBGWriteProcMem_IntWithMask(processId, lpBaseAddressAligned, 
+            if (DBGWriteProcMem_IntWithMask(processId, lpBaseAddressAligned,
                                             *lpInt,
                                             LastIntMask & FirstIntMask)
                   == 0)
@@ -1074,21 +1080,21 @@ WriteProcessMemory(
 
         if (DBGWriteProcMem_IntWithMask(processId,
                                         lpBaseAddressAligned++,
-                                        *lpInt++, FirstIntMask) 
+                                        *lpInt++, FirstIntMask)
             == 0)
         {
             goto CLEANUP2;
         }
 
         while (--nbInts > 1)
-        {      
+        {
           if (DBGWriteProcMem_Int(processId, lpBaseAddressAligned++,
                                   *lpInt++) == 0)
           {
               goto CLEANUP2;
           }
         }
-        
+
         if (DBGWriteProcMem_IntWithMask(processId, lpBaseAddressAligned,
                                         *lpInt, LastIntMask ) == 0)
         {
@@ -1114,7 +1120,7 @@ PROCFSCLEANUP:
     }
 #elif !HAVE_TTRACE
 CLEANUP2:
-    if (lpTmpBuffer) 
+    if (lpTmpBuffer)
     {
         InternalFree(lpTmpBuffer);
     }
@@ -1159,13 +1165,13 @@ Return
 --*/
 static
 int
-DBGWriteProcMem_Int(IN DWORD processId, 
+DBGWriteProcMem_Int(IN DWORD processId,
                     IN int *addr,
                     IN int data)
 {
     if (PAL_PTRACE( PAL_PT_WRITE_D, processId, addr, data ) == -1)
     {
-        if (errno == EFAULT) 
+        if (errno == EFAULT)
         {
             ERROR("ptrace(PT_WRITE_D, pid:%d caddr_t:%p data:%x) failed "
                   "errno:%d (%s)\n", processId, addr, data, errno, strerror(errno));
@@ -1214,7 +1220,7 @@ DBGWriteProcMem_IntWithMask(IN DWORD processId,
         if (((readInt = PAL_PTRACE( PAL_PT_READ_D, processId, addr, 0 )) == -1)
              && errno)
         {
-            if (errno == EFAULT) 
+            if (errno == EFAULT)
             {
                 ERROR("ptrace(PT_READ_D, pid:%d, caddr_t:%p, 0) failed "
                       "errno:%d (%s)\n", processId, addr, errno, strerror(errno));
@@ -1230,7 +1236,7 @@ DBGWriteProcMem_IntWithMask(IN DWORD processId,
             return 0;
         }
         data = (data & mask) | (readInt & ~mask);
-    }    
+    }
     return DBGWriteProcMem_Int(processId, addr, data);
 }
 #endif  // !HAVE_VM_READ && !HAVE_PROCFS_CTL && !HAVE_TTRACE
@@ -1241,12 +1247,12 @@ DBGWriteProcMem_IntWithMask(IN DWORD processId,
 Function:
   DBGAttachProcess
 
-Abstract  
-  
-  Attach the indicated process to the current process. 
-  
-  if the indicated process is already attached by the current process, then 
-  increment the number of attachment pending. if ot, attach it to the current 
+Abstract
+
+  Attach the indicated process to the current process.
+
+  if the indicated process is already attached by the current process, then
+  increment the number of attachment pending. if ot, attach it to the current
   process (with PT_ATTACH).
 
 Parameter
@@ -1256,7 +1262,7 @@ Return
   Return true if it succeeds, or false if it's fails
 --*/
 static
-BOOL 
+BOOL
 DBGAttachProcess(
     CPalThread *pThread,
     HANDLE hProcess,
@@ -1270,7 +1276,7 @@ DBGAttachProcess(
     char ctlPath[1024];
 #endif  // HAVE_PROCFS_CTL
 
-    attchmentCount = 
+    attchmentCount =
         DBGSetProcessAttached(pThread, hProcess, DBG_ATTACH);
 
     if (attchmentCount == -1)
@@ -1278,7 +1284,7 @@ DBGAttachProcess(
         /* Failed to set the process as attached */
         goto EXIT;
     }
-    
+
     if (attchmentCount == 1)
     {
 #if HAVE_PROCFS_CTL
@@ -1293,7 +1299,7 @@ DBGAttachProcess(
         waitTime.tv_sec = 0;
         waitTime.tv_nsec = 50000000;
         nanosleep(&waitTime, NULL);
-        
+
         sprintf_s(ctlPath, sizeof(ctlPath), "/proc/%d/ctl", processId);
         fd = InternalOpen(ctlPath, O_WRONLY);
         if (fd == -1)
@@ -1302,7 +1308,7 @@ DBGAttachProcess(
                   errno, strerror(errno));
             goto DETACH1;
         }
-        
+
         if (write(fd, CTL_ATTACH, sizeof(CTL_ATTACH)) < (int)sizeof(CTL_ATTACH))
         {
             ERROR("Failed to attach to %s: errno is %d (%s)\n", ctlPath,
@@ -1310,20 +1316,20 @@ DBGAttachProcess(
             close(fd);
             goto DETACH1;
         }
-        
+
         if (write(fd, CTL_WAIT, sizeof(CTL_WAIT)) < (int)sizeof(CTL_WAIT))
         {
             ERROR("Failed to wait for %s: errno is %d (%s)\n", ctlPath,
                   errno, strerror(errno));
             goto DETACH2;
         }
-        
+
         close(fd);
 #elif HAVE_TTRACE
         if (ttrace(TT_PROC_ATTACH, processId, 0, TT_DETACH_ON_EXIT, TT_VERSION, 0) == -1)
         {
             if (errno != ESRCH)
-            {                
+            {
                 ASSERT("ttrace(TT_PROC_ATTACH, pid:%d) failed errno:%d (%s)\n",
                      processId, errno, strerror(errno));
             }
@@ -1333,13 +1339,13 @@ DBGAttachProcess(
         if (PAL_PTRACE( PAL_PT_ATTACH, processId, 0, 0 ) == -1)
         {
             if (errno != ESRCH)
-            {                
+            {
                 ASSERT("ptrace(PT_ATTACH, pid:%d) failed errno:%d (%s)\n",
                      processId, errno, strerror(errno));
             }
             goto DETACH1;
         }
-                    
+
         if (waitpid(processId, NULL, WUNTRACED) == -1)
         {
             if (errno != ESRCH)
@@ -1351,7 +1357,7 @@ DBGAttachProcess(
         }
 #endif  // HAVE_PROCFS_CTL
     }
-    
+
     return TRUE;
 
 #if HAVE_PROCFS_CTL
@@ -1366,7 +1372,7 @@ DETACH2:
 DETACH2:
     if (PAL_PTRACE(PAL_PT_DETACH, processId, 0, 0) == -1)
     {
-        ASSERT("ptrace(PT_DETACH, pid:%d) failed. errno:%d (%s)\n", processId, 
+        ASSERT("ptrace(PT_DETACH, pid:%d) failed. errno:%d (%s)\n", processId,
               errno, strerror(errno));
     }
 #endif  // HAVE_PROCFS_CTL
@@ -1394,11 +1400,11 @@ Function:
 
 Abstract
   Detach the indicated process from the current process.
-  
-  if the indicated process is already attached by the current process, then 
-  decrement the number of attachment pending and detach it from the current 
-  process (with PT_DETACH) if there's no more attachment left. 
-  
+
+  if the indicated process is already attached by the current process, then
+  decrement the number of attachment pending and detach it from the current
+  process (with PT_DETACH) if there's no more attachment left.
+
 Parameter
   hProcess : process handle
   processId : process ID
@@ -1413,21 +1419,21 @@ DBGDetachProcess(
     HANDLE hProcess,
     DWORD processId
     )
-{     
+{
     int nbAttachLeft;
 #if HAVE_PROCFS_CTL
     int fd;
     char ctlPath[1024];
 #endif  // HAVE_PROCFS_CTL
 
-    nbAttachLeft = DBGSetProcessAttached(pThread, hProcess, DBG_DETACH);    
+    nbAttachLeft = DBGSetProcessAttached(pThread, hProcess, DBG_DETACH);
 
     if (nbAttachLeft == -1)
     {
         /* Failed to set the process as detached */
         return FALSE;
     }
-    
+
     /* check if there's no more attachment left on processId */
     if (nbAttachLeft == 0)
     {
@@ -1449,7 +1455,7 @@ DBGDetachProcess(
             }
             return FALSE;
         }
-        
+
         if (write(fd, CTL_DETACH, sizeof(CTL_DETACH)) < (int)sizeof(CTL_DETACH))
         {
             ERROR("Failed to detach from %s: errno is %d (%s)\n", ctlPath,
@@ -1459,7 +1465,7 @@ DBGDetachProcess(
         }
         close(fd);
 
-#elif HAVE_TTRACE  
+#elif HAVE_TTRACE
         if (ttrace(TT_PROC_DETACH, processId, 0, 0, 0, 0) == -1)
         {
             if (errno == ESRCH)
@@ -1469,7 +1475,7 @@ DBGDetachProcess(
             }
             else
             {
-                ASSERT("ttrace(TT_PROC_DETACH, pid:%d) failed. errno:%d (%s)\n", 
+                ASSERT("ttrace(TT_PROC_DETACH, pid:%d) failed. errno:%d (%s)\n",
                       processId, errno, strerror(errno));
                 SetLastError(ERROR_INTERNAL_ERROR);
             }
@@ -1477,7 +1483,7 @@ DBGDetachProcess(
         }
 #else   // HAVE_TTRACE
         if (PAL_PTRACE(PAL_PT_DETACH, processId, 1, 0) == -1)
-        {            
+        {
             if (errno == ESRCH)
             {
                 ERROR("Invalid process ID: %d\n", processId);
@@ -1485,7 +1491,7 @@ DBGDetachProcess(
             }
             else
             {
-                ASSERT("ptrace(PT_DETACH, pid:%d) failed. errno:%d (%s)\n", 
+                ASSERT("ptrace(PT_DETACH, pid:%d) failed. errno:%d (%s)\n",
                       processId, errno, strerror(errno));
                 SetLastError(ERROR_INTERNAL_ERROR);
             }
@@ -1500,7 +1506,7 @@ DBGDetachProcess(
                   processId, errno, strerror(errno));
             return FALSE;
         }
-#endif  // !HAVE_TTRACE        
+#endif  // !HAVE_TTRACE
     }
     return TRUE;
 }
@@ -1574,7 +1580,7 @@ DBGSetProcessAttached(
     }
 
     ret = pLocalData->lAttachCount;
-    
+
 DBGSetProcessAttachedExit:
 
     if (NULL != pDataLock)
@@ -1586,7 +1592,7 @@ DBGSetProcessAttachedExit:
     {
         pobjProcess->ReleaseReference(pThread);
     }
-    
+
     return ret;
 }
 
@@ -1648,7 +1654,7 @@ PAL_CreateExecWatchpoint(
     {
         TRACE("Watchpoint requested on sysenter instruction -- ignoring");
         dwError = ERROR_SUCCESS;
-        goto PAL_CreateExecWatchpointExit;        
+        goto PAL_CreateExecWatchpointExit;
     }
 #else
 #error Need syscall instruction for this platform
@@ -1692,7 +1698,7 @@ PAL_CreateExecWatchpoint(
     }
 
     dwError = ERROR_SUCCESS;
-    
+
 PAL_CreateExecWatchpointExit:
 
     if (NULL != pobjThread)
@@ -1705,8 +1711,8 @@ PAL_CreateExecWatchpointExit:
         close(fd);
     }
 
-#endif // HAVE_PRWATCH_T     
-    
+#endif // HAVE_PRWATCH_T
+
     LOGEXIT("PAL_CreateExecWatchpoint returns ret:%d\n", dwError);
     PERF_EXIT(PAL_CreateExecWatchpoint);
     return dwError;
@@ -1795,7 +1801,7 @@ PAL_DeleteExecWatchpoint(
     }
 
     dwError = ERROR_SUCCESS;
-    
+
 PAL_DeleteExecWatchpointExit:
 
     if (NULL != pobjThread)
@@ -1808,8 +1814,8 @@ PAL_DeleteExecWatchpointExit:
         close(fd);
     }
 
-#endif // HAVE_PRWATCH_T    
-    
+#endif // HAVE_PRWATCH_T
+
     LOGEXIT("PAL_DeleteExecWatchpoint returns ret:%d\n", dwError);
     PERF_EXIT(PAL_DeleteExecWatchpoint);
     return dwError;

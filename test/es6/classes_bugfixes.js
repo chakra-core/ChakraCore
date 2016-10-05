@@ -326,6 +326,30 @@ var tests = [
         new class0("cat", 100, {});
     }
   },
+  {
+    name: "Issue1586: Out of stack for super.<method>.apply and super.<method>.call",
+    body: function () {
+        class A {
+            m() { return 'A'; }
+            m1() { return 'A1'; }
+            static n() { return 'B'; }
+            static n1() { return 'B1'; }
+        }
+
+        class B extends A {
+            m() { return super.m.apply(this); }
+            m1() { return super.m1.call(this); }
+            static n() { return super.n.apply(this); }
+            static n1() { return super.n1.apply(this); }
+        }
+
+        var b = new B();
+        assert.areEqual('A', b.m(), "method.apply()");
+        assert.areEqual('A1', b.m1(), "method.call()");
+        assert.areEqual('B', B.n(), "static method.apply()");
+        assert.areEqual('B1', B.n1(), "static method.call()");
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

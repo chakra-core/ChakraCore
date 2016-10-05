@@ -20,7 +20,7 @@
 
 namespace Js
 {
-    enum EBinaryMathOpCodes
+    enum EBinaryMathOpCodes: int
     {
         BMO_ADD,
         BMO_SUB,
@@ -31,7 +31,7 @@ namespace Js
         BMO_MAX,
     };
 
-    enum EBinaryMathOpCodesTypes
+    enum EBinaryMathOpCodesTypes: int
     {
         BMOT_Int,
         BMOT_UInt,
@@ -48,7 +48,7 @@ namespace Js
         /*BMO_REM*/{ OpCodeAsmJs::Rem_Int, OpCodeAsmJs::Rem_UInt,OpCodeAsmJs::Nop,     OpCodeAsmJs::Rem_Db }
     };
 
-    enum EBinaryComparatorOpCodes
+    enum EBinaryComparatorOpCodes: int
     {
         /*<, <=, >, >=, ==, !=*/
         BCO_LT,
@@ -469,6 +469,12 @@ namespace Js
             varStmts = ParserWrapper::GetBinaryRight(varStmts);
         }
         Assert(!varStmts->CapturesSyms());
+
+        // if last statement isn't return, type must be void
+        if (varStmts->nop != knopReturn)
+        {
+            mFunction->CheckAndSetReturnType(AsmJsRetType::Void);
+        }
         EmitTopLevelStatement(varStmts);
     }
 
@@ -580,7 +586,7 @@ namespace Js
         case knopFlt:
             if (ParserWrapper::IsMinInt(pnode))
             {
-                return EmitExpressionInfo(mFunction->GetConstRegister<int>(MININT32), AsmJsType::Signed);
+                return EmitExpressionInfo(mFunction->GetConstRegister<int>(INT32_MIN), AsmJsType::Signed);
             }
             else if (ParserWrapper::IsUnsigned(pnode))
             {
@@ -1743,7 +1749,7 @@ namespace Js
                                      argsInfo[6].location, argsInfo[7].location);
             break;
         case 9:
-            mWriter.AsmReg10(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location, 
+            mWriter.AsmReg10(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
                                       argsInfo[6].location, argsInfo[7].location, argsInfo[8].location);
             break;
         case 10:
@@ -1752,7 +1758,7 @@ namespace Js
             break;
         case 16:
             mWriter.AsmReg17(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
-                                      argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location, argsInfo[10].location, argsInfo[11].location, 
+                                      argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location, argsInfo[10].location, argsInfo[11].location,
                                       argsInfo[12].location, argsInfo[13].location, argsInfo[14].location, argsInfo[15].location);
             break;
 
@@ -2389,7 +2395,7 @@ namespace Js
                 else if (ParserWrapper::IsMinInt(indexNode))
                 {
                     // this is going to be an error, but we can do this to allow it to get same error message as invalid int
-                    slot = (uint32)MININT32;
+                    slot = (uint32)INT32_MIN;
                 }
                 else if (ParserWrapper::IsUnsigned(indexNode))
                 {

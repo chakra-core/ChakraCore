@@ -13,6 +13,8 @@ enum TypeFlagMask : uint8
     TypeFlagMask_External                                                          = 0x08,
     TypeFlagMask_SkipsPrototype                                                    = 0x10,
     TypeFlagMask_CanHaveInterceptors                                               = 0x20,
+    TypeFlagMask_JsrtExternal                                                      = 0x40,
+    TypeFlagMask_HasBeenCached                                                     = 0x80
 };
 ENUM_CLASS_HELPERS(TypeFlagMask, uint8);
 
@@ -59,9 +61,17 @@ namespace Js
         void SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(const bool truth);
 
         inline BOOL IsExternal() const { return (this->flags & TypeFlagMask_External) != 0; }
+        inline BOOL IsJsrtExternal() const { return (this->flags & TypeFlagMask_JsrtExternal) != 0; }
         inline BOOL SkipsPrototype() const { return (this->flags & TypeFlagMask_SkipsPrototype) != 0 ; }
         inline BOOL CanHaveInterceptors() const { return (this->flags & TypeFlagMask_CanHaveInterceptors) != 0; }
         inline BOOL IsFalsy() const { return flags & TypeFlagMask_IsFalsy; }
+        inline BOOL HasBeenCached() const { return flags & TypeFlagMask_HasBeenCached; }
+        inline void SetHasBeenCached()
+        {
+            // Once set, this flag should never be reset.
+            flags |= TypeFlagMask_HasBeenCached;
+        };
+
         void SetIsFalsy(const bool truth);
         void SetHasSpecialPrototype(const bool hasSpecialPrototype);
 

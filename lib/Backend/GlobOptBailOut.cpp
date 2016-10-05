@@ -986,7 +986,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 #ifdef _M_IX86
                 if (this->currentRegion && this->currentRegion->GetType() == RegionTypeTry)
                 {
-                    // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper’s frame. So, the argouts are not actually pushed at the
+                    // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helperï¿½s frame. So, the argouts are not actually pushed at the
                     // offsets stored in the bailout record, which are relative to ebp. Need to restore the argouts from the actual value of esp before calling the Bailout helper.
                     // For nested calls, argouts for the outer call need to be restored from an offset of stack-adjustment-done-by-the-inner-call from esp.
                     if (startCallNumber + 1 == bailOutInfo->startCallCount)
@@ -1205,8 +1205,8 @@ GlobOpt::NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *prop
     if (propertySymOpnd->MayNeedTypeCheckProtection())
     {
         bool isCheckFixedFld = instr->m_opcode == Js::OpCode::CheckFixedFld;
-        AssertMsg(!isCheckFixedFld || !PHASE_OFF(Js::FixedMethodsPhase, instr->m_func->GetJnFunction()) ||
-            !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func->GetJnFunction()), "CheckFixedFld with fixed method/data phase disabled?");
+        AssertMsg(!isCheckFixedFld || !PHASE_OFF(Js::FixedMethodsPhase, instr->m_func) ||
+            !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func), "CheckFixedFld with fixed method/data phase disabled?");
         Assert(!isStore || !isCheckFixedFld);
         // We don't share caches between field loads and stores.  We should never have a field store involving a proto cache.
         Assert(!isStore || !propertySymOpnd->IsLoadedFromProto());
@@ -1250,8 +1250,8 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
         return
             !(
                 baseValueType.IsString() ||
-                baseValueType.IsAnyArray() && baseValueType.GetObjectType() != ObjectType::ObjectWithArray ||
-                instr->HasBailOutInfo() && instr->GetBailOutKindNoBits() == IR::BailOutOnIrregularLength // guarantees no implicit calls
+                (baseValueType.IsAnyArray() && baseValueType.GetObjectType() != ObjectType::ObjectWithArray) ||
+                (instr->HasBailOutInfo() && instr->GetBailOutKindNoBits() == IR::BailOutOnIrregularLength) // guarantees no implicit calls
             );
     }
 
@@ -1277,7 +1277,7 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
             !(
                 (bailOutKind & ~IR::BailOutKindBits) == IR::BailOutConventionalTypedArrayAccessOnly ||
                 bailOutKind & IR::BailOutOnArrayAccessHelperCall ||
-                isLdElem && bailOutKind & IR::BailOutConventionalNativeArrayAccessOnly
+                (isLdElem && bailOutKind & IR::BailOutConventionalNativeArrayAccessOnly)
             );
     }
 

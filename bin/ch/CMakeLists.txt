@@ -42,6 +42,8 @@ if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group)
+  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(LINKER_START_GROUP -Wl,-force_load,)
   endif()
 
   # common link deps
@@ -75,6 +77,10 @@ else() # // !from shared library
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )
+endif()
+
+if(CC_TARGETS_X86)
+  set(lib_target "${lib_target} -arch i386")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)

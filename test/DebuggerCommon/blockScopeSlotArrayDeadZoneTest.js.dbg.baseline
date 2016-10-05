@@ -1,0 +1,47 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "inner": "function <large string>",
+      "a": "undefined undefined",
+      "b": "string [Uninitialized block variable]",
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "inner": "function <large string>",
+      "a": "number 0",
+      "b": "string [Uninitialized block variable]",
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "inner": "function <large string>",
+      "a": "number 0",
+      "b": "number 1",
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "inner": "function <large string>",
+      "a": "number 0",
+      "b": "number 1",
+      "c": "number 2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "scopes0": "undefined undefined"
+  }
+]

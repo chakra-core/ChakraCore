@@ -6,6 +6,17 @@
 
 namespace Js
 {
+    bool ArrayBufferBase::Is(Var value)
+    {
+        return ArrayBuffer::Is(value) || SharedArrayBuffer::Is(value);
+    }
+
+    ArrayBufferBase* ArrayBufferBase::FromVar(Var value)
+    {
+        Assert(ArrayBufferBase::Is(value));
+        return static_cast<ArrayBuffer *> (value);
+    }
+
     ArrayBuffer* ArrayBuffer::NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library)
     {
         ArrayBufferDetachedStateBase* arrayBufferState = (ArrayBufferDetachedStateBase *)state;
@@ -140,23 +151,43 @@ namespace Js
         }
     }
 
-    uint32 ArrayBuffer::GetByteLengthFromVar(ScriptContext* scriptContext, Var length)
+    uint32 ArrayBuffer::ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero)
     {
-        Var firstArgument = length;
-        if (TaggedInt::Is(firstArgument))
+        if (JavascriptOperators::IsUndefined(value))
         {
-            int32 byteCount = TaggedInt::ToInt32(firstArgument);
-            if (byteCount < 0)
+            return 0;
+        }
+
+        if (TaggedInt::Is(value))
+        {
+            int64 index = TaggedInt::ToInt64(value);
+            if (index < 0 || index > (int64)MaxAllowedLength)
             {
-                JavascriptError::ThrowRangeError(
-                    scriptContext, JSERR_ArrayLengthConstructIncorrect);
+                JavascriptError::ThrowRangeError(scriptContext, errorCode);
             }
-            return byteCount;
+
+            return  (uint32)index;
         }
-        else
+
+        // Slower path
+
+        double d = JavascriptConversion::ToInteger(value, scriptContext);
+        if (d < 0.0 || d > (double)MaxAllowedLength)
         {
-            return JavascriptConversion::ToUInt32(firstArgument, scriptContext);
+            JavascriptError::ThrowRangeError(scriptContext, errorCode);
         }
+
+        if (checkSameValueZero)
+        {
+            Var integerIndex = JavascriptNumber::ToVarNoCheck(d, scriptContext);
+            Var index = JavascriptNumber::ToVar(JavascriptConversion::ToLength(integerIndex, scriptContext), scriptContext);
+            if (!JavascriptConversion::SameValueZero(integerIndex, index))
+            {
+                JavascriptError::ThrowRangeError(scriptContext, errorCode);
+            }
+        }
+
+        return (uint32)d;
     }
 
     Var ArrayBuffer::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -180,7 +211,7 @@ namespace Js
         uint32 byteLength = 0;
         if (args.Info.Count > 1)
         {
-            byteLength = GetByteLengthFromVar(scriptContext, args[1]);
+            byteLength = ToIndex(args[1], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength, false);
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
@@ -275,12 +306,7 @@ namespace Js
         uint32 newBufferLength = arrayBuffer->bufferLength;
         if (args.Info.Count >= 3)
         {
-            newBufferLength = GetByteLengthFromVar(scriptContext, args[2]);
-        }
-
-        if (newBufferLength > MaxArrayBufferLength)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+            newBufferLength = ToIndex(args[2], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength);
         }
 
         return arrayBuffer->TransferInternal(newBufferLength);
@@ -426,7 +452,7 @@ namespace Js
 
     template <class Allocator>
     ArrayBuffer::ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
-        DynamicObject(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
+        ArrayBufferBase(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
     {
         buffer = nullptr;
         bufferLength = 0;
@@ -473,7 +499,7 @@ namespace Js
     }
 
     ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
-        buffer(buffer), bufferLength(length), DynamicObject(type), mIsAsmJsBuffer(false), isDetached(false)
+        buffer(buffer), bufferLength(length), ArrayBufferBase(type), mIsAsmJsBuffer(false), isDetached(false)
     {
         if (length > MaxArrayBufferLength)
         {

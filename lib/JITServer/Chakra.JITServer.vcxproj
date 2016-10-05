@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.JITServer</TargetName>
+    <ProjectGuid>{31024620-7B97-4EC7-96E8-E7B296A17DF4}</ProjectGuid>
+    <RootNamespace>JS</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(BuildJIT)'!='false'">
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServerStub.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServerPch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITServer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JITServerPch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(MSBuildThisFileDirectory)..\Common;
+        $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\JITClient;
+        $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\Math;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
+        $(MSBuildThisFileDirectory)..\Backend\$(PlatformPathNameAlt);
+        $(MSBuildThisFileDirectory)..\Backend;
+        $(ChakraJITIDLIntDir);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>JITServerPch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

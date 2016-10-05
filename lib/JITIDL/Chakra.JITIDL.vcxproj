@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{0DB5ECBC-9385-4A65-BE2C-4EF7C65CB719}</ProjectGuid>
+    <RootNamespace>Chakra</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Chakra.JITIDL</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <Midl>
+      <AdditionalOptions>/protocol ndr64 %(AdditionalOptions)</AdditionalOptions>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(BuildingWithBuildExe)'!='true'">
+    <Midl>
+      <AdditionalOptions>%(AdditionalOptions) /target NT61</AdditionalOptions>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <AdditionalOptions>%(AdditionalOptions) /prefix client "Client" server "Server"</AdditionalOptions>
+    </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JITTypes.h" />
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

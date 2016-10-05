@@ -17,7 +17,7 @@ char16 DynamicProfileStorage::cacheDir[_MAX_DIR];
 char16 DynamicProfileStorage::catalogFilename[_MAX_PATH];
 CriticalSection DynamicProfileStorage::cs;
 DynamicProfileStorage::InfoMap DynamicProfileStorage::infoMap(&NoCheckHeapAllocator::Instance);
-DWORD DynamicProfileStorage::creationTime = 0;
+DynamicProfileStorage::TimeType DynamicProfileStorage::creationTime = DynamicProfileStorage::TimeType();
 int32 DynamicProfileStorage::lastOffset = 0;
 DWORD const DynamicProfileStorage::MagicNumber = 20100526;
 DWORD const DynamicProfileStorage::FileFormatVersion = 2;
@@ -796,7 +796,7 @@ bool DynamicProfileStorage::CreateCacheCatalog()
     Assert(useCacheDir);
     Assert(locked);
     nextFileId = 0;
-    creationTime = _time32(NULL);
+    creationTime = GetCreationTime();
     DynamicProfileStorageReaderWriter catalogFile;
     if (!catalogFile.Init(catalogFilename, _u("wb"), true)
         || !catalogFile.Write(MagicNumber)

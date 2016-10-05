@@ -63,7 +63,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt const char16* psz)
+    String::String(__in_z_opt const char16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -87,7 +87,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt const char16* pszValue)
+    String::Set(__in_z_opt const char16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -396,6 +396,12 @@ namespace Js
             Name = Acronym; \
         }
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #define FLAGPRA(Type, ParentName, Name, Acronym, ...) \
+        if(!IsEnabled(Name##Flag) && IsEnabled(Acronym##Flag)) \
+        { \
+            Enable(Name##Flag); \
+            Name = Acronym; \
+        }
         #define FLAGRA(Type, Name, Acronym, ...) FLAGNRA(Type, Name, Acronym, __VA_ARGS__)
     #endif
     #include "ConfigFlagsList.h"

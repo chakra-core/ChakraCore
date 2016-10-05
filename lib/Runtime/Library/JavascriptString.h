@@ -124,7 +124,8 @@ namespace Js
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext) override;
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
-        virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)  override;
+        virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags) override;
         virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -137,9 +138,7 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
-#if ENABLE_UNICODE_API
         char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
-#endif
 
         static bool Is(Var aValue);
         static JavascriptString* FromVar(Var aValue);
@@ -219,12 +218,12 @@ namespace Js
         static JavascriptString* Concat_BothOneChar(JavascriptString * pstLeft, JavascriptString * pstRight);
 
     public:
-        static uint32 GetOffsetOfpszValue()
+        static OPT_CONSTEXPR uint32 GetOffsetOfpszValue()
         {
             return offsetof(JavascriptString, m_pszValue);
         }
 
-        static uint32 GetOffsetOfcharLength()
+        static OPT_CONSTEXPR uint32 GetOffsetOfcharLength()
         {
             return offsetof(JavascriptString, m_charLength);
         }
@@ -402,6 +401,13 @@ namespace Js
         return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
             JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetString(), str1->GetLength()));
     }
+
+    template <typename T>
+    class JavascriptStringHelpers
+    {
+    public:
+        static bool Equals(Var aLeft, Var aRight);
+    };
 }
 
 template <>

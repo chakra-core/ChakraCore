@@ -16,8 +16,8 @@ namespace Memory
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
-    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
+    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = GetCurrentProcess());
+    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
 };
 
 /*
@@ -40,15 +40,17 @@ public:
     static const unsigned MaxPreReserveSegment = 6;
 #endif
 public:
-    PreReservedVirtualAllocWrapper();
+    PreReservedVirtualAllocWrapper(HANDLE process = GetCurrentProcess());
     ~PreReservedVirtualAllocWrapper();
-    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
-    BOOL        Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
+    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = GetCurrentProcess());
+    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
 
     bool        IsInRange(void * address);
+    static bool IsInRange(void * regionStart, void * address);
     LPVOID      EnsurePreReservedRegion();
 
     LPVOID      GetPreReservedEndAddress();
+    static LPVOID GetPreReservedEndAddress(void * regionStart);
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     static int  NumPreReservedSegment() { return numPreReservedSegment; }
 #endif
@@ -67,6 +69,7 @@ private:
     BVStatic<PreReservedAllocationSegmentCount>     freeSegments;
     LPVOID                                          preReservedStartAddress;
     CriticalSection                                 cs;
+    HANDLE processHandle;
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     static uint  numPreReservedSegment;
 #endif

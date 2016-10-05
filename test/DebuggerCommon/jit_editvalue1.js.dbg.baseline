@@ -1,0 +1,92 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 10",
+      "m": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arg2": "number 144",
+      "m": "number 10",
+      "m2": "number 55"
+    }
+  },
+  {
+    "evaluate": {
+      "m": "number 10"
+    }
+  },
+  {
+    "evaluate": {
+      "m = 23": "number 23"
+    }
+  },
+  {
+    "evaluate": {
+      "m": "number 23"
+    }
+  },
+  {
+    "evaluate": {
+      "arg2 = {abc:11}": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "k.x = 21": "number 21"
+    }
+  },
+  {
+    "evaluate": {
+      "arg2": {
+        "#__proto__": "Object {...}",
+        "abc": "number 11"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "m": "number 23"
+    }
+  },
+  {
+    "evaluate": {
+      "m = [1,2,3]": "Array [1,2,3]"
+    }
+  },
+  {
+    "evaluate": {
+      "m": "Array [1,2,3]"
+    }
+  },
+  {
+    "evaluate": {
+      "k1 = function() {}": "function function() {}"
+    }
+  },
+  {
+    "evaluate": {
+      "k": {
+        "#__proto__": "Object {...}",
+        "x": "number 21"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "k1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string k1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    }
+  }
+]

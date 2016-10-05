@@ -932,10 +932,19 @@ modrm:
             else if (opr1->IsHelperCallOpnd())
             {
                 AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc);
-                const void* fnAddress = IR::GetMethodAddress(opr1->AsHelperCallOpnd());
+                const void* fnAddress = (void*)IR::GetMethodAddress(m_func->GetThreadContextInfo(), opr1->AsHelperCallOpnd());
                 AssertMsg(sizeof(uint32) == sizeof(void*), "Sizes of void* assumed to be 32-bits");
                 this->EmitConst((uint32)fnAddress, 4);
-                AssertMsg( (((BYTE*)fnAddress) < m_encoder->m_encodeBuffer || ((BYTE *)fnAddress) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
+#if DBG
+                if (this->m_func->IsOOPJIT())
+                {
+                    // TODO: OOP JIT, use the helper function address from JIT process to do the assertion
+                }
+                else
+                {
+                    AssertMsg((((BYTE*)fnAddress) < m_encoder->m_encodeBuffer || ((BYTE *)fnAddress) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
+                }
+#endif
             }
             else
             {
@@ -1236,7 +1245,7 @@ modrm:
             bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = src2->AsIntConstOpnd()->GetImmediateValue();
+                valueImm = src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {

@@ -121,6 +121,12 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_VarDate, scriptContext->GetPropertyName(propertyId)->GetBuffer());
     };
 
+    BOOL JavascriptVariantDate::DeleteProperty(JavascriptString *propertyNameString, Js::PropertyOperationFlags flags)
+    {
+        ScriptContext* scriptContext = this->GetScriptContext();
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_VarDate, propertyNameString->GetString());
+    };
+
     BOOL JavascriptVariantDate::GetItemReference(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * scriptContext)
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_VarDate, JavascriptNumber::ToStringRadix10(index, scriptContext)->GetSz());

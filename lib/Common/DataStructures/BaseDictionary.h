@@ -1306,15 +1306,15 @@ namespace JsUtil
             {
                 Assert(dictionary.buckets == buckets);
                 Assert(dictionary.bucketCount == bucketCount);
-                Assert(entryIndex >= -1);
-                Assert(entryIndex < dictionary.count);
+                Assert(this->entryIndex >= -1);
+                Assert(this->entryIndex < dictionary.count);
                 Assert(bucketIndex == 0u - 1 || bucketIndex <= bucketCount);
                 Assert(previousEntryIndexInBucket >= -2);
                 Assert(previousEntryIndexInBucket < dictionary.count);
                 Assert(indexOfEntryAfterRemovedEntry >= -2);
                 Assert(indexOfEntryAfterRemovedEntry < dictionary.count);
 
-                return Base::IsValid() && entryIndex >= 0;
+                return Base::IsValid() && this->entryIndex >= 0;
             }
 
         public:
@@ -1322,13 +1322,13 @@ namespace JsUtil
             {
                 if(IsValid())
                 {
-                    previousEntryIndexInBucket = entryIndex;
-                    entryIndex = Current().next;
+                    previousEntryIndexInBucket = this->entryIndex;
+                    this->entryIndex = this->Current().next;
                 }
                 else
                 {
                     Assert(indexOfEntryAfterRemovedEntry >= -1);
-                    entryIndex = indexOfEntryAfterRemovedEntry;
+                    this->entryIndex = indexOfEntryAfterRemovedEntry;
                 }
 
                 if(!IsValid())
@@ -1344,7 +1344,7 @@ namespace JsUtil
 
                 while(++bucketIndex < bucketCount)
                 {
-                    entryIndex = buckets[bucketIndex];
+                    this->entryIndex = buckets[bucketIndex];
                     if(IsValid())
                     {
                         previousEntryIndexInBucket = -1;
@@ -1358,10 +1358,10 @@ namespace JsUtil
             {
                 Assert(previousEntryIndexInBucket >= -1);
 
-                indexOfEntryAfterRemovedEntry = Current().next;
-                dictionary.RemoveAt(entryIndex, previousEntryIndexInBucket, bucketIndex);
-                OnEntryRemoved();
-                entryIndex = -1;
+                indexOfEntryAfterRemovedEntry = this->Current().next;
+                dictionary.RemoveAt(this->entryIndex, previousEntryIndexInBucket, bucketIndex);
+                this->OnEntryRemoved();
+                this->entryIndex = -1;
             }
         };
 
@@ -1525,12 +1525,12 @@ namespace JsUtil
 
         BaseHashSet *Clone()
         {
-            return AllocatorNew(AllocatorType, alloc, BaseHashSet, *this);
+            return AllocatorNew(AllocatorType, this->alloc, BaseHashSet, *this);
         }
 
         void Copy(const BaseHashSet *const other)
         {
-            DoCopy(other);
+            this->DoCopy(other);
         }
 
         void LockResize()

@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -44,18 +44,18 @@ typedef struct _find_handle
 
 /*++
 FILECanonicalizePath
-    Removes all instances of '/./', '/../' and '//' from an absolute path. 
-    
+    Removes all instances of '/./', '/../' and '//' from an absolute path.
+
 Parameters:
     LPSTR lpUnixPath : absolute path to modify, in Unix format
 
-(no return value)                                             
- 
+(no return value)
+
 Notes :
 -behavior is undefined if path is not absolute
--the order of steps *is* important: /one/./../two would give /one/two 
+-the order of steps *is* important: /one/./../two would give /one/two
  instead of /two if step 3 was done before step 2
--reason for this function is that GetFullPathName can't use realpath(), since 
+-reason for this function is that GetFullPathName can't use realpath(), since
  realpath() requires the given path to be valid and GetFullPathName does not.
 --*/
 void FILECanonicalizePath(LPSTR lpUnixPath);
@@ -70,7 +70,7 @@ Abstract:
 Parameter:
   IN/OUT lpPath: path to be modified
 --*/
-void 
+void
 FILEDosToUnixPathA(LPSTR lpPath);
 
 /*++
@@ -96,7 +96,7 @@ Abstract:
 Parameter:
   IN/OUT lpPath: path to be modified
 --*/
-void 
+void
 FILEUnixToDosPathA(LPSTR lpPath);
 
 /*++
@@ -124,7 +124,7 @@ LPCSTR FILEGetFileNameFromFullPathA( LPCSTR lpFullPath );
 /*++
 Function:
   FILEGetLastErrorFromErrno
-  
+
 Convert errno into the appropriate win32 error and return it.
 --*/
 DWORD FILEGetLastErrorFromErrno( void );
@@ -132,7 +132,7 @@ DWORD FILEGetLastErrorFromErrno( void );
 /*++
 Function:
   DIRGetLastErrorFromErrno
-  
+
 Convert errno into the appropriate win32 error and return it.
 --*/
 DWORD DIRGetLastErrorFromErrno( void );
@@ -160,10 +160,10 @@ void FILECleanupStdHandles(void);
 
 /*++
 
-Function : 
+Function :
     FILEGetProperNotFoundError
-    
-Returns the proper error code, based on the 
+
+Returns the proper error code, based on the
 Windows behavoir.
 
     IN LPSTR lpPath - The path to check.
@@ -194,7 +194,7 @@ Calls fflush
 
 Input parameters:
 
-PAL_FILE *stream = stream to be flushed. 
+PAL_FILE *stream = stream to be flushed.
 
 Return value:
     0 is returned on success, otherwise EOF is returned.
@@ -203,7 +203,7 @@ int _cdecl PAL_fflush( PAL_FILE *stream );
 
 /*++
 PAL_mkstemp
-    
+
 Calls InternalMkstemp to call mkstemp
 
 Input parameters:
@@ -218,7 +218,7 @@ int __cdecl PAL_mkstemp(char *szNameTemplate);
 /*++
 PAL_unlink
 
-Calls unlink. 
+Calls unlink.
 
 Input parameters:
 
@@ -315,4 +315,3 @@ int _cdecl PAL_fseek(PAL_FILE *pf, LONG lOffset, int nWhence);
 #endif // __cplusplus
 
 #endif /* _PAL_FILE_H_ */
-

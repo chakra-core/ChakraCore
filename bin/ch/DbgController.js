@@ -632,7 +632,7 @@ var controllerObj = (function () {
                 internalPrint("LOG: " + str);
             },
             logJson: function (str) {
-                internalPrint(str);
+                recordEvent({ log: str });
             },
             resume: function (kind) {
                 if (_wasResumed) {

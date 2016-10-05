@@ -108,7 +108,12 @@ namespace Js
 #endif
 #endif
 #if DBG || defined(PROFILE_TYPES)
-        RecordAllocation(type->GetScriptContext());
+#if ENABLE_NATIVE_CODEGEN
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
+        {
+            RecordAllocation(type->GetScriptContext());
+        }
 #endif
     }
 
@@ -378,6 +383,11 @@ namespace Js
     }
 
     BOOL RecyclableObject::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
+    {
+        return true;
+    }
+
+    BOOL RecyclableObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
         return true;
     }

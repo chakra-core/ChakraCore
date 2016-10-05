@@ -22,11 +22,16 @@ const char16 Constants::GlobalCode[] = _u("Global code");
 const char16 Constants::EvalCode[] = _u("eval code");
 const char16 Constants::GlobalFunction[] = _u("glo");
 const char16 Constants::UnknownScriptCode[] = _u("Unknown script code");
+const char16 Constants::StringReplace[] = _u("String.prototype.replace");
+const char16 Constants::StringMatch[] = _u("String.prototype.match");
+
+const uint64 Constants::ExponentMask = 0x3FF0000000000000;
+const uint64 Constants::MantissaMask = 0x000FFFFFFFFFFFFF;
 
 #ifdef _M_AMD64
-const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffffffffffff;
+const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffffffffffff;
 #else
-const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffff;
+const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffff;
 #endif
 
 #pragma warning(push)

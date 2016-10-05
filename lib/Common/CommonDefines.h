@@ -88,7 +88,9 @@
 // ByteCode
 #define VARIABLE_INT_ENCODING 1                     // Byte code serialization variable size int field encoding
 #define BYTECODE_BRANCH_ISLAND                      // Byte code short branch and branch island
+#if defined(_WIN32) || defined(HAS_REAL_ICU)
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
+#endif
 // Language features
 // xplat-todo: revisit these features
 #ifdef _WIN32
@@ -178,8 +180,24 @@
 #endif
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
+#ifdef _WIN32
+#define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
+#endif
+#endif
+
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1900 )
+#define HAS_CONSTEXPR 1
+#endif
+
+#ifdef HAS_CONSTEXPR
+#define OPT_CONSTEXPR constexpr
+#else
+#define OPT_CONSTEXPR
+#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
@@ -278,7 +296,7 @@
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
-#ifdef _M_IX86
+#if 0
 #if ENABLE_NATIVE_CODEGEN
 #define IR_VIEWER
 #define ENABLE_IR_VIEWER
@@ -414,7 +432,10 @@
 #ifdef _WIN32
 #define PROFILE_EXEC
 #endif
+#if !(defined(__clang__) && defined(_M_IX86))
+// todo: implement this for clang x86
 #define PROFILE_MEM
+#endif
 #define PROFILE_TYPES
 #define PROFILE_EVALMAP
 #define PROFILE_OBJECT_LITERALS
@@ -561,7 +582,6 @@
 #define ENABLE_WASM
 #endif
 
-#if _WIN32 || _WIN64
 #if _M_IX86
 #define I386_ASM 1
 #endif //_M_IX86
@@ -569,11 +589,12 @@
 #ifndef PDATA_ENABLED
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
 #define PDATA_ENABLED 1
+#define ALLOC_XDATA (true)
 #else
 #define PDATA_ENABLED 0
+#define ALLOC_XDATA (false)
 #endif
 #endif
-#endif // _WIN32 || _WIN64
 
 #ifndef _WIN32
 #define DISABLE_SEH 1
@@ -693,3 +714,19 @@
 #ifndef PROFILE_DICTIONARY
 #define PROFILE_DICTIONARY 0
 #endif
+
+#ifndef THREAD_LOCAL
+#ifndef __APPLE__
+    #if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
+        #define THREAD_LOCAL __declspec(thread)
+    #else // VS2015+, linux Clang etc.
+        #define THREAD_LOCAL thread_local
+    #endif // VS2013?
+#else // __APPLE__
+    #ifndef __IOS__
+        #define THREAD_LOCAL _Thread_local
+    #else
+        #define THREAD_LOCAL
+    #endif
+#endif // __APPLE__
+#endif // THREAD_LOCAL

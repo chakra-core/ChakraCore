@@ -68,29 +68,6 @@ namespace Js
         _u("PDT")
     };
 
-    //
-    // Convert a WinRT DateTime date (in 100ns precision ticks) to an ES5 date
-    //
-    // We convert ticks to milliseconds and shift by JS epoch to get the double date
-    // We go in that order to skip doing underflow checks
-    //
-    HRESULT DateUtilities::WinRTDateToES5Date(INT64 ticks, __out double* pRet)
-    {
-        Assert(pRet != NULL);
-
-        if (pRet == NULL)
-        {
-            return E_INVALIDARG;
-        }
-
-        // Divide as INT64 to ensure truncation of all decimal digits,
-        // since any remaining after conversion will be truncated as a Date value.
-        INT64 milliseconds = ticks / ticksPerMillisecond;
-
-        (*pRet) = (double)(milliseconds - jsEpochMilliseconds);
-
-        return S_OK;
-    }
 
     //
     // Convert an ES5 date based on double to a WinRT DateTime
@@ -124,59 +101,6 @@ namespace Js
         }
 
          return INTSAFE_E_ARITHMETIC_OVERFLOW;
-    }
-
-    //
-    // Version 6 Change:
-    // Previously we would round the TimeSpan to ms precision in order to avoid having the double contain decimal digits.
-    // Now we allow for the timespan to be represented with integers and digits (no truncation).
-    //
-    HRESULT DateUtilities::WinRTTimeSpanToNumberV6(INT64 ticks, __out double* pRet)
-    {
-        Assert(pRet != NULL);
-
-        if (pRet == NULL)
-        {
-            return E_INVALIDARG;
-        }
-
-        // We want to preserve precision as best we could, and for low enough timespan values
-        // Hence perform a division of doubles, to convert from ticks to milliseconds.
-        double result = (double)ticks / ticksPerMillisecondDouble;
-        *pRet = result;
-
-        return S_OK;
-    }
-
-    //
-    // Version 6 Change:
-    // Same as for WinRTTimeSpanToNumberV6, remove truncation when converting between Number and WinRT TimeSpan.
-    //
-    HRESULT DateUtilities::NumberToWinRTTimeSpanV6(double span, __out INT64* pRet)
-    {
-        Assert(pRet != NULL);
-
-        if (pRet == NULL)
-        {
-            return E_INVALIDARG;
-        }
-
-        //Otherwise the double multiplication might overflow
-        if (span > INT64_MAX / ticksPerMillisecond)
-        {
-            return INTSAFE_E_ARITHMETIC_OVERFLOW;
-        }
-
-        //Multiply before converting to Int64, in order to get the 100-nanosecond precision which will get truncated
-        INT64 spanAsInt64 = NumberUtilities::TryToInt64(span * ticksPerMillisecondDouble);
-
-        if (!NumberUtilities::IsValidTryToInt64(spanAsInt64))
-        {
-            return INTSAFE_E_ARITHMETIC_OVERFLOW;
-        }
-
-        (*pRet) = spanAsInt64;
-        return S_OK;
     }
 
     ///------------------------------------------------------------------------------

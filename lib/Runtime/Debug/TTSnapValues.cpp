@@ -1448,42 +1448,23 @@ namespace TTD
 
                     Js::FunctionBody* parentBody = inflator->LookupFunctionBody(fbInfo->OptParentBodyId);
 
-                    int32 imin = 0;
-                    int32 imax = parentBody->GetNestedCount();
-                    while(imin < imax)
+                    //
+                    //TODO: this is a potentially expensive linear search (but needed since classes dump implicit functions out-of-text order). 
+                    //      May want to add sort and save in inflator or our shaddow info in script context if this is looking expensive.
+                    //
+                    uint32 blength = parentBody->GetNestedCount();
+                    for(uint32 i = 0; i < blength; ++i)
                     {
-                        int imid = (imin + imax) / 2;
-                        Js::ParseableFunctionInfo* pfiMid = parentBody->GetNestedFunc(imid)->EnsureDeserialized();
-                        Js::FunctionBody* currfb = JsSupport::ForceAndGetFunctionBody(pfiMid);
+                        Js::ParseableFunctionInfo* pfi = parentBody->GetNestedFunc(i)->EnsureDeserialized();
+                        Js::FunctionBody* currfb = JsSupport::ForceAndGetFunctionBody(pfi);
 
-                        int32 cmpval = 0;
-                        if(fbInfo->OptLine != currfb->GetLineNumber())
-                        {
-                            cmpval = (fbInfo->OptLine < currfb->GetLineNumber()) ? -1 : 1;
-                        }
-                        else
-                        {
-                            if(fbInfo->OptColumn != currfb->GetColumnNumber())
-                            {
-                                cmpval = (fbInfo->OptColumn < currfb->GetColumnNumber()) ? -1 : 1;
-                            }
-                        }
-
-                        if(cmpval == 0)
+                        if(fbInfo->OptLine == currfb->GetLineNumber() && fbInfo->OptColumn == currfb->GetColumnNumber())
                         {
                             resfb = currfb;
                             break;
                         }
-
-                        if(cmpval > 0)
-                        {
-                            imin = imid + 1;
-                        }
-                        else
-                        {
-                            imax = imid;
-                        }
                     }
+
                     AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
                     AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(_u("get"), resfb->GetDisplayName()) == 0 || wcscmp(_u("set"), resfb->GetDisplayName()) == 0), "We are missing something");
                 }
@@ -1508,9 +1489,12 @@ namespace TTD
 
             if(updateName)
             {
-                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, _u("get ")) == 0 || wcsstr(fbInfo->FunctionName.Contents, _u("set ")) == 0, "Does not start with get or set");
+                uint32 suffixWDotPos = (fbInfo->FunctionName.Length - 4);
+                uint32 suffixPos = (fbInfo->FunctionName.Length - 3);
 
-                resfb->SetDisplayName(fbInfo->FunctionName.Contents,fbInfo->FunctionName.Length, 3, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
+                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, _u(".get")) == (fbInfo->FunctionName.Contents + suffixWDotPos) || wcsstr(fbInfo->FunctionName.Contents, _u(".set")) == (fbInfo->FunctionName.Contents + suffixWDotPos), "Does not start with get or set");
+
+                resfb->SetDisplayName(fbInfo->FunctionName.Contents, fbInfo->FunctionName.Length, suffixPos, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
             }
 
             inflator->AddInflationFunctionBody(fbInfo->FunctionBodyId, resfb);

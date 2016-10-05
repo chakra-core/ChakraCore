@@ -90,7 +90,7 @@ namespace Js
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
         Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
         template <typename T>
-        static T CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
+        static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 
@@ -180,6 +180,7 @@ namespace Js
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual Var GetTypeOfString(ScriptContext * requestContext) override;
@@ -231,7 +232,7 @@ namespace Js
             uint rexValue;
             RexByteValue() :isR(0), isX(0), isW(0), isB(0), rexValue(0){}
         };
-        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody);
+        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo);
     };
 #endif
 

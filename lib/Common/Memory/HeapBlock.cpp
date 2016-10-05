@@ -188,7 +188,17 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages()
         char* startPage = (char*)this->address + (MediumAllocationBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
         DWORD oldProtect;
         BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
-        Assert(ret && oldProtect == PAGE_READONLY);
+
+#if DBG
+        HeapBlock* block = this->heapBucket->heapInfo->recycler->heapBlockMap.GetHeapBlock(this->address);
+        // only need to do this after the unusable page is already successfully protected
+        // currently we don't have a flag to save that, but it should not fail after it successfully added to blockmap (see SetPage() implementation)
+        if (block)
+        {
+            Assert(block == this);
+            Assert(ret && oldProtect == PAGE_READONLY);
+        }
+#endif
     }
 }
 

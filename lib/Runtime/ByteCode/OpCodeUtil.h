@@ -14,6 +14,7 @@ public:
     static bool IsCallOp(OpCode op);
     static bool IsProfiledCallOp(OpCode op);
     static bool IsProfiledCallOpWithICIndex(OpCode op);
+    static bool IsProfiledConstructorCall(OpCode op);
     static bool IsProfiledReturnTypeCallOp(OpCode op);
 
     // OpCode conversion functions

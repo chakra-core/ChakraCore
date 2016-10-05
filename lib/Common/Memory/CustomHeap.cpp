@@ -20,10 +20,11 @@ namespace CustomHeap
 
 #pragma region "Constructor and Destructor"
 
-Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators):
+Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators, HANDLE processHandle):
     auxiliaryAllocator(alloc),
     codePageAllocators(codePageAllocators),
-    lastSecondaryAllocStateChangedCount(0)
+    lastSecondaryAllocStateChangedCount(0),
+    processHandle(processHandle)
 #if DBG_DUMP
     , freeObjectSize(0)
     , totalAllocationSize(0)
@@ -221,7 +222,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         if (allocation)
         {
             MEMORY_BASIC_INFORMATION memBasicInfo;
-            size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+            size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->address, &memBasicInfo, sizeof(memBasicInfo));
             Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
         }
 #endif
@@ -252,7 +253,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
 
 #if defined(DBG)
         MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
+        size_t resultBytes = VirtualQueryEx(this->processHandle, page->address, &memBasicInfo, sizeof(memBasicInfo));
         Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
@@ -383,7 +384,7 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
             return nullptr;
         }
 
-        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize);
+        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize, this->processHandle);
         DWORD protectFlags = 0;
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
@@ -485,7 +486,7 @@ void Heap::FreeLargeObjects()
 #endif
         this->codePageAllocators->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-            largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
+        largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
 }
@@ -519,7 +520,13 @@ bool Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdata
 
     uint length = GetChunkSizeForBytes(bytes);
     BVIndex index = GetFreeIndexForPage(page, bytes);
-    Assert(index != BVInvalidIndex);
+    
+    if (index == BVInvalidIndex)
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
+    }
+
     char* address = page->address + Page::Alignment * index;
 
 #if PDATA_ENABLED
@@ -562,6 +569,13 @@ bool Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdata
     this->freeObjectSize -= bytes;
 #endif
 
+    //Section of the Page should already be freed.
+    if (!page->freeBitVector.TestRange(index, length))
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
+    }
+
     page->freeBitVector.ClearRange(index, length);
     VerboseHeapTrace(_u("ChunkSize: %d, Index: %d, Free bit vector in page: "), length, index);
 
@@ -603,7 +617,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
         return nullptr;
     }
 
-    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize);
+    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize, this->processHandle);
 
     DWORD protectFlags = 0;
 
@@ -729,18 +743,19 @@ bool Heap::FreeAllocation(Allocation* object)
     unsigned int length = GetChunkSizeForBytes(object->size);
     BVIndex index = GetIndexInPage(page, object->address);
 
-#if DBG
-    // Make sure that it's not already been freed
-    for (BVIndex i = index; i < length; i++)
+    uint freeBitsCount = page->freeBitVector.Count();
+
+    // Make sure that the section under interest or the whole page has not already been freed
+    if (page->IsEmpty() || page->freeBitVector.TestAnyInRange(index, length))
     {
-        Assert(!page->freeBitVector.Test(i));
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
     }
-#endif
 
     if (page->inFullList)
     {
         VerboseHeapTrace(_u("Recycling page 0x%p because address 0x%p of size %d was freed\n"), page->address, object->address, object->size);
-
+       
         // If the object being freed is equal to the page size, we're
         // going to remove it anyway so don't add it to a bucket
         if (object->size != pageSize)
@@ -752,7 +767,7 @@ bool Heap::FreeAllocation(Allocation* object)
             EnsureAllocationWriteable(object);
 
             // Fill the old buffer with debug breaks
-            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
 
             void* pageAddress = page->address;
 
@@ -777,45 +792,23 @@ bool Heap::FreeAllocation(Allocation* object)
     // If the page is about to become empty then we should not need
     // to set it to executable and we don't expect to restore the
     // previous protection settings.
-    if (page->freeBitVector.Count() == BVUnit::BitsPerWord - length)
+    if (freeBitsCount == BVUnit::BitsPerWord - length)
     {
         EnsureAllocationWriteable(object);
+        FreeAllocationHelper(object, index, length);
+        Assert(page->IsEmpty());
+
+        this->buckets[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);
+        return false;
     }
     else
     {
         EnsureAllocationExecuteWriteable(object);
-    }
 
-    // Fill the old buffer with debug breaks
-    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+        FreeAllocationHelper(object, index, length);
 
-    VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
-#if VERBOSE_HEAP
-    page->freeBitVector.DumpWord();
-#endif
-    VerboseHeapTrace(_u("\n"));
+        // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
 
-    page->freeBitVector.SetRange(index, length);
-    VerboseHeapTrace(_u("Free bit vector in page: "), length, index);
-#if VERBOSE_HEAP
-    page->freeBitVector.DumpWord();
-#endif
-    VerboseHeapTrace(_u("\n"));
-
-#if DBG_DUMP
-    this->freeObjectSize += object->size;
-    this->freesSinceLastCompact += object->size;
-#endif
-
-    this->auxiliaryAllocator->Free(object, sizeof(Allocation));
-
-    if (page->IsEmpty())
-    {
-        this->buckets[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);
-        return false;
-    }
-    else // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
-    {
         DWORD protectFlags = 0;
 
         if (AutoSystemInfo::Data.IsCFGEnabled())
@@ -831,6 +824,35 @@ bool Heap::FreeAllocation(Allocation* object)
         
         return true;
     }
+}
+
+void Heap::FreeAllocationHelper(Allocation* object, BVIndex index, uint length)
+{
+    Page* page = object->page;
+
+    // Fill the old buffer with debug breaks
+    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
+
+    VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
+#if VERBOSE_HEAP
+    page->freeBitVector.DumpWord();
+#endif
+    VerboseHeapTrace(_u("\n"));
+
+    page->freeBitVector.SetRange(index, length);
+
+    VerboseHeapTrace(_u("Free bit vector in page: "), length, index);
+#if VERBOSE_HEAP
+    page->freeBitVector.DumpWord();
+#endif
+    VerboseHeapTrace(_u("\n"));
+
+#if DBG_DUMP
+    this->freeObjectSize += object->size;
+    this->freesSinceLastCompact += object->size;
+#endif
+
+    this->auxiliaryAllocator->Free(object, sizeof(Allocation));
 }
 
 void Heap::FreeDecommittedBuckets()
@@ -1007,7 +1029,7 @@ inline BucketId GetBucketForSize(size_t bytes)
 // Fills the specified buffer with "debug break" instruction encoding.
 // If there is any space left after that due to alignment, fill it with 0.
 // static
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount)
+void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHandle)
 {
 #if defined(_M_ARM)
     // On ARM there is breakpoint instruction (BKPT) which is 0xBEii, where ii (immediate 8) can be any value, 0xBE in particular.
@@ -1016,12 +1038,34 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     // This is 2 bytes, and in case there is a gap of 1 byte in the end, fill it with 0 (there is no 1 byte long THUMB instruction).
     CompileAssert(sizeof(char16) == 2);
     char16 pattern = 0xDEFE;
-    wmemset(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2);
+
+    const bool isLocalProc = processHandle == GetCurrentProcess();
+    BYTE * writeBuffer;
+
+    if (isLocalProc)
+    {
+        writeBuffer = buffer;
+    }
+    else
+    {
+        writeBuffer = HeapNewArray(BYTE, byteCount);
+    }
+    wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
     if (byteCount % 2)
     {
         // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.
-        *(buffer + byteCount - 1) = 0;  // Fill last remaining byte.
+        *(writeBuffer + byteCount - 1) = 0;  // Fill last remaining byte.
     }
+
+    if (!isLocalProc)
+    {
+        if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
+        {
+            Js::Throw::FatalInternalError();
+        }
+        HeapDeleteArray(byteCount, writeBuffer);
+    }
+
 #elif defined(_M_ARM64)
     CompileAssert(sizeof(DWORD) == 4);
     DWORD pattern = 0xd4200000 | (0xf000 << 5);
@@ -1036,7 +1080,7 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     }
 #else
     // On Intel just use "INT 3" instruction which is 0xCC.
-    memset(buffer, 0xCC, byteCount);
+    ChakraMemSet(buffer, 0xCC, byteCount, processHandle);
 #endif
 }
 

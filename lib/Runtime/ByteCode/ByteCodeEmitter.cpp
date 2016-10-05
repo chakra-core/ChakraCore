@@ -533,7 +533,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
         // Pass the frame object and ID array to the runtime, and put the resulting Arguments object
         // at the expected location.
 
-        Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(count * sizeof(Js::PropertyId), count);
+        Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(count * sizeof(Js::PropertyId), count, 0);
         GetFormalArgsArray(this, funcInfo, propIds);
     }
 
@@ -1535,7 +1535,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     // Create and fill the array of local property ID's.
     // They all have slots assigned to them already (if they need them): see StartEmitFunction.
     
-    Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount);
+    Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount, Js::ActivationObjectEx::ExtraSlotCount());
     
     ParseNode *pnodeFnc = funcInfo->root;
     ParseNode *pnode;
@@ -2014,7 +2014,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         uint count = funcInfo->inArgsCount + (funcInfo->root->sxFnc.pnodeRest != nullptr ? 1 : 0) - 1;
         if (count != 0)
         {
-            Js::PropertyIdArray *propIds = RecyclerNewPlus(scriptContext->GetRecycler(), count * sizeof(Js::PropertyId), Js::PropertyIdArray, count);
+            Js::PropertyIdArray *propIds = RecyclerNewPlus(scriptContext->GetRecycler(), count * sizeof(Js::PropertyId), Js::PropertyIdArray, count, 0);
 
             GetFormalArgsArray(this, funcInfo, propIds);
             byteCodeFunction->SetPropertyIdsOfFormals(propIds);
@@ -3699,7 +3699,9 @@ void EnsureFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo)
     {
         Assert(pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl);
         Symbol *sym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
-        if (sym)
+        // If this function is shadowing the arguments symbol in body then skip it.
+        // We will allocate scope slot for the arguments symbol during EmitLocalPropInit.
+        if (sym && !sym->GetIsArguments())
         {
             sym->EnsureScopeSlot(funcInfo);
         }
@@ -8429,7 +8431,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
     }
     else
     {
-        Js::PropertyIdArray *propIds = AnewPlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::PropertyId), Js::PropertyIdArray, argCount);
+        Js::PropertyIdArray *propIds = AnewPlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::PropertyId), Js::PropertyIdArray, argCount, 0);
 
         if (propertyIds->ContainsKey(Js::PropertyIds::__proto__))
         {
@@ -8852,8 +8854,8 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
         // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
         // and the caller of EmitBooleanExpression expects to be able to release this register.
 
-        // For diagnostics purposes, register the name and dot to the statement list.
-        if (expr->nop == knopName || expr->nop == knopDot)
+        // For diagnostics purposes, register the name/dot/index to the statement list.
+        if (expr->nop == knopName || expr->nop == knopDot || expr->nop == knopIndex)
         {
             byteCodeGenerator->StartStatement(expr);
             Emit(expr, byteCodeGenerator, funcInfo, false);
@@ -9217,6 +9219,11 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
         return;
     }
 
+    Js::ByteCodeLabel skipThrow = byteCodeGenerator->Writer()->DefineLabel();
+    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, skipThrow, loopNode->sxForInOrForOf.pnodeObj->location, funcInfo->undefinedConstantRegister);
+    byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_ObjectCoercible));
+    byteCodeGenerator->Writer()->MarkLabel(skipThrow);
+
     Js::RegSlot regException = Js::Constants::NoRegister;
     Js::RegSlot regOffset = Js::Constants::NoRegister;
 
@@ -9239,15 +9246,9 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
     // The enumerator register will be released after this call returns.
     loopNode->sxForInOrForOf.itemLocation = funcInfo->AcquireTmpRegister();
 
-    Js::ByteCodeLabel skipPastLoop = byteCodeGenerator->Writer()->DefineLabel();
-
     // We want call profile information on the @@iterator call, so instead of adding a GetForOfIterator bytecode op
     // to do all the following work in a helper do it explicitly in bytecode so that the @@iterator call is exposed
     // to the profiler and JIT.
-
-    // If collection is null or undefined, don't enter the loop.
-    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, skipPastLoop, loopNode->sxForInOrForOf.pnodeObj->location, funcInfo->nullConstantRegister);
-    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, skipPastLoop, loopNode->sxForInOrForOf.pnodeObj->location, funcInfo->undefinedConstantRegister);
 
     byteCodeGenerator->SetHasFinally(true);
     byteCodeGenerator->SetHasTry(true);
@@ -9329,8 +9330,6 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
         regOffset,
         byteCodeGenerator,
         funcInfo);
-
-    byteCodeGenerator->Writer()->MarkLabel(skipPastLoop);
 
     if (!byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
     {
@@ -10595,28 +10594,29 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Js::RegSlot protoLocation = callObjLocation;
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
 
-        if (propertyId == Js::PropertyIds::length)
+        uint cacheId = funcInfo->FindOrAddInlineCacheId(callObjLocation, propertyId, false, false);
+        if (pnode->IsCallApplyTargetLoad())
         {
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::LdLen_A, pnode->location, protoLocation);
-        }
-        else
-        {
-            uint cacheId = funcInfo->FindOrAddInlineCacheId(callObjLocation, propertyId, false, false);
-            if (pnode->IsCallApplyTargetLoad())
+            if (pnode->sxBin.pnode1->nop == knopSuper)
             {
-                byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFldForCallApplyTarget, pnode->location, protoLocation, cacheId);
+                Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);
+                byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFldForCallApplyTarget, pnode->location, tmpReg, cacheId);
             }
             else
             {
-                if (pnode->sxBin.pnode1->nop == knopSuper)
-                {
-                    Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);
-                    byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::LdSuperFld, pnode->location, tmpReg, funcInfo->thisPointerRegister, cacheId, isConstructorCall);
-                }
-                else
-                {
-                    byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld, pnode->location, callObjLocation, cacheId, isConstructorCall);
-                }
+                byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFldForCallApplyTarget, pnode->location, protoLocation, cacheId);
+            }
+        }
+        else
+        {
+            if (pnode->sxBin.pnode1->nop == knopSuper)
+            {
+                Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);
+                byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::LdSuperFld, pnode->location, tmpReg, funcInfo->thisPointerRegister, cacheId, isConstructorCall);
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld, pnode->location, callObjLocation, cacheId, isConstructorCall);
             }
         }
 
