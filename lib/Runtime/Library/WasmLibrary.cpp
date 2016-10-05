@@ -252,22 +252,10 @@ namespace Js
             {
                 PropertyRecord const * propertyRecord = nullptr;
                 ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
-                Var funcObj;
-
-                Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcExport->funcIndex);
-                uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcExport->funcIndex);
-                switch (funcType)
+                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
+                if (!funcObj)
                 {
-                case Wasm::FunctionIndexTypes::Function:
-                    funcObj = localModuleFunctions[normIndex];
-                    break;
-                case Wasm::FunctionIndexTypes::Import:
-                    funcObj = importFunctions[normIndex];
-                    break;
-                default:
                     funcObj = ctx->GetLibrary()->GetUndefined();
-                    Assert(UNREACHED);
-                    break;
                 }
                 JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
             }
@@ -335,20 +323,29 @@ namespace Js
                 // now, indirect func call to invalid type will give nullptr deref
                 indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
             }
-            Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
-            uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcIndex);
-            switch (funcType)
+            Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, localModuleFunctions, importFunctions);
+            if (funcObj)
             {
-            case Wasm::FunctionIndexTypes::Function:
-                indirectFunctionTables[sigId][i] = localModuleFunctions[normIndex];
-                break;
-            case Wasm::FunctionIndexTypes::Import:
-                indirectFunctionTables[sigId][i] = importFunctions[normIndex];
-                break;
-            default:
-                Assert(UNREACHED);
-                break;
+                indirectFunctionTables[sigId][i] = funcObj;
             }
+        }
+    }
+
+    Var WasmLibrary::GetFunctionObjFromFunctionIndex(Wasm::WasmModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions)
+    {
+        Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
+        uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcIndex);
+        switch (funcType)
+        {
+        case Wasm::FunctionIndexTypes::Function:
+            return localModuleFunctions[normIndex];
+            break;
+        case Wasm::FunctionIndexTypes::Import:
+            return importFunctions[normIndex];
+            break;
+        default:
+            Assert(UNREACHED);
+            return nullptr;
         }
     }
 
@@ -409,21 +406,7 @@ namespace Js
             {
                 if (startFuncIdx != Js::Constants::UninitializedValue)
                 {
-                    Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(startFuncIdx);
-                    uint32 normIndex = wasmModule->NormalizeFunctionIndex(startFuncIdx);
-                    switch (funcType)
-                    {
-                    case Wasm::FunctionIndexTypes::Function:
-                        *start = localModuleFunctions[normIndex];
-                        break;
-                    case Wasm::FunctionIndexTypes::Import:
-                        *start = importFunctions[normIndex];
-                        break;
-                    default:
-                        Assert(UNREACHED);
-                        *start = nullptr;
-                        break;
-                    }
+                    *start = GetFunctionObjFromFunctionIndex(wasmModule, scriptContext, startFuncIdx, localModuleFunctions, importFunctions);
                 }
                 else
                 {

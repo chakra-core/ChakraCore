@@ -85,7 +85,7 @@ WasmModule::NormalizeFunctionIndex(uint32 funcIndex) const
         Assert(funcIndex >= GetImportCount());
         return funcIndex - GetImportCount();
     default:
-        throw WasmCompilationException(_u("Unable to normalize function index"));
+        throw WasmCompilationException(_u("Failed function index normalization: function index out of range"));
     }
 }
 

@@ -176,16 +176,15 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
-            if (funcExport && funcExport->nameLength > 0)
+            if (funcExport &&
+                funcExport->nameLength > 0 &&
+                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
+                m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
             {
-                if (m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                    m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
-                {
-                    nameLength = funcExport->nameLength + 16;
-                    functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
-                    nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
-                    break;
-                }
+                nameLength = funcExport->nameLength + 16;
+                functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
+                nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                break;
             }
         }
     }
@@ -787,14 +786,7 @@ WasmBytecodeGenerator::EmitCall()
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
-            if (isImportCall)
-            {
-                argOp = Js::OpCodeAsmJs::ArgOut_Db;
-            }
-            else
-            {
-                argOp = Js::OpCodeAsmJs::I_ArgOut_Db;
-            }
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Db : Js::OpCodeAsmJs::I_ArgOut_Db;
             break;
         case WasmTypes::I32:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;

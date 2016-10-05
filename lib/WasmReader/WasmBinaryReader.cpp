@@ -551,7 +551,7 @@ WasmBinaryReader::ReadMemorySection()
         ThrowDecodingError(_u("Maximum of 1 memory allowed"));
     }
 
-    if (count > 0)
+    if (count == 1)
     {
         uint32 flags = LEB128(length);
         uint32 minPage = LEB128(length);
