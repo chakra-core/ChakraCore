@@ -69,7 +69,8 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::I32:
         return Js::AsmJsVarType::Int;
     case WasmTypes::I64:
-        throw WasmCompilationException(_u("I64 support NYI"));
+        return Js::AsmJsVarType::Int;
+        //throw WasmCompilationException(_u("I64 support NYI"));
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
@@ -560,8 +561,18 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wbCurrentMemory:
     {
         Js::RegSlot tempReg = m_i32RegSlots.AcquireTmpRegister();
-        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         info = EmitInfo(tempReg, WasmTypes::I32);
+        // todo:: check for imported memory
+        if (m_module->GetMemory()->minSize > 0)
+        {
+            m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        }
+        else
+        {
+            WasmConstLitNode cnst;
+            cnst.i32 = 0;
+            this->EmitLoadConst(info, cnst);
+        }
         break;
     }
     case wbUnreachable:
@@ -1091,6 +1102,13 @@ WasmBytecodeGenerator::EmitMemAccess(bool isStore)
     WasmTypes::WasmType type = signature[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+
+    // todo:: check for imported memory
+    if (m_module->GetMemory()->minSize == 0)
+    {
+        // todo:: make that an out of bounds trap
+        m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
+    }
 
     EmitInfo rhsInfo;
     if (isStore)

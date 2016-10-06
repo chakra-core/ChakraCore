@@ -678,9 +678,11 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ImportKinds::Table:
+            ThrowDecodingError(_u("Exported Kind Table, NYI"));
         case ImportKinds::Global:
+            ThrowDecodingError(_u("Exported Kind Global, NYI"));
         default:
-            ThrowDecodingError(_u("Kind %d, NYI"), kind);
+            ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
             break;
         }
 
@@ -873,8 +875,11 @@ WasmBinaryReader::ReadImportEntries()
             break;
         }
         case ImportKinds::Table:
+            ThrowDecodingError(_u("Imported Kind Table, NYI"));
         case ImportKinds::Memory:
+            ThrowDecodingError(_u("Imported Kind Memory, NYI"));
         case ImportKinds::Global:
+            ThrowDecodingError(_u("Imported Kind Global, NYI"));
         default:
             ThrowDecodingError(_u("Kind %d, NYI"), kind);
             break;
