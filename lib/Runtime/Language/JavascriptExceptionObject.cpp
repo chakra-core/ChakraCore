@@ -66,6 +66,10 @@ namespace Js
             threadContext->ClearPendingSOError();
         }
 
+        // We will very likely throw the cloned exception object. SaveTempUncaughtException
+        // just in case we will and won't need to do this at every throw spot.
+        threadContext->SaveTempUncaughtException(exceptionObject);
+
         return exceptionObject;
     }
 

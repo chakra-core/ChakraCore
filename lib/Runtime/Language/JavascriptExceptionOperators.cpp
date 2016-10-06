@@ -115,6 +115,7 @@ namespace Js
             continuation = amd64_CallWithFakeFrame(catchAddr, frame, spillSize, argsSize, exceptionObject);
         }
 
+        scriptContext->GetThreadContext()->ClearTempUncaughtException();
         return continuation;
     }
 
@@ -149,6 +150,7 @@ namespace Js
         finallyContinuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize);
         if (finallyContinuation)
         {
+            scriptContext->GetThreadContext()->ClearTempUncaughtException();
             return finallyContinuation;
         }
 
@@ -209,6 +211,7 @@ namespace Js
 #endif
         }
 
+        scriptContext->GetThreadContext()->ClearTempUncaughtException();
         return continuation;
     }
 
@@ -253,6 +256,7 @@ namespace Js
 
         if (finallyContinuation)
         {
+            scriptContext->GetThreadContext()->ClearTempUncaughtException();
             return finallyContinuation;
         }
 
@@ -404,6 +408,7 @@ namespace Js
 #endif
         }
 
+        scriptContext->GetThreadContext()->ClearTempUncaughtException();
         return continuationAddr;
     }
 
@@ -539,6 +544,8 @@ namespace Js
 #endif
         if (newContinuationAddr != NULL)
         {
+            scriptContext->GetThreadContext()->ClearTempUncaughtException();
+
             // Non-null return value from the finally indicates that the finally seized the flow
             // with a jump/return out of the region. Continue at that address instead of handling
             // the exception.
@@ -859,14 +866,17 @@ namespace Js
             {
                 DispatchExceptionToDebugger(exceptionObject, scriptContext);
             }
-       }
+        }
 
+        ThreadContext * threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
         if (exceptionObject->IsPendingExceptionObject())
         {
-            ThreadContext * threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
             threadContext->SetHasThrownPendingException();
-
         }
+
+        // Temporarily keep throwing exception object alive (thrown but not yet caught)
+        threadContext->SaveTempUncaughtException(exceptionObject);
+
         throw exceptionObject;
     }
 

@@ -1449,6 +1449,9 @@ ThreadContext::EnterScriptStart(Js::ScriptEntryExitRecord * record, bool doClean
     Assert(recycler->IsReentrantState());
     JS_ETW(EventWriteJSCRIPT_RUN_START(this,0));
 
+    // On enter script we should be out of throw-catch, safe to clear TempUncaughtException
+    this->ClearTempUncaughtException();
+
     // Increment the callRootLevel early so that Dispose ran during FinishConcurrent will not close the current scriptContext
     uint oldCallRootLevel = this->callRootLevel++;
 

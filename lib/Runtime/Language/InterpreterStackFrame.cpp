@@ -2309,6 +2309,7 @@ namespace Js
             {
                 Assert(exception_);
                 exception = exception_;
+                scriptContext->GetThreadContext()->ClearTempUncaughtException();
             }
 
             if (exception)
@@ -6551,6 +6552,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
             }
         }
+
+        this->scriptContext->GetThreadContext()->ClearTempUncaughtException();
     }
 
     void InterpreterStackFrame::ProcessCatch()
@@ -6707,7 +6710,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
             }
         }
-        return;
+
+        this->scriptContext->GetThreadContext()->ClearTempUncaughtException();
     }
 
     void InterpreterStackFrame::TrySetRetOffset()
@@ -6874,6 +6878,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             throw pExceptionObject;
         }
+
+        this->scriptContext->GetThreadContext()->ClearTempUncaughtException();
     }
 
     void InterpreterStackFrame::OP_TryFinally(const unaligned OpLayoutBr* playout)
@@ -6921,6 +6927,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Js::JavascriptExceptionObject* exceptionObj = (Js::JavascriptExceptionObject*)GetNonVarReg(exceptionRegSlot);
         if (exceptionObj && (endOfFinallyBlock || !exceptionObj->IsGeneratorReturnException()))
         {
+            // Temporarily keep throwing exception object alive (thrown but not yet caught)
+            scriptContext->GetThreadContext()->SaveTempUncaughtException(exceptionObj);
+
             throw exceptionObj;
         }
     }
