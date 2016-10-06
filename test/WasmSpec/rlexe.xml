@@ -5,21 +5,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\address.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\address.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\address.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\address.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\binary.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\binary.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -33,21 +19,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\block.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\block.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\block.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\block.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\br.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\br.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -61,21 +33,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\br_if.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\br_if.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\br_if.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\br_if.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\br_table.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\br_table.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -89,21 +47,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\break-drop.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\break-drop.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\break-drop.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\break-drop.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\call.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\call.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -116,50 +60,8 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\call_indirect.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\call_indirect.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\call_indirect.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\call_indirect.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\comments.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\comments.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
       <baseline>baselines\comments.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\comments.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\conversions.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\conversions.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\conversions.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\conversions.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\endianness.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\endianness.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -172,64 +74,8 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\exports.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\exports.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\exports.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\exports.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\fac.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\fac.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
       <baseline>baselines\fac.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\fac.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\float_literals.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\float_literals.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\float_literals.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\float_literals.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\float_memory.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\float_memory.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\float_memory.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\float_memory.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\forward.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\forward.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -242,55 +88,6 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\func.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\func.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\func.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\func.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\func_ptrs.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\func_ptrs.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\func_ptrs.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\func_ptrs.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\functions.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\functions.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\functions.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\functions.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\get_local.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\get_local.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
       <baseline>baselines\get_local.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\get_local.json -endargs -on:wasmdeferred</compile-flags>
     </default>
@@ -298,8 +95,8 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\i64.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\i64.json -endargs</compile-flags>
+      <baseline>baselines\i32.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\i32.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
@@ -312,22 +109,29 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\imports.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\imports.json -endargs</compile-flags>
+      <baseline>baselines\import-after-func.fail.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\import-after-func.fail.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\imports.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\imports.json -endargs -on:wasmdeferred</compile-flags>
+      <baseline>baselines\import-after-global.fail.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\import-after-global.fail.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\int_exprs.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\int_exprs.json -endargs</compile-flags>
+      <baseline>baselines\import-after-memory.fail.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\import-after-memory.fail.json -endargs -on:wasmdeferred</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\import-after-table.fail.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\import-after-table.fail.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
@@ -341,21 +145,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\int_literals.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\int_literals.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\int_literals.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\int_literals.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\labels.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\labels.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -369,21 +159,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\left-to-right.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\left-to-right.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\left-to-right.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\left-to-right.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\loop.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\loop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -396,22 +172,8 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\memory.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\memory.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\memory.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\memory_trap.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\memory_trap.json -endargs</compile-flags>
+      <baseline>baselines\memory_redundancy.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\memory_redundancy.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
@@ -425,21 +187,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\names.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\names.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\names.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\names.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\nop.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\nop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -453,35 +201,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\return.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\return.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\return.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\return.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\runaway-recursion.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\runaway-recursion.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\runaway-recursion.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\runaway-recursion.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\select.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\select.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -495,21 +215,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\set_local.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\set_local.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\set_local.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\set_local.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\start.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\start.json -endargs</compile-flags>
+      <baseline>baselines\stack.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\stack.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
@@ -523,21 +236,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\store_retval.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\store_retval.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\store_retval.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\store_retval.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\switch.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\switch.json -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -550,8 +249,8 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\traps.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\traps.json -endargs</compile-flags>
+      <baseline>baselines\tee_local.baseline</baseline>
+      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\tee_local.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
   <test>
@@ -565,28 +264,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\typecheck.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\typecheck.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\typecheck.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\typecheck.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\unreachable.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\unreachable.json -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines\unreachable.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\unreachable.json -endargs -on:wasmdeferred</compile-flags>
     </default>
   </test>
 </regress-exe>

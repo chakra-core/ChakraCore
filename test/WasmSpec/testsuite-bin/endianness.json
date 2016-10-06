@@ -5,342 +5,342 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "endianness.wast",
-      "line": 157
+      "line": 133
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "endianness.wast",
-      "line": 158
+      "line": 134
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "endianness.wast",
-      "line": 159
+      "line": 135
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "endianness.wast",
-      "line": 160
+      "line": 136
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "endianness.wast",
-      "line": 162
+      "line": 138
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "endianness.wast",
-      "line": 163
+      "line": 139
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "endianness.wast",
-      "line": 164
+      "line": 140
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "endianness.wast",
-      "line": 165
+      "line": 141
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "endianness.wast",
-      "line": 167
+      "line": 143
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "endianness.wast",
-      "line": 168
+      "line": 144
     }, {
       "type": "assert_return",
       "name": "$assert_return_10",
       "file": "endianness.wast",
-      "line": 169
+      "line": 145
     }, {
       "type": "assert_return",
       "name": "$assert_return_11",
       "file": "endianness.wast",
-      "line": 170
+      "line": 146
     }, {
       "type": "assert_return",
       "name": "$assert_return_12",
       "file": "endianness.wast",
-      "line": 172
+      "line": 148
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "endianness.wast",
-      "line": 173
+      "line": 149
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "endianness.wast",
-      "line": 174
+      "line": 150
     }, {
       "type": "assert_return",
       "name": "$assert_return_15",
       "file": "endianness.wast",
-      "line": 175
+      "line": 151
     }, {
       "type": "assert_return",
       "name": "$assert_return_16",
       "file": "endianness.wast",
-      "line": 177
+      "line": 153
     }, {
       "type": "assert_return",
       "name": "$assert_return_17",
       "file": "endianness.wast",
-      "line": 178
+      "line": 154
     }, {
       "type": "assert_return",
       "name": "$assert_return_18",
       "file": "endianness.wast",
-      "line": 179
+      "line": 155
     }, {
       "type": "assert_return",
       "name": "$assert_return_19",
       "file": "endianness.wast",
-      "line": 180
+      "line": 156
     }, {
       "type": "assert_return",
       "name": "$assert_return_20",
       "file": "endianness.wast",
-      "line": 182
+      "line": 158
     }, {
       "type": "assert_return",
       "name": "$assert_return_21",
       "file": "endianness.wast",
-      "line": 183
+      "line": 159
     }, {
       "type": "assert_return",
       "name": "$assert_return_22",
       "file": "endianness.wast",
-      "line": 184
+      "line": 160
     }, {
       "type": "assert_return",
       "name": "$assert_return_23",
       "file": "endianness.wast",
-      "line": 185
+      "line": 161
     }, {
       "type": "assert_return",
       "name": "$assert_return_24",
       "file": "endianness.wast",
-      "line": 187
+      "line": 163
     }, {
       "type": "assert_return",
       "name": "$assert_return_25",
       "file": "endianness.wast",
-      "line": 188
+      "line": 164
     }, {
       "type": "assert_return",
       "name": "$assert_return_26",
       "file": "endianness.wast",
-      "line": 189
+      "line": 165
     }, {
       "type": "assert_return",
       "name": "$assert_return_27",
       "file": "endianness.wast",
-      "line": 190
+      "line": 166
     }, {
       "type": "assert_return",
       "name": "$assert_return_28",
       "file": "endianness.wast",
-      "line": 192
+      "line": 168
     }, {
       "type": "assert_return",
       "name": "$assert_return_29",
       "file": "endianness.wast",
-      "line": 193
+      "line": 169
     }, {
       "type": "assert_return",
       "name": "$assert_return_30",
       "file": "endianness.wast",
-      "line": 194
+      "line": 170
     }, {
       "type": "assert_return",
       "name": "$assert_return_31",
       "file": "endianness.wast",
-      "line": 195
+      "line": 171
     }, {
       "type": "assert_return",
       "name": "$assert_return_32",
       "file": "endianness.wast",
-      "line": 197
+      "line": 173
     }, {
       "type": "assert_return",
       "name": "$assert_return_33",
       "file": "endianness.wast",
-      "line": 198
+      "line": 174
     }, {
       "type": "assert_return",
       "name": "$assert_return_34",
       "file": "endianness.wast",
-      "line": 199
+      "line": 175
     }, {
       "type": "assert_return",
       "name": "$assert_return_35",
       "file": "endianness.wast",
-      "line": 200
+      "line": 176
     }, {
       "type": "assert_return",
       "name": "$assert_return_36",
       "file": "endianness.wast",
-      "line": 202
+      "line": 178
     }, {
       "type": "assert_return",
       "name": "$assert_return_37",
       "file": "endianness.wast",
-      "line": 203
+      "line": 179
     }, {
       "type": "assert_return",
       "name": "$assert_return_38",
       "file": "endianness.wast",
-      "line": 204
+      "line": 180
     }, {
       "type": "assert_return",
       "name": "$assert_return_39",
       "file": "endianness.wast",
-      "line": 205
+      "line": 181
     }, {
       "type": "assert_return",
       "name": "$assert_return_40",
       "file": "endianness.wast",
-      "line": 208
+      "line": 184
     }, {
       "type": "assert_return",
       "name": "$assert_return_41",
       "file": "endianness.wast",
-      "line": 209
+      "line": 185
     }, {
       "type": "assert_return",
       "name": "$assert_return_42",
       "file": "endianness.wast",
-      "line": 210
+      "line": 186
     }, {
       "type": "assert_return",
       "name": "$assert_return_43",
       "file": "endianness.wast",
-      "line": 211
+      "line": 187
     }, {
       "type": "assert_return",
       "name": "$assert_return_44",
       "file": "endianness.wast",
-      "line": 213
+      "line": 189
     }, {
       "type": "assert_return",
       "name": "$assert_return_45",
       "file": "endianness.wast",
-      "line": 214
+      "line": 190
     }, {
       "type": "assert_return",
       "name": "$assert_return_46",
       "file": "endianness.wast",
-      "line": 215
+      "line": 191
     }, {
       "type": "assert_return",
       "name": "$assert_return_47",
       "file": "endianness.wast",
-      "line": 216
+      "line": 192
     }, {
       "type": "assert_return",
       "name": "$assert_return_48",
       "file": "endianness.wast",
-      "line": 218
+      "line": 194
     }, {
       "type": "assert_return",
       "name": "$assert_return_49",
       "file": "endianness.wast",
-      "line": 219
+      "line": 195
     }, {
       "type": "assert_return",
       "name": "$assert_return_50",
       "file": "endianness.wast",
-      "line": 220
+      "line": 196
     }, {
       "type": "assert_return",
       "name": "$assert_return_51",
       "file": "endianness.wast",
-      "line": 221
+      "line": 197
     }, {
       "type": "assert_return",
       "name": "$assert_return_52",
       "file": "endianness.wast",
-      "line": 223
+      "line": 199
     }, {
       "type": "assert_return",
       "name": "$assert_return_53",
       "file": "endianness.wast",
-      "line": 224
+      "line": 200
     }, {
       "type": "assert_return",
       "name": "$assert_return_54",
       "file": "endianness.wast",
-      "line": 225
+      "line": 201
     }, {
       "type": "assert_return",
       "name": "$assert_return_55",
       "file": "endianness.wast",
-      "line": 226
+      "line": 202
     }, {
       "type": "assert_return",
       "name": "$assert_return_56",
       "file": "endianness.wast",
-      "line": 228
+      "line": 204
     }, {
       "type": "assert_return",
       "name": "$assert_return_57",
       "file": "endianness.wast",
-      "line": 229
+      "line": 205
     }, {
       "type": "assert_return",
       "name": "$assert_return_58",
       "file": "endianness.wast",
-      "line": 230
+      "line": 206
     }, {
       "type": "assert_return",
       "name": "$assert_return_59",
       "file": "endianness.wast",
-      "line": 231
+      "line": 207
     }, {
       "type": "assert_return",
       "name": "$assert_return_60",
       "file": "endianness.wast",
-      "line": 233
+      "line": 209
     }, {
       "type": "assert_return",
       "name": "$assert_return_61",
       "file": "endianness.wast",
-      "line": 234
+      "line": 210
     }, {
       "type": "assert_return",
       "name": "$assert_return_62",
       "file": "endianness.wast",
-      "line": 235
+      "line": 211
     }, {
       "type": "assert_return",
       "name": "$assert_return_63",
       "file": "endianness.wast",
-      "line": 236
+      "line": 212
     }, {
       "type": "assert_return",
       "name": "$assert_return_64",
       "file": "endianness.wast",
-      "line": 238
+      "line": 214
     }, {
       "type": "assert_return",
       "name": "$assert_return_65",
       "file": "endianness.wast",
-      "line": 239
+      "line": 215
     }, {
       "type": "assert_return",
       "name": "$assert_return_66",
       "file": "endianness.wast",
-      "line": 240
+      "line": 216
     }, {
       "type": "assert_return",
       "name": "$assert_return_67",
       "file": "endianness.wast",
-      "line": 241
+      "line": 217
     }]
   }]
 }

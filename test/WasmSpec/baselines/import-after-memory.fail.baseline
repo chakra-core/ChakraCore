@@ -1,0 +1,3 @@
+Unexpected Error while compiling import-after-memory.fail.0.wasm
+Error: Compiling wasm failed: Imported Kind Global, NYI
+0/0 tests passed.

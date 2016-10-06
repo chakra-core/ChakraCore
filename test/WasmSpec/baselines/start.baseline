@@ -1,7 +1,5 @@
-$invoke_1 = undefined
-$invoke_3 = undefined
-$invoke_1 = undefined
-$invoke_3 = undefined
-1
-2
-6/6 tests passed.
+start.wast:45: $assert_return_2 failed.
+start.wast:47: $assert_return_4 failed.
+start.wast:74: $assert_return_2 failed.
+start.wast:76: $assert_return_4 failed.
+2/6 tests passed.

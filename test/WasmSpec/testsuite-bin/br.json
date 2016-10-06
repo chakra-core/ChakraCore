@@ -5,322 +5,310 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "br.wast",
-      "line": 253
+      "line": 284
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "br.wast",
-      "line": 254
+      "line": 285
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "br.wast",
-      "line": 255
+      "line": 286
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "br.wast",
-      "line": 256
+      "line": 287
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "br.wast",
-      "line": 258
+      "line": 289
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "br.wast",
-      "line": 259
+      "line": 290
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "br.wast",
-      "line": 260
+      "line": 291
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "br.wast",
-      "line": 261
+      "line": 292
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "br.wast",
-      "line": 263
+      "line": 294
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "br.wast",
-      "line": 264
+      "line": 295
     }, {
       "type": "assert_return",
       "name": "$assert_return_10",
       "file": "br.wast",
-      "line": 265
+      "line": 296
     }, {
       "type": "assert_return",
       "name": "$assert_return_11",
       "file": "br.wast",
-      "line": 266
+      "line": 297
     }, {
       "type": "assert_return",
       "name": "$assert_return_12",
       "file": "br.wast",
-      "line": 268
+      "line": 299
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "br.wast",
-      "line": 269
+      "line": 300
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "br.wast",
-      "line": 270
+      "line": 301
     }, {
       "type": "assert_return",
       "name": "$assert_return_15",
       "file": "br.wast",
-      "line": 272
+      "line": 303
     }, {
       "type": "assert_return",
       "name": "$assert_return_16",
       "file": "br.wast",
-      "line": 274
+      "line": 305
     }, {
       "type": "assert_return",
       "name": "$assert_return_17",
       "file": "br.wast",
-      "line": 275
+      "line": 306
     }, {
       "type": "assert_return",
       "name": "$assert_return_18",
       "file": "br.wast",
-      "line": 276
+      "line": 307
     }, {
       "type": "assert_return",
       "name": "$assert_return_19",
       "file": "br.wast",
-      "line": 278
+      "line": 309
     }, {
       "type": "assert_return",
       "name": "$assert_return_20",
       "file": "br.wast",
-      "line": 279
+      "line": 310
     }, {
       "type": "assert_return",
       "name": "$assert_return_21",
       "file": "br.wast",
-      "line": 280
+      "line": 311
     }, {
       "type": "assert_return",
       "name": "$assert_return_22",
       "file": "br.wast",
-      "line": 282
+      "line": 313
     }, {
       "type": "assert_return",
       "name": "$assert_return_23",
       "file": "br.wast",
-      "line": 284
+      "line": 315
     }, {
       "type": "assert_return",
       "name": "$assert_return_24",
       "file": "br.wast",
-      "line": 285
+      "line": 316
     }, {
       "type": "assert_return",
       "name": "$assert_return_25",
       "file": "br.wast",
-      "line": 286
+      "line": 317
     }, {
       "type": "assert_return",
       "name": "$assert_return_26",
       "file": "br.wast",
-      "line": 287
+      "line": 318
     }, {
       "type": "assert_return",
       "name": "$assert_return_27",
       "file": "br.wast",
-      "line": 288
+      "line": 319
     }, {
       "type": "assert_return",
       "name": "$assert_return_28",
       "file": "br.wast",
-      "line": 290
+      "line": 321
     }, {
       "type": "assert_return",
       "name": "$assert_return_29",
       "file": "br.wast",
-      "line": 291
+      "line": 322
     }, {
       "type": "assert_return",
       "name": "$assert_return_30",
       "file": "br.wast",
-      "line": 292
+      "line": 323
     }, {
       "type": "assert_return",
       "name": "$assert_return_31",
       "file": "br.wast",
-      "line": 293
+      "line": 324
     }, {
       "type": "assert_return",
       "name": "$assert_return_32",
       "file": "br.wast",
-      "line": 294
+      "line": 325
     }, {
       "type": "assert_return",
       "name": "$assert_return_33",
       "file": "br.wast",
-      "line": 296
+      "line": 327
     }, {
       "type": "assert_return",
       "name": "$assert_return_34",
       "file": "br.wast",
-      "line": 297
+      "line": 328
     }, {
       "type": "assert_return",
       "name": "$assert_return_35",
       "file": "br.wast",
-      "line": 298
+      "line": 329
     }, {
       "type": "assert_return",
       "name": "$assert_return_36",
       "file": "br.wast",
-      "line": 300
+      "line": 331
     }, {
       "type": "assert_return",
       "name": "$assert_return_37",
       "file": "br.wast",
-      "line": 301
+      "line": 332
     }, {
       "type": "assert_return",
       "name": "$assert_return_38",
       "file": "br.wast",
-      "line": 302
+      "line": 333
     }, {
       "type": "assert_return",
       "name": "$assert_return_39",
       "file": "br.wast",
-      "line": 304
+      "line": 334
     }, {
       "type": "assert_return",
       "name": "$assert_return_40",
       "file": "br.wast",
-      "line": 305
+      "line": 336
     }, {
       "type": "assert_return",
       "name": "$assert_return_41",
       "file": "br.wast",
-      "line": 306
+      "line": 338
     }, {
       "type": "assert_return",
       "name": "$assert_return_42",
       "file": "br.wast",
-      "line": 307
+      "line": 339
     }, {
       "type": "assert_return",
       "name": "$assert_return_43",
       "file": "br.wast",
-      "line": 309
+      "line": 341
     }, {
       "type": "assert_return",
       "name": "$assert_return_44",
       "file": "br.wast",
-      "line": 311
+      "line": 342
     }, {
       "type": "assert_return",
       "name": "$assert_return_45",
       "file": "br.wast",
-      "line": 312
+      "line": 343
     }, {
       "type": "assert_return",
       "name": "$assert_return_46",
       "file": "br.wast",
-      "line": 314
+      "line": 344
     }, {
       "type": "assert_return",
       "name": "$assert_return_47",
       "file": "br.wast",
-      "line": 315
+      "line": 346
     }, {
       "type": "assert_return",
       "name": "$assert_return_48",
       "file": "br.wast",
-      "line": 316
+      "line": 348
     }, {
       "type": "assert_return",
       "name": "$assert_return_49",
       "file": "br.wast",
-      "line": 317
+      "line": 349
     }, {
       "type": "assert_return",
       "name": "$assert_return_50",
       "file": "br.wast",
-      "line": 319
+      "line": 351
     }, {
       "type": "assert_return",
       "name": "$assert_return_51",
       "file": "br.wast",
-      "line": 321
+      "line": 353
     }, {
       "type": "assert_return",
       "name": "$assert_return_52",
       "file": "br.wast",
-      "line": 322
+      "line": 354
     }, {
       "type": "assert_return",
       "name": "$assert_return_53",
       "file": "br.wast",
-      "line": 324
+      "line": 356
     }, {
       "type": "assert_return",
       "name": "$assert_return_54",
       "file": "br.wast",
-      "line": 326
+      "line": 358
     }, {
       "type": "assert_return",
       "name": "$assert_return_55",
       "file": "br.wast",
-      "line": 327
+      "line": 360
     }, {
       "type": "assert_return",
       "name": "$assert_return_56",
       "file": "br.wast",
-      "line": 329
+      "line": 361
     }, {
       "type": "assert_return",
       "name": "$assert_return_57",
       "file": "br.wast",
-      "line": 331
+      "line": 362
     }, {
       "type": "assert_return",
       "name": "$assert_return_58",
       "file": "br.wast",
-      "line": 333
+      "line": 363
     }, {
       "type": "assert_return",
       "name": "$assert_return_59",
       "file": "br.wast",
-      "line": 334
+      "line": 364
     }, {
       "type": "assert_return",
       "name": "$assert_return_60",
       "file": "br.wast",
-      "line": 335
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_61",
-      "file": "br.wast",
-      "line": 336
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_62",
-      "file": "br.wast",
-      "line": 337
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_63",
-      "file": "br.wast",
-      "line": 338
+      "line": 365
     }]
+  }, {
+    "filename": "br.1.wasm",
+    "commands": []
   }]
 }

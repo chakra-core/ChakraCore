@@ -1,0 +1,10 @@
+i32.wast:61: $assert_trap_23 failed, runtime trap NYI
+i32.wast:62: $assert_trap_24 failed, runtime trap NYI
+i32.wast:63: $assert_trap_25 failed, runtime trap NYI
+i32.wast:80: $assert_trap_41 failed, runtime trap NYI
+i32.wast:81: $assert_trap_42 failed, runtime trap NYI
+i32.wast:97: $assert_trap_57 failed, runtime trap NYI
+i32.wast:98: $assert_trap_58 failed, runtime trap NYI
+i32.wast:117: $assert_trap_76 failed, runtime trap NYI
+i32.wast:118: $assert_trap_77 failed, runtime trap NYI
+333/342 tests passed.

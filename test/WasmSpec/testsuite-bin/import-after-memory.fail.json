@@ -1,0 +1,6 @@
+{
+  "modules": [{
+    "filename": "import-after-memory.fail.0.wasm",
+    "commands": []
+  }]
+}

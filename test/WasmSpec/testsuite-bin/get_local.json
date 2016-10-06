@@ -50,7 +50,7 @@
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "get_local.wast",
-      "line": 82
+      "line": 81
     }]
   }]
 }

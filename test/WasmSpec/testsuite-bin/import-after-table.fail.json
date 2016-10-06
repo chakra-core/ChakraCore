@@ -1,0 +1,6 @@
+{
+  "modules": [{
+    "filename": "import-after-table.fail.0.wasm",
+    "commands": []
+  }]
+}
