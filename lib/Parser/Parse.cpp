@@ -4335,16 +4335,20 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                         Error(ERRsyntax);
                     }
                 }
+                else
+                {
+                    // Add a reference to the hinted name so we can bind it properly.
+                    PidRefStack *ref = PushPidRef(pidHint);
+
+                    if (buildAST)
+                    {
+                        pnodeIdent = CreateNameNode(pidHint, idHintIchMin, idHintIchLim);
+                        pnodeIdent->sxPid.SetSymRef(ref);
+                    }
+                }
 
                 if (buildAST)
                 {
-                    if (!isObjectPattern)
-                    {
-                        pnodeIdent = CreateNameNode(pidHint, idHintIchMin, idHintIchLim);
-                        PidRefStack *ref = PushPidRef(pidHint);
-                        pnodeIdent->sxPid.SetSymRef(ref);
-                    }
-
                     pnodeArg = CreateBinNode(isObjectPattern && !couldBeObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
                 }
             }
