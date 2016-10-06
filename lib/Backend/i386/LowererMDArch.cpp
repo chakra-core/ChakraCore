@@ -1710,7 +1710,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
         this->lowererMD->CreateAssign(stackLimitOpnd, memOpnd, insertInstr);
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
-                               IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func), this->m_func);
+                               IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instr);
 
         if (doInterruptProbe)
@@ -1724,7 +1724,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     {
         // The incremented stack limit is a compile-time constant.
         size_t scriptStackLimit = (size_t)m_func->GetThreadContextInfo()->GetScriptStackLimit();
-        stackLimitOpnd = IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindDynamicMisc, this->m_func);
+        stackLimitOpnd = IR::IntConstOpnd::New((frameSize + scriptStackLimit), TyMachReg, this->m_func);
     }
 
     IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
@@ -1748,7 +1748,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     // Load the arguments to the probe helper and do the call.
     lowererMD->m_lowerer->LoadScriptContext(insertInstr);
     this->lowererMD->LoadHelperArgument(
-        insertInstr, IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func));
+        insertInstr, IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func));
 
     instr = IR::Instr::New(Js::OpCode::Call, this->m_func);
     instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperProbeCurrentStack2, this->m_func));

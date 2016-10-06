@@ -1918,7 +1918,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             if (instr->isInlineeEntryInstr)
             {
-                Js::Var inlineeCallInfo = 0;
+                intptr_t inlineeCallInfo = 0;
                 const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, instr->AsLabelInstr()->GetOffset(), m_pc - m_encoder->m_encodeBuffer);
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs

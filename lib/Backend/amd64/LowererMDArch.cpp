@@ -1800,7 +1800,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         }
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
-                               IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func), this->m_func);
+                               IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instr);
 
         if (doInterruptProbe)
@@ -1814,7 +1814,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     {
         // TODO: michhol, check this math
         size_t scriptStackLimit = m_func->GetThreadContextInfo()->GetScriptStackLimit();
-        this->lowererMD->CreateAssign(stackLimitOpnd, IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindConstant, this->m_func), insertInstr);
+        this->lowererMD->CreateAssign(stackLimitOpnd, IR::IntConstOpnd::New((frameSize + scriptStackLimit), TyMachReg, this->m_func), insertInstr);
     }
 
     // CMP rsp, rax
@@ -1858,7 +1858,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         // MOV RegArg0, frameSize
         this->lowererMD->CreateAssign(
             IR::RegOpnd::New(nullptr, RegArg0, TyMachReg, this->m_func),
-            IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func), insertInstr);
+            IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), insertInstr);
 
         // MOV rax, ThreadContext::ProbeCurrentStack
         target = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, m_func);
@@ -2706,8 +2706,8 @@ LowererMDArch::LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, I
     IR::Instr   *xorTag      = IR::Instr::New(Js::OpCode::XOR,
                                               s2,
                                               s2,
-                                              IR::AddrOpnd::New((Js::Var)Js::FloatTag_Value,
-                                                                IR::AddrOpndKindConstantVar,
+                                              IR::IntConstOpnd::New(Js::FloatTag_Value,
+                                                                TyMachReg,
                                                                 this->m_func,
                                                                 /* dontEncode = */ true),
                                               this->m_func);

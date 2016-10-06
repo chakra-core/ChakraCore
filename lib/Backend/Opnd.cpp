@@ -1990,7 +1990,7 @@ AddrOpnd::NewFromNumberVar(double value, Func *func, bool dontEncode /* = false 
 AddrOpnd *
 AddrOpnd::NewNull(Func *func)
 {
-    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstant, func, true);
+    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstantAddress, func, true);
 }
 
 ///----------------------------------------------------------------------------
@@ -3161,7 +3161,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
     {
         switch (addressKind)
         {
-        case IR::AddrOpndKindConstant:
+        case IR::AddrOpndKindConstantAddress:
         {
 #ifdef _M_X64_OR_ARM64
             char16 const * format = _u("0x%012I64X");

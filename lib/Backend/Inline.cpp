@@ -4927,7 +4927,7 @@ Inline::SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot ac
     };
 
     IR::Opnd *srcs[Js::Constants::InlineeMetaArgCount] = {
-        IR::AddrOpnd::New((Js::Var)actualCount, IR::AddrOpndKindConstant, inlinee, true /*dontEncode*/),
+        IR::IntConstOpnd::New(actualCount, TyInt16, inlinee, true /*dontEncode*/),
 
         /*
          * Don't initialize this slot with the function object yet. In compat mode we evaluate

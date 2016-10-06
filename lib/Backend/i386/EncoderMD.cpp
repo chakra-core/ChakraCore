@@ -1503,17 +1503,17 @@ EncoderMD::EncodeInlineeCallInfo(IR::Instr *instr, uint32 codeOffset)
             instr->GetDst()->AsSymOpnd()->m_sym->AsStackSym()->m_isInlinedArgSlot);
 
     Assert(instr->GetSrc1() &&
-        instr->GetSrc1()->IsAddrOpnd() &&
-        (instr->GetSrc1()->AsAddrOpnd()->m_address == (Js::Var)((size_t)instr->GetSrc1()->AsAddrOpnd()->m_address & 0xF)));
+        instr->GetSrc1()->IsIntConstOpnd() &&
+        (instr->GetSrc1()->AsIntConstOpnd()->GetValue() == (instr->GetSrc1()->AsIntConstOpnd()->GetValue() & 0xF)));
 
-    Js::Var inlineeCallInfo = 0;
+    intptr_t inlineeCallInfo = 0;
     // 28 (x86) bits on the InlineeCallInfo to store the
     // offset of the start of the inlinee. We shouldn't have gotten here with more arguments
     // than can fit in as many bits.
-    const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, (uint32)instr->GetSrc1()->AsAddrOpnd()->m_address, codeOffset);
+    const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, (uint32)instr->GetSrc1()->AsIntConstOpnd()->GetValue(), codeOffset);
     Assert(encodeResult);
 
-    instr->GetSrc1()->AsAddrOpnd()->m_address = inlineeCallInfo;
+    instr->GetSrc1()->AsIntConstOpnd()->SetValue(inlineeCallInfo);
 }
 
 bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)

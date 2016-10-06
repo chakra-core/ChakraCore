@@ -78,28 +78,19 @@ Lowerer::Lower()
                 int offset = m_func->GetLocalVarSlotOffset(i);
 
                 IRType opnd1Type;
-                opnd2;
-                uint32 slotSize = Func::GetDiagLocalSlotSize();
-                switch (slotSize)
-                {
-                case 4:
-                    opnd1Type = TyInt32;
-                    opnd2 = IR::IntConstOpnd::New(Func::c_debugFillPattern4, opnd1Type, m_func);
-                    break;
-                case 8:
-                    opnd1Type = TyInt64;
-                    opnd2 = IR::AddrOpnd::New((Js::Var)Func::c_debugFillPattern8, IR::AddrOpndKindConstant, m_func);
-                    break;
-                default:
-                    AssertMsg(FALSE, "Unsupported slot size!");
-                    opnd1Type = TyIllegal;
-                    opnd2 = nullptr;
-                }
+
+#if defined(_M_IX86) || defined (_M_ARM)
+                opnd1Type = TyInt32;
+                opnd2 = IR::IntConstOpnd::New(Func::c_debugFillPattern4, opnd1Type, m_func);
+#else
+                opnd1Type = TyInt64;
+                opnd2 = IR::IntConstOpnd::New(Func::c_debugFillPattern8, opnd1Type, m_func);
+#endif
 
                 sym = StackSym::New(opnd1Type, m_func);
                 sym->m_offset = offset;
                 sym->m_allocated = true;
-                opnd1 = IR::SymOpnd::New(sym, TyInt32, m_func);
+                opnd1 = IR::SymOpnd::New(sym, opnd1Type, m_func);
                 LowererMD::CreateAssign(opnd1, opnd2, m_func->GetFunctionEntryInsertionPoint());
             }
 #endif
@@ -3706,7 +3697,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, m_func, true),
+                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
                 instr, isZeroed);
         }
     }
@@ -3723,7 +3714,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::Var),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, m_func, true),
+                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
                 instr, isZeroed);
         }
     }
@@ -3921,7 +3912,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, m_func, true),
+                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
                 instr, isZeroed);
         }
     }
@@ -3933,7 +3924,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::Var),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, m_func, true),
+                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
                 instr, isZeroed);
         }
     }
@@ -4066,7 +4057,7 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
     for (uint i = 0; i < missingItem; i++)
     {
         GenerateMemInit(headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-            IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, m_func, true), instr, isHeadSegmentZeroed);
+            IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true), instr, isHeadSegmentZeroed);
     }
     // Skip pass the helper call
     IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
@@ -10675,9 +10666,9 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
         // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
         // ===========================================================
         this->InsertAdd(false, r1, r1, r0, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::IntConstOpnd::New(mMant, TyInt64, m_func, true), instr);
         this->InsertAnd(r1, r1, r3, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::IntConstOpnd::New(mExp, TyInt64, m_func, true), instr);
         this->InsertOr(r1, r1, r3, instr);
         this->InsertMoveBitCast(dst, r1, instr);
 
@@ -12902,7 +12893,7 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
             Assert(prev->m_next->m_opcode == Js::OpCode::LDIMM);
 #endif
             metaArg = prev->m_next;
-            Assert(metaArg->GetSrc1()->AsAddrOpnd()->m_dontEncode == true);
+            Assert(metaArg->GetSrc1()->AsIntConstOpnd()->m_dontEncode == true);
             metaArg->isInlineeEntryInstr = true;
             LowererMD::Legalize(metaArg);
         }
@@ -12931,9 +12922,8 @@ Lowerer::LowerInlineeEnd(IR::Instr *instr)
     // No need to emit code if the function wasn't marked as having implicit calls or bailout.  Dead-Store should have removed inline overhead.
     if (instr->m_func->GetHasImplicitCalls() || PHASE_OFF(Js::DeadStorePhase, this->m_func))
     {
-        // REVIEW (michhol): OOP JIT. why are we creating an addropnd with 0?
         LowererMD::CreateAssign(instr->m_func->GetInlineeArgCountSlotOpnd(),
-                                IR::AddrOpnd::New((intptr_t)0, IR::AddrOpndKindConstantVar, instr->m_func),
+                                IR::IntConstOpnd::New(0, TyMachReg, instr->m_func),
                                 instr);
     }
 
@@ -15796,7 +15786,7 @@ Lowerer::GetMissingItemOpnd(IRType type, Func *func)
 {
     if (type == TyVar)
     {
-        return IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstant, func, true);
+        return IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, func, true);
     }
     if (type == TyInt32)
     {
@@ -18957,7 +18947,7 @@ Lowerer::GenerateSetObjectTypeFromInlineCache(
     if (isTypeTagged)
     {
         // On 64-bit platforms IntConstOpnd isn't big enough to hold TyMachReg values.
-        IR::AddrOpnd * constTypeTagComplement = IR::AddrOpnd::New((Js::Var)~InlineCacheAuxSlotTypeTag, IR::AddrOpndKindConstant, instrToInsertBefore->m_func, /* dontEncode = */ true);
+        IR::IntConstOpnd * constTypeTagComplement = IR::IntConstOpnd::New(~InlineCacheAuxSlotTypeTag, TyMachReg, instrToInsertBefore->m_func, /* dontEncode = */ true);
         InsertAnd(regNewType, regNewType, constTypeTagComplement, instrToInsertBefore);
     }
 
@@ -22192,7 +22182,7 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
         (frameDispLength << (Js::FrameDisplay::GetOffsetOfLength() * 8));
     m_lowererMD.CreateAssign(
         IR::IndirOpnd::New(dstOpnd, 0, TyMachReg, func),
-        IR::AddrOpnd::New((void*)bits, IR::AddrOpndKindConstant, func, true),
+        IR::IntConstOpnd::New(bits, TyMachReg, func, true),
         instr);
 
     instr->Remove();
