@@ -8,9 +8,9 @@ struct CodeGenWorkItem;
 struct JsFunctionCodeGen;
 struct JsLoopBodyCodeGen;
 class InliningDecider;
+class ObjTypeSpecFldInfo;
 namespace Js
 {
-    class ObjTypeSpecFldInfo;
     class FunctionCodeGenJitTimeData;
     class RemoteScriptContext;
 };
@@ -81,7 +81,7 @@ private:
     void UpdateJITState();
     static void LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
     static void LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time);
-    typedef SListCounted<Js::ObjTypeSpecFldInfo*, ArenaAllocator> ObjTypeSpecFldInfoList;
+    typedef SListCounted<ObjTypeSpecFldInfo*, ArenaAllocator> ObjTypeSpecFldInfoList;
 
     template<bool IsInlinee> void GatherCodeGenData(
         Recycler *const recycler,

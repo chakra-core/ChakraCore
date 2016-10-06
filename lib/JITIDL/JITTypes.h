@@ -90,9 +90,10 @@ typedef struct TypeHandlerIDL
 
 typedef struct TypeIDL
 {
+    IDL_Field(boolean) exists;
     IDL_Field(unsigned char) flags;
     IDL_Field(boolean) isShared;
-    IDL_PAD2(0)
+    IDL_PAD1(0)
     IDL_Field(int) typeId;
 
     IDL_Field(CHAKRA_WB_PTR) libAddr;
@@ -119,7 +120,7 @@ typedef struct FixedFieldIDL
     boolean isClassCtor;
     unsigned short valueType;
     unsigned int localFuncId;
-    TypeIDL * type;
+    TypeIDL type;
     CHAKRA_PTR fieldValue;
     CHAKRA_PTR funcInfoAddr;
     CHAKRA_PTR environmentAddr;
@@ -147,13 +148,10 @@ typedef struct JITTimeConstructorCacheIDL
 
 typedef struct ObjTypeSpecFldIDL
 {
-    boolean inUse;
-    IDL_PAD1(0)
     unsigned short flags;
     unsigned short slotIndex;
     unsigned short fixedFieldCount;
     unsigned short fixedFieldInfoArraySize; // 1 (when fixedFieldCount is 0) or fixedFieldCount
-    IDL_PAD2(1)
     int propertyId;
     int typeId;
     unsigned int id;
@@ -611,7 +609,7 @@ typedef struct FunctionJITTimeDataIDL
     unsigned int globalObjTypeSpecFldInfoCount;
     IDL_DEF([size_is(sharedPropGuardCount)]) int * sharedPropertyGuards;
 
-    IDL_DEF([size_is(globalObjTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL * globalObjTypeSpecFldInfoArray;
+    IDL_DEF([size_is(globalObjTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL ** globalObjTypeSpecFldInfoArray;
 
     unsigned int inlineeCount;
     unsigned int ldFldInlineeCount;
@@ -622,7 +620,7 @@ typedef struct FunctionJITTimeDataIDL
 
     X64_PAD4(1)
     unsigned int objTypeSpecFldInfoCount;
-    IDL_DEF([size_is(objTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL * objTypeSpecFldInfoArray;
+    IDL_DEF([size_is(objTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
 
     FunctionJITRuntimeIDL * profiledRuntimeData;
 

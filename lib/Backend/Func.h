@@ -544,8 +544,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     Js::Var AllocateNumber(double value);
 
-    JITObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
-    JITObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
+    ObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
+    ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.
     intptr_t GetRuntimeInlineCache(const uint index) const;
@@ -998,7 +998,7 @@ private:
     void * const    m_codeGenAllocators;
     YieldOffsetResumeLabelList * m_yieldOffsetResumeLabelList;
     StackArgWithFormalsTracker * stackArgWithFormalsTracker;
-    JITObjTypeSpecFldInfo ** m_globalObjTypeSpecFldInfoArray;
+    ObjTypeSpecFldInfo ** m_globalObjTypeSpecFldInfoArray;
     StackSym *CreateInlineeStackSym();
     IR::SymOpnd *GetInlineeOpndAtOffset(int32 offset);
     bool HasLocalVarSlotCreated() const { return m_localVarSlotsOffset != Js::Constants::InvalidOffset; }

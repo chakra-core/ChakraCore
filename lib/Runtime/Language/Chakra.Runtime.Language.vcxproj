@@ -86,7 +86,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicProfileMutator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicProfileStorage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExecutionMode.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenRuntimeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InlineCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionObject.cpp" />
@@ -172,7 +171,6 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
@@ -212,7 +210,6 @@
     <ClInclude Include="EvalMapRecord.h" />
     <ClInclude Include="ExecutionMode.h" />
     <ClInclude Include="ExecutionModes.h" />
-    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionCodeGenRuntimeData.h" />
     <ClInclude Include="i386\StackFrame.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
@@ -222,7 +219,6 @@
     <ClInclude Include="JavascriptExceptionOperators.h" />
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
-    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="ProfilingHelpers.h" />

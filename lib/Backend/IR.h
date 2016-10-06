@@ -429,7 +429,7 @@ public:
     bool       HasByteCodeArgOutCapture();
     void       GenerateArgOutSnapshot();
     IR::Instr* GetArgOutSnapshot();
-    JITTimeFixedField* GetFixedFunction() const;
+    FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
     bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);

@@ -1162,6 +1162,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         body->SetDisableInlineSpread(true);
     }
 
+    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
+
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
     if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
     {
@@ -2329,7 +2331,7 @@ NativeCodeGenerator::GatherCodeGenData(
                     inlineCache = functionBody->GetInlineCache(i);
                 }
 
-                Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
+                ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
@@ -2361,7 +2363,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
-                            objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                            objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
                             if (objTypeSpecFldInfo)
                             {
                                 IncInlineCacheCount(clonedMonoInlineCacheCount);
@@ -2391,7 +2393,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 {
                     if (!objTypeSpecFldInfo && (cacheType & Js::FldInfo_FromAccessor) && (cacheType & Js::FldInfo_InlineCandidate))
                     {
-                        objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                        objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
                         if (objTypeSpecFldInfo)
                         {
                             inlineGetterSetter = true;
@@ -2432,7 +2434,7 @@ NativeCodeGenerator::GatherCodeGenData(
                                 // non configurable
                                 if (objTypeSpecFldInfo == nullptr)
                                 {
-                                    objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                                    objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
                                     if (objTypeSpecFldInfo)
                                     {
                                         IncInlineCacheCount(clonedMonoInlineCacheCount);
@@ -2453,7 +2455,7 @@ NativeCodeGenerator::GatherCodeGenData(
             else if(function && Js::ScriptFunctionWithInlineCache::Is(function) && (cacheType & Js::FldInfo_InlineCandidate || !polymorphicCacheOnFunctionBody))
             {
                 Js::InlineCache *inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
-                Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
+                ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
 
                 if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody))
                 {
@@ -2466,7 +2468,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
-                            objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                            objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
                             if (objTypeSpecFldInfo)
                             {
                                 IncInlineCacheCount(clonedMonoInlineCacheCount);
@@ -2518,7 +2520,7 @@ NativeCodeGenerator::GatherCodeGenData(
                                 Output::Flush();
                             }
 #endif
-                            Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), polymorphicInlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                            ObjTypeSpecFldInfo* objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), polymorphicInlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
                             if (objTypeSpecFldInfo != nullptr)
                             {
                                 if (!isJitTimeDataComputed)
@@ -2824,7 +2826,7 @@ NativeCodeGenerator::GatherCodeGenData(
             //    then even if the field info flags say that the field access may be polymorphic, carry that optimism forward and try to inline apply target.
             if (getSetInlineCandidate ^ callApplyInlineCandidate)
             {
-                Js::ObjTypeSpecFldInfo* info = jitTimeData->GetObjTypeSpecFldInfoArray()->GetInfo(functionBody, inlineCacheIndex);
+                ObjTypeSpecFldInfo* info = jitTimeData->GetObjTypeSpecFldInfoArray()->GetInfo(functionBody, inlineCacheIndex);
                 if (info == nullptr)
                 {
                     continue;
@@ -3003,9 +3005,9 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 #endif
 
         uint objTypeSpecFldInfoCount = objTypeSpecFldInfoList->Count();
-        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Field(Js::ObjTypeSpecFldInfo*), objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
+        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Field(ObjTypeSpecFldInfo*), objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
         uint propertyInfoId = objTypeSpecFldInfoCount - 1;
-        FOREACH_SLISTCOUNTED_ENTRY(Js::ObjTypeSpecFldInfo*, info, objTypeSpecFldInfoList)
+        FOREACH_SLISTCOUNTED_ENTRY(ObjTypeSpecFldInfo*, info, objTypeSpecFldInfoList)
         {
             // Clear field values we don't need so we don't unnecessarily pin them while JIT-ing.
             if (!info->GetKeepFieldValue() && !(info->IsPoly() && info->DoesntHaveEquivalence()))

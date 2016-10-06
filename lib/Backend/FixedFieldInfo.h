@@ -5,9 +5,12 @@
 
 #pragma once
 
-class JITTimeFixedField
+class FixedFieldInfo
 {
 public:
+    FixedFieldInfo() {};
+    static void PopulateFixedField(_In_opt_ Js::Type * type, _In_opt_ Js::Var var, _Out_ FixedFieldInfo * fixed);
+
     void SetNextHasSameFixedField();
 
     bool IsClassCtor() const;
@@ -18,7 +21,7 @@ public:
     intptr_t GetEnvironmentAddr() const;
     intptr_t GetFieldValue() const;
     JITType * GetType() const;
+    FixedFieldIDL * GetRaw();
 private:
-    JITTimeFixedField();
     FixedFieldIDL m_data;
 };

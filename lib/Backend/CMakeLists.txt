@@ -17,6 +17,7 @@ add_library (Chakra.Backend OBJECT
     Encoder.cpp
     FlowGraph.cpp
     Func.cpp
+    FunctionCodeGenJitTimeData.cpp
     FunctionJITRuntimeInfo.cpp
     FunctionJITTimeInfo.cpp
     GlobOpt.cpp
@@ -37,10 +38,9 @@ add_library (Chakra.Backend OBJECT
     InliningHeuristics.cpp
     IntBounds.cpp
     InterpreterThunkEmitter.cpp
-    JITObjTypeSpecFldInfo.cpp
     JITOutput.cpp
     JITTimeConstructorCache.cpp
-    JITTimeFixedField.cpp
+    FixedFieldInfo.cpp
     JITTimeFunctionBody.cpp
     JITTimePolymorphicInlineCache.cpp
     JITTimePolymorphicInlineCacheInfo.cpp
@@ -56,6 +56,7 @@ add_library (Chakra.Backend OBJECT
     LowerMDSharedSimd128.cpp
     NativeCodeData.cpp
     NativeCodeGenerator.cpp
+    ObjTypeSpecFldInfo.cpp
     Opnd.cpp
     PDataManager.cpp
     Peeps.cpp
