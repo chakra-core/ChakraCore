@@ -881,6 +881,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
 
     this->topFunc->SetHasInlinee();
     InsertStatementBoundary(instrNext);
+    InsertStatementBoundary(ldMethodFldInstr);
 
     return instrNext;
 }
