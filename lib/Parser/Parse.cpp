@@ -4892,7 +4892,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
              && !fModule
             );
 
-        pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && !pnodeFnc->sxFnc.IsGenerator());
+        pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && PnFnc::CanBeRedeferred(pnodeFnc->sxFnc.fncFlags));
         isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc;
 
         if (!fLambda &&

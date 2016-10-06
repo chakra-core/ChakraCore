@@ -4013,7 +4013,7 @@ public:
                         return hr;
                     }
 
-                    (*function)->SetNestedFunc(nestedFunction, i, 0u);
+                    (*function)->SetNestedFunc(nestedFunction->GetFunctionInfo(), i, 0u);
                 }
             }
         }

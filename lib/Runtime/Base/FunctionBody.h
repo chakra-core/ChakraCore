@@ -1215,8 +1215,8 @@ namespace Js
 
     class FunctionProxy;
 
-    typedef FunctionProxy** FunctionProxyArray;
-    typedef FunctionProxy** FunctionProxyPtrPtr;
+    typedef FunctionInfo** FunctionInfoArray;
+    typedef FunctionInfo** FunctionInfoPtrPtr;
 
     //
     // FunctionProxy represents a user defined function
@@ -1341,8 +1341,6 @@ namespace Js
         ScriptContext* GetScriptContext() const;
         Utf8SourceInfo* GetUtf8SourceInfo() const { return this->m_utf8SourceInfo; }
         void SetUtf8SourceInfo(Utf8SourceInfo* utf8SourceInfo) { m_utf8SourceInfo = utf8SourceInfo; }
-        void SetReferenceInParentFunction(FunctionProxyPtrPtr reference);
-        void UpdateReferenceInParentFunction(FunctionProxy* newFunctionInfo);
         bool IsInDebugMode() const { return this->m_utf8SourceInfo->IsInDebugMode(); }
 
         DWORD_PTR GetSecondaryHostSourceContext() const;
@@ -1434,7 +1432,7 @@ namespace Js
         NoWriteBarrierPtr<ScriptContext>  m_scriptContext;   // Memory context for this function body
         WriteBarrierPtr<Utf8SourceInfo> m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
-        FunctionProxyPtrPtr m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
+//        FunctionProxyPtrPtr m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
         WriteBarrierPtr<ScriptFunctionType> deferredPrototypeType;
         WriteBarrierPtr<ProxyEntryPointInfo> m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
@@ -1712,7 +1710,7 @@ namespace Js
         {
             NestedArray(uint32 count) :nestedCount(count) {}
             uint32 nestedCount;
-            FunctionProxy* functionProxyArray[0];
+            FunctionInfo* functionInfoArray[0];
         };
         template<typename Fn>
         void ForEachNestedFunc(Fn fn)
@@ -1722,7 +1720,7 @@ namespace Js
             {
                 for (uint i = 0; i < nestedArray->nestedCount; i++)
                 {
-                    if (!fn(nestedArray->functionProxyArray[i], i))
+                    if (!fn(nestedArray->functionInfoArray[i]->GetFunctionProxy(), i))
                     {
                         break;
                     }
@@ -1923,8 +1921,9 @@ namespace Js
         }
 
         void SetSourceInfo(uint sourceIndex, ParseNodePtr node, bool isEval, bool isDynamicFunction);
-        void Copy(ParseableFunctionInfo * proxy);
+        void Copy(ParseableFunctionInfo * other);
         void Copy(FunctionBody* other);
+        void CopyNestedArray(ParseableFunctionInfo * other);
 
         const char16* GetExternalDisplayName() const;
 
@@ -1954,12 +1953,12 @@ namespace Js
             this->SetAuxPtr(AuxPointerType::CachedSourceString, sourceString);
         }
 
-        FunctionProxyArray GetNestedFuncArray();
-        FunctionProxy* GetNestedFunc(uint index);
-        FunctionProxyPtrPtr GetNestedFuncReference(uint index);
+        FunctionInfoArray GetNestedFuncArray();
+        FunctionInfo* GetNestedFunc(uint index);
+        FunctionInfoPtrPtr GetNestedFuncReference(uint index);
+        FunctionProxy* GetNestedFunctionProxy(uint index);
         ParseableFunctionInfo* GetNestedFunctionForExecution(uint index);
-        void SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags);
-        void ClearNestedFunctionParentFunctionReference();
+        void SetNestedFunc(FunctionInfo* nestedFunc, uint index, uint32 flags);
         void BuildDeferredStubs(ParseNode *pnodeFnc);
         DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }

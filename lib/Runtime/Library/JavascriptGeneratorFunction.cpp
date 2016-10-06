@@ -82,9 +82,9 @@ namespace Js
         return static_cast<JavascriptAsyncFunction*>(var);
     }
 
-    JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionProxy** proxyRef)
+    JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
     {
-        FunctionProxy* functionProxy = *proxyRef;
+        FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();

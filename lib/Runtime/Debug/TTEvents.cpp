@@ -273,7 +273,7 @@ namespace TTD
         {
             for(uint32 i = 0; i < resBody->GetNestedCount(); ++i)
             {
-                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunc(i)->EnsureDeserialized();
+                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunctionForExecution(i);
                 Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
 
                 if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
@@ -288,7 +288,7 @@ namespace TTD
                 uint32 endColumn = UINT32_MAX;
                 if(i + 1 < resBody->GetNestedCount())
                 {
-                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunc(i + 1)->EnsureDeserialized();
+                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunctionForExecution(i + 1);
                     Js::FunctionBody* ifbnext = JsSupport::ForceAndGetFunctionBody(ipfinext);
 
                     endLine = ifbnext->GetLineNumber();

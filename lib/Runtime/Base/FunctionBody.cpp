@@ -73,7 +73,6 @@ namespace Js
         m_isPublicLibraryCode(false),
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
-        m_referenceInParentFunction(nullptr),
         m_functionNumber(functionNumber),
         m_defaultEntryPointInfo(nullptr)
     {
@@ -611,12 +610,6 @@ namespace Js
         ParseableFunctionInfo * parseableFunctionInfo = 
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
 
-        if (this->m_referenceInParentFunction)
-        {
-            Assert(*this->m_referenceInParentFunction == this);
-            *m_referenceInParentFunction = parseableFunctionInfo;
-        }
-
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
         this->MapFunctionObjectTypes([&](DynamicType* type)
@@ -1130,7 +1123,6 @@ namespace Js
         CopyDeferParseField(m_grfscr);
         other->SetScopeInfo(this->GetScopeInfo());
         CopyDeferParseField(m_utf8SourceHasBeenSet);
-        CopyDeferParseField(m_referenceInParentFunction);
 #if DBG
         CopyDeferParseField(deferredParseNextFunctionId);
         CopyDeferParseField(scopeObjectSize);
@@ -1152,6 +1144,7 @@ namespace Js
         CopyDeferParseField(m_cbStartOffset);
         CopyDeferParseField(m_cbLength);
 
+        this->CopyNestedArray(other);
 #undef CopyDeferParseField 
    }
 
@@ -1161,19 +1154,20 @@ namespace Js
         other->CopySourceInfo(this);
     }
 
-    void FunctionProxy::SetReferenceInParentFunction(FunctionProxyPtrPtr reference)
+    void ParseableFunctionInfo::CopyNestedArray(ParseableFunctionInfo * other)
     {
-        // No need to tag the reference because the first field of the nested array
-        // is count, so the reference here won't be same as address of the parent nested
-        // array (even for index 0)
-        this->m_referenceInParentFunction = reference;
-    }
-
-    void FunctionProxy::UpdateReferenceInParentFunction(FunctionProxy* newFunctionInfo)
-    {
-        if (this->m_referenceInParentFunction)
+        NestedArray * thisNestedArray = this->GetNestedArray();
+        NestedArray * otherNestedArray = other->GetNestedArray();
+        if (thisNestedArray == nullptr)
         {
-            *m_referenceInParentFunction = newFunctionInfo;
+            Assert(otherNestedArray == nullptr);
+            return;
+        }
+        Assert(otherNestedArray->nestedCount == thisNestedArray->nestedCount);
+
+        for (uint i = 0; i < thisNestedArray->nestedCount; i++)
+        {
+            otherNestedArray->functionInfoArray[i] = thisNestedArray->functionInfoArray[i];
         }
     }
 
@@ -1312,8 +1306,6 @@ namespace Js
       ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
     {
-        proxy->Copy(this);
-
         FunctionInfo * functionInfo = proxy->GetFunctionInfo();
         this->functionInfo = functionInfo;
 
@@ -1327,6 +1319,8 @@ namespace Js
         {
             nestedArray = nullptr;
         }
+
+        proxy->Copy(this);
 
         SetBoundPropertyRecords(proxy->GetBoundPropertyRecords());
         SetDisplayName(proxy->GetDisplayName(), proxy->GetDisplayNameLength(), proxy->GetShortDisplayNameOffset());
@@ -1388,8 +1382,8 @@ namespace Js
         // Initialize nested function array, update back pointers
         for (uint i = 0; i < nestedCount; i++)
         {
-            FunctionProxy * nestedProxy = functionBody->GetNestedFunc(i);
-            info->SetNestedFunc(nestedProxy, i, 0);
+            FunctionInfo * nestedInfo = functionBody->GetNestedFunc(i);
+            info->SetNestedFunc(nestedInfo, i, 0);
         }
 
         // Update function objects
@@ -1567,23 +1561,21 @@ namespace Js
         this->SetDeferredStubs(BuildDeferredStubTree(pnodeFnc, recycler));
     }
 
-    FunctionProxyArray ParseableFunctionInfo::GetNestedFuncArray()
+    FunctionInfoArray ParseableFunctionInfo::GetNestedFuncArray()
     {
         Assert(GetNestedArray() != nullptr);
-        return GetNestedArray()->functionProxyArray;
+        return GetNestedArray()->functionInfoArray;
     }
 
-    void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags)
+    void ParseableFunctionInfo::SetNestedFunc(FunctionInfo* nestedFunc, uint index, uint32 flags)
     {
         AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
-        FunctionProxyArray nested = this->GetNestedFuncArray();
+        FunctionInfoArray nested = this->GetNestedFuncArray();
         nested[index] = nestedFunc;
 
         if (nestedFunc)
         {
-            nestedFunc->SetReferenceInParentFunction(GetNestedFuncReference(index));
-
             if (!this->GetSourceContextInfo()->IsDynamic() && nestedFunc->IsDeferredParseFunction() && nestedFunc->GetParseableFunctionInfo()->GetIsDeclaration() && this->GetIsTopLevel() && !(flags & fscrEvalCode))
             {
                 this->GetUtf8SourceInfo()->TrackDeferredFunction(nestedFunc->GetLocalFunctionId(), nestedFunc->GetParseableFunctionInfo());
@@ -1592,27 +1584,32 @@ namespace Js
 
     }
 
-    FunctionProxy* ParseableFunctionInfo::GetNestedFunc(uint index)
+    FunctionInfo* ParseableFunctionInfo::GetNestedFunc(uint index)
     {
         return *(GetNestedFuncReference(index));
     }
 
-    FunctionProxyPtrPtr ParseableFunctionInfo::GetNestedFuncReference(uint index)
+    FunctionProxy* ParseableFunctionInfo::GetNestedFunctionProxy(uint index)
+    {
+        FunctionInfo *info = GetNestedFunc(index);
+        return info ? info->GetFunctionProxy() : nullptr;
+    }
+
+    FunctionInfoPtrPtr ParseableFunctionInfo::GetNestedFuncReference(uint index)
     {
         AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
-        FunctionProxyArray nested = this->GetNestedFuncArray();
+        FunctionInfoArray nested = this->GetNestedFuncArray();
         return &nested[index];
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::GetNestedFunctionForExecution(uint index)
     {
-        FunctionProxy* currentNestedFunction = this->GetNestedFunc(index);
+        FunctionInfo* currentNestedFunction = this->GetNestedFunc(index);
         Assert(currentNestedFunction);
         if (currentNestedFunction->IsDeferredDeserializeFunction())
         {
-            currentNestedFunction = currentNestedFunction->EnsureDeserialized();
-            this->SetNestedFunc(currentNestedFunction, index, 0u);
+            currentNestedFunction->GetFunctionProxy()->EnsureDeserialized();
         }
 
         return currentNestedFunction->GetParseableFunctionInfo();
@@ -1627,19 +1624,6 @@ namespace Js
         functionInfo->SetFunctionProxy(body);
         body->SetFunctionInfo(functionInfo);
         body->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~(FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::DeferredDeserialize)));
-        this->UpdateReferenceInParentFunction(body);
-    }
-
-    void ParseableFunctionInfo::ClearNestedFunctionParentFunctionReference()
-    {
-        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index)
-        {
-            if (proxy)
-            {
-                proxy->SetReferenceInParentFunction(nullptr);
-            }
-            return true;
-        });
     }
 
     //
@@ -3584,8 +3568,13 @@ namespace Js
     void FunctionBody::SetStackNestedFuncParent(FunctionInfo * parentFunctionInfo)
     {
         FunctionBody * parentFunctionBody = parentFunctionInfo->GetFunctionBody();
-        Assert(this->GetStackNestedFuncParent() == nullptr);
-        Assert(CanDoStackNestedFunc());
+        RecyclerWeakReference<FunctionInfo>* parent = this->GetStackNestedFuncParent();
+        if (parent != nullptr)
+        {
+            Assert(parent->Get() == parentFunctionInfo);
+            return;
+        }
+//        Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
 
         this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionInfo));
@@ -7135,7 +7124,7 @@ namespace Js
 #endif
         this->Cleanup(isShutdown);
         this->CleanupSourceInfo(isShutdown);
-        this->ClearNestedFunctionParentFunctionReference();
+//        this->ClearNestedFunctionParentFunctionReference();
         this->CleanupFunctionProxyCounters();
     }
 

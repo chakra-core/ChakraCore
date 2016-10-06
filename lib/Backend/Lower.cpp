@@ -5393,7 +5393,7 @@ Lowerer::LoadFunctionBodyAsArgument(IR::Instr *instr, IR::IntConstOpnd * functio
     // At which point the deferred function proxy may be collect.
     // Just pass it the address where we will find the function proxy/body
 
-    Js::FunctionProxyPtrPtr proxyRef = instr->m_func->GetJnFunction()->GetNestedFuncReference((uint)functionBodySlotOpnd->GetValue());
+    Js::FunctionInfoPtrPtr proxyRef = instr->m_func->GetJnFunction()->GetNestedFuncReference((uint)functionBodySlotOpnd->GetValue());
     AssertMsg(proxyRef, "Expected FunctionProxy for index of NewScFunc or NewScGenFunc opnd");
     AssertMsg(*proxyRef, "Expected FunctionProxy for index of NewScFunc or NewScGenFunc opnd");
 
@@ -6083,7 +6083,7 @@ Lowerer::LowerIsInst(IR::Instr * isInstInstr, IR::JnHelperMethod helperMethod)
 }
 
 void
-Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyPtrPtr nestedProxy)
+Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionInfoPtrPtr nestedInfo)
 {
     Func * func = this->m_func;
     Assert(func->HasAnyStackNestedFunc());
@@ -6097,7 +6097,7 @@ Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyP
 
     // Currently we don't initialize the environment until we actually allocate the function, we also
     // walk the list of stack function when we need to box them. so we should use initialize it to NullFrameDisplay
-    GenerateStackScriptFunctionInit(addressOpnd, nestedProxy,
+    GenerateStackScriptFunctionInit(addressOpnd, nestedInfo,
         IR::AddrOpnd::New((Js::Var)&Js::NullFrameDisplay, IR::AddrOpndKindDynamicMisc, func), insertBeforeInstr);
 
     // Establish the next link
@@ -6107,26 +6107,29 @@ Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyP
 
 void
 Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,
-    Js::FunctionProxyPtrPtr nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed)
+    Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed)
 {
     Func * func = this->m_func;
     IR::Opnd * functionProxyOpnd;
-    Js::FunctionProxy * functionProxy = *nestedProxy;
+    Js::FunctionInfo * functionInfo = *nestedInfo;
     IR::Opnd * typeOpnd = nullptr;
+    IR::Opnd * functionInfoOpnd = nullptr;
     bool doCheckTypeOpnd = true;
-    if (functionProxy->IsDeferred())
+    if (functionInfo->IsDeferred())
     {
+        functionInfoOpnd = IR::RegOpnd::New(TyMachPtr, func);
+        InsertMove(functionInfoOpnd, IR::MemRefOpnd::New((Js::FunctionInfo**) nestedInfo, TyMachPtr, func), insertBeforeInstr);
         functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(functionProxyOpnd, IR::MemRefOpnd::New((Js::FunctionProxy**) nestedProxy, TyMachPtr, func), insertBeforeInstr);
+        InsertMove(functionProxyOpnd, IR::IndirOpnd::New(functionInfoOpnd->AsRegOpnd(), Js::FunctionInfo::GetFunctionBodyImplOffset(), TyVar, func), insertBeforeInstr);
         typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
         InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
             TyMachPtr, func), insertBeforeInstr);
     }
     else
     {
-        Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
+        Js::FunctionBody * functionBody = functionInfo->GetFunctionBody();
         functionProxyOpnd = CreateFunctionBodyOpnd(functionBody);
-        Js::ScriptFunctionType * type = functionProxy->GetDeferredPrototypeType();
+        Js::ScriptFunctionType * type = functionInfo->GetFunctionProxy()->GetDeferredPrototypeType();
         if (type != nullptr)
         {
             typeOpnd = IR::AddrOpnd::New(type, IR::AddrOpndKindDynamicType, func);
@@ -6164,14 +6167,16 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfConstructorCache(),
         LoadLibraryValueOpnd(insertBeforeInstr, LibraryValue::ValueConstructorCacheDefaultInstance),
         insertBeforeInstr, isZeroed);
-    IR::Opnd *functionInfoOpnd;
-    if (functionProxyOpnd->IsRegOpnd())
+    if (!functionInfoOpnd)
     {
-        functionInfoOpnd = IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
-    }
-    else
-    {
-        functionInfoOpnd = IR::MemRefOpnd::New((BYTE*)functionProxyOpnd->AsAddrOpnd()->m_address + Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
+        if (functionProxyOpnd->IsRegOpnd())
+        {
+            functionInfoOpnd = IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
+        }
+        else
+        {
+            functionInfoOpnd = IR::MemRefOpnd::New((BYTE*)functionProxyOpnd->AsAddrOpnd()->m_address + Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
+        }
     }
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionInfoOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfEnvironment(), envOpnd, insertBeforeInstr, isZeroed);
@@ -6180,12 +6185,12 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
 }
 
 void
-Lowerer::GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionProxyPtrPtr nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr)
+Lowerer::GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr)
 {
     Func * func = this->m_func;
     GenerateScriptFunctionInit(regOpnd,
         LoadVTableValueOpnd(insertBeforeInstr, VTableValue::VtableStackScriptFunction),
-        nestedProxy, envOpnd, insertBeforeInstr);
+        nestedInfo, envOpnd, insertBeforeInstr);
     InsertMove(IR::IndirOpnd::New(regOpnd, Js::StackScriptFunction::GetOffsetOfBoxedScriptFunction(), TyMachPtr, func),
         IR::AddrOpnd::NewNull(func), insertBeforeInstr);
 }
@@ -6238,7 +6243,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnv
         IR::IntConstOpnd::New(Js::FunctionBody::Flags_StackNestedFunc, TyInt8, func, true),
         Js::OpCode::BrEq_A, labelNoStackFunc, newScFuncInstr);
 
-    Js::FunctionProxyPtrPtr nestedProxy = func->GetJnFunction()->GetNestedFuncReference(index);
+    Js::FunctionInfoPtrPtr nestedInfo = func->GetJnFunction()->GetNestedFuncReference(index);
     IR::Instr * instrAssignDst;
     IR::RegOpnd * envOpnd = *ppEnvOpnd;
     if (!func->IsLoopBody())
@@ -6247,7 +6252,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnv
         StackSym * stackSym = StackSym::New(TyMisc, func);
         // ScriptFunction and it's next pointer
         this->m_func->StackAllocate(stackSym, sizeof(Js::StackScriptFunction) + sizeof(Js::StackScriptFunction *));
-        GenerateStackScriptFunctionInit(stackSym, nestedProxy);
+        GenerateStackScriptFunctionInit(stackSym, nestedInfo);
 
         InsertMove(IR::SymOpnd::New(stackSym, Js::ScriptFunction::GetOffsetOfEnvironment(), TyMachPtr, func),
             envOpnd,

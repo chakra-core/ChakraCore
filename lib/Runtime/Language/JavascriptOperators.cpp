@@ -5564,7 +5564,7 @@ CommonNumber:
             uint nestedIndex = entry->nestedIndex;
             uint scopeSlot = entry->scopeSlot;
 
-            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunctionProxy(nestedIndex);
 
             ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 

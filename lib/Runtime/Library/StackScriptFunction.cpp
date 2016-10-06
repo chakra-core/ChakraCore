@@ -125,7 +125,7 @@ namespace Js
 
             for (uint i = 0; i < current->GetNestedCount(); i++)
             {
-                FunctionProxy * nested = current->GetNestedFunc(i);
+                FunctionProxy * nested = current->GetNestedFunctionProxy(i);
                 functionObjectToBox.Add(nested);
                 if (nested->IsFunctionBody())
                 {
@@ -729,14 +729,14 @@ namespace Js
             Output::Flush();
         }
 
-        FunctionProxy * functionBody = stackFunction->GetFunctionProxy();
-        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionBody);
+        FunctionInfo * functionInfo = stackFunction->GetFunctionInfo();
+        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionInfo);
         stackFunction->boxedScriptFunction = boxedFunction;
         stackFunction->SetEnvironment(boxedFrameDisplay);
         return boxedFunction;
     }
 
-    ScriptFunction * StackScriptFunction::OP_NewStackScFunc(FrameDisplay *environment, FunctionProxy** proxyRef, ScriptFunction * stackFunction)
+    ScriptFunction * StackScriptFunction::OP_NewStackScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, ScriptFunction * stackFunction)
     {
         if (stackFunction)
         {
@@ -744,7 +744,7 @@ namespace Js
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-            FunctionProxy* functionProxy = (*proxyRef);
+            FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
             AssertMsg(functionProxy != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
             Assert(stackFunction->GetFunctionInfo()->GetFunctionProxy() == functionProxy);
             Assert(!functionProxy->IsFunctionBody() || functionProxy->GetFunctionBody()->GetStackNestedFuncParentStrongRef() != nullptr);
@@ -758,7 +758,7 @@ namespace Js
                         functionProxy->GetDebugNumberSet(debugStringBuffer), stackFunction);
             return stackFunction;
         }
-        return ScriptFunction::OP_NewScFunc(environment, proxyRef);
+        return ScriptFunction::OP_NewScFunc(environment, infoRef);
     }
 
 #if ENABLE_TTD

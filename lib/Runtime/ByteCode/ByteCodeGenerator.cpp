@@ -1163,7 +1163,7 @@ ParseNode* VisitBlock(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, Pr
     return pnodeLastVal;
 }
 
-FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode)
+FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode, Js::ParseableFunctionInfo * reuseNestedFunc)
 {
     bool funcExprWithName;
     union
@@ -1281,13 +1281,21 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         {
             ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
             propertyRecordList = EnsurePropertyRecordList();
-            parsedFunctionBody = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnode->sxFnc.nestedCount, m_utf8SourceInfo,
-                m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId, propertyRecordList
-                , attributes
+            if (reuseNestedFunc)
+            {
+                Assert(reuseNestedFunc->IsFunctionBody());
+                parsedFunctionBody = reuseNestedFunc->GetFunctionBody();
+            }
+            else
+            {
+                parsedFunctionBody = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnode->sxFnc.nestedCount, m_utf8SourceInfo,
+                    m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId, propertyRecordList
+                    , attributes
 #ifdef PERF_COUNTERS
-                , false /* is function from deferred deserialized proxy */
+                    , false /* is function from deferred deserialized proxy */
 #endif
-            );
+                );
+            }
             LEAVE_PINNED_SCOPE();
         }
         else
@@ -1300,7 +1308,14 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 propertyRecordList = EnsurePropertyRecordList();
             }
 
-            parseableFunctionInfo = Js::ParseableFunctionInfo::New(scriptContext, pnode->sxFnc.nestedCount, functionId, m_utf8SourceInfo, name, nameLength, shortNameOffset, propertyRecordList, attributes);
+            if (reuseNestedFunc)
+            {
+                parseableFunctionInfo = reuseNestedFunc;
+            }
+            else
+            {
+                parseableFunctionInfo = Js::ParseableFunctionInfo::New(scriptContext, pnode->sxFnc.nestedCount, functionId, m_utf8SourceInfo, name, nameLength, shortNameOffset, propertyRecordList, attributes);
+            }
             LEAVE_PINNED_SCOPE();
         }
 
@@ -2258,7 +2273,7 @@ void VisitFncDecls(ParseNode *fns, Fn action)
     }
 }
 
-FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator)
+FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, Js::ParseableFunctionInfo *reuseNestedFunc)
 {
     // Do binding of function name(s), initialize function scope, propagate function-wide properties from
     // the parent (if any).
@@ -2312,7 +2327,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
     }
 
     Assert(pnode->sxFnc.funcInfo == nullptr);
-    FuncInfo* funcInfo = pnode->sxFnc.funcInfo = byteCodeGenerator->StartBindFunction(funcName, funcNameLength, functionNameOffset, &funcExprWithName, pnode);
+    FuncInfo* funcInfo = pnode->sxFnc.funcInfo = byteCodeGenerator->StartBindFunction(funcName, funcNameLength, functionNameOffset, &funcExprWithName, pnode, reuseNestedFunc);
     funcInfo->byteCodeFunction->SetIsNamedFunctionExpression(funcExprWithName);
     funcInfo->byteCodeFunction->SetIsNameIdentifierRef(pnode->sxFnc.isNameIdentifierRef);
     if (fIsRoot)
@@ -3128,7 +3143,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                         // If the current function is not parsed yet, its function body is not generated yet.
                         // Reset pCurrentFunction to null so that it will not be able re-use anything.
-                        Js::FunctionProxy* proxy = pLastReuseFunc->GetNestedFunc((*pIndex));
+                        Js::FunctionProxy* proxy = pLastReuseFunc->GetNestedFunctionProxy((*pIndex));
                         if (proxy && proxy->IsFunctionBody())
                         {
                             byteCodeGenerator->pCurrentFunction = proxy->GetFunctionBody();
@@ -3145,7 +3160,19 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                     byteCodeGenerator->pCurrentFunction = nullptr;
                 }
             }
-            PreVisitFunction(pnodeScope, byteCodeGenerator);
+
+            Js::ParseableFunctionInfo::NestedArray * parentNestedArray = parentFunc->GetNestedArray();
+            Js::ParseableFunctionInfo* reuseNestedFunc = nullptr;
+            if (parentNestedArray)
+            {
+                Assert(*pIndex < parentNestedArray->nestedCount);
+                Js::FunctionInfo * info = parentNestedArray->functionInfoArray[*pIndex];
+                if (info)
+                {
+                    reuseNestedFunc = info->GetParseableFunctionInfo();
+                }
+            }
+            PreVisitFunction(pnodeScope, byteCodeGenerator, reuseNestedFunc);
             FuncInfo *funcInfo = pnodeScope->sxFnc.funcInfo;
 
             parentFuncInfo->OnStartVisitFunction(pnodeScope);
@@ -3157,7 +3184,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                     // Patch current non-parsed function's FunctionBodyImpl with the new generated function body.
                     // So that the function object (pointing to the old function body) can able to get to the new one.
 
-                    Js::FunctionProxy* proxy = pLastReuseFunc->GetNestedFunc((*pIndex));
+                    Js::FunctionProxy* proxy = pLastReuseFunc->GetNestedFunctionProxy((*pIndex));
                     if (proxy && !proxy->IsFunctionBody())
                     {
                         proxy->UpdateFunctionBodyImpl(funcInfo->byteCodeFunction->GetFunctionBody());
@@ -3233,6 +3260,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 EndVisitBlock(pnodeScope->sxFnc.pnodeBodyScope, byteCodeGenerator);
                 EndVisitBlock(pnodeScope->sxFnc.pnodeScopes, byteCodeGenerator);
             }
+#if 0
             else if (pnodeScope->sxFnc.nestedCount)
             {
                 // The nested function is deferred but has its own nested functions.
@@ -3241,6 +3269,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                 memset(funcInfo->byteCodeFunction->GetNestedFuncArray(), 0, pnodeScope->sxFnc.nestedCount * sizeof(Js::FunctionBody*));
             }
+#endif
 
             if (!pnodeScope->sxFnc.pnodeBody)
             {
@@ -3252,7 +3281,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             if (!parentFuncInfo->IsFakeGlobalFunction(byteCodeGenerator->GetFlags()))
             {
                 pnodeScope->sxFnc.nestedIndex = *pIndex;
-                parentFunc->SetNestedFunc(funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());
+                parentFunc->SetNestedFunc(funcInfo->byteCodeFunction->GetFunctionInfo(), (*pIndex)++, byteCodeGenerator->GetFlags());
             }
 
             Assert(parentFunc);

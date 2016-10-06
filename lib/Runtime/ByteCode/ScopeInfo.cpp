@@ -130,7 +130,9 @@ namespace Js
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s\n\n"),
             funcBody->GetDisplayName(), parent->GetDisplayName());
 
-        funcBody->SetScopeInfo(FromParent(parent));
+        ScopeInfo *info = FromParent(parent);
+        info->parentOnly = true;
+        funcBody->SetScopeInfo(info);
     }
 
     //
@@ -180,6 +182,14 @@ namespace Js
         // let/const in that scope with slot index instead of doing a scope lookup.
         // We will have to implement encoding block scope info to enable, which will also
         // enable defer parsing function that are in block scopes.
+
+        if (funcInfo->byteCodeFunction && 
+            funcInfo->byteCodeFunction->GetScopeInfo() != nullptr &&
+            !funcInfo->byteCodeFunction->GetScopeInfo()->IsParentInfoOnly())
+        {
+            // No need to regenerate scope info if we re-compile an enclosing function
+            return;
+        }
 
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope == funcInfo->GetBodyScope());

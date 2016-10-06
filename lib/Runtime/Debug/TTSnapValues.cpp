@@ -1453,7 +1453,7 @@ namespace TTD
                     while(imin < imax)
                     {
                         int imid = (imin + imax) / 2;
-                        Js::ParseableFunctionInfo* pfiMid = parentBody->GetNestedFunc(imid)->EnsureDeserialized();
+                        Js::ParseableFunctionInfo* pfiMid = parentBody->GetNestedFunctionForExecution(imid);
                         Js::FunctionBody* currfb = JsSupport::ForceAndGetFunctionBody(pfiMid);
 
                         int32 cmpval = 0;

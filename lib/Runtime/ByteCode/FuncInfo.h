@@ -429,7 +429,7 @@ public:
     Js::FunctionBody* GetParsedFunctionBody() const
     {
         AssertMsg(this->byteCodeFunction->IsFunctionParsed(), "Function must be parsed in order to call this method");
-        Assert(!IsDeferred());
+        Assert(!IsDeferred() || this->byteCodeFunction->GetFunctionBody()->GetByteCode() != nullptr);
 
         return this->byteCodeFunction->GetFunctionBody();
     }

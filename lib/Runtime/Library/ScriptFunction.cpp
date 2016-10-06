@@ -60,10 +60,10 @@ namespace Js
 #endif
     }
 
-    ScriptFunction * ScriptFunction::OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef)
+    ScriptFunction * ScriptFunction::OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
     {
-        AssertMsg(proxyRef!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
-        FunctionProxy* functionProxy = (*proxyRef);
+        AssertMsg(infoRef!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
+        FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         AssertMsg(functionProxy!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
 
         ScriptContext* scriptContext = functionProxy->GetScriptContext();

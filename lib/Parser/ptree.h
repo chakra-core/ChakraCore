@@ -250,6 +250,8 @@ struct PnFnc
 
     static const int32 MaxStackClosureAST = 800000;
 
+    static bool CanBeRedeferred(unsigned int flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
+
 private:
     void SetFlags(uint flags, bool set)
     {

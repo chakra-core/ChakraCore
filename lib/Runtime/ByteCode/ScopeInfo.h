@@ -46,6 +46,7 @@ namespace Js {
         BYTE areNamesCached : 1;
         BYTE canMergeWithBodyScope : 1;
         BYTE hasLocalInClosure : 1;
+        BYTE parentOnly : 1;
 
         Scope *scope;
         int scopeId;
@@ -54,9 +55,11 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionInfo * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false), parentOnly(false)
         {
         }
+
+        bool IsParentInfoOnly() const { return parentOnly; }
 
         void SetFuncExprScopeInfo(ScopeInfo* funcExprScopeInfo)
         {
