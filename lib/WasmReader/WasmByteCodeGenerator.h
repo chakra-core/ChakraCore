@@ -59,8 +59,13 @@ namespace Wasm
 
     struct BlockInfo
     {
-        EmitInfo* yieldInfo = nullptr;
+        struct YieldInfo
+        {
+            EmitInfo info;
+            bool didYield = false;
+        } *yieldInfo = nullptr;
         Js::ByteCodeLabel label;
+        bool DidYield() const { return HasYield() && yieldInfo->didYield; }
         bool HasYield() const { return yieldInfo != nullptr; }
     };
 
@@ -119,13 +124,13 @@ namespace Wasm
         EmitInfo EmitDrop();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal(bool tee);
-        EmitInfo EmitReturnExpr();
+        EmitInfo EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
 #if DBG_DUMP
         void PrintOpName(WasmOp op) const;
 #endif
-        template<WasmOp wasmOp>
         EmitInfo EmitBr();
+        EmitInfo EmitBrIf();
 
         template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
         EmitInfo EmitMemAccess(bool isStore);
@@ -151,6 +156,7 @@ namespace Wasm
 
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
+        static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack();

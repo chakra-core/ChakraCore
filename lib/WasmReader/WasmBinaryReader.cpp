@@ -334,8 +334,7 @@ WasmBinaryReader::ReadExpr()
         {
             ThrowDecodingError(_u("missing function end opcode"));
         }
-        m_currentNode.op = wbFuncEnd;
-        return wbFuncEnd;
+        return op;
     }
 
     switch (op)
@@ -425,7 +424,12 @@ WasmBinaryReader::CallNode()
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
-    m_currentNode.call.isImport = m_module->GetFunctionIndexType(funcNum) == FunctionIndexTypes::Import;
+    FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(funcNum);
+    if (funcType == FunctionIndexTypes::Invalid)
+    {
+        ThrowDecodingError(_u("Function is out of bound"));
+    }
+    m_currentNode.call.funcType = funcType;
     m_currentNode.call.num = funcNum;
 }
 
@@ -441,7 +445,7 @@ WasmBinaryReader::CallIndirectNode()
         ThrowDecodingError(_u("Function is out of bound"));
     }
     m_currentNode.call.num = funcNum;
-    m_currentNode.call.isImport = false;
+    m_currentNode.call.funcType = FunctionIndexTypes::Function;
 }
 
 void WasmBinaryReader::BlockNode()
@@ -744,9 +748,14 @@ WasmBinaryReader::ReadElementSection()
         for (uint32 iElem = offset; iElem < end; ++iElem)
         {
             uint32 elem = LEB128(length);
-            if (m_module->GetFunctionIndexType(elem) == FunctionIndexTypes::Invalid)
+            FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(elem);
+            if (funcType == FunctionIndexTypes::Invalid)
             {
                 ThrowDecodingError(_u("Invalid function index %d"), elem);
+            }
+            if (funcType == FunctionIndexTypes::Import)
+            {
+                ThrowDecodingError(_u("Import functions in the table NYI"));
             }
             m_module->SetTableValue(elem, iElem);
         }
