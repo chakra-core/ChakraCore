@@ -927,7 +927,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
             ++simd128ArgInCount;
             break;
         }
-        
+
         }
 
         AddInstr(instr, Js::Constants::NoByteCodeOffset);
@@ -1660,7 +1660,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     {
         AddInstr(maskInstr, offset);
     }
-#if _M_IX86
+#if _M_IX86 || !_WIN32
     instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
 #endif
     AddInstr(instr, offset);
@@ -3885,7 +3885,7 @@ IRBuilderAsmJs::BuildInt32x4_2(Js::OpCodeAsmJs newOpcode, uint32 offset)
 
     Js::RegSlot dstRegSlot = GetRegSlotFromSimd128Reg(layout->I4_0);
     Js::RegSlot src1RegSlot = GetRegSlotFromSimd128Reg(layout->I4_1);
-    
+
     BuildSimd_2(newOpcode, offset, dstRegSlot, src1RegSlot, TySimd128I4);
 }
 
@@ -3972,7 +3972,7 @@ void IRBuilderAsmJs::BuildInt32x4_1Int4(Js::OpCodeAsmJs newOpcode, uint32 offset
     srcRegSlot[1] = GetRegSlotFromIntReg(layout->I2);
     srcRegSlot[2] = GetRegSlotFromIntReg(layout->I3);
     srcRegSlot[3] = GetRegSlotFromIntReg(layout->I4);
-    
+
     BuildSimd_1Ints(newOpcode, offset, TySimd128I4, srcRegSlot, dstRegSlot, LANES);
 }
 
@@ -4550,7 +4550,7 @@ void IRBuilderAsmJs::BuildInt8x16_3Int16(Js::OpCodeAsmJs newOpcode, uint32 offse
 
     instr = AddExtendedArg(src1Opnd, nullptr, offset);
     instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    
+
     for (int i = 0; i < 16; ++i)
     {
         instr = AddExtendedArg(srcOpnds[i], instr->GetDst()->AsRegOpnd(), offset);
@@ -4596,7 +4596,7 @@ void IRBuilderAsmJs::BuildInt8x16_2Int16(Js::OpCodeAsmJs newOpcode, uint32 offse
     IR::Instr * instr = nullptr;
     dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int8x16));
     src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int8x16));
-    
+
     instr = AddExtendedArg(src1Opnd, nullptr, offset);
 
     for (int i = 0; i < 16; ++i)
@@ -7311,7 +7311,7 @@ IRBuilderAsmJs::BuildBool32x4_1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset)
     Js::RegSlot src1RegSlot = GetRegSlotFromIntReg(layout->I1);
     Assert(newOpcode == Js::OpCodeAsmJs::Simd128_Splat_B4);
     BuildSimd_1Int1(newOpcode, offset, dstRegSlot, src1RegSlot, TySimd128B4);
- 
+
 }
 
 // bool16x8
@@ -7388,7 +7388,7 @@ ValueType IRBuilderAsmJs::GetSimdValueTypeFromIRType(IRType type)
         Assert(UNREACHED);
     }
     return ValueType::GetObject(ObjectType::UninitializedObject);
-    
+
 }
 
 void IRBuilderAsmJs::BuildSimd_1Ints(Js::OpCodeAsmJs newOpcode, uint32 offset, IRType dstSimdType, Js::RegSlot* srcRegSlots, Js::RegSlot dstRegSlot, uint LANES)

@@ -21,7 +21,7 @@
       <compile-flags>-testtrace:asmjs -simdjs -maic:0 -forceAsmJsLinkFail</compile-flags>
     </default>
   </test>
-  
+
   <test>
     <default>
       <files>basicComparisonDouble.js</files>
@@ -805,7 +805,6 @@
       <files>constloads.js</files>
       <baseline>constloads.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
