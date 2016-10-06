@@ -114,22 +114,22 @@ namespace Wasm
 
         void EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
-        EmitInfo EmitBlockCommon(bool* endOnElse = nullptr);
+        void EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse = nullptr);
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
         EmitInfo EmitCall();
         EmitInfo EmitIfElseExpr();
-        EmitInfo EmitBrTable();
+        void EmitBrTable();
         EmitInfo EmitDrop();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal(bool tee);
-        EmitInfo EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
+        void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
 #if DBG_DUMP
         void PrintOpName(WasmOp op) const;
 #endif
-        EmitInfo EmitBr();
+        void EmitBr();
         EmitInfo EmitBrIf();
 
         template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
@@ -143,17 +143,20 @@ namespace Wasm
 
         template<WasmTypes::WasmType type>
         EmitInfo EmitConst();
+        void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
 
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
 
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
-        void PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
+        BlockInfo PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
+        void YieldToBlock(BlockInfo blockInfo, EmitInfo expr);
         void YieldToBlock(uint relativeDepth, EmitInfo expr);
         bool ShouldYieldToBlock(uint relativeDepth) const;
         BlockInfo GetBlockInfo(uint relativeDepth) const;
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
+        static bool IsBlockOpCode(WasmOp op);
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
@@ -162,13 +165,17 @@ namespace Wasm
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
         void EnterEvalStackScope();
-        EmitInfo ExitEvalStackScope();
+        // The caller needs to release the location of the returned EmitInfo
+        void ExitEvalStackScope();
+        void SetUnreachableState(bool isUnreachable);
+        bool IsUnreachable() const { return this->isUnreachable; }
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
 
         ArenaAllocator m_alloc;
 
+        bool isUnreachable;
         WasmLocal* m_locals;
 
         WasmFunctionInfo* m_funcInfo;
