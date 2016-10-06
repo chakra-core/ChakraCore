@@ -1821,7 +1821,7 @@ namespace Js
         //  3. If func is either undefined or null, return undefined.
         //  4. If IsCallable(func) is false, throw a TypeError exception.
         //  5. Return func.
-        BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, GetScriptContext());
+        BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, requestContext);
         if (!result || JavascriptOperators::IsUndefinedOrNull(varMethod))
         {
             return nullptr;
