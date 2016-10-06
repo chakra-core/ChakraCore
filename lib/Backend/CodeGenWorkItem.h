@@ -39,7 +39,7 @@ public:
 
     uint GetFunctionNumber() const
     {
-        return this->jitData.jitData->bodyData->funcNumber;
+        return this->functionBody->GetFunctionNumber();
     }
 
     ExecutionMode GetJitMode() const
