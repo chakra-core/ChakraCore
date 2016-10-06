@@ -1197,7 +1197,7 @@ private:
     SparseArray<Value>       *  byteCodeConstantValueArray;
     // Global bitvectors
     BVSparse<JitArenaAllocator> * byteCodeConstantValueNumbersBv;
-   
+
     // Global bitvectors
     IntConstantToStackSymMap *  intConstantToStackSymMap;
     IntConstantToValueMap*      intConstantToValueMap;
@@ -1411,7 +1411,7 @@ private:
     bool                    Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal, const ThreadContext::SimdFuncSignature *simdFuncSignature);
     bool                    Simd128CanTypeSpecOpnd(const ValueType opndType, const ValueType expectedType);
     bool                    Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos);
-    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);    
+    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);
     void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
 #endif
 
@@ -1785,6 +1785,7 @@ private:
     void                    CSEAddInstr(BasicBlock *block, IR::Instr *instr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
     void                    OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val);
     bool                    CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly = false);
+    void                    ReorderBlocks();
     bool                    GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttributes exprAttributes, ExprHash *pHash);
     void                    ProcessArrayValueKills(IR::Instr *instr);
     static bool             NeedBailOnImplicitCallForCSE(BasicBlock *block, bool isForwardPass);

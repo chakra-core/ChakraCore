@@ -166,7 +166,7 @@ public:
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
-
+    void         MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicBlock *insertBlock);
 #if DBG_DUMP
     void         Dump();
     void         Dump(bool verbose, const char16 *form);
@@ -190,7 +190,6 @@ private:
     Region *    PropagateRegionFromPred(BasicBlock *block, BasicBlock *predBlock, Region *predRegion, IR::Instr * &tryInstr);
     IR::Instr * PeepCm(IR::Instr *instr);
     IR::Instr * PeepTypedCm(IR::Instr *instr);
-    void        MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicBlock *insertBlock);
     bool        UnsignedCmpPeep(IR::Instr *cmpInstr);
     bool        IsUnsignedOpnd(IR::Opnd *src, IR::Opnd **pShrSrc1);
 

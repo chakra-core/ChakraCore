@@ -313,6 +313,7 @@ GlobOpt::Optimize()
     }
     this->BackwardPass(Js::DeadStorePhase);
     this->TailDupPass();
+    this->ReorderBlocks();
 }
 
 bool GlobOpt::ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indirOpnd)
@@ -7992,6 +7993,53 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     }
 
     return this->SetValue(&this->blockData, dstVal, dst);
+}
+
+static
+bool IsMergeableCandidate(BasicBlock *block)
+{
+    return block->GetPredList()->HasOne() &&
+        block->GetSuccList()->HasOne(); //avoid moving a block with a conditional branch
+}
+
+static
+BasicBlock* GetSingleSuccessor(BasicBlock* block)
+{
+    return (block->GetSuccList()->HasOne() &&
+        block->GetLastInstr()->IsBranchInstr()) ?
+        block->GetSuccList()->Head()->GetSucc() :
+        nullptr;
+}
+
+void
+GlobOpt::ReorderBlocks()
+{
+    //disable trivial block reordering for coroutines
+    //as dead blocks in coroutines need to be accounted for
+    if (!this->func->DoGlobOptsForGeneratorFunc())
+    {
+        return; 
+    }
+
+    FOREACH_BLOCK_ALL(block, this->func->m_fg)
+
+    BasicBlock* succ = GetSingleSuccessor(block);
+
+    if (!succ ||
+        !IsMergeableCandidate(succ) ||
+        block->GetLastInstr()->m_next == succ->GetFirstInstr() /* jumps to adjacent labels */ ||
+        succ->IsLandingPad() //avoid separating a landing pad from a header
+        )
+        continue;
+
+    if (!succ->GetLastInstr()->IsBranchInstr())
+    {
+        succ->GetLastInstr()->InsertAfter(IR::BranchInstr::New(Js::OpCode::Br, succ->GetLastInstr()->m_next->AsLabelInstr(), func));
+        Assert(succ->GetLastInstr()->m_next == GetSingleSuccessor(succ)->GetFirstInstr());
+    }
+
+    this->func->m_fg->MoveBlocksBefore(succ, succ, block->GetLastInstr()->m_next->AsLabelInstr()->GetBasicBlock());
+    NEXT_BLOCK_ALL
 }
 
 Value *
