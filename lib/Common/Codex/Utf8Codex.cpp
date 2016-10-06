@@ -37,7 +37,7 @@ namespace utf8
 
     inline bool ShouldFastPath(LPCUTF8 pb, LPCOLESTR pch)
     {
-        return (reinterpret_cast<size_t>(pb) & mAlignmentMask) == 0 || (reinterpret_cast<size_t>(pch) & mAlignmentMask) == 0;
+        return (reinterpret_cast<size_t>(pb) & mAlignmentMask) == 0 && (reinterpret_cast<size_t>(pch) & mAlignmentMask) == 0;
     }
 
     inline size_t EncodedBytes(char16 prefix)
@@ -336,14 +336,14 @@ LFourByte:
         uint32 codepoint = 0x10000 + ((highTen << 10) | lowTen);
 
         // This is the maximum valid unicode codepoint
-        // This should be ensured anyway since you can't encode a value higher 
+        // This should be ensured anyway since you can't encode a value higher
         // than this as a surrogate pair, so we assert this here
         CodexAssert(codepoint <= 0x10FFFF);
 
         // Now we need to encode the code point into utf-8
         // Codepoints in the range that gets encoded into a surrogate pair
         // gets encoded into 4 bytes under utf8
-        // Since the codepoint can be represented by 21 bits, the encoding 
+        // Since the codepoint can be represented by 21 bits, the encoding
         // does the following: first 3 bits in the first byte, the next 6 in the
         // second, the next six in the third, and the last six in the 4th byte
         *ptr++ = static_cast<utf8char_t>(codepoint >> 18) | 0xF0;
@@ -506,8 +506,8 @@ LSlowPath:
             while (cch-- > 0)
             {
                 // We increment the source pointer here since at least one utf16 code unit is read here
-                // If the code unit turns out to be the high surrogate in a surrogate pair, then 
-                // EncodeTrueUtf8 will consume the low surrogate code unit too by decrementing cch 
+                // If the code unit turns out to be the high surrogate in a surrogate pair, then
+                // EncodeTrueUtf8 will consume the low surrogate code unit too by decrementing cch
                 // and incrementing source
                 dest = EncodeTrueUtf8(*source++, &source, &cch, dest);
                 if (ShouldFastPath(dest, source)) goto LFastPath;

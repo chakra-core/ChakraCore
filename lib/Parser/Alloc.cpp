@@ -10,7 +10,7 @@
 #define DEBUG_TRASHMEM
 #endif //DEBUG
 
-#if _WIN64
+#if TARGET_64
 struct __ALIGN_FOO__ {
     int w1;
     double dbl;
@@ -19,7 +19,7 @@ struct __ALIGN_FOO__ {
 #else
 // Force check for 4 byte alignment to support Win98/ME
 #define ALIGN_FULL 4
-#endif // _WIN64
+#endif  // TARGET_64
 
 #define AlignFull(VALUE) (~(~((VALUE) + (ALIGN_FULL-1)) | (ALIGN_FULL-1)))
 

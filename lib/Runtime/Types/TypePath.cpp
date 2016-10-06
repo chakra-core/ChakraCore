@@ -16,7 +16,7 @@ namespace Js {
     {
         Assert(size <= MaxPathTypeHandlerLength);
         size = max(size, InitialTypePathSize);
-        
+
 
         if (PHASE_OFF1(Js::TypePathDynamicSizePhase))
         {
@@ -51,8 +51,9 @@ namespace Js {
            return Constants::NoSlot;
         }
         PropertyIndex propIndex = Constants::NoSlot;
-        if (this->GetData()->map.TryGetValue(propId, &propIndex, assignments)) {
-           if (propIndex<typePathLength) {
+        if (this->GetData()->map.TryGetValue(propId, &propIndex,
+                static_cast<const PropertyRecord **>(assignments))) {
+            if (propIndex<typePathLength) {
                 return propIndex;
             }
         }

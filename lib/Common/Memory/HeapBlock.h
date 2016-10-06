@@ -446,10 +446,10 @@ public:
 
     void ProtectUnusablePages() {}
     void RestoreUnusablePages() {}
-    
-    uint GetUnusablePageCount() 
+
+    uint GetUnusablePageCount()
     {
-        return 0; 
+        return 0;
     }
 
 #ifdef RECYCLER_WRITE_BARRIER

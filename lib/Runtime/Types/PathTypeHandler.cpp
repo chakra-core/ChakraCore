@@ -1465,7 +1465,7 @@ namespace Js
                     oldTypeToPromotedTypeMap = RecyclerNew(instance->GetRecycler(), TypeTransitionMap, instance->GetRecycler(), 2);
                     newPrototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Var)oldTypeToPromotedTypeMap, PropertyOperationFlags::PropertyOperation_Force, nullptr);
                 }
-                
+
                 // oldType is kind of weakReference here
                 oldTypeToPromotedTypeMap->Item(reinterpret_cast<uintptr_t>(oldType), cachedDynamicType);
 
@@ -1482,7 +1482,7 @@ namespace Js
                         Output::Print(_u("TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.\n"));
 #if DBG
                     }
-#endif 
+#endif
                     Output::Flush();
                 }
 
@@ -1725,7 +1725,7 @@ namespace Js
 
         bool populateInlineCache = true;
 
-        PathTypeHandler* newTypeHandler = (PathTypeHandler*)instance->GetTypeHandler();
+        PathTypeHandlerBase* newTypeHandler = (PathTypeHandlerBase*)instance->GetTypeHandler();
 
         if (slotIndex >= newTypeHandler->typePath->GetMaxInitializedLength())
         {
