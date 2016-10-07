@@ -113,6 +113,19 @@ public:
     virtual ~SecondaryAllocator() {};
 };
 
+class PageAllocatorBaseCommon;
+
+class SegmentBaseCommon
+{
+protected:
+    PageAllocatorBaseCommon* allocator;
+
+public:
+    SegmentBaseCommon(PageAllocatorBaseCommon* allocator);
+    virtual ~SegmentBaseCommon() {}
+    bool IsInPreReservedHeapPageAllocator() const;
+};
+
 /*
  * A segment is a collection of pages. A page corresponds to the concept of an
  * OS memory page. Segments allocate memory using the OS VirtualAlloc call.
@@ -120,7 +133,7 @@ public:
  * a system-wide constant.
  */
 template<typename TVirtualAlloc>
-class SegmentBase
+class SegmentBase: public SegmentBaseCommon
 {
 public:
     SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, DECLSPEC_GUARD_OVERFLOW size_t pageCount);
@@ -140,8 +153,10 @@ public:
 
     bool CanAllocSecondary() { Assert(secondaryAllocator); return secondaryAllocator->CanAllocate(); }
 
-    PageAllocatorBase<TVirtualAlloc>* GetAllocator() const { return allocator; }
-    bool IsInPreReservedHeapPageAllocator() const;
+    PageAllocatorBase<TVirtualAlloc>* GetAllocator() const
+    {
+        return static_cast<PageAllocatorBase<TVirtualAlloc>*>(allocator);
+    }
 
     bool Initialize(DWORD allocFlags, bool excludeGuardPages);
 
@@ -161,7 +176,7 @@ public:
 
     bool IsInCustomHeapAllocator() const
     {
-        return this->allocator->type == PageAllocatorType::PageAllocatorType_CustomHeap;
+        return this->GetAllocator()->type == PageAllocatorType::PageAllocatorType_CustomHeap;
     }
 
     SecondaryAllocator* GetSecondaryAllocator() { return secondaryAllocator; }
@@ -185,7 +200,6 @@ protected:
 
     SecondaryAllocator* secondaryAllocator;
     char * address;
-    PageAllocatorBase<TVirtualAlloc> * allocator;
     size_t segmentPageCount;
     uint trailingGuardPageCount;
     uint leadingGuardPageCount;
@@ -365,6 +379,21 @@ private:
     friend class HeapPageAllocator<>;
 };
 
+class PageAllocatorBaseCommon
+{
+protected:
+    void* virtualAllocator;  // non-nullptr means PreReserved page allocator
+
+public:
+    PageAllocatorBaseCommon() : virtualAllocator(nullptr) {}
+    virtual ~PageAllocatorBaseCommon() {}
+
+    bool IsPreReservedPageAllocator() const
+    {
+        return virtualAllocator != nullptr;
+    }
+};
+
 /*
  * This allocator is responsible for allocating and freeing pages. It does
  * so by virtue of allocating segments for groups of pages, and then handing
@@ -374,7 +403,7 @@ private:
  */
 
 template<typename TVirtualAlloc>
-class PageAllocatorBase
+class PageAllocatorBase: public PageAllocatorBaseCommon
 {
     friend class ::CodeGenNumberThreadAllocator;
     friend struct ::XProcNumberPageSegmentManager;
@@ -442,9 +471,7 @@ public:
     uint GetMaxAllocPageCount();
 
     //VirtualAllocator APIs
-    TVirtualAlloc * GetVirtualAllocator() { Assert(virtualAllocator != nullptr); return virtualAllocator; }
-    bool IsPreReservedPageAllocator();
-
+    TVirtualAlloc * GetVirtualAllocator() const;
 
     PageAllocation * AllocPagesForBytes(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     PageAllocation * AllocAllocation(DECLSPEC_GUARD_OVERFLOW size_t pageCount);
@@ -598,9 +625,6 @@ protected:
     bool disableAllocationOutOfMemory;
     bool excludeGuardPages;
     AllocationPolicyManager * policyManager;
-private:
-    TVirtualAlloc * virtualAllocator;
-protected:
 
 #ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;
