@@ -246,12 +246,24 @@ LowererMD::LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper, IR
 IR::Instr *
 LowererMD::LowerAsmJsCallI(IR::Instr * callInstr)
 {
+#if DBG
+    if (PHASE_ON(Js::AsmjsCallDebugBreakPhase, this->m_func))
+    {
+        this->GenerateDebugBreak(callInstr->m_next);
+    }
+#endif
     return this->lowererMDArch.LowerAsmJsCallI(callInstr);
 }
 
 IR::Instr *
 LowererMD::LowerAsmJsCallE(IR::Instr * callInstr)
 {
+#if DBG
+    if (PHASE_ON(Js::AsmjsCallDebugBreakPhase, this->m_func))
+    {
+        this->GenerateDebugBreak(callInstr->m_next);
+    }
+#endif
     return this->lowererMDArch.LowerAsmJsCallE(callInstr);
 }
 
@@ -823,10 +835,9 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             retInstr->UnlinkSrc1();
             retInstr->SetSrc1(srcPair.low);
 
-            // Mov high bits to ecx
-            IR::RegOpnd* regEcx = IR::RegOpnd::New(TyInt32, this->m_func);
-            regEcx->SetReg(RegEDX);
-            IR::Instr* movHighInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEcx, srcPair.high, this->m_func);
+            // Mov high bits to edx
+            IR::RegOpnd* regEdx = IR::RegOpnd::New(nullptr, RegEDX, TyInt32, this->m_func);
+            IR::Instr* movHighInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEdx, srcPair.high, this->m_func);
             retInstr->InsertBefore(ChangeToAssign(movHighInstr));
 #endif
         }
@@ -5844,6 +5855,13 @@ LowererMD::GenerateCtz(IR::Instr * instr)
 {
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
+#ifdef _M_IX86
+    if (instr->GetSrc1()->IsInt64())
+    {
+        lowererMDArch.EmitInt64Instr(instr);
+        return;
+    }
+#endif
     if (AutoSystemInfo::Data.TZCntAvailable())
     {
         instr->m_opcode = Js::OpCode::TZCNT;
@@ -5870,7 +5888,13 @@ LowererMD::GeneratePopCnt(IR::Instr * instr)
 {
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
     Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32() || instr->GetDst()->IsInt64());
-
+#ifdef _M_IX86
+    if (instr->GetSrc1()->IsInt64())
+    {
+        lowererMDArch.EmitInt64Instr(instr);
+        return;
+    }
+#endif
     if (AutoSystemInfo::Data.PopCntAvailable())
     {
         instr->m_opcode = Js::OpCode::POPCNT;
@@ -5890,6 +5914,13 @@ LowererMD::GenerateClz(IR::Instr * instr)
 {
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
+#ifdef _M_IX86
+    if (instr->GetSrc1()->IsInt64())
+    {
+        lowererMDArch.EmitInt64Instr(instr);
+        return;
+    }
+#endif
     if (AutoSystemInfo::Data.LZCntAvailable())
     {
         instr->m_opcode = Js::OpCode::LZCNT;

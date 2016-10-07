@@ -1949,8 +1949,12 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
     Assert(!src2 || src2->IsInt64());
 
     const auto LowerToHelper = [&](IR::JnHelperMethod helper) {
+        if (src2)
+        {
+            LoadInt64HelperArgument(instr, src2);
+        }
+        Assert(src1);
         LoadInt64HelperArgument(instr, src1);
-        LoadInt64HelperArgument(instr, src2);
 
         IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
         instr->InsertBefore(callInstr);
@@ -1958,74 +1962,152 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
         instr->Remove();
         return callInstr;
     };
-    Js::OpCode brOpcode, cmOpCode;
+
+    IR::JnHelperMethod helperSigned = IR::HelperInvalid, helperUnsigned = IR::HelperInvalid;
+    Js::OpCode cmOpCode, lowOpCode, highOpCode;
     switch (instr->m_opcode)
     {
+    case Js::OpCode::Xor_I4:
+        lowOpCode = Js::OpCode::XOR;
+        highOpCode = Js::OpCode::XOR;
+        goto binopCommon;
+    case Js::OpCode::Or_I4:
+        lowOpCode = Js::OpCode::OR;
+        highOpCode = Js::OpCode::OR;
+        goto binopCommon;
+    case Js::OpCode::And_I4:
+        lowOpCode = Js::OpCode::AND;
+        highOpCode = Js::OpCode::AND;
+        goto binopCommon;
+    case Js::OpCode::Add_I4:
+        lowOpCode = Js::OpCode::ADD;
+        highOpCode = Js::OpCode::ADC;
+        goto binopCommon;
     case Js::OpCode::Sub_I4:
-        instr = LowerToHelper(IR::HelperDirectMath_Int64Sub);
-        break;
-    case Js::OpCode::Mul_I4:
-        instr = LowerToHelper(IR::HelperDirectMath_Int64Mul);
-        break;
+        lowOpCode = Js::OpCode::SUB;
+        highOpCode = Js::OpCode::SBB;
+binopCommon:
+    {
+        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
+        Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
+        Int64RegPair src2Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src2);
+        IR::Instr* lowInstr = IR::Instr::New(lowOpCode, dstPair.low, src1Pair.low, src2Pair.low, m_func);
+        instr->InsertBefore(lowInstr);
+        LowererMD::Legalize(lowInstr);
 
+        instr->ReplaceDst(dstPair.high);
+        instr->ReplaceSrc1(src1Pair.high);
+        instr->ReplaceSrc2(src2Pair.high);
+        instr->m_opcode = highOpCode;
+        LowererMD::Legalize(instr);
+        break;
+    }
+    case Js::OpCode::ShrU_I4:
+        helperSigned = IR::HelperDirectMath_Int64ShrU;
+        goto helperCommon;
+    case Js::OpCode::Shr_I4:
+        helperSigned = IR::HelperDirectMath_Int64Shr;
+        goto helperCommon;
+    case Js::OpCode::Shl_I4:
+        helperSigned = IR::HelperDirectMath_Int64Shl;
+        goto helperCommon;
+    case Js::OpCode::Rol_I4:
+        helperSigned = IR::HelperDirectMath_Int64Rol;
+        goto helperCommon;
+    case Js::OpCode::Ror_I4:
+        helperSigned = IR::HelperDirectMath_Int64Ror;
+        goto helperCommon;
+    case Js::OpCode::InlineMathClz:
+        helperSigned = IR::HelperDirectMath_Int64Clz;
+        goto helperCommon;
+    case Js::OpCode::Ctz:
+        helperSigned = IR::HelperDirectMath_Int64Ctz;
+        goto helperCommon;
+    case Js::OpCode::PopCnt:
+        helperSigned = IR::HelperPopCnt64;
+        goto helperCommon;
+    case Js::OpCode::Mul_I4:
+        helperSigned = IR::HelperDirectMath_Int64Mul;
+        goto helperCommon;
+    case Js::OpCode::Div_I4:
+        helperUnsigned = IR::HelperDirectMath_Int64DivU;
+        helperSigned = IR::HelperDirectMath_Int64DivS;
+        goto helperCommon;
+    case Js::OpCode::Rem_I4:
+        helperUnsigned = IR::HelperDirectMath_Int64RemU;
+        helperSigned = IR::HelperDirectMath_Int64RemS;
+helperCommon:
+        Assert(dst && src1);
+        if (IRType_IsUnsignedInt(src1->GetType()) && helperUnsigned != IR::HelperInvalid)
+        {
+            Assert(!src2 || IRType_IsUnsignedInt(src2->GetType()));
+            instr = LowerToHelper(helperUnsigned);
+        }
+        else
+        {
+            Assert(helperSigned != IR::HelperInvalid);
+            Assert(IRType_IsSignedInt(src1->GetType()) && (!src2 || IRType_IsSignedInt(src2->GetType())));
+            instr = LowerToHelper(helperSigned);
+        }
+        break;
     case Js::OpCode::BrTrue_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
-        brOpcode = Js::OpCode::JNE;
+        instr->m_opcode = Js::OpCode::JNE;
         goto br_Common;
 
     case Js::OpCode::BrFalse_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
-        brOpcode = Js::OpCode::JEQ;
+        instr->m_opcode = Js::OpCode::JEQ;
         goto br_Common;
 
     case Js::OpCode::BrEq_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
-        brOpcode = Js::OpCode::JEQ;
+        instr->m_opcode = Js::OpCode::JEQ;
         goto br_Common;
 
     case Js::OpCode::BrNeq_I4:
         cmOpCode = Js::OpCode::CmNeq_I4;
-        brOpcode = Js::OpCode::JNE;
+        instr->m_opcode = Js::OpCode::JNE;
         goto br_Common;
 
     case Js::OpCode::BrUnGt_I4:
         cmOpCode = Js::OpCode::CmUnGt_I4;
-        brOpcode = Js::OpCode::JA;
+        instr->m_opcode = Js::OpCode::JA;
         goto br_Common;
 
     case Js::OpCode::BrUnGe_I4:
         cmOpCode = Js::OpCode::CmUnGe_I4;
-        brOpcode = Js::OpCode::JAE;
+        instr->m_opcode = Js::OpCode::JAE;
         goto br_Common;
 
     case Js::OpCode::BrUnLe_I4:
         cmOpCode = Js::OpCode::CmUnLe_I4;
-        brOpcode = Js::OpCode::JBE;
+        instr->m_opcode = Js::OpCode::JBE;
         goto br_Common;
 
     case Js::OpCode::BrUnLt_I4:
         cmOpCode = Js::OpCode::CmUnLt_I4;
-        brOpcode = Js::OpCode::JB;
+        instr->m_opcode = Js::OpCode::JB;
         goto br_Common;
 
     case Js::OpCode::BrGt_I4:
         cmOpCode = Js::OpCode::CmGt_I4;
-        brOpcode = Js::OpCode::JGT;
+        instr->m_opcode = Js::OpCode::JGT;
         goto br_Common;
 
     case Js::OpCode::BrGe_I4:
         cmOpCode = Js::OpCode::CmGe_I4;
-        brOpcode = Js::OpCode::JGE;
+        instr->m_opcode = Js::OpCode::JGE;
         goto br_Common;
 
     case Js::OpCode::BrLe_I4:
         cmOpCode = Js::OpCode::CmLe_I4;
-        brOpcode = Js::OpCode::JLE;
+        instr->m_opcode = Js::OpCode::JLE;
         goto br_Common;
 
     case Js::OpCode::BrLt_I4:
         cmOpCode = Js::OpCode::CmLt_I4;
-        brOpcode = Js::OpCode::JLT;
+        instr->m_opcode = Js::OpCode::JLT;
 br_Common:
         {
             IR::Opnd* cmDst = IR::RegOpnd::New(TyInt32, this->m_func);
@@ -2042,7 +2124,6 @@ br_Common:
             instr->InsertBefore(cmInstr);
             // Todo::Emit the compare and jump directly instead of doing a compare first
             lowererMD->GenerateFastCmXxI4(cmInstr);
-            instr->m_opcode = brOpcode;
             break;
         }
 

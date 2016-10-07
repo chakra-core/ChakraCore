@@ -21857,6 +21857,18 @@ Lowerer::LowerDivI4(IR::Instr * instr)
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Div_I4);
 
+#ifdef _M_IX86
+    if (
+        instr->GetDst() && instr->GetDst()->IsInt64() ||
+        instr->GetSrc1() && instr->GetSrc1()->IsInt64() ||
+        instr->GetSrc2() && instr->GetSrc2()->IsInt64()
+        )
+    {
+        m_lowererMD.EmitInt64Instr(instr);
+        return;
+    }
+#endif
+
     if (m_func->GetJnFunction()->GetIsAsmjsMode())
     {
         LowerDivI4Common(instr);
