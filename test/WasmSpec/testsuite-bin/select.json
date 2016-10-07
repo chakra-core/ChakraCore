@@ -47,8 +47,8 @@
       "file": "select.wast",
       "line": 31
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_9",
+      "type": "assert_return_nan",
+      "name": "$assert_return_nan_9",
       "file": "select.wast",
       "line": 32
     }, {
@@ -77,8 +77,8 @@
       "file": "select.wast",
       "line": 37
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_15",
+      "type": "assert_return_nan",
+      "name": "$assert_return_nan_15",
       "file": "select.wast",
       "line": 38
     }, {
