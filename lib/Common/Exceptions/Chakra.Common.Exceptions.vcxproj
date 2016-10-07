@@ -47,7 +47,6 @@
     <ClInclude Include="ExceptionCheck.h" />
     <ClInclude Include="InternalErrorException.h" />
     <ClInclude Include="JavascriptException.h" />
-    <ClInclude Include="JITOperationFailedException.h" />
     <ClInclude Include="NotImplementedException.h" />
     <ClInclude Include="OperationAbortedException.h" />
     <ClInclude Include="OutOfMemoryException.h" />

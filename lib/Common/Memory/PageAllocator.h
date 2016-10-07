@@ -379,6 +379,28 @@ private:
     friend class HeapPageAllocator<>;
 };
 
+class MemoryOperationLastError
+{
+public:
+    static void RecordLastError()
+    {
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = GetLastError();
+        }
+    }
+    static void ClearLastError()
+    {
+        MemOpLastError = 0;
+    }
+    static DWORD GetLastError()
+    {
+        return MemOpLastError;
+    }
+private:
+    THREAD_LOCAL static DWORD MemOpLastError;
+};
+
 class PageAllocatorBaseCommon
 {
 protected:

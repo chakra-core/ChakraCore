@@ -319,7 +319,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
 #ifdef RECYCLER_MEMORY_VERIFY
             if (func->GetScriptContextInfo()->IsRecyclerVerifyEnabled())
             {
-                pLocalNumber = (Js::JavascriptNumber*)alloca(sizeCat);                
+                pLocalNumber = (Js::JavascriptNumber*)alloca(sizeCat);
                 memset(pLocalNumber, Recycler::VerifyMemFill, sizeCat);
                 Recycler::FillPadNoCheck(pLocalNumber, sizeof(Js::JavascriptNumber), sizeCat, false);
                 pLocalNumber = new (pLocalNumber) Js::JavascriptNumber(localNumber);
@@ -333,8 +333,8 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, &bytesWritten)
                 || bytesWritten != sizeCat)
             {
-                Js::Throw::CheckAndThrowJITOperationFailed();
-                Js::Throw::FatalInternalError(); // TODO: don't bring down whole server process, but pass the last error to main process
+                MemoryOperationLastError::RecordLastError();
+                Js::Throw::InternalError();
             }
 
             return (Js::JavascriptNumber*) number;
@@ -348,10 +348,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             LPVOID addr = ::VirtualAllocEx(hProcess, tail->GetCommitEndAddress(), BlockSize, MEM_COMMIT, PAGE_READWRITE);
             if (addr == nullptr)
             {
-                if (hProcess != GetCurrentProcess())
-                {
-                    Js::Throw::CheckAndThrowJITOperationFailed();
-                }
+                MemoryOperationLastError::RecordLastError();
                 Js::Throw::OutOfMemory();
             }
             tail->committedEnd += BlockSize;
@@ -363,10 +360,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
     void* pages = ::VirtualAllocEx(hProcess, nullptr, PageCount * AutoSystemInfo::PageSize, MEM_RESERVE, PAGE_READWRITE);
     if (pages == nullptr)
     {
-        if (hProcess != GetCurrentProcess())
-        {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-        }
+        MemoryOperationLastError::RecordLastError();
         Js::Throw::OutOfMemory();
     }
 
@@ -383,6 +377,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
         XProcNumberPageSegmentImpl* seg = (XProcNumberPageSegmentImpl*)midl_user_allocate(sizeof(XProcNumberPageSegment));
         if (seg == nullptr)
         {
+            MemoryOperationLastError::RecordLastError();
             Js::Throw::OutOfMemory();
         }
         seg = new (seg) XProcNumberPageSegmentImpl();

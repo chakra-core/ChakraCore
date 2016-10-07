@@ -21,9 +21,6 @@ namespace Js {
         static void __declspec(noreturn) InternalError();
         static void __declspec(noreturn) FatalInternalError();
         static void __declspec(noreturn) FatalProjectionError();
-        static void __declspec(noreturn) JITOperationFailed(DWORD lastError);
-
-        static void CheckAndThrowJITOperationFailed();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 

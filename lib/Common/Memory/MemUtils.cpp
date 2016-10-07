@@ -24,8 +24,8 @@ Memory::ChakraMemSet(_In_ void *dst, int val, size_t sizeInBytes, HANDLE process
     {
         if (!WriteProcessMemory(processHandle, dst, writeBuffer, sizeInBytes, NULL))
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-            Js::Throw::FatalInternalError();
+            MemoryOperationLastError::RecordLastError();
+            Js::Throw::InternalError();
         }
         HeapDeleteArray(sizeInBytes, writeBuffer);
     }
@@ -48,8 +48,8 @@ Memory::ChakraMemCopy(_In_ void *dst, size_t sizeInBytes, _In_reads_bytes_(count
     {
         if (!WriteProcessMemory(processHandle, dst, src, count, NULL))
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-            Js::Throw::FatalInternalError();
+            MemoryOperationLastError::RecordLastError();
+            Js::Throw::InternalError();
         }
     }
 }

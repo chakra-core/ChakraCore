@@ -677,6 +677,7 @@ bool ServerContextManager::IsScriptContextAlive(ServerScriptContext* scriptConte
 template<typename Fn>
 HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
 {
+    MemoryOperationLastError::ClearLastError();
     HRESULT hr = S_OK;
     try
     {
@@ -694,30 +695,35 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     {
         hr = E_ABORT;
     }
-    catch (Js::JITOperationFailedException& ex)
+    catch (Js::InternalErrorException)
     {
-        // pass the HRESULT back to content process
-        // TODO: looks mostly the error is E_ACCESSDENIED because the content process is gone
-        // however, it might be some other error if the content process is in middle of terminating
-        // like VM is in a state of removing but not completed yet
-        hr = HRESULT_FROM_WIN32(ex.LastError);
+        hr = E_FAIL;
+    }
+    catch (...)
+    {
+        AssertMsg(false, "Unknown exception caught in JIT server call.");
+        hr = E_FAIL;
+    }
 
-        DWORD exitCode = STILL_ACTIVE;
-        if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
-        {
-            Assert(false); // fail to check target process
-        }
+    DWORD exitCode = STILL_ACTIVE;
+    if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
+    {
+        Assert(false); // fail to check target process
+        hr = E_FAIL;
+    }
 
-        if (exitCode != STILL_ACTIVE)
+    if (exitCode != STILL_ACTIVE)
+    {
+        threadContextInfo->Close();
+        ServerContextManager::UnRegisterThreadContext(threadContextInfo);
+        hr = E_FAIL;
+    }
+
+    if (hr == E_OUTOFMEMORY || hr == E_FAIL)
+    {
+        if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
         {
-            threadContextInfo->Close();
-            ServerContextManager::UnRegisterThreadContext(threadContextInfo);
-            return hr;
-        }
-        else
-        {
-            // The content process is still alive, the falure most likely an OOM
-            return E_OUTOFMEMORY;
+            hr = HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError());
         }
     }
 
