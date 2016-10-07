@@ -2447,6 +2447,7 @@ IndirOpnd::GetOriginalAddress() const
 void
 IndirOpnd::SetAddrKind(IR::AddrOpndKind kind, void * originalAddress)
 {
+    Assert(originalAddress != nullptr);
     this->m_addrKind = kind;
     this->m_originalAddress = originalAddress;
 }

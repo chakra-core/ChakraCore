@@ -1922,11 +1922,15 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
 #ifdef _M_X64
             {
                 IR::IntConstOpnd * intOpnd = src->AsIntConstOpnd();
-                if ((forms & L_Imm32) && ((TySize[intOpnd->GetType()] != 8) ||
-                    (!instr->isInlineeEntryInstr && Math::FitsInDWord(intOpnd->GetValue()))))
+                if ((TySize[intOpnd->GetType()] != 8) ||
+                    (!instr->isInlineeEntryInstr && Math::FitsInDWord(intOpnd->GetValue())))
                 {
-                    // the constant fits in 32-bit, no need to hoist
-                    return;
+                    if (forms & L_Imm32)
+                    {
+                        // the constant fits in 32-bit, no need to hoist
+                        return;
+                    }
+                    break;
                 }
                 if (verify)
                 {
