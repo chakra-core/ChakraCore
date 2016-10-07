@@ -74,8 +74,8 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 
 // Exceptions
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InScriptExceptionBase.h"
 #include "Exceptions/InternalErrorException.h"
+#include "Exceptions/JavascriptException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/OperationAbortedException.h"
 #include "Exceptions/RejitException.h"

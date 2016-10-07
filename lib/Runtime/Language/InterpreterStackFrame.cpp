@@ -2305,8 +2305,9 @@ namespace Js
             {
                 return this->ProcessWithDebugging();
             }
-            catch (JavascriptExceptionObject *exception_)
+            catch (const Js::JavascriptException& err)
             {
+                JavascriptExceptionObject *exception_ = err.GetAndClear();
                 Assert(exception_);
                 exception = exception_;
             }
@@ -2337,8 +2338,7 @@ namespace Js
                     }
                 }
 
-                exception = exception->CloneIfStaticExceptionObject(scriptContext);
-                throw exception;
+                JavascriptExceptionOperators::DoThrowCheckClone(exception, scriptContext);
             }
         }
     }
@@ -6468,11 +6468,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->TrySetRetOffset();
             }
         }
-        catch (Js::JavascriptExceptionObject * exceptionObject)
+        catch (const Js::JavascriptException& err)
         {
             // We are using C++ exception handling which does not unwind the stack in the catch block.
             // For stack overflow and OOM exceptions, we cannot run user code here because the stack is not unwind.
-            exception = exceptionObject;
+            exception = err.GetAndClear();
         }
 
         if (--this->nestedTryDepth == -1)
@@ -6487,7 +6487,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (exception->IsGeneratorReturnException())
             {
                 // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -6604,11 +6604,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->TrySetRetOffset();
                 }
             }
-            catch (Js::JavascriptExceptionObject * exceptionObject)
+            catch (const Js::JavascriptException& err)
             {
                 // We are using C++ exception handling which does not unwind the stack in the catch block.
                 // For stack overflow and OOM exceptions, we cannot run user code here because the stack is not unwind.
-                exception = exceptionObject;
+                exception = err.GetAndClear();
             }
         }
         else
@@ -6643,7 +6643,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (exception->IsGeneratorReturnException())
             {
                 // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -6683,7 +6683,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
             }
         }
-        return;
     }
 
     void InterpreterStackFrame::TrySetRetOffset()
@@ -6779,9 +6778,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 skipFinallyBlock = true;
             }
         }
-        catch (Js::JavascriptExceptionObject * e)
+        catch (const Js::JavascriptException& err)
         {
-            pExceptionObject = e;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (--this->nestedTryDepth == -1)
@@ -6848,7 +6847,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (pExceptionObject && (endOfFinallyBlock || !pExceptionObject->IsGeneratorReturnException()))
         {
-            throw pExceptionObject;
+            JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
     }
 
@@ -6897,7 +6896,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Js::JavascriptExceptionObject* exceptionObj = (Js::JavascriptExceptionObject*)GetNonVarReg(exceptionRegSlot);
         if (exceptionObj && (endOfFinallyBlock || !exceptionObj->IsGeneratorReturnException()))
         {
-            throw exceptionObj;
+            JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
         }
     }
 

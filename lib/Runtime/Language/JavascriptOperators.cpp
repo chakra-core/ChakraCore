@@ -367,8 +367,9 @@ namespace Js
                 return JavascriptOperators::Typeof(value, scriptContext);
             }
         }
-        catch(Js::JavascriptExceptionObject * )
+        catch(const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
 
@@ -496,8 +497,9 @@ namespace Js
             threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
             return JavascriptOperators::Typeof(member, scriptContext);
         }
-        catch(Js::JavascriptExceptionObject * )
+        catch(const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             threadContext->CheckAndResetImplicitCallAccessorFlag();
             threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
@@ -4931,7 +4933,7 @@ CommonNumber:
         if (loadRoot)
         {
             if (moduleID == 0)
-            {                
+            {
                 thisVar = (Js::Var)scriptContext->GetGlobalObjectThisAddr();
             }
             else
@@ -8360,7 +8362,7 @@ CommonNumber:
                 // Else, set it to next element after current nextEvictionVictim index
                 cache->nextEvictionVictim = (cache->nextEvictionVictim + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
             }
-   
+
             if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
             {
                 Output::Print(_u("EquivObjTypeSpec: Saving type in used slot of equiv types cache at index = %d. NextEvictionVictim = %d. \n"), index, cache->nextEvictionVictim);
@@ -9657,7 +9659,7 @@ CommonNumber:
                 }
 
                 // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                throw yieldData->exceptionObj;
+                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
             }
 
             if (!JavascriptConversion::IsCallable(prop))
@@ -9690,7 +9692,7 @@ CommonNumber:
                 Var value = JavascriptOperators::GetProperty(obj, PropertyIds::value, scriptContext);
                 yieldData->exceptionObj->SetThrownObject(value);
                 // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                throw yieldData->exceptionObj;
+                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
             }
             return result;
         }
@@ -9726,7 +9728,7 @@ CommonNumber:
         // have to wrap the call to the generator code in a try catch.
 
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-        throw yieldData->exceptionObj;
+        JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, yieldData->exceptionObj->GetScriptContext());
     }
 
     Js::Var
@@ -10494,8 +10496,9 @@ CommonNumber:
                 JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Js::Arguments(callInfo, args));
             }
         }
-        catch (JavascriptExceptionObject *)
+        catch (const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             // We have arrived in this function due to AbruptCompletion (which is an exception), so we don't need to
             // propagate the exception of calling return function
         }

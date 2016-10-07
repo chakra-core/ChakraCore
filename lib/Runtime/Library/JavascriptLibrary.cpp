@@ -107,7 +107,7 @@ namespace Js
     {
         Recycler* recycler = this->GetRecycler();
 
-        // Recycler macros below expect that their arguments will not throw when they're evaluated. 
+        // Recycler macros below expect that their arguments will not throw when they're evaluated.
         // We allocate a lot of types for the built-in prototype objects which we need to store temporarily.
         DynamicType* tempDynamicType = nullptr;
         Type* tempType = StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr);
@@ -256,7 +256,7 @@ namespace Js
             simdFloat32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
         }
 #endif
-        
+
         if (scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             datePrototype = DynamicObject::New(recycler,
@@ -626,7 +626,7 @@ namespace Js
             simdUint8x16TypeStatic = StaticType::New(scriptContext, TypeIds_SIMDUint8x16, simdUint8x16Prototype, nullptr);
         }
 #endif
-        
+
         // Initialize Object types
         for (int16 i = 0; i < PreInitializedObjectTypeCount; i++)
         {
@@ -1144,7 +1144,7 @@ namespace Js
             simdUint8x16DisplayString = CreateStringFromCppLiteral(_u("uint8x16"));
         }
 #endif
-        
+
         symbolTypeDisplayString = CreateStringFromCppLiteral(_u("symbol"));
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
@@ -2675,7 +2675,7 @@ namespace Js
 
         /*** Float32x4 ***/
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObjectWithPrototype(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, library->simdFloat32x4Prototype, nullptr);
-        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Float32x4] = float32x4Function;        
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Float32x4] = float32x4Function;
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Check] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::check, &SIMDFloat32x4Lib::EntryInfo::Check, 2);
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Splat] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::splat, &SIMDFloat32x4Lib::EntryInfo::Splat, 2);
 
@@ -2688,7 +2688,7 @@ namespace Js
 #if 0
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2,     &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2,     2);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2Bits, &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2Bits, 2);
-#endif   
+#endif
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_FromInt32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4,       &SIMDFloat32x4Lib::EntryInfo::FromInt32x4,       2);
 
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4,      &SIMDFloat32x4Lib::EntryInfo::FromUint32x4,      2);
@@ -2738,7 +2738,7 @@ namespace Js
         /*** Float64x2 ***/
 #if 0
         JavascriptFunction* float64x2Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Float64x2, &SIMDFloat64x2Lib::EntryInfo::Float64x2, 3);
-        
+
         library->AddFunctionToLibraryObject(float64x2Function, PropertyIds::check, &SIMDFloat64x2Lib::EntryInfo::Check, 2);
         library->AddFunctionToLibraryObject(float64x2Function, PropertyIds::splat, &SIMDFloat64x2Lib::EntryInfo::Splat, 2);
         // type conversions
@@ -2822,7 +2822,7 @@ namespace Js
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shiftRightByScalar, &SIMDInt32x4Lib::EntryInfo::ShiftRightByScalar, 3);
         // select
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::select, &SIMDInt32x4Lib::EntryInfo::Select, 4);
- 
+
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load, &SIMDInt32x4Lib::EntryInfo::Load, 3);
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3);
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3);
@@ -4441,7 +4441,7 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
-        
+
         JavascriptExternalFunction* function = nullptr;
         if (entryPoint != nullptr)
         {
@@ -4450,7 +4450,7 @@ namespace Js
         }
         else
         {
-            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, 
+            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction,
                 defaultExternalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
         }
         function->SetFunctionNameId(TaggedInt::ToVarUnchecked(nameId));
@@ -4703,7 +4703,8 @@ namespace Js
             try
             {
                 this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
-            } catch (...)
+            }
+            catch (...)
             {
                 // Hosts are required not to pass exceptions back across the callback boundary. If
                 // this happens, it is a bug in the host, not something that we are expected to
@@ -4754,10 +4755,10 @@ namespace Js
         try
         {
             this->IntlObject->GetTypeHandler()->EnsureObjectReady(this->IntlObject);
-        } 
-        catch (JavascriptExceptionObject *e)
+        }
+        catch (const JavascriptException& err)
         {
-            caughtExceptionObject = e;
+            caughtExceptionObject = err.GetAndClear();
         }
 
         // Propagate the OOM and SOE exceptions only
@@ -4766,7 +4767,7 @@ namespace Js
             caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject()))
         {
             caughtExceptionObject = caughtExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-            throw caughtExceptionObject;
+            JavascriptExceptionOperators::DoThrow(caughtExceptionObject, scriptContext);
         }
     }
 
@@ -5604,7 +5605,7 @@ namespace Js
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
-        
+
         DynamicType * argumentsType = nullptr;
 
         if (isStrictMode)
@@ -6068,7 +6069,7 @@ namespace Js
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
 
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::CapabilitiesExecutorFunction;
-        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());        
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseCapabilitiesExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseCapabilitiesExecutorFunction, type, functionInfo, capability);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable, nullptr);
@@ -6732,7 +6733,7 @@ namespace Js
 
     void JavascriptLibrary::BindReference(void * addr)
     {
-        // The last void* is the linklist connecting to next block. 
+        // The last void* is the linklist connecting to next block.
         if (bindRefChunkCurrent == bindRefChunkEnd)
         {
             void** tmpBindRefChunk = RecyclerNewArrayZ(recycler, void *, HeapConstants::ObjectGranularity / sizeof(void *));

@@ -311,8 +311,9 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         {
             value = objectDisplayRef->Value(10);
         }
-        catch (Js::JavascriptExceptionObject*)
+        catch (const Js::JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             value = _u("");
         }
 
