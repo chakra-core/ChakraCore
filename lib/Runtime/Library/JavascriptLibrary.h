@@ -380,6 +380,7 @@ namespace Js
 
 #ifdef ENABLE_WASM
         DynamicObject* wasmObject;
+        DynamicObject* webAssemblyObject;
 #endif
 
         // SIMD_JS
@@ -1206,6 +1207,7 @@ namespace Js
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #ifdef ENABLE_WASM
         static void __cdecl InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeWebAssemblyObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
         // SIMD_JS
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);

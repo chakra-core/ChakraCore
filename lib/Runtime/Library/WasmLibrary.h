@@ -20,10 +20,17 @@ namespace Js
         {
         public:
             static FunctionInfo instantiateModule;
+            static FunctionInfo Compile;
+            static FunctionInfo Validate;
         };
 
         static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
         static const unsigned int experimentalVersion;
+
+
+
+        static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryValidate(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);
         static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -48,7 +55,8 @@ namespace Js
             const uint lengthBytes,
             const char16 *rootDisplayName,
             Js::Var ffi,
-            Js::Var* start = nullptr
+            Js::Var* start = nullptr,
+            bool validateOnly = false
         );
         static char16* lastWasmExceptionMessage;
 #endif

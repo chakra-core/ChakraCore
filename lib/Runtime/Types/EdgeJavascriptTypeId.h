@@ -112,6 +112,11 @@ enum TypeId
     TypeIds_Promise = 69,
     TypeIds_SharedArrayBuffer = 70,
 
+    TypeIds_WebAssemblyModule = 71,
+    TypeIds_WebAssemblyInstance = 72,
+    TypeIds_WebAssemblyMemory = 73,
+    TypeIds_WebAssemblyTable = 74,
+
     TypeIds_LastBuiltinDynamicObject = TypeIds_SharedArrayBuffer,
     TypeIds_GlobalObject = 71,
     TypeIds_ModuleRoot = 72,

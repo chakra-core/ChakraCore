@@ -102,6 +102,143 @@ namespace Js
         return exportObject;
     }
 
+    Var WasmLibrary::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.compile"));
+        }
+
+        const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
+        const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
+
+        if (!isTypedArray && !isArrayBuffer)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.compile"));
+        }
+
+        BYTE* buffer;
+        uint byteLength;
+        if (isTypedArray)
+        {
+            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
+            buffer = array->GetByteBuffer();
+            byteLength = array->GetByteLength();
+        }
+        else
+        {
+            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
+            buffer = arrayBuffer->GetBuffer();
+            byteLength = arrayBuffer->GetByteLength();
+        }
+
+        CompileScriptException se;
+        Js::Var exportObject;
+        Js::Var start = nullptr;
+        Js::Utf8SourceInfo* utf8SourceInfo;
+        BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
+            exportObject = WasmLibrary::LoadWasmScript(
+                scriptContext,
+                (const char16*)buffer,
+                nullptr, // source info
+                &se,
+                &utf8SourceInfo,
+                byteLength,
+                Js::Constants::GlobalCode,
+                &start
+            );
+        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
+
+        HRESULT hr = se.ei.scode;
+        if (FAILED(hr))
+        {
+            if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            JavascriptError::ThrowParserError(scriptContext, hr, &se);
+        }
+
+        return exportObject;
+    }
+
+    Var WasmLibrary::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.validate"));
+        }
+
+        const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
+        const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
+
+        if (!isTypedArray && !isArrayBuffer)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.validate"));
+        }
+
+        BYTE* buffer;
+        uint byteLength;
+        if (isTypedArray)
+        {
+            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
+            buffer = array->GetByteBuffer();
+            byteLength = array->GetByteLength();
+        }
+        else
+        {
+            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
+            buffer = arrayBuffer->GetBuffer();
+            byteLength = arrayBuffer->GetByteLength();
+        }
+
+        CompileScriptException se;
+        Js::Var start = nullptr;
+        Js::Utf8SourceInfo* utf8SourceInfo;
+        BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
+            WasmLibrary::LoadWasmScript(
+                scriptContext,
+                (const char16*)buffer,
+                nullptr, // source info
+                &se,
+                &utf8SourceInfo,
+                byteLength,
+                Js::Constants::GlobalCode,
+                nullptr,
+                &start,
+                true // validate only
+            );
+        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
+
+        HRESULT hr = se.ei.scode;
+        if (FAILED(hr))
+        {
+            if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            return scriptContext->GetLibrary()->GetFalse();
+        }
+
+        return scriptContext->GetLibrary()->GetTrue();
+    }
+
     Var WasmLibrary::WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...)
     {
         AsmJsScriptFunction* asmFunction = static_cast<AsmJsScriptFunction*>(callee);
@@ -508,7 +645,9 @@ namespace Js
         const uint lengthBytes,
         const char16 *rootDisplayName,
         Js::Var ffi,
-        Js::Var* start)
+        Js::Var* start,
+        bool validateOnly
+    )
     {
         if (pSrcInfo == nullptr)
         {
@@ -543,6 +682,11 @@ namespace Js
 
             bool hasAnyLazyTraps = false;
             WasmLoadFunctions(wasmModule, scriptContext, moduleEnvironmentPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
+            if (validateOnly)
+            {
+                // if we are only validating, we don't need to load imports and such
+                return nullptr;
+            }
 
             Var* importFunctions = moduleEnvironmentPtr + wasmModule->GetImportFuncOffset();
             WasmLoadImports(wasmModule, scriptContext, importFunctions, moduleEnvironmentPtr, ffi);

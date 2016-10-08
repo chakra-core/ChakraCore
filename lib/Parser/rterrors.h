@@ -363,4 +363,8 @@ RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of ran
 RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)
-RT_ERROR_MSG(WASMERR_Unreachable, 5667, "", "Unreachable Code", kjstError, 0)
+
+
+// WebAssembly errors, starting at 100000
+RT_ERROR_MSG(WASMERR_Unreachable, 100000, "", "Unreachable Code", kjstError, 0)
+RT_ERROR_MSG(WASMERR_NeedBufferSource, 100001, "%s is not a BufferSource", "BufferSource expected", kjstTypeError, 0)
