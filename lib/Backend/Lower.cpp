@@ -8536,7 +8536,16 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
         }
         done = instr;
     }
-    InsertMove(dst, src1, done);
+    if (dst->IsInt64())
+    {
+        IR::Instr* movInt64 = IR::Instr::New(Js::OpCode::Ld_I4, dst, src1, m_func);
+        done->InsertBefore(movInt64);
+        m_lowererMD.LowerInt64Assign(movInt64);
+    }
+    else
+    {
+        InsertMove(dst, src1, done);
+    }
 
     instr->Remove();
     return instrPrev;
@@ -8718,6 +8727,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
 
     Assert(!dst->IsFloat32() || src1->IsFloat32());
     Assert(!dst->IsFloat64() || src1->IsFloat64());
+    Assert(!dst->IsInt64() || src1->IsInt64());
 
     IR::Instr * done;
     if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
@@ -8744,7 +8754,16 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
             instr->FreeSrc2();
         }
     }
-    InsertMove(dst, src1, done);
+    if (src1->IsInt64())
+    {
+        IR::Instr* movInt64 = IR::Instr::New(Js::OpCode::Ld_I4, dst, src1, m_func);
+        done->InsertBefore(movInt64);
+        m_lowererMD.LowerInt64Assign(movInt64);
+    }
+    else
+    {
+        InsertMove(dst, src1, done);
+    }
     instr->Remove();
     return instrPrev;
 #else
@@ -8960,10 +8979,24 @@ void Lowerer::EnsureInt64RegPairMap()
 
 Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 {
-    Assert(IRType_IsInt64(reg->GetType()));
-
-    IRType type = reg->GetType() == TyInt64 ? TyInt32 : TyUint32;
     Int64RegPair pair;
+    IRType type = reg->GetType();
+    if (IRType_IsInt64(type))
+    {
+        type = IRType_IsSignedInt(type) ? TyInt32 : TyUint32;
+    }
+    if (reg->IsIndirOpnd())
+    {
+        IR::IndirOpnd* indir = reg->AsIndirOpnd();
+        indir->SetType(type);
+        pair.low = indir;
+        pair.high = indir->Copy(m_func)->AsIndirOpnd();
+        pair.high->AsIndirOpnd()->SetOffset(indir->GetOffset() + 4);
+        return pair;
+    }
+
+    // Only indir opnd can have a type other than int64
+    Assert(IRType_IsInt64(reg->GetType()));
 
     if (reg->IsImmediateOpnd())
     {
