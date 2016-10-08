@@ -58,7 +58,10 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
             if (result == FALSE)
             {
                 MemoryOperationLastError::RecordLastError();
-                if (process == GetCurrentProcess())
+#if ENABLE_OOP_NATIVE_CODEGEN
+                if (process == GetCurrentProcess()
+                    || GetProcessId(process) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
                 {
                     CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
                 }
@@ -143,15 +146,12 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
     if (bytes == 0)
     {
+        MemoryOperationLastError::RecordLastError();
         if (this->processHandle != GetCurrentProcess())
         {
-            MemoryOperationLastError::RecordLastError();
-            if (this->processHandle != GetCurrentProcess())
-            {
-                Js::Throw::InternalError();
-            }
-            return false;
+            Js::Throw::InternalError();
         }
+        return false;
     }
     AssertMsg(memBasicInfo.State == MEM_COMMIT, "Memory not committed? Checking for uncommitted address region?");
 #endif
@@ -320,15 +320,18 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
             size_t bytes = VirtualQueryEx(processHandle, addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
+            if (bytes == 0) 
+            {
+                MemoryOperationLastError::RecordLastError();
+            }
             if (bytes == 0
                 || memBasicInfo.RegionSize < requestedNumOfSegments * AutoSystemInfo::Data.GetAllocationGranularityPageSize()
                 || memBasicInfo.State == MEM_COMMIT)
             {
-                if (this->processHandle != GetCurrentProcess())
-                {
-                    MemoryOperationLastError::RecordLastError();
-                }
-                else
+#if ENABLE_OOP_NATIVE_CODEGEN
+                if (this->processHandle == GetCurrentProcess()
+                    || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
                 {
                     CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
                 }
@@ -378,15 +381,20 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
                 }
 
                 allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
-
                 if (allocatedAddress != nullptr)
                 {
                     BOOL result = VirtualProtectEx(processHandle, allocatedAddress, dwSize, protectFlags, &oldProtect);
-                    if (result == FALSE && this->processHandle != GetCurrentProcess())
+                    if (result == FALSE)
                     {
-                        // TODO: need to free the page?
-                        MemoryOperationLastError::RecordLastError();
                         failedToProtectPages = true;
+                        MemoryOperationLastError::RecordLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
+                        if (this->processHandle == GetCurrentProcess()
+                            || GetProcessId(this->processHandle) == GetCurrentProcessId())
+#endif
+                        {
+                            CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                        }
                     }
                     AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
                 }
@@ -399,7 +407,7 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 #endif
             {
                 allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, protectFlags);
-                if (allocatedAddress == nullptr && this->processHandle != GetCurrentProcess())
+                if (allocatedAddress == nullptr)
                 {
                     MemoryOperationLastError::RecordLastError();
                 }

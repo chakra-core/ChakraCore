@@ -218,11 +218,8 @@ PageSegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
             BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, this->address, this->GetAvailablePageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
             if (vpresult == FALSE)
             {
+                MemoryOperationLastError::RecordLastError();
                 if (this->allocator->processHandle == GetCurrentProcess())
-                {
-                    MemoryOperationLastError::RecordLastError();
-                }
-                else
                 {
                     Assert(false);
                 }
@@ -314,13 +311,10 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
                 BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
             if (vpresult == FALSE)
             {
+                MemoryOperationLastError::RecordLastError();
                 if (this->GetAllocator()->processHandle == GetCurrentProcess())
                 {
-                    MemoryOperationLastError::RecordLastError();
-                }
-                else
-                {
-                    Assert(false);
+                    Assert(false);                    
                 }
                 return nullptr;
             }
@@ -426,11 +420,8 @@ PageSegmentBase<T>::ReleasePages(__in void * address, uint pageCount)
     BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
     if (vpresult == FALSE)
     {
+        MemoryOperationLastError::RecordLastError();
         if (this->allocator->processHandle == GetCurrentProcess())
-        {
-            MemoryOperationLastError::RecordLastError();
-        }
-        else
         {
             Assert(false);
         }
@@ -2448,15 +2439,18 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     // check old protection on all pages about to change, ensure the fidelity
     size_t bytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
+    if (bytes == 0)
+    {
+        MemoryOperationLastError::RecordLastError();
+    }
     if (bytes == 0
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
         || desiredOldProtectFlag != memBasicInfo.Protect)
     {
-        if (this->processHandle == GetCurrentProcess())
-        {
-            MemoryOperationLastError::RecordLastError();
-        }
-        else
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (this->processHandle == GetCurrentProcess()
+            || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
         {
             CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
         }

@@ -329,9 +329,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             *(void**)pLocalNumber = (void*)func->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber);
 
             // initialize number by WriteProcessMemory
-            SIZE_T bytesWritten;
-            if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, &bytesWritten)
-                || bytesWritten != sizeCat)
+            if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, NULL))
             {
                 MemoryOperationLastError::RecordLastError();
                 Js::Throw::InternalError();
@@ -377,7 +375,6 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
         XProcNumberPageSegmentImpl* seg = (XProcNumberPageSegmentImpl*)midl_user_allocate(sizeof(XProcNumberPageSegment));
         if (seg == nullptr)
         {
-            MemoryOperationLastError::RecordLastError();
             Js::Throw::OutOfMemory();
         }
         seg = new (seg) XProcNumberPageSegmentImpl();
