@@ -17,7 +17,7 @@ public:
     JITTimeFunctionBody(FunctionBodyDataIDL * bodyData);
 
     static void InitializeJITFunctionData(
-        __in Recycler * recycler,
+        __in ArenaAllocator * arena,
         __in Js::FunctionBody * functionBody,
         __out FunctionBodyDataIDL * jitBody);
 
@@ -58,7 +58,6 @@ public:
     Js::PropertyId GetReferencedPropertyId(uint index) const;
 
     uint16 GetEnvDepth() const;
-    uint16 GetProfiledIterations() const;
     uint16 GetArgUsedForBranch() const;
     Js::ProfileId GetProfiledCallSiteCount() const;
     Js::ArgSlot GetInParamsCount() const;

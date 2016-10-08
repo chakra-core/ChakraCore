@@ -21,8 +21,14 @@ FunctionJITTimeInfo::BuildJITTimeData(
     bool isInlinee,
     bool isForegroundJIT)
 {
-    jitData->bodyData = codeGenData->GetJITBody();
     jitData->functionInfoAddr = (intptr_t)codeGenData->GetFunctionInfo();
+
+    if (codeGenData->GetFunctionBody() && codeGenData->GetFunctionBody()->GetByteCode())
+    {
+        Js::FunctionBody * body = codeGenData->GetFunctionInfo()->GetParseableFunctionInfo()->GetFunctionBody();
+        jitData->bodyData = AnewStructZ(alloc, FunctionBodyDataIDL);
+        JITTimeFunctionBody::InitializeJITFunctionData(alloc, body, jitData->bodyData);
+    }
 
     jitData->localFuncId = codeGenData->GetFunctionInfo()->GetLocalFunctionId();
     jitData->isAggressiveInliningEnabled = codeGenData->GetIsAggressiveInliningEnabled();

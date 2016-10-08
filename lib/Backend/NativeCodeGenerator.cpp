@@ -869,7 +869,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     auto& jitData = workItem->GetJITData()->jitData;
     jitData = AnewStructZ(&alloc, FunctionJITTimeDataIDL);
     FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false, foreground);
-
+    workItem->GetJITData()->profiledIterations = workItem->RecyclableData()->JitTimeData()->GetProfiledIterations();
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {

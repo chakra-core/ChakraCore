@@ -16,24 +16,18 @@ namespace Js
 #endif
         next(0),
         ldFldInlinees(nullptr),
-        bodyData(nullptr)
+        profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0)
     {
-        if (GetFunctionInfo()->HasBody())
-        {
-            Recycler * recycler = functionInfo->GetFunctionProxy()->GetScriptContext()->GetRecycler();
-            this->bodyData = RecyclerNewStructZ(recycler, FunctionBodyDataIDL);
-            JITTimeFunctionBody::InitializeJITFunctionData(recycler, GetFunctionBody(), this->bodyData);
-        }
+    }
+
+    uint16 FunctionCodeGenJitTimeData::GetProfiledIterations() const
+    {
+        return profiledIterations;
     }
 
     FunctionInfo *FunctionCodeGenJitTimeData::GetFunctionInfo() const
     {
         return this->functionInfo;
-    }
-
-    FunctionBodyDataIDL *FunctionCodeGenJitTimeData::GetJITBody() const
-    {
-        return this->bodyData;
     }
 
     FunctionBody *FunctionCodeGenJitTimeData::GetFunctionBody() const

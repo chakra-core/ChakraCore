@@ -30,9 +30,9 @@ public:
         Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> * statementReader, ArenaAllocator* alloc);
 
     JITTimeFunctionBody * GetJITFunctionBody();
+    uint16 GetProfiledIterations() const;
 
     CodeGenWorkItemIDL* GetWorkItemData();
-
     JITTimePolymorphicInlineCacheInfo * GetPolymorphicInlineCacheInfo();
     JITTimePolymorphicInlineCacheInfo * GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr);
 

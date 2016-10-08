@@ -483,11 +483,8 @@ typedef struct FunctionBodyDataIDL
 
     unsigned short envDepth;
     unsigned short inParamCount;
-    unsigned short profiledIterations;
     unsigned short argUsedForBranch;
     unsigned short profiledCallSiteCount;
-
-    IDL_PAD2(0)
 
     unsigned int funcNumber;
     unsigned int sourceContextId;
@@ -524,8 +521,6 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
-
-    X64_PAD4(1)
 
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
@@ -649,9 +644,12 @@ typedef struct CodeGenWorkItemIDL
     byte type;
     char jitMode;
 
+    unsigned short profiledIterations;
+    IDL_PAD2(0)
     unsigned int loopNumber;
     unsigned int inlineeInfoCount;
     unsigned int symIdToValueTypeMapCount;
+    X64_PAD4(1)
     XProcNumberPageSegment * xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;

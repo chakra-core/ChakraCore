@@ -3099,10 +3099,10 @@ namespace Js
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
         DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
+        DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
     public:
 

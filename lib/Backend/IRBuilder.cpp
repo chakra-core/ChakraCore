@@ -93,7 +93,7 @@ IRBuilder::DoBailOnNoProfile()
     }
 
     Func *const topFunc = m_func->GetTopFunc();
-    if(topFunc->GetJITFunctionBody()->GetProfiledIterations() == 0)
+    if(topFunc->GetWorkItem()->GetProfiledIterations() == 0)
     {
         // The top function has not been profiled yet. Some switch must have been used to force jitting. This is not a
         // real-world case, but for the purpose of testing the JIT, it's beneficial to generate code in unprofiled paths.
