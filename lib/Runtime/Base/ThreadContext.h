@@ -603,6 +603,9 @@ private:
 
         Js::JavascriptExceptionObject* unhandledExceptionObject;
 
+        // Used to temporarily keep throwing exception object alive (thrown but not yet caught)
+        Js::JavascriptExceptionObject* tempUncaughtException;
+
         // Contains types that have property caches that need to be tracked, as the caches may need to be cleared. Types that
         // contain a property cache for a property that is on a prototype object will be tracked in this map since those caches
         // need to be cleared if for instance, the property is deleted from the prototype object.
@@ -1402,6 +1405,16 @@ public:
     void ResetHasUnhandledException() {hasUnhandledException = FALSE; }
     void SetUnhandledExceptionObject(Js::JavascriptExceptionObject* exceptionObject) {recyclableData->unhandledExceptionObject  = exceptionObject; }
     Js::JavascriptExceptionObject* GetUnhandledExceptionObject() const  { return recyclableData->unhandledExceptionObject; };
+
+    // To temporarily keep throwing exception object alive (thrown but not yet caught)
+    void SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
+    {
+        // WIN32 doesn't need this because the exception object pointer is on stack
+#ifndef _WIN32
+        recyclableData->tempUncaughtException = exceptionObject;
+#endif
+    }
+    void ClearTempUncaughtException() { SaveTempUncaughtException(nullptr); }
 
     bool HasCatchHandler() const { return hasCatchHandler; }
     void SetHasCatchHandler(bool hasCatchHandler) { this->hasCatchHandler = hasCatchHandler; }
