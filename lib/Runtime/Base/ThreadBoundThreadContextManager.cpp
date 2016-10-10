@@ -11,7 +11,6 @@ ThreadBoundThreadContextManager::EntryList ThreadBoundThreadContextManager::entr
 JsUtil::BackgroundJobProcessor * ThreadBoundThreadContextManager::s_sharedJobProcessor = NULL;
 #endif
 CriticalSection ThreadBoundThreadContextManager::s_sharedJobProcessorCreationLock;
-uint ThreadBoundThreadContextManager::s_maxNumberActiveThreadContexts = 0;
 
 ThreadContext * ThreadBoundThreadContextManager::EnsureContextForCurrentThread()
 {
@@ -44,8 +43,6 @@ ThreadContext * ThreadBoundThreadContextManager::EnsureContextForCurrentThread()
     }
 
     Assert(threadContext != NULL);
-
-    s_maxNumberActiveThreadContexts = max(s_maxNumberActiveThreadContexts, GetActiveThreadContextCount());
 
     return threadContext;
 }
@@ -242,14 +239,4 @@ void ThreadContextManagerBase::ShutdownThreadContext(ThreadContext* threadContex
     threadContext->ShutdownThreads();
 
     HeapDelete(threadContext);
-}
-
-uint ThreadBoundThreadContextManager::GetActiveThreadContextCount()
-{
-    return entries.Count();
-}
-
-void ThreadBoundThreadContextManager::ResetMaxNumberActiveThreadContexts()
-{
-    s_maxNumberActiveThreadContexts = GetActiveThreadContextCount();
 }

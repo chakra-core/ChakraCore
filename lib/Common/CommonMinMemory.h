@@ -10,10 +10,6 @@
 // === Recycler Memory Header Files ===
 class FinalizableObject;
 
-#ifdef ENABLE_BASIC_TELEMETRY
-#include "GCTelemetry.h"
-#endif
-
 #include "Memory/IdleDecommitPageAllocator.h"
 #include "Memory/RecyclerPageAllocator.h"
 #include "Memory/FreeObject.h"

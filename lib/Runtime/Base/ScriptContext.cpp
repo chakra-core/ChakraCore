@@ -250,7 +250,7 @@ namespace Js
         memset(propertyStrings, 0, sizeof(PropertyStringMap*)* 80);
 
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
-        this->allocId = threadContext->GetUnreleasedScriptContextCount();
+        this->allocId = threadContext->GetScriptContextCount();
 #endif
 #if DBG
         this->hadProfiled = false;

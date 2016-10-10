@@ -1452,7 +1452,6 @@ FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for variou
 #endif /* IR_VIEWER */
 
 FLAGNR(Boolean, InvalidateSolutionContextsForGetStructure, "To reduce memory consumption, in the end of GetStructure call, invalidate script contexts used only for GetStructure -- this would invalidate ones associated with solution files (not top-most references such as helpers.js)", DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure)
-FLAGNR(Boolean, GCPauseTel, "Enable GC Pause telemetry in the product code.", false)
 FLAGNR(Boolean, ES5LangTel, "Print ES5 language telemetry output.", false)
 FLAGNR(Boolean, ES6LangTel, "Print ES6 language telemetry output.", false)
 FLAGNR(Boolean, ESBLangTel, "Print ES built-ins telemetry output.", false)
