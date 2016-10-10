@@ -146,10 +146,9 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
     if (bytes == 0)
     {
-        MemoryOperationLastError::RecordLastError();
         if (this->processHandle != GetCurrentProcess())
         {
-            Js::Throw::InternalError();
+            MemoryOperationLastError::RecordLastErrorAndThrow();
         }
         return false;
     }

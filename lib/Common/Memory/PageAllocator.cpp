@@ -952,8 +952,7 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
         readBuffer = HeapNewArray(byte, bufferSize);
         if (!ReadProcessMemory(this->processHandle, address, readBuffer, bufferSize, NULL))
         {
-            MemoryOperationLastError::RecordLastError();
-            Js::Throw::InternalError();
+            MemoryOperationLastError::RecordLastErrorAndThrow();
         }
     }
     for (size_t i = 0; i < bufferSize; i++)

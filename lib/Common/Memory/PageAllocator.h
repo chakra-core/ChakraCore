@@ -389,6 +389,14 @@ public:
             MemOpLastError = GetLastError();
         }
     }
+    static void RecordLastErrorAndThrow()
+    {
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = GetLastError();
+            throw Js::InternalErrorException();
+        }
+    }
     static void ClearLastError()
     {
         MemOpLastError = 0;
