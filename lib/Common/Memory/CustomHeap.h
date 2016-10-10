@@ -152,7 +152,7 @@ public:
     {
         // Simple immutable data access, no need for lock
         Assert(segment);
-        return (((Segment*)(segment))->IsInPreReservedHeapPageAllocator());
+        return reinterpret_cast<SegmentBaseCommon*>(segment)->IsInPreReservedHeapPageAllocator();
     }
 
     bool IsInNonPreReservedPageAllocator(__in void *address)
