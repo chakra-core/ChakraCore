@@ -174,7 +174,7 @@ namespace Js
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
             Js::ScriptContext* actionCtx = this->object->GetScriptContext();
-            if (actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            if (actionCtx->ShouldPerformRecordOrDebugAction())
             {
                 PropertyId tempPropertyId;
                 /* JavascriptString * tempPropertyString = */ this->MoveAndGetNextNoCache(tempPropertyId, attributes);
@@ -221,7 +221,7 @@ namespace Js
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
             Js::ScriptContext* actionCtx = this->object->GetScriptContext();
-            if (actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            if (actionCtx->ShouldPerformRecordOrDebugAction())
             {
                 PropertyId tempPropertyId;
                 /*JavascriptString* tempPropertyStringName =*/ this->MoveAndGetNextNoCache(tempPropertyId, attributes);

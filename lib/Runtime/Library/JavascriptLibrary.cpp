@@ -4716,7 +4716,7 @@ namespace Js
         else
         {
 #if ENABLE_TTD
-            if(this->scriptContext->ShouldPerformRecordAction() | this->scriptContext->ShouldPerformDebugAction())
+            if(this->scriptContext->ShouldPerformRecordOrDebugAction())
             {
                 //
                 //TODO: need to implement support for this path

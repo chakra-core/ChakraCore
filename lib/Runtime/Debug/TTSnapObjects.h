@@ -141,6 +141,12 @@ namespace TTD
         //ParseAddtlInfo is a nop
         //AssertSnapEquiv is a nop
 
+        Js::RecyclableObject* DoObjectInflation_SnapExternalObject(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        //EmitAddtlInfo is a nop
+        //ParseAddtlInfo is a nop
+        //AssertSnapEquiv is a nop
+
         //////////////////
 
         //A struct that represents a script function object

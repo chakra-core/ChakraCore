@@ -32,7 +32,11 @@
 
 const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedOpCodePrefix)(const byte* ip)
 {
-        INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#if PROVIDE_INTERPRETER_STMTS
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp_WPreviousStmtTracking(ip
+#else
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#endif
 #if DBG_DUMP
         , true
 #endif
@@ -56,7 +60,12 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Extend
 
 const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, MediumLayoutPrefix)(const byte* ip, Var& yieldValue)
 {
-        INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+#if PROVIDE_INTERPRETER_STMTS
+    INTERPRETER_OPCODE op = ReadByteOp_WPreviousStmtTracking(ip);
+#else
+    INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+#endif
+
     switch (op)
     {
     case INTERPRETER_OPCODE::Yield:
@@ -79,7 +88,11 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Medium
 
 const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedMediumLayoutPrefix)(const byte* ip)
 {
+#if PROVIDE_INTERPRETER_STMTS
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp_WPreviousStmtTracking(ip
+#else
     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#endif
 #if DBG_DUMP
         , true
 #endif
@@ -101,7 +114,12 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, Extend
 
 const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeLayoutPrefix)(const byte* ip, Var& yieldValue)
 {
+#if PROVIDE_INTERPRETER_STMTS
+    INTERPRETER_OPCODE op = ReadByteOp_WPreviousStmtTracking(ip);
+#else
     INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+#endif
+
     switch (op)
     {
     case INTERPRETER_OPCODE::Yield:
@@ -124,7 +142,11 @@ const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, LargeL
 
 const byte* Js::InterpreterStackFrame::CONCAT_TOKENS(INTERPRETERLOOPNAME, ExtendedLargeLayoutPrefix)(const byte* ip)
 {
+#if PROVIDE_INTERPRETER_STMTS
+    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp_WPreviousStmtTracking(ip
+#else
     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#endif
 #if DBG_DUMP
         , true
 #endif
@@ -181,7 +203,11 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
     const byte* ip = m_reader.GetIP();
     while (true)
     {
+#if PROVIDE_INTERPRETER_STMTS
+        INTERPRETER_OPCODE op = ReadByteOp_WPreviousStmtTracking(ip);
+#else
         INTERPRETER_OPCODE op = ReadByteOp<INTERPRETER_OPCODE>(ip);
+#endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
         if( TELEMETRY_OPCODE_OFFSET_ENABLED )

@@ -141,6 +141,7 @@ namespace Js
 #if ENABLE_TTD
         , TTDHostCallbackFunctor()
         , TTDMode(TTD::TTDMode::Invalid)
+        , TTDShouldPerformRecordAction(false), TTDShouldPerformDebugAction(false), TTDShouldPerformRecordOrDebugAction(false)
         , ScriptContextLogTag(TTD_INVALID_LOG_PTR_ID)
         , TTDRootNestingCount(0)
         , TTDWellKnownInfo(nullptr)
@@ -2381,7 +2382,7 @@ if (!sourceList)
         this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
         this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD_DIAGNOSTICS_TRACING || TTD_DYNAMIC_DECOMPILATION_AND_JIT_WORK_AROUNDS
         this->ForceNoNative();
 #endif
     }

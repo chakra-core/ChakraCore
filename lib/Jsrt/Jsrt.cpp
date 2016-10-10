@@ -89,6 +89,15 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
 
 /////////////////////
 
+#if ENABLE_TTD
+void CALLBACK CreateExternalObject_TTD(Js::ScriptContext* ctx, Js::Var* object)
+{
+    AssertMsg(object != nullptr, "This should always be a valid location");
+
+    *object = RecyclerNewFinalized(ctx->GetRecycler(), JsrtExternalObject, RecyclerNew(ctx->GetRecycler(), JsrtExternalType, ctx, nullptr), nullptr);
+}
+#endif
+
 //A create runtime function that we can funnel to for regular and record or debug aware creation
 JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ const byte* optRecordUri, size_t optRecordUriCount, _In_opt_ const byte* optDebugUri, size_t optDebugUriCount, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
@@ -181,6 +190,8 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ cons
             threadContext->TTSnapInterval = snapInterval;
 
             threadContext->TTSnapHistoryLength = max<uint32>(2, snapHistoryLength);
+
+            threadContext->TTDExternalObjectFunctions.pfCreateExternalObject = &CreateExternalObject_TTD;
         }
 #endif
 
@@ -248,7 +259,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
-#if TTD_DYNAMIC_DECOMPILATION_WORK_AROUNDS
+#if TTD_DYNAMIC_DECOMPILATION_AND_JIT_WORK_AROUNDS
             if(threadContext->IsTTRecordRequested | threadContext->IsTTDebugRequested)
             {
                 //
@@ -737,6 +748,8 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
     {
         Js::Throw::OutOfMemory();
     }
+
+    PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
     Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se);
 
@@ -3451,10 +3464,6 @@ CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime,
 
         //Make sure the thread context recycler is allocated before we do anything else
         threadContext->EnsureRecycler();
-
-#if ENABLE_TTD_DEBUGGING
-        threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
-#endif
 
         threadContext->InitTimeTravel(threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested);
 

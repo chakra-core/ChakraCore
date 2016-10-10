@@ -1100,10 +1100,13 @@ StringCommon:
                 {
                     scriptContext->GetThreadContext()->TTDLog->ReplayExternalEntropyRandomEvent(&seed0, &seed1);
                 }
-
-                if(scriptContext->ShouldPerformRecordAction())
+                else if(scriptContext->ShouldPerformRecordAction())
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordExternalEntropyRandomEvent(seed0, seed1);
+                }
+                else
+                {
+                    ;
                 }
 #endif
             }

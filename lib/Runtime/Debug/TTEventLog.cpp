@@ -522,7 +522,7 @@ namespace TTD
 
         if(this->m_ttdContext != nullptr)
         {
-            this->m_ttdContext->TTDMode = this->m_currentMode;
+            this->m_ttdContext->SetTTDMode(this->m_currentMode);
         }
     }
 
@@ -779,7 +779,7 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext == nullptr, "Should only add 1 time!");
 
-        ctx->TTDMode = this->m_currentMode;
+        ctx->SetTTDMode(this->m_currentMode);
         ctx->TTDHostCallbackFunctor = callbackFunctor;
 
         this->m_ttdContext = ctx;
@@ -791,7 +791,7 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext == ctx, "Should be enabled before we disable!");
 
-        ctx->TTDMode = TTDMode::Detached;
+        ctx->SetTTDMode(TTDMode::Detached);
         this->m_ttdContext = nullptr;
     }
 
@@ -2825,9 +2825,11 @@ namespace TTD
         uint32 ecount = this->m_eventList.Count();
         writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         int64 callNestingStack[32];
         int32 stackPos = -1;
         const int32 MaxStackPos = 32;
+#endif
 
         bool firstElem = true;
 

@@ -196,6 +196,7 @@ namespace TTD
 
             SnapUnhandledObject,
             SnapDynamicObject,
+            SnapExternalObject,
             SnapScriptFunctionObject,
             SnapRuntimeFunctionObject,
             SnapExternalFunctionObject,
@@ -260,6 +261,14 @@ namespace TTD
         TTDReadBytesFromStreamCallback pfReadBytesFromStream;
         TTDWriteBytesToStreamCallback pfWriteBytesToStream;
         TTDFlushAndCloseStreamCallback pfFlushAndCloseStream;
+    };
+
+    //Function pointer definitions for creating/interacting with external objects
+    typedef void(CALLBACK *TTDCreateExternalObjectCallback)(Js::ScriptContext* ctx, Js::Var* object);
+
+    struct ExternalObjectFunctions
+    {
+        TTDCreateExternalObjectCallback pfCreateExternalObject;
     };
 
     namespace UtilSupport

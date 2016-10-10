@@ -1032,11 +1032,12 @@ public:
     //Emit the TT Log
     void EmitTTDLogIfNeeded();
 
-    //
     //Callback functions provided by the host for writing info to some type of storage location
-    //
     TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
     TTD::IOStreamFunctions TTDStreamFunctions;
+
+    //Callback functions provided by the host for creating external objects 
+    TTD::ExternalObjectFunctions TTDExternalObjectFunctions;
 #endif
 
     BOOL ReserveStaticTypeIds(__in int first, __in int last);
