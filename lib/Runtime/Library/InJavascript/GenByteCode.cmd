@@ -7,6 +7,7 @@
 setlocal
 set _HASERROR=0
 set _binary=ch.exe
+set _BuildDir=%~dp0..\..\..\..\Build
 
 if "%_FILE%" == "" (
     set "_FILE=%~dp0*.js"
@@ -48,8 +49,8 @@ if "%OutBaseDir%" NEQ "" (
     set _BinLocation=%OutBaseDir%\Chakra.Core%_suffix%\bin
 )
 if "%_BinLocation%"=="" (
-    set _BinLocation=%~dp0..\..\..\..\Build\VcBuild%_suffix%\bin
-) 
+    set _BinLocation=%_BuildDir%\VcBuild%_suffix%\bin
+)
 
 if not exist %_BinLocation%\x86_debug\%_binary% (
     echo Error: %_BinLocation%\x86_debug\%_binary% not found, please build sources. Exiting ...
