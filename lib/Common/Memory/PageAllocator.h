@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 #include "PageAllocatorDefines.h"
+#include "Exceptions\ExceptionBase.h"
+#include "Exceptions\InternalErrorException.h"
 
 #ifdef PROFILE_MEM
 struct PageMemoryData;
