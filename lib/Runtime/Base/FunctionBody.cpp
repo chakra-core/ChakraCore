@@ -5355,14 +5355,17 @@ namespace Js
             return;
         }
         ForInCache * forInCacheArray = (ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
-        if (isShutdown)
+        if (forInCacheArray)
         {
-            memset(forInCacheArray, 0, sizeof(ForInCache) * profiledForInLoopCount);
-        }
-        else
-        {
-            AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
-            this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
+            if (isShutdown)
+            {
+                memset(forInCacheArray, 0, sizeof(ForInCache) * profiledForInLoopCount);
+            }
+            else
+            {
+                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
+                this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
+            }
         }
     }
 
