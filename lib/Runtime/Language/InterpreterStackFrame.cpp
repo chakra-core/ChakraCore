@@ -3029,7 +3029,7 @@ namespace Js
                 }
                 else if (info->GetArgType(i).isInt64())
                 {
-                    *int64Arg = *(int64*)floatSpillAddress;
+                    *int64Arg = *(int64*)argAddress;
 #if DBG_DUMP
                     if (tracingFunc)
                     {
