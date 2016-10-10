@@ -219,7 +219,7 @@ PageSegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
             if (vpresult == FALSE)
             {
                 MemoryOperationLastError::RecordLastError();
-                if (this->allocator->processHandle == GetCurrentProcess())
+                if (this->GetAllocator()->processHandle == GetCurrentProcess())
                 {
                     Assert(false);
                 }
@@ -421,7 +421,7 @@ PageSegmentBase<T>::ReleasePages(__in void * address, uint pageCount)
     if (vpresult == FALSE)
     {
         MemoryOperationLastError::RecordLastError();
-        if (this->allocator->processHandle == GetCurrentProcess())
+        if (this->GetAllocator()->processHandle == GetCurrentProcess())
         {
             Assert(false);
         }
