@@ -321,7 +321,6 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR charStringCacheAddr;
     CHAKRA_PTR libraryAddr;
     CHAKRA_PTR globalObjectAddr;
-    CHAKRA_PTR globalObjectThisAddr;
     CHAKRA_PTR sideEffectsAddr;
     CHAKRA_PTR arraySetElementFastPathVtableAddr;
     CHAKRA_PTR intArraySetElementFastPathVtableAddr;
@@ -664,7 +663,9 @@ typedef struct CodeGenWorkItemIDL
     FunctionJITTimeDataIDL * jitData;
     CHAKRA_PTR jittedLoopIterationsSinceLastBailoutAddr;
     CHAKRA_PTR functionBodyAddr;
+    CHAKRA_PTR globalThisAddr;
     CHAKRA_PTR nativeDataAddr;
+    X86_PAD4(0)
     __int64 startTime;
 } CodeGenWorkItemIDL;
 

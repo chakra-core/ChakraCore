@@ -60,6 +60,7 @@ public:
 
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
+    void UpdateGlobalObjectThisAddr(intptr_t globalThis);
 
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextInfo; }
@@ -75,6 +76,7 @@ private:
 #endif
 
     ScriptContextDataIDL m_contextData;
+    intptr_t m_globalThisAddr;
 
     ServerThreadContext* threadContextInfo;
     uint m_refCount;

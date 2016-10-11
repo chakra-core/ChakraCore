@@ -908,6 +908,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
+        workItem->GetJITData()->globalThisAddr = (intptr_t)scriptContext->GetLibrary()->GetGlobalObject()->ToThis();
 #if !FLOATVAR
         CodeGenNumberAllocator* pNumberAllocator = nullptr;
 

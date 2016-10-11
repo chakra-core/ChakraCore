@@ -11,6 +11,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_isPRNGSeeded(false),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
+    m_globalThisAddr(0),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
 #endif
@@ -183,7 +184,15 @@ ServerScriptContext::GetGlobalObjectAddr() const
 intptr_t
 ServerScriptContext::GetGlobalObjectThisAddr() const
 {
-    return m_contextData.globalObjectThisAddr;
+    return m_globalThisAddr;
+}
+
+void
+ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
+{
+    // this should stay constant once context initialization is complete
+    Assert(!m_globalThisAddr || m_globalThisAddr == globalThis);
+    m_globalThisAddr = globalThis;
 }
 
 intptr_t
