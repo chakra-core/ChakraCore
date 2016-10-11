@@ -2476,7 +2476,21 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     DWORD oldProtect; // this is only for first page
     BOOL retVal = VirtualProtectEx(this->processHandle, address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
-    Assert(oldProtect == desiredOldProtectFlag);
+    if (retVal == FALSE)
+    {
+        MemoryOperationLastError::RecordLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (this->processHandle == GetCurrentProcess()
+            || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
+        {
+            CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        }
+    }
+    else
+    {
+        Assert(oldProtect == desiredOldProtectFlag);
+    }
 
     return retVal;
 }

@@ -468,8 +468,7 @@ private:
     DWORD EnsurePageReadWrite(Page* page)
     {
         Assert(!page->isDecommitted);
-        BOOL result = this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
-        Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+        this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
         return PAGE_EXECUTE;
     }
 
@@ -480,7 +479,6 @@ private:
         if (allocation->IsLargeAllocation())
         {
             BOOL result = this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
-            Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
             return PAGE_EXECUTE;
         }
         else
