@@ -111,6 +111,7 @@ public:
 
     using ValueType::HasBeenString;
     using ValueType::IsString;
+    using ValueType::HasHadStringTag;
     using ValueType::IsLikelyString;
     using ValueType::IsNotString;
 
@@ -438,18 +439,19 @@ class VarConstantValueInfo : public ValueInfo
 {
 private:
     Js::Var const varValue;
+    Js::Var const localVarValue;
     bool isFunction;
 
 public:
-    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false)
+    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
         : ValueInfo(valueType, ValueStructureKind::VarConstant),
-        varValue(varValue), isFunction(isFunction)
+        varValue(varValue), localVarValue(localVarValue), isFunction(isFunction)
     {
     }
 
-    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false)
+    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
     {
-        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction);
+        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction, localVarValue);
     }
 
     VarConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
@@ -458,9 +460,16 @@ public:
     }
 
 public:
-    Js::Var VarValue() const
+    Js::Var VarValue(bool useLocal = false) const
     {
-        return this->varValue;
+        if(useLocal && this->localVarValue)
+        {
+            return this->localVarValue;
+        }
+        else
+        {
+            return this->varValue;
+        }
     }
 
     bool IsFunction() const
@@ -471,7 +480,7 @@ public:
 
 struct ObjectTypePropertyEntry
 {
-    Js::ObjTypeSpecFldInfo* fldInfo;
+    JITObjTypeSpecFldInfo* fldInfo;
     uint blockNumber;
 };
 
@@ -480,12 +489,12 @@ typedef JsUtil::BaseDictionary<Js::PropertyId, ObjectTypePropertyEntry, JitArena
 class JsTypeValueInfo : public ValueInfo
 {
 private:
-    const Js::Type * jsType;
+    JITTypeHolder jsType;
     Js::EquivalentTypeSet * jsTypeSet;
     bool isShared;
 
 public:
-    JsTypeValueInfo(Js::Type * type)
+    JsTypeValueInfo(JITTypeHolder type)
         : ValueInfo(Uninitialized, ValueStructureKind::JsType),
         jsType(type), jsTypeSet(nullptr), isShared(false)
     {
@@ -503,7 +512,7 @@ public:
     {
     }
 
-    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, Js::Type * typeSet)
+    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, JITTypeHolder typeSet)
     {
         return JitAnew(allocator, JsTypeValueInfo, typeSet);
     }
@@ -513,13 +522,13 @@ public:
         return JitAnew(allocator, JsTypeValueInfo, typeSet);
     }
 
-    JsTypeValueInfo(const Js::Type* type, Js::EquivalentTypeSet * typeSet)
+    JsTypeValueInfo(const JITTypeHolder type, Js::EquivalentTypeSet * typeSet)
         : ValueInfo(Uninitialized, ValueStructureKind::JsType),
         jsType(type), jsTypeSet(typeSet), isShared(false)
     {
     }
 
-    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, const Js::Type* type, Js::EquivalentTypeSet * typeSet)
+    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet)
     {
         return JitAnew(allocator, JsTypeValueInfo, type, typeSet);
     }
@@ -532,12 +541,12 @@ public:
         return newInfo;
     }
 
-    const Js::Type * GetJsType() const
+    JITTypeHolder GetJsType() const
     {
         return this->jsType;
     }
 
-    void SetJsType(const Js::Type * value)
+    void SetJsType(const JITTypeHolder value)
     {
         Assert(!this->isShared);
         this->jsType = value;
@@ -614,7 +623,7 @@ public:
         Assert(allocator);
 
         return
-            copyHeadSegment && headSegmentSym || copyHeadSegmentLength && headSegmentLengthSym || copyLength && lengthSym
+            (copyHeadSegment && headSegmentSym) || (copyHeadSegmentLength && headSegmentLengthSym) || (copyLength && lengthSym)
                 ? New(
                     allocator,
                     Type(),
@@ -1131,8 +1140,8 @@ public:
 
         return
             killsAllArrays ||
-            killsArraysWithNoMissingValues && valueType.HasNoMissingValues() ||
-            killsNativeArrays && !valueType.HasVarElements();
+            (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
+            (killsNativeArrays && !valueType.HasVarElements());
     }
 
     bool AreSubsetOf(const JsArrayKills &other) const
@@ -1607,7 +1616,6 @@ public:
     static bool             DoTypedArrayTypeSpec(Func* func);
     static bool             DoNativeArrayTypeSpec(Func* func);
     static bool             IsSwitchOptEnabled(Func* func);
-    static bool             DoEquivObjTypeSpec(Func* func);
     static bool             DoInlineArgsOpt(Func* func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
@@ -1699,7 +1707,6 @@ private:
     bool                    DoFieldHoisting() const;
     bool                    DoObjTypeSpec() const;
     bool                    DoObjTypeSpec(Loop * loop) const;
-    bool                    DoEquivObjTypeSpec() const { return DoEquivObjTypeSpec(this->func); }
     bool                    DoFieldRefOpts() const { return DoObjTypeSpec(); }
     bool                    DoFieldRefOpts(Loop * loop) const { return DoObjTypeSpec(loop); }
     bool                    DoFieldOpts(Loop * loop) const;
@@ -1754,12 +1761,12 @@ private:
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
     void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = (SymID)-1);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
-    void                    SetSingleTypeOnObjectTypeValue(Value* value, const Js::Type* type);
+    void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);
-    void                    UpdateObjectTypeValue(Value* value, const Js::Type* type, bool setType, Js::EquivalentTypeSet* typeSet, bool setTypeSet);
+    void                    UpdateObjectTypeValue(Value* value, const JITTypeHolder type, bool setType, Js::EquivalentTypeSet* typeSet, bool setTypeSet);
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, Value* value, BasicBlock* block = nullptr);
-    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
-    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
+    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
+    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
     void                    KillObjectType(StackSym *objectSym, BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    EndFieldLifetime(IR::SymOpnd *symOpnd);

@@ -65,6 +65,7 @@ namespace Js
 
         static const uint MAX_FUNCTION_COUNT = 10000;  // Consider data corrupt if there are more functions than this
 
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         //
         // Simple read-only wrapper around IStream - templatized and returns boolean result to indicate errors
         //
@@ -148,6 +149,7 @@ namespace Js
 
             IStream* stream;
         };
+#endif  // ENABLE_WININET_PROFILE_DATA_CACHE
     };
 };
-#endif
+#endif  // ENABLE_PROFILE_INFO

@@ -42,22 +42,11 @@ extern "C" {
 
 #ifdef __i386__
 
-#if !defined(__stdcall)
-#define __stdcall      __attribute__((stdcall))
-#endif
-#if !defined(_stdcall)
-#define _stdcall       __stdcall
-#endif
-
-#if !defined(__cdecl)
-#define __cdecl        __attribute__((cdecl))
-#endif
-#if !defined(_cdecl)
-#define _cdecl         __cdecl
-#endif
-#if !defined(CDECL)
-#define CDECL          __cdecl
-#endif
+#define __stdcall
+#define _stdcall
+#define __cdecl
+#define _cdecl
+#define CDECL
 
 #ifndef PAL_STDCPP_COMPAT
 #undef __fastcall
@@ -321,7 +310,6 @@ typedef signed __int64 LONG64;
 #endif
 
 #ifdef BIT64
-
 #define _atoi64 (__int64)atoll
 
 typedef __int64 INT_PTR, *PINT_PTR;
@@ -578,7 +566,7 @@ typedef LONG_PTR SSIZE_T, *PSSIZE_T;
 typedef unsigned long size_t;
 typedef long ptrdiff_t;
 #else // !BIT64
-typedef unsigned int size_t;
+typedef unsigned long size_t;
 typedef int ptrdiff_t;
 #endif // !BIT64
 #else
@@ -623,7 +611,7 @@ typedef unsigned long int uintptr_t;
 typedef unsigned int uintptr_t;
 #endif // !BIT64
 #endif
- 
+
 #else // !PAL_STDCPP_COMPAT
 
 #if defined(__LINUX__)

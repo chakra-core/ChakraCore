@@ -59,7 +59,7 @@ ValueType ValueType::GetNumberAndLikelyInt(const bool isLikelyTagged)
     return Verify(GetInt(isLikelyTagged).bits | Bits::Number);
 }
 
-inline ValueType ValueType::GetObject(const ObjectType objectType)
+ValueType ValueType::GetObject(const ObjectType objectType)
 {
     ValueType valueType(UninitializedObject);
     valueType.SetObjectType(objectType);
@@ -416,6 +416,11 @@ bool ValueType::HasBeenString() const
 bool ValueType::IsString() const
 {
     return OneOnOthersOff(Bits::String, Bits::CanBeTaggedValue);
+}
+
+bool ValueType::HasHadStringTag() const
+{
+    return !!(bits & Bits::String);
 }
 
 bool ValueType::IsLikelyString() const
@@ -1478,7 +1483,7 @@ ValueType ValueType::FromObjectWithArray(Js::DynamicObject *const object)
     return FromObjectArray(JavascriptArray::FromVar(objectArray));
 }
 
-inline ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)
+ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)
 {
     using namespace Js;
     Assert(objectArray);
@@ -1486,7 +1491,7 @@ inline ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArr
     return FromArray(ObjectType::ObjectWithArray, objectArray, TypeIds_Array); // objects with native arrays are currently not supported
 }
 
-inline ValueType ValueType::FromArray(
+ValueType ValueType::FromArray(
     const ObjectType objectType,
     Js::JavascriptArray *const array,
     const Js::TypeId arrayTypeId)
@@ -1608,7 +1613,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         size_t nameLength = strlen(name);
         if(addUnderscore)
             ++nameLength;
-        if(length + nameLength >= sizeof(str) / sizeof(str[0]))
+        if(length + nameLength >= VALUE_TYPE_MAX_STRING_SIZE)
             break;
 
         if(addUnderscore)
@@ -1619,7 +1624,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         else
             addUnderscore = !(b & Bits::Likely);
 
-        js_memcpy_s(&str[length], sizeof(str) / sizeof(str[0]) - 1 - length, name, nameLength);
+        js_memcpy_s(&str[length], VALUE_TYPE_MAX_STRING_SIZE - 1 - length, name, nameLength);
         length += nameLength;
 
         if((b & -b) == BitPattern(1, VALUE_TYPE_OBJECT_BIT_INDEX)) // if the bit that was just printed is the last common bit
@@ -1627,7 +1632,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
         b &= b - 1; // unset the least significant set bit
     } while(!!b);
 
-    Assert(length < sizeof(str) / sizeof(str[0]));
+    Assert(length < VALUE_TYPE_MAX_STRING_SIZE);
     str[length] = '\0';
 }
 

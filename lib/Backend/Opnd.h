@@ -90,6 +90,8 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindSz,
     AddrOpndKindDynamicFloatRef,
     AddrOpndKindDynamicDoubleRef,
+    AddrOpndKindDynamicNativeCodeDataRef,
+    AddrOpndKindDynamicAuxBufferRef,
 };
 
 ///---------------------------------------------------------------------------
@@ -213,7 +215,7 @@ public:
     bool                IsWriteBarrierTriggerableValue();
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
-    int64               GetImmediateValue();
+    int64               GetImmediateValue(Func * func);
     BailoutConstantValue GetConstValue();
     bool                GetIsJITOptimizedReg() const { return m_isJITOptimizedReg; }
     void                SetIsJITOptimizedReg(bool value) { Assert(!value || !this->IsIndirOpnd()); m_isJITOptimizedReg = value; }
@@ -370,7 +372,7 @@ class FloatConstOpnd: public Opnd
 {
 public:
     static FloatConstOpnd * New(FloatConstType value, IRType type, Func *func);
-    static FloatConstOpnd * New(Js::Var floatVar, IRType type, Func *func);
+    static FloatConstOpnd * New(Js::Var floatVar, IRType type, Func *func, Js::Var varLocal = nullptr);
 
 public:
     //Note: type OpndKindFloatConst
@@ -380,11 +382,13 @@ public:
     AddrOpnd               *GetAddrOpnd(Func *func, bool dontEncode = false);
 public:
     FloatConstType          m_value;
-private:
+protected:
 #if !FLOATVAR
     Js::Var                 m_number;
+    Js::JavascriptNumber    *m_numberCopy;
 #endif
 };
+
 
 class Simd128ConstOpnd sealed : public Opnd
 {
@@ -529,19 +533,19 @@ public:
 
 private:
     static PropertySymOpnd * New(PropertySym *propertySym, IRType type, Func *func);
-    void Init(uint inlineCacheIndex, Js::InlineCache * runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
+    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
 #if DBG
     virtual bool      DbgIsPropertySymOpnd() const override { return true; }
 #endif
 public:
     Js::InlineCacheIndex m_inlineCacheIndex;
-    Js::InlineCache* m_runtimeInlineCache;
-    Js::PolymorphicInlineCache* m_runtimePolymorphicInlineCache;
+    intptr_t m_runtimeInlineCache;
+    JITTimePolymorphicInlineCache* m_runtimePolymorphicInlineCache;
 private:
-    Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo;
+    JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
-    Js::Type* finalType;
-    Js::Type* monoGuardType;
+    JITTypeHolder finalType;
+    JITTypeHolder monoGuardType;
     BVSparse<JitArenaAllocator>* guardedPropOps;
     BVSparse<JitArenaAllocator>* writeGuards;
     byte m_polyCacheUtil;
@@ -598,7 +602,7 @@ public:
         return this->objTypeSpecFldInfo != nullptr;
     }
 
-    void SetObjTypeSpecFldInfo(Js::ObjTypeSpecFldInfo *const objTypeSpecFldInfo)
+    void SetObjTypeSpecFldInfo(JITObjTypeSpecFldInfo *const objTypeSpecFldInfo)
     {
         this->objTypeSpecFldInfo = objTypeSpecFldInfo;
 
@@ -633,7 +637,7 @@ public:
         return false;
     }
 
-    Js::ObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
+    JITObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
     {
         return this->objTypeSpecFldInfo;
     }
@@ -705,12 +709,12 @@ public:
         return this->monoGuardType != nullptr;
     }
 
-    Js::Type * GetMonoGuardType() const
+    JITTypeHolder GetMonoGuardType() const
     {
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(Js::Type *type)
+    void SetMonoGuardType(JITTypeHolder type)
     {
         this->monoGuardType = type;
     }
@@ -735,12 +739,6 @@ public:
     bool IsBeingAdded() const
     {
         return HasObjTypeSpecFldInfo() && this->objTypeSpecFldInfo->IsBeingAdded();
-    }
-
-    void SetIsBeingAdded(bool value)
-    {
-        Assert(HasObjTypeSpecFldInfo());
-        this->objTypeSpecFldInfo->SetIsBeingAdded(value);
     }
 
     bool IsRootObjectNonConfigurableField() const
@@ -783,37 +781,37 @@ public:
         return this->objTypeSpecFldInfo->GetPropertyId();
     }
 
-    Js::DynamicObject* GetProtoObject() const
+    intptr_t GetProtoObject() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetProtoObject();
     }
 
-    Js::JavascriptFunction* GetFieldValueAsFixedFunction() const
+    JITTimeFixedField * GetFixedFunction() const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetFieldValueAsFixedFunctionIfAvailable();
+        return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction();
     }
 
-    Js::JavascriptFunction* GetFieldValueAsFixedFunction(uint i) const
+    JITTimeFixedField * GetFixedFunction(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetFieldValueAsFixedFunctionIfAvailable(i);
+        return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction(i);
     }
 
-    Js::Var GetFieldValueAsFixedData() const
+    intptr_t GetFieldValueAsFixedData() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFieldValueAsFixedDataIfAvailable();
     }
 
-    Js::Var GetFieldValue(uint i)
+    intptr_t GetFieldValue(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFieldValue(i);
     }
 
-    Js::FixedFieldInfo* GetFixedFieldInfoArray()
+    JITTimeFixedField * GetFixedFieldInfoArray()
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFixedFieldInfoArray();
@@ -825,16 +823,16 @@ public:
         return this->objTypeSpecFldInfo->GetFixedFieldCount();
     }
 
-    Js::JitTimeConstructorCache* GetCtorCache() const
+    JITTimeConstructorCache * GetCtorCache() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetCtorCache();
     }
 
-    Js::PropertyGuard* GetPropertyGuard() const
+    intptr_t GetPropertyGuardValueAddr() const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetPropertyGuard();
+        return this->objTypeSpecFldInfo->GetPropertyGuardValueAddr();
     }
 
     bool IsTypeCheckSeqCandidate() const
@@ -847,14 +845,6 @@ public:
     {
         Assert(IsObjTypeSpecCandidate() || !value);
         this->isTypeCheckSeqCandidate = value;
-    }
-
-    void SetTypeCheckSeqCandidateIfObjTypeSpecCandidate()
-    {
-        if (IsObjTypeSpecCandidate())
-        {
-            this->isTypeCheckSeqCandidate = true;
-        }
     }
 
     bool IsTypeCheckOnly() const
@@ -1064,17 +1054,14 @@ public:
         return NeedsPrimaryTypeCheck() || IsTypeCheckProtected();
     }
 
-    bool HasFinalType() const
-    {
-        return this->finalType != nullptr;
-    }
+    bool HasFinalType() const;
 
-    Js::Type * GetFinalType() const
+    JITTypeHolder GetFinalType() const
     {
         return this->finalType;
     }
 
-    void SetFinalType(Js::Type* type)
+    void SetFinalType(JITTypeHolder type)
     {
         Assert(type != nullptr);
         this->finalType = type;
@@ -1082,7 +1069,7 @@ public:
 
     void ClearFinalType()
     {
-        this->finalType = nullptr;
+        this->finalType = JITTypeHolder(nullptr);
     }
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
@@ -1135,7 +1122,7 @@ public:
 
     bool IsObjTypeSpecCandidate() const
     {
-        return HasObjTypeSpecFldInfo() && this->objTypeSpecFldInfo->IsObjTypeSpecCandidate();
+        return HasObjTypeSpecFldInfo();
     }
 
     bool IsMonoObjTypeSpecCandidate() const
@@ -1160,13 +1147,13 @@ public:
         return this->objTypeSpecFldInfo->GetTypeId(i);
     }
 
-    Js::Type * GetType() const
+    JITTypeHolder GetType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType();
     }
 
-    Js::Type * GetType(uint i) const
+    JITTypeHolder GetType(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType(i);
@@ -1178,7 +1165,7 @@ public:
         return this->objTypeSpecFldInfo->HasInitialType();
     }
 
-    Js::Type * GetInitialType() const
+    JITTypeHolder GetInitialType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetInitialType();
@@ -1190,7 +1177,7 @@ public:
         return this->objTypeSpecFldInfo->GetEquivalentTypeSet();
     }
 
-    Js::Type * GetFirstEquivalentType() const
+    JITTypeHolder GetFirstEquivalentType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFirstEquivalentType();
@@ -1377,10 +1364,12 @@ public:
 class AddrOpnd sealed : public Opnd
 {
 public:
-    static AddrOpnd *       New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false);
+    static AddrOpnd *       New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false, Js::Var varLocal = nullptr);
+    static AddrOpnd *       New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode = false, Js::Var varLocal = nullptr);
     static AddrOpnd *       NewFromNumber(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int32 value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewFromNumber(int64 value, Func *func, bool dontEncode = false);
+    static AddrOpnd *       NewFromNumberVar(double value, Func *func, bool dontEncode = false);
     static AddrOpnd *       NewNull(Func * func);
 public:
     //Note type: OpndKindAddr
@@ -1394,6 +1383,12 @@ public:
     AddrOpndKind            GetAddrOpndKind() const { return addrOpndKind; }
     void                    SetAddress(Js::Var address, AddrOpndKind addrOpndKind);
 public:
+
+    // TODO: OOP JIT, make this union more transparent
+    //union {
+        void *                  m_metadata;
+        Js::Var                 m_localAddress;
+    //};
     Js::Var                 m_address;
     bool                    m_dontEncode: 1;
     bool                    m_isFunction: 1;
@@ -1495,6 +1490,7 @@ class MemRefOpnd : public Opnd
 {
 public:
     static MemRefOpnd *     New(void * pMemLoc, IRType, Func * func, AddrOpndKind addrOpndKind = AddrOpndKindDynamicMisc);
+    static MemRefOpnd *     New(intptr_t pMemLoc, IRType, Func * func, AddrOpndKind addrOpndKind = AddrOpndKindDynamicMisc);
 
 public:
     // Note type: OpndKindMemRef
@@ -1502,13 +1498,13 @@ public:
     bool                    IsEqualInternal(Opnd *opnd);
     void                    FreeInternal(Func * func);
 
-    void *                  GetMemLoc() const;
-    void                    SetMemLoc(void * pMemLoc);
+    intptr_t                  GetMemLoc() const;
+    void                    SetMemLoc(intptr_t pMemLoc);
 
     IR::AddrOpndKind        GetAddrKind() const;
 
 private:
-    void *                  m_memLoc;
+    intptr_t                  m_memLoc;
 #if DBG_DUMP
     AddrOpndKind            m_addrKind;
 #endif

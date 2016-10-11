@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -36,6 +36,7 @@
         oleaut32.lib;
         ole32.lib;
         kernel32.lib;
+        Rpcrt4.lib;
       </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -53,6 +54,7 @@
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="HostConfigFlags.h" />
     <ClInclude Include="HostConfigFlagsList.h" />
+    <ClInclude Include="JITProcessManager.h" />
     <ClInclude Include="MessageQueue.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="WScriptJsrt.h" />
@@ -64,6 +66,7 @@
     <ClCompile Include="Debugger.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
+    <ClCompile Include="JITProcessManager.cpp" />
     <ClCompile Include="WScriptJsrt.cpp" />
   </ItemGroup>
   <ItemGroup>

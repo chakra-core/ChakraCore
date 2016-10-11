@@ -776,6 +776,18 @@ namespace Js
         return TRUE;
     }
 
+    BOOL JavascriptProxy::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        PropertyRecord const *propertyRecord = nullptr;
+        if (JavascriptOperators::ShouldTryDeleteProperty(this, propertyNameString, &propertyRecord))
+        {
+            Assert(propertyRecord);
+            return DeleteProperty(propertyRecord->GetPropertyId(), flags);
+        }
+
+        return TRUE;
+    }
+
     BOOL JavascriptProxy::IsFixedProperty(PropertyId propertyId)
     {
         // TODO: can we add support for fixed property? don't see a clear way to invalidate...
@@ -929,8 +941,8 @@ namespace Js
                         dict.Add(str->GetSz(), prop);
                         // if (desc.enumerable) yield key;
                         if (desc.IsEnumerable())
-                        {
-                            ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
+                        {                            
+                            ret = arrResult->SetItem(index++, CrossSite::MarshalVar(requestContext, prop), PropertyOperation_None);
                             Assert(ret);
                         }
                     }

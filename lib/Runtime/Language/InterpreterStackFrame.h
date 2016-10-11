@@ -32,7 +32,7 @@ namespace Js
     {
         PREVENT_COPY(InterpreterStackFrame)
 
-        friend class BailOutRecord;
+        friend class ::BailOutRecord;
         friend class JavascriptGeneratorFunction;
         friend class JavascriptGenerator;
 
@@ -181,6 +181,8 @@ namespace Js
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
+        void OP_Unreachable();
+
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
@@ -235,7 +237,7 @@ namespace Js
         UINT16 GetFlags() const { return m_flags; }
         void OrFlags(UINT16 addTo) { m_flags |= addTo; }
         bool IsInCatchOrFinallyBlock();
-        static bool IsDelayDynamicInterpreterThunk(void* entryPoint);
+        static bool IsDelayDynamicInterpreterThunk(JavascriptMethod entryPoint);
 
         Var LdEnv() const;
         void SetEnv(FrameDisplay *frameDisplay);
@@ -253,6 +255,7 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
+        static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -617,7 +620,7 @@ namespace Js
         inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
-        inline Var OP_LdHeapArguments(ScriptContext* scriptContext);
+        Var OP_LdHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdHeapArgsCached(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArgsCached(ScriptContext* scriptContext);
@@ -791,7 +794,7 @@ namespace Js
         ~InterpreterThunkStackCountTracker() { --s_count; }
         static int GetCount() { return s_count; }
     private:
-        __declspec(thread) static int s_count;
+        THREAD_LOCAL static int s_count;
     };
 #endif
 

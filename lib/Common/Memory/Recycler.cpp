@@ -1278,16 +1278,34 @@ Recycler::OutOfMemory()
     outOfMemoryFunc();
 }
 
-void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t allocSize, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset)
+void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(void* recyclerAddr, size_t allocSize, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT)
+{
+    Assert(recyclerAddr);
+    return ((Recycler*)recyclerAddr)->GetNormalHeapBlockAllocatorInfoForNativeAllocation(allocSize, allocatorAddress, endAddressOffset, freeListOffset, allowBumpAllocation, isOOPJIT);
+}
+
+void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t allocSize, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT)
 {
     Assert(HeapInfo::IsAlignedSize(allocSize));
     Assert(HeapInfo::IsSmallObject(allocSize));
 
-    allocatorAddress = GetAddressOfAllocator<NoBit>(allocSize);
-    endAddressOffset = GetEndAddressOffset<NoBit>(allocSize);
-    freeListOffset = GetFreeObjectListOffset<NoBit>(allocSize);
+    allocatorAddress = (char*)this + offsetof(Recycler, autoHeap) + offsetof(HeapInfo, heapBuckets) +
+        sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint)(allocSize >> HeapConstants::ObjectAllocationShift) - 1)
+        + HeapBucketGroup<SmallAllocationBlockAttributes>::GetHeapBucketOffset()
+        + HeapBucketT<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>>::GetAllocatorHeadOffset();
 
-    if (!AllowNativeCodeBumpAllocation())
+    endAddressOffset = SmallHeapBlockAllocator<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>>::GetEndAddressOffset();
+    freeListOffset = SmallHeapBlockAllocator<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>>::GetFreeObjectListOffset();;
+
+    if (!isOOPJIT)
+    {
+        Assert(allocatorAddress == GetAddressOfAllocator<NoBit>(allocSize));
+        Assert(endAddressOffset == GetEndAddressOffset<NoBit>(allocSize));
+        Assert(freeListOffset == GetFreeObjectListOffset<NoBit>(allocSize));
+        Assert(allowBumpAllocation == AllowNativeCodeBumpAllocation());
+    }
+
+    if (!allowBumpAllocation)
     {
         freeListOffset = endAddressOffset;
     }
@@ -4914,8 +4932,6 @@ Recycler::BackgroundScanStack()
 #ifdef RECYCLER_TRACE
         CUSTOM_PHASE_PRINT_VERBOSE_TRACE1(GetRecyclerFlagsTable(), Js::ScanStackPhase, _u("[%04X] Skipping the stack scan\n"), ::GetCurrentThreadId());
 #endif
-        Output::Print(Js::ScanStackPhase, _u("[%04X] Skipping the stack scan\n"), ::GetCurrentThreadId());
-
         return 0;
     }
 
@@ -6949,15 +6965,21 @@ Recycler::FillCheckPad(void * address, size_t size, size_t alignedAllocSize, boo
         // Actually this is filling the non-pad to zero
         VerifyCheckFill(addressToVerify, sizeToVerify - sizeof(size_t));
 
-        // Ignore the first word
-        if (!objectAlreadyInitialized && size > sizeof(FreeObject))
-        {
-            memset((char *)address + sizeof(FreeObject), 0, size - sizeof(FreeObject));
-        }
-
-        // write the pad size at the end;
-        *(size_t *)((char *)address + alignedAllocSize - sizeof(size_t)) = alignedAllocSize - size;
+        FillPadNoCheck(address, size, alignedAllocSize, objectAlreadyInitialized);
     }
+}
+
+void 
+Recycler::FillPadNoCheck(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized)
+{
+    // Ignore the first word
+    if (!objectAlreadyInitialized && size > sizeof(FreeObject))
+    {
+        memset((char *)address + sizeof(FreeObject), 0, size - sizeof(FreeObject));
+    }
+
+    // write the pad size at the end;
+    *(size_t *)((char *)address + alignedAllocSize - sizeof(size_t)) = alignedAllocSize - size;
 }
 
 void Recycler::Verify(Js::Phase phase)

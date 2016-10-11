@@ -60,6 +60,7 @@ namespace Js
 
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
 
         virtual BOOL IsWritable(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;

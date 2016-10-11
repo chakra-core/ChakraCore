@@ -71,7 +71,7 @@ public:
 
 public:
             void            Init(Lowerer *lowerer);
-            IR::Opnd *      GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode = false);
+            IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false);
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = nullptr,
                                                IR::Opnd *opndInstance = nullptr, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false);
             void            FinalLower();
@@ -86,7 +86,7 @@ public:
 
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr);
+    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
 
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);
@@ -172,6 +172,7 @@ public:
             void            GenerateClz(IR::Instr * instr);
             void            GenerateCtz(IR::Instr * instr);
             void            GeneratePopCnt(IR::Instr * instr);
+            void            GenerateThrowUnreachable(IR::Instr * instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             bool            GenerateLdThisCheck(IR::Instr * instr);
             bool            GenerateLdThisStrict(IR::Instr * instr);

@@ -8,6 +8,68 @@
 
 namespace TTD
 {
+    TTModeStack::TTModeStack()
+        : m_stackEntries(nullptr), m_stackTop(0), m_stackMax(16)
+    {
+        this->m_stackEntries = TT_HEAP_ALLOC_ARRAY_ZERO(TTDMode, 16);
+    }
+
+    TTModeStack::~TTModeStack()
+    {
+        TT_HEAP_FREE_ARRAY(TTDMode, this->m_stackEntries, this->m_stackMax);
+    }
+
+    uint32 TTModeStack::Count() const
+    {
+        return this->m_stackTop;
+    }
+
+    TTDMode TTModeStack::GetAt(uint32 index) const
+    {
+        AssertMsg(index < this->m_stackTop, "index is out of range");
+
+        return this->m_stackEntries[index];
+    }
+
+    void TTModeStack::SetAt(uint32 index, TTDMode m)
+    {
+        AssertMsg(index < this->m_stackTop, "index is out of range");
+
+        this->m_stackEntries[index] = m;
+    }
+
+    void TTModeStack::Push(TTDMode m)
+    {
+        if(this->m_stackTop == this->m_stackMax)
+        {
+            uint32 newMax = this->m_stackMax + 16;
+            TTDMode* newStack = TT_HEAP_ALLOC_ARRAY_ZERO(TTDMode, newMax);
+            js_memcpy_s(newStack, newMax * sizeof(TTDMode), this->m_stackEntries, this->m_stackMax * sizeof(TTDMode));
+
+            TT_HEAP_FREE_ARRAY(TTDMode, this->m_stackEntries, this->m_stackMax);
+
+            this->m_stackMax = newMax;
+            this->m_stackEntries = newStack;
+        }
+
+        this->m_stackEntries[this->m_stackTop] = m;
+        this->m_stackTop++;
+    }
+
+    TTDMode TTModeStack::Peek() const
+    {
+        AssertMsg(this->m_stackTop > 0, "Undeflow in stack pop.");
+
+        return this->m_stackEntries[this->m_stackTop - 1];
+    }
+
+    void TTModeStack::Pop()
+    {
+        AssertMsg(this->m_stackTop > 0, "Undeflow in stack pop.");
+
+        this->m_stackTop--;
+    }
+
     namespace UtilSupport
     {
         TTAutoString::TTAutoString()

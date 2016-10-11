@@ -198,6 +198,11 @@ namespace Js
         return GetTypeHandler()->DeleteProperty(this, propertyId, flags);
     }
 
+    BOOL DynamicObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        return GetTypeHandler()->DeleteProperty(this, propertyNameString, flags);
+    }
+
     BOOL DynamicObject::IsFixedProperty(PropertyId propertyId)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));

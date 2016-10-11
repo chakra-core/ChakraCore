@@ -33,7 +33,7 @@ namespace Js {
     private:
         static CriticalSection csGenerateDump;
 #ifdef STACK_BACK_TRACE
-        __declspec(thread) static  StackBackTrace * stackBackTrace;
+        THREAD_LOCAL static  StackBackTrace * stackBackTrace;
 
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 40;

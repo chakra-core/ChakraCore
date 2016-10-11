@@ -4,29 +4,28 @@
 ;;-------------------------------------------------------------------------------------------------------
 
 (module
-  (func $copysign32 (param f32) (param f32) (result f32)
+  (func (export "f32copysign") (param f32) (param f32) (result f32)
     (return (f32.copysign (get_local 0) (get_local 1))))
-  ;;(func $copysign64 (param f64) (param f64) (result f64)
+
+  ;;(func (export "f64copysign") (param f64) (param f64) (result f64)
   ;;  (return (f64.copysign (get_local 0) (get_local 1))))
-  (func $eqz32 (param i32) (result i32)
+
+  (func (export "eqz") (param i32) (result i32)
     (return (i32.eqz (get_local 0))))
-  (func $trunc32 (param f32) (result f32)
+
+  (func (export "trunc") (param f32) (result f32)
     (return (f32.trunc (get_local 0))))
-  (func $trunc64 (param f64) (result f64)
+
+  (func (export "f64trunc") (param f64) (result f64)
     (return (f64.trunc (get_local 0))))
-  (func $nearest32 (param f32) (result f32)
+
+  (func (export "nearest") (param f32) (result f32)
     (return (f32.nearest (get_local 0))))
-  (func $nearest64 (param f64) (result f64)
+
+  (func (export "f64nearest") (param f64) (result f64)
     (return (f64.nearest (get_local 0))))
-  (func $ifeqz (param i32) (result i32)
+
+  (func (export "ifeqz") (param i32) (result i32)
     (if (i32.eqz (get_local 0)) (return (i32.const 1)))
     (return (i32.const 0)))
-  (export "f32copysign" $copysign32)
-  ;;(export "f64copysign" $copysign64)
-  (export "eqz" $eqz32)
-  (export "trunc" $trunc32)
-  (export "f64trunc" $trunc64)
-  (export "nearest" $nearest32)
-  (export "f64nearest" $nearest64)
-  (export "ifeqz" $ifeqz)
 )

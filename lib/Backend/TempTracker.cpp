@@ -240,7 +240,7 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
                 {
                     // Record that the usedSymID may propagate to dstSymID and all the symbols
                     // that it may propagate to as well
-                    AddTransferDependencies(usedSymID, dstSymID, this->tempTransferDependencies);
+                    this->AddTransferDependencies(usedSymID, dstSymID, this->tempTransferDependencies);
 #if DBG_DUMP
                     if (T::DoTrace(backwardPass))
                     {
@@ -258,14 +258,14 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
     {
         this->tempTransferredSyms.Set(usedSymID);
         PropertySym * propertySym = instr->GetDst()->AsSymOpnd()->m_sym->AsPropertySym();
-        PropagateTempPropertyTransferStoreDependencies(usedSymID, propertySym, backwardPass);
+        this->PropagateTempPropertyTransferStoreDependencies(usedSymID, propertySym, backwardPass);
 
 #if DBG_DUMP
         if (T::DoTrace(backwardPass) && this->tempTransferDependencies)
         {
             Output::Print(_u("%s: %8s (PropId:%d %s)+[] -> s%d: "), T::GetTraceName(),
                 backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), propertySym->m_propertyId,
-                backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), usedSymID);
+                backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(), usedSymID);
             BVSparse<JitArenaAllocator> ** transferDependencies = this->tempTransferDependencies->Get(usedSymID);
             if (transferDependencies)
             {
@@ -712,7 +712,7 @@ NumberTemp::IsTempPropertyTransferStore(IR::Instr * instr, BackwardPass * backwa
                 PropertySym *propertySym = dst->AsSymOpnd()->m_sym->AsPropertySym();
                 SymID propertySymId = this->GetRepresentativePropertySymId(propertySym, backwardPass);
                 return !this->nonTempSyms.Test(propertySymId) &&
-                    !instr->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->IsNumeric();
+                    !instr->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->IsNumeric();
             }
         };
 
@@ -916,7 +916,7 @@ NumberTemp::ProcessPropertySymUse(IR::SymOpnd * symOpnd, IR::Instr * instr, Back
         {
             Output::Print(_u("%s: %8s s%d -> PropId:%d %s: "), NumberTemp::GetTraceName(),
                 backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), dstSymID, propertySym->m_propertyId,
-                backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer());
+                backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer());
             (*this->propertyIdsTempTransferDependencies->Get(propertySym->m_propertyId))->Dump();
         }
 #endif
@@ -927,7 +927,7 @@ NumberTemp::ProcessPropertySymUse(IR::SymOpnd * symOpnd, IR::Instr * instr, Back
     {
         Output::Print(_u("%s: %8s%4sTemp Use (PropId:%d %s)"), NumberTemp::GetTraceName(),
             backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), isTempUse ? _u("") : _u("Non "), propertySym->m_propertyId,
-            backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer());
+            backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer());
         instr->DumpSimple();
     }
 #endif
@@ -1000,6 +1000,8 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     // Special case ArgOut_A which communicate information about CallDirect
     switch (opcode)
     {
+    case Js::OpCode::LdLen_A:
+        return instr->GetSrc1()->AsRegOpnd()->GetStackSym() == sym;
     case Js::OpCode::ArgOut_A:
         return instr->dstIsTempObject;
     case Js::OpCode::LdFld:
@@ -1029,7 +1031,7 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     case Js::OpCode::StElemI_A_Strict:
         return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
     case Js::OpCode::Memset:
-        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym == sym;
+        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym == sym);
     case Js::OpCode::Memcopy:
         return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
 
@@ -1094,7 +1096,7 @@ ObjectTemp::CanStoreTemp(IR::Instr * instr)
 #endif
         if (opcode == Js::OpCode::NewScObjectNoCtor)
         {
-            if (PHASE_OFF(Js::FixedNewObjPhase, instr->m_func->GetJnFunction()) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, instr->m_func->GetTopFunc()))
+            if (PHASE_OFF(Js::FixedNewObjPhase, instr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, instr->m_func->GetTopFunc()))
             {
                 return false;
             }

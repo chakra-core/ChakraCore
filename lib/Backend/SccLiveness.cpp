@@ -376,36 +376,36 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
     }
     else if (!this->lastCall && src->IsSymOpnd() && src->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
     {
-		IR::SymOpnd *symOpnd = src->AsSymOpnd();
-		RegNum reg = LinearScanMD::GetParamReg(symOpnd, this->func);
+        IR::SymOpnd *symOpnd = src->AsSymOpnd();
+        RegNum reg = LinearScanMD::GetParamReg(symOpnd, this->func);
 
-		if (reg != RegNOREG && PHASE_ON(Js::RegParamsPhase, this->func))
-		{
-			StackSym *stackSym = symOpnd->m_sym->AsStackSym();
-			Lifetime *lifetime = stackSym->scratch.linearScan.lifetime;
+        if (reg != RegNOREG && PHASE_ON(Js::RegParamsPhase, this->func))
+        {
+            StackSym *stackSym = symOpnd->m_sym->AsStackSym();
+            Lifetime *lifetime = stackSym->scratch.linearScan.lifetime;
 
-			if (lifetime == nullptr)
-			{
-				lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
-				lifetime->region = this->curRegion;
-				lifetime->isFloat = symOpnd->IsFloat();
-				lifetime->isSimd128F4 = symOpnd->IsSimd128F4();
-				lifetime->isSimd128I4 = symOpnd->IsSimd128I4();
-				lifetime->isSimd128I8 = symOpnd->IsSimd128I8();
-				lifetime->isSimd128I16 = symOpnd->IsSimd128I16();
-				lifetime->isSimd128U4 = symOpnd->IsSimd128U4();
-				lifetime->isSimd128U8 = symOpnd->IsSimd128U8();
-				lifetime->isSimd128U16 = symOpnd->IsSimd128U16();
-				lifetime->isSimd128B4 = symOpnd->IsSimd128B4();
-				lifetime->isSimd128B8 = symOpnd->IsSimd128B8();
-				lifetime->isSimd128B16 = symOpnd->IsSimd128B16();
-				lifetime->isSimd128D2 = symOpnd->IsSimd128D2();
-			}
+            if (lifetime == nullptr)
+            {
+                lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
+                lifetime->region = this->curRegion;
+                lifetime->isFloat = symOpnd->IsFloat();
+                lifetime->isSimd128F4 = symOpnd->IsSimd128F4();
+                lifetime->isSimd128I4 = symOpnd->IsSimd128I4();
+                lifetime->isSimd128I8 = symOpnd->IsSimd128I8();
+                lifetime->isSimd128I16 = symOpnd->IsSimd128I16();
+                lifetime->isSimd128U4 = symOpnd->IsSimd128U4();
+                lifetime->isSimd128U8 = symOpnd->IsSimd128U8();
+                lifetime->isSimd128U16 = symOpnd->IsSimd128U16();
+                lifetime->isSimd128B4 = symOpnd->IsSimd128B4();
+                lifetime->isSimd128B8 = symOpnd->IsSimd128B8();
+                lifetime->isSimd128B16 = symOpnd->IsSimd128B16();
+                lifetime->isSimd128D2 = symOpnd->IsSimd128D2();
+            }
 
-			IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
-			instr->ReplaceSrc(symOpnd, newRegOpnd);
-			this->ProcessRegUse(newRegOpnd, instr);
-		}
+            IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
+            instr->ReplaceSrc(symOpnd, newRegOpnd);
+            this->ProcessRegUse(newRegOpnd, instr);
+        }
     }
 }
 
@@ -510,7 +510,7 @@ SCCLiveness::ProcessStackSymUse(StackSym * stackSym, IR::Instr * instr, int usag
     {
 #if DBG
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(_u("Function: %s (%s)       "), this->func->GetJnFunction()->GetDisplayName(), this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(_u("Function: %s (%s)       "), this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
         Output::Print(_u("Reg: "));
         stackSym->Dump();
         Output::Print(_u("\n"));
@@ -769,8 +769,8 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
 
         // offset = indir.offset + (index << scale)
         int32 offset = index->m_sym->GetIntConstValue();
-        if(indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset) ||
-            indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset))
+        if((indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset)) ||
+           (indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset)))
         {
             return false;
         }

@@ -349,7 +349,7 @@ namespace Js
     const auto& globalFlags = Js::Configuration::Global.flags;
     PVOID FaultInjection::vectoredExceptionHandler = nullptr;
     DWORD FaultInjection::exceptionFilterRemovalLastError = 0;
-    __declspec(thread) int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
+    THREAD_LOCAL int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
     static SymbolInfoPackage sip;
     static ModuleInfo mi;
 
@@ -1079,6 +1079,9 @@ namespace Js
         }
         case CountOnly:
             break;
+        case DisplayAvailableFaultTypes:
+        case InstallExceptionHandlerOnly:        
+            return false;
         default:
             AssertMsg(false, "Invalid FaultInjection mode");
             break;
@@ -1113,32 +1116,112 @@ namespace Js
     {
 #if !defined(_M_ARM32_OR_ARM64) // not support ARM for now, add support in case we run fault injection on ARM
         AutoCriticalSection autocs(&cs_Sym);
-
         CONTEXT* pContext = ep->ContextRecord;
-#if _M_X64
-        auto ip = pContext->Rip;
-#elif _M_IX86
-        auto ip = pContext->Eip;
+
+        // always show stack for crash and fault injection points in console,
+        // this can be used for additional stack matching repro
+        HANDLE hProcess = GetCurrentProcess();
+        DWORD64 dwSymDisplacement = 0;
+        auto printFrame = [&](LPVOID addr)
+        {
+            sip.Init();
+            if (pfnSymFromAddrW(hProcess, (DWORD64)addr, &dwSymDisplacement, &sip.si))
+            {
+                mi.Init();
+                pfnSymGetModuleInfoW64(hProcess, (DWORD64)addr, &mi);
+                fwprintf(stderr, _u("%s!%s+0x%llx\n"), mi.ModuleName, sip.si.Name, (ULONGLONG)dwSymDisplacement);
+            }
+            else
+            {
+                fwprintf(stderr, _u("0x%p\n"), addr);
+            }
+        };
+
+        LPVOID backTrace[MAX_FRAME_COUNT] = { 0 };
+        DWORD64 displacements[MAX_FRAME_COUNT] = { 0 };
+#if _M_IX86
+        WORD nStackCount = StackTrace86(0, MAX_FRAME_COUNT, backTrace, 0, pContext);
+#elif _M_X64
+        WORD nStackCount = StackTrace64(0, MAX_FRAME_COUNT, backTrace, 0, pContext);
+#else
+        WORD nStackCount = CaptureStack(0, MAX_FRAME_COUNT, backTrace, 0);
 #endif
+
+        // Print current crash stacks
+        fwprintf(stderr, crashStackStart);
+
+        for (int i = 0; i < nStackCount; i++)
+        {
+            printFrame(backTrace[i]);
+            displacements[i] = dwSymDisplacement;
+        }
+
+        LPVOID internalExceptionAddr = nullptr;
+        for (int i = 0; i < nStackCount - 1 && internalExceptionAddr == nullptr; i++)
+        {
+            if (backTrace[i] == (char*)Js::Throw::FatalInternalError + displacements[i])
+            {
+                internalExceptionAddr = backTrace[i + 1];
+            }
+            else if (backTrace[i] == (char*)Js::Throw::ReportAssert + displacements[i])
+            {
+                if (backTrace[i + 1] == (char*)Js::Throw::InternalError + displacements[i + 1])
+                {
+                    // skip to next frame
+                }
+                else
+                {
+                    internalExceptionAddr = backTrace[i + 1];
+                }
+            }
+            else if (backTrace[i] == (char*)Js::Throw::InternalError + displacements[i])
+            {
+                internalExceptionAddr = backTrace[i + 1];
+            }
+        }
+
+        fwprintf(stderr, crashStackEnd);
+
+        // Print fault injecting point stacks
+        auto record = InjectionFirstRecord;
+        while (record)
+        {
+            if (record->StackFrames)
+            {
+                fwprintf(stderr, injectionStackStart);
+                for (int i = 0; i < record->FrameCount; i++)
+                {
+                    printFrame(backTrace[i]);
+                }
+                fwprintf(stderr, injectionStackEnd);
+            }
+            record = record->next;
+        }
+
+        // we called RaiseException() which always use RaiseException as exception address, restore the real exception addr
+        if (internalExceptionAddr != nullptr)
+        {
+            ep->ExceptionRecord->ExceptionAddress = internalExceptionAddr;
+        }
+
         bool needDump = true;
-        typedef decltype(ip) ipType;
-        ipType offset = 0;
+        uintptr_t ip = (uintptr_t)ep->ExceptionRecord->ExceptionAddress;
+        uintptr_t offset = 0;       
 
         // static to not use local stack space since stack space might be low at this point
-        __declspec(thread) static char16 modulePath[MAX_PATH + 1];
-        __declspec(thread) static WCHAR filename[MAX_PATH + 1];
+        THREAD_LOCAL static char16 modulePath[MAX_PATH + 1];
+        THREAD_LOCAL static WCHAR filename[MAX_PATH + 1];
 
         HMODULE mod = nullptr;
         GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCTSTR>(ip), &mod);
-        offset = ip - (ipType)mod;
+        offset = ip - (uintptr_t)mod;
         auto& faultModule = modulePath;
         GetModuleFileName(mod, faultModule, MAX_PATH);
         fwprintf(stderr, _u("***FI: Exception: %08x, module: %s, offset: 0x%p\n"),
             ep->ExceptionRecord->ExceptionCode, faultModule, (void*)offset);
 
-
         //analyze duplication
-        ipType savedOffset = 0;
+        uintptr_t savedOffset = 0;
         auto& mainModule = modulePath;
         GetModuleFileName(NULL, mainModule, MAX_PATH);
         // multiple session of Fault Injection run shares the single crash offset recording file
@@ -1207,7 +1290,7 @@ namespace Js
         // create dump for this crash
         if (needDump)
         {
-            __declspec(thread) static char16 dumpName[MAX_PATH + 1];
+            THREAD_LOCAL static char16 dumpName[MAX_PATH + 1];
             wcscpy_s(filename, globalFlags.Filename);
             char16* jsFile = filename;
             char16 *pch = jsFile;
@@ -1283,7 +1366,7 @@ namespace Js
                 // It contains windbg debugging instructions on how to figure out the injected faults,
                 // And the message will be showing in windbg while loading the minidump.
                 // If you need to add more instructions please increase the buffer capacity accordingly
-                __declspec(thread) static char16 dbgTip[1024];
+                THREAD_LOCAL static char16 dbgTip[1024];
                 if (InjectionFirstRecord == nullptr)
                 {
                     wcsncpy_s(dbgTip,
@@ -1322,59 +1405,6 @@ namespace Js
                 }
                 CloseHandle(hFile);
             }
-        }
-
-        // always show stack for crash and fault injection points in console,
-        // this can be used for additional stack matching repro
-
-        auto printFrame = [&](LPVOID addr)
-        {
-            HANDLE hProcess = GetCurrentProcess();
-            DWORD64 dwSymDisplacement = 0;
-            sip.Init();
-            if (pfnSymFromAddrW(hProcess, (DWORD64)addr, &dwSymDisplacement, &sip.si))
-            {
-                mi.Init();
-                pfnSymGetModuleInfoW64(hProcess, (DWORD64)addr, &mi);
-                fwprintf(stderr, _u("%s!%s+0x%llx\n"), mi.ModuleName, sip.si.Name, (ULONGLONG)dwSymDisplacement);
-            }
-            else
-            {
-                fwprintf(stderr, _u("0x%p\n"), addr);
-            }
-        };
-
-        LPVOID backTrace[MAX_FRAME_COUNT];
-#if _M_IX86
-        WORD nStackCount = StackTrace86(0, MAX_FRAME_COUNT, backTrace, 0, pContext);
-#elif _M_X64
-        WORD nStackCount = StackTrace64(0, MAX_FRAME_COUNT, backTrace, 0, pContext);
-#else
-        WORD nStackCount = CaptureStack(0, MAX_FRAME_COUNT, backTrace, 0);
-#endif
-        // Print current crash stacks
-        fwprintf(stderr, crashStackStart);
-        //bool foundFaultIP = false;
-        for (int i = 0; i< nStackCount; i++)
-        {
-            printFrame(backTrace[i]);
-        }
-        fwprintf(stderr, crashStackEnd);
-
-        // Print fault injecting point stacks
-        auto record = InjectionFirstRecord;
-        while (record)
-        {
-            if (record->StackFrames)
-            {
-                fwprintf(stderr, injectionStackStart);
-                for (int i = 0; i < record->FrameCount; i++)
-                {
-                    printFrame(record->StackFrames[i]);
-                }
-                fwprintf(stderr, injectionStackEnd);
-            }
-            record = record->next;
         }
 
         fflush(stderr);

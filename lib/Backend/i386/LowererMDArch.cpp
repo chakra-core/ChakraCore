@@ -134,7 +134,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsCoroutine())
+    if (this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -245,9 +245,9 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
         // The initial args slot value is zero. (TODO: it should be possible to dead-store the LdHeapArgs in this case.)
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::IntConstOpnd::New(0, TyMachReg, func));
-        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJnFunction()->GetInParamsCount() > 1)
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJnFunction()->GetDisplayName(), instrArgs->m_func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJITFunctionBody()->GetDisplayName(), instrArgs->m_func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -269,7 +269,13 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
         instrPrev = this->lowererMD->m_lowerer->LoadScriptContext(instrArgs);
 
         // s5 = array of property ID's
-        IR::Opnd * argArray = IR::AddrOpnd::New(instrArgs->m_func->GetJnFunction()->GetFormalsPropIdArrayOrNullObj(), IR::AddrOpndKindDynamicMisc, m_func);
+        intptr_t formalsPropIdArray = instrArgs->m_func->GetJITFunctionBody()->GetFormalsPropIdArrayAddr();
+        if (!formalsPropIdArray)
+        {
+            formalsPropIdArray = instrArgs->m_func->GetScriptContextInfo()->GetNullAddr();
+        }
+
+        IR::Opnd * argArray = IR::AddrOpnd::New(formalsPropIdArray, IR::AddrOpndKindDynamicMisc, m_func);
         this->LoadHelperArgument(instrArgs, argArray);
 
         // s4 = local frame instance
@@ -331,7 +337,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd *srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJnFunction()->IsCoroutine())
+            if (this->m_func->GetJITFunctionBody()->IsCoroutine())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -376,9 +382,9 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
 
-        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJnFunction()->GetInParamsCount() > 1)
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJnFunction()->GetDisplayName(), instrArgs->m_func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJITFunctionBody()->GetDisplayName(), instrArgs->m_func->GetFunctionNumber());
             Output::Flush();
         }
     }
@@ -414,7 +420,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s3 = formal argument count (without counting "this")
-            uint32 formalsCount = func->GetJnFunction()->GetInParamsCount() - 1;
+        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
             this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyMachReg, func));
 
             // s2 = actual argument count (without counting "this").
@@ -498,7 +504,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
     }
 
-    if (instrFuncExpr->m_func->GetJnFunction()->IsCoroutine())
+    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before
@@ -754,7 +760,7 @@ LowererMDArch::LowerCallI(IR::Instr *callInstr, ushort callFlags, bool isHelper,
     if (callInstr->IsJitProfilingInstr())
     {
         Assert(callInstr->m_func->IsSimpleJit());
-        Assert(!Js::FunctionBody::IsNewSimpleJit());
+        Assert(!CONFIG_FLAG(NewSimpleJit));
 
         if(finalDst &&
             finalDst->IsRegOpnd() &&
@@ -1130,7 +1136,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     }
 
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall || startCallInstr->m_opcode == Js::OpCode::LoweredStartCall, "Problem with arg chain.");
-    AssertMsg(m_func->GetJnFunction()->GetIsAsmjsMode() || startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
+    AssertMsg(m_func->GetJITFunctionBody()->IsAsmJsMode() || startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
 
     //
     // Machine dependent lowering
@@ -1547,7 +1553,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (this->m_func->GetMaxInlineeArgOutCount())
     {
-        this->m_func->m_workItem->GetFunctionBody()->SetFrameHeight(this->m_func->m_workItem->GetEntryPoint(), this->m_func->m_localStackHeight);
+        this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight);
     }
 
     // Zero initialize the first inlinee frames argc.
@@ -1769,16 +1775,15 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     IR::Instr *insertInstr = entryInstr->m_next;
     IR::Instr *instr;
     IR::Opnd *stackLimitOpnd;
-    ThreadContext *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-    bool doInterruptProbe = threadContext->DoInterruptProbe(this->m_func->GetJnFunction());
+    bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
-    if (doInterruptProbe || !threadContext->GetIsThreadBound())
+    if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
         // Load the current stack limit from the ThreadContext, then increment this value by the size of the
         // current frame. This is the value we'll compare against below.
 
         stackLimitOpnd = IR::RegOpnd::New(nullptr, RegEAX, TyMachReg, this->m_func);
-        void *pLimit = threadContext->GetAddressOfStackLimitForCurrentThread();
+        intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
         IR::MemRefOpnd * memOpnd = IR::MemRefOpnd::New(pLimit, TyMachReg, this->m_func);
         this->lowererMD->CreateAssign(stackLimitOpnd, memOpnd, insertInstr);
 
@@ -1796,7 +1801,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     else
     {
         // The incremented stack limit is a compile-time constant.
-        size_t scriptStackLimit = (size_t)threadContext->GetScriptStackLimit();
+        size_t scriptStackLimit = (size_t)m_func->GetThreadContextInfo()->GetScriptStackLimit();
         stackLimitOpnd = IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindDynamicMisc, this->m_func);
     }
 
@@ -1862,9 +1867,8 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     exitInstr = LowerExitInstrCommon(exitInstr);
 
     // get asm.js return type
-    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
-    Js::AsmJsRetType asmRetType = asmJsFuncInfo->GetReturnType();
     IR::IntConstOpnd* intSrc = nullptr;
+
     if (m_func->IsLoopBody())
     {
         // Insert RET
@@ -1873,7 +1877,7 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     else
     {
         // Generate RET
-        int32 alignedSize = Math::Align<int32>(asmJsFuncInfo->GetArgByteSize(), MachStackAlignment);
+        int32 alignedSize = Math::Align<int32>(m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgByteSize(), MachStackAlignment);
         intSrc = IR::IntConstOpnd::New(alignedSize + MachPtr, TyMachReg, m_func);
     }
     IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, m_func);
@@ -2495,7 +2499,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     // TODO: Encode indir with base as address opnd instead
     IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
 
-    instr = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New((Js::Var)&Js::JavascriptNumber::UIntConvertConst,
+    instr = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetUIntConvertConstAddr(),
         IR::AddrOpndKindDynamicMisc, this->m_func), this->m_func);
 
     instrInsert->InsertBefore(instr);

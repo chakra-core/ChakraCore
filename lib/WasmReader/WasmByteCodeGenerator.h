@@ -57,16 +57,16 @@ namespace Wasm
         };
     };
 
-    struct BlockYieldInfo
-    {
-        Js::RegSlot yieldLocs[WasmTypes::Limit];
-        WasmTypes::WasmType type = WasmTypes::Limit;
-    };
-
     struct BlockInfo
     {
-        BlockYieldInfo* yieldInfo = nullptr;
+        struct YieldInfo
+        {
+            EmitInfo info;
+            bool didYield = false;
+        } *yieldInfo = nullptr;
         Js::ByteCodeLabel label;
+        bool DidYield() const { return HasYield() && yieldInfo->didYield; }
+        bool HasYield() const { return yieldInfo != nullptr; }
     };
 
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
@@ -114,8 +114,8 @@ namespace Wasm
     private:
         void GenerateFunction();
 
-        EmitInfo EmitExpr(WasmOp op);
-        EmitInfo EmitBlock(bool* endOnElse = nullptr);
+        void EmitExpr(WasmOp op);
+        EmitInfo EmitBlock();
         EmitInfo EmitBlockCommon(bool* endOnElse = nullptr);
         EmitInfo EmitLoop();
 
@@ -126,13 +126,13 @@ namespace Wasm
         EmitInfo EmitDrop();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal(bool tee);
-        EmitInfo EmitReturnExpr();
+        EmitInfo EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
 #if DBG_DUMP
         void PrintOpName(WasmOp op) const;
 #endif
-        template<WasmOp wasmOp>
         EmitInfo EmitBr();
+        EmitInfo EmitBrIf();
 
         EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
 
@@ -151,16 +151,18 @@ namespace Wasm
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
         void PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
         void YieldToBlock(uint relativeDepth, EmitInfo expr);
-        BlockInfo GetBlockInfo(uint relativeDepth);
+        bool ShouldYieldToBlock(uint relativeDepth) const;
+        BlockInfo GetBlockInfo(uint relativeDepth) const;
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
+        static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
         void EnterEvalStackScope();
-        void ExitEvalStackScope();
+        EmitInfo ExitEvalStackScope();
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmBinaryReader* GetReader() const { return m_module->GetReader(); }

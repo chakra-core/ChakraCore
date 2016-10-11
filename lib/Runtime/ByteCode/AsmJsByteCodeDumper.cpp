@@ -16,7 +16,7 @@ namespace Js
     {
         ByteCodeReader reader;
         reader.Create(body);
-        StatementReader statementReader;
+        StatementReader<FunctionBody::StatementMapList> statementReader;
         statementReader.Create(body);
         body->DumpFullFunctionName();
         Output::Print(_u(" Asm.js ("));
@@ -323,12 +323,12 @@ namespace Js
 
     void AsmJsByteCodeDumper::DumpUint32x4Reg(RegSlot reg)
     {
-        Output::Print(L"U4_%d ", (int)reg);
+        Output::Print(_u("U4_%d "), (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpInt16x8Reg(RegSlot reg)
     {
-        Output::Print(L"I8_%d ", (int)reg);
+        Output::Print(_u("I8_%d "), (int)reg);
     }
 
     // Int8x16
@@ -344,24 +344,24 @@ namespace Js
 
     void AsmJsByteCodeDumper::DumpUint8x16Reg(RegSlot reg)
     {
-        Output::Print(L"U16_%d ", (int)reg);
+        Output::Print(_u("U16_%d "), (int)reg);
  }
     // Bool32x4
     void AsmJsByteCodeDumper::DumpBool32x4Reg(RegSlot reg)
     {
-        Output::Print(L"B4_%d ", (int)reg);
+        Output::Print(_u("B4_%d "), (int)reg);
     }
 
     // Bool16x8
     void AsmJsByteCodeDumper::DumpBool16x8Reg(RegSlot reg)
     {
-        Output::Print(L"B8_%d ", (int)reg);
+        Output::Print(_u("B8_%d "), (int)reg);
     }
 
     // Bool32x4
     void AsmJsByteCodeDumper::DumpBool8x16Reg(RegSlot reg)
     {
-        Output::Print(L"B16_%d ", (int)reg);
+        Output::Print(_u("B16_%d "), (int)reg);
     }
 
     // Float64x2
@@ -432,13 +432,13 @@ namespace Js
             Output::Print(_u(" I4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B4:
-            Output::Print(L" B4_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" B4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B8:
-            Output::Print(L" B8_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" B8_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdSlot_B16:
-            Output::Print(L" B16_%d = R%d[%d]", data->Value, data->Instance, data->SlotIndex);
+            Output::Print(_u(" B16_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
 #if 0
         case OpCodeAsmJs::Simd128_LdSlot_D2:
@@ -454,13 +454,13 @@ namespace Js
             Output::Print(_u(" R%d[%d]  = I4_%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::Simd128_StSlot_B4:
-            Output::Print(L" R%d[%d]  = B4_%d", data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d]  = B4_%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::Simd128_StSlot_B8:
-            Output::Print(L" R%d[%d]  = B8_%d", data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d]  = B8_%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::Simd128_StSlot_B16:
-            Output::Print(L" R%d[%d]  = B16_%d", data->Instance, data->SlotIndex, data->Value);
+            Output::Print(_u(" R%d[%d]  = B16_%d"), data->Instance, data->SlotIndex, data->Value);
             break;
 #if 0
         case OpCodeAsmJs::Simd128_StSlot_D2:
@@ -479,7 +479,7 @@ namespace Js
     template <class T>
     void AsmJsByteCodeDumper::DumpAsmTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-        char16* heapTag = nullptr;
+        const char16* heapTag = nullptr;
         char16 valueTag = 'I';
         switch (data->ViewType)
         {
@@ -911,7 +911,7 @@ namespace Js
     template <class T>
     void AsmJsByteCodeDumper::DumpAsmSimdTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-        char16* heapTag = nullptr;
+        const char16* heapTag = nullptr;
 
         switch (data->ViewType)
         {

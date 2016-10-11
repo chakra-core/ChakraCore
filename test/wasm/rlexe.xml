@@ -49,4 +49,10 @@
        <compile-flags>-on:Wasm  -on:wasmlazytrap</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>unreachable.js</files>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>

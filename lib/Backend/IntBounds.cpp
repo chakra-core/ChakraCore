@@ -304,7 +304,8 @@ bool IntBounds::IsGreaterThanOrEqualTo(const int constantValue, const int consta
     if(offset == 1)
         return constantValue > constantBoundBase;
 
-    const int constantBound = constantBoundBase + offset;
+    // use unsigned to avoid signed int overflow
+    const int constantBound = (unsigned)constantBoundBase + (unsigned)offset;
     return
         offset >= 0
             ? constantBound >= constantBoundBase && constantValue >= constantBound
@@ -318,7 +319,8 @@ bool IntBounds::IsLessThanOrEqualTo(const int constantValue, const int constantB
     if(offset == -1)
         return constantValue < constantBoundBase;
 
-    const int constantBound = constantBoundBase + offset;
+    // use unsigned to avoid signed int overflow
+    const int constantBound = (unsigned)constantBoundBase + (unsigned)offset;
     return
         offset >= 0
             ? constantBound < constantBoundBase || constantValue <= constantBound

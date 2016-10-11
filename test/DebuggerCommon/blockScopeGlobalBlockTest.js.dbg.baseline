@@ -1,0 +1,52 @@
+[
+  {
+    "this": {
+      "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}"
+    },
+    "locals": {
+      "b": "number 2",
+      "a": "number 1",
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "console": {
+        "#__proto__": "Object {...}",
+        "log": "function log"
+      }
+    },
+    "globals": {}
+  },
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "a == 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}"
+    }
+  }
+]

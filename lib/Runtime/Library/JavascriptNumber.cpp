@@ -230,6 +230,12 @@ namespace Js
 
     static const double d1_0 = 1.0;
 
+#if !ENABLE_NATIVE_CODEGEN
+    double JavascriptNumber::DirectPow(double x, double y)
+    {
+        return ::pow(x, y);
+    }
+#else
     __declspec(naked)
     double JavascriptNumber::DirectPow(double x, double y)
     {
@@ -270,6 +276,7 @@ namespace Js
             ret
         }
     }
+#endif
 
 #elif defined(_M_AMD64) || defined(_M_ARM32_OR_ARM64)
 

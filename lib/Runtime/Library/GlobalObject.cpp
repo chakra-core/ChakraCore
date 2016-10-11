@@ -1576,7 +1576,6 @@ LHexError:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
-
         if (!scriptContext->GetConfig()->IsCollectGarbageEnabled()
 #ifdef ENABLE_PROJECTION
             && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeApplication
@@ -2115,6 +2114,18 @@ LHexError:
         }
 
         // Non-existent property
+        return TRUE;
+    }
+
+    BOOL GlobalObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        PropertyRecord const *propertyRecord = nullptr;
+        if (JavascriptOperators::ShouldTryDeleteProperty(this, propertyNameString, &propertyRecord))
+        {
+            Assert(propertyRecord);
+            return DeleteProperty(propertyRecord->GetPropertyId(), flags);
+        }
+
         return TRUE;
     }
 

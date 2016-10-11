@@ -16,7 +16,7 @@ public:
     bool canCreatePreReservedSegment;
 #endif
 
-    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext);    
+    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, CustomHeap::CodePageAllocators * codePageAllocators, HANDLE processHandle);
     ~CodeGenAllocators();
 
 #if DBG

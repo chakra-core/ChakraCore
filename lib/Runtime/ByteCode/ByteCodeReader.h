@@ -23,6 +23,11 @@ namespace Js
     public:
         void Create(FunctionBody* functionRead, uint startOffset = 0);
         void Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode);
+#if DBG
+        void Create(const byte * byteCodeStart, uint startOffset, uint byteCodeLength);
+#else
+        void Create(const byte * byteCodeStart, uint startOffset);
+#endif
         uint GetCurrentOffset() const;
         const byte * SetCurrentOffset(int byteOffset);
         const byte * SetCurrentRelativeOffset(const byte * ip, int byteOffset);
@@ -66,8 +71,8 @@ namespace Js
         static AuxArray<T> const * ReadAuxArray(uint offset, FunctionBody * functionBody);
         template <typename T>
         static AuxArray<T> const * ReadAuxArrayWithLock(uint offset, FunctionBody * functionBody);
-        static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
-        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
+        static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody);
+        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody);
         static VarArrayVarCount const * ReadVarArrayVarCount(uint offset, FunctionBody * functionBody);
         static VarArrayVarCount const * ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody);
 
@@ -80,5 +85,26 @@ namespace Js
         byte GetRawByte(int i);
 #endif
     };
+
+    template<typename LayoutType>
+    inline const unaligned LayoutType * ByteCodeReader::GetLayout()
+    {
+        size_t layoutSize = sizeof(LayoutType);
+
+        AssertMsg((layoutSize > 0) && (layoutSize < 100), "Ensure valid layout size");
+
+        const byte * layoutData = m_currentLocation;
+        m_currentLocation += layoutSize;
+
+        Assert(m_currentLocation <= m_endLocation);
+
+        return reinterpret_cast<const unaligned LayoutType *>(layoutData);
+    }
+
+    template<>
+    inline const unaligned OpLayoutEmpty * ByteCodeReader::GetLayout<OpLayoutEmpty>()
+    {
+        return nullptr;
+    }
 
 } // namespace Js

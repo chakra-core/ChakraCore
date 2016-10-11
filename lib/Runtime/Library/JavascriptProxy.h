@@ -93,6 +93,7 @@ namespace Js
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override;
         virtual BOOL HasItem(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override;

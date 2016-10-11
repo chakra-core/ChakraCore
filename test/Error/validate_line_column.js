@@ -57,6 +57,12 @@ foo(function() {
 
 foo(function() {
     var k = 1;
-    `${a.b}`;         // Error thrown here.
+    `${a.b}`;         
 });
 
+foo(function() {
+    var k = 1;
+    while(unresolved[0]) {   // Error thrown here.
+        break;
+    }
+});

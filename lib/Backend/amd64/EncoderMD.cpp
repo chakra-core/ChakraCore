@@ -498,7 +498,7 @@ intConst:
 
     case IR::OpndKindHelperCall:
         AssertMsg(this->GetOpndSize(opnd) == 8, "HelperCall opnd must be 64 bit");
-        value = (size_t)IR::GetMethodAddress(opnd->AsHelperCallOpnd());
+        value = (size_t)IR::GetMethodAddress(m_func->GetThreadContextInfo(), opnd->AsHelperCallOpnd());
         break;
 
     case IR::OpndKindIndir:
@@ -820,7 +820,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             if (opr2->IsImmediateOpnd())
             {
                 Assert(EncoderMD::IsMOVEncoding(instr));
-                if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue()))
+                if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue(instr->m_func)))
                 {
                     // Better off using the C7 encoding as it will sign extend
                     continue;
@@ -1279,7 +1279,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue();
+                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {
@@ -1329,7 +1329,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             Js::ArrayAccessDecoder::InstructionData instrData;
             BYTE *tempPc = instrStart;
 
-            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo, instr->m_func->m_workItem->GetFunctionBody());
+            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo);
 
             // Make sure we can decode the instr
             Assert(!instrData.isInvalidInstr);
@@ -1763,8 +1763,8 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 
             // offset = indir.offset + (index << scale)
             int32 offset = regOpnd->m_sym->GetIntConstValue();
-            if (indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset) ||
-                indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset))
+            if ((indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset)) ||
+                (indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset)))
             {
                 foldedAllUses = false;
                 continue;

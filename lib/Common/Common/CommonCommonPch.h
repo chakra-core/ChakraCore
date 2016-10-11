@@ -19,6 +19,10 @@
 // === Common Header Files ===
 #include "Common/NumberUtilitiesBase.h"
 #include "Common/NumberUtilities.h"
+#include "Common/IntMathCommon.h"
+#include "Common/Int16Math.h"
+#include "Common/Int32Math.h"
+#include "Common/Int64Math.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

@@ -286,6 +286,12 @@
   </test>
   <test>
     <default>
+      <files>bug9080773.js</files>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
@@ -322,6 +328,24 @@
       <baseline>b108.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
       <compile-flags>-simdjs  -asmjs -testtrace:asmjs -asmjsstoponerror</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>invertloop_bug.js</files>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>typespec_bug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deletenonconfig.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

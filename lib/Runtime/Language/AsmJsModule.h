@@ -72,7 +72,7 @@ namespace Js {
     typedef Js::Tick AsmJsCompileTime;
     namespace AsmJsLookupSource
     {
-        enum Source
+        enum Source: int
         {
             AsmJsModule, AsmJsFunction
         };

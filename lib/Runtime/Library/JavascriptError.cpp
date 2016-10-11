@@ -357,6 +357,7 @@ namespace Js
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
 #undef THROW_ERROR_IMPL
 
+    void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowError(scriptContext, WASMERR_Unreachable); }
     JavascriptError* JavascriptError::MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType)
     {
         switch (errorType)
@@ -731,6 +732,21 @@ namespace Js
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_CantDeleteExpr, varName);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    bool JavascriptError::ThrowCantDelete(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName)
+    {
+        bool isNonConfigThrow = (flags & PropertyOperation_ThrowOnDeleteIfNotConfig) == PropertyOperation_ThrowOnDeleteIfNotConfig;
+
+        if (isNonConfigThrow || flags & PropertyOperation_StrictMode)
+        {
+            if (scriptContext->GetThreadContext()->RecordImplicitException())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, isNonConfigThrow ? JSERR_CantDeleteNonConfigProp : JSERR_CantDeleteExpr, varName);
             }
             return true;
         }

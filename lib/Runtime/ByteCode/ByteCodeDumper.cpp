@@ -29,7 +29,7 @@ namespace Js
     {
         ByteCodeReader reader;
         reader.Create(dumpFunction);
-        StatementReader statementReader;
+        StatementReader<FunctionBody::StatementMapList> statementReader;
         statementReader.Create(dumpFunction);
         dumpFunction->DumpFullFunctionName();
         Output::Print(_u(" ("));

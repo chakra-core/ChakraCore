@@ -218,6 +218,7 @@ EXDEF2_WMS( F1toF1Mem        , Nearest_Flt      , Wasm::WasmMath::Nearest<float>
 EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
 EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
 EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
+EXDEF2    ( EMPTYASMJS       , Unreachable_Void , OP_Unreachable                                     )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 

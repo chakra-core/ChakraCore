@@ -17,6 +17,11 @@
 #define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
 #endif
 
+// TODO: OOP JIT, move equiv set to backend?
+// forward decl
+class JITType;
+class JITTypeHolder;
+
 namespace Js
 {
     enum CacheType : byte
@@ -533,44 +538,39 @@ namespace Js
 #endif
     };
 
+#if ENABLE_NATIVE_CODEGEN
     class EquivalentTypeSet
     {
     private:
-        Type** types;
-        uint16 count;
         bool sortedAndDuplicatesRemoved;
+        uint16 count;
+        JITTypeHolder * types;
 
     public:
-        EquivalentTypeSet(Type** types, uint16 count)
-            : types(types), count(count), sortedAndDuplicatesRemoved(false) {}
+        EquivalentTypeSet(JITTypeHolder * types, uint16 count);
 
         uint16 GetCount() const
         {
             return this->count;
         }
 
-        Type* GetFirstType() const
-        {
-            return GetType(0);
-        }
+        JITTypeHolder GetFirstType() const;
 
-        Type* GetType(uint16 index) const
-        {
-            Assert(this->types != nullptr && this->count > 0 && index < this->count);
-            return this->types[index];
-        }
+        JITTypeHolder GetType(uint16 index) const;
+
+        JITTypeHolder * GetTypes() const;
 
         bool GetSortedAndDuplicatesRemoved() const
         {
             return this->sortedAndDuplicatesRemoved;
         }
-        bool Contains(const Js::Type * type, uint16 * pIndex = nullptr);
+        bool Contains(const JITTypeHolder type, uint16 * pIndex = nullptr);
 
         static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);
         static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);
         void SortAndRemoveDuplicates();
     };
-
+#endif
     enum class CtorCacheGuardValues : intptr_t
     {
         TagFlag = 0x01,
@@ -969,6 +969,10 @@ namespace Js
         bool IsEmpty() const { return type == nullptr; }
         bool TryGetResult(Var instance, JavascriptFunction * function, JavascriptBoolean ** result);
         void Cache(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result, ScriptContext * scriptContext);
+
+        static uint32 OffsetOfFunction();
+        static uint32 OffsetOfResult();
+        static uint32 OffsetOfType();
 
     private:
         void Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result);

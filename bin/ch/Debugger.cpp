@@ -473,7 +473,7 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
         IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsStringToPointerUtf8Copy(result, &baselineData, &baselineDataLength));
 
         char16 baselineFilename[256];
-        swprintf_s(baselineFilename, _countof(baselineFilename), HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%S.dbg.baseline.rebase") : _u("%S.dbg.baseline"), fileName);
+        swprintf_s(baselineFilename, HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%S.dbg.baseline.rebase") : _u("%S.dbg.baseline"), fileName);
 
         FILE *file = nullptr;
         if (_wfopen_s(&file, baselineFilename, _u("wt")) != 0)

@@ -6,6 +6,10 @@
 #include "jsrtHelper.h"
 #include "Base/ThreadContextTlsEntry.h"
 
+#ifdef DYNAMIC_PROFILE_STORAGE
+#include "Language/DynamicProfileStorage.h"
+#endif
+
 #ifdef CHAKRA_STATIC_LIBRARY
 #include "Core/ConfigParser.h"
 
@@ -87,18 +91,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     static pthread_key_t s_threadLocalDummy;
 #endif
 
-#ifndef __APPLE__
-    #if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
-        // Do not use this as solution wide!
-        // This is only for internal static library only
-        #define THREAD_LOCAL __declspec(thread)
-    #else // VS2015+, linux Clang etc.
-        #define THREAD_LOCAL thread_local
-    #endif // VS2013?
-#else // __APPLE__
-    #define THREAD_LOCAL _Thread_local
-#endif
-
     static THREAD_LOCAL bool s_threadWasEntered = false;
 
     _NOINLINE void DISPOSE_CHAKRA_CORE_THREAD(void *_)
@@ -130,7 +122,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 
         AutoSystemInfo::SaveModuleFileName(mod);
 
-    #if defined(_M_IX86)
+    #if defined(_M_IX86) && !defined(__clang__)
         // Enable SSE2 math functions in CRT if SSE2 is available
     #pragma prefast(suppress:6031, "We don't require SSE2, but will use it if available")
         _set_SSE2_enable(TRUE);

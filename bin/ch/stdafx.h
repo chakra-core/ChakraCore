@@ -147,6 +147,11 @@ do { \
 #include "WScriptJsrt.h"
 #include "Debugger.h"
 
+#ifdef _WIN32
+#include <strsafe.h>
+#include "JITProcessManager.h"
+#endif
+
 template<class T, bool JSRTHeap>
 class AutoStringPtr
 {

@@ -47,6 +47,7 @@ namespace Js
 #include "EnumClassHelp.h"
 #include "Common/Tick.h"
 
+#include "Common/IntMathCommon.h"
 #include "Common/Int16Math.h"
 #include "Common/Int32Math.h"
 #include "Common/UInt16Math.h"
@@ -132,6 +133,8 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "DataStructures/MruDictionary.h" // Depends on DoublyLinkedListElement
 
 #include "Common/SmartFpuControl.h"
+
+
 
 // This class is only used by AutoExp.dat
 class AutoExpDummyClass

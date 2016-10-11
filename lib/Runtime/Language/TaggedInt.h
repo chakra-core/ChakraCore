@@ -32,6 +32,9 @@ namespace Js {
 
         static Var Speculative_And(Var aLeft, Var aRight);
 
+#if defined(__clang__) && defined(_M_IX86)
+        static bool IsOverflow(intptr_t nValue);
+#endif
         static bool IsOverflow(int32 nValue);
         static bool IsOverflow(uint32 nValue);
         static bool IsOverflow(int64 nValue);
@@ -39,9 +42,11 @@ namespace Js {
 
 
         static bool Is(Var aValue);
+        static bool Is(intptr_t aValue);
         static bool IsPair(Var aLeft, Var aRight);
         static double ToDouble(Var aValue);
         static int32 ToInt32(Var aValue);
+        static int32 ToInt32(intptr_t aValue);
         static uint32 ToUInt32(Var aValue);
         static int64 ToInt64(Var aValue);
         static uint16 ToUInt16(Var aValue);

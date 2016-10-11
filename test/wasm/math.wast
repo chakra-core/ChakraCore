@@ -4,8 +4,7 @@
 ;;-------------------------------------------------------------------------------------------------------
 
 (module
-    (func $ctz (param $a i32) (result i32)
-      (return (i32.ctz (get_local $a)))
+    (func (export "ctz") (param $a i32) (result i32)
+      (i32.ctz (get_local $a))
     )
- (export "ctz" $ctz)
 )

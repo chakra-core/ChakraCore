@@ -32,18 +32,17 @@
     <ClInclude Include="vtinfo.h" />
     <ClInclude Include="CfgLogger.h" />
     <ClInclude Include="vtregistry.h" />
-    <ClInclude Include="NumberUtilities.inl" />
     <ClInclude Include="ByteSwap.h" />
     <ClInclude Include="CommonCommonPch.h" />
     <ClInclude Include="GetCurrentFrameId.h" />
     <ClInclude Include="NumberUtilitiesBase.h" />
     <ClInclude Include="SmartFpuControl.h" />
-    <ClInclude Include="stdafx.h" />
     <ClInclude Include="Int64Math.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Jobs.inl" />
     <None Include="vtinfo.inl" />
+    <None Include="NumberUtilities.inl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="arm">

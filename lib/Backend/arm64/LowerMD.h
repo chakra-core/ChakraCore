@@ -59,14 +59,14 @@ public:
             void            Init(Lowerer *lowerer) { __debugbreak(); }
             void            FinalLower(){ __debugbreak(); }
             bool            FinalLowerAssign(IR::Instr* instr){ __debugbreak(); return 0;  };
-            IR::Opnd *      GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode = false) { __debugbreak(); return 0; }
+            IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false) { __debugbreak(); return 0; }
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = NULL,
                             IR::Opnd *opndInstance = NULL, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false) { __debugbreak(); return 0; }
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod) { __debugbreak(); return 0; }
     static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type) { __debugbreak(); return 0; }
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr) { __debugbreak(); return 0; }
+    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false) { __debugbreak(); return 0; }
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr) { __debugbreak(); return 0; }
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum) { __debugbreak(); }
 
@@ -98,6 +98,7 @@ public:
               void            GenerateClz(IR::Instr * instr) { __debugbreak(); }
               void            GenerateCtz(IR::Instr * instr) { __debugbreak(); }
               void            GeneratePopCnt(IR::Instr * instr) { __debugbreak(); }
+              void            GenerateThrowUnreachable(IR::Instr * instr) { __debugbreak(); }
               void            GenerateFastDivByPow2(IR::Instr *instr) { __debugbreak(); }
               bool            GenerateFastAdd(IR::Instr * instrAdd) { __debugbreak(); return 0; }
               bool            GenerateFastSub(IR::Instr * instrSub) { __debugbreak(); return 0; }

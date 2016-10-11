@@ -1,0 +1,11 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "c": "number 1"
+    },
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  }
+]

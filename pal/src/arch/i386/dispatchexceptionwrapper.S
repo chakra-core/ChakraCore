@@ -39,6 +39,20 @@ C_FUNC(PAL_DispatchExceptionReturnOffset):
 // }
 //
 
+
+#ifdef __i686__
+    .globl C_FUNC(PAL_DispatchExceptionWrapper)
+C_FUNC(PAL_DispatchExceptionWrapper):
+.att_syntax
+    push (%ebp)
+    mov  %ebp, %esp
+    int3
+    call    C_FUNC(PAL_DispatchException)
+LOCAL_LABEL(PAL_DispatchExceptionReturn):
+    int3
+    pop (%ebp)
+    ret
+#else
 NESTED_ENTRY PAL_DispatchExceptionWrapper, _TEXT, NoHandler
     push_nonvol_reg rbp
     mov     rbp, rsp
@@ -50,3 +64,4 @@ LOCAL_LABEL(PAL_DispatchExceptionReturn):
     pop_nonvol_reg rbp
     ret
 NESTED_END PAL_DispatchExceptionWrapper, _TEXT
+#endif

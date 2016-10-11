@@ -64,14 +64,14 @@ public:
             void            Init(Lowerer *lowerer);
             void            FinalLower();
             bool            FinalLowerAssign(IR::Instr* instr);
-            IR::Opnd *      GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode = false);
+            IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false);
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = nullptr,
                                                IR::Opnd *opndInstance = nullptr, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false);
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod);
     static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr);
+    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
 
@@ -104,6 +104,7 @@ public:
             void            GenerateClz(IR::Instr * instr);
             void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
             void            GeneratePopCnt(IR::Instr * instr) { Assert(UNREACHED); }
+            void            GenerateThrowUnreachable(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);

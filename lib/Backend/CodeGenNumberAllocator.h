@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if !FLOATVAR
 /****************************************************************************
  * CodeGenNumberThreadAllocator
  *
@@ -63,6 +64,7 @@ CompileAssert(
 
 class CodeGenNumberThreadAllocator
 {
+    friend struct XProcNumberPageSegmentManager;
 public:
     CodeGenNumberThreadAllocator(Recycler * recycler);
     ~CodeGenNumberThreadAllocator();
@@ -98,7 +100,10 @@ private:
     bool hasNewChunkBlock;
     struct BlockRecord
     {
-        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) : blockAddress(blockAddress), segment(segment) {};
+        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) 
+            : blockAddress(blockAddress), segment(segment) 
+        {
+        }
         char * blockAddress;
         PageSegment * segment;
     };
@@ -144,3 +149,41 @@ private:
     bool finalized;
 #endif
 };
+
+namespace Js
+{
+    class StaticType;
+}
+
+struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
+{
+    XProcNumberPageSegmentImpl();
+    Js::JavascriptNumber* AllocateNumber(Func* func, double value);
+    unsigned int GetTotalSize() { return PageCount * AutoSystemInfo::PageSize; }
+    void* GetEndAddress() { return (void*)(this->pageAddress + PageCount * AutoSystemInfo::PageSize); }
+    void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
+
+    static const uint BlockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
+    static const uint PageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
+    static uint sizeCat;
+    static void Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad);
+};
+
+static_assert(sizeof(XProcNumberPageSegmentImpl) == sizeof(XProcNumberPageSegment), "should not have data member in XProcNumberPageSegmentImpl");
+
+struct XProcNumberPageSegmentManager
+{
+    CriticalSection cs;
+    XProcNumberPageSegmentImpl* segmentsList;
+    Recycler* recycler;
+    unsigned int integratedSegmentCount;
+    XProcNumberPageSegmentManager(Recycler* recycler);
+
+    ~XProcNumberPageSegmentManager();
+
+    XProcNumberPageSegment * GetFreeSegment(Memory::ArenaAllocator* alloc);
+    Js::JavascriptNumber** RegisterSegments(XProcNumberPageSegment* segments);
+
+    void Integrate();
+};
+#endif

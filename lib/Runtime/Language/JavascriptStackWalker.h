@@ -338,7 +338,7 @@ namespace Js
         bool TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* function, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset, bool useInternalFrameInfo) const;
         uint GetLoopNumber(bool& usedInternalFrameInfo) const;
         bool InlinedFramesBeingWalked() const;
-		bool HasInlinedFramesOnStack() const;
+        bool HasInlinedFramesOnStack() const;
         bool PreviousInterpreterFrameIsFromBailout() const;
         InternalFrameInfo lastInternalFrameInfo;
 #endif

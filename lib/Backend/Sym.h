@@ -104,7 +104,7 @@ public:
     bool            IsAllocated() const;
     int32           GetIntConstValue() const;
     Js::Var         GetFloatConstValueAsVar_PostGlobOpt() const;
-    void *          GetConstAddress() const;
+    void *          GetConstAddress(bool useLocal = false) const;
     StackSym *      CloneDef(Func *func);
     StackSym *      CloneUse(Func *func);
     void            CopySymAttrs(StackSym *symSrc);

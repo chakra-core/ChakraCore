@@ -1042,7 +1042,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
     {
     case x86_THREAD_STATE32:
 #ifdef _X86_
-        targetSP = ((x86_thread_state32_t*)pState)->esp;
+        targetSP = ((x86_thread_state32_t*)pState)->__esp;
 #elif defined(_AMD64_)
         targetSP = ((x86_thread_state32_t*)pState)->__esp;
 #else
@@ -1052,7 +1052,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
 
     case x86_THREAD_STATE:
 #ifdef _X86_
-        targetSP = ((x86_thread_state_t*)pState)->uts.ts32.esp;
+        targetSP = ((x86_thread_state_t*)pState)->uts.ts32.__esp;
 #elif defined(_AMD64_)
         targetSP = ((x86_thread_state_t*)pState)->uts.ts64.__rsp;
 #else
@@ -1103,7 +1103,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
             // suspended in the kernel so its SP should not change. We should always be able to find an exact
             // match as a result.
 #ifdef _X86_
-            if (sThreadState.esp == targetSP)
+            if (sThreadState.__esp == targetSP)
 #elif defined(_AMD64_)
             if (sThreadState.__rsp == targetSP)
 #else

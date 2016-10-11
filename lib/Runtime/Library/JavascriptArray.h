@@ -308,6 +308,7 @@ namespace Js
 
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override;
@@ -475,6 +476,7 @@ namespace Js
         static Var ReduceRightHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         static Var OfHelper(bool isTypedArrayEntryPoint, Arguments& args, ScriptContext* scriptContext);
 
+        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
     protected:
         template<class T> bool IsMissingHeadSegmentItemImpl(const uint32 index) const;
         SegmentBTreeRoot * GetSegmentMap() const;
@@ -504,7 +506,6 @@ namespace Js
         template<typename T>
         static void GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext);
 
-        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
         static uint64 GetFromIndex(Var arg, uint64 length, ScriptContext *scriptContext);
         static int64 GetFromLastIndex(Var arg, int64 length, ScriptContext *scriptContext);
         static JavascriptString* JoinToString(Var value, ScriptContext* scriptContext);

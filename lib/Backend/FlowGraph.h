@@ -13,8 +13,8 @@ class Func;
 class AddPropertyCacheBucket
 {
 private:
-    Js::Type* initialType;
-    Js::Type* finalType;
+    JITTypeHolder initialType;
+    JITTypeHolder finalType;
 public:
     AddPropertyCacheBucket() : initialType(nullptr), finalType(nullptr)
 #if DBG
@@ -52,18 +52,18 @@ public:
 #endif
     }
 
-    Js::Type *GetInitialType() const { return this->initialType; }
-    Js::Type *GetFinalType() const { return this->finalType; }
-    void SetInitialType(Js::Type *type) { this->initialType = type; }
-    void SetFinalType(Js::Type *type)  { this->finalType = type; }
+    JITTypeHolder GetInitialType() const { return this->initialType; }
+    JITTypeHolder GetFinalType() const { return this->finalType; }
+    void SetInitialType(JITTypeHolder type) { this->initialType = type; }
+    void SetFinalType(JITTypeHolder type)  { this->finalType = type; }
 
 #if DBG_DUMP
     void Dump() const;
 #endif
 
 #ifdef DBG
-    Js::Type * deadStoreUnavailableInitialType;
-    Js::Type * deadStoreUnavailableFinalType;
+    JITTypeHolder deadStoreUnavailableInitialType;
+    JITTypeHolder deadStoreUnavailableFinalType;
 #endif
 };
 
@@ -71,7 +71,7 @@ class ObjTypeGuardBucket
 {
 private:
     BVSparse<JitArenaAllocator>* guardedPropertyOps;
-    Js::Type *                   monoGuardType;
+    JITTypeHolder                    monoGuardType;
 
 public:
     ObjTypeGuardBucket() : guardedPropertyOps(nullptr), monoGuardType(nullptr) {}
@@ -92,8 +92,8 @@ public:
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
     bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
-    void SetMonoGuardType(Js::Type *type) { this->monoGuardType = type; }
-    Js::Type * GetMonoGuardType() const { return this->monoGuardType; }
+    void SetMonoGuardType(JITTypeHolder type) { this->monoGuardType = type; }
+    JITTypeHolder GetMonoGuardType() const { return this->monoGuardType; }
 
 #if DBG_DUMP
     void Dump() const;

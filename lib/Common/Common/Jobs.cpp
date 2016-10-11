@@ -833,7 +833,7 @@ namespace JsUtil
     {
         Assert(manager);
 
-        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;        
+        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;
         {
             AutoCriticalSection lock(&criticalSection);
             // Managers must remove themselves. Hence, Close does not remove managers. So, not asserting on !IsClosed().

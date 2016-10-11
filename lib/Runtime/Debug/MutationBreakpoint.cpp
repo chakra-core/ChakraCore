@@ -104,6 +104,18 @@ void Js::MutationBreakpoint::HandleDeleteProperty(ScriptContext *scriptContext, 
     }
 }
 
+void Js::MutationBreakpoint::HandleDeleteProperty(ScriptContext *scriptContext, Var instance, Js::JavascriptString *propertyNameString)
+{
+    PropertyRecord const *propertyRecord = nullptr;
+    DynamicObject *obj = DynamicObject::FromVar(instance);
+    
+    if (JavascriptOperators::ShouldTryDeleteProperty(obj, propertyNameString, &propertyRecord))
+    {
+        Assert(propertyRecord);
+        HandleDeleteProperty(scriptContext, instance, propertyRecord->GetPropertyId());
+    }
+}
+
 bool Js::MutationBreakpoint::DeleteProperty(PropertyRecord *pr)
 {
     Assert(pr != nullptr);

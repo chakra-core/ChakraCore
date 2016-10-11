@@ -1,0 +1,290 @@
+[
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 45,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 46,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 47,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 48,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 52,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 53,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 54,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "obj1": "Object {...}",
+      "func0": "function <large string>",
+      "ui8": "Uint8Array <large string>",
+      "f": "number 1",
+      "__loopvar2": "undefined undefined",
+      "strvar0": "undefined undefined",
+      "arguments": "Object {...}",
+      "obj0": "Object {...}",
+      "arrObj0": "Object {...}",
+      "ary": "Array [...]",
+      "f64": "Float64Array <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 21,
+        "column": 4,
+        "sourceText": "obj0.prop0 = 1",
+        "function": "test0"
+      },
+      {
+        "line": 59,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

@@ -84,6 +84,9 @@ namespace Js
         static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
         static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
 
+        //HELPERCALL needs a non-overloaded function pointer
+        static void __declspec(noreturn) ThrowUnreachable(ScriptContext* scriptContext);
+
 #define THROW_ERROR_DECL(err_method) \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
@@ -116,6 +119,7 @@ namespace Js
         static bool ThrowCantAssignIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext);
         static bool ThrowCantExtendIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext);
         static bool ThrowCantDeleteIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName);
+        static bool ThrowCantDelete(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName);
         static bool ThrowIfStrictModeUndefinedSetter(PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext);
         static bool ThrowIfNotExtensibleUndefinedSetter(PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext);
 

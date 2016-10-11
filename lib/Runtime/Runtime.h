@@ -53,6 +53,7 @@ class LowererMDArch;
 class ByteCodeGenerator;
 interface IActiveScriptDataCache;
 class ActiveScriptProfilerHeapEnum;
+class JITJavascriptString;
 
 ////////
 
@@ -146,12 +147,12 @@ namespace Js
     class ActivationObject;
     class JavascriptNumber;
     class JavascriptNumberObject;
-    
+
     class ScriptContextProfiler;
 
     struct RestrictedErrorStrings;
     class JavascriptError;
-    
+
 //SIMD_JS
     // SIMD
     class JavascriptSIMDObject;
@@ -367,6 +368,13 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
 #endif
 
+#ifdef _MSC_VER
+#include "JITClient.h"
+#else
+#include "JITTypes.h"
+#include "../JITClient/JITManager.h"
+#endif
+
 #include "Base/SourceHolder.h"
 #include "Base/Utf8SourceInfo.h"
 #include "Base/PropertyRecord.h"
@@ -376,6 +384,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/CallInfo.h"
 #include "Language/ExecutionMode.h"
 #include "Types/TypeId.h"
+
 #include "BackendApi.h"
 #include "DetachedStateBase.h"
 
@@ -437,6 +446,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
+#include "Base/ThreadContextInfo.h"
 #include "Library/JavascriptLibrary.h"
 
 #include "Language/JavascriptExceptionOperators.h"
@@ -444,7 +454,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Library/MathLibrary.h"
 #include "Library/WasmLibrary.h"
-// xplat-todo: We should get rid of this altogether and move the functionality it 
+// xplat-todo: We should get rid of this altogether and move the functionality it
 // encapsulates to the Platform Agnostic Interface
 #ifdef _WIN32
 #if defined(ENABLE_GLOBALIZATION) || ENABLE_UNICODE_API
@@ -469,6 +479,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"
+#include "Base/ScriptContextProfiler.h"
 
 #include "Language/EvalMapRecord.h"
 #include "Base/RegexPatternMruMap.h"
@@ -476,6 +487,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Base/ScriptContextOptimizationOverrideInfo.h"
 #include "Base/ScriptContextBase.h"
+#include "Base/ScriptContextInfo.h"
 #include "Base/ScriptContext.h"
 #include "Base/LeaveScriptObject.h"
 #include "Base/PropertyRecord.h"
@@ -490,13 +502,16 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/ConcatString.h"
 #include "Library/CompoundString.h"
 #include "Library/PropertyString.h"
+#include "Library/SingleCharString.h"
 
 #include "Library/JavascriptTypedNumber.h"
 #include "Library/SparseArraySegment.h"
 #include "Library/JavascriptError.h"
 #include "Library/JavascriptArray.h"
 
+#include "Library/AtomicsObject.h"
 #include "Library/ArrayBuffer.h"
+#include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
 

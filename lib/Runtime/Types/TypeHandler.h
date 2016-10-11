@@ -423,7 +423,7 @@ namespace Js
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) = 0;
-
+        virtual BOOL DeleteProperty(DynamicObject* instance, JavascriptString* propertyNameString, PropertyOperationFlags flags);
         // ===================================================================================================================
         // Special versions of the various *Property methods that recognize PropertyLetConstGlobal properties.
         // Only used for GlobalObject and ModuleRoot and so only recognized by SimpleDictionary and Dictionary type handlers.
@@ -586,6 +586,10 @@ namespace Js
 
     protected:
         void SetPropertyUpdateSideEffect(DynamicObject* instance, PropertyId propertyId, Var value, SideEffects possibleSideEffects);
+        void SetPropertyUpdateSideEffect(DynamicObject* instance, JsUtil::CharacterBuffer<WCHAR> const& propertyName, Var value, SideEffects possibleSideEffects);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyId key);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyRecord* key);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, JavascriptString* key);
         bool VerifyIsExtensible(ScriptContext* scriptContext, bool alwaysThrow);
 
         void SetOffsetOfInlineSlots(const uint16 offsetOfInlineSlots) { this->offsetOfInlineSlots = offsetOfInlineSlots; }

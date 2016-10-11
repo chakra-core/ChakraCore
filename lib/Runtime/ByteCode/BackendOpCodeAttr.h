@@ -54,8 +54,8 @@ namespace OpCodeAttr
     bool NonIntTransfer(Js::OpCode opcode);
     // True if the opcode converts its srcs to int32 or a narrower int type, and produces an int32
     bool IsInt32(Js::OpCode opcode);
-    // True if the opcode always produces a number in the specified script context's version
-    bool ProducesNumber(Js::OpCode opcode, Js::ScriptContext *const scriptContext);
+    // True if the opcode always produces a number
+    bool ProducesNumber(Js::OpCode opcode);
     // False if the opcode results in jump to end of the function and there cannot be fallthrough.
     bool HasFallThrough(Js::OpCode opcode);
     // True if we need to generate bailout after this opcode when in debug mode (b/o on return from helper).
