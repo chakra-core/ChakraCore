@@ -52,9 +52,9 @@ namespace Js
         {
             return fn();
         }
-        catch (JavascriptExceptionObject* _exceptionObject)
+        catch (const JavascriptException& err)
         {
-            exceptionObject = _exceptionObject;
+            exceptionObject = err.GetAndClear();
         }
 
         if (exceptionObject != nullptr)

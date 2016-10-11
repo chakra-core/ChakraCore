@@ -2116,10 +2116,10 @@ namespace Js
                         return TRUE;
                     }
                 }
-                catch (Js::JavascriptExceptionObject* exception)
+                catch (const JavascriptException& err)
                 {
                     // The For in enumerator can throw an exception and we will use the error object as a child in that case.
-                    Var error = exception->GetThrownObject(scriptContext);
+                    Var error = err.GetAndClear()->GetThrownObject(scriptContext);
                     if (error != nullptr && Js::JavascriptError::Is(error))
                     {
                         return TRUE;
@@ -2454,9 +2454,9 @@ namespace Js
                                 }
                             }
                         }
-                        catch (JavascriptExceptionObject* exception)
+                        catch (const JavascriptException& err)
                         {
-                            Var error = exception->GetThrownObject(scriptContext);
+                            Var error = err.GetAndClear()->GetThrownObject(scriptContext);
                             if (error != nullptr && Js::JavascriptError::Is(error))
                             {
                                 Js::PropertyId propertyId = scriptContext->GetOrAddPropertyIdTracked(_u("{error}"));
@@ -2747,7 +2747,7 @@ namespace Js
                 DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
                 pMembersList->Add(info);
             }
-            else 
+            else
             {
                 EnsureFakeGroupObjectWalkerList();
 
@@ -2786,9 +2786,9 @@ namespace Js
                 return instance->GetScriptContext()->GetMissingPropertyResult();
             }
         }
-        catch(Js::JavascriptExceptionObject * exceptionObject)
+        catch(const JavascriptException& err)
         {
-            Var error = exceptionObject->GetThrownObject(instance->GetScriptContext());
+            Var error = err.GetAndClear()->GetThrownObject(instance->GetScriptContext());
             if (error != nullptr && Js::JavascriptError::Is(error))
             {
                 obj = error;
@@ -4032,10 +4032,9 @@ namespace Js
                     }
                 }
             }
-            catch(Js::JavascriptExceptionObject *exceptionObject)
+            catch(const JavascriptException& err)
             {
-                exceptionObject;
-                // Not doing anything over here.
+                err.GetAndClear();  // discard exception object
             }
 
             return _u("");
@@ -4280,7 +4279,7 @@ namespace Js
         pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
         pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
         pResolvedObject->address = nullptr;
-        
+
         return TRUE;
     }
 
@@ -4330,7 +4329,7 @@ namespace Js
         SIMDValue value = simd->GetValue();
 
         char16* stringBuffer = AnewArray(GetArenaFromContext(scriptContext), char16, SIMD_STRING_BUFFER_MAX);
-        
+
         simdType::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX, scriptContext);
 
         builder->AppendSz(stringBuffer);

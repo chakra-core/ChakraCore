@@ -67,14 +67,15 @@ namespace Js
                 shouldCallReturn = false;
             }
         }
-        catch (JavascriptExceptionObject * exceptionObj)
+        catch (const JavascriptException& err)
         {
+            JavascriptExceptionObject * exceptionObj = err.GetAndClear();
             if (shouldCallReturn)
             {
                 // Closing the iterator
                 JavascriptOperators::IteratorClose(iterator, scriptContext);
             }
-            throw exceptionObj;
+            JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
         }
     }
 

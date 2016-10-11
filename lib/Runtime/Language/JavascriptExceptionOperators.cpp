@@ -94,9 +94,9 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, true);
             continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
         }
-        catch (JavascriptExceptionObject *caughtException)
+        catch (const Js::JavascriptException& err)
         {
-            exception = caughtException;
+            exception = err.GetAndClear();
         }
 
         if (exception)
@@ -108,7 +108,7 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
@@ -135,9 +135,9 @@ namespace Js
         {
             tryContinuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
         }
-        catch (JavascriptExceptionObject *caughtException)
+        catch (const Js::JavascriptException& err)
         {
-            exception = caughtException;
+            exception = err.GetAndClear();
         }
 
         if (exception)
@@ -154,7 +154,7 @@ namespace Js
 
         if (exception)
         {
-            throw exception;
+            JavascriptExceptionOperators::DoThrow(exception, scriptContext);
         }
 
         return tryContinuation;
@@ -184,9 +184,9 @@ namespace Js
             continuation = arm64_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #endif
         }
-        catch (JavascriptExceptionObject *caughtException)
+        catch (const Js::JavascriptException& err)
         {
-            exception = caughtException;
+            exception = err.GetAndClear();
         }
 
         if (exception)
@@ -198,7 +198,7 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
@@ -234,9 +234,9 @@ namespace Js
             tryContinuation = arm64_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #endif
         }
-        catch (JavascriptExceptionObject *caughtException)
+        catch (const Js::JavascriptException& err)
         {
-            exception = caughtException;
+            exception = err.GetAndClear();
         }
 
         if (exception)
@@ -258,7 +258,7 @@ namespace Js
 
         if (exception)
         {
-            throw exception;
+            JavascriptExceptionOperators::DoThrow(exception, scriptContext);
         }
 
         return tryContinuation;
@@ -334,9 +334,9 @@ namespace Js
             AssertMsg(FALSE, "Unsupported native try-catch handler");
 #endif
         }
-        catch(Js::JavascriptExceptionObject * exceptionObject)
+        catch(const Js::JavascriptException& err)
         {
-            pExceptionObject = exceptionObject;
+            pExceptionObject = err.GetAndClear();
         }
 
         // Let's run user catch handler code only after the stack has been unwound.
@@ -349,7 +349,7 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
-                throw pExceptionObject;
+                JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
             }
             Var catchObject = pExceptionObject->GetThrownObject(scriptContext);
             AssertMsg(catchObject, "Caught object is NULL");
@@ -475,9 +475,9 @@ namespace Js
             AssertMsg(FALSE, "Unsupported native try-finally handler");
 #endif
         }
-        catch(Js::JavascriptExceptionObject* e)
+        catch(const Js::JavascriptException& err)
         {
-            pExceptionObject = e;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (pExceptionObject)
@@ -547,7 +547,7 @@ namespace Js
 
         if (pExceptionObject)
         {
-            throw pExceptionObject;
+            JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
 
         return continuationAddr;
@@ -859,15 +859,31 @@ namespace Js
             {
                 DispatchExceptionToDebugger(exceptionObject, scriptContext);
             }
-       }
+        }
 
         if (exceptionObject->IsPendingExceptionObject())
         {
             ThreadContext * threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
             threadContext->SetHasThrownPendingException();
-
         }
-        throw exceptionObject;
+
+        DoThrow(exceptionObject, scriptContext);
+    }
+
+    void JavascriptExceptionOperators::DoThrow(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext)
+    {
+        ThreadContext* threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
+
+        // Temporarily keep throwing exception object alive (thrown but not yet caught)
+        JavascriptExceptionObject** addr = threadContext->SaveTempUncaughtException(exceptionObject);
+
+        // Throw a wrapper JavascriptException. catch handler must GetAndClear() the exception object.
+        throw JavascriptException(addr);
+    }
+
+    void JavascriptExceptionOperators::DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext)
+    {
+        DoThrow(exceptionObject->CloneIfStaticExceptionObject(scriptContext), scriptContext);
     }
 
     void JavascriptExceptionOperators::DispatchExceptionToDebugger(Js::JavascriptExceptionObject * exceptionObject, ScriptContext* scriptContext)

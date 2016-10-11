@@ -24,8 +24,9 @@ namespace Js
 
 #define TYPEOF_ERROR_HANDLER_CATCH(scriptContext, var) \
     } \
-    catch (Js::JavascriptExceptionObject *exceptionObject) \
+    catch (const JavascriptException& err) \
     { \
+        JavascriptExceptionObject* exceptionObject = err.GetAndClear(); \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
         if (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
         { \
@@ -39,7 +40,7 @@ namespace Js
                 } \
                 else \
                 { \
-                    throw exceptionObject; \
+                    JavascriptExceptionOperators::DoThrow(exceptionObject, scriptContext); \
                 } \
             } \
         } \

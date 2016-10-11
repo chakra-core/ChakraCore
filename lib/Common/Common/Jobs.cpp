@@ -10,7 +10,7 @@
 #include "Core/EtwTraceCore.h"
 
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InScriptExceptionBase.h"
+#include "Exceptions/JavascriptException.h"
 #include "Exceptions/OperationAbortedException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/StackOverflowException.h"
@@ -424,8 +424,10 @@ namespace JsUtil
         {
             return job->Manager()->Process(job, 0);
         }
-        catch (Js::InScriptExceptionBase *)
+        catch (const Js::JavascriptException& err)
         {
+            err.GetAndClear(); // discard exception object
+
             // Treat OOM or stack overflow to be a non-terminal failure. The foreground job processor processes jobs when the
             // jobs are prioritized, on the calling thread. The script would be active (at the time of this writing), so a
             // JavascriptExceptionObject would be thrown for OOM or stack overflow.

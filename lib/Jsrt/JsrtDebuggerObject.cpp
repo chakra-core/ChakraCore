@@ -52,7 +52,10 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
         {
             childrensCount = walker->GetChildrenCount();
         }
-        catch (Js::JavascriptExceptionObject*) {}
+        catch (const Js::JavascriptException& err)
+        {
+            err.GetAndClear();  // discard exception object
+        }
 
         if (fromCount < childrensCount)
         {
@@ -64,8 +67,9 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
                 {
                     walker->Get(i, &resolvedObject);
                 }
-                catch (Js::JavascriptExceptionObject* exception)
+                catch (const Js::JavascriptException& err)
                 {
+                    Js::JavascriptExceptionObject* exception = err.GetAndClear();
                     Js::Var error = exception->GetThrownObject(scriptContext);
                     resolvedObject.obj = error;
                     resolvedObject.address = nullptr;

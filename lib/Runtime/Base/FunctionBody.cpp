@@ -1744,9 +1744,9 @@ namespace Js
                         }
                         catch (OutOfMemoryException) {}
                         catch (StackOverflowException) {}
-                        catch (JavascriptExceptionObject* exceptionObject)
+                        catch (const Js::JavascriptException& err)
                         {
-                            pExceptionObject = exceptionObject;
+                            pExceptionObject = err.GetAndClear();
                         }
 
                         // Do not do anything with an OOM or SOE, returning true is fine, it will then be undeferred (or attempted to again when called)
@@ -1755,7 +1755,7 @@ namespace Js
                             if(pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() &&
                                 pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
                             {
-                                throw pExceptionObject;
+                                JavascriptExceptionOperators::DoThrow(pExceptionObject, /*scriptContext*/nullptr);
                             }
                         }
                     }
