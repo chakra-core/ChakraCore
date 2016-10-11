@@ -36,6 +36,7 @@ namespace Js
         virtual Var GetInnerScopeFromRegSlot(RegSlot location);
 
         bool IsTopFrame();
+        void SetIsTopFrame();
         ScriptFunction* GetScriptFunction();
         FunctionBody* GetFunction();
 
@@ -49,10 +50,10 @@ namespace Js
         Js::Var DoEval(Js::ScriptFunction* pfuncScript);
 
     protected:
-        DiagStackFrame(int frameIndex);
+        DiagStackFrame();
 
     private:
-        int frameIndex;
+        bool isTopFrame;
     };
 
     class DiagInterpreterStackFrame : public DiagStackFrame
@@ -60,7 +61,7 @@ namespace Js
         InterpreterStackFrame* m_interpreterFrame;
 
     public:
-        DiagInterpreterStackFrame(InterpreterStackFrame* frame, int frameIndex);
+        DiagInterpreterStackFrame(InterpreterStackFrame* frame);
         virtual JavascriptFunction* GetJavascriptFunction() override;
         virtual ScriptContext* GetScriptContext() override;
         virtual int GetByteCodeOffset() override;
@@ -88,7 +89,7 @@ namespace Js
         static const int32 InvalidOffset = -1;
 
     public:
-        DiagNativeStackFrame(ScriptFunction* function, int byteCodeOffset, void* stackAddr, void *codeAddr, int frameIndex);
+        DiagNativeStackFrame(ScriptFunction* function, int byteCodeOffset, void* stackAddr, void *codeAddr);
         virtual JavascriptFunction* GetJavascriptFunction() override;
         virtual ScriptContext* GetScriptContext() override;
         virtual int GetByteCodeOffset() override;
@@ -112,7 +113,7 @@ namespace Js
         void* m_stackAddr;
 
     public:
-        DiagRuntimeStackFrame(JavascriptFunction* function, PCWSTR displayName, void* stackAddr, int frameIndex);
+        DiagRuntimeStackFrame(JavascriptFunction* function, PCWSTR displayName, void* stackAddr);
         virtual JavascriptFunction* GetJavascriptFunction() override;
         virtual int GetByteCodeOffset() override;
         virtual DWORD_PTR GetStackAddress() override;
