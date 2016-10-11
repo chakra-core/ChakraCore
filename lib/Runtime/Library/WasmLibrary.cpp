@@ -22,6 +22,24 @@ namespace Js
         JavascriptExceptionOperators::Throw(error, scriptContext);
     }
 
+    void WasmLibrary::SetWasmEntryPointToInterpreter(Js::ScriptFunction* func, bool deferParse)
+    {
+        Assert(AsmJsScriptFunction::Is(func));
+        FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)func->GetEntryPointInfo();
+        entrypointInfo->SetIsAsmJSFunction(true);
+
+        if (deferParse)
+        {
+            func->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
+            entrypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
+        }
+        else
+        {
+            func->SetEntryPoint(Js::AsmJsExternalEntryPoint);
+            entrypointInfo->jsMethod = AsmJsDefaultEntryThunk;
+        }
+    }
+
 #if _M_IX86
     __declspec(naked)
         Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
@@ -100,7 +118,8 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
         {
-            GenerateFunction(scriptContext->GetNativeCodeGenerator(), func->GetFunctionBody(), func);
+            GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, func);
+            body->SetIsAsmJsFullJitScheduled(true);
         }
 #endif
     }
@@ -128,11 +147,9 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         entypointInfo->jsMethod = WasmLazyTrapCallback;
         info->SetLazyError(pError);
     }
-    if (internalCall)
-    {
-        return entypointInfo->jsMethod;
-    }
-    return func->GetDynamicType()->GetEntryPoint();
+    Assert(body->HasValidEntryPoint());
+    Js::JavascriptMethod entryPoint = internalCall ? entypointInfo->jsMethod : func->GetDynamicType()->GetEntryPoint();
+    return entryPoint;
 #else
     Js::Throw::InternalError();
 #endif
