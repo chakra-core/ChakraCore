@@ -528,6 +528,7 @@ ServerRemoteCodeGen(
 
     return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT
     {
+        scriptContextInfo->UpdateGlobalObjectThisAddr(workItemData->globalThisAddr);
         ServerThreadContext * threadContextInfo = scriptContextInfo->GetThreadContext();
 
         NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
