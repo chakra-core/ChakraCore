@@ -83,7 +83,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Exceptions/StackOverflowException.h"
 #include "Exceptions/NotImplementedException.h"
 #include "Exceptions/AsmJsParseException.h"
-#include "Exceptions/JITOperationFailedException.h"
 
 #include "Memory/AutoPtr.h"
 #include "Memory/AutoAllocatorObjectPtr.h"

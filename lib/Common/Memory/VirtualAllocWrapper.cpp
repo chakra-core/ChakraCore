@@ -47,24 +47,25 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
         }
 
         address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, allocProtectFlags);
-        if (address == nullptr && process != GetCurrentProcess())
+        if (address == nullptr)
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
+            MemoryOperationLastError::RecordLastError();
+            return nullptr;
         }
-
-        if ((allocationType & MEM_COMMIT) == MEM_COMMIT) // The access protection value can be set only on committed pages.
+        else if ((allocationType & MEM_COMMIT) == MEM_COMMIT) // The access protection value can be set only on committed pages.
         {
             BOOL result = VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
             if (result == FALSE)
             {
-                if (process != GetCurrentProcess())
-                {
-                    Js::Throw::CheckAndThrowJITOperationFailed();
-                }
-                else
+                MemoryOperationLastError::RecordLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
+                if (process == GetCurrentProcess()
+                    || GetProcessId(process) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
                 {
                     CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
                 }
+                return nullptr;
             }
         }
     }
@@ -72,10 +73,7 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
 #endif
     {
         address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
-        if (address == nullptr && process != GetCurrentProcess())
-        {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-        }
+        Assert(process == GetCurrentProcess());
     }
 
     return address;
@@ -150,8 +148,9 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     {
         if (this->processHandle != GetCurrentProcess())
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
+            MemoryOperationLastError::RecordLastErrorAndThrow();
         }
+        return false;
     }
     AssertMsg(memBasicInfo.State == MEM_COMMIT, "Memory not committed? Checking for uncommitted address region?");
 #endif
@@ -320,19 +319,21 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
             size_t bytes = VirtualQueryEx(processHandle, addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
-            if (bytes == 0)
+            if (bytes == 0) 
             {
-                if (this->processHandle != GetCurrentProcess())
-                {
-                    Js::Throw::CheckAndThrowJITOperationFailed();
-                }
+                MemoryOperationLastError::RecordLastError();
             }
             if (bytes == 0
                 || memBasicInfo.RegionSize < requestedNumOfSegments * AutoSystemInfo::Data.GetAllocationGranularityPageSize()
-                || memBasicInfo.State == MEM_COMMIT
-                )
+                || memBasicInfo.State == MEM_COMMIT)
             {
-                CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+#if ENABLE_OOP_NATIVE_CODEGEN
+                if (this->processHandle == GetCurrentProcess()
+                    || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
+                {
+                    CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                }
                 return nullptr;
             }
         }
@@ -355,6 +356,7 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
         AssertMsg(dwSize % AutoSystemInfo::PageSize == 0, "COMMIT is managed at AutoSystemInfo::PageSize granularity");
 
         char * allocatedAddress = nullptr;
+        bool failedToProtectPages = false;
 
         if ((allocationType & MEM_COMMIT) != 0)
         {
@@ -378,24 +380,35 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
                 }
 
                 allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
-
                 if (allocatedAddress != nullptr)
                 {
                     BOOL result = VirtualProtectEx(processHandle, allocatedAddress, dwSize, protectFlags, &oldProtect);
-                    if (result == FALSE && this->processHandle != GetCurrentProcess())
+                    if (result == FALSE)
                     {
-                        Js::Throw::CheckAndThrowJITOperationFailed();
+                        failedToProtectPages = true;
+                        MemoryOperationLastError::RecordLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
+                        if (this->processHandle == GetCurrentProcess()
+                            || GetProcessId(this->processHandle) == GetCurrentProcessId())
+#endif
+                        {
+                            CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                        }
                     }
                     AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
+                }
+                else
+                {
+                    MemoryOperationLastError::RecordLastError();
                 }
             }
             else
 #endif
             {
                 allocatedAddress = (char *)VirtualAllocEx(processHandle, addressToReserve, dwSize, MEM_COMMIT, protectFlags);
-                if (allocatedAddress == nullptr && this->processHandle != GetCurrentProcess())
+                if (allocatedAddress == nullptr)
                 {
-                    Js::Throw::CheckAndThrowJITOperationFailed();
+                    MemoryOperationLastError::RecordLastError();
                 }
             }
         }
@@ -414,6 +427,10 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
         }
 
         PreReservedHeapTrace(_u("MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n"), allocatedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+        if (failedToProtectPages)
+        {
+            return nullptr;
+        }
         return allocatedAddress;
     }
 }

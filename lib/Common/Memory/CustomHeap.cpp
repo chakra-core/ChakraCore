@@ -225,7 +225,10 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
             size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->address, &memBasicInfo, sizeof(memBasicInfo));
             if (resultBytes == 0)
             {
-                Js::Throw::CheckAndThrowJITOperationFailed();
+                if (this->processHandle != GetCurrentProcess())
+                {
+                    MemoryOperationLastError::RecordLastErrorAndThrow();
+                }
             }
             Assert(memBasicInfo.Protect == PAGE_EXECUTE);
         }
@@ -260,7 +263,10 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         size_t resultBytes = VirtualQueryEx(this->processHandle, page->address, &memBasicInfo, sizeof(memBasicInfo));
         if (resultBytes == 0)
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
+            if (this->processHandle != GetCurrentProcess())
+            {
+                MemoryOperationLastError::RecordLastErrorAndThrow();
+            }
         }
         Assert(memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
@@ -1069,8 +1075,7 @@ void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHand
     {
         if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-            Js::Throw::FatalInternalError();
+            MemoryOperationLastError::RecordLastErrorAndThrow();
         }
         HeapDeleteArray(byteCount, writeBuffer);
     }

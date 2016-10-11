@@ -292,9 +292,10 @@ EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t 
     size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
     if (resultBytes == 0) 
     {
+        MemoryOperationLastError::RecordLastError();
         if (this->processHandle != GetCurrentProcess())
-        {
-            Js::Throw::CheckAndThrowJITOperationFailed();
+        {            
+            return nullptr;
         }
     }
     Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);

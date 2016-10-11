@@ -29,18 +29,6 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
 
 ServerScriptContext::~ServerScriptContext()
 {
-    HeapDelete(m_domFastPathHelperMap);
-    m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
-    {
-        HeapDelete(record);
-    });
-
-#ifdef PROFILE_EXEC
-    if (m_codeGenProfiler)
-    {
-        HeapDelete(m_codeGenProfiler);
-    }
-#endif
 }
 
 intptr_t
@@ -286,6 +274,9 @@ ServerScriptContext::Close()
 {
     Assert(!IsClosed());
     m_isClosed = true;
+#ifdef STACK_BACK_TRACE
+    closingStack = StackBackTrace::Capture(&NoThrowHeapAllocator::Instance);
+#endif
 }
 
 void
@@ -300,7 +291,23 @@ ServerScriptContext::Release()
     InterlockedExchangeSubtract(&m_refCount, 1u);
     if (m_isClosed && m_refCount == 0)
     {
+        HeapDelete(m_domFastPathHelperMap);
+        m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
+        {
+            HeapDelete(record);
+        });
+
+#ifdef PROFILE_EXEC
+        if (m_codeGenProfiler)
+        {
+            HeapDelete(m_codeGenProfiler);
+        }
+#endif
+
+        // OOP JIT TODO: fix leak in chk build after the issue that script context closed prematurely is identified
+#ifndef STACK_BACK_TRACE
         HeapDelete(this);
+#endif
     }
 }
 

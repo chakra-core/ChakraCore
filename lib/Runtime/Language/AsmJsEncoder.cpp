@@ -211,9 +211,10 @@ namespace Js
             EmitBufferAllocation *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
             functionBody->GetAsmJsFunctionInfo()->mTJBeginAddress = buffer;
 
-            Assert( allocation != nullptr );
-            if( buffer == nullptr )
+            if (buffer == nullptr)
+            {
                 Js::Throw::OutOfMemory();
+            }
 
             if (!GetCodeGenAllocator()->emitBufferManager.CommitBuffer(allocation, buffer, codeSize, mEncodeBuffer))
             {

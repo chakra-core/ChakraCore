@@ -6,6 +6,8 @@
 
 #define UpdateMinimum(dst, src) if (dst > src) { dst = src; }
 
+THREAD_LOCAL DWORD MemoryOperationLastError::MemOpLastError = 0;
+
 //=============================================================================================================
 // Segment
 //=============================================================================================================
@@ -216,7 +218,12 @@ PageSegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
             BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, this->address, this->GetAvailablePageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
             if (vpresult == FALSE)
             {
-                Js::Throw::CheckAndThrowJITOperationFailed();
+                MemoryOperationLastError::RecordLastError();
+                if (this->GetAllocator()->processHandle == GetCurrentProcess())
+                {
+                    Assert(false);
+                }
+                return false;
             }
             Assert(oldProtect == PAGE_READWRITE);
         }
@@ -300,13 +307,18 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
             Assert(freePageCount == (uint)this->GetCountOfFreePages());
 
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
-                DWORD oldProtect;
+            DWORD oldProtect;
                 BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
-                if (vpresult == FALSE)
+            if (vpresult == FALSE)
+            {
+                MemoryOperationLastError::RecordLastError();
+                if (this->GetAllocator()->processHandle == GetCurrentProcess())
                 {
-                    Js::Throw::CheckAndThrowJITOperationFailed();
+                    Assert(false);                    
                 }
-                Assert(vpresult && oldProtect == PAGE_NOACCESS);
+                return nullptr;
+            }
+            Assert(oldProtect == PAGE_NOACCESS);
 #endif
             return allocAddress;
         }
@@ -408,9 +420,13 @@ PageSegmentBase<T>::ReleasePages(__in void * address, uint pageCount)
     BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
     if (vpresult == FALSE)
     {
-        Js::Throw::CheckAndThrowJITOperationFailed();
+        MemoryOperationLastError::RecordLastError();
+        if (this->GetAllocator()->processHandle == GetCurrentProcess())
+        {
+            Assert(false);
+        }
     }
-    Assert(vpresult && oldProtect == PAGE_READWRITE);
+    Assert(oldProtect == PAGE_READWRITE);
 #endif
 
 }
@@ -936,8 +952,7 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
         readBuffer = HeapNewArray(byte, bufferSize);
         if (!ReadProcessMemory(this->processHandle, address, readBuffer, bufferSize, NULL))
         {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-            Js::Throw::InternalError();
+            MemoryOperationLastError::RecordLastErrorAndThrow();
         }
     }
     for (size_t i = 0; i < bufferSize; i++)
@@ -955,7 +970,8 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        ChakraMemSet(address, Recycler::VerifyMemFill, bufferSize, this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(address, Recycler::VerifyMemFill, bufferSize);
         return;
     }
 #endif
@@ -964,7 +980,8 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
     if (ZeroPages())
     {
         // for release build, the page is zeroed in ReleasePages
-        ChakraMemSet(address, 0, bufferSize, this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(address, 0, bufferSize);
     }
 #endif
 }
@@ -1107,7 +1124,8 @@ PageAllocatorBase<T>::AllocSegment(size_t pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        ChakraMemSet(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount(), this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount());
     }
 #endif
 
@@ -1663,7 +1681,8 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         else
 #endif
         {
-        ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
+            Assert(this->processHandle == GetCurrentProcess());
+            memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
         }
 
         QueuePages(freePageEntry, pageCount, segment);
@@ -1719,7 +1738,8 @@ PageAllocatorBase<T>::FlushBackgroundPages()
         DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(segment);
         Assert(fromSegmentList != nullptr);
 
-        ChakraMemSet(freePageEntry, 0, sizeof(FreePageEntry), this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(freePageEntry, 0, sizeof(FreePageEntry));
 
         segment->ReleasePages(freePageEntry, pageCount);
         newFreePages += pageCount;
@@ -1820,7 +1840,8 @@ PageAllocatorBase<T>::DecommitNow(bool all)
             else
             {
                 // Zero them and release them in case we don't decommit them.
-                ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
+                Assert(this->processHandle == GetCurrentProcess());
+                memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
                 segment->ReleasePages(freePageEntry, pageCount);
                 LogFreePages(pageCount);
             }
@@ -2425,16 +2446,19 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
     size_t bytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
     if (bytes == 0)
     {
-        if (this->processHandle != GetCurrentProcess())
-        {
-            Js::Throw::CheckAndThrowJITOperationFailed();
-        }
+        MemoryOperationLastError::RecordLastError();
     }
     if (bytes == 0
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
         || desiredOldProtectFlag != memBasicInfo.Protect)
     {
-        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (this->processHandle == GetCurrentProcess()
+            || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
+        {
+            CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        }
         return FALSE;
     }
 
@@ -2458,7 +2482,21 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     DWORD oldProtect; // this is only for first page
     BOOL retVal = VirtualProtectEx(this->processHandle, address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
-    Assert(oldProtect == desiredOldProtectFlag);
+    if (retVal == FALSE)
+    {
+        MemoryOperationLastError::RecordLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (this->processHandle == GetCurrentProcess()
+            || GetProcessId(this->processHandle) == GetCurrentProcessId()) // in case processHandle is modified and exploited(duplicated current process handle)
+#endif
+        {
+            CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        }
+    }
+    else
+    {
+        Assert(oldProtect == desiredOldProtectFlag);
+    }
 
     return retVal;
 }
