@@ -2665,21 +2665,13 @@ public:
         *value = raw + offset;
         return next;
     }
-
-    const byte * ReadByteBlock(const byte * buffer, WriteBarrierPtr<ByteBlock>* byteBlock)
+    template<typename Fn>
+    const byte * ReadByteBlock(const byte * buffer, Fn fn)
     {
         int contentLength;
         buffer = ReadInt32(buffer, &contentLength);
 
-        if (contentLength == 0)
-        {
-            *byteBlock = nullptr;
-        }
-        else
-        {
-            // TODO: Abstract this out to ByteBlock::New
-            *byteBlock = RecyclerNewLeaf(scriptContext->GetRecycler(), ByteBlock, contentLength, (byte*)buffer);
-        }
+        fn(contentLength, buffer);
         return buffer + contentLength;
     }
 
@@ -3944,7 +3936,18 @@ public:
             }
 
             // Byte code
-            current = ReadByteBlock(current, &(*functionBody)->byteCodeBlock);
+            current = ReadByteBlock(current, [&functionBody, this](int contentLength, const byte* buffer) 
+            {
+                if (contentLength == 0)
+                {
+                    (*functionBody)->byteCodeBlock = nullptr;
+                }
+                else
+                {
+                    // TODO: Abstract this out to ByteBlock::New
+                    (*functionBody)->byteCodeBlock = RecyclerNewLeaf(scriptContext->GetRecycler(), ByteBlock, contentLength, (byte*)buffer);
+                }
+            });
 
             // Auxiliary
             current = ReadAuxiliary(current, *functionBody);

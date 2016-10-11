@@ -780,7 +780,7 @@ namespace Js
         m_DEBUG_executionCount++;
 #endif
         // Don't allow loop headers to be released while the function is executing
-        ::InterlockedIncrement(this->m_depth.AddressOf());
+        ::InterlockedIncrement(&this->m_depth);
     }
 
 
@@ -832,7 +832,7 @@ namespace Js
 
         m_DEBUG_executionCount--;
 #endif
-        uint depth = ::InterlockedDecrement(this->m_depth.AddressOf());
+        uint depth = ::InterlockedDecrement(&this->m_depth);
 
         // If loop headers were determined to be no longer needed
         // during the execution of the function, we release them now
@@ -2205,7 +2205,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+        FunctionProxy::SetDisplayName(pszDisplayName, this->m_displayName.AddressOf(), displayNameLength, m_scriptContext, flags);
     }
 
     // SourceInfo methods
@@ -6447,7 +6447,7 @@ namespace Js
             scale -= limitScale;
             Assert(limit == 0 || scale == 0);
 
-            if(&limit == simpleJitLimit.AddressOf())
+            if(&limit == &simpleJitLimit)
             {
                 FunctionEntryPointInfo *const simpleJitEntryPointInfo = GetSimpleJitEntryPointInfo();
                 if(GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
@@ -6556,12 +6556,12 @@ namespace Js
     {
         Assert(initializedExecutionModeAndLimits);
         Assert(
-            &limit == interpreterLimit.AddressOf() ||
-            &limit == autoProfilingInterpreter0Limit.AddressOf() ||
-            &limit == profilingInterpreter0Limit.AddressOf() ||
-            &limit == autoProfilingInterpreter1Limit.AddressOf() ||
-            &limit == simpleJitLimit.AddressOf() ||
-            &limit == profilingInterpreter1Limit.AddressOf());
+            &limit == &interpreterLimit ||
+            &limit == &autoProfilingInterpreter0Limit ||
+            &limit == &profilingInterpreter0Limit ||
+            &limit == &autoProfilingInterpreter1Limit ||
+            &limit == &simpleJitLimit ||
+            &limit == &profilingInterpreter1Limit);
 
         const uint16 clampedExecutedIterations = executedIterations >= limit ? limit : static_cast<uint16>(executedIterations);
         Assert(fullJitThreshold >= clampedExecutedIterations);
@@ -6569,9 +6569,9 @@ namespace Js
         limit -= clampedExecutedIterations;
         VerifyExecutionModeLimits();
 
-        if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            (!CONFIG_FLAG(NewSimpleJit) && &limit == simpleJitLimit.AddressOf()) ||
-            &limit == profilingInterpreter1Limit.AddressOf())
+        if(&limit == &profilingInterpreter0Limit ||
+            (!CONFIG_FLAG(NewSimpleJit) && &limit == &simpleJitLimit) ||
+            &limit == &profilingInterpreter1Limit)
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
             committedProfiledIterations =

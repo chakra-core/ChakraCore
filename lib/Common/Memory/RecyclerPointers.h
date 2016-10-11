@@ -17,8 +17,8 @@ public:
     operator T const&() const { return value; }
     operator T&() { return value; }
 
-    T const* AddressOf() const { return &value; }
-    T* AddressOf() { return &value; }
+    T const* operator&() const { return &value; }
+    T* operator&() { return &value; }
 
     // Setters
     NoWriteBarrierField& operator=(T const& value)
@@ -95,16 +95,19 @@ public:
     T * operator->() const { return ptr; }
     operator T*() const { return ptr; }
 
-    //T const** operator&() const 
-    //{ 
-    //    //static_assert(false, "Might need to set barrier for this operation"); 
-    //    return &ptr; 
-    //}
-    //T** operator&() 
-    //{
-    //    //static_assert(false, "Might need to set barrier for this operation"); 
-    //    return &ptr; 
-    //}
+    T const** AddressOf() const { return &ptr; }
+    T** AddressOf() { return &ptr; }
+
+    T const** operator&() const 
+    { 
+        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead."); 
+        return &ptr; 
+    }
+    T** operator&() 
+    {
+        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead."); 
+        return &ptr; 
+    }
 
     // Setters
     WriteBarrierPtr& operator=(T * ptr)
