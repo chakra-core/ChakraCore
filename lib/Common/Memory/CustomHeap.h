@@ -478,7 +478,7 @@ private:
     {
         if (allocation->IsLargeAllocation())
         {
-            BOOL result = this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
+            this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
             return PAGE_EXECUTE;
         }
         else

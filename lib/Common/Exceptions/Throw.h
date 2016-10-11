@@ -20,6 +20,7 @@ namespace Js {
         static void __declspec(noreturn) NotImplemented();
         static void __declspec(noreturn) InternalError();
         static void __declspec(noreturn) FatalInternalError();
+        static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalProjectionError();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);

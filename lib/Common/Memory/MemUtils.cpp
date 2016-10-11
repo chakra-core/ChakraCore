@@ -24,7 +24,7 @@ Memory::ChakraMemSet(_In_ void *dst, int val, size_t sizeInBytes, HANDLE process
     {
         if (!WriteProcessMemory(processHandle, dst, writeBuffer, sizeInBytes, NULL))
         {
-            MemoryOperationLastError::RecordLastErrorAndThrow();
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
         }
         HeapDeleteArray(sizeInBytes, writeBuffer);
     }
@@ -45,7 +45,7 @@ Memory::ChakraMemCopy(_In_ void *dst, size_t sizeInBytes, _In_reads_bytes_(count
     }
     else if (!WriteProcessMemory(processHandle, dst, src, count, NULL))
     {
-        MemoryOperationLastError::RecordLastErrorAndThrow();
+        MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
     }
 
 }

@@ -399,6 +399,30 @@ public:
             throw Js::InternalErrorException();
         }
     }
+    static void CheckProcessAndThrowFatalError(HANDLE hProcess)
+    {
+        DWORD lastError = GetLastError();
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = lastError;
+        }
+        if (lastError != 0)
+        {
+            DWORD exitCode = STILL_ACTIVE;
+            if (!GetExitCodeProcess(hProcess, &exitCode) || exitCode == STILL_ACTIVE)
+            {
+                // REVIEW: In OOP JIT, target process is still alive but the memory operation failed 
+                // we should fail fast(terminate) the runtime process, fail fast here in server process
+                // is to capture bug might exist in CustomHeap implementation.
+                // if target process is already gone, we don't care the failure here
+
+                // REVIEW: the VM operation might fail if target process is in middle of terminating
+                // will GetExitCodeProcess return STILL_ACTIVE for such case?
+                Js::Throw::FatalInternalErrorEx(lastError);
+            }
+        }
+
+    }
     static void ClearLastError()
     {
         MemOpLastError = 0;

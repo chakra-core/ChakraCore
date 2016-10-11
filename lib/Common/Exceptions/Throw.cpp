@@ -71,6 +71,10 @@ namespace Js {
         int scenario = 2;
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
+    void Throw::FatalInternalErrorEx(int scenario)
+    {
+        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
+    }
 
     void Throw::FatalProjectionError()
     {

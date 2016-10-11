@@ -633,9 +633,10 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
     auto iter = scriptContexts.GetIteratorWithRemovalSupport();
     while (iter.IsValid())
     {
-        if (iter.Current().Key()->GetThreadContext() == threadContext)
-        {
-            iter.Current().Key()->Close();
+        ServerScriptContext* scriptContext = iter.Current().Key();
+        if (scriptContext->GetThreadContext() == threadContext)
+        {   
+            scriptContext->Close();
             iter.RemoveCurrent();
         }
         iter.MoveNext();

@@ -970,7 +970,8 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        ChakraMemSet(address, Recycler::VerifyMemFill, bufferSize, this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(address, Recycler::VerifyMemFill, bufferSize);
         return;
     }
 #endif
@@ -979,7 +980,8 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
     if (ZeroPages())
     {
         // for release build, the page is zeroed in ReleasePages
-        ChakraMemSet(address, 0, bufferSize, this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(address, 0, bufferSize);
     }
 #endif
 }
@@ -1122,7 +1124,8 @@ PageAllocatorBase<T>::AllocSegment(size_t pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        ChakraMemSet(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount(), this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount());
     }
 #endif
 
@@ -1678,7 +1681,8 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         else
 #endif
         {
-        ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
+            Assert(this->processHandle == GetCurrentProcess());
+            memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
         }
 
         QueuePages(freePageEntry, pageCount, segment);
@@ -1734,7 +1738,8 @@ PageAllocatorBase<T>::FlushBackgroundPages()
         DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(segment);
         Assert(fromSegmentList != nullptr);
 
-        ChakraMemSet(freePageEntry, 0, sizeof(FreePageEntry), this->processHandle);
+        Assert(this->processHandle == GetCurrentProcess());
+        memset(freePageEntry, 0, sizeof(FreePageEntry));
 
         segment->ReleasePages(freePageEntry, pageCount);
         newFreePages += pageCount;
@@ -1835,7 +1840,8 @@ PageAllocatorBase<T>::DecommitNow(bool all)
             else
             {
                 // Zero them and release them in case we don't decommit them.
-                ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
+                Assert(this->processHandle == GetCurrentProcess());
+                memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
                 segment->ReleasePages(freePageEntry, pageCount);
                 LogFreePages(pageCount);
             }
