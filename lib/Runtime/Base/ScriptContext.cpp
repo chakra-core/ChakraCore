@@ -3254,22 +3254,46 @@ namespace Js
 #ifdef ASMJS_PLAT
     void ScriptContext::TransitionEnvironmentForDebugger(ScriptFunction * scriptFunction)
     {
-        if (scriptFunction->GetScriptContext()->IsScriptContextInDebugMode() &&
-            scriptFunction->GetFunctionBody()->IsInDebugMode() &&
-            scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo() != nullptr &&
-            scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
+        FunctionBody* functionBody = scriptFunction->GetFunctionBody();
+#ifdef ENABLE_WASM
+        // Wasm functions will not get reparsed, but the jitted code will be lost
+        // Reset the entry point
+        if (functionBody->IsWasmFunction())
         {
-            void* env = scriptFunction->GetEnvironment()->GetItem(0);
-            SList<AsmJsScriptFunction*> * funcList = nullptr;
-            if (asmJsEnvironmentMap->TryGetValue(env, &funcList))
+            // In case we are in debugger mode, make sure we use the non profiling thunk for this new entry point
+            JavascriptMethod realThunk = CurrentThunk;
+            CurrentThunk = AsmJsDefaultEntryThunk;
+            functionBody->ResetEntryPoint();
+            CurrentThunk = realThunk;
+
+            bool isDeferred = functionBody->GetAsmJsFunctionInfo()->IsWasmDeferredParse();
+            // Make sure the function and the function body are using the same entry point
+            scriptFunction->ChangeEntryPoint(functionBody->GetDefaultEntryPointInfo(), AsmJsDefaultEntryThunk);
+            WasmLibrary::SetWasmEntryPointToInterpreter(scriptFunction, isDeferred);
+            // Reset jit status for this function
+            functionBody->SetIsAsmJsFullJitScheduled(false);
+            Assert(functionBody->HasValidEntryPoint());
+        }
+        else
+#endif
+        if (scriptFunction->GetScriptContext()->IsScriptContextInDebugMode())
+        {
+            if (functionBody->IsInDebugMode() &&
+                scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo() != nullptr &&
+                scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
             {
-                funcList->Push((AsmJsScriptFunction*)scriptFunction);
-            }
-            else
-            {
-                SList<AsmJsScriptFunction*> * newList = Anew(debugTransitionAlloc, SList<AsmJsScriptFunction*>, debugTransitionAlloc);
-                asmJsEnvironmentMap->AddNew(env, newList);
-                newList->Push((AsmJsScriptFunction*)scriptFunction);
+                void* env = scriptFunction->GetEnvironment()->GetItem(0);
+                SList<AsmJsScriptFunction*> * funcList = nullptr;
+                if (asmJsEnvironmentMap->TryGetValue(env, &funcList))
+                {
+                    funcList->Push((AsmJsScriptFunction*)scriptFunction);
+                }
+                else
+                {
+                    SList<AsmJsScriptFunction*> * newList = Anew(debugTransitionAlloc, SList<AsmJsScriptFunction*>, debugTransitionAlloc);
+                    asmJsEnvironmentMap->AddNew(env, newList);
+                    newList->Push((AsmJsScriptFunction*)scriptFunction);
+                }
             }
         }
     }
@@ -3329,7 +3353,12 @@ namespace Js
         FunctionBody * pBody = proxy->GetFunctionBody();
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (scriptContext->IsScriptContextInDebugMode() && !proxy->GetUtf8SourceInfo()->GetIsLibraryCode() && !pBody->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode() &&
+            !proxy->GetUtf8SourceInfo()->GetIsLibraryCode() &&
+#ifdef ENABLE_WASM
+            !pBody->IsWasmFunction() &&
+#endif
+            !pBody->IsInDebugMode())
         {
             // Identifying if any function escaped for not being in debug mode. (This can be removed as a part of TFS : 935011)
             Throw::FatalInternalError();
@@ -3681,6 +3710,7 @@ namespace Js
 #if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
         RUNTIME_ARGUMENTS(args, callInfo);
 
+        Assert(!AsmJsScriptFunction::IsWasmScriptFunction(callable));
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
         ScriptContext* scriptContext = function->GetScriptContext();
         PROFILER_TOKEN scriptId = -1;
