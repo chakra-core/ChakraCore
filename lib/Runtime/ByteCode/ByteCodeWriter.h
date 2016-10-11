@@ -96,13 +96,14 @@ namespace Js
 
             template <LayoutSize layoutSize> void EncodeOpCode(uint16 op, ByteCodeWriter* writer);
             template <> void EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
-            template <LayoutSize layoutSize> void EncodeT(OpCode op, ByteCodeWriter* writer);
-            template <LayoutSize layoutSize> void EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
+            // EncodeT functions return the global offset where the opcode has been encoded
+            template <LayoutSize layoutSize> uint EncodeT(OpCode op, ByteCodeWriter* writer);
+            template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
             // asm.js encoding
             void Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
             void Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
-            template <LayoutSize layoutSize> void EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
-            template <LayoutSize layoutSize> void EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
+            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
+            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
 
             void Reset();
         };
