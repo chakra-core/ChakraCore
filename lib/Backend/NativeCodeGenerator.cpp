@@ -884,6 +884,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #if !FLOATVAR
     workItem->GetJITData()->xProcNumberPageSegment = scriptContext->GetThreadContext()->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
 #endif
+    workItem->GetJITData()->globalThisAddr = (intptr_t)scriptContext->GetLibrary()->GetGlobalObject()->ToThis();
 
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
@@ -904,7 +905,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
-        workItem->GetJITData()->globalThisAddr = (intptr_t)scriptContext->GetLibrary()->GetGlobalObject()->ToThis();
 #if !FLOATVAR
         CodeGenNumberAllocator* pNumberAllocator = nullptr;
 

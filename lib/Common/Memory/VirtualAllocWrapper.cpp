@@ -73,7 +73,11 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
 #endif
     {
         address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
-        Assert(process == GetCurrentProcess());
+        if (address == nullptr)
+        {
+            MemoryOperationLastError::RecordLastError();
+            return nullptr;
+        }
     }
 
     return address;
