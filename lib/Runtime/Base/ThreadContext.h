@@ -257,61 +257,6 @@ public:
     ~AutoTagNativeLibraryEntry();
 };
 
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-struct JITStats
-{
-    uint lessThan5ms;
-    uint within5And10ms;
-    uint within10And20ms;
-    uint within20And50ms;
-    uint within50And100ms;
-    uint within100And300ms;
-    uint greaterThan300ms;
-};
-#endif
-
-struct ParserStats
-{
-    uint64 lessThan1ms;
-    uint64 within1And3ms;
-    uint64 within3And10ms;
-    uint64 within10And20ms;
-    uint64 within20And50ms;
-    uint64 within50And100ms;
-    uint64 within100And300ms;
-    uint64 greaterThan300ms;
-};
-
-class ParserTimer
-{
-private:
-    DateTime::HiResTimer timer;
-    ParserStats stats;
-public:
-    ParserTimer();
-    ParserStats GetStats();
-    void Reset();
-    double Now();
-    void LogTime(double ms);
-};
-
-#if ENABLE_NATIVE_CODEGEN
-class JITTimer
-{
-private:
-    DateTime::HiResTimer timer;
-    JITStats stats;
-public:
-    JITTimer();
-    JITStats GetStats();
-    void Reset();
-    double Now();
-    void LogTime(double ms);
-};
-#endif
-#endif
-
 #define AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, name) \
     AutoTagNativeLibraryEntry __tag(function, callInfo, name, _AddressOfReturnAddress())
 
@@ -898,10 +843,6 @@ public:
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-    JITTimer JITTelemetry;
-#endif
-    ParserTimer ParserTelemetry;
     GUID activityId;
 #endif
     void *tridentLoadAddress;
@@ -912,38 +853,6 @@ public:
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     DirectCallTelemetry directCallTelemetry;
 #endif
-
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-    JITStats GetJITStats()
-    {
-        return JITTelemetry.GetStats();
-    }
-
-    void ResetJITStats()
-    {
-        JITTelemetry.Reset();
-    }
-#endif
-
-    ParserStats GetParserStats()
-    {
-        return ParserTelemetry.GetStats();
-    }
-
-    void ResetParserStats()
-    {
-        ParserTelemetry.Reset();
-    }
-#endif
-
-    double maxGlobalFunctionExecTime;
-    double GetAndResetMaxGlobalFunctionExecTime()
-    {
-        double res = maxGlobalFunctionExecTime;
-        this->maxGlobalFunctionExecTime = 0.0;
-        return res;
-    }
 
     BOOL HasPreviousHostScriptContext();
     HostScriptContext* GetPreviousHostScriptContext() ;
@@ -999,7 +908,8 @@ public:
     {
         Assert(this->recyclableData == nullptr || this->recyclableData->returnedValueList == nullptr);
     }
-
+#endif
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     uint GetScriptContextCount() const { return this->scriptContextCount; }
 #endif
     Js::ScriptContext* GetScriptContextList() const { return this->scriptContextList; }
@@ -1167,7 +1077,9 @@ private:
     RecyclerWeakReference<const Js::PropertyRecord> * CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRecord);
     void AddCaseInvariantPropertyRecord(const Js::PropertyRecord * propertyRecord);
 
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     uint scriptContextCount;
+#endif
 
 public:
     void UncheckedAddBuiltInPropertyId();
@@ -1181,7 +1093,6 @@ public:
 
     void SetThreadServiceWrapper(ThreadServiceWrapper*);
     ThreadServiceWrapper* GetThreadServiceWrapper();
-    uint GetUnreleasedScriptContextCount(){return scriptContextCount;}
 
 #ifdef ENABLE_PROJECTION
     void AddExternalWeakReferenceCache(ExternalWeakReferenceCache *externalWeakReferenceCache);

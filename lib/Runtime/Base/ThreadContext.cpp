@@ -185,7 +185,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     rootPendingClose(nullptr),
     isProfilingUserCode(true),
     loopDepth(0),
-    maxGlobalFunctionExecTime(0.0),
     tridentLoadAddress(nullptr),
     m_remoteThreadContextInfo(0),
     debugManager(nullptr)
@@ -208,8 +207,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
     functionCount = 0;
     sourceInfoCount = 0;
-    scriptContextCount=0;
-
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
+    scriptContextCount = 0;
+#endif
     isScriptActive = false;
 
 #ifdef ENABLE_CUSTOM_ENTROPY
@@ -2471,7 +2471,9 @@ ThreadContext::RegisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->ForceNoNative();
     }
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount++;
+#endif
     scriptContextEverRegistered = true;
 }
 
@@ -2495,7 +2497,9 @@ ThreadContext::UnregisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->next->prev = scriptContext->prev;
     }
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount--;
+#endif
 }
 
 ThreadContext::CollectCallBack *
@@ -4460,118 +4464,6 @@ ThreadContext::ClearRootTrackerScriptContext(Js::ScriptContext * scriptContext)
     this->rootTrackerScriptContext = nullptr;
 }
 #endif
-
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-JITTimer::JITTimer()
-{
-    Reset();
-}
-
-double JITTimer::Now()
-{
-    return timer.Now();
-}
-
-JITStats JITTimer::GetStats()
-{
-     return stats;
-}
-
-void JITTimer::Reset()
-{
-     stats = { 0 };
-}
-
-void JITTimer::LogTime(double ms)
-{
-    if (ms <= 5.0)
-    {
-        stats.lessThan5ms++;
-    }
-    else if (ms <= 10.0)
-    {
-        stats.within5And10ms++;
-    }
-    else if (ms <= 20.0)
-    {
-        stats.within10And20ms++;
-    }
-    else if (ms <= 50.0)
-    {
-        stats.within20And50ms++;
-    }
-    else if (ms <= 100.0)
-    {
-        stats.within50And100ms++;
-    }
-    else if (ms <= 300.0)
-    {
-        stats.within100And300ms++;
-    }
-    else
-    {
-        stats.greaterThan300ms++;
-    }
-}
-#endif // NATIVE_CODE_GEN
-
-ParserTimer::ParserTimer()
-{
-    Reset();
-}
-
-double ParserTimer::Now()
-{
-    return timer.Now();
-}
-
-ParserStats ParserTimer::GetStats()
-{
-    return stats;
-}
-
-void ParserTimer::Reset()
-{
-    stats = { 0 };
-}
-
-void ParserTimer::LogTime(double ms)
-{
-    if (ms <= 1.0)
-    {
-        stats.lessThan1ms++;
-    }
-    else if (ms <= 3.0)
-    {
-        stats.within1And3ms++;
-    }
-    else if (ms <= 10.0)
-    {
-        stats.within3And10ms++;
-    }
-    else if (ms <= 20.0)
-    {
-        stats.within10And20ms++;
-    }
-    else if (ms <= 50.0)
-    {
-        stats.within20And50ms++;
-    }
-    else if (ms <= 100.0)
-    {
-        stats.within50And100ms++;
-    }
-    else if (ms <= 300.0)
-    {
-        stats.within100And300ms++;
-    }
-    else
-    {
-        stats.greaterThan300ms++;
-    }
-}
-#endif // ENABLE_BASIC_TELEMETRY
 
 AutoTagNativeLibraryEntry::AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr)
 {

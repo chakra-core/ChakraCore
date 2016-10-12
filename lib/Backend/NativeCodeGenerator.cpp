@@ -849,10 +849,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-#ifdef ENABLE_BASIC_TELEMETRY
-    double startTime = scriptContext->GetThreadContext()->JITTelemetry.Now();
-#endif
-
     if (body->GetScriptContext()->IsClosed())
     {
         // Should not be jitting something in the foreground when the script context is actually closed
@@ -1138,10 +1134,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
 
     NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
-
-#ifdef ENABLE_BASIC_TELEMETRY
-    scriptContext->GetThreadContext()->JITTelemetry.LogTime(scriptContext->GetThreadContext()->JITTelemetry.Now() - startTime);
-#endif
 
 #ifdef BGJIT_STATS
     // Must be interlocked because the following data may be modified from the background and foreground threads concurrently

@@ -328,11 +328,7 @@ HRESULT Parser::ParseSourceInternal(
     AssertMem(parseTree);
     AssertPsz(pszSrc);
     AssertMemN(pse);
-
-#ifdef ENABLE_BASIC_TELEMETRY
-    double startTime = m_scriptContext->GetThreadContext()->ParserTelemetry.Now();
-#endif
-    
+   
     if (this->IsBackgroundParser())
     {
         PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
@@ -448,11 +444,6 @@ HRESULT Parser::ParseSourceInternal(
     m_scriptContext->ProfileEnd(Js::ParsePhase);
 #endif
     JS_ETW(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
-
-#ifdef ENABLE_BASIC_TELEMETRY
-    ThreadContext *threadContext = m_scriptContext->GetThreadContext();
-    threadContext->ParserTelemetry.LogTime(threadContext->ParserTelemetry.Now() - startTime);
-#endif
     
     return hr;
 }

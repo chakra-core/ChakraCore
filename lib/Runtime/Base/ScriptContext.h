@@ -839,9 +839,6 @@ private:
         RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
 #endif
 #endif
-#if DEBUG
-        static int scriptContextCount;
-#endif
         // List of weak reference dictionaries. We'll walk through them
         // and clean them up post-collection
         // IWeakReferenceDictionary objects are added to this list by calling
