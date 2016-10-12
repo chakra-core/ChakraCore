@@ -663,7 +663,7 @@ typedef struct CodeGenWorkItemIDL
     CHAKRA_PTR functionBodyAddr;
     CHAKRA_PTR globalThisAddr;
     CHAKRA_PTR nativeDataAddr;
-    X86_PAD4(0)
+    X86_PAD4(2)
     __int64 startTime;
 } CodeGenWorkItemIDL;
 
