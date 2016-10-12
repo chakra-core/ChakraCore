@@ -983,15 +983,15 @@ public:
     void ShutdownThreads()
     {
 #if ENABLE_NATIVE_CODEGEN
+        if (jobProcessor)
+        {
+            jobProcessor->Close();
+        }
+
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
         {
             JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
             m_remoteThreadContextInfo = 0;
-        }
-
-        if (jobProcessor)
-        {
-            jobProcessor->Close();
         }
 #endif
 #if ENABLE_CONCURRENT_GC

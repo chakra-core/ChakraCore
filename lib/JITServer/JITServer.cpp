@@ -154,8 +154,6 @@ ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextRoot)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextRoot);
     if (threadContextInfo == nullptr)
     {
@@ -317,6 +315,25 @@ ServerCleanupScriptContext(
         return RPC_S_INVALID_ARG;
     }
 
+    Assert(scriptContextInfo->IsClosed());
+    HeapDelete(scriptContextInfo);
+
+    return S_OK;
+}
+
+HRESULT
+ServerCloseScriptContext(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextRoot)
+{
+    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
+
+    if (scriptContextInfo == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
 #ifdef PROFILE_EXEC
@@ -326,10 +343,9 @@ ServerCleanupScriptContext(
             profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
         }
 #endif
-
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
-        
+
         return S_OK;
     });
 }
@@ -340,7 +356,6 @@ ServerFreeAllocation(
     /* [in] */ intptr_t threadContextInfo,
     /* [in] */ intptr_t address)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
 
     if (context == nullptr)
@@ -565,6 +580,42 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
     }
 }
 
+void ServerContextManager::CleanUpForProcess(HANDLE hProcess)
+{
+    // there might be multiple thread context(webworker)
+    AutoCriticalSection autoCS(&cs);
+
+    auto iterScriptCtx = scriptContexts.GetIteratorWithRemovalSupport();
+    while (iterScriptCtx.IsValid())
+    {
+        ServerScriptContext* scriptContext = iterScriptCtx.Current().Key();
+        if (scriptContext->GetThreadContext()->GetProcessHandle() == hProcess)
+        {
+            if (!scriptContext->IsClosed())
+            {
+                scriptContext->Close();
+            }
+            iterScriptCtx.RemoveCurrent();
+        }
+        iterScriptCtx.MoveNext();
+    }
+
+    auto iterThreadCtx = threadContexts.GetIteratorWithRemovalSupport();
+    while (iterThreadCtx.IsValid())
+    {
+        ServerThreadContext* threadContext = iterThreadCtx.Current().Key();
+        if (threadContext->GetProcessHandle() == hProcess)
+        {
+            if (!threadContext->IsClosed())
+            {
+                threadContext->Close();
+            }
+            iterThreadCtx.RemoveCurrent();
+        }
+        iterThreadCtx.MoveNext();
+    }
+}
+
 void ServerContextManager::RegisterScriptContext(ServerScriptContext* scriptContext)
 {
     AutoCriticalSection autoCS(&cs);
@@ -582,9 +633,10 @@ bool ServerContextManager::CheckLivenessAndAddref(ServerScriptContext* context)
     AutoCriticalSection autoCS(&cs);
     if (scriptContexts.LookupWithKey(context))
     {
-        if (!context->IsClosed())
+        if (!context->IsClosed() && !context->GetThreadContext()->IsClosed())
         {
             context->AddRef();
+            context->GetThreadContext()->AddRef();
             return true;
         }
     }
@@ -612,7 +664,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     HRESULT hr = S_OK;
     try
     {
-        AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
+        AutoReleaseThreadContext autoThreadContext(threadContextInfo);
         hr = fn();
 
         DWORD exitCode = STILL_ACTIVE;
@@ -671,7 +723,7 @@ HRESULT ServerCallWrapper(ServerScriptContext* scriptContextInfo, Fn fn)
 {
     try
     {
-        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
+        AutoReleaseScriptContext autoScriptContext(scriptContextInfo);
         ServerThreadContext* threadContextInfo = scriptContextInfo->GetThreadContext();
         return ServerCallWrapper(threadContextInfo, fn);
     }

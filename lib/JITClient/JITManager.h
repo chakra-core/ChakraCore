@@ -57,6 +57,9 @@ public:
     HRESULT CleanupScriptContext(
         __in intptr_t scriptContextInfoAddress);
 
+    HRESULT CloseScriptContext(
+        __in intptr_t scriptContextInfoAddress);
+
     HRESULT FreeAllocation(
         __in intptr_t threadContextInfoAddress,
         __in intptr_t address);
@@ -158,6 +161,10 @@ public:
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupScriptContext(
+        __in intptr_t scriptContextInfoAddress)
+        { Assert(false); return E_FAIL; }
+
+    HRESULT CloseScriptContext(
         __in intptr_t scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 

@@ -307,7 +307,9 @@ ServerScriptContext::Release()
     InterlockedExchangeSubtract(&m_refCount, 1u);
     if (m_isClosed && m_refCount == 0)
     {
-        HeapDelete(this);
+        // Not freeing here, we'll expect explicit ServerCleanupScriptContext() call to do the free
+        // otherwise after free, the CodeGen call can still get same scriptContext if there's another 
+        // ServerInitializeScriptContext call
     }
 }
 

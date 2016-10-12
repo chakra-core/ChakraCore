@@ -9,6 +9,8 @@ public:
     static void RegisterThreadContext(ServerThreadContext* threadContext);
     static void UnRegisterThreadContext(ServerThreadContext* threadContext);
 
+    static void CleanUpForProcess(HANDLE hProcess);
+
     static void RegisterScriptContext(ServerScriptContext* scriptContext);
     static void UnRegisterScriptContext(ServerScriptContext* scriptContext);    
 
@@ -77,7 +79,7 @@ public:
             auto record = ClosedThreadContextList.Pop();
             if (record)
             {
-                delete record;
+                HeapDelete(record);
             }
         }
         while (!ClosedScriptContextList.Empty())
@@ -85,7 +87,7 @@ public:
             auto record = ClosedScriptContextList.Pop();
             if (record)
             {
-                delete record;
+                HeapDelete(record);
             }
         }
 #endif
@@ -94,31 +96,63 @@ public:
 
 struct ContextClosedException {};
 
-template<class T>
-struct AutoReleaseContext
+struct AutoReleaseThreadContext
 {
-    AutoReleaseContext(T* context)
-        :context(context)
+    AutoReleaseThreadContext(ServerThreadContext* threadContext)
+        :threadContext(threadContext)
     {
-        if (!ServerContextManager::CheckLivenessAndAddref(context))
+        if (!ServerContextManager::CheckLivenessAndAddref(threadContext))
         {
             // Don't assert here because ThreadContext can be closed before scriptContext closing call
             // and ThreadContext closing causes all related scriptContext be closed
-            context = nullptr;
+            threadContext = nullptr;
             throw ContextClosedException();
         }
     }
 
-    ~AutoReleaseContext()
+    ~AutoReleaseThreadContext()
     {
-        if (context) 
+        if (threadContext)
         {
-            context->Release();
+            threadContext->Release();
         }
     }
 
-    T* context;
+    ServerThreadContext* threadContext;
 };
+
+struct AutoReleaseScriptContext
+{
+    AutoReleaseScriptContext(ServerScriptContext* scriptContext)
+        :scriptContext(scriptContext)
+    {
+        if (!ServerContextManager::CheckLivenessAndAddref(scriptContext))
+        {
+            // Don't assert here because ThreadContext can be closed before scriptContext closing call
+            // and ThreadContext closing causes all related scriptContext be closed
+            scriptContext = nullptr;
+            threadContext = nullptr;
+            throw ContextClosedException();
+        }
+        threadContext = scriptContext->GetThreadContext();
+    }
+
+    ~AutoReleaseScriptContext()
+    {
+        if (scriptContext)
+        {
+            scriptContext->Release();
+        }
+        if (threadContext)
+        {
+            threadContext->Release();
+        }
+    }
+
+    ServerScriptContext* scriptContext;
+    ServerThreadContext* threadContext;
+};
+
 
 template<typename Fn>
 HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn);
