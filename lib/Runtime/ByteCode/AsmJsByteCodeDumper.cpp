@@ -983,18 +983,18 @@ namespace Js
         {
         case OpCodeAsmJs::Simd128_LdArrConst_I4:
         case OpCodeAsmJs::Simd128_LdArrConst_F4:
-            //case OpCodeAsmJs::Simd128_LdArrConst_D2:
+        //case OpCodeAsmJs::Simd128_LdArrConst_D2:
         case OpCodeAsmJs::Simd128_StArrConst_I4:
         case OpCodeAsmJs::Simd128_StArrConst_F4:
-            //case OpCodeAsmJs::Simd128_StArrConst_D2:
+        //case OpCodeAsmJs::Simd128_StArrConst_D2:
             Output::Print(_u(" %s[%d] "), heapTag, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdArr_I4:
         case OpCodeAsmJs::Simd128_LdArr_F4:
-            //case OpCodeAsmJs::Simd128_LdArr_D2:
+        //case OpCodeAsmJs::Simd128_LdArr_D2:
         case OpCodeAsmJs::Simd128_StArr_I4:
         case OpCodeAsmJs::Simd128_StArr_F4:
-            //case OpCodeAsmJs::Simd128_StArr_D2:
+        //case OpCodeAsmJs::Simd128_StArr_D2:
             Output::Print(_u(" %s[I%d] "), heapTag, data->SlotIndex);
             break;
         default:

@@ -9,7 +9,7 @@
 namespace Wasm
 {
     SectionInfo SectionInfo::All[bSectLimit] = {
-#define WASM_SECTION(name, id, flag, precedent) {flag, bSect ## precedent, L#name, id},
+#define WASM_SECTION(name, id, flag, precedent) {flag, bSect ## precedent, static_cast<const wchar_t*>(_u(#name)), static_cast<const char*>(id)},
 #include "WasmSections.h"
     };
 }

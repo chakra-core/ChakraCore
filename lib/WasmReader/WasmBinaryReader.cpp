@@ -5,7 +5,6 @@
 
 #include "WasmReaderPch.h"
 
-
 #ifdef ENABLE_WASM
 
 namespace Wasm
@@ -174,11 +173,7 @@ WasmBinaryReader::ReadSectionHeader()
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     Assert(idSize < 64);
-    char16 buf[64];
-    size_t convertedChars = 0;
-    mbstowcs_s(&convertedChars, buf, idSize + 1, sectionName, _TRUNCATE);
-    buf[idSize] = 0;
-    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
+    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), sectionName, sectionSize, sectionSize);
 #endif
     return header;
 }
@@ -217,7 +212,7 @@ WasmBinaryReader::PrintOps()
     case opcode: \
         Output::Print(_u("%s\r\n"), _u(#opname)); \
         break;
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
         }
     }
     HeapDeleteArray(m_ops->Count(), ops);
@@ -372,7 +367,7 @@ WasmBinaryReader::ReadExpr()
     case wb##opname: \
     m_currentNode.op = MemNode(op); \
     break;
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
     default:
         m_currentNode.op = op;
     }
@@ -677,7 +672,7 @@ WasmBinaryReader::ReadDataSegments()
 
     for (uint32 i = 0; i < entries; ++i)
     {
-        TRACE_WASM_DECODER(L"Data Segment #%u", i);
+        TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         UINT32 offset = LEB128(len);
         UINT32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);

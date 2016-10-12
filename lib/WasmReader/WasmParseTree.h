@@ -26,13 +26,13 @@ namespace Wasm
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
     };
 
     enum WasmOp : byte
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
         wbFuncEnd,
         wbLimit
     };
