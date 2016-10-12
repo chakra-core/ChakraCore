@@ -16,7 +16,6 @@ namespace Js
     class FunctionCodeGenJitTimeData
     {
     private:
-        FunctionBodyDataIDL * bodyData;
         FunctionInfo *const functionInfo;
 
         // Point's to an entry point if the work item needs the entry point alive- null for cases where the entry point isn't used
@@ -51,6 +50,9 @@ namespace Js
 
         // This indicates the function is aggressively Inlined(see NativeCodeGenerator::TryAggressiveInlining) .
         bool isAggressiveInliningEnabled;
+
+        // The profiled iterations need to be determined at the time of gathering code gen data on the main thread
+        const uint16 profiledIterations;
 
 #ifdef FIELD_ACCESS_STATS
     public:
@@ -159,6 +161,8 @@ namespace Js
             inlinees[profiledCallSiteId] = this;
             inlineeCount++;
         }
+
+        uint16 GetProfiledIterations() const;
 
         PREVENT_COPY(FunctionCodeGenJitTimeData)
     };
