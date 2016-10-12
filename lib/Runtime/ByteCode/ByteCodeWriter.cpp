@@ -371,12 +371,12 @@ namespace Js
         OpLayoutT_Reg2WithICIndex<SizePolicy> layout;
         if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.inlineCacheIndex, inlineCacheIndex))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            uint offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
             if (isRootLoad)
             {
-                size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
+                Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_Reg2WithICIndex<SizePolicy>));
+                uint inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                     + offsetof(OpLayoutT_Reg2WithICIndex<SizePolicy>, inlineCacheIndex);
 
                 rootObjectLoadMethodInlineCacheOffsets.Prepend(m_labelOffsets->GetAllocator(), inlineCacheOffset);
@@ -981,11 +981,11 @@ namespace Js
             && SizePolicy::Assign(layout.ArgCount, givenArgCount) && SizePolicy::Assign(layout.inlineCacheIndex, inlineCacheIndex)
             && SizePolicy::Assign(layout.Options, options) && SizePolicy::Assign(layout.SpreadAuxOffset, spreadArgsOffset))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            size_t offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
             if (isRootLoad)
             {
+                Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_CallIExtendedWithICIndex<SizePolicy>));
                 size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                     + offsetof(OpLayoutT_CallIExtendedWithICIndex<SizePolicy>, inlineCacheIndex);
 
@@ -1019,11 +1019,11 @@ namespace Js
             && SizePolicy::Assign(layout.Options, options) && SizePolicy::Assign(layout.SpreadAuxOffset, spreadArgsOffset)
             && SizePolicy::Assign(layout.callFlags, callFlags))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            size_t offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
             if (isRootLoad)
             {
+                Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_CallIExtendedFlagsWithICIndex<SizePolicy>));
                 size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                     + offsetof(OpLayoutT_CallIExtendedFlagsWithICIndex<SizePolicy>, inlineCacheIndex);
 
@@ -1144,11 +1144,11 @@ namespace Js
         if (SizePolicy::Assign(layout.Return, returnValueRegister) && SizePolicy::Assign(layout.Function, functionRegister)
             && SizePolicy::Assign(layout.ArgCount, givenArgCount) && SizePolicy::Assign(layout.inlineCacheIndex, inlineCacheIndex))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            size_t offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
             if (isRootLoad)
             {
+                Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_CallIWithICIndex<SizePolicy>));
                 size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                     + offsetof(OpLayoutT_CallIWithICIndex<SizePolicy>, inlineCacheIndex);
 
@@ -1167,11 +1167,11 @@ namespace Js
             && SizePolicy::Assign(layout.ArgCount, givenArgCount) && SizePolicy::Assign(layout.inlineCacheIndex, inlineCacheIndex)
             && SizePolicy::Assign(layout.callFlags, callFlags))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            size_t offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
             if (isRootLoad)
             {
+                Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_CallIFlagsWithICIndex<SizePolicy>));
                 size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                     + offsetof(OpLayoutT_CallIFlagsWithICIndex<SizePolicy>, inlineCacheIndex);
 
@@ -1847,9 +1847,9 @@ StoreCommon:
         OpLayoutT_ElementRootCP<SizePolicy> layout;
         if (SizePolicy::Assign(layout.Value, value) && SizePolicy::Assign(layout.inlineCacheIndex, cacheId))
         {
-            size_t offset = m_byteCodeData.GetCurrentOffset();
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            size_t offset = m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
 
+            Assert(m_byteCodeData.GetCurrentOffset() == offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum) + sizeof(OpLayoutT_ElementRootCP<SizePolicy>));
             size_t inlineCacheOffset = offset + OpCodeUtil::EncodedSize(op, SizePolicy::LayoutEnum)
                 + offsetof(OpLayoutT_ElementRootCP<SizePolicy>, inlineCacheIndex);
 
@@ -3282,7 +3282,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    inline void ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (writer->useBranchIsland)
@@ -3294,6 +3294,8 @@ StoreCommon:
         Assert(op < Js::OpCode::ByteCodeLast);
         Assert(!OpCodeAttr::BackEndOnly(op));
         Assert(layoutSize == SmallLayout || OpCodeAttr::HasMultiSizeLayout(op));
+        // Capture offset before encoding the opcode
+        uint offset = GetCurrentOffset();
         EncodeOpCode<layoutSize>((uint16)op, writer);
 
         if (op != Js::OpCode::Ld_A)
@@ -3301,15 +3303,17 @@ StoreCommon:
             writer->m_byteCodeWithoutLDACount++;
         }
         writer->IncreaseByteCodeCount();
+        return offset;
     }
 
     template <LayoutSize layoutSize>
-    inline void ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
     {
         AssertMsg((rawData != nullptr) && (byteSize < 100), "Ensure valid data for opcode");
 
-        EncodeT<layoutSize>(op, writer);
+        uint offset = EncodeT<layoutSize>(op, writer);
         Write(rawData, byteSize);
+        return offset;
     }
 
     inline void ByteCodeWriter::Data::Encode(const void* rawData, int byteSize)
