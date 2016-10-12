@@ -14,11 +14,49 @@ namespace Js
     static const char EmptySegmentData[sizeof(SparseArraySegmentBase)] = {0};
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
+    // col0 : allocation bucket
+    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col2 : allocation size for elements in given bucket.
+    // col1 and col2 is calculated at runtime
+    uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        { 3, 0, 0 },    // allocate space for 3 elements for array of length 0,1,2,3
+        { 5, 0, 0 },    // allocate space for 5 elements for array of length 4,5
+        { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
+    };
 #if defined(_M_X64_OR_ARM64)
     const Var JavascriptArray::MissingItem = (Var)0x8000000280000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {2, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {4, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
 #else
     const Var JavascriptArray::MissingItem = (Var)0x80000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 3, 0, 0 },
+        { 7, 0, 0 },
+        { 8, 0, 0 },
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 4, 0, 0 },
+        { 8, 0, 0 },
+    };
 #endif
+
     const int32 JavascriptNativeIntArray::MissingItem = 0x80000002;
     static const uint64 FloatMissingItemPattern = 0x8000000280000002ull;
     const double JavascriptNativeFloatArray::MissingItem = *(double*)&FloatMissingItemPattern;
