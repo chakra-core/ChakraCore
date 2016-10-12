@@ -218,12 +218,12 @@ namespace Js
         static JavascriptString* Concat_BothOneChar(JavascriptString * pstLeft, JavascriptString * pstRight);
 
     public:
-        static OPT_CONSTEXPR uint32 GetOffsetOfpszValue()
+        static uint32 GetOffsetOfpszValue()
         {
             return offsetof(JavascriptString, m_pszValue);
         }
 
-        static OPT_CONSTEXPR uint32 GetOffsetOfcharLength()
+        static uint32 GetOffsetOfcharLength()
         {
             return offsetof(JavascriptString, m_charLength);
         }
