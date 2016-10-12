@@ -49,13 +49,19 @@ public:
     static void RecordCloseContext(ServerThreadContext* context)
     {
         auto record = HeapNewNoThrow(ClosedContextEntry<ServerThreadContext>, context);
-        record->runtimeProcId = context->GetRuntimePid();
+        if (record) 
+        {
+            record->runtimeProcId = context->GetRuntimePid();
+        }
         ClosedThreadContextList.PrependNoThrow(&HeapAllocator::Instance, record);
     }
     static void RecordCloseContext(ServerScriptContext* context)
     {
         auto record = HeapNewNoThrow(ClosedContextEntry<ServerScriptContext>, context);
-        record->threadCtx = context->GetThreadContext();
+        if (record)
+        {
+            record->threadCtx = context->GetThreadContext();
+        }
         ClosedScriptContextList.PrependNoThrow(&HeapAllocator::Instance, record);
     }
 
