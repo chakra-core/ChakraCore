@@ -48,7 +48,8 @@ public:
 
     void AddRef();
     void Release();
-    void Close();    
+    void Close();
+    DWORD GetRuntimePid() { return m_pid; }
 
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;

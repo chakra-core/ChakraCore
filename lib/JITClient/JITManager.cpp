@@ -483,26 +483,6 @@ JITManager::CleanupScriptContext(
 }
 
 HRESULT
-JITManager::CloseScriptContext(
-    __in intptr_t scriptContextInfoAddress)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientCloseScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
-    }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-
-HRESULT
 JITManager::FreeAllocation(
     __in intptr_t threadContextInfoAddress,
     __in intptr_t address)

@@ -55,10 +55,6 @@ interface IChakraJIT
         [in] CHAKRA_PTR threadContextInfoAddress,
         [out] CHAKRA_PTR * scriptContextInfoAddress);
 
-    HRESULT CloseScriptContext(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress);
-
     HRESULT CleanupScriptContext(
         [in] handle_t binding,
         [in] CHAKRA_PTR scriptContextInfoAddress);

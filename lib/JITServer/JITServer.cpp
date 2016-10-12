@@ -86,6 +86,8 @@ ShutdownCommon()
     }
 
     status = RpcServerUnregisterIf(ServerIChakraJIT_v0_0_s_ifspec, NULL, FALSE);
+
+    ServerContextManager::Shutdown();
     return status;
 }
 
@@ -137,11 +139,9 @@ ServerInitializeThreadContext(
         return E_OUTOFMEMORY;
     }
 
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(contextInfo);
+    ServerContextManager::RegisterThreadContext(contextInfo);
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
-        ServerContextManager::RegisterThreadContext(contextInfo);
-
         *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
         *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
 
@@ -163,13 +163,12 @@ ServerCleanupThreadContext(
         return RPC_S_INVALID_ARG;
     }
 
-    if (ServerContextManager::IsThreadContextAlive(threadContextInfo))
+    return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
-        AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
         threadContextInfo->Close();
         ServerContextManager::UnRegisterThreadContext(threadContextInfo);
-    }
-    return S_OK;
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -188,13 +187,6 @@ ServerUpdatePropertyRecordMap(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
-    {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
         for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
@@ -228,13 +220,6 @@ ServerAddDOMFastPathHelper(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
-    {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
         scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
@@ -258,13 +243,6 @@ ServerAddModuleRecordInfo(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(serverScriptContext))
-    {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(serverScriptContext);
     return ServerCallWrapper(serverScriptContext, [&]()->HRESULT
     {
         serverScriptContext->AddModuleRecordInfo(moduleId, localExportSlotsAddr);
@@ -287,16 +265,11 @@ ServerSetWellKnownHostTypeId(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
+    return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
-    threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
-
-    return S_OK;
+        threadContextInfo->SetWellKnownHostTypeId((Js::TypeId)typeId);
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -310,26 +283,17 @@ ServerInitializeScriptContext(
 
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
+    *scriptContextInfoAddress = 0;
     if (threadContextInfo == nullptr)
     {
         Assert(false);
-        *scriptContextInfoAddress = 0;
         return RPC_S_INVALID_ARG;
-    }
-
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
-    {
-        Assert(false);
-        *scriptContextInfoAddress = 0;
-        return E_ACCESSDENIED;
     }
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
         ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData, threadContextInfo);
-
         ServerContextManager::RegisterScriptContext(contextInfo);
-
         *scriptContextInfoAddress = (intptr_t)EncodePointer(contextInfo);
 
 #if !FLOATVAR
@@ -338,38 +302,6 @@ ServerInitializeScriptContext(
 #endif
         return S_OK;
     });
-}
-
-HRESULT
-ServerCloseScriptContext(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t scriptContextRoot)
-{
-    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
-
-    if (scriptContextInfo == nullptr)
-    {
-        Assert(false);
-        return RPC_S_INVALID_ARG;
-    }
-
-    if (ServerContextManager::IsScriptContextAlive(scriptContextInfo))
-    {
-        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
-
-#ifdef PROFILE_EXEC
-        auto profiler = scriptContextInfo->GetCodeGenProfiler();
-        if (profiler && profiler->IsInitialized())
-        {
-            profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-        }
-#endif
-
-        scriptContextInfo->Close();
-        ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
-    }
-
-    return S_OK;
 }
 
 HRESULT
@@ -385,14 +317,21 @@ ServerCleanupScriptContext(
         return RPC_S_INVALID_ARG;
     }
 
-    if (ServerContextManager::IsScriptContextAlive(scriptContextInfo))
+    return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
-        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);        
+#ifdef PROFILE_EXEC
+        auto profiler = scriptContextInfo->GetCodeGenProfiler();
+        if (profiler && profiler->IsInitialized())
+        {
+            profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        }
+#endif
+
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
-    }
-
-    return S_OK;
+        
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -410,15 +349,8 @@ ServerFreeAllocation(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(context))
-    {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
     return ServerCallWrapper(context, [&]()->HRESULT 
     {
-        AutoReleaseContext<ServerThreadContext> autoThreadContext(context);
         context->SetValidCallTargetForCFG((PVOID)address, false);
         context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
         return S_OK;
@@ -434,21 +366,13 @@ ServerIsNativeAddr(
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer((void*)threadContextInfo);
 
+    *result = false;
     if (context == nullptr)
     {
-        *result = false;
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsThreadContextAlive(context))
-    {
-        *result = false;
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(context);
     return ServerCallWrapper(context, [&]()->HRESULT
     {
         PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = context->GetPreReservedVirtualAllocator();
@@ -484,15 +408,11 @@ ServerSetIsPRNGSeeded(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
+    return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
-    scriptContextInfo->SetIsPRNGSeeded(value != FALSE);
-    return S_OK;
+        scriptContextInfo->SetIsPRNGSeeded(value != FALSE);
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -503,11 +423,7 @@ ServerRemoteCodeGen(
     /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-    LARGE_INTEGER start_time = { 0 };
-    if (PHASE_TRACE1(Js::BackEndPhase))
-    {
-        QueryPerformanceCounter(&start_time);
-    }
+
     memset(jitData, 0, sizeof(JITOutputIDL));
 
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
@@ -518,16 +434,14 @@ ServerRemoteCodeGen(
         return RPC_S_INVALID_ARG;
     }
 
-    if (!ServerContextManager::IsScriptContextAlive(scriptContextInfo))
-    {
-        Assert(false);
-        return E_ACCESSDENIED;
-    }
-
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
-
     return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT
     {
+        LARGE_INTEGER start_time = { 0 };
+        if (PHASE_TRACE1(Js::BackEndPhase))
+        {
+            QueryPerformanceCounter(&start_time);
+        }
+
         scriptContextInfo->UpdateGlobalObjectThisAddr(workItemData->globalThisAddr);
         ServerThreadContext * threadContextInfo = scriptContextInfo->GetThreadContext();
 
@@ -620,6 +534,11 @@ JsUtil::BaseHashSet<ServerThreadContext*, HeapAllocator> ServerContextManager::t
 JsUtil::BaseHashSet<ServerScriptContext*, HeapAllocator> ServerContextManager::scriptContexts(&HeapAllocator::Instance);
 CriticalSection ServerContextManager::cs;
 
+#ifdef STACK_BACK_TRACE
+SList<ServerContextManager::ClosedContextEntry<ServerThreadContext>*, NoThrowHeapAllocator> ServerContextManager::ClosedThreadContextList(&NoThrowHeapAllocator::Instance);
+SList<ServerContextManager::ClosedContextEntry<ServerScriptContext>*, NoThrowHeapAllocator> ServerContextManager::ClosedScriptContextList(&NoThrowHeapAllocator::Instance);
+#endif
+
 void ServerContextManager::RegisterThreadContext(ServerThreadContext* threadContext)
 {
     AutoCriticalSection autoCS(&cs);
@@ -636,21 +555,14 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
         ServerScriptContext* scriptContext = iter.Current().Key();
         if (scriptContext->GetThreadContext() == threadContext)
         {   
-            scriptContext->Close();
+            if (!scriptContext->IsClosed())
+            {
+                scriptContext->Close();
+            }
             iter.RemoveCurrent();
         }
         iter.MoveNext();
     }
-}
-
-bool ServerContextManager::IsThreadContextAlive(ServerThreadContext* threadContext)
-{
-    AutoCriticalSection autoCS(&cs);
-    if (threadContexts.LookupWithKey(threadContext)) 
-    {
-        return !threadContext->IsClosed();
-    }
-    return false;
 }
 
 void ServerContextManager::RegisterScriptContext(ServerScriptContext* scriptContext)
@@ -665,15 +577,33 @@ void ServerContextManager::UnRegisterScriptContext(ServerScriptContext* scriptCo
     scriptContexts.Remove(scriptContext);
 }
 
-bool ServerContextManager::IsScriptContextAlive(ServerScriptContext* scriptContext)
+bool ServerContextManager::CheckLivenessAndAddref(ServerScriptContext* context)
 {
     AutoCriticalSection autoCS(&cs);
-    if (scriptContexts.LookupWithKey(scriptContext))
+    if (scriptContexts.LookupWithKey(context))
     {
-        return !scriptContext->IsClosed();
+        if (!context->IsClosed())
+        {
+            context->AddRef();
+            return true;
+        }
     }
     return false;
 }
+bool ServerContextManager::CheckLivenessAndAddref(ServerThreadContext* context)
+{
+    AutoCriticalSection autoCS(&cs);
+    if (threadContexts.LookupWithKey(context))
+    {
+        if (!context->IsClosed())
+        {
+            context->AddRef();
+            return true;
+        }
+    }
+    return false;
+}
+
 
 template<typename Fn>
 HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
@@ -682,7 +612,26 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     HRESULT hr = S_OK;
     try
     {
+        AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
         hr = fn();
+
+        DWORD exitCode = STILL_ACTIVE;
+        if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
+        {
+            Assert(false); // fail to check target process
+            hr = E_FAIL;
+        }
+
+        if (exitCode != STILL_ACTIVE)
+        {
+            threadContextInfo->Close();
+            ServerContextManager::UnRegisterThreadContext(threadContextInfo);
+            hr = E_FAIL;
+        }
+    }
+    catch (ContextClosedException&)
+    {
+        hr = E_ACCESSDENIED;
     }
     catch (Js::OutOfMemoryException)
     {
@@ -706,20 +655,6 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
         hr = E_FAIL;
     }
 
-    DWORD exitCode = STILL_ACTIVE;
-    if (!GetExitCodeProcess(threadContextInfo->GetProcessHandle(), &exitCode))
-    {
-        Assert(false); // fail to check target process
-        hr = E_FAIL;
-    }
-
-    if (exitCode != STILL_ACTIVE)
-    {
-        threadContextInfo->Close();
-        ServerContextManager::UnRegisterThreadContext(threadContextInfo);
-        hr = E_FAIL;
-    }
-
     if (hr == E_OUTOFMEMORY || hr == E_FAIL)
     {
         if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
@@ -734,12 +669,14 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
 template<typename Fn>
 HRESULT ServerCallWrapper(ServerScriptContext* scriptContextInfo, Fn fn)
 {
-    ServerThreadContext* threadContextInfo = scriptContextInfo->GetThreadContext();
-    if (!ServerContextManager::IsThreadContextAlive(threadContextInfo))
+    try
     {
-        Assert(false);
+        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContextInfo);
+        ServerThreadContext* threadContextInfo = scriptContextInfo->GetThreadContext();
+        return ServerCallWrapper(threadContextInfo, fn);
+    }
+    catch (ContextClosedException&)
+    {
         return E_ACCESSDENIED;
     }
-    AutoReleaseContext<ServerThreadContext> autoThreadContext(threadContextInfo);
-    return ServerCallWrapper(threadContextInfo, fn);
 }
