@@ -91,7 +91,7 @@ namespace Js
 
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, true);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, false);
             continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
         }
         catch (const Js::JavascriptException& err)
