@@ -193,8 +193,6 @@ ServerScriptContext::GetGlobalObjectThisAddr() const
 void
 ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
 {
-    // this should stay constant once context initialization is complete
-    Assert(!m_globalThisAddr || m_globalThisAddr == globalThis);
     m_globalThisAddr = globalThis;
 }
 

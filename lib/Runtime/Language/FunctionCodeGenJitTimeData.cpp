@@ -16,6 +16,7 @@ namespace Js
 #endif
         next(0),
         ldFldInlinees(nullptr),
+        globalThisObject(isInlined ? nullptr : GetFunctionBody()->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis()),
         profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0)
     {
     }
@@ -33,6 +34,11 @@ namespace Js
     FunctionBody *FunctionCodeGenJitTimeData::GetFunctionBody() const
     {
         return this->functionInfo->GetFunctionBody();
+    }
+
+    Var FunctionCodeGenJitTimeData::GetGlobalThisObject() const
+    {
+        return this->globalThisObject;
     }
 
     bool FunctionCodeGenJitTimeData::IsPolymorphicCallSite(const ProfileId profiledCallSiteId) const
