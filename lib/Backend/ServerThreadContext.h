@@ -48,7 +48,11 @@ public:
 
     void AddRef();
     void Release();
-    void Close();    
+    void Close();
+
+#ifdef STACK_BACK_TRACE
+    DWORD GetRuntimePid() { return m_pid; }
+#endif
 
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;

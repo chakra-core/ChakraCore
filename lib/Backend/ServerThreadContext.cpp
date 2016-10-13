@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#if ENABLE_OOP_NATIVE_CODEGEN
+#include "JITServer/JITServer.h"
+#endif
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
@@ -281,4 +284,7 @@ void ServerThreadContext::Release()
 void ServerThreadContext::Close()
 {
     this->m_isClosed = true;
+#ifdef STACK_BACK_TRACE
+    ServerContextManager::RecordCloseContext(this);
+#endif
 }

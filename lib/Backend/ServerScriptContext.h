@@ -83,7 +83,4 @@ private:
 
     bool m_isPRNGSeeded;
     bool m_isClosed;
-#ifdef STACK_BACK_TRACE
-    StackBackTrace* closingStack;
-#endif
 };

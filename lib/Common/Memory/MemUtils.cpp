@@ -8,25 +8,33 @@
 void
 Memory::ChakraMemSet(_In_ void *dst, int val, size_t sizeInBytes, HANDLE processHandle)
 {
-    const bool isLocalProc = processHandle == GetCurrentProcess();
-    byte * writeBuffer;
-
-    if (isLocalProc)
+    byte* dest = (byte*)dst;
+    if (processHandle == GetCurrentProcess())
     {
-        writeBuffer = (byte*)dst;
+        memset(dest, val, sizeInBytes);
     }
     else
     {
-        writeBuffer = HeapNewArray(byte, sizeInBytes);
-    }
-    memset(writeBuffer, val, sizeInBytes);
-    if (!isLocalProc)
-    {
-        if (!WriteProcessMemory(processHandle, dst, writeBuffer, sizeInBytes, NULL))
+        const size_t bufferSize = 0x1000;
+        byte writeBuffer[bufferSize];
+        memset(writeBuffer, val, bufferSize < sizeInBytes ? bufferSize : sizeInBytes);
+
+        for (size_t i = 0; i < sizeInBytes / bufferSize; i++)
         {
-            MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
+            if (!WriteProcessMemory(processHandle, dest, writeBuffer, bufferSize, NULL))
+            {
+                MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
+            }
+            dest += bufferSize;
         }
-        HeapDeleteArray(sizeInBytes, writeBuffer);
+
+        if (sizeInBytes % bufferSize > 0)
+        {
+            if (!WriteProcessMemory(processHandle, dest, writeBuffer, sizeInBytes%bufferSize, NULL))
+            {
+                MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
+            }
+        }
     }
 }
 

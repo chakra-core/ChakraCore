@@ -387,12 +387,6 @@ namespace Js
         {
             HeapDelete(m_domFastPathHelperMap);
         }
-        if (m_remoteScriptContextAddr != 0)
-        {
-            Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
-            m_remoteScriptContextAddr = 0;
-        }
 #endif
 
         // TODO: Can we move this on Close()?
@@ -503,6 +497,15 @@ namespace Js
 
         // In case there is something added to the list between close and dtor, just reset the list again
         this->weakReferenceDictionaryList.Reset();
+
+#if ENABLE_NATIVE_CODEGEN
+        if (m_remoteScriptContextAddr != 0)
+        {
+            Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
+            m_remoteScriptContextAddr = 0;
+        }
+#endif
 
         PERF_COUNTER_DEC(Basic, ScriptContext);
     }
