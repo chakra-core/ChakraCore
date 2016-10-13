@@ -1,10 +1,8 @@
-//===-- PHPZPPChecker.cpp -------------------------------------------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 //===----------------------------------------------------------------------===//
 //
 // Defines a checker for proper use of Recycler Write Barrier functionality
@@ -26,7 +24,7 @@ using namespace ento;
 class RecyclerChecker
     : public Checker<check::PostStmt<CXXNewExpr> > {
     std::unique_ptr<BugType> InvalidAllocatorBugType;
-    
+
 public:
     RecyclerChecker();
 
@@ -66,7 +64,7 @@ static bool isCastToRecycler(const CXXStaticCastExpr* castNode)
     {
         return false;
     }
-    
+
     QualType targetType = castNode->getTypeAsWritten();
     if (const IdentifierInfo* info = targetType.getBaseTypeIdentifier())
     {
@@ -99,7 +97,7 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
             (castNode = const_cast<CXXStaticCastExpr*>(dyn_cast<CXXStaticCastExpr>(firstArgNode))))
         {
             //printf("Expr is %s\n", firstArgNode->getStmtClassName());
-            
+
             if (isCastToRecycler(castNode))
             {
                 //printf("Recycler allocation found\n");
@@ -116,7 +114,7 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
                     {
                         auto declNameInfo = declRef->getNameInfo();
                         printf("AllocFunc: %s\n", declNameInfo.getName().getAsString().c_str());
-                        
+
                         if (const IdentifierInfo* info = newExpr->getAllocatedType().getBaseTypeIdentifier())
                         {
                             printf("Type: %s\n", info->getName().str().c_str());
@@ -148,7 +146,7 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
             }
 */
         }
-    }    
+    }
 }
 
 static void initRecyclerChecker(CheckerManager &mgr) {

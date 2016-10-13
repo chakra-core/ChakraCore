@@ -1,16 +1,7 @@
-//===- RecyclerChecker.cpp ---------------------------------------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// Example clang plugin which simply prints the names of all the top-level decls
-// in the input file.
-//
-//===----------------------------------------------------------------------===//
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/AST/AST.h"
@@ -22,7 +13,7 @@
 
 using namespace clang;
 using namespace std;
-    
+
 
 namespace
 {
@@ -39,7 +30,7 @@ public:
     }
 
     bool VisitCXXNewExpr(CXXNewExpr* newExpression);
-        
+
 private:
     MainVisitor* _mainVisitor;
     FunctionDecl* _functionDecl;
@@ -52,7 +43,7 @@ public:
     bool VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
     {
         std::string typeName = recordDecl->getQualifiedNameAsString();
-        
+
         if (!_barrierTypeDefined)
         {
             if (typeName == "Memory::NoWriteBarrierField")
@@ -64,18 +55,18 @@ public:
                 return true;
             }
         }
-        
+
         if (recordDecl->hasDefinition())
         {
             bool hasUnbarrieredPointer = false;
             const FieldDecl* unbarrieredPointerField = nullptr;
             bool hasBarrieredField = false;
-            
+
             for (auto field : recordDecl->fields())
             {
                 const QualType   qualType = field->getType();
                 const Type*      type = qualType.getTypePtr();
-                
+
                 if (type->isPointerType())
                 {
                     hasUnbarrieredPointer = true;
@@ -114,7 +105,7 @@ public:
             {
                 _pointerClasses.insert(typeName);
             }
-            
+
             if (hasBarrieredField)
             {
                 llvm::outs()<<"Type with barrier found: \""<<typeName<<"\"\n";
@@ -128,10 +119,10 @@ public:
                 }
             }
         }
-        
+
         return true;
     }
-    
+
     bool VisitFunctionDecl(FunctionDecl* functionDecl)
     {
         if (functionDecl->hasBody())
@@ -141,7 +132,7 @@ public:
             visitor.TraverseDecl(functionDecl);
         }
 
-        return true;        
+        return true;
     }
 
     void RecordWriteBarrierAllocation(const string& allocationType)
@@ -153,7 +144,7 @@ public:
     {
         _allocatorTypeMap[allocationFunction].insert(type);
     }
-    
+
     MainVisitor():
         _barrierTypeDefined(false)
     {
@@ -161,7 +152,7 @@ public:
 
 #define Dump(coll) \
     dump(_##coll, #coll)
-    
+
     void Inspect()
     {
         Dump(pointerClasses);
@@ -172,10 +163,10 @@ public:
         {
             dump(item.second, item.first.c_str());
         }
-        
+
         Dump(barrierAllocations);
     }
-    
+
 private:
     void dump(const set<string>& set, const char* name)
     {
@@ -187,8 +178,8 @@ private:
             llvm::outs()<<"  "<<item<<"\n";
         }
         llvm::outs()<<"-------------------------\n\n";
-    } 
-    
+    }
+
     bool _barrierTypeDefined;
     map<string, set<string> > _allocatorTypeMap;
     set<string> _pointerClasses;
@@ -203,7 +194,7 @@ static bool isCastToRecycler(const CXXStaticCastExpr* castNode)
     {
         return false;
     }
-    
+
     QualType targetType = castNode->getTypeAsWritten();
     if (const IdentifierInfo* info = targetType.getBaseTypeIdentifier())
     {
@@ -246,13 +237,13 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
                         auto declNameInfo = declRef->getNameInfo();
                         auto allocationFunctionStr = declNameInfo.getName().getAsString();
                         _mainVisitor->RecordRecyclerAllocation(allocationFunctionStr, allocatedTypeStr);
-                        
+
                         if (allocationFunctionStr.find("WithBarrier") != string::npos)
                         {
                             llvm::outs()<<"In \""<<_functionDecl->getQualifiedNameAsString()<<"\"\n";
                             llvm::outs()<<"  Allocating \""<<allocatedTypeStr<<"\" in write barriered memory\n";
                             _mainVisitor->RecordWriteBarrierAllocation(allocatedTypeStr);
-                        }                        
+                        }
                     }
                     else
                     {
@@ -287,7 +278,7 @@ public:
 
         mainVisitor.Inspect();
     }
-    
+
 private:
     CompilerInstance& _instance;
 };
@@ -311,9 +302,9 @@ protected:
         {
             llvm::errs()<<"Help for RecyclerChecker plugin goes here\n";
         }
-        
+
         return true;
-    }    
+    }
 };
 
 }
