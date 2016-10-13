@@ -105,9 +105,10 @@ IRBuilderAsmJs::Build()
         this->m_stSlots = BVFixed::New<JitArenaAllocator>(GetFirstTmp(WAsmJs::FirstType), m_tempAlloc);
         this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
 #if DBG
-        if (m_func->GetJITFunctionBody()->GetTempCount() != 0)
+        uint32 tmpCount = GetLastTmp(WAsmJs::LastType) - GetFirstTmp(WAsmJs::FirstType);
+        if (tmpCount != 0)
         {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetTempCount(), m_tempAlloc);
+            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(tmpCount, m_tempAlloc);
         }
 #endif
         lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
