@@ -126,7 +126,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::Revoke);
         RuntimeFunction* revoker = RecyclerNewEnumClass(scriptContext->GetRecycler(),
-            library->EnumFunctionClass, RuntimeFunction,
+            JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
@@ -906,8 +906,8 @@ namespace Js
             if (!threadContext->RecordImplicitException())
                 return FALSE;
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
-        }    
-        
+        }
+
         Var propertyName = nullptr;
         PropertyId propertyId;
         int index = 0;
@@ -915,7 +915,7 @@ namespace Js
         JavascriptArray* arrResult = requestContext->GetLibrary()->CreateArray();
 
         // 13.7.5.15 EnumerateObjectProperties(O) (https://tc39.github.io/ecma262/#sec-enumerate-object-properties)
-        // for (let key of Reflect.ownKeys(obj)) {    
+        // for (let key of Reflect.ownKeys(obj)) {
         Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, requestContext);
         if (JavascriptArray::Is(trapResult))
         {
@@ -941,7 +941,7 @@ namespace Js
                         dict.Add(str->GetSz(), prop);
                         // if (desc.enumerable) yield key;
                         if (desc.IsEnumerable())
-                        {                            
+                        {
                             ret = arrResult->SetItem(index++, CrossSite::MarshalVar(requestContext, prop), PropertyOperation_None);
                             Assert(ret);
                         }
@@ -1230,7 +1230,7 @@ namespace Js
         //7. ReturnIfAbrupt(keys).
         JavascriptArray* resultArray = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
 
-        const PropertyRecord* propertyRecord;        
+        const PropertyRecord* propertyRecord;
         if (integrityLevel == IntegrityLevel::IntegrityLevel_sealed)
         {
             //8. If level is "sealed", then
