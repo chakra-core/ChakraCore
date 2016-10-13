@@ -676,8 +676,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
 
         if (exitCode != STILL_ACTIVE)
         {
-            threadContextInfo->Close();
-            ServerContextManager::UnRegisterThreadContext(threadContextInfo);
+            ServerContextManager::CleanUpForProcess(threadContextInfo->GetProcessHandle());
             hr = E_FAIL;
         }
     }
