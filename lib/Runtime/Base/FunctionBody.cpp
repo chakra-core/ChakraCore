@@ -3574,6 +3574,9 @@ namespace Js
             Assert(parent->Get() == parentFunctionInfo);
             return;
         }
+//      Redeferral invalidates this assertion, as we may be recompiling with a different view of nested functions and
+//      thus making different stack-nested-function decisions. I'm inclined to allow this, since things that have been
+//      re-deferred will likely not be executed again, so it makes sense to exclude them from our analysis.
 //        Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
 
@@ -7124,7 +7127,6 @@ namespace Js
 #endif
         this->Cleanup(isShutdown);
         this->CleanupSourceInfo(isShutdown);
-//        this->ClearNestedFunctionParentFunctionReference();
         this->CleanupFunctionProxyCounters();
     }
 

@@ -3260,16 +3260,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 EndVisitBlock(pnodeScope->sxFnc.pnodeBodyScope, byteCodeGenerator);
                 EndVisitBlock(pnodeScope->sxFnc.pnodeScopes, byteCodeGenerator);
             }
-#if 0
-            else if (pnodeScope->sxFnc.nestedCount)
-            {
-                // The nested function is deferred but has its own nested functions.
-                // Make sure we at least zero-initialize its array in case, for instance, we get cloned
-                // before the function is called and the array filled in.
-
-                memset(funcInfo->byteCodeFunction->GetNestedFuncArray(), 0, pnodeScope->sxFnc.nestedCount * sizeof(Js::FunctionBody*));
-            }
-#endif
 
             if (!pnodeScope->sxFnc.pnodeBody)
             {

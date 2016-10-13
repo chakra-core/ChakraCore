@@ -1432,7 +1432,6 @@ namespace Js
         NoWriteBarrierPtr<ScriptContext>  m_scriptContext;   // Memory context for this function body
         WriteBarrierPtr<Utf8SourceInfo> m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
-//        FunctionProxyPtrPtr m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
         WriteBarrierPtr<ScriptFunctionType> deferredPrototypeType;
         WriteBarrierPtr<ProxyEntryPointInfo> m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
