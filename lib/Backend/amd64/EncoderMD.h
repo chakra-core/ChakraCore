@@ -33,7 +33,7 @@ private:
     {
         IR::LabelInstr* m_labelInstr;        // ptr to Br Label
         BYTE            m_nopCount;
-        uint64          m_origInlineeOffset;
+        uint64          m_InlineeOffset;
     };
     bool                m_isShortBr;
 
@@ -42,6 +42,9 @@ public:
     {
         m_type = type;
         m_ptr = ptr;
+        m_InlineeOffset = 0;
+        m_isShortBr = false;
+
         if (type == RelocTypeLabel)
         {
             // preserve original PC for labels
@@ -51,16 +54,17 @@ public:
         else
         {
             m_origPtr = ptr;
-            // in case we have to revert, we need to store original offset in code buffer
-            if (type == RelocTypeInlineeEntryOffset)
-            {
-                m_origInlineeOffset = *((uint64*)m_origPtr);
-            }
-            else if (type == RelocTypeBranch)
+            
+            if (type == RelocTypeBranch)
             {
                 Assert(labelInstr);
                 m_labelInstr = labelInstr;
                 m_isShortBr = false;
+            }
+            else if (type == RelocTypeLabelUse)
+            {
+                Assert(labelInstr);
+                m_labelInstr = labelInstr;
             }
         }
     }
@@ -75,12 +79,6 @@ public:
             setLabelCurrPC(getLabelOrigPC());
             m_nopCount = 0;
             return;
-        }
-
-        // re-write original inlinee offset to code buffer
-        if (m_type == RelocTypeInlineeEntryOffset)
-        {
-            *(uint64*) m_origPtr = m_origInlineeOffset;
         }
 
         if (m_type == RelocTypeBranch)
@@ -99,7 +97,7 @@ public:
 
     IR::LabelInstr *    getBrTargetLabel()  const
     {
-        Assert(m_type == RelocTypeBranch && m_labelInstr);
+        Assert((m_type == RelocTypeBranch || m_type == RelocTypeLabelUse) && m_labelInstr);
         return m_labelInstr;
     }
     IR::LabelInstr *    getLabel()  const
@@ -153,6 +151,16 @@ public:
             getBrTargetLabel()->GetPC() - ((BYTE*)m_ptr + 1) >= -128 &&
             getBrTargetLabel()->GetPC() - ((BYTE*)m_ptr + 1) <= 127;
     }
+
+    uint64 GetInlineOffset()
+    {
+        return m_InlineeOffset;
+    }
+
+    void SetInlineOffset(uint64 offset)
+    {
+        m_InlineeOffset = offset;
+    }
 };
 
 
@@ -173,7 +181,9 @@ public:
     EncoderMD(Func * func) : m_func(func) {}
     ptrdiff_t       Encode(IR::Instr * instr, BYTE *pc, BYTE* beginCodeAddress = nullptr);
     void            Init(Encoder *encoder);
-    void            ApplyRelocs(size_t codeBufferAddress);
+    void            ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation = false);
+    uint            GetRelocDataSize(EncodeRelocAndLabels *reloc);
+    BYTE *          GetRelocBufferAddress(EncodeRelocAndLabels * reloc);
     void            EncodeInlineeCallInfo(IR::Instr *instr, uint32 offset);
     static bool     TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd);
     static bool     TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd);

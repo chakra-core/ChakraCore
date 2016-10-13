@@ -3903,7 +3903,6 @@ namespace Js
         Throw::InternalError();
     }
 
-
     template <bool includesAlgorithm, typename T, typename P>
     Var JavascriptArray::TemplatedIndexOfHelper(T * pArr, Var search, P fromIndex, P toIndex, ScriptContext * scriptContext)
     {
@@ -3917,7 +3916,7 @@ namespace Js
         //Consider: enumerating instead of walking all indices
         for (P i = fromIndex; i < toIndex; i++)
         {
-            if (!TemplatedGetItem(pArr, i, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext))
             {
                 if (doUndefinedSearch)
                 {
@@ -4338,7 +4337,8 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    if (TemplatedGetItem(arr, i, &item, scriptContext))
+
+                    if (TryTemplatedGetItem(arr, i, &item, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(item, scriptContext));
                     }
@@ -4356,19 +4356,23 @@ CaseDefault:
 
                 JavascriptString *res = nullptr;
                 Var item;
+
                 if (TemplatedGetItem(arr, 0u, &item, scriptContext))
                 {
                     res = JavascriptArray::JoinToString(item, scriptContext);
                 }
-                if (TemplatedGetItem(arr, 1u, &item, scriptContext))
+
+                if (TryTemplatedGetItem(arr, 1u, &item, scriptContext))
                 {
                     JavascriptString *const itemString = JavascriptArray::JoinToString(item, scriptContext);
                     return res ? ConcatString::New(res, itemString) : itemString;
                 }
+
                 if(res)
                 {
                     return res;
                 }
+
                 goto Case0;
             }
 
@@ -4604,7 +4608,7 @@ Case0:
         {
             uint32 index = end - i;
 
-            if (!TemplatedGetItem(pArr, index, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, index, &element, scriptContext))
             {
                 continue;
             }
@@ -9070,7 +9074,7 @@ Case0:
                         JavascriptNumber::ToVar(k, scriptContext),
                         obj);
 
-                    if (newArr)
+                    if (newArr && isBuiltinArrayCtor)
                     {
                         newArr->SetItem(k, mappedValue, PropertyOperation_None);
                     }
