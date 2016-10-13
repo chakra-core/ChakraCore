@@ -28,6 +28,7 @@ public:
 #if defined(_M_IX86) || defined(_M_X64)
     BOOL SSE3Available() const;
     BOOL SSE4_1Available() const;
+    BOOL SSE4_2Available() const;
     BOOL PopCntAvailable() const;
     BOOL LZCntAvailable() const;
     bool IsAtomPlatform() const;

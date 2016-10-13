@@ -300,6 +300,7 @@
     </ClInclude>
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="SwitchIRBuilder.h" />
+    <ClInclude Include="CRC.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">
