@@ -310,6 +310,28 @@ endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
 
+################# Write-barrier check/analyze ##################
+if (WB_CHECK_SH OR WB_ANALYZE_SH)
+    add_definitions(
+        -Xclang -load
+        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.so
+    )
+endif()
+if (WB_CHECK_SH)
+    unset(WB_CHECK_SH CACHE)    # don't cache
+    add_definitions(
+        -Xclang -plugin
+        -Xclang check-recycler
+    )
+endif()
+if (WB_ANALYZE_SH)
+    unset(WB_ANALYZE_SH CACHE)  # don't cache
+    add_definitions(
+        -Xclang -analyze
+        -Xclang -analyzer-checker=chakra.RecyclerChecker
+    )
+endif()
+
 include_directories(
     .
     lib/Common

@@ -49,6 +49,10 @@ PRINT_USAGE() {
     echo "      --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
     echo "                       features."
+    echo "      --wb-check CPPFILE"
+    echo "                       Write-barrier check given CPPFILE (git path)"
+    echo "      --wb-analyze CPPFILE"
+    echo "                       Write-barrier analyze given CPPFILE (git path)"
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -75,6 +79,8 @@ ARCH="-DCC_TARGETS_AMD64_SH=1"
 OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
+WB_CHECK=
+WB_ANALYZE=
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -234,6 +240,24 @@ while [[ $# -gt 0 ]]; do
         done
         ;;
 
+    --wb-check)
+        if [[ "$2" =~ ^[^-] ]]; then
+            WB_CHECK="$2"
+            shift
+        else
+            PRINT_USAGE && exit 1
+        fi
+        ;;
+
+    --wb-analyze)
+        if [[ "$2" =~ ^[^-] ]]; then
+            WB_ANALYZE="$2"
+            shift
+        else
+            PRINT_USAGE && exit 1
+        fi
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -306,6 +330,43 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
+################# Write-barrier check/analyze run #################
+WB_FLAG=
+WB_TARGET=
+if [[ $WB_CHECK || $WB_ANALYZE ]]; then
+    if [[ $MAKE != 'ninja' ]]; then
+        echo "--wb-check/wb-analyze only works with --ninja" && exit 1
+    fi
+    if [[ $WB_CHECK && $WB_ANALYZE ]]; then
+        echo "Please run only one of --wb-check or --wb-analyze" && exit 1
+    fi
+    if [[ $WB_CHECK ]]; then
+        WB_FLAG="-DWB_CHECK_SH=1"
+        WB_FILE=$WB_CHECK
+    fi
+    if [[ $WB_ANALYZE ]]; then
+        WB_FLAG="-DWB_ANALYZE_SH=1"
+        WB_FILE=$WB_ANALYZE
+    fi
+
+    if [[ -f $CHAKRACORE_DIR/$WB_FILE ]]; then
+        touch $CHAKRACORE_DIR/$WB_FILE
+    else
+        echo "$CHAKRACORE_DIR/$WB_FILE not found. Please use full git path for $WB_FILE." && exit 1
+    fi
+
+    WB_FILE_DIR=`dirname $WB_FILE`
+    WB_FILE_BASE=`basename $WB_FILE`
+
+    WB_FILE_CMAKELISTS="$CHAKRACORE_DIR/$WB_FILE_DIR/CMakeLists.txt"
+    if [[ -f $WB_FILE_CMAKELISTS ]]; then
+        SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed -r "s/.*\((\S+) .*/\1/")
+    else
+        echo "$WB_FILE_CMAKELISTS not found." && exit 1
+    fi
+    WB_TARGET="$WB_FILE_DIR/CMakeFiles/$SUBDIR.dir/$WB_FILE_BASE.o"
+fi
+
 build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
@@ -322,12 +383,14 @@ fi
 
 echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH \
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
+    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES \
+    $WB_FLAG \
+    ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+        $MAKE $MULTICORE_BUILD $WB_TARGET 2>&1 | tee build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"
