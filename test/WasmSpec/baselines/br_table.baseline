@@ -2,11 +2,10 @@ br_table.wast:1202: $assert_return_1 unexpectedly threw: Error: Compiling wasm f
 br_table.wast:1207: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_5[71] at offset 3/7: I64 return type NYI
 br_table.wast:1209: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[73] at offset 4/16: Operator I64ReinterpretF64 NYI
 br_table.wast:1289: $assert_return_74 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_74[140] at offset 3/7: I64 return type NYI
-br_table.wast:1293: $assert_return_77 failed.
 br_table.wast:1315: $assert_return_94 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_94[160] at offset 3/7: I64 return type NYI
 br_table.wast:1318: $assert_return_96 unexpectedly threw: Error: Compiling wasm failed: function as-store-value[49] at offset 15/19: Operator I64StoreMem NYI
 br_table.wast:1320: $assert_return_98 unexpectedly threw: Error: Compiling wasm failed: function as-storeN-value[51] at offset 15/19: Operator I64StoreMem16 NYI
 br_table.wast:1325: $assert_return_101 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_101[167] at offset 3/7: I64 return type NYI
 br_table.wast:1332: $assert_return_105 unexpectedly threw: Error: Compiling wasm failed: function as-convert-operand[58] at offset 11/13: Operator I32ConvertI64 NYI
 br_table.wast:1334: $assert_return_106 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[59] at offset 11/13: Operator GrowMemory NYI
-132/143 tests passed.
+133/143 tests passed.

@@ -986,6 +986,8 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     EmitInfo falseExpr;
     if (endOnElse)
     {
+        // In case the true block sets the unreachable state, we still have to emit the else block
+        SetUnreachableState(false);
         EmitBlockCommon(&blockInfo);
     }
     m_writer.MarkAsmJsLabel(endLabel);
