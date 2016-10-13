@@ -177,5 +177,8 @@
       "file": "call.wast",
       "line": 145
     }]
+  }, {
+    "filename": "call.1.wasm",
+    "commands": []
   }]
 }

@@ -1,78 +1,29 @@
 (module
-  (func $i64.extend_s_i32 (param $x i32) (result i64) (i64.extend_s/i32 (get_local $x)))
-  (export "i64.extend_s_i32" $i64.extend_s_i32)
-
-  (func $i64.extend_u_i32 (param $x i32) (result i64) (i64.extend_u/i32 (get_local $x)))
-  (export "i64.extend_u_i32" $i64.extend_u_i32)
-
-  (func $i32.wrap_i64 (param $x i64) (result i32) (i32.wrap/i64 (get_local $x)))
-  (export "i32.wrap_i64" $i32.wrap_i64)
-
-  (func $i32.trunc_s_f32 (param $x f32) (result i32) (i32.trunc_s/f32 (get_local $x)))
-  (export "i32.trunc_s_f32" $i32.trunc_s_f32)
-
-  (func $i32.trunc_u_f32 (param $x f32) (result i32) (i32.trunc_u/f32 (get_local $x)))
-  (export "i32.trunc_u_f32" $i32.trunc_u_f32)
-
-  (func $i32.trunc_s_f64 (param $x f64) (result i32) (i32.trunc_s/f64 (get_local $x)))
-  (export "i32.trunc_s_f64" $i32.trunc_s_f64)
-
-  (func $i32.trunc_u_f64 (param $x f64) (result i32) (i32.trunc_u/f64 (get_local $x)))
-  (export "i32.trunc_u_f64" $i32.trunc_u_f64)
-
-  (func $i64.trunc_s_f32 (param $x f32) (result i64) (i64.trunc_s/f32 (get_local $x)))
-  (export "i64.trunc_s_f32" $i64.trunc_s_f32)
-
-  (func $i64.trunc_u_f32 (param $x f32) (result i64) (i64.trunc_u/f32 (get_local $x)))
-  (export "i64.trunc_u_f32" $i64.trunc_u_f32)
-
-  (func $i64.trunc_s_f64 (param $x f64) (result i64) (i64.trunc_s/f64 (get_local $x)))
-  (export "i64.trunc_s_f64" $i64.trunc_s_f64)
-
-  (func $i64.trunc_u_f64 (param $x f64) (result i64) (i64.trunc_u/f64 (get_local $x)))
-  (export "i64.trunc_u_f64" $i64.trunc_u_f64)
-
-  (func $f32.convert_s_i32 (param $x i32) (result f32) (f32.convert_s/i32 (get_local $x)))
-  (export "f32.convert_s_i32" $f32.convert_s_i32)
-
-  (func $f32.convert_s_i64 (param $x i64) (result f32) (f32.convert_s/i64 (get_local $x)))
-  (export "f32.convert_s_i64" $f32.convert_s_i64)
-
-  (func $f64.convert_s_i32 (param $x i32) (result f64) (f64.convert_s/i32 (get_local $x)))
-  (export "f64.convert_s_i32" $f64.convert_s_i32)
-
-  (func $f64.convert_s_i64 (param $x i64) (result f64) (f64.convert_s/i64 (get_local $x)))
-  (export "f64.convert_s_i64" $f64.convert_s_i64)
-
-  (func $f32.convert_u_i32 (param $x i32) (result f32) (f32.convert_u/i32 (get_local $x)))
-  (export "f32.convert_u_i32" $f32.convert_u_i32)
-
-  (func $f32.convert_u_i64 (param $x i64) (result f32) (f32.convert_u/i64 (get_local $x)))
-  (export "f32.convert_u_i64" $f32.convert_u_i64)
-
-  (func $f64.convert_u_i32 (param $x i32) (result f64) (f64.convert_u/i32 (get_local $x)))
-  (export "f64.convert_u_i32" $f64.convert_u_i32)
-
-  (func $f64.convert_u_i64 (param $x i64) (result f64) (f64.convert_u/i64 (get_local $x)))
-  (export "f64.convert_u_i64" $f64.convert_u_i64)
-
-  (func $f64.promote_f32 (param $x f32) (result f64) (f64.promote/f32 (get_local $x)))
-  (export "f64.promote_f32" $f64.promote_f32)
-
-  (func $f32.demote_f64 (param $x f64) (result f32) (f32.demote/f64 (get_local $x)))
-  (export "f32.demote_f64" $f32.demote_f64)
-
-  (func $f32.reinterpret_i32 (param $x i32) (result f32) (f32.reinterpret/i32 (get_local $x)))
-  (export "f32.reinterpret_i32" $f32.reinterpret_i32)
-
-  (func $f64.reinterpret_i64 (param $x i64) (result f64) (f64.reinterpret/i64 (get_local $x)))
-  (export "f64.reinterpret_i64" $f64.reinterpret_i64)
-
-  (func $i32.reinterpret_f32 (param $x f32) (result i32) (i32.reinterpret/f32 (get_local $x)))
-  (export "i32.reinterpret_f32" $i32.reinterpret_f32)
-
-  (func $i64.reinterpret_f64 (param $x f64) (result i64) (i64.reinterpret/f64 (get_local $x)))
-  (export "i64.reinterpret_f64" $i64.reinterpret_f64)
+  (func (export "i64.extend_s_i32") (param $x i32) (result i64) (i64.extend_s/i32 (get_local $x)))
+  (func (export "i64.extend_u_i32") (param $x i32) (result i64) (i64.extend_u/i32 (get_local $x)))
+  (func (export "i32.wrap_i64") (param $x i64) (result i32) (i32.wrap/i64 (get_local $x)))
+  (func (export "i32.trunc_s_f32") (param $x f32) (result i32) (i32.trunc_s/f32 (get_local $x)))
+  (func (export "i32.trunc_u_f32") (param $x f32) (result i32) (i32.trunc_u/f32 (get_local $x)))
+  (func (export "i32.trunc_s_f64") (param $x f64) (result i32) (i32.trunc_s/f64 (get_local $x)))
+  (func (export "i32.trunc_u_f64") (param $x f64) (result i32) (i32.trunc_u/f64 (get_local $x)))
+  (func (export "i64.trunc_s_f32") (param $x f32) (result i64) (i64.trunc_s/f32 (get_local $x)))
+  (func (export "i64.trunc_u_f32") (param $x f32) (result i64) (i64.trunc_u/f32 (get_local $x)))
+  (func (export "i64.trunc_s_f64") (param $x f64) (result i64) (i64.trunc_s/f64 (get_local $x)))
+  (func (export "i64.trunc_u_f64") (param $x f64) (result i64) (i64.trunc_u/f64 (get_local $x)))
+  (func (export "f32.convert_s_i32") (param $x i32) (result f32) (f32.convert_s/i32 (get_local $x)))
+  (func (export "f32.convert_s_i64") (param $x i64) (result f32) (f32.convert_s/i64 (get_local $x)))
+  (func (export "f64.convert_s_i32") (param $x i32) (result f64) (f64.convert_s/i32 (get_local $x)))
+  (func (export "f64.convert_s_i64") (param $x i64) (result f64) (f64.convert_s/i64 (get_local $x)))
+  (func (export "f32.convert_u_i32") (param $x i32) (result f32) (f32.convert_u/i32 (get_local $x)))
+  (func (export "f32.convert_u_i64") (param $x i64) (result f32) (f32.convert_u/i64 (get_local $x)))
+  (func (export "f64.convert_u_i32") (param $x i32) (result f64) (f64.convert_u/i32 (get_local $x)))
+  (func (export "f64.convert_u_i64") (param $x i64) (result f64) (f64.convert_u/i64 (get_local $x)))
+  (func (export "f64.promote_f32") (param $x f32) (result f64) (f64.promote/f32 (get_local $x)))
+  (func (export "f32.demote_f64") (param $x f64) (result f32) (f32.demote/f64 (get_local $x)))
+  (func (export "f32.reinterpret_i32") (param $x i32) (result f32) (f32.reinterpret/i32 (get_local $x)))
+  (func (export "f64.reinterpret_i64") (param $x i64) (result f64) (f64.reinterpret/i64 (get_local $x)))
+  (func (export "i32.reinterpret_f32") (param $x f32) (result i32) (i32.reinterpret/f32 (get_local $x)))
+  (func (export "i64.reinterpret_f64") (param $x f64) (result i64) (i64.reinterpret/f64 (get_local $x)))
 )
 
 (assert_return (invoke "i64.extend_s_i32" (i32.const 0)) (i64.const 0))
@@ -365,10 +316,20 @@
 (assert_return (invoke "f32.demote_f64" (f64.const -0x0.0000000000001p-1022)) (f32.const -0.0))
 (assert_return (invoke "f32.demote_f64" (f64.const 1.0)) (f32.const 1.0))
 (assert_return (invoke "f32.demote_f64" (f64.const -1.0)) (f32.const -1.0))
-(assert_return (invoke "f32.demote_f64" (f64.const -0x1p-149)) (f32.const -0x1p-149))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffe0000000p-127)) (f32.const 0x1p-126))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffe0000000p-127)) (f32.const -0x1p-126))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffdfffffffp-127)) (f32.const 0x1.fffffcp-127))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffdfffffffp-127)) (f32.const -0x1.fffffcp-127))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1p-149)) (f32.const 0x1p-149))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1p-149)) (f32.const -0x1p-149))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffd0000000p+127)) (f32.const 0x1.fffffcp+127))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffd0000000p+127)) (f32.const -0x1.fffffcp+127))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffd0000001p+127)) (f32.const 0x1.fffffep+127))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffd0000001p+127)) (f32.const -0x1.fffffep+127))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffep+127)) (f32.const 0x1.fffffep+127))
 (assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffep+127)) (f32.const -0x1.fffffep+127))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffefffffffp+127)) (f32.const 0x1.fffffep+127))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.fffffefffffffp+127)) (f32.const -0x1.fffffep+127))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.ffffffp+127)) (f32.const infinity))
 (assert_return (invoke "f32.demote_f64" (f64.const -0x1.ffffffp+127)) (f32.const -infinity))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1p-119)) (f32.const 0x1p-119))
@@ -377,8 +338,15 @@
 (assert_return (invoke "f32.demote_f64" (f64.const -infinity)) (f32.const -infinity))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000000000001p+0)) (f32.const 1.0))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.fffffffffffffp-1)) (f32.const 1.0))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000010000000p+0)) (f32.const 0x1.000000p+0))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000010000001p+0)) (f32.const 0x1.000002p+0))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.000002fffffffp+0)) (f32.const 0x1.000002p+0))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000030000000p+0)) (f32.const 0x1.000004p+0))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000050000000p+0)) (f32.const 0x1.000004p+0))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000010000000p+24)) (f32.const 0x1.0p+24))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000010000001p+24)) (f32.const 0x1.000002p+24))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.000002fffffffp+24)) (f32.const 0x1.000002p+24))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000030000000p+24)) (f32.const 0x1.000004p+24))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.4eae4f7024c7p+108)) (f32.const 0x1.4eae5p+108))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.a12e71e358685p-113)) (f32.const 0x1.a12e72p-113))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.cb98354d521ffp-127)) (f32.const 0x1.cb9834p-127))
@@ -387,10 +355,8 @@
 (assert_return (invoke "f32.demote_f64" (f64.const nan)) (f32.const nan))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1p-1022)) (f32.const 0.0))
 (assert_return (invoke "f32.demote_f64" (f64.const -0x1p-1022)) (f32.const -0.0))
-(assert_return (invoke "f32.demote_f64" (f64.const 0x0.0000000000001p-1022)) (f32.const 0.0))
-(assert_return (invoke "f32.demote_f64" (f64.const -0x0.0000000000001p-1022)) (f32.const -0.0))
-(assert_return (invoke "f32.demote_f64" (f64.const 0x0.8p-149)) (f32.const 0.0))
-(assert_return (invoke "f32.demote_f64" (f64.const -0x0.8p-149)) (f32.const -0.0))
+(assert_return (invoke "f32.demote_f64" (f64.const 0x1.0p-150)) (f32.const 0.0))
+(assert_return (invoke "f32.demote_f64" (f64.const -0x1.0p-150)) (f32.const -0.0))
 (assert_return (invoke "f32.demote_f64" (f64.const 0x1.0000000000001p-150)) (f32.const 0x1p-149))
 (assert_return (invoke "f32.demote_f64" (f64.const -0x1.0000000000001p-150)) (f32.const -0x1p-149))
 

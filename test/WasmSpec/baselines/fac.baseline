@@ -1,3 +1,7 @@
-Unexpected Error while compiling fac.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+fac.wast:80: $assert_return_0 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_0[5] at offset 3/18: Operator I64Const NYI
+fac.wast:81: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_1[6] at offset 3/18: Operator I64Const NYI
+fac.wast:82: $assert_return_2 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_2[7] at offset 3/18: Operator I64Const NYI
+fac.wast:83: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[8] at offset 3/18: Operator I64Const NYI
+fac.wast:84: $assert_return_4 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_4[9] at offset 3/18: Operator I64Const NYI
+fac.wast:85: $assert_trap_5 failed, runtime trap NYI
+0/6 tests passed.

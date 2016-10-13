@@ -3,32 +3,32 @@
 (module
   ;; Typing
 
-  (func "type-local-i32" (result i32) (local i32) (get_local 0))
-  (func "type-local-i64" (result i64) (local i64) (get_local 0))
-  (func "type-local-f32" (result f32) (local f32) (get_local 0))
-  (func "type-local-f64" (result f64) (local f64) (get_local 0))
+  (func (export "type-local-i32") (result i32) (local i32) (get_local 0))
+  (func (export "type-local-i64") (result i64) (local i64) (get_local 0))
+  (func (export "type-local-f32") (result f32) (local f32) (get_local 0))
+  (func (export "type-local-f64") (result f64) (local f64) (get_local 0))
 
-  (func "type-param-i32" (param i32) (result i32) (get_local 0))
-  (func "type-param-i64" (param i64) (result i64) (get_local 0))
-  (func "type-param-f32" (param f32) (result f32) (get_local 0))
-  (func "type-param-f64" (param f64) (result f64) (get_local 0))
+  (func (export "type-param-i32") (param i32) (result i32) (get_local 0))
+  (func (export "type-param-i64") (param i64) (result i64) (get_local 0))
+  (func (export "type-param-f32") (param f32) (result f32) (get_local 0))
+  (func (export "type-param-f64") (param f64) (result f64) (get_local 0))
 
-  (func "type-mixed" (param i64 f32 f64 i32 i32) (result f64)
+  (func (export "type-mixed") (param i64 f32 f64 i32 i32)
     (local f32 i64 i64 f64)
-    (i64.eqz (get_local 0))
-    (f32.neg (get_local 1))
-    (f64.neg (get_local 2))
-    (i32.eqz (get_local 3))
-    (i32.eqz (get_local 4))
-    (f32.neg (get_local 5))
-    (i64.eqz (get_local 6))
-    (i64.eqz (get_local 7))
-    (f64.neg (get_local 8))
+    (drop (i64.eqz (get_local 0)))
+    (drop (f32.neg (get_local 1)))
+    (drop (f64.neg (get_local 2)))
+    (drop (i32.eqz (get_local 3)))
+    (drop (i32.eqz (get_local 4)))
+    (drop (f32.neg (get_local 5)))
+    (drop (i64.eqz (get_local 6)))
+    (drop (i64.eqz (get_local 7)))
+    (drop (f64.neg (get_local 8)))
   )
 
   ;; Reading
 
-  (func "read" (param i64 f32 f64 i32 i32) (result f64)
+  (func (export "read") (param i64 f32 f64 i32 i32) (result f64)
     (local f32 i64 i64 f64)
     (set_local 5 (f32.const 5.5))
     (set_local 6 (i64.const 6))
@@ -75,7 +75,6 @@
   (invoke "type-mixed"
     (i64.const 1) (f32.const 2.2) (f64.const 3.3) (i32.const 4) (i32.const 5)
   )
-  (f64.const -0)
 )
 
 (assert_return

@@ -1,3 +1,13 @@
-Unexpected Error while compiling loop.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+loop.wast:194: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_14[33] at offset 3/9: Operator I64Const NYI
+loop.wast:195: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[34] at offset 3/9: Operator I64Const NYI
+loop.wast:196: $assert_return_16 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_16[35] at offset 3/9: Operator I64Const NYI
+loop.wast:197: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_17[36] at offset 3/9: Operator I64Const NYI
+loop.wast:198: $assert_return_18 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_18[37] at offset 3/10: Operator I64Const NYI
+loop.wast:199: $assert_return_19 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_19[38] at offset 3/17: Operator I64Const NYI
+loop.wast:201: $assert_return_20 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_20[39] at offset 3/9: Operator I64Const NYI
+loop.wast:202: $assert_return_21 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_21[40] at offset 3/9: Operator I64Const NYI
+loop.wast:203: $assert_return_22 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_22[41] at offset 3/9: Operator I64Const NYI
+loop.wast:204: $assert_return_23 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_23[42] at offset 3/9: Operator I64Const NYI
+loop.wast:205: $assert_return_24 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_24[43] at offset 3/10: Operator I64Const NYI
+loop.wast:206: $assert_return_25 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_25[44] at offset 3/17: Operator I64Const NYI
+30/42 tests passed.

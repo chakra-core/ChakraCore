@@ -17,8 +17,7 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
-            Limit,
-            Unreachable
+            Limit
         };
         bool IsLocalType(WasmTypes::WasmType type);
     }

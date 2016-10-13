@@ -19,40 +19,40 @@
 
   ;; Typing
 
-  (func "type-i32" (result i32) (call $const-i32))
-  (func "type-i64" (result i64) (call $const-i64))
-  (func "type-f32" (result f32) (call $const-f32))
-  (func "type-f64" (result f64) (call $const-f64))
+  (func (export "type-i32") (result i32) (call $const-i32))
+  (func (export "type-i64") (result i64) (call $const-i64))
+  (func (export "type-f32") (result f32) (call $const-f32))
+  (func (export "type-f64") (result f64) (call $const-f64))
 
-  (func "type-first-i32" (result i32) (call $id-i32 (i32.const 32)))
-  (func "type-first-i64" (result i64) (call $id-i64 (i64.const 64)))
-  (func "type-first-f32" (result f32) (call $id-f32 (f32.const 1.32)))
-  (func "type-first-f64" (result f64) (call $id-f64 (f64.const 1.64)))
+  (func (export "type-first-i32") (result i32) (call $id-i32 (i32.const 32)))
+  (func (export "type-first-i64") (result i64) (call $id-i64 (i64.const 64)))
+  (func (export "type-first-f32") (result f32) (call $id-f32 (f32.const 1.32)))
+  (func (export "type-first-f64") (result f64) (call $id-f64 (f64.const 1.64)))
 
-  (func "type-second-i32" (result i32)
+  (func (export "type-second-i32") (result i32)
     (call $f32-i32 (f32.const 32.1) (i32.const 32))
   )
-  (func "type-second-i64" (result i64)
+  (func (export "type-second-i64") (result i64)
     (call $i32-i64 (i32.const 32) (i64.const 64))
   )
-  (func "type-second-f32" (result f32)
+  (func (export "type-second-f32") (result f32)
     (call $f64-f32 (f64.const 64) (f32.const 32))
   )
-  (func "type-second-f64" (result f64)
+  (func (export "type-second-f64") (result f64)
     (call $i64-f64 (i64.const 64) (f64.const 64.1))
   )
 
   ;; Recursion
 
-  (func "fac" $fac (param i64) (result i64)
-    (if (i64.eqz (get_local 0))
+  (func $fac (export "fac") (param i64) (result i64)
+    (if i64 (i64.eqz (get_local 0))
       (i64.const 1)
       (i64.mul (get_local 0) (call $fac (i64.sub (get_local 0) (i64.const 1))))
     )
   )
 
-  (func "fac-acc" $fac-acc (param i64 i64) (result i64)
-    (if (i64.eqz (get_local 0))
+  (func $fac-acc (export "fac-acc") (param i64 i64) (result i64)
+    (if i64 (i64.eqz (get_local 0))
       (get_local 1)
       (call $fac-acc
         (i64.sub (get_local 0) (i64.const 1))
@@ -61,8 +61,8 @@
     )
   )
 
-  (func "fib" $fib (param i64) (result i64)
-    (if (i64.le_u (get_local 0) (i64.const 1))
+  (func $fib (export "fib") (param i64) (result i64)
+    (if i64 (i64.le_u (get_local 0) (i64.const 1))
       (i64.const 1)
       (i64.add
         (call $fib (i64.sub (get_local 0) (i64.const 2)))
@@ -71,14 +71,14 @@
     )
   )
 
-  (func "even" $even (param i64) (result i32)
-    (if (i64.eqz (get_local 0))
+  (func $even (export "even") (param i64) (result i32)
+    (if i32 (i64.eqz (get_local 0))
       (i32.const 44)
       (call $odd (i64.sub (get_local 0) (i64.const 1)))
     )
   )
-  (func "odd" $odd (param i64) (result i32)
-    (if (i64.eqz (get_local 0))
+  (func $odd (export "odd") (param i64) (result i32)
+    (if i32 (i64.eqz (get_local 0))
       (i32.const 99)
       (call $even (i64.sub (get_local 0) (i64.const 1)))
     )
@@ -93,9 +93,9 @@
   ;; implementations and be incompatible with implementations that don't do
   ;; it (or don't do it under the same circumstances).
 
-  (func "runaway" $runaway (call $runaway))
+  (func $runaway (export "runaway") (call $runaway))
 
-  (func "mutual-runaway" $mutual-runaway1 (call $mutual-runaway2))
+  (func $mutual-runaway1 (export "mutual-runaway") (call $mutual-runaway2))
   (func $mutual-runaway2 (call $mutual-runaway1))
 )
 
@@ -167,50 +167,36 @@
     (func $arity-0-vs-1 (call 1))
     (func (param i32))
   )
-  "arity mismatch"
+  "type mismatch"
 )
 (assert_invalid
   (module
     (func $arity-0-vs-2 (call 1))
     (func (param f64 i32))
   )
-  "arity mismatch"
+  "type mismatch"
 )
 (assert_invalid
   (module
     (func $arity-1-vs-0 (call 1 (i32.const 1)))
     (func)
   )
-  "arity mismatch"
+  "type mismatch"
 )
 (assert_invalid
   (module
     (func $arity-2-vs-0 (call 1 (f64.const 2) (i32.const 1)))
     (func)
   )
-  "arity mismatch"
+  "type mismatch"
 )
 
-(assert_invalid
-  (module
-    (func $arity-nop-first (call 1 (nop) (i32.const 1) (i32.const 2)))
-    (func (param i32 i32))
-  )
-  "arity mismatch"
-)
-(assert_invalid
-  (module
-    (func $arity-nop-mid (call 1 (i32.const 1) (nop) (i32.const 2)))
-    (func (param i32 i32))
-  )
-  "arity mismatch"
-)
-(assert_invalid
-  (module
-    (func $arity-nop-last (call 1 (i32.const 1) (i32.const 2) (nop)))
-    (func (param i32 i32))
-  )
-  "arity mismatch"
+;; TODO(stack): move these elsewhere
+(module
+  (func (param i32 i32))
+  (func $arity-nop-first (call 0 (nop) (i32.const 1) (i32.const 2)))
+  (func $arity-nop-mid (call 0 (i32.const 1) (nop) (i32.const 2)))
+  (func $arity-nop-last (call 0 (i32.const 1) (i32.const 2) (nop)))
 )
 
 (assert_invalid
@@ -250,6 +236,6 @@
   "unknown function"
 )
 (assert_invalid
-  (module (func $large-func (call 10001232130000)))
+  (module (func $large-func (call 1012321300)))
   "unknown function"
 )

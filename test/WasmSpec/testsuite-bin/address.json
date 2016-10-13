@@ -2,30 +2,15 @@
   "modules": [{
     "filename": "address.0.wasm",
     "commands": [{
-      "type": "invoke",
-      "name": "$invoke_0",
-      "file": "address.wast",
-      "line": 28
-    }, {
-      "type": "invoke",
-      "name": "$invoke_1",
-      "file": "address.wast",
-      "line": 29
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
+      "type": "action",
+      "name": "$action_0",
       "file": "address.wast",
       "line": 30
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
+      "type": "action",
+      "name": "$action_1",
       "file": "address.wast",
       "line": 31
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "address.wast",
-      "line": 32
     }]
   }]
 }

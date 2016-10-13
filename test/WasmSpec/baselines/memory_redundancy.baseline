@@ -1,0 +1,2 @@
+memory_redundancy.wast:41: $assert_return_2 failed.
+2/3 tests passed.

@@ -1,0 +1,21 @@
+{
+  "modules": [{
+    "filename": "stack.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "stack.wast",
+      "line": 130
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "stack.wast",
+      "line": 131
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "stack.wast",
+      "line": 132
+    }]
+  }]
+}
