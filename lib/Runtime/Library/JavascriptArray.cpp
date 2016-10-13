@@ -3801,13 +3801,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
-        if (!JavascriptOperators::HasItem(obj, index))
+        if (checkHasItem && !JavascriptOperators::HasItem(obj, index))
         {
             return FALSE;
         }
@@ -3815,7 +3815,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3823,7 +3823,7 @@ namespace Js
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
         PropertyRecord const * propertyRecord;
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
-        if (!JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
+        if (checkHasItem && !JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
         {
             return FALSE;
         }
@@ -3833,14 +3833,14 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptArray>>::HasVirtualTable(pArr));
         return pArr->JavascriptArray::DirectGetItemAtFull(index, element);
     }
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3848,7 +3848,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::HasVirtualTable(pArr));
@@ -3856,7 +3856,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3864,7 +3864,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::HasVirtualTable(pArr));
@@ -3872,7 +3872,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3880,13 +3880,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // We need to do explicit check for items since length value may not actually match the actual TypedArray length.
         // User could add a length property to a TypedArray instance which lies and returns a different value from the underlying length.
         // Since this method can be called via Array.prototype.indexOf with .apply or .call passing a TypedArray as this parameter
         // we don't know whether or not length == typedArrayBase->GetLength().
-        if (!typedArrayBase->HasItem(index))
+        if (checkHasItem && !typedArrayBase->HasItem(index))
         {
             return false;
         }
@@ -3896,7 +3896,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3916,7 +3916,7 @@ namespace Js
         //Consider: enumerating instead of walking all indices
         for (P i = fromIndex; i < toIndex; i++)
         {
-            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext, !includesAlgorithm))
             {
                 if (doUndefinedSearch)
                 {

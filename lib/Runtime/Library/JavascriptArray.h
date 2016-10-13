@@ -468,9 +468,9 @@ namespace Js
         template <typename T>
         static Var LastIndexOfHelper(T* pArr, Var search, int64 fromIndex, ScriptContext * scriptContext);
         template <typename T>
-        static BOOL TemplatedGetItem(T *pArr, uint32 index, Var * element, ScriptContext * scriptContext);
+        static BOOL TemplatedGetItem(T *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem = true);
         template <typename T>
-        static BOOL TemplatedGetItem(T *pArr, uint64 index, Var * element, ScriptContext * scriptContext);
+        static BOOL TemplatedGetItem(T *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem = true);
         template <typename T = uint32>
         static Var ReverseHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, ScriptContext* scriptContext);
         template <typename T = uint32>
@@ -582,9 +582,9 @@ namespace Js
         template <typename T> static bool MayChangeType() { return false; }
 
         template<typename T, typename P>
-        static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext)
+        static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext) :
+            return T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
