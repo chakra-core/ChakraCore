@@ -881,7 +881,7 @@ WasmBinaryReader::ReadImportEntries()
         case ImportKinds::Global:
             ThrowDecodingError(_u("Imported Kind Global, NYI"));
         default:
-            ThrowDecodingError(_u("Kind %d, NYI"), kind);
+            ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
             break;
         }
     }
