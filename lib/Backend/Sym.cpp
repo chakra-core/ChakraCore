@@ -1103,12 +1103,12 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
             propertySym->m_stackSym->Dump(flags, valueType);
             if (JITManager::GetJITManager()->IsOOPJITEnabled())
             {
-                Js::PropertyRecord const* fieldName = propertySym->m_func->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
-                Output::Print(_u("->%s"), fieldName->GetBuffer());
+                Output::Print(_u("->#%d"), propertySym->m_propertyId);
             }
             else
             {
-                Output::Print(_u("->#%d"), propertySym->m_propertyId);
+                Js::PropertyRecord const* fieldName = propertySym->m_func->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
+                Output::Print(_u("->%s"), fieldName->GetBuffer());
             }
             break;
         case PropertyKindSlots:

@@ -217,10 +217,7 @@ public:
 
     ThreadContext * GetInProcThreadContext() const
     {
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
-        {
-            return nullptr;
-        }
+        Assert(!IsOOPJIT());
         return (ThreadContext*)m_threadContextInfo;
     }
 

@@ -91,7 +91,7 @@ public:
     static StackSym * NewArgSlotRegSym(Js::ArgSlot argSlotNum, Func * func, IRType = TyVar);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type);
-	static StackSym *NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func);
+    static StackSym *NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func);
     static StackSym * New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func);
     static StackSym * New(IRType type, Func *func);
     static StackSym * New(Func *func);
@@ -99,8 +99,8 @@ public:
 
     IRType          GetType() const { return this->m_type; }
     bool            IsArgSlotSym() const;
-	bool            IsParamSlotSym() const;
-	bool            IsImplicitParamSym() const { return this->m_isImplicitParamSym; }
+    bool            IsParamSlotSym() const;
+    bool            IsImplicitParamSym() const { return this->m_isImplicitParamSym; }
     bool            IsAllocated() const;
     int32           GetIntConstValue() const;
     Js::Var         GetFloatConstValueAsVar_PostGlobOpt() const;
@@ -191,7 +191,7 @@ private:
     Js::ArgSlot     m_slotNum;
 public:
     uint8           m_isSingleDef:1;            // the symbol only has a single definition in the IR
-	uint8           m_isNotInt:1;
+    uint8           m_isNotInt:1;
     uint8           m_isSafeThis : 1;
     uint8           m_isConst : 1;              // single def and it is a constant
     uint8           m_isIntConst : 1;           // a constant and it's value is an Int32
@@ -210,10 +210,10 @@ public:
     uint8           m_isFromByteCodeConstantTable:1;
     uint8           m_mayNotBeTempLastUse:1;
     uint8           m_isArgSlotSym: 1;        // When set this implies an argument stack slot with no lifetime for register allocation
-	uint8           m_isArgSlotRegSym : 1;
-	uint8           m_isParamSym : 1;
-	uint8           m_isImplicitParamSym : 1;
-	uint8           m_isBailOutReferenced: 1;        // argument sym referenced by bailout
+    uint8           m_isArgSlotRegSym : 1;
+    uint8           m_isParamSym : 1;
+    uint8           m_isImplicitParamSym : 1;
+    uint8           m_isBailOutReferenced: 1;        // argument sym referenced by bailout
     uint8           m_isArgCaptured: 1;       // True if there is a ByteCodeArgOutCapture for this symbol
     uint8           m_nonEscapingArgObjAlias : 1;
     uint8           m_isCatchObjectSym : 1;   // a catch object sym (used while jitting loop bodies)
