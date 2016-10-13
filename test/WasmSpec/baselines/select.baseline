@@ -1,7 +1,4 @@
-select.wast:22: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_1[7] at offset 3/13: Operator I64Const NYI
 select.wast:24: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[9] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:28: $assert_return_6 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_6[12] at offset 3/13: Operator I64Const NYI
-select.wast:29: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[13] at offset 3/17: Operator I64Const NYI
 select.wast:40: $assert_return_16 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_16[22] at offset 24/36: Operator I64ReinterpretF64 NYI
 select.wast:41: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_17[23] at offset 24/36: Operator I64ReinterpretF64 NYI
 select.wast:42: $assert_return_18 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_18[24] at offset 24/36: Operator I64ReinterpretF64 NYI
@@ -14,4 +11,4 @@ select.wast:49: $assert_trap_24 failed, runtime trap NYI
 select.wast:50: $assert_trap_25 failed, runtime trap NYI
 select.wast:51: $assert_trap_26 failed, runtime trap NYI
 select.wast:52: $assert_trap_27 failed, runtime trap NYI
-12/28 tests passed.
+15/28 tests passed.
