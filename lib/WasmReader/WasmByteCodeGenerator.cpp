@@ -107,13 +107,12 @@ WasmModuleGenerator::GenerateModule()
     };
     afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
         gen->m_module->SetTableEnvironmentOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetWasmFunctionCount());
-    };
-    afterSectionCallback[bSectGlobal] = [](WasmModuleGenerator* gen) {
+    };    
+    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
+
         gen->m_module->SetGlobalOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetTableEnvironmentOffset());
         gen->m_module->globalCounts[0] = gen->m_module->GetGlobalOffset();
-    };
 
-    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
         uint32 funcCount = gen->m_module->GetWasmFunctionCount();
         for (uint32 i = 0; i < funcCount; ++i)
         {
