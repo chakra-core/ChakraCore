@@ -21036,7 +21036,7 @@ GlobOpt::GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opn
                     const Js::PropertyId propertyId = propertySymOpnd->m_sym->AsPropertySym()->m_propertyId;
 
                     // We don't need to track numeric properties init
-                    if (!this->func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->IsNumeric())
+                    if (!this->func->GetThreadContextInfo()->IsNumericProperty(propertyId))
                     {
                         DebugOnly(bool found = false);
                         globOptData.stackLiteralInitFldDataMap->RemoveIf(stackSym,

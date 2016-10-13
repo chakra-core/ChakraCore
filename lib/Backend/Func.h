@@ -215,6 +215,15 @@ public:
         return m_workItem;
     }
 
+    ThreadContext * GetInProcThreadContext() const
+    {
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            return nullptr;
+        }
+        return (ThreadContext*)m_threadContextInfo;
+    }
+
     ThreadContextInfo * GetThreadContextInfo() const
     {
         return m_threadContextInfo;

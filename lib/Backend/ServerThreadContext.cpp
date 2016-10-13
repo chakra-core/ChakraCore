@@ -12,7 +12,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_refCount(0),
     m_policyManager(true),
-    m_propertyMap(nullptr),
+    m_numericPropertySet(nullptr),
     m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
@@ -40,21 +40,16 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
 #endif
-    m_propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+    m_numericPropertySet = HeapNew(PropertySet, &HeapAllocator::Instance);
 }
 
 ServerThreadContext::~ServerThreadContext()
 {
     // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
-    if (this->m_propertyMap != nullptr)
+    if (this->m_numericPropertySet != nullptr)
     {
-        this->m_propertyMap->Map([](const Js::PropertyRecord* record)
-        {
-            size_t allocLength = record->byteCount + sizeof(char16) + (record->isNumeric ? sizeof(uint32) : 0);
-            HeapDeletePlus(allocLength, const_cast<Js::PropertyRecord*>(record));
-        });
-        HeapDelete(m_propertyMap);
-        this->m_propertyMap = nullptr;
+        HeapDelete(m_numericPropertySet);
+        this->m_numericPropertySet = nullptr;
     }
     this->m_pageAllocs.Map([](DWORD thread, PageAllocator* alloc)
     {
@@ -195,36 +190,28 @@ ServerThreadContext::GetForegroundPageAllocator()
     return &m_pageAlloc;
 }
 
-Js::PropertyRecord const *
-ServerThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
+bool
+ServerThreadContext::IsNumericProperty(Js::PropertyId propertyId)
 {
     if (propertyId >= 0 && Js::IsInternalPropertyId(propertyId))
     {
-        return Js::InternalPropertyRecords::GetInternalPropertyName(propertyId);
+        return Js::InternalPropertyRecords::GetInternalPropertyName(propertyId)->IsNumeric();
     }
 
-    const Js::PropertyRecord * propertyRecord = nullptr;
-    m_propertyMap->LockResize();
-    bool found = m_propertyMap->TryGetValue(propertyId, &propertyRecord);
-    m_propertyMap->UnlockResize();
+    m_numericPropertySet->LockResize();
+    bool found = m_numericPropertySet->ContainsKey(propertyId);
+    m_numericPropertySet->UnlockResize();
 
-    AssertMsg(found && propertyRecord != nullptr, "using invalid propertyid");
-    return propertyRecord;
+    return found;
 }
 
 void
-ServerThreadContext::RemoveFromPropertyMap(Js::PropertyId reclaimedId)
+ServerThreadContext::RemoveFromNumericPropertySet(Js::PropertyId reclaimedId)
 {
-    const Js::PropertyRecord * oldRecord = nullptr;
-    if (m_propertyMap->TryGetValue(reclaimedId, &oldRecord))
+    if (m_numericPropertySet->ContainsKey(reclaimedId))
     {
         // if there was reclaimed property that had its pid reused, delete the old property record
-        m_propertyMap->Remove(oldRecord);
-
-        PropertyRecordTrace(_u("Reclaimed JIT property '%s' at 0x%08x, pid = %d\n"), oldRecord->GetBuffer(), oldRecord, oldRecord->pid);
-
-        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
-        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+        m_numericPropertySet->Remove(reclaimedId);
     }
     else
     {
@@ -234,37 +221,15 @@ ServerThreadContext::RemoveFromPropertyMap(Js::PropertyId reclaimedId)
 }
 
 void
-ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
+ServerThreadContext::AddToNumericPropertySet(Js::PropertyId propId)
 {
-    size_t allocLength = origRecord->byteCount + sizeof(char16) + (origRecord->isNumeric ? sizeof(uint32) : 0);
-    Js::PropertyRecord * record = HeapNewPlus(allocLength, Js::PropertyRecord, origRecord->byteCount, origRecord->isNumeric, origRecord->hash, origRecord->isSymbol);
-    record->isBound = origRecord->isBound;
-
-    char16* buffer = (char16 *)(record + 1);
-    js_memcpy_s(buffer, origRecord->byteCount, origRecord->GetBuffer(), origRecord->byteCount);
-
-    buffer[record->GetLength()] = _u('\0');
-
-    if (record->isNumeric)
-    {
-        *(uint32 *)(buffer + record->GetLength() + 1) = origRecord->GetNumericValue();
-        Assert(record->GetNumericValue() == origRecord->GetNumericValue());
-    }
-    record->pid = origRecord->pid;
-
-    const Js::PropertyRecord * oldRecord = nullptr;
-
     // this should only happen if there was reclaimed property that we failed to add to reclaimed list due to a prior oom
-    if (m_propertyMap->TryGetValue(origRecord->GetPropertyId(), &oldRecord))
+    if (m_numericPropertySet->ContainsKey(propId))
     {
-        m_propertyMap->Remove(oldRecord);
-        size_t oldLength = oldRecord->byteCount + sizeof(char16) + (oldRecord->isNumeric ? sizeof(uint32) : 0);
-        HeapDeletePlus(oldLength, const_cast<Js::PropertyRecord*>(oldRecord));
+        m_numericPropertySet->Remove(propId);
     }
 
-    m_propertyMap->Add(record);
-
-    PropertyRecordTrace(_u("Added JIT property '%s' at 0x%08x, pid = %d\n"), record->GetBuffer(), record, record->pid);
+    m_numericPropertySet->Add(propId);
 }
 
 void ServerThreadContext::AddRef()

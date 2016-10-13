@@ -313,9 +313,6 @@ public:
     Func *          m_func;
     Func *          m_loadInlineCacheFunc;
     uint            m_loadInlineCacheIndex;
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const char16* GetName() const;
-#endif
 private:
     uint32          m_propertyIdIndex;
     uint            m_inlineCacheIndex;

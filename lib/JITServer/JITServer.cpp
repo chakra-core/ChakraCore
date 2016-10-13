@@ -190,12 +190,12 @@ ServerUpdatePropertyRecordMap(
     {
         for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
         {
-            threadContextInfo->RemoveFromPropertyMap((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
+            threadContextInfo->RemoveFromNumericPropertySet((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
         }
 
-        for (uint i = 0; i < updatedProps->newRecordCount; ++i)
+        for (uint i = 0; i < updatedProps->newPropertyCount; ++i)
         {
-            threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)updatedProps->newRecordArray[i]);
+            threadContextInfo->AddToNumericPropertySet((Js::PropertyId)updatedProps->newPropertyIdArray[i]);
         }
 
         return S_OK;

@@ -804,9 +804,9 @@ typedef struct JITOutputIDL
 typedef struct UpdatedPropertysIDL
 {
     unsigned int reclaimedPropertyCount;
-    unsigned int newRecordCount;
+    unsigned int newPropertyCount;
     [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
-    [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
+    [size_is(newPropertyCount)] int * newPropertyIdArray;
 } UpdatedPropertysIDL;
 
 typedef struct InterpreterThunkInfoIDL
