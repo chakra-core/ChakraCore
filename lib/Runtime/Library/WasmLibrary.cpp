@@ -76,7 +76,6 @@ namespace Js
                 &se,
                 &utf8SourceInfo,
                 byteLength,
-                Js::Constants::GlobalCode,
                 ffi,
                 &start
             );
@@ -124,50 +123,8 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.compile"));
         }
-
-        BYTE* buffer;
-        uint byteLength;
-        if (isTypedArray)
-        {
-            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
-            buffer = array->GetByteBuffer();
-            byteLength = array->GetByteLength();
-        }
-        else
-        {
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
-            buffer = arrayBuffer->GetBuffer();
-            byteLength = arrayBuffer->GetByteLength();
-        }
-
-        CompileScriptException se;
-        Js::Var exportObject;
-        Js::Var start = nullptr;
-        Js::Utf8SourceInfo* utf8SourceInfo;
-        BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
-            exportObject = WasmLibrary::LoadWasmScript(
-                scriptContext,
-                (const char16*)buffer,
-                nullptr, // source info
-                &se,
-                &utf8SourceInfo,
-                byteLength,
-                Js::Constants::GlobalCode,
-                &start
-            );
-        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
-
-        HRESULT hr = se.ei.scode;
-        if (FAILED(hr))
-        {
-            if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
-            {
-                Js::Throw::OutOfMemory();
-            }
-            JavascriptError::ThrowParserError(scriptContext, hr, &se);
-        }
-
-        return exportObject;
+        Assert(UNREACHED); // unimplemented
+        return scriptContext->GetLibrary()->GetUndefined();
     }
 
     Var WasmLibrary::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -209,23 +166,6 @@ namespace Js
         }
 
         CompileScriptException se;
-        Js::Var start = nullptr;
-        Js::Utf8SourceInfo* utf8SourceInfo;
-        BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
-            WasmLibrary::LoadWasmScript(
-                scriptContext,
-                (const char16*)buffer,
-                nullptr, // source info
-                &se,
-                &utf8SourceInfo,
-                byteLength,
-                Js::Constants::GlobalCode,
-                nullptr,
-                &start,
-                true // validate only
-            );
-        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
-
         HRESULT hr = se.ei.scode;
         if (FAILED(hr))
         {
@@ -643,34 +583,21 @@ namespace Js
         CompileScriptException * pse,
         Utf8SourceInfo** ppSourceInfo,
         const uint lengthBytes,
-        const char16 *rootDisplayName,
         Js::Var ffi,
-        Js::Var* start,
-        bool validateOnly
+        Js::Var* start
     )
     {
-        if (pSrcInfo == nullptr)
-        {
-            pSrcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-        }
-
         AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
         Unused(wasmPhase);
 
         Assert(!scriptContext->GetThreadContext()->IsScriptActive());
         Assert(pse != nullptr);
-        Wasm::WasmModuleGenerator *bytecodeGen = nullptr;
         Js::Var exportObj = nullptr;
         try
         {
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
             Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-            *ppSourceInfo = nullptr;
-            Wasm::WasmModule * wasmModule = nullptr;
-
-            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
-            wasmModule = bytecodeGen->GenerateModule();
+            Wasm::WasmModule * wasmModule = WebAssemblyModule::CompileModule(scriptContext, buffer, pSrcInfo, pse, ppSourceInfo, lengthBytes, false, bufferSrc);
 
             Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, wasmModule->GetModuleEnvironmentSize());
             Var* heap = moduleEnvironmentPtr + wasmModule->GetHeapOffset();
@@ -682,11 +609,6 @@ namespace Js
 
             bool hasAnyLazyTraps = false;
             WasmLoadFunctions(wasmModule, scriptContext, moduleEnvironmentPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
-            if (validateOnly)
-            {
-                // if we are only validating, we don't need to load imports and such
-                return nullptr;
-            }
 
             Var* importFunctions = moduleEnvironmentPtr + wasmModule->GetImportFuncOffset();
             WasmLoadImports(wasmModule, scriptContext, importFunctions, moduleEnvironmentPtr, ffi);
@@ -730,10 +652,6 @@ namespace Js
             };
         }
 
-        if (bytecodeGen)
-        {
-            HeapDelete(bytecodeGen);
-        }
         return exportObj;
     }
 

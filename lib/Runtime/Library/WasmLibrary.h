@@ -27,14 +27,13 @@ namespace Js
         static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
         static const unsigned int experimentalVersion;
 
-
-
         static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValidate(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);
         static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
+
     private:
         static void WasmFunctionGenerateBytecode(AsmJsScriptFunction* func, bool propagateError);
         static void WasmLoadDataSegs(Wasm::WasmModule * wasmModule, Var* heap, ScriptContext* ctx);
@@ -53,10 +52,8 @@ namespace Js
             CompileScriptException * pse,
             Utf8SourceInfo** ppSourceInfo,
             const uint lengthBytes,
-            const char16 *rootDisplayName,
             Js::Var ffi,
-            Js::Var* start = nullptr,
-            bool validateOnly = false
+            Js::Var* start = nullptr
         );
         static char16* lastWasmExceptionMessage;
 #endif

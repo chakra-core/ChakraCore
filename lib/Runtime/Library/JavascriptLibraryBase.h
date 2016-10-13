@@ -170,6 +170,8 @@ namespace Js
         RuntimeFunction* generatorFunctionConstructor;
         RuntimeFunction* asyncFunctionConstructor;
 
+        RuntimeFunction* webAssemblyModuleConstructor;
+
         JavascriptFunction* defaultAccessorFunction;
         JavascriptFunction* stackTraceAccessorFunction;
         JavascriptFunction* throwTypeErrorRestrictedPropertyAccessorFunction;

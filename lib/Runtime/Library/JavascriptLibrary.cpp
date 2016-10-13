@@ -627,6 +627,13 @@ namespace Js
         }
 #endif
 
+#ifdef ENABLE_WASM
+        if (PHASE_ON1(WasmPhase))
+        {
+            // TODO: what should prototype be?
+            webAssemblyModuleType = DynamicType::New(scriptContext, TypeIds_WebAssemblyModule, objectPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+        }
+#endif
         // Initialize Object types
         for (int16 i = 0; i < PreInitializedObjectTypeCount; i++)
         {
@@ -2692,7 +2699,12 @@ namespace Js
     {
         typeHandler->Convert(webAssemblyObject, mode, 1);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
-        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WasmLibrary::EntryInfo::instantiateModule, 2);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WasmLibrary::EntryInfo::Compile, 2);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WasmLibrary::EntryInfo::Validate, 2);
+
+        Js::RuntimeFunction * webAssemblyConstructor = library->CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeArrayBufferConstructor>::GetDefaultInstance());
+        library->AddFunction(webAssemblyObject, PropertyIds::Module, webAssemblyConstructor);
     }
 #endif
 

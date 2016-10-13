@@ -262,6 +262,8 @@ namespace Js
         StaticType  * int64NumberTypeStatic;
         StaticType  * uint64NumberTypeStatic;
 
+        DynamicType * webAssemblyModuleType;
+
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
         DynamicType * simdBool16x8TypeDynamic;
@@ -723,6 +725,8 @@ namespace Js
         StaticType  * GetUInt64TypeStatic() const { return uint64NumberTypeStatic; }
         DynamicType * GetNumberTypeDynamic() const { return numberTypeDynamic; }
         DynamicType * GetPromiseType() const { return promiseType; }
+
+        DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }

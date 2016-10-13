@@ -515,6 +515,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
+#include "Library/WebAssemblyModule.h"
 
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
