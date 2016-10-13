@@ -55,7 +55,7 @@ namespace Js
 
 #define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
     try { \
-    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, false); \
+    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
     class AutoCleanup \
     { \
     private: \

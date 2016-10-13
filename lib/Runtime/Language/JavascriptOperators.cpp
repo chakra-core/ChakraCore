@@ -353,7 +353,7 @@ namespace Js
         Var value;
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, false);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
             // In edge mode, spec compat is more important than backward compat. Use spec/web behavior here
             if (isRoot
@@ -442,7 +442,7 @@ namespace Js
 
         try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, false);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
             IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, false);
 
             // For JS Objects, don't create the propertyId if not already added

@@ -171,10 +171,4 @@
       <compile-flags>-ExtendedErrorStackForTestHost -force:DeferParse</compile-flags>
     </default>
   </test>
-  <test>
-    <default>
-      <files>useruncaught.js</files>
-      <baseline>useruncaught.baseline</baseline>
-    </default>
-  </test>
 </regress-exe>
