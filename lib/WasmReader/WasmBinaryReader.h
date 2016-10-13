@@ -63,7 +63,7 @@ namespace Wasm
         void ReadNamesSection();
         void ReadElementSection();
         void ReadGlobalsSection();
-        
+
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();

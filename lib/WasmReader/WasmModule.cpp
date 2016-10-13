@@ -326,7 +326,7 @@ uint32 WasmModule::GetModuleEnvironmentSize() const
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     size = UInt32Math::Add(size, GetSignatureCount());
     size = UInt32Math::Add(size, GetImportCount());
-    size = UInt32Math::Add(size, globals.Count() * DOUBLE_SIZE_IN_INTS); //a tad bit overestimating 
+    size = UInt32Math::Add(size, globals.Count() * DOUBLE_SIZE_IN_INTS); //a tad bit overestimating
     return size;
 }
 
@@ -361,7 +361,7 @@ uint WasmModule::GetOffsetForGlobal(WasmGlobal* global)
         sizeInInts += globalCounts[i] * slotSizesInInts[i];
 
     sizeInInts += global->GetOffset() * slotSizesInInts[type];
-    return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */); 
+    return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);
 }
 
 } // namespace Wasm

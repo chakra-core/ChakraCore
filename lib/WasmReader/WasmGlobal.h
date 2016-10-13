@@ -10,7 +10,7 @@ namespace Wasm
 
     class WasmGlobal
     {
-        
+
 
     public:
 
@@ -37,6 +37,6 @@ namespace Wasm
         WasmTypes::WasmType m_type;
         bool m_mutability;
         uint m_offset;
-        
+
     };
 } // namespace Wasm

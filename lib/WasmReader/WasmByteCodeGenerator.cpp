@@ -107,7 +107,7 @@ WasmModuleGenerator::GenerateModule()
     };
     afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
         gen->m_module->SetTableEnvironmentOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetWasmFunctionCount());
-    };    
+    };
     afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
 
         gen->m_module->SetGlobalOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetTableEnvironmentOffset());
@@ -622,7 +622,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 
 
 EmitInfo
-WasmBytecodeGenerator::EmitGetGlobal() 
+WasmBytecodeGenerator::EmitGetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
     WasmGlobal* global = m_module->globals.Item(globalIndex);
@@ -631,7 +631,7 @@ WasmBytecodeGenerator::EmitGetGlobal()
 
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
-    static const Js::OpCodeAsmJs globalOpcodes[] = { 
+    static const Js::OpCodeAsmJs globalOpcodes[] = {
         Js::OpCodeAsmJs::LdSlot_Int,
         Js::OpCodeAsmJs::LdUndef, //no i64 yet
         Js::OpCodeAsmJs::LdSlot_Flt,
@@ -645,12 +645,12 @@ WasmBytecodeGenerator::EmitGetGlobal()
     EmitInfo info(tmpReg, type);
 
     m_writer.AsmSlot(globalOpcodes[type - 1], tmpReg, WasmBytecodeGenerator::ModuleEnvRegister, slot);
-    
+
     return info;
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitSetGlobal() 
+WasmBytecodeGenerator::EmitSetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
     WasmGlobal* global = m_module->globals.Item(globalIndex);
@@ -658,12 +658,12 @@ WasmBytecodeGenerator::EmitSetGlobal()
 
     WasmTypes::WasmType type = global->GetType();
     EmitInfo info = PopEvalStack();
-    
+
     if (info.type != type)
     {
         throw WasmCompilationException(_u("TypeError in setglobal for %u"), globalIndex);
     }
-    
+
     static const Js::OpCodeAsmJs globalOpcodes[] = {
         Js::OpCodeAsmJs::StSlot_Int,
         Js::OpCodeAsmJs::LdUndef, //no i64 yet
