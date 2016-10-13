@@ -9066,7 +9066,7 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 
     if (reg->IsImmediateOpnd())
     {
-        int64 value = reg->GetImmediateValue();
+        int64 value = reg->GetImmediateValue(m_func);
         pair.low = IR::IntConstOpnd::New((int32)value, type, m_func);
         pair.high = IR::IntConstOpnd::New((int32)(value >> 32), type, m_func);
         return pair;
@@ -9074,7 +9074,7 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 
     EnsureInt64RegPairMap();
     StackSym* stackSym = reg->GetStackSym();
-    if (!stackSym || !this->m_func->GetJnFunction()->IsWasmFunction())
+    if (!stackSym || !this->m_func->GetJITFunctionBody()->IsWasmFunction())
     {
         AssertMsg(UNREACHED, "Invalid int64 operand type");
         Js::Throw::FatalInternalError();
@@ -21976,11 +21976,11 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         
-        bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue() != -1);
+        bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue(m_func) != -1);
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
         if (src1->IsImmediateOpnd())
         {
-            if (needsMinOverNeg1Check && src1->GetImmediateValue() == intMin)
+            if (needsMinOverNeg1Check && src1->GetImmediateValue(m_func) == intMin)
             {
                 minIntLabel = InsertLabel(true, divLabel);
                 InsertBranch(Js::OpCode::Br, minIntLabel, div0Label);

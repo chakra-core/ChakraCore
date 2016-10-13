@@ -105,7 +105,7 @@ WasmModuleGenerator::GenerateModule()
         }
     }
 
-    uint32 funcCount = m_module->GetFunctionCount();
+    uint32 funcCount = m_module->GetWasmFunctionCount();
     for (uint32 i = 0; i < funcCount; ++i)
     {
         GenerateFunctionHeader(i);
@@ -889,7 +889,7 @@ WasmBytecodeGenerator::EmitCall()
             convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
-            convertOp = wasmOp == wbCallImport ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
             break;
         default:
             throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
@@ -1228,9 +1228,11 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
         return Js::OpCodeAsmJs::Ld_Long;
     default:
         throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
+    }
 }
 
-Js::OpCodeAsmJs WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
+Js::OpCodeAsmJs
+WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
 {
     Js::OpCodeAsmJs retOp = Js::OpCodeAsmJs::Nop;
     switch (type)
@@ -1244,14 +1246,13 @@ Js::OpCodeAsmJs WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
     case WasmTypes::I32:
         retOp = Js::OpCodeAsmJs::Return_Int;
         break;
-	case WasmTypes::I64:
+    case WasmTypes::I64:
         retOp = Js::OpCodeAsmJs::Return_Long;
         break;
     default:
         throw WasmCompilationException(_u("Unknown return type %u"), type);
     }
     return retOp;
-    }
 }
 
 void

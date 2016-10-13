@@ -9,21 +9,6 @@
 #include "ByteCodeDumper.h"
 #include "AsmJsByteCodeDumper.h"
 
-#if DBG
-#define TraceIrBuilder(opcode, layoutName, layout) \
-    if (PHASE_TRACE(Js::IRBuilderPhase, m_func)) \
-    {\
-        Js::LayoutSize layoutSize = SizePolicy::LayoutEnum;\
-        Output::Print(_u("    %04x %2s"), offset, layoutSize == Js::LargeLayout ? _u("L-") : layoutSize == Js::MediumLayout ? _u("M-") : _u(""));\
-        Output::Print(_u("%-20s"), Js::OpCodeUtilAsmJs::GetOpCodeName(opcode));\
-        Js::AsmJsByteCodeDumper::Dump##layoutName(opcode, layout, m_func->GetJnFunction(), m_jnReader); \
-        Output::Print(_u("\n"));\
-        Output::Flush();\
-    }
-#else
-#define TraceIrBuilder(opcode, layoutName, layout)
-#endif
-
 void
 IRBuilderAsmJs::Build()
 {
@@ -50,10 +35,10 @@ IRBuilderAsmJs::Build()
     {
         WAsmJs::Types type = (WAsmJs::Types)i;
         const auto typedInfo = m_asmFuncInfo->GetTypedSlotInfo(type);
-        m_firstsType[j] = typedInfo->constCount;
-        m_firstsType[j + WAsmJs::LIMIT] = typedInfo->varCount;
-        m_firstsType[j + 2 * WAsmJs::LIMIT] = typedInfo->tmpCount;
-        tempCount += typedInfo->tmpCount;
+        m_firstsType[j] = typedInfo.constCount;
+        m_firstsType[j + WAsmJs::LIMIT] = typedInfo.varCount;
+        m_firstsType[j + 2 * WAsmJs::LIMIT] = typedInfo.tmpCount;
+        tempCount += typedInfo.tmpCount;
     }
     // Fixup the firsts by looking at the previous value
     for (int i = 1; i < m_firstsTypeCount; ++i)
@@ -378,10 +363,10 @@ IR::RegOpnd *
 IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
     Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
-    WAsmJs::TypedSlotInfo* info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
-    int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info->byteOffset);
+    WAsmJs::TypedSlotInfo info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
+    int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.byteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
-    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info->constCount && info->isValidType);
+    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount && info.isValidType);
     const int32 value = intConstTable[srcReg];
     IR::IntConstOpnd *opnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
 
@@ -473,19 +458,19 @@ Js::RegSlot IRBuilderAsmJs::GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Type
     if (RegIsTypedVar(reg, type))
     {
         srcReg = reg - GetFirstVar(type);
-        Assert(srcReg < typedInfo->varCount);
-        srcReg += typedInfo->constCount;
+        Assert(srcReg < typedInfo.varCount);
+        srcReg += typedInfo.constCount;
     }
     else if (RegIsTemp(reg))
     {
         srcReg = reg - GetFirstTmp(type);
-        Assert(srcReg < typedInfo->tmpCount);
-        srcReg += typedInfo->varCount + typedInfo->constCount;
+        Assert(srcReg < typedInfo.tmpCount);
+        srcReg += typedInfo.varCount + typedInfo.constCount;
     }
     else if (RegIsConstant(reg))
     {
         srcReg = reg - GetFirstConst(type);
-        Assert(srcReg < typedInfo->constCount);
+        Assert(srcReg < typedInfo.constCount);
     }
     return srcReg;
 }
@@ -494,25 +479,25 @@ Js::RegSlot
 IRBuilderAsmJs::GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type)
 {
     const auto typedInfo = m_asmFuncInfo->GetTypedSlotInfo(type);
-    Assert(typedInfo->constCount >= 0);
+    Assert(typedInfo.constCount >= 0);
     Js::RegSlot reg;
-    if (srcReg < typedInfo->constCount)
+    if (srcReg < typedInfo.constCount)
     {
         reg = srcReg + GetFirstConst(type);
         Assert(reg >= GetFirstConst(type) && reg < GetLastConst(type));
         return reg;
     }
 
-    srcReg -= typedInfo->constCount;
-    if (srcReg < typedInfo->varCount)
+    srcReg -= typedInfo.constCount;
+    if (srcReg < typedInfo.varCount)
     {
         reg = srcReg + GetFirstVar(type);
         Assert(reg >= GetFirstVar(type) && reg < GetLastVar(type));
         return reg;
     }
 
-    srcReg -= typedInfo->varCount;
-    Assert(srcReg < typedInfo->tmpCount);
+    srcReg -= typedInfo.varCount;
+    Assert(srcReg < typedInfo.tmpCount);
 
     reg = srcReg + GetFirstTmp(type);
     Assert(reg >= GetFirstTmp(type) && reg < GetLastTmp(type));
@@ -723,7 +708,6 @@ void IRBuilderAsmJs::CreateLoadConstInstrForType(
 void
 IRBuilderAsmJs::BuildConstantLoads()
 {
-    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
     Js::Var * constTable = (Js::Var *)m_func->GetJITFunctionBody()->GetConstTable();
 
     // Load FrameDisplay
@@ -743,11 +727,12 @@ IRBuilderAsmJs::BuildConstantLoads()
 
     uint32 regAllocated = AsmJsRegSlots::RegCount;
     byte* table = (byte*)constTable;
+    const bool isOOPJIT = m_func->IsOOPJIT();
     for (int i = 0; i < WAsmJs::LIMIT; ++i)
     {
         WAsmJs::Types type = (WAsmJs::Types)i;
-        WAsmJs::TypedSlotInfo* info = asmJsFuncInfo->GetTypedSlotInfo(type);
-        if (!info->isValidType)
+        WAsmJs::TypedSlotInfo info = m_asmFuncInfo->GetTypedSlotInfo(type);
+        if (!info.isValidType)
         {
             continue;
         }
@@ -758,15 +743,15 @@ IRBuilderAsmJs::BuildConstantLoads()
             CreateLoadConstInstrForType<int32, IR::IntConstOpnd>(
                 table,
                 regAllocated,
-                info->constCount,
-                info->constSrcByteOffset,
+                info.constCount,
+                info.constSrcByteOffset,
                 TyInt32,
                 ValueType::GetInt(false),
                 Js::OpCode::Ld_I4,
-                [](IR::Instr* instr, int32 val)
+                [isOOPJIT](IR::Instr* instr, int32 val)
                 {
                     IR::RegOpnd* dstOpnd = instr->GetDst()->AsRegOpnd();
-                    if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
+                    if (!isOOPJIT && dstOpnd->m_sym->IsSingleDef())
                     {
                         dstOpnd->m_sym->SetIsIntConst(val);
                     }
@@ -777,16 +762,16 @@ IRBuilderAsmJs::BuildConstantLoads()
             CreateLoadConstInstrForType<float, IR::FloatConstOpnd>(
                 table,
                 regAllocated,
-                info->constCount,
-                info->constSrcByteOffset,
+                info.constCount,
+                info.constSrcByteOffset,
                 TyFloat32,
                 ValueType::Float,
                 Js::OpCode::LdC_F8_R8,
-                [](IR::Instr* instr, float val)
+                [isOOPJIT](IR::Instr* instr, float val)
             {
 #if _M_IX86
                 IR::RegOpnd* dstOpnd = instr->GetDst()->AsRegOpnd();
-                if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
+                if (!isOOPJIT && dstOpnd->m_sym->IsSingleDef())
                 {
                     dstOpnd->m_sym->SetIsFloatConst();
                 }
@@ -798,16 +783,16 @@ IRBuilderAsmJs::BuildConstantLoads()
             CreateLoadConstInstrForType<double, IR::FloatConstOpnd>(
                 table,
                 regAllocated,
-                info->constCount,
-                info->constSrcByteOffset,
+                info.constCount,
+                info.constSrcByteOffset,
                 TyFloat64,
                 ValueType::Float,
                 Js::OpCode::LdC_F8_R8,
-                [](IR::Instr* instr, double val)
+                [isOOPJIT](IR::Instr* instr, double val)
                 {
 #if _M_IX86
                     IR::RegOpnd* dstOpnd = instr->GetDst()->AsRegOpnd();
-                    if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
+                    if (!isOOPJIT && dstOpnd->m_sym->IsSingleDef())
                     {
                         dstOpnd->m_sym->SetIsFloatConst();
                     }
@@ -819,16 +804,16 @@ IRBuilderAsmJs::BuildConstantLoads()
             CreateLoadConstInstrForType<AsmJsSIMDValue, IR::Simd128ConstOpnd>(
                 table,
                 regAllocated,
-                info->constCount,
-                info->constSrcByteOffset,
+                info.constCount,
+                info.constSrcByteOffset,
                 TySimd128F4,
                 ValueType::UninitializedObject,
                 Js::OpCode::Simd128_LdC,
-                [](IR::Instr* instr, AsmJsSIMDValue val)
+                [isOOPJIT](IR::Instr* instr, AsmJsSIMDValue val)
                 {
 #if _M_IX86
                     IR::RegOpnd* dstOpnd = instr->GetDst()->AsRegOpnd();
-                    if (!m_func->IsOOPJIT() && dstOpnd->m_sym->IsSingleDef())
+                    if (!isOOPJIT && dstOpnd->m_sym->IsSingleDef())
                     {
                         dstOpnd->m_sym->SetIsSimd128Const();
                     }
@@ -939,10 +924,10 @@ IRBuilderAsmJs::BuildArgInTracing()
     int32 simd128ArgInCount = 0;
 
     Js::ArgSlot nArgs = 0; 
-    if (m_func->GetJnFunction()->GetHasImplicitArgIns())
+    if (m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         // -1 to remove the implicit this pointer
-        nArgs = m_func->GetJnFunction()->GetInParamsCount() - 1;
+        nArgs = m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
     }
     int32 argSize = 0;
     Js::ArgSlot argOutSlot = 1;
@@ -975,7 +960,7 @@ IRBuilderAsmJs::BuildArgInTracing()
         IRType argType;
         Js::RegSlot argSlot;
         ValueType valueType;
-        Js::AsmJsVarType varType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetArgType(i);
+        Js::AsmJsVarType varType = m_asmFuncInfo->GetArgType(i);
         switch (varType.which())
         {
         case Js::AsmJsVarType::Which::Int:
@@ -1406,7 +1391,6 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmTypedArr<SizePolicy>>();
-    TraceIrBuilder(newOpcode, AsmTypedArr, layout);
     BuildAsmTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType);
 }
 
@@ -1551,7 +1535,6 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmCall<SizePolicy>>();
-    TraceIrBuilder(newOpcode, AsmCall, layout);
     BuildAsmCall(newOpcode, offset, layout->ArgCount, layout->Return, layout->Function, layout->ReturnType);
 }
 
@@ -1786,7 +1769,6 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmReg1<SizePolicy>>();
-    TraceIrBuilder(newOpcode, AsmReg1, layout);
     BuildAsmReg1(newOpcode, offset, layout->R0);
 }
 
@@ -1834,7 +1816,6 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
     { \
         Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));\
         auto _layout = m_jnReader.GetLayout<Js::OpLayoutT_##layout <SizePolicy>>();\
-        TraceIrBuilder(newOpcode, layout, _layout);\
         Build##layout(newOpcode, offset, __VA_ARGS__);\
     }
 
@@ -2776,7 +2757,6 @@ IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt1<SizePolicy>>();
-    TraceIrBuilder(newOpcode, BrInt1, layout);
     BuildBrInt1(newOpcode, offset, layout->RelativeJumpOffset, layout->I1);
 }
 
@@ -2811,7 +2791,6 @@ IRBuilderAsmJs::BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt2<SizePolicy>>();
-    TraceIrBuilder(newOpcode, BrInt2, layout);
     BuildBrInt2(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->I2);
 }
 
@@ -2821,7 +2800,6 @@ IRBuilderAsmJs::BuildBrInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt1Const1<SizePolicy>>();
-    TraceIrBuilder(newOpcode, BrInt1Const1, layout);
     BuildBrInt1Const1(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->C1);
 }
 
@@ -3344,10 +3322,10 @@ Js::PropertyId IRBuilderAsmJs::CalculatePropertyOffset(SymID id, IRType type, bo
     if (isVar)
     {
         // Get the bytecodeRegSlot
-        regSlot = id - GetFirstVar(asmType) + typedInfo->constCount;
+        regSlot = id - GetFirstVar(asmType) + typedInfo.constCount;
     }
 
-    return (Js::PropertyId)(regSlot * TySize[type] + typedInfo->byteOffset + localsOffset);
+    return (Js::PropertyId)(regSlot * TySize[type] + typedInfo.byteOffset + localsOffset);
 }
 
 IR::Instr* IRBuilderAsmJs::GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType retType)
@@ -6228,7 +6206,6 @@ void IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offs
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmSimdTypedArr<SizePolicy>>();
-    TraceIrBuilder(newOpcode, AsmSimdTypedArr, layout);
     BuildAsmSimdTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType, layout->DataWidth);
 }
 

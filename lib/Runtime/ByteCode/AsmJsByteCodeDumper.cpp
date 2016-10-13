@@ -392,10 +392,10 @@ namespace Js
                     Output::Print(_u(" R%d = %s.%s[%u]"), data->Value, loadedImport->modName, loadedImport->fnName, importIndex);
                     break;
                 }
-                else if (index - wasmInfo->m_module->GetFuncOffset() < wasmInfo->m_module->GetFunctionCount())
+                else if (index - wasmInfo->m_module->GetFuncOffset() < wasmInfo->m_module->GetWasmFunctionCount())
                 {
                     uint funcIndex = data->SlotIndex - wasmInfo->m_module->GetFuncOffset();
-                    auto loadedFunc = wasmInfo->m_module->GetFunctionInfo(funcIndex);
+                    auto loadedFunc = wasmInfo->m_module->GetWasmFunctionInfo(funcIndex);
                     Output::Print(_u(" R%d = %s"), data->Value, loadedFunc->GetBody()->GetDisplayName());
                     break;
                 }

@@ -74,7 +74,7 @@ namespace Wasm
         uint GetHeapOffset() const { return 0; }
         uint GetImportFuncOffset() const { return GetHeapOffset() + 1; }
         uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
-        uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetFunctionCount(); }
+        uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
 
         WasmBinaryReader* GetReader() const { return m_reader; }
 
