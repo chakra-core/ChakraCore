@@ -337,7 +337,10 @@ Encoder::Encode()
     m_func->GetJITOutput()->RecordNativeCode(m_func, m_encodeBuffer, alloc);
 
 #if defined(_M_IX86) || defined(_M_X64)
-    ValidateCRCOnFinalBuffer((BYTE*)alloc->allocation->address, codeSize, totalJmpTableSizeInBytes, m_encodeBuffer, initialCRCSeed, bufferCRC, isSuccessBrShortAndLoopAlign);
+    if (!JITManager::GetJITManager()->IsJITServer())
+    {
+        ValidateCRCOnFinalBuffer((BYTE *)alloc->allocation->address, codeSize, totalJmpTableSizeInBytes, m_encodeBuffer, initialCRCSeed, bufferCRC, isSuccessBrShortAndLoopAlign);
+    }
 #endif
 
 #ifdef _M_X64
