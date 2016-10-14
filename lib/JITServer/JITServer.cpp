@@ -131,15 +131,18 @@ ServerInitializeThreadContext(
     /* [out] */ __RPC__out intptr_t *threadContextRoot,
     /* [out] */ __RPC__out intptr_t *prereservedRegionAddr)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-    ServerThreadContext * contextInfo = HeapNewNoThrow(ServerThreadContext, threadContextData);
-    if (contextInfo == nullptr)
+    ServerThreadContext * contextInfo = nullptr;
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
+        contextInfo = HeapNew(ServerThreadContext, threadContextData);
+        ServerContextManager::RegisterThreadContext(contextInfo);
+    }
+    catch (Js::OutOfMemoryException)
     {
         return E_OUTOFMEMORY;
     }
 
-    ServerContextManager::RegisterThreadContext(contextInfo);
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
         *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
@@ -175,8 +178,6 @@ ServerUpdatePropertyRecordMap(
     /* [in] */ intptr_t threadContextInfoAddress,
     /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     if (threadContextInfo == nullptr)
@@ -208,8 +209,6 @@ ServerAddDOMFastPathHelper(
     /* [in] */ intptr_t funcInfoAddr,
     /* [in] */ int helper)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
 
     if (scriptContextInfo == nullptr)
@@ -232,8 +231,6 @@ ServerAddModuleRecordInfo(
     /* [in] */ unsigned int moduleId,
     /* [in] */ intptr_t localExportSlotsAddr)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerScriptContext * serverScriptContext = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
     if (serverScriptContext == nullptr)
     {
@@ -277,8 +274,6 @@ ServerInitializeScriptContext(
     /* [in] */ intptr_t threadContextInfoAddress,
     /* [out] */ __RPC__out intptr_t * scriptContextInfoAddress)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     *scriptContextInfoAddress = 0;
@@ -364,12 +359,11 @@ ServerDecommitInterpreterBufferManager(
         return RPC_S_INVALID_ARG;
     }
 
-    if (ServerContextManager::IsScriptContextAlive(scriptContext))
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
     {
-        AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContext);
         scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
-    }
-    return S_OK;
+        return S_OK;
+    });
 }
 
 HRESULT
@@ -389,11 +383,8 @@ ServerNewInterpreterThunkBlock(
         return RPC_S_INVALID_ARG;
     }
 
-    AutoReleaseContext<ServerScriptContext> autoScriptContext(scriptContext);
     return ServerCallWrapper(scriptContext, [&]()->HRESULT
     {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
         const DWORD bufferSize = InterpreterThunkEmitter::BlockSize;
         DWORD thunkCount = 0;
 
@@ -410,6 +401,10 @@ ServerNewInterpreterThunkBlock(
 
         BYTE* remoteBuffer;
         EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(bufferSize, &remoteBuffer);
+        if (!allocation)
+        {
+            Js::Throw::OutOfMemory();
+        }
 
         InterpreterThunkEmitter::FillBuffer(
             arena,
@@ -425,16 +420,20 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        bool success = emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation);
-        Assert(success);
+        if (!emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+        {
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+        }
 
         if (!WriteProcessMemory(threadContext->GetProcessHandle(), remoteBuffer, localBuffer, bufferSize, nullptr))
         {
-            Js::Throw::JITOperationFailed(GetLastError());
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
         }
 
-        success = emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, remoteBuffer, bufferSize);
-        Assert(success);
+        if (!emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, remoteBuffer, bufferSize))
+        {
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+        }
 
         // Call to set VALID flag for CFG check
         threadContext->SetValidCallTargetForCFG(remoteBuffer);
@@ -567,8 +566,6 @@ ServerRemoteCodeGen(
     /* [in] */ __RPC__in CodeGenWorkItemIDL *workItemData,
     /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     memset(jitData, 0, sizeof(JITOutputIDL));
 
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
@@ -794,6 +791,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     HRESULT hr = S_OK;
     try
     {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
         AutoReleaseThreadContext autoThreadContext(threadContextInfo);
         hr = fn();
 
