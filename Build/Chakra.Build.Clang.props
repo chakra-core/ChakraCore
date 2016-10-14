@@ -4,7 +4,7 @@
     <ClCompile>
       <AdditionalOptions>
         %(AdditionalOptions)
-        -msse4.1
+        -msse4.2
         -Qunused-arguments
         -Wno-unknown-pragmas
         -Wno-writable-strings
