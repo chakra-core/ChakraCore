@@ -16,7 +16,7 @@ namespace Js
     Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(ModuleNamespace::EntrySymbolIterator);
 
     ModuleNamespace::ModuleNamespace(ModuleRecordBase* moduleRecord, DynamicType* type) :
-        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr), 
+        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr),
         sortedExportedNames(nullptr), nsSlots(nullptr)
     {
 
@@ -56,7 +56,7 @@ namespace Js
 
         DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::SymbolIterator);
         RuntimeFunction* iteratorFunction = RecyclerNewEnumClass(scriptContext->GetRecycler(),
-            library->EnumFunctionClass, RuntimeFunction,
+            JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::SymbolIterator);
         DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolIterator, iteratorFunction, PropertyBuiltInMethodDefaults, nullptr);
 
@@ -89,7 +89,7 @@ namespace Js
         // update the local slot to use the storage for local exports.
         SetNSSlotsForModuleNS(sourceTextModuleRecord->GetLocalExportSlots());
 
-        // For items that are not in the local export list, we need to resolve them to get it 
+        // For items that are not in the local export list, we need to resolve them to get it
         ExportedNames* exportedNames = sourceTextModuleRecord->GetExportedNames(nullptr);
         ModuleNameRecord* moduleNameRecord = nullptr;
 #if DBG

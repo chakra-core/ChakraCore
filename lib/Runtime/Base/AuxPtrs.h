@@ -25,15 +25,18 @@ namespace Js
     template<typename FieldsEnum, uint8 size, uint8 _MaxCount = (size - 1) / (1 + sizeof(void*))>
     struct AuxPtrsFix
     {
-        static const uint8 MaxCount = _MaxCount;
-        Field(uint8) count;                // always saving maxCount
-        Field(FieldsEnum) type[MaxCount];  // save instantiated pointer enum
-        Pointer(void) ptr[MaxCount];       // save instantiated pointer address
+        static const uint8 MaxCount;
+        Field(uint8) count;                 // always saving maxCount
+        Field(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
+        Pointer(void) ptr[_MaxCount];       // save instantiated pointer address
         AuxPtrsFix();
         AuxPtrsFix(AuxPtrsFix<FieldsEnum, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32
         void* Get(FieldsEnum e);
         bool Set(FieldsEnum e, void* p);
     };
+
+    template<typename FieldsEnum, uint8 size, uint8 _MaxCount>
+    const uint8 AuxPtrsFix<FieldsEnum, size, _MaxCount>::MaxCount = _MaxCount;
 
     // Use flexible size structure to save pointers. when pointer count exceeds AuxPtrsFix<FieldsEnum, 32>::MaxCount,
     // it will promote to this structure to save the pointers

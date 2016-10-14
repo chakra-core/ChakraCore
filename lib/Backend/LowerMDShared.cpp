@@ -1675,7 +1675,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
         case Js::OpCode::LEA:
             Assert(instr->GetDst()->IsRegOpnd());
-            Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
+            Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd()
+                   || instr->GetSrc1()->IsMemRefOpnd());  // We may convert IndirOpnd to MemRefOpnd
             Assert(!instr->GetSrc2());
             break;
         case Js::OpCode::PSRLDQ:
@@ -5031,7 +5032,7 @@ LowererMD::GenerateUntagVar(IR::RegOpnd * src, IR::LabelInstr * labelFail, IR::I
     if (generateTagCheck)
     {
         Assert(!opnd->IsTaggedInt());
-        this->GenerateSmIntTest(opnd, insertBeforeInstr, labelFail);
+        this->GenerateSmIntTest(opnd, assignInstr, labelFail);
     }
 
     // Moving into r2 clears the tag bits on AMD64.
