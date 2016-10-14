@@ -307,6 +307,42 @@ namespace Js
 
     void WasmLibrary::WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions)
     {
+        ArenaAllocator alloc(_u("WasmTempIndirectTable"), ctx->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
+        uint32 sigCount = wasmModule->GetSignatureCount();
+        BVFixed** equivalentSignatures = AnewArrayZ(&alloc, BVFixed*, sigCount);
+        const auto CheckSetEquivalentSignature = [equivalentSignatures, wasmModule](uint32 sigId, uint32 iSig)
+        {
+            if (equivalentSignatures[iSig])
+            {
+                // We already determined that iSig is equivalent to sigId
+                if (equivalentSignatures[iSig]->Test(sigId))
+                {
+                    equivalentSignatures[sigId]->Set(iSig);
+                }
+            }
+            else
+            {
+                Wasm::WasmSignature* sigBase = wasmModule->GetSignature(sigId);
+                Wasm::WasmSignature* sigCheck = wasmModule->GetSignature(iSig);
+                if (
+                    sigBase->GetResultType() == sigCheck->GetResultType() &&
+                    sigBase->GetParamCount() == sigCheck->GetParamCount() &&
+                    sigBase->GetParamsSize() == sigCheck->GetParamsSize()
+                    )
+                {
+                    for (uint iParam = 0; iParam < sigBase->GetParamCount(); ++iParam)
+                    {
+                        if (sigBase->GetParam(iParam) != sigCheck->GetParam(iParam))
+                        {
+                            return;
+                        }
+                    }
+                    // The signature have the same return type and all the same arguments, consider them equivalent
+                    equivalentSignatures[sigId]->Set(iSig);
+                }
+            }
+        };
+
         for (uint i = 0; i < wasmModule->GetTableSize(); ++i)
         {
             uint funcIndex = wasmModule->GetTableValue(i);
@@ -316,17 +352,29 @@ namespace Js
                 continue;
             }
 
-            uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
-            if (!indirectFunctionTables[sigId])
-            {
-                // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
-                // now, indirect func call to invalid type will give nullptr deref
-                indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
-            }
             Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, localModuleFunctions, importFunctions);
             if (funcObj)
             {
-                indirectFunctionTables[sigId][i] = funcObj;
+                uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
+                if (!equivalentSignatures[sigId])
+                {
+                    equivalentSignatures[sigId] = BVFixed::New(sigCount, &alloc);
+                    equivalentSignatures[sigId]->Set(sigId);
+                    for (uint32 iSig = 0; iSig < sigCount; ++iSig)
+                    {
+                        CheckSetEquivalentSignature(sigId, iSig);
+                    }
+                }
+                FOREACH_BITSET_IN_FIXEDBV(iSig, equivalentSignatures[sigId])
+                {
+                    if (!indirectFunctionTables[iSig])
+                    {
+                        // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
+                        // now, indirect func call to invalid type will give nullptr deref
+                        indirectFunctionTables[iSig] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
+                    }
+                    indirectFunctionTables[iSig][i] = funcObj;
+                } NEXT_BITSET_IN_FIXEDBV;
             }
         }
     }
