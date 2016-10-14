@@ -17,5 +17,8 @@
       "file": "stack.wast",
       "line": 132
     }]
+  }, {
+    "filename": "stack.1.wasm",
+    "commands": []
   }]
 }

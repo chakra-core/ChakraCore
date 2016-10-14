@@ -11,6 +11,21 @@
       "name": "$action_1",
       "file": "address.wast",
       "line": 31
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_2",
+      "file": "address.wast",
+      "line": 32
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_3",
+      "file": "address.wast",
+      "line": 33
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_4",
+      "file": "address.wast",
+      "line": 34
     }]
   }]
 }

@@ -303,10 +303,10 @@
 (assert_return (invoke "init-local-f32") (f32.const 0))
 (assert_return (invoke "init-local-f64") (f64.const 0))
 
-(assert_return (invoke "signature-explicit-reused"))
-(assert_return (invoke "signature-implicit-reused"))
-(assert_return (invoke "signature-explicit-duplicate"))
-(assert_return (invoke "signature-implicit-duplicate"))
+;;(assert_return (invoke "signature-explicit-reused"))
+;;(assert_return (invoke "signature-implicit-reused"))
+;;(assert_return (invoke "signature-explicit-duplicate"))
+;;(assert_return (invoke "signature-implicit-duplicate"))
 
 
 ;; Invalid typing of locals
