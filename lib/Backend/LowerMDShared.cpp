@@ -722,6 +722,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
         }
     }
 
+#if DBG
+    if (PHASE_ON(Js::AsmjsCallDebugBreakPhase, this->m_func))
+    {
+        this->GenerateDebugBreak(instrRet->m_next);
+    }
+#endif
+
     return instrRet;
 }
 

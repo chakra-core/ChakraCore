@@ -1968,6 +1968,21 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
                 this->m_func->MarkConstantAddressSyms(instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms);
                 instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms->Or(this->addToLiveOnBackEdgeSyms);
+#ifndef _M_X64
+                if (m_int64RegPairMap)
+                {
+                    // If we have replaced any sym that was live on the back edge for 2 other syms, these 2 syms needs to be live on back edge as well.
+                    BVSparse<JitArenaAllocator> *liveOnBackEdgeSyms = instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms;
+                    m_int64RegPairMap->Map([&](SymID key, Int64SymPair value)
+                    {
+                        if (liveOnBackEdgeSyms->Test(key))
+                        {
+                            liveOnBackEdgeSyms->Set(value.low->m_id);
+                            liveOnBackEdgeSyms->Set(value.high->m_id);
+                        }
+                    });
+                }
+#endif
             }
             break;
 

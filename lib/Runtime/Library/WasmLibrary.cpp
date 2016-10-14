@@ -163,9 +163,10 @@ namespace Js
             entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
             // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || scriptContext->GetConfig()->IsNoNative();
+            if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
             {
-                GenerateFunction(scriptContext->GetNativeCodeGenerator(), func->GetFunctionBody(), func);
+                GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, func);
             }
 #endif
         }
