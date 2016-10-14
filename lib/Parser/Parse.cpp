@@ -109,6 +109,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_nextFunctionId = nullptr;
     m_errorCallback = nullptr;
     m_uncertainStructure = FALSE;
+    m_reparsingLambdaParams = false;
     currBackgroundParseItem = nullptr;
     backgroundParseItems = nullptr;
     fastScannedRegExpNodes = nullptr;
@@ -822,6 +823,14 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
     {
         Error(ERRnoMemory);
     }
+
+    if (refForDecl->funcId != GetCurrentFunctionNode()->sxFnc.functionId)
+    {
+        // Fix up the function id, which is incorrect if we're reparsing lambda parameters
+        Assert(this->m_reparsingLambdaParams);
+        refForDecl->funcId = GetCurrentFunctionNode()->sxFnc.functionId;
+    }
+    
     if (blockInfo == GetCurrentBlockInfo())
     {
         refForUse = refForDecl;
@@ -2879,7 +2888,12 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             }
         }
 
-        ref = this->PushPidRef(pid);
+        // Don't push a reference if this is a single lambda parameter, because we'll reparse with
+        // a correct function ID.
+        if (m_token.tk != tkDArrow)
+        {
+            ref = this->PushPidRef(pid);
+        }
 
         if (buildAST)
         {
@@ -2910,6 +2924,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         break;
 
     case tkLParen:
+    {
         ichMin = m_pscan->IchMinTok();
         iuMin = m_pscan->IecpMinTok();
         m_pscan->Scan();
@@ -2933,11 +2948,27 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             break;
         }
 
+        // Advance the block ID here in case this parenthetical expression turns out to be a lambda parameter list.
+        // That way the pid ref stacks will be created in their correct final form, and we can simply fix
+        // up function ID's.
+        uint saveNextBlockId = m_nextBlockId;
+        uint saveCurrBlockId = GetCurrentBlock()->sxBlock.blockId;
+        GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+
         this->m_parenDepth++;
         pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true);
         this->m_parenDepth--;
 
         ChkCurTok(tkRParen, ERRnoRparen);
+
+        GetCurrentBlock()->sxBlock.blockId = saveCurrBlockId;
+        if (m_token.tk == tkDArrow)
+        {
+            // We're going to rewind and reinterpret the expression as a parameter list.
+            // Put back the original next-block-ID so the existing pid ref stacks will be correct.
+            m_nextBlockId = saveNextBlockId;
+        }
+
         // Emit a deferred ... error if one was parsed.
         if (m_deferEllipsisError && m_token.tk != tkDArrow)
         {
@@ -2949,6 +2980,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             m_deferEllipsisError = false;
         }
         break;
+    }
 
     case tkIntCon:
         if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
@@ -4974,7 +5006,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (!skipFormals)
         {
+            bool fLambdaParamsSave = m_reparsingLambdaParams;
+            if (fLambda)
+            {
+                m_reparsingLambdaParams = true;
+            }
             this->ParseFncFormals<buildAST>(pnodeFnc, flags);
+            m_reparsingLambdaParams = fLambdaParamsSave;
         }
 
         // Create function body scope
@@ -5039,22 +5077,17 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             {
                 if (paramScope->GetCanMergeWithBodyScope())
                 {
-                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                    paramScope->ForEachSymbolUntil([this, paramScope, pnodeFnc](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
                         {
                             // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
                             paramScope->SetCannotMergeWithBodyScope();
                             return true;
                         }
-                        else
-                        {
-                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
-                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                        }
                         return false;
                     });
 
-                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetScopeId() > pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId)
+                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
                     {
                         Assert(pnodeFnc->sxFnc.UsesArguments());
                         // Arguments symbol is captured in the param scope
@@ -7962,7 +7995,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 Error(ERRsyntax);
             }
             if (GetCurrentFunctionNode()->sxFnc.IsGenerator()
-                && m_currentBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
+                && m_currentScope->GetScopeType() == ScopeType_Parameter)
             {
                 Error(ERRsyntax);
             }
@@ -8529,6 +8562,14 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
             Error(ERRnoMemory);
         }
         pid->PushPidRef(blockId, funcId, ref);
+    }
+    else if (m_reparsingLambdaParams)
+    {
+        // If we're reparsing params, then we may have pid refs left behind from the first pass. Make sure we're
+        // working with the right ref at this point.
+        ref = this->FindOrAddPidRef(pid, blockId, funcId);
+        // Fix up the function ID if we're reparsing lambda parameters.
+        ref->funcId = funcId;
     }
 
     return ref;
