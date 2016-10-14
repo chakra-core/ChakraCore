@@ -72,8 +72,5 @@
       "file": "block.wast",
       "line": 130
     }]
-  }, {
-    "filename": "block.1.wasm",
-    "commands": []
   }]
 }

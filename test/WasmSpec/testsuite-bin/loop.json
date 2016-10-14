@@ -212,11 +212,5 @@
       "file": "loop.wast",
       "line": 223
     }]
-  }, {
-    "filename": "loop.1.wasm",
-    "commands": []
-  }, {
-    "filename": "loop.2.wasm",
-    "commands": []
   }]
 }

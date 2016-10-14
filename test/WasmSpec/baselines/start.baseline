@@ -1,5 +1,5 @@
-start.wast:45: $assert_return_2 failed.
-start.wast:47: $assert_return_4 failed.
-start.wast:74: $assert_return_2 failed.
-start.wast:76: $assert_return_4 failed.
-2/6 tests passed.
+$action_1 = undefined
+$action_3 = undefined
+$action_1 = undefined
+$action_3 = undefined
+6/6 tests passed.
