@@ -19,6 +19,20 @@
 (assert_return (invoke $Nf "call") (i32.const 3))
 (assert_return (invoke $Nf "call Mf.call") (i32.const 2))
 
+(module
+  (import "spectest" "print" (func $f (param i32)))
+  (export "print" (func $f))
+)
+(register "reexport_f")
+(assert_unlinkable
+  (module (import "reexport_f" "print" (func (param i64))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "reexport_f" "print" (func (param i32) (result i32))))
+  "type mismatch"
+)
+
 
 ;; Globals
 
@@ -146,11 +160,12 @@
   (module $Qt
     (func $host (import "spectest" "print"))
     (table (import "Mt" "tab") 10 anyfunc)
+    (memory (import "Mt" "mem") 1)  ;; does not exist
     (elem (i32.const 7) $own)
     (elem (i32.const 9) $host)
     (func $own (result i32) (i32.const 666))
   )
-  "invalid use of host function"
+  "unknown import"
 )
 (assert_trap (invoke $Mt "call" (i32.const 7)) "uninitialized")
 
@@ -218,11 +233,9 @@
   (module $Qm
     (func $host (import "spectest" "print"))
     (memory (import "Mm" "mem") 1)
-    (table 10 anyfunc)
+    (table (import "Mm" "tab") 0 anyfunc)  ;; does not exist
     (data (i32.const 0) "abc")
-    (elem (i32.const 9) $host)
-    (func $own (result i32) (i32.const 666))
   )
-  "invalid use of host function"
+  "unknown import"
 )
 (assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 0))

@@ -14,10 +14,10 @@
     (block (call $dummy) (call $dummy) (br_if 0 (get_local 0)))
   )
   (func (export "as-block-first-value") (param i32) (result i32)
-    (block i32 (br_if 0 (i32.const 10) (get_local 0)) (return (i32.const 11)))
+    (block i32 (drop (br_if 0 (i32.const 10) (get_local 0))) (return (i32.const 11)))
   )
   (func (export "as-block-mid-value") (param i32) (result i32)
-    (block i32 (call $dummy) (br_if 0 (i32.const 20) (get_local 0)) (return (i32.const 21)))
+    (block i32 (call $dummy) (drop (br_if 0 (i32.const 20) (get_local 0))) (return (i32.const 21)))
   )
   (func (export "as-block-last-value") (param i32) (result i32)
     (block i32

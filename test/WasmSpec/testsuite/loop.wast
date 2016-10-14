@@ -77,8 +77,8 @@
       (loop i32
         (br 1 (i32.const 18))
         (br 1 (i32.const 19))
-        (br_if 1 (i32.const 20) (i32.const 0))
-        (br_if 1 (i32.const 20) (i32.const 1))
+        (drop (br_if 1 (i32.const 20) (i32.const 0)))
+        (drop (br_if 1 (i32.const 20) (i32.const 1)))
         (br 1 (i32.const 21))
         (br_table 1 (i32.const 22) (i32.const 0))
         (br_table 1 1 1 (i32.const 23) (i32.const 1))
@@ -280,10 +280,3 @@
   "type mismatch"
 )
 
-;; TODO(stack): move these elsewhere
-(module (func $type-cont-num-vs-void
-  (loop (i32.const 0) (br 0))
-))
-(module (func $type-cont-nested-num-vs-void
-  (block (loop (i32.const 1) (loop (i32.const 1) (br 2)) (br 1)))
-))

@@ -10,6 +10,10 @@
 (module (memory 1 2)
   (data (i32.const 0) "a") (data (i32.const 1) "b") (data (i32.const 2) "c")
 )
+(module (memory 1) (global i32 (i32.const 0)) (data (get_global 0) "a"))
+(module (memory 1) (global $g i32 (i32.const 0)) (data (get_global $g) "a"))
+(module (memory 1) (data (get_global 0) "a") (global i32 (i32.const 0)))
+(module (memory 1) (data (get_global $g) "a") (global $g i32 (i32.const 0)))
 
 (module (memory (data)) (func (export "memsize") (result i32) (current_memory)))
 (assert_return (invoke "memsize") (i32.const 0))
@@ -34,33 +38,41 @@
   (module (memory 1) (data (nop)))
   "constant expression required"
 )
+(assert_invalid
+  (module (memory 1) (data (get_global $g)) (global $g (mut i32) (i32.const 0)))
+  "constant expression required"
+)
+
+(assert_unlinkable
+  (module (memory 0 0) (data (i32.const 0) "a"))
+  "data segment does not fit"
+)
+(assert_unlinkable
+  (module (memory 1 2) (data (i32.const 0) "a") (data (i32.const 98304) "b"))
+  "data segment does not fit"
+)
+;; This seems to cause a time-out on Travis.
+(;assert_unlinkable
+  (module (memory 0x10000) (data (i32.const 0xffffffff) "ab"))
+  ""  ;; either out of memory or segment does not fit
+;)
+(assert_unlinkable
+  (module (memory 1) (data (get_global 0) "a") (global i32 (i32.const 0x10000)))
+  "data segment does not fit"
+)
+
+(module (memory 0 0) (data (i32.const 0) ""))
+(module (memory 0 0) (data (i32.const 1) ""))
+(module (memory 1 2) (data (i32.const 0) "abc") (data (i32.const 0) "def"))
+(module (memory 1 2) (data (i32.const 3) "ab") (data (i32.const 0) "de"))
+(module
+  (memory 1 2)
+  (data (i32.const 0) "a") (data (i32.const 2) "b") (data (i32.const 1) "c")
+)
 
 (assert_invalid
   (module (memory 1 0))
   "memory size minimum must not be greater than maximum"
-)
-(assert_invalid
-  (module (memory 0 0) (data (i32.const 0) "a"))
-  "data segment does not fit"
-)
-(assert_invalid
-  (module (memory 1 2) (data (i32.const 0) "a") (data (i32.const 98304) "b"))
-  "data segment does not fit"
-)
-(assert_invalid
-  (module (memory 1 2) (data (i32.const 0) "abc") (data (i32.const 0) "def"))
-  "data segment not disjoint and ordered"
-)
-(assert_invalid
-  (module (memory 1 2) (data (i32.const 3) "ab") (data (i32.const 0) "de"))
-  "data segment not disjoint and ordered"
-)
-(assert_invalid
-  (module
-    (memory 1 2)
-    (data (i32.const 0) "a") (data (i32.const 2) "b") (data (i32.const 1) "c")
-  )
-  "data segment not disjoint and ordered"
 )
 (assert_invalid
   (module (memory 65537))

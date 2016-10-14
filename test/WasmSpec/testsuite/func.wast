@@ -475,11 +475,6 @@
 )
 ;)
 
-;; TODO(stack): move this elsewhere
-(module (func $type-break-last-num-vs-void
-  (i32.const 0) (br 0)
-))
-
 (assert_invalid
   (module (func $type-break-last-void-vs-num (result i32)
     (br 0)
