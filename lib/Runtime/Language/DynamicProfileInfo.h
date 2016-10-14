@@ -5,7 +5,7 @@
 #pragma once
 
 // DisableJit-TODO
-#if ENABLE_PROFILE_INFO 
+#if ENABLE_PROFILE_INFO
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 class DynamicProfileMutatorImpl;
@@ -375,6 +375,34 @@ namespace Js
         ValueType * GetDivideTypeInfo() const { return divideTypeInfo; }
 
         void RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2);
+
+        // We are overloading the value types to store whether it is a mod by power of 2.
+        // TaggedInt:
+#define DEFINE_DYNAMICPROFILEINFO_RECORDMODULUSOPTYPE_FNC                       \
+        inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, \
+                                     ProfileId profileId, bool isModByPowerOf2) \
+        {                                                                       \
+            Assert(profileId < body->GetProfiledDivOrRemCount());               \
+            /* allow one op of the modulus to be optimized - anyway */          \
+            if (divideTypeInfo[profileId].IsUninitialized())                    \
+            {                                                                   \
+                divideTypeInfo[profileId] = ValueType::GetInt(true);            \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                if (isModByPowerOf2)                                            \
+                {                                                               \
+                    divideTypeInfo[profileId] = divideTypeInfo[profileId]       \
+                                               .Merge(ValueType::GetInt(true)); \
+                }                                                               \
+                else                                                            \
+                {                                                               \
+                    divideTypeInfo[profileId] = divideTypeInfo[profileId]       \
+                                               .Merge(ValueType::Float);        \
+                }                                                               \
+            }                                                                   \
+        }
+
         bool IsModulusOpByPowerOf2(FunctionBody* body, ProfileId profileId) const;
 
         void RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object);

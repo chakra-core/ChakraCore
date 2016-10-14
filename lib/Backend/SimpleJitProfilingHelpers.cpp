@@ -153,6 +153,11 @@ namespace Js
         return result;
     }
 
+    #ifdef __clang__
+        // clang <= 7.x optimizes this away (if it is defined only under DynamicProfileInfo.cpp)
+        DEFINE_DYNAMICPROFILEINFO_RECORDMODULUSOPTYPE_FNC
+    #endif
+
     Var SimpleJitHelpers::ProfiledRemainder(FunctionBody* functionBody, ProfileId profileId, Var aLeft, Var aRight)
     {
         if(TaggedInt::IsPair(aLeft, aRight))

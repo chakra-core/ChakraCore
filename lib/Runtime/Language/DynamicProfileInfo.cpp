@@ -887,28 +887,7 @@ namespace Js
         divideTypeInfo[divideId] = divideTypeInfo[divideId].Merge(object);
     }
 
-    // We are overloading the value types to store whether it is a mod by power of 2.
-    // TaggedInt:
-    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
-    {
-        Assert(profileId < body->GetProfiledDivOrRemCount());
-        // allow one op of the modulus to be optimized - anyway
-        if (divideTypeInfo[profileId].IsUninitialized())
-        {
-            divideTypeInfo[profileId] = ValueType::GetInt(true);
-        }
-        else
-        {
-            if (isModByPowerOf2)
-            {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::GetInt(true));
-            }
-            else
-            {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::Float);
-            }
-        }
-    }
+    DEFINE_DYNAMICPROFILEINFO_RECORDMODULUSOPTYPE_FNC
 
     bool DynamicProfileInfo::IsModulusOpByPowerOf2(FunctionBody* body, ProfileId profileId) const
     {

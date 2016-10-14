@@ -216,7 +216,7 @@ namespace Js
             AllocateLoopHeaders();
         }
 
-        
+
 
         m_functionWrite->MarkScript(finalByteCodeBlock, finalAuxiliaryBlock, finalAuxiliaryContextBlock,
             m_byteCodeCount, m_byteCodeInLoopCount, m_byteCodeWithoutLDACount);
@@ -2397,7 +2397,7 @@ StoreCommon:
         //
         // Write the buffer's contents
         //
-        
+
         Assert(byteOffset < m_auxiliaryData.GetCurrentOffset());
 
         OpLayoutAuxNoReg data;
@@ -3241,23 +3241,7 @@ StoreCommon:
         }
     }
 
-    template <>
-    inline void ByteCodeWriter::Data::EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer)
-    {
-        DebugOnly(const uint offset = currentOffset);
-        if (op <= (uint16)Js::OpCode::MaxByteSizedOpcodes)
-        {
-            byte byteop = (byte)op;
-            Write(&byteop, sizeof(byte));
-        }
-        else
-        {
-            byte byteop = (byte)Js::OpCode::ExtendedOpcodePrefix;
-            Write(&byteop, sizeof(byte));
-            Write(&op, sizeof(uint16));
-        }
-        Assert(OpCodeUtil::EncodedSize((Js::OpCode)op, SmallLayout) == (currentOffset - offset));
-    }
+    DEFINE_TEMPLATE_BYTECODEWRITER_DATA_ENCODEOPCODE_FNC
 
     template <LayoutSize layoutSize>
     inline void ByteCodeWriter::Data::EncodeOpCode(uint16 op, ByteCodeWriter* writer)

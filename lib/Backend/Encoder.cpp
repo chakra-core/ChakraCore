@@ -72,7 +72,7 @@ Encoder::Encode()
         Fatal();
     }
 
-    uint bufferCRC = initialCRCSeed;  
+    uint bufferCRC = initialCRCSeed;
 
     FOREACH_INSTR_IN_FUNC(instr, m_func)
     {
@@ -240,7 +240,7 @@ Encoder::Encode()
             Fatal();
         }
     } NEXT_INSTR_IN_FUNC;
-    
+
     ptrdiff_t codeSize = m_pc - m_encodeBuffer + totalJmpTableSizeInBytes;
 
     BOOL isSuccessBrShortAndLoopAlign = false;
@@ -865,7 +865,7 @@ void Encoder::ValidateCRCOnFinalBuffer(_In_reads_bytes_(finalCodeSize) BYTE * fi
 
                     currentEndAddress = finalBufferRelocTuplePtr;
                     crcSizeToCompute = currentEndAddress - currentStartAddress;
-                    
+
                     Assert(currentEndAddress >= currentStartAddress);
 
                     finalBufferCRC = CalculateCRC(finalBufferCRC, crcSizeToCompute, currentStartAddress);
@@ -907,7 +907,7 @@ void Encoder::EnsureRelocEntryIntegrity(size_t newBufferStartAddress, size_t cod
 {
     size_t targetBrAddress = 0;
     size_t newBufferEndAddress = newBufferStartAddress + codeSize;
-    
+
     //Handle Dictionary addresses here - The target address will be in the dictionary.
     if (relocAddress < oldBufferAddress || relocAddress >= (oldBufferAddress + codeSize))
     {
@@ -936,6 +936,7 @@ void Encoder::EnsureRelocEntryIntegrity(size_t newBufferStartAddress, size_t cod
 
 uint Encoder::CalculateCRC(uint bufferCRC, size_t data)
 {
+#if defined(_WIN32) || defined(__SSE4_2__)
 #if defined(_M_IX86)
     if (AutoSystemInfo::Data.SSE4_2Available())
     {
@@ -947,6 +948,7 @@ uint Encoder::CalculateCRC(uint bufferCRC, size_t data)
         //CRC32 always returns a 32-bit result
         return (uint)_mm_crc32_u64(bufferCRC, data);
     }
+#endif
 #endif
 
     return CalculateCRC32(bufferCRC, data);
@@ -1150,7 +1152,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
     // Next, we re-write the code to shorten the BRs and adjust relocList offsets to point to new buffer.
     // We also write NOPs for aligned loops.
     BYTE* tmpBuffer = AnewArray(m_tempAlloc, BYTE, newCodeSize);
-    
+
     uint srcBufferCrc = *pShortenedBufferCRC;   //This has the intial Random CRC seed to start with.
 
     // start copying to new buffer
@@ -1254,7 +1256,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
             AssertMsg((((uint32)(label->GetPC() - buffStart)) & 0xf) == 0, "Misaligned Label");
 
             to = reloc.getLabelOrigPC() - 1;
-            
+
             CopyPartialBufferAndCalculateCRC(&dst_p, dst_size, from, to, pShortenedBufferCRC);
             srcBufferCrc = CalculateCRC(srcBufferCrc, to - from + 1, from);
 
@@ -1277,7 +1279,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
         }
     }
     // copy last chunk
-    //Exclude jumpTable content from CRC calculation. 
+    //Exclude jumpTable content from CRC calculation.
     //Though jumpTable is not part of the encoded bytes, codeSize has jumpTableSize included in it.
     CopyPartialBufferAndCalculateCRC(&dst_p, dst_size, from, buffStart + *codeSize - 1, pShortenedBufferCRC, jumpTableSize);
     srcBufferCrc = CalculateCRC(srcBufferCrc, buffStart + *codeSize - from - jumpTableSize, from);
