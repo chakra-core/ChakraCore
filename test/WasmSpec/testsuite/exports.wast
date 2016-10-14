@@ -5,7 +5,11 @@
 (module (func) (func) (export "a" (func 0)) (export "b" (func 1)))
 
 (module (func (export "a")))
+(module (func) (export "a" (func 0)))
 (module (func $a (export "a")))
+(module (func $a) (export "a" (func $a)))
+(module (export "a" (func 0)) (func))
+(module (export "a" (func $a)) (func $a))
 
 (module $Func
   (export "e" (func $f))
@@ -52,7 +56,11 @@
 (module (global i32 (i32.const 0)) (global i32 (i32.const 0)) (export "a" (global 0)) (export "b" (global 1)))
 
 (module (global (export "a") i32 (i32.const 0)))
+(module (global i32 (i32.const 0)) (export "a" (global 0)))
 (module (global $a (export "a") i32 (i32.const 0)))
+(module (global $a i32 (i32.const 0)) (export "a" (global $a)))
+(module (export "a" (global 0)) (global i32 (i32.const 0)))
+(module (export "a" (global $a)) (global $a i32 (i32.const 0)))
 
 (module $Global
   (export "e" (global $g))
@@ -99,8 +107,16 @@
 
 (module (table (export "a") 0 anyfunc))
 (module (table (export "a") 0 1 anyfunc))
+(module (table 0 anyfunc) (export "a" (table 0)))
+(module (table 0 1 anyfunc) (export "a" (table 0)))
 (module (table $a (export "a") 0 anyfunc))
 (module (table $a (export "a") 0 1 anyfunc))
+(module (table $a 0 anyfunc) (export "a" (table $a)))
+(module (table $a 0 1 anyfunc) (export "a" (table $a)))
+(module (export "a" (table 0)) (table 0 anyfunc))
+(module (export "a" (table 0)) (table 0 1 anyfunc))
+(module (export "a" (table $a)) (table $a 0 anyfunc))
+(module (export "a" (table $a)) (table $a 0 1 anyfunc))
 
 (; TODO: access table ;)
 
@@ -140,8 +156,16 @@
 
 (module (memory (export "a") 0))
 (module (memory (export "a") 0 1))
+(module (memory 0) (export "a" (memory 0)))
+(module (memory 0 1) (export "a" (memory 0)))
 (module (memory $a (export "a") 0))
 (module (memory $a (export "a") 0 1))
+(module (memory $a 0) (export "a" (memory $a)))
+(module (memory $a 0 1) (export "a" (memory $a)))
+(module (export "a" (memory 0)) (memory 0))
+(module (export "a" (memory 0)) (memory 0 1))
+(module (export "a" (memory $a)) (memory $a 0))
+(module (export "a" (memory $a)) (memory $a 0 1))
 
 (; TODO: access memory ;)
 

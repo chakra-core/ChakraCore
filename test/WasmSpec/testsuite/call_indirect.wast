@@ -285,21 +285,6 @@
   "type mismatch"
 )
 
-;; TODO(stack): move these elsewhere
-(module
-  (type (func (param i32 i32)))
-  (table 0 anyfunc)
-  (func $arity-nop-first
-    (call_indirect 0 (nop) (i32.const 1) (i32.const 2) (i32.const 0))
-  )
-  (func $arity-nop-mid
-    (call_indirect 0 (i32.const 1) (nop) (i32.const 2) (i32.const 0))
-  )
-  (func $arity-nop-last
-    (call_indirect 0 (i32.const 1) (i32.const 2) (nop) (i32.const 0))
-  )
-)
-
 (assert_invalid
   (module
     (type (func (param i32)))

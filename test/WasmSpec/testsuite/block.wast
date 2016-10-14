@@ -75,8 +75,8 @@
     (block i32
       (br 0 (i32.const 18))
       (br 0 (i32.const 19))
-      (br_if 0 (i32.const 20) (i32.const 0))
-      (br_if 0 (i32.const 20) (i32.const 1))
+      (drop (br_if 0 (i32.const 20) (i32.const 0)))
+      (drop (br_if 0 (i32.const 20) (i32.const 1)))
       (br 0 (i32.const 21))
       (br_table 0 (i32.const 22) (i32.const 4))
       (br_table 0 0 0 (i32.const 23) (i32.const 1))
@@ -197,11 +197,6 @@
   "type mismatch"
 )
 ;)
-
-;; TODO(stack): move this elsewhere
-(module (func $type-break-num-vs-void
-  (block (i32.const 66) (br 0))
-))
 
 (assert_invalid
   (module (func $type-break-last-void-vs-num (result i32)
