@@ -17,7 +17,7 @@ const argv = require("yargs")
     bin: {
       string: true,
       alias: "b",
-      description: "Path to sexpr-wasm exe",
+      description: "Path to wast2wasm exe",
       demand: true,
     },
     suite: {

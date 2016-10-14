@@ -42,36 +42,29 @@ function getAssertInfo(node) {
 }
 
 function extractModule(moduleNode) {
-  const module = {funcs: {}, exports: {}};
+  const module = {exports: {}};
   let iFunc = 0;
   for(const node of moduleNode.content.slice(1)) {
     const nodeType = getNodeType(node);
     switch(nodeType) {
       case "func":
-        let funcName = node.content[1].content;
-        if (node.content[1].type !== "atom") {
-          funcName = iFunc;
-        }
         const nItems = node.content.length;
         const func = {
           params: [],
           return: undefined,
+          export: "" + iFunc,
           body: node.content[nItems - 1].content,
         };
-        for(const subnode of node.content.slice(2, nItems - 1)) {
+        for(const subnode of node.content.slice(1, nItems - 1)) {
           switch(getNodeType(subnode)) {
+            case "export": func.export = subnode.content[1].content; break;
             case "param": func.params.push(subnode); break;
             case "result": func.return = subnode; break;
           }
         }
-        module.funcs[funcName] = func;
+        module.exports[func.export] = func;
         iFunc++;
         break;
-      case "export": {
-        const exportName = node.content[1].content;
-        const moduleFuncName = node.content[2].content;
-        module.exports[exportName] = moduleFuncName;
-      }
     }
   }
   return module;
@@ -95,7 +88,7 @@ module.exports = function(argv) {
         case "assert_trap":
         case "assert_return": {
           const assertInfo = getAssertInfo(root);
-          const func = wasmModule.funcs[wasmModule.exports[assertInfo.fnName]];
+          const func = wasmModule.exports[assertInfo.fnName];
           let genInfos;
           if (assertInfo.args.length === 1) {
             genInfos = [{
@@ -150,13 +143,15 @@ module.exports = function(argv) {
               type: "list",
               content: [
                 {type: "atom", content: "func"},
-                {type: "atom", content: `$${fnName}`},
+                {type: "list", content: [
+                  {type: "atom", content: "export"},
+                  {type: "string", content: fnName},
+                ]},
                 ...info.params,
                 func.return,
                 info.call
               ]
             });
-            const funcExport = `(export "${fnName}" $${fnName})`;
             const newAssert = nodeToString({
               type: "list",
               content: [
@@ -172,7 +167,6 @@ module.exports = function(argv) {
             //`(${rootType} (invoke "${fnName}" ${nodeToString(info.invoke)}) ${nodeToString(assertInfo.returnInfo)})`;
 
             newModuleContent.push(newFunc);
-            newModuleContent.push(funcExport);
             asserts.push(newAssert);
           }
           break;
