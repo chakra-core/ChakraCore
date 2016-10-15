@@ -6,6 +6,9 @@
 #include "WasmReaderPch.h"
 
 #ifdef ENABLE_WASM
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#include "Codex\Utf8Helper.h"
+#endif
 
 namespace Wasm
 {
@@ -172,8 +175,14 @@ WasmBinaryReader::ReadSectionHeader()
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    Assert(idSize < 64);
-    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), sectionName, sectionSize, sectionSize);
+    if (DO_WASM_TRACE_SECTION)
+    {
+        char16* wstr = nullptr;
+        size_t unused;
+        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, idSize, &wstr, &unused);
+        TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), wstr, sectionSize, sectionSize);
+        free(wstr);
+    }
 #endif
     return header;
 }

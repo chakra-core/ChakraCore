@@ -4,7 +4,6 @@ if(BuildJIT)
     add_subdirectory (Backend)
 endif()
 
-add_subdirectory (WasmReader)
 add_subdirectory (Common)
 add_subdirectory (Parser)
 add_subdirectory (Runtime)

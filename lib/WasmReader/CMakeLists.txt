@@ -1,5 +1,4 @@
 add_library (Chakra.WasmReader OBJECT
-    
     WasmReaderPch.cpp
     WasmDataSegment.cpp
     WasmFunctionInfo.cpp
