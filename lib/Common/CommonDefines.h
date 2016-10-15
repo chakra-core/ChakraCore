@@ -12,9 +12,10 @@
 //----------------------------------------------------------------------------------------------------
 #define CHAKRA_CORE_MAJOR_VERSION 1
 #define CHAKRA_CORE_MINOR_VERSION 2
+#define CHAKRA_CORE_PATCH_VERSION 1
 #define CHAKRA_CORE_VERSION_RELEASE 1
 #define CHAKRA_CORE_VERSION_PRERELEASE 0
-#define CHAKRA_CORE_VERSION_RELEASE_QFE 0
+#define CHAKRA_CORE_VERSION_RELEASE_QFE 0 // Redundant with PATCH_VERSION. Keep this value set to 0.
 
 #define CHAKRA_VERSION_RELEASE 1
 
