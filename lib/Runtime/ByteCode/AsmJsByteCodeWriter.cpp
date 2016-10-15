@@ -9,45 +9,15 @@
 
 namespace Js
 {
-    template <>
-    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
-    {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
-
-        uint offset;
-        if (op <= Js::OpCode::MaxByteSizedOpcodes)
-        {
-            byte byteop = (byte)op;
-            offset = Write(&byteop, sizeof(byte));
-        }
-        else
-        {
-            byte byteop = (byte)Js::OpCodeAsmJs::ExtendedOpcodePrefix;
-            offset = Write(&byteop, sizeof(byte));
-            byteop = (byte)op;
-            Write(&byteop, sizeof(byte));
-        }
-
-        if (!isPatching)
-        {
-            writer->IncreaseByteCodeCount();
-        }
-        return offset;
-    }
-
     template <LayoutSize layoutSize>
     inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
+        Assert(OpCodeUtilAsmJs::IsValidByteCodeOpcode(op));
 
-        CompileAssert(layoutSize != SmallLayout);
-        const byte exop = (byte)((op <= Js::OpCodeAsmJs::MaxByteSizedOpcodes) ?
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::LargeLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix) :
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix));
-
-        uint offset = Write(&exop, sizeof(byte));
-        byte byteop = (byte)op;
-        Write(&byteop, sizeof(byte));
+        Assert(layoutSize == SmallLayout || OpCodeAttrAsmJs::HasMultiSizeLayout(op));
+        // Capture offset before encoding the opcode
+        uint offset = GetCurrentOffset();
+        EncodeOpCode<layoutSize>((ushort)op, writer);
 
         if (!isPatching)
         {

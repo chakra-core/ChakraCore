@@ -69,6 +69,7 @@ public:
     intptr_t GetStringMatchNameAddr() const;
 #endif
 
+    void SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid = true);
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
 
@@ -101,21 +102,21 @@ public:
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
 
     bool IsCFGEnabled();
-    void BeginJIT();
-    void EndJIT();
-    bool IsJITActive();
+    bool IsClosed();
+    
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
+    Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 
+    Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 protected:
     Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
-private:
 
-    uint m_activeJITCount;
     bool m_isAllJITCodeInPreReservedRegion;
+    bool m_isClosed;
 
 };
 

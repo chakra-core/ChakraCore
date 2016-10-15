@@ -71,6 +71,7 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_FIELD(bool, m_hasFinally, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasScopeObject, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasCachedScopePropIds, Bool);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ForInLoopDepth, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InlineCacheCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadInlineCacheStart, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadMethodInlineCacheStart, UInt32);
@@ -80,6 +81,7 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ObjLiteralCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledForInLoopCount, UInt16);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalFrameDisplayRegister, RegSlot);

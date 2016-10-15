@@ -121,7 +121,7 @@ namespace Js
         virtual BOOL HasItem(uint32 index) override sealed;
         virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags) override;
@@ -218,12 +218,12 @@ namespace Js
         static JavascriptString* Concat_BothOneChar(JavascriptString * pstLeft, JavascriptString * pstRight);
 
     public:
-        static OPT_CONSTEXPR uint32 GetOffsetOfpszValue()
+        static uint32 GetOffsetOfpszValue()
         {
             return offsetof(JavascriptString, m_pszValue);
         }
 
-        static OPT_CONSTEXPR uint32 GetOffsetOfcharLength()
+        static uint32 GetOffsetOfcharLength()
         {
             return offsetof(JavascriptString, m_charLength);
         }

@@ -324,7 +324,7 @@ namespace Js
 
         RecyclableObject *target = this->target;
 
-        JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, scriptContext);
+        JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, requestContext);
         Var getGetResult;
         if (nullptr == getGetMethod || scriptContext->IsHeapEnumInProgress())
         {
@@ -887,7 +887,7 @@ namespace Js
     }
 
     // No change to foreign enumerator, just forward
-    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
+    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
         // Reject implicit call
         ThreadContext* threadContext = requestContext->GetThreadContext();
@@ -955,7 +955,7 @@ namespace Js
         }
 
         return enumerator->Initialize(IteratorObjectEnumerator::Create(requestContext,
-            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), requestContext)), nullptr, nullptr, flags, requestContext);
+            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), requestContext)), nullptr, nullptr, flags, requestContext, nullptr);
 
     }
 
@@ -1708,7 +1708,7 @@ namespace Js
         //6. ReturnIfAbrupt(trap).
         //7. If trap is undefined, then
         //a.Return the result of calling the[[Set]] internal method of target with arguments P, V, and Receiver.
-        JavascriptFunction* setMethod = GetMethodHelper(PropertyIds::set, scriptContext);
+        JavascriptFunction* setMethod = GetMethodHelper(PropertyIds::set, requestContext);
         Var setPropertyResult;
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
         if (nullptr == setMethod)
@@ -1830,6 +1830,9 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
+
+        varMethod = CrossSite::MarshalVar(requestContext, varMethod);
+
         return JavascriptFunction::FromVar(varMethod);
     }
 

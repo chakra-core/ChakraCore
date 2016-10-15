@@ -574,12 +574,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
 #endif
-#ifdef COMPILE_DISABLE_ES7AsyncAwait
-    // If ES7AsyncAwait needs to be disabled by compile flag, DEFAULT_CONFIG_ES7AsyncAwait should be false
-    #define DEFAULT_CONFIG_ES7AsyncAwait           (false)
-#else
-    #define DEFAULT_CONFIG_ES7AsyncAwait           (false)
-#endif
+#define DEFAULT_CONFIG_ES7AsyncAwait           (true)
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
@@ -952,10 +947,7 @@ FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",
 
 FLAGPR           (Boolean, ES6, ES6Species             , "Enable ES6 '@@species' properties and built-in behaviors" , DEFAULT_CONFIG_ES6Species)
 
-#ifndef COMPILE_DISABLE_ES7AsyncAwait
-    #define COMPILE_DISABLE_ES7AsyncAwait 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
+FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
 FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
 FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
@@ -1469,7 +1461,6 @@ FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for variou
 #endif /* IR_VIEWER */
 
 FLAGNR(Boolean, InvalidateSolutionContextsForGetStructure, "To reduce memory consumption, in the end of GetStructure call, invalidate script contexts used only for GetStructure -- this would invalidate ones associated with solution files (not top-most references such as helpers.js)", DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure)
-FLAGNR(Boolean, GCPauseTel, "Enable GC Pause telemetry in the product code.", false)
 FLAGNR(Boolean, ES5LangTel, "Print ES5 language telemetry output.", false)
 FLAGNR(Boolean, ES6LangTel, "Print ES6 language telemetry output.", false)
 FLAGNR(Boolean, ESBLangTel, "Print ES built-ins telemetry output.", false)

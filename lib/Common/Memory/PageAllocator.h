@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 #include "PageAllocatorDefines.h"
+#include "Exceptions/ExceptionBase.h"
+#include "Exceptions/InternalErrorException.h"
 
 #ifdef PROFILE_MEM
 struct PageMemoryData;
@@ -113,6 +115,19 @@ public:
     virtual ~SecondaryAllocator() {};
 };
 
+class PageAllocatorBaseCommon;
+
+class SegmentBaseCommon
+{
+protected:
+    PageAllocatorBaseCommon* allocator;
+
+public:
+    SegmentBaseCommon(PageAllocatorBaseCommon* allocator);
+    virtual ~SegmentBaseCommon() {}
+    bool IsInPreReservedHeapPageAllocator() const;
+};
+
 /*
  * A segment is a collection of pages. A page corresponds to the concept of an
  * OS memory page. Segments allocate memory using the OS VirtualAlloc call.
@@ -120,7 +135,7 @@ public:
  * a system-wide constant.
  */
 template<typename TVirtualAlloc>
-class SegmentBase
+class SegmentBase: public SegmentBaseCommon
 {
 public:
     SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, DECLSPEC_GUARD_OVERFLOW size_t pageCount);
@@ -140,8 +155,10 @@ public:
 
     bool CanAllocSecondary() { Assert(secondaryAllocator); return secondaryAllocator->CanAllocate(); }
 
-    PageAllocatorBase<TVirtualAlloc>* GetAllocator() const { return allocator; }
-    bool IsInPreReservedHeapPageAllocator() const;
+    PageAllocatorBase<TVirtualAlloc>* GetAllocator() const
+    {
+        return static_cast<PageAllocatorBase<TVirtualAlloc>*>(allocator);
+    }
 
     bool Initialize(DWORD allocFlags, bool excludeGuardPages);
 
@@ -161,7 +178,7 @@ public:
 
     bool IsInCustomHeapAllocator() const
     {
-        return this->allocator->type == PageAllocatorType::PageAllocatorType_CustomHeap;
+        return this->GetAllocator()->type == PageAllocatorType::PageAllocatorType_CustomHeap;
     }
 
     SecondaryAllocator* GetSecondaryAllocator() { return secondaryAllocator; }
@@ -185,7 +202,6 @@ protected:
 
     SecondaryAllocator* secondaryAllocator;
     char * address;
-    PageAllocatorBase<TVirtualAlloc> * allocator;
     size_t segmentPageCount;
     uint trailingGuardPageCount;
     uint leadingGuardPageCount;
@@ -365,6 +381,75 @@ private:
     friend class HeapPageAllocator<>;
 };
 
+class MemoryOperationLastError
+{
+public:
+    static void RecordLastError()
+    {
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = GetLastError();
+        }
+    }
+    static void RecordLastErrorAndThrow()
+    {
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = GetLastError();
+            throw Js::InternalErrorException();
+        }
+    }
+    static void CheckProcessAndThrowFatalError(HANDLE hProcess)
+    {
+        DWORD lastError = GetLastError();
+        if (MemOpLastError == 0)
+        {
+            MemOpLastError = lastError;
+        }
+        if (lastError != 0)
+        {
+            DWORD exitCode = STILL_ACTIVE;
+            if (!GetExitCodeProcess(hProcess, &exitCode) || exitCode == STILL_ACTIVE)
+            {
+                // REVIEW: In OOP JIT, target process is still alive but the memory operation failed 
+                // we should fail fast(terminate) the runtime process, fail fast here in server process
+                // is to capture bug might exist in CustomHeap implementation.
+                // if target process is already gone, we don't care the failure here
+
+                // REVIEW: the VM operation might fail if target process is in middle of terminating
+                // will GetExitCodeProcess return STILL_ACTIVE for such case?
+                Js::Throw::FatalInternalErrorEx(lastError);
+            }
+        }
+
+    }
+    static void ClearLastError()
+    {
+        MemOpLastError = 0;
+    }
+    static DWORD GetLastError()
+    {
+        return MemOpLastError;
+    }
+private:
+    THREAD_LOCAL static DWORD MemOpLastError;
+};
+
+class PageAllocatorBaseCommon
+{
+protected:
+    void* virtualAllocator;  // non-nullptr means PreReserved page allocator
+
+public:
+    PageAllocatorBaseCommon() : virtualAllocator(nullptr) {}
+    virtual ~PageAllocatorBaseCommon() {}
+
+    bool IsPreReservedPageAllocator() const
+    {
+        return virtualAllocator != nullptr;
+    }
+};
+
 /*
  * This allocator is responsible for allocating and freeing pages. It does
  * so by virtue of allocating segments for groups of pages, and then handing
@@ -374,7 +459,7 @@ private:
  */
 
 template<typename TVirtualAlloc>
-class PageAllocatorBase
+class PageAllocatorBase: public PageAllocatorBaseCommon
 {
     friend class ::CodeGenNumberThreadAllocator;
     friend struct ::XProcNumberPageSegmentManager;
@@ -442,9 +527,7 @@ public:
     uint GetMaxAllocPageCount();
 
     //VirtualAllocator APIs
-    TVirtualAlloc * GetVirtualAllocator() { return virtualAllocator; }
-    bool IsPreReservedPageAllocator() { return virtualAllocator != nullptr; }
-
+    TVirtualAlloc * GetVirtualAllocator() const;
 
     PageAllocation * AllocPagesForBytes(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     PageAllocation * AllocAllocation(DECLSPEC_GUARD_OVERFLOW size_t pageCount);
@@ -517,6 +600,8 @@ public:
     char16 const * debugName;
 #endif
 protected:
+    void InitVirtualAllocator(TVirtualAlloc * virtualAllocator);
+
     SegmentBase<TVirtualAlloc> * AllocSegment(DECLSPEC_GUARD_OVERFLOW size_t pageCount);
     void ReleaseSegment(SegmentBase<TVirtualAlloc> * segment);
 
@@ -596,7 +681,6 @@ protected:
     bool disableAllocationOutOfMemory;
     bool excludeGuardPages;
     AllocationPolicyManager * policyManager;
-    TVirtualAlloc * virtualAllocator;
 
 #ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;

@@ -152,7 +152,7 @@ public:
     {
         // Simple immutable data access, no need for lock
         Assert(segment);
-        return (((Segment*)(segment))->IsInPreReservedHeapPageAllocator());
+        return reinterpret_cast<SegmentBaseCommon*>(segment)->IsInPreReservedHeapPageAllocator();
     }
 
     bool IsInNonPreReservedPageAllocator(__in void *address)
@@ -468,8 +468,7 @@ private:
     DWORD EnsurePageReadWrite(Page* page)
     {
         Assert(!page->isDecommitted);
-        BOOL result = this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
-        Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+        this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
         return PAGE_EXECUTE;
     }
 
@@ -479,8 +478,7 @@ private:
     {
         if (allocation->IsLargeAllocation())
         {
-            BOOL result = this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
-            Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+            this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
             return PAGE_EXECUTE;
         }
         else

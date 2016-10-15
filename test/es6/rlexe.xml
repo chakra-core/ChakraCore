@@ -215,21 +215,20 @@
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-force:deferparse -ES7AsyncAwait</compile-flags>
+      <compile-flags>-force:deferparse</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar -ES7AsyncAwait</compile-flags>
+      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
       <tags>exclude_fre</tags>
     </default>
@@ -756,31 +755,31 @@
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-off:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:CachedScope -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:CachedScope -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-off:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -ES6DefaultArgsSplitScope -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1288,7 +1287,7 @@
 <test>
     <default>
         <files>module-functionality.js</files>
-        <compile-flags>-ES6Module  -ES7AsyncAwait -args summary -endargs</compile-flags>
+        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
         <tags>exclude_xplat,exclude_dynapogo</tags>
     </default>
 </test>
@@ -1309,7 +1308,7 @@
 <test>
     <default>
         <files>module-namespace.js</files>
-        <compile-flags>-ES6Module  -ES7AsyncAwait -Es6ToStringTag</compile-flags>
+        <compile-flags>-ES6Module -Es6ToStringTag</compile-flags>
         <baseline>module-namespace.baseline</baseline>
         <tags>exclude_xplat</tags>
     </default>

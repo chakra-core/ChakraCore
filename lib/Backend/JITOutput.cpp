@@ -104,9 +104,10 @@ JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ush
 
     EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
 
-    Assert(allocation != nullptr);
     if (buffer == nullptr)
+    {
         Js::Throw::OutOfMemory();
+    }
 
     m_outputData->codeAddress = (intptr_t)buffer;
     m_outputData->codeSize = bytes;

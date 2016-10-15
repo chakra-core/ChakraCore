@@ -69,6 +69,7 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
         , m_stackFuncPtrSym(nullptr)
+        , m_loopBodyForInEnumeratorArrayOpnd(nullptr)
 #if DBG
         , m_callsOnStack(0)
         , m_usedAsTemp(nullptr)
@@ -194,7 +195,7 @@ private:
     void                BuildClass(Js::OpCode newOpcode, uint32 offset, Js::RegSlot constructor, Js::RegSlot extends);
     void                BuildBrReg1(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot srcRegSlot);
     void                BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot);
-    void                BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, Js::RegSlot SrcRegSlot, uint32 targetOffset);
+    void                BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, uint32 forInLoopLevel, uint32 targetOffset);
 
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, IR::RegOpnd *indexReg);
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset);
@@ -208,7 +209,8 @@ private:
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
     IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset);
     IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
-
+    IR::Opnd *          BuildForInEnumeratorOpnd(uint forInLoopLevel);
+    IR::RegOpnd *       EnsureLoopBodyForInEnumeratorArrayOpnd();
 private:
     uint                AddStatementBoundary(uint statementIndex, uint offset);
     void                CheckBuiltIn(PropertySym * propertySym, Js::BuiltinFunction *puBuiltInIndex);
@@ -348,7 +350,7 @@ private:
     uint32              m_argsOnStack;
     Js::PropertyId      m_loopBodyLocalsStartSlot;
     IR::Opnd**          m_saveLoopImplicitCallFlags;
-
+    IR::RegOpnd *       m_loopBodyForInEnumeratorArrayOpnd;
 #ifdef BYTECODE_BRANCH_ISLAND
     typedef JsUtil::BaseDictionary<uint32, uint32, JitArenaAllocator> LongBranchMap;
     LongBranchMap * longBranchMap;

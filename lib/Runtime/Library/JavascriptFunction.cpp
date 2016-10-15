@@ -755,18 +755,17 @@ namespace Js
                 // A recent compiler bug 150148 can incorrectly eliminate catch block, temporary workaround
                 if (threadContext == NULL)
                 {
-                    throw (JavascriptExceptionObject*)NULL;
+                    throw JavascriptException(nullptr);
                 }
             }
-            catch (JavascriptExceptionObject* exceptionObject)
+            catch (const JavascriptException& err)
             {
-                pExceptionObject = exceptionObject;
+                pExceptionObject = err.GetAndClear();
             }
 
             if (pExceptionObject)
             {
-                pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-                throw pExceptionObject;
+                JavascriptExceptionOperators::DoThrowCheckClone(pExceptionObject, scriptContext);
             }
         }
         END_JS_RUNTIME_CALL(scriptContext);

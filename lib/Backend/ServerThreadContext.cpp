@@ -4,9 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#if ENABLE_OOP_NATIVE_CODEGEN
+#include "JITServer/JITServer.h"
+#endif
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
+    m_refCount(0),
     m_policyManager(true),
     m_propertyMap(nullptr),
     m_pageAllocs(&HeapAllocator::Instance),
@@ -21,6 +25,10 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 #endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
+    m_pid = GetProcessId((HANDLE)data->processHandle);
+#endif
+
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
 #endif
@@ -259,4 +267,24 @@ ServerThreadContext::AddToPropertyMap(const Js::PropertyRecord * origRecord)
     m_propertyMap->Add(record);
 
     PropertyRecordTrace(_u("Added JIT property '%s' at 0x%08x, pid = %d\n"), record->GetBuffer(), record, record->pid);
+}
+
+void ServerThreadContext::AddRef()
+{
+    InterlockedExchangeAdd(&m_refCount, (uint)1);
+}
+void ServerThreadContext::Release()
+{
+    InterlockedExchangeSubtract(&m_refCount, (uint)1);
+    if (m_isClosed && m_refCount == 0)
+    {
+        HeapDelete(this);
+    }
+}
+void ServerThreadContext::Close()
+{
+    this->m_isClosed = true;
+#ifdef STACK_BACK_TRACE
+    ServerContextManager::RecordCloseContext(this);
+#endif
 }

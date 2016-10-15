@@ -9,21 +9,25 @@ namespace Js
     class TinyDictionary
     {
         static const int PowerOf2_BUCKETS = 8;
+        static const int BUCKETS_DWORDS = PowerOf2_BUCKETS / sizeof(DWORD);
         static const byte NIL = 0xff;
 
-        byte buckets[PowerOf2_BUCKETS];
+        DWORD bucketsData[BUCKETS_DWORDS];  // use DWORDs to enforce alignment
         byte next[0];
 
 public:
         TinyDictionary()
         {
-            DWORD* init = (DWORD*)buckets;
+            CompileAssert(BUCKETS_DWORDS * sizeof(DWORD) == PowerOf2_BUCKETS);
+            CompileAssert(BUCKETS_DWORDS == 2);
+            DWORD* init = bucketsData;
             init[0] = init[1] = 0xffffffff;
         }
 
         void Add(PropertyId key, byte value)
         {
-            uint32 bucketIndex = key&(PowerOf2_BUCKETS-1);
+            byte* buckets = reinterpret_cast<byte*>(bucketsData);
+            uint32 bucketIndex = key & (PowerOf2_BUCKETS - 1);
 
             byte i = buckets[bucketIndex];
             buckets[bucketIndex] = value;
@@ -34,7 +38,8 @@ public:
         template <class Data>
         inline bool TryGetValue(PropertyId key, PropertyIndex* index, const Data& data)
         {
-            uint32 bucketIndex = key&(PowerOf2_BUCKETS-1);
+            byte* buckets = reinterpret_cast<byte*>(bucketsData);
+            uint32 bucketIndex = key & (PowerOf2_BUCKETS - 1);
 
             for (byte i = buckets[bucketIndex] ; i != NIL ; i = next[i])
             {
@@ -108,9 +113,9 @@ public:
         const PropertyRecord * assignments[0];
 
 
-        TypePath() : 
+        TypePath() :
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            singletonInstance(nullptr), 
+            singletonInstance(nullptr),
 #endif
             data(nullptr)
         {

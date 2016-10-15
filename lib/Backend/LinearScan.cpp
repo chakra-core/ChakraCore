@@ -1318,6 +1318,16 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
         globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
+        if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
+        {
+#ifdef MD_GROW_LOCALS_AREA_UP
+            Assert(func->GetForInEnumeratorArrayOffset() >= 0);
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = func->GetForInEnumeratorArrayOffset();
+#else
+            // Stack offset are negative, includes the PUSH EBP and return address
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = func->GetForInEnumeratorArrayOffset() - (2 * MachPtr);
+#endif
+        }
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
         if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)

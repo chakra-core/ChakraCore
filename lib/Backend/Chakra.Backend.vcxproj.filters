@@ -336,6 +336,7 @@
     <ClInclude Include="JITTimeFixedField.h" />
     <ClInclude Include="ExternalLowerer.h" />
     <ClInclude Include="JITRecyclableObject.h" />
+    <ClInclude Include="CRC.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

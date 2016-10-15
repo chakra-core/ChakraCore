@@ -121,6 +121,7 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        forInCacheAllocator(_u("SC-ForInCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         hasUsedInlineCache(false),
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
@@ -250,7 +251,7 @@ namespace Js
         memset(propertyStrings, 0, sizeof(PropertyStringMap*)* 80);
 
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
-        this->allocId = threadContext->GetUnreleasedScriptContextCount();
+        this->allocId = threadContext->GetScriptContextCount();
 #endif
 #if DBG
         this->hadProfiled = false;
@@ -387,12 +388,6 @@ namespace Js
         {
             HeapDelete(m_domFastPathHelperMap);
         }
-        if (m_remoteScriptContextAddr != 0)
-        {
-            Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
-            m_remoteScriptContextAddr = 0;
-        }
 #endif
 
         // TODO: Can we move this on Close()?
@@ -503,6 +498,15 @@ namespace Js
 
         // In case there is something added to the list between close and dtor, just reset the list again
         this->weakReferenceDictionaryList.Reset();
+
+#if ENABLE_NATIVE_CODEGEN
+        if (m_remoteScriptContextAddr != 0)
+        {
+            Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
+            m_remoteScriptContextAddr = 0;
+        }
+#endif
 
         PERF_COUNTER_DEC(Basic, ScriptContext);
     }
@@ -670,9 +674,10 @@ namespace Js
             // Guard the closing and deleting of DebugContext as in meantime PDM might
             // call OnBreakFlagChange
             AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
-            this->debugContext->Close();
-            HeapDelete(this->debugContext);
+            DebugContext* tempDebugContext = this->debugContext;
             this->debugContext = nullptr;
+            tempDebugContext->Close();
+            HeapDelete(tempDebugContext);
         }
 
         // Need to print this out before the native code gen is deleted
@@ -4269,6 +4274,12 @@ void ScriptContext::ClearIsInstInlineCaches()
     Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
 }
 
+void ScriptContext::ClearForInCaches()
+{
+    ForInCacheAllocator()->ZeroAll();
+    Assert(ForInCacheAllocator()->IsAllZero());
+}
+
 
 #ifdef PERSISTENT_INLINE_CACHES
 void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
@@ -4462,7 +4473,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
         contextData.libraryAddr = (intptr_t)GetLibrary();
         contextData.globalObjectAddr = (intptr_t)GetLibrary()->GetGlobalObject();
-        contextData.globalObjectThisAddr = (intptr_t)GetLibrary()->GetGlobalObject()->ToThis();
         contextData.builtinFunctionsBaseAddr = (intptr_t)GetLibrary()->GetBuiltinFunctions();
         contextData.sideEffectsAddr = optimizationOverrides.GetAddressOfSideEffects();
         contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
@@ -4488,7 +4498,21 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             contextData.vtableAddresses[i] = vtblAddresses[i];
         }
-        JITManager::GetJITManager()->InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
+
+        bool allowPrereserveAlloc = true;
+#if !_M_X64_OR_ARM64
+        if (this->webWorkerId != Js::Constants::NonWebWorkerContextId)
+        {
+            allowPrereserveAlloc = false;
+        }
+#endif
+#ifndef _CONTROL_FLOW_GUARD
+        allowPrereserveAlloc = false;
+#endif
+        this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
+
+        HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+        JITManager::HandleServerCallResult(hr);
     }
 #endif
 

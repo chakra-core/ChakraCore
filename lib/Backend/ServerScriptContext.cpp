@@ -4,17 +4,22 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#if ENABLE_OOP_NATIVE_CODEGEN
+#include "JITServer/JITServer.h"
+#endif
 
-ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData) :
+ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo) :
     m_contextData(*contextData),
+    threadContextInfo(threadContextInfo),
     m_isPRNGSeeded(false),
-    m_isClosed(false),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
+    m_globalThisAddr(0),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
 #endif
-    m_activeJITCount(0)
+    m_refCount(0),
+    m_isClosed(false)
 {
 #ifdef PROFILE_EXEC
     if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
@@ -182,7 +187,15 @@ ServerScriptContext::GetGlobalObjectAddr() const
 intptr_t
 ServerScriptContext::GetGlobalObjectThisAddr() const
 {
-    return m_contextData.globalObjectThisAddr;
+    return m_globalThisAddr;
+}
+
+void
+ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
+{
+    // this should stay constant once context initialization is complete
+    Assert(!m_globalThisAddr || m_globalThisAddr == globalThis);
+    m_globalThisAddr = globalThis;
 }
 
 intptr_t
@@ -276,24 +289,28 @@ ServerScriptContext::Close()
 {
     Assert(!IsClosed());
     m_isClosed = true;
+    
+#ifdef STACK_BACK_TRACE
+    ServerContextManager::RecordCloseContext(this);
+#endif
 }
 
 void
-ServerScriptContext::BeginJIT()
+ServerScriptContext::AddRef()
 {
-    InterlockedExchangeAdd(&m_activeJITCount, 1u);
+    InterlockedExchangeAdd(&m_refCount, 1u);
 }
 
 void
-ServerScriptContext::EndJIT()
+ServerScriptContext::Release()
 {
-    InterlockedExchangeSubtract(&m_activeJITCount, 1u);
-}
-
-bool
-ServerScriptContext::IsJITActive()
-{
-    return m_activeJITCount != 0;
+    InterlockedExchangeSubtract(&m_refCount, 1u);
+    if (m_isClosed && m_refCount == 0)
+    {
+        // Not freeing here, we'll expect explicit ServerCleanupScriptContext() call to do the free
+        // otherwise after free, the CodeGen call can still get same scriptContext if there's another 
+        // ServerInitializeScriptContext call
+    }
 }
 
 Js::Var*
@@ -328,3 +345,4 @@ ServerScriptContext::GetCodeGenProfiler() const
     return nullptr;
 #endif
 }
+

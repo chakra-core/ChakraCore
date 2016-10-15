@@ -154,9 +154,9 @@ JsErrorCode ContextAPIWrapper(Fn fn)
     {
       return JsErrorOutOfMemory;
     }
-    catch (Js::JavascriptExceptionObject *  exceptionObject)
+    catch (const Js::JavascriptException& err)
     {
-        scriptContext->GetThreadContext()->SetRecordedException(exceptionObject);
+        scriptContext->GetThreadContext()->SetRecordedException(err.GetAndClear());
         return JsErrorScriptException;
     }
     catch (Js::ScriptAbortException)
@@ -209,10 +209,10 @@ JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCall
     }
     CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT
 
-    catch (Js::JavascriptExceptionObject *  exceptionObject)
+    catch (const Js::JavascriptException& err)
     {
         AssertMsg(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
-        scriptContext->GetThreadContext()->SetRecordedException(exceptionObject);
+        scriptContext->GetThreadContext()->SetRecordedException(err.GetAndClear());
         return JsErrorScriptException;
     }
 
@@ -268,9 +268,9 @@ JsErrorCode SetContextAPIWrapper(JsrtContext* newContext, Fn fn)
     {
         errorCode = JsErrorOutOfMemory;
     }
-    catch (Js::JavascriptExceptionObject *  exceptionObject)
+    catch (const Js::JavascriptException& err)
     {
-        scriptContext->GetThreadContext()->SetRecordedException(exceptionObject);
+        scriptContext->GetThreadContext()->SetRecordedException(err.GetAndClear());
         errorCode = JsErrorScriptException;
     }
     catch (Js::ScriptAbortException)
@@ -334,15 +334,15 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
 #else
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION(WRAPPER_TAG, CTX, ACTION_CODE, ...) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION(WRAPPER_TAG, CTX, ACTION_CODE, ...)
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_GLOBALWRAPPER(ACTION_CODE, ...) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_CONTEXTWRAPPER(ACTION_CODE, ...) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_NOSCRIPTWRAPPER(ACTION_CODE, ...) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_GLOBALWRAPPER(ACTION_CODE, ...)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_CONTEXTWRAPPER(ACTION_CODE, ...)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_STD_NOSCRIPTWRAPPER(ACTION_CODE, ...)
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(RESULT) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_COMPLETE_NO_RESULT() 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(RESULT)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_COMPLETE_NO_RESULT()
 
 //TODO: find and replace all of the occourences of this in jsrt.cpp
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 #endif

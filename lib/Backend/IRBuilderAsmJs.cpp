@@ -1667,7 +1667,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     {
         AddInstr(maskInstr, offset);
     }
-#if _M_IX86
+#if _M_IX86 || !_WIN32
     instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
 #endif
     AddInstr(instr, offset);

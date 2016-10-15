@@ -1918,7 +1918,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             if (instr->isInlineeEntryInstr)
             {
-                Js::Var inlineeCallInfo = 0;
+                intptr_t inlineeCallInfo = 0;
                 const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, instr->AsLabelInstr()->GetOffset(), m_pc - m_encoder->m_encodeBuffer);
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
@@ -2263,7 +2263,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 /// before we copy the contents of the temporary buffer to the target buffer.
 ///----------------------------------------------------------------------------
 void
-EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
+EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation)
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {

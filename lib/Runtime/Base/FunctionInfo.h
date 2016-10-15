@@ -22,7 +22,7 @@ namespace Js
             ErrorOnNew                     = 0x00001,
             SkipDefaultNewObject           = 0x00002,
             DoNotProfile                   = 0x00004,
-            HasNoSideEffect                = 0x00008, // calling function doesn’t cause an implicit flags to be set,
+            HasNoSideEffect                = 0x00008, // calling function doesn't cause an implicit flags to be set,
                                                       // the callee will detect and set implicit flags on its individual operations
             NeedCrossSiteSecurityCheck     = 0x00010,
             DeferredDeserialize            = 0x00020, // The function represents something that needs to be deserialized on use
@@ -39,7 +39,7 @@ namespace Js
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
         };
-        FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionBody* functionBodyImpl = NULL);
+        FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = NULL);
 
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
         static DWORD GetAttributesOffset() { return offsetof(FunctionInfo, attributes); }

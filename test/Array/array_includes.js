@@ -144,6 +144,25 @@ var tests = [
             assert.isTrue(y.includes(undefined), "includes(undefined):includes return true for search hit");
         }
     },
+    {
+        name: "Array.prototype.includes with proxy to validate that has is not called",
+        body: function () {
+
+            var calls = 0;
+            var p = new Proxy({}, {
+                get : function(_, k) {
+                    if (k == 'length') {
+                        return 4;
+                    }
+                    calls++
+                    return k*2;
+                }
+            });
+
+            var a = [].includes.call(p, 100);
+            assert.areEqual(calls, 4, "Even though 'has' is not there get will be called 4 times");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -42,3 +42,11 @@ ReferenceError: 'unresolved' is undefined
 	at Anonymous function (validate_line_column.js:65:11)
 	at foo (validate_line_column.js:10:9)
 	at Global code (validate_line_column.js:63:1)
+ReferenceError: 'unresolved' is undefined
+	at Anonymous function (validate_line_column.js:72:11)
+	at foo (validate_line_column.js:10:9)
+	at Global code (validate_line_column.js:70:1)
+ReferenceError: 'unresolved' is undefined
+	at Anonymous function (validate_line_column.js:79:11)
+	at foo (validate_line_column.js:10:9)
+	at Global code (validate_line_column.js:77:1)

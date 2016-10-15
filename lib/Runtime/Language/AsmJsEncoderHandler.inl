@@ -43,7 +43,7 @@
 #endif
 
   DEF3    ( CUSTOM     , Nop               , OP_Empty                , Empty         )
-EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty         )
+EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty         )
   DEF3    ( CUSTOM     , Label             , OP_Label                , Empty         )
   DEF3    ( CUSTOM     , Ret               , OP_Empty                , Empty         )
 

@@ -9,20 +9,20 @@ namespace Js
 {
 
     bool JavascriptStaticEnumerator::Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate, 
-        DynamicObject * objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext)
+        DynamicObject * objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
     {
         this->prefixEnumerator = prefixEnumerator;
         this->arrayEnumerator = arrayToEnumerate ? arrayToEnumerate->GetIndexEnumerator(flags, requestContext) : nullptr;
         this->currentEnumerator = prefixEnumerator ? prefixEnumerator : arrayEnumerator;
-        return this->propertyEnumerator.Initialize(objectToEnumerate, flags, requestContext);
+        return this->propertyEnumerator.Initialize(objectToEnumerate, flags, requestContext, forInCache);
     }
 
-    void JavascriptStaticEnumerator::Clear()
+    void JavascriptStaticEnumerator::Clear(EnumeratorFlags flags, ScriptContext * requestContext)
     {
         this->prefixEnumerator = nullptr;
         this->arrayEnumerator = nullptr;
         this->currentEnumerator = nullptr;
-        this->propertyEnumerator.Clear();
+        this->propertyEnumerator.Clear(flags, requestContext);
     }
 
     void JavascriptStaticEnumerator::Reset()
@@ -47,6 +47,11 @@ namespace Js
     bool JavascriptStaticEnumerator::IsNullEnumerator() const
     {
         return this->prefixEnumerator == nullptr && this->arrayEnumerator == nullptr && this->propertyEnumerator.IsNullEnumerator();
+    }
+
+    bool JavascriptStaticEnumerator::CanUseJITFastPath() const
+    {
+        return this->propertyEnumerator.CanUseJITFastPath() && this->currentEnumerator == nullptr;
     }
 
     uint32 JavascriptStaticEnumerator::GetCurrentItemIndex()
@@ -83,7 +88,7 @@ namespace Js
         {
             currentIndex = propertyEnumerator.MoveAndGetNext(propertyId, attributes);
         }
-        Assert(!currentIndex || !CrossSite::NeedMarshalVar(currentIndex, this->propertyEnumerator.GetRequestContext()));
+        Assert(!currentIndex || !CrossSite::NeedMarshalVar(currentIndex, this->propertyEnumerator.GetScriptContext()));
         Assert(!currentIndex || JavascriptString::Is(currentIndex) || (this->propertyEnumerator.GetEnumSymbols() && JavascriptSymbol::Is(currentIndex)));
         return currentIndex;
     }

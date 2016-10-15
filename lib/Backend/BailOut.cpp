@@ -197,7 +197,7 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
         Assert(currentBailOutFunc->firstActualStackOffset != -1);
 
         // Find the top of the locals on the stack from EBP
-        currentBailOutRecord->globalBailOutRecordTable-> firstActualStackOffset = currentBailOutFunc->firstActualStackOffset - inlinedArgSlotAdjust;
+        currentBailOutRecord->globalBailOutRecordTable->firstActualStackOffset = currentBailOutFunc->firstActualStackOffset - inlinedArgSlotAdjust;
 
         currentBailOutRecord = currentBailOutRecord->parent;
         currentBailOutFunc = currentBailOutFunc->GetParentFunc();
@@ -237,13 +237,12 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
     }
 
     currentBailOutRecord = bailOutRecord;
+    int32 inlineeArgStackSize = func->GetInlineeArgumentStackSize();
     do
     {
         // Note: do this only once
         currentBailOutRecord->globalBailOutRecordTable->VisitGlobalBailOutRecordTableRowsAtFirstBailOut(
           currentBailOutRecord->m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
-            int32 inlineeArgStackSize = func->GetInlineeArgumentStackSize();
-            int localsSize = func->m_localStackHeight + func->m_ArgumentsOffset;
             int offset = -(row->offset + StackSymBias);
             if (offset < 0)
             {
@@ -252,10 +251,19 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
             }
             // The locals size contains the inlined-arg-area size, so remove the inlined-arg-area size from the
             // adjustment for normal locals whose offsets are relative to the start of the locals area.
-            offset -= (localsSize - inlineeArgStackSize);
+            offset -= (inlinedArgSlotAdjust - inlineeArgStackSize);
             Assert(offset < 0);
             row->offset = offset;
         });
+
+        // Only adjust once
+        int forInEnumeratorArrayRestoreOffset = currentBailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset;
+        if (forInEnumeratorArrayRestoreOffset >= 0)
+        {
+            forInEnumeratorArrayRestoreOffset -= (inlinedArgSlotAdjust - inlineeArgStackSize);
+            Assert(forInEnumeratorArrayRestoreOffset < 0);
+            currentBailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset = forInEnumeratorArrayRestoreOffset;
+        }
         currentBailOutRecord = currentBailOutRecord->parent;
     }
     while (currentBailOutRecord != nullptr);
@@ -1467,7 +1475,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             // It will live with the JavascriptGenerator object.
             //
             Js::Arguments generatorArgs = generator->GetArguments();
-            Js::InterpreterStackFrame::Setup setup(function, generatorArgs, isInlinee);
+            Js::InterpreterStackFrame::Setup setup(function, generatorArgs, true, isInlinee);
             size_t varAllocCount = setup.GetAllocationVarCount();
             size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
             DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
@@ -1492,7 +1500,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     }
     else
     {
-        Js::InterpreterStackFrame::Setup setup(function, args, isInlinee);
+        Js::InterpreterStackFrame::Setup setup(function, args, true, isInlinee);
         size_t varAllocCount = setup.GetAllocationVarCount();
         size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
 
@@ -1537,6 +1545,13 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
         newInstance->m_reader.Create(executeFunction);
     }
+
+    int forInEnumeratorArrayRestoreOffset = bailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset;
+    if (forInEnumeratorArrayRestoreOffset != -1)
+    {
+        newInstance->forInObjectEnumerators = layout->GetForInObjectEnumeratorArrayAtOffset(forInEnumeratorArrayRestoreOffset);
+    }
+
     newInstance->ehBailoutData = bailOutRecord->ehBailoutData;
     newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOut);
 

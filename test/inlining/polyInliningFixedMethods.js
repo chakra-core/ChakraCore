@@ -3,6 +3,22 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+if (this.WScript && this.WScript.LoadScriptFile) {
+    this.WScript.LoadScriptFile("TrimStackTracePath.js");
+}
+
+function Dump(output)
+{
+  if (this.WScript)
+  {
+    WScript.Echo(output);
+  }
+  else
+  {
+    alert(output);
+  }
+}
+
 function a() { }
 a.prototype.x = function () { WScript.Echo(1); this.y(); };
 a.prototype.y = function () { WScript.Echo("a"); };
@@ -59,3 +75,33 @@ foo(a1);
 foo(b1);
 foo(c1);
 foo(d1);
+
+var obj1 = {};
+var func3 = function () {
+  function v6() {
+  }
+  v6.prototype.method0 = function () {
+  };
+  var v7 = new v6();
+  function v8() {
+  }
+  v8.method0 = function () {
+  };
+  v6.prototype = v8;
+  var v9 = new v6();
+  function v15(v16) {
+    for (var v18 = 0; v18 < 2; v18++) {
+      v16.method0();
+    }
+  }
+  v15(v7);
+  v15(v9);
+  v15();
+};
+
+obj1.method1 = func3;
+try {
+  obj1.method1();
+} catch(e) {
+  Dump(TrimStackTracePath(e.stack));
+}

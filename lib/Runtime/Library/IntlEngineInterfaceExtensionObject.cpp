@@ -384,7 +384,7 @@ namespace Js
             HRESULT hr;
 
             DelayLoadWindowsGlobalization *library = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-            
+
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
@@ -441,9 +441,9 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
         }
-        catch (JavascriptExceptionObject* exceptionObject)
+        catch (const JavascriptException& err)
         {
-            pExceptionObject = exceptionObject;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (pExceptionObject)
@@ -477,8 +477,8 @@ namespace Js
                     globAdapter->ResetNumberFormatFactoryObjects();
                     break;
                 }
-                pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-                throw pExceptionObject;
+
+                JavascriptExceptionOperators::DoThrowCheckClone(pExceptionObject, scriptContext);
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_IntlNotAvailable);
         }

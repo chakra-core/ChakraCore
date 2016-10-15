@@ -11,8 +11,6 @@ namespace Js {
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptEnumerator, RecyclableObject);
 
-        JavascriptEnumerator() { /* Do nothing, needed by the vtable ctor for ForInObjectEnumeratorWrapper */ }
-
     public:
         JavascriptEnumerator(ScriptContext* scriptContext);
 

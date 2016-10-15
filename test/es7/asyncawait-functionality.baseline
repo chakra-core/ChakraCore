@@ -32,6 +32,7 @@ Executing test #26 - Awaiting a function with multiple awaits
 Executing test #27 - Async function with nested try-catch in the body
 Executing test #28 - Async function with try-catch and try-finally in the body
 Executing test #29 - Async function and with
+Executing test #30 - Async and arguments.callee
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
@@ -75,6 +76,7 @@ Test #27 - Success Caught the expected exception inside the inner catch in async
 Test #27 - Success Caught the expected exception inside catch in async body
 Test #28 - Success Caught the expected exception inside the inner catch in async body
 Test #28 - Success finally block is executed in async body
+Test #30 - Success async function and arguments.callee
 Test #6 - Success await in an async function #1 called with result = '-4'
 Test #6 - Success await in an async function #2 called with result = '2'
 Test #6 - Success await in an async function catch a rejected Promise in 'err'. Error = 'Error: My Error'

@@ -69,7 +69,7 @@ namespace Js
 
     // FunctionProxy methods
     FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
-        FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
+        FunctionInfo(entryPoint, attributes, functionId, this),
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
         m_scriptContext(scriptContext),
@@ -1744,9 +1744,9 @@ namespace Js
                         }
                         catch (OutOfMemoryException) {}
                         catch (StackOverflowException) {}
-                        catch (JavascriptExceptionObject* exceptionObject)
+                        catch (const Js::JavascriptException& err)
                         {
-                            pExceptionObject = exceptionObject;
+                            pExceptionObject = err.GetAndClear();
                         }
 
                         // Do not do anything with an OOM or SOE, returning true is fine, it will then be undeferred (or attempted to again when called)
@@ -1755,7 +1755,7 @@ namespace Js
                             if(pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() &&
                                 pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
                             {
-                                throw pExceptionObject;
+                                JavascriptExceptionOperators::DoThrow(pExceptionObject, /*scriptContext*/nullptr);
                             }
                         }
                     }
@@ -5365,6 +5365,49 @@ namespace Js
         return false;
     }
 
+    void FunctionBody::AllocateForInCache()
+    {
+        uint profiledForInLoopCount = this->GetProfiledForInLoopCount();
+        if (profiledForInLoopCount == 0)
+        {
+            return;
+        }
+        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), ForInCache, profiledForInLoopCount));
+    }
+
+    ForInCache * FunctionBody::GetForInCache(uint index)
+    {
+        Assert(index < this->GetProfiledForInLoopCount());
+        return &((ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray))[index];
+    }
+
+    ForInCache * FunctionBody::GetForInCacheArray()
+    {
+        return ((ForInCache *)this->GetAuxPtrWithLock(AuxPointerType::ForInCacheArray));
+    }
+
+    void FunctionBody::CleanUpForInCache(bool isShutdown)
+    {
+        uint profiledForInLoopCount = this->GetProfiledForInLoopCount();
+        if (profiledForInLoopCount == 0)
+        {
+            return;
+        }
+        ForInCache * forInCacheArray = (ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
+        if (forInCacheArray)
+        {
+            if (isShutdown)
+            {
+                memset(forInCacheArray, 0, sizeof(ForInCache) * profiledForInLoopCount);
+            }
+            else
+            {
+                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
+                this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
+            }
+        }
+    }
+
     void FunctionBody::AllocateInlineCache()
     {
         Assert(this->inlineCaches == nullptr);
@@ -5414,7 +5457,7 @@ namespace Js
             }
             for (; i < totalCacheCount; i++)
             {
-                inlineCaches[i] = AllocatorNewStructZ(IsInstInlineCacheAllocator,
+                inlineCaches[i] = AllocatorNewStructZ(CacheAllocator,
                     this->m_scriptContext->GetIsInstInlineCacheAllocator(), IsInstInlineCache);
             }
 #if DBG
@@ -7138,7 +7181,7 @@ namespace Js
                     }
                     else
                     {
-                        AllocatorDelete(IsInstInlineCacheAllocator, this->m_scriptContext->GetIsInstInlineCacheAllocator(), inlineCache);
+                        AllocatorDelete(CacheAllocator, this->m_scriptContext->GetIsInstInlineCacheAllocator(), inlineCache);
                     }
                 }
             }
@@ -7296,6 +7339,8 @@ namespace Js
 #endif
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
+        CleanUpForInCache(isScriptContextClosing);
+
         this->ResetObjectLiteralTypes();
 
         // Manually clear these values to break any circular references

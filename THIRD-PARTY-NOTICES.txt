@@ -237,3 +237,12 @@ https://github.com/WebAssembly/spec
 
 The files in test/WasmSpec/testsuite are licensed as specified in test/WasmSpec/testsuite/LICENSE
 unless otherwise stated in the file
+
+---------------------------------------------
+
+CRC.h
+
+COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code or tables 
+extracted from it, as desired without restriction. 
+
+

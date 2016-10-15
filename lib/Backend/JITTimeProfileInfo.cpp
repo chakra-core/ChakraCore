@@ -14,22 +14,47 @@ JITTimeProfileInfo::JITTimeProfileInfo(ProfileDataIDL * profileData) :
 /* static */
 void
 JITTimeProfileInfo::InitializeJITProfileData(
+    __in ArenaAllocator * alloc,
     __in Js::DynamicProfileInfo * profileInfo,
     __in Js::FunctionBody *functionBody,
-    __out ProfileDataIDL * data)
+    __out ProfileDataIDL * data,
+    bool isForegroundJIT)
 {
     if (profileInfo == nullptr)
     {
         return;
     }
+
     CompileAssert(sizeof(LdElemIDL) == sizeof(Js::LdElemInfo));
+    CompileAssert(sizeof(StElemIDL) == sizeof(Js::StElemInfo));
 
     data->profiledLdElemCount = functionBody->GetProfiledLdElemCount();
-    data->ldElemData = (LdElemIDL*)profileInfo->GetLdElemInfo();
-
-    CompileAssert(sizeof(StElemIDL) == sizeof(Js::StElemInfo));
     data->profiledStElemCount = functionBody->GetProfiledStElemCount();
-    data->stElemData = (StElemIDL*)profileInfo->GetStElemInfo();
+
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() || isForegroundJIT)
+    {
+        data->ldElemData = (LdElemIDL*)profileInfo->GetLdElemInfo();
+        data->stElemData = (StElemIDL*)profileInfo->GetStElemInfo();
+    }
+    else
+    {
+        // for in-proc background JIT we need to explicitly copy LdElem and StElem info
+        data->ldElemData = AnewArray(alloc, LdElemIDL, data->profiledLdElemCount);
+        memcpy_s(
+            data->ldElemData,
+            data->profiledLdElemCount * sizeof(LdElemIDL),
+            profileInfo->GetLdElemInfo(),
+            functionBody->GetProfiledLdElemCount() * sizeof(Js::LdElemInfo)
+        );
+
+        data->stElemData = AnewArray(alloc, StElemIDL, data->profiledStElemCount);
+        memcpy_s(
+            data->stElemData,
+            data->profiledStElemCount * sizeof(StElemIDL),
+            profileInfo->GetStElemInfo(),
+            functionBody->GetProfiledStElemCount() * sizeof(Js::StElemInfo)
+        );
+    }
 
     CompileAssert(sizeof(ArrayCallSiteIDL) == sizeof(Js::ArrayCallSiteInfo));
     data->profiledArrayCallSiteCount = functionBody->GetProfiledArrayCallSiteCount();

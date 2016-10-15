@@ -81,7 +81,7 @@ namespace Js
         size_t InlineeStartOffset: sizeof(void*) * CHAR_BIT - 4;
         static size_t const MaxInlineeArgoutCount = 0xF;
 
-        static bool Encode(Js::Var &callInfo, size_t count, size_t offset)
+        static bool Encode(intptr_t &callInfo, size_t count, size_t offset)
         {
             const size_t offsetMask = (~(size_t)0) >> 4;
             const size_t countMask  = 0x0000000F;
@@ -95,7 +95,7 @@ namespace Js
                 return false;
             }
 
-            callInfo = (Js::Var)((offset << 4) | count);
+            callInfo = (offset << 4) | count;
 
             return true;
         }

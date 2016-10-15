@@ -735,40 +735,14 @@ public:
 
 #endif
 
-class IsInstInlineCacheAllocatorInfo
+
+#define CacheAllocatorTraits StandAloneFreeListPolicy
+
+class CacheAllocator : public ArenaAllocatorBase<CacheAllocatorTraits>
 {
 public:
-    struct CacheLayout
-    {
-        char bytes[4 * sizeof(intptr_t)];
-    };
-
-#if _M_X64 || _M_ARM64
-    CompileAssert(sizeof(CacheLayout) == 32);
-    static const size_t ObjectAlignmentBitShift = 5;
-#else
-    CompileAssert(sizeof(CacheLayout) == 16);
-    static const size_t ObjectAlignmentBitShift = 4;
-#endif
-
-    static const size_t ObjectAlignment = 1 << ObjectAlignmentBitShift;
-    static const size_t MaxObjectSize = sizeof(CacheLayout);
-};
-
-
-#define IsInstInlineCacheAllocatorTraits StandAloneFreeListPolicy
-
-class IsInstInlineCacheAllocator : public IsInstInlineCacheAllocatorInfo, public ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>
-{
-
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-private:
-    size_t polyCacheAllocSize;
-#endif
-
-public:
-    IsInstInlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
-        ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
+    CacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
+        ArenaAllocatorBase<CacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
@@ -791,11 +765,6 @@ public:
 #endif
     void ZeroAll();
 
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-    size_t GetPolyInlineCacheSize() { return this->polyCacheAllocSize; }
-    void LogPolyCacheAlloc(size_t size) { this->polyCacheAllocSize += size; }
-    void LogPolyCacheFree(size_t size) { this->polyCacheAllocSize -= size; }
-#endif
 };
 
 
