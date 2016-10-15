@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <intsafe.h>
-
 // Parser Includes
 #include "WasmReader.h"
 
@@ -16,4 +14,4 @@
 #endif
 
 // Runtime includes
-#include "../Runtime/runtime.h"
+#include "../Runtime/Runtime.h"

@@ -66,12 +66,12 @@ namespace Wasm
 #include "WasmSection.h"
 
 #include "WasmBinaryReader.h"
-#include "WasmBytecodeGenerator.h"
+#include "WasmByteCodeGenerator.h"
 
 // TODO (michhol): cleanup includes
-#include "Bytecode/AsmJsByteCodeWriter.h"
-#include "Bytecode/ByteCodeDumper.h"
-#include "Bytecode/AsmJsByteCodeDumper.h"
-#include "Language/AsmJSTypes.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
+#include "Language/AsmJsTypes.h"
 
 #endif // ENABLE_WASM
