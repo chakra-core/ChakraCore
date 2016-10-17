@@ -371,6 +371,16 @@ Opnd::GetImmediateValue(Func* func)
     }
 }
 
+#if TARGET_32 && !defined(_M_IX86)
+int32
+Opnd::GetImmediateValueAsInt32(Func * func)
+{
+    Assert(!IRType_IsInt64(this->GetType()));
+    Assert(this->GetKind() != OpndKindInt64Const);
+    return (int32)this->GetImmediateValue(func);
+}
+#endif
+
 BailoutConstantValue Opnd::GetConstValue()
 {
     BailoutConstantValue value;
@@ -1500,6 +1510,7 @@ IntConstOpnd::AsUint32()
 ///----------------------------------------------------------------------------
 IR::Int64ConstOpnd* Int64ConstOpnd::New(int64 value, IRType type, Func *func)
 {
+    AssertMsg(func->GetJITFunctionBody()->IsWasmFunction(), "Only WebAssembly functions should have int64 const operands. Use IntConstOpnd for size_t type");
     Int64ConstOpnd * intConstOpnd;
 
     Assert(TySize[type] == sizeof(int64));

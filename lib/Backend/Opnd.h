@@ -218,6 +218,10 @@ public:
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
     int64               GetImmediateValue(Func * func);
+#if TARGET_32 && !defined(_M_IX86)
+    // Helper for 32bits systems without int64 const operand support
+    int32               GetImmediateValueAsInt32(Func * func);
+#endif
     BailoutConstantValue GetConstValue();
     bool                GetIsJITOptimizedReg() const { return m_isJITOptimizedReg; }
     void                SetIsJITOptimizedReg(bool value) { Assert(!value || !this->IsIndirOpnd()); m_isJITOptimizedReg = value; }
