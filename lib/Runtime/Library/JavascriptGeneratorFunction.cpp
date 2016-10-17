@@ -160,9 +160,9 @@ namespace Js
         {
             CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
         }
-        catch (JavascriptExceptionObject* ex)
+        catch (const JavascriptException& err)
         {
-            e = ex;
+            e = err.GetAndClear();
         }
 
         if (e != nullptr)

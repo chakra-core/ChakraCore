@@ -1,0 +1,22 @@
+Unexpected Error while compiling memory.9.wasm
+Error: Compiling wasm failed: Invalid initexpr opcode
+Unexpected Error while compiling memory.10.wasm
+Error: Compiling wasm failed: Invalid initexpr opcode
+Unexpected Error while compiling memory.11.wasm
+Error: Compiling wasm failed: Invalid initexpr opcode
+Unexpected Error while compiling memory.12.wasm
+Error: Compiling wasm failed: Invalid initexpr opcode
+memory.wast:305: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[17] at offset 4/16: Operator I64ReinterpretF64 NYI
+memory.wast:317: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_12[26] at offset 3/9: Operator I64Const NYI
+memory.wast:318: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_13[27] at offset 3/10: Operator I64Const NYI
+memory.wast:319: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_14[28] at offset 3/9: Operator I64Const NYI
+memory.wast:320: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[29] at offset 3/11: Operator I64Const NYI
+memory.wast:321: $assert_return_16 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_16[30] at offset 3/9: Operator I64Const NYI
+memory.wast:322: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_17[31] at offset 3/13: Operator I64Const NYI
+memory.wast:324: $assert_return_18 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_18[32] at offset 4/11: Operator I64Const NYI
+memory.wast:325: $assert_return_19 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_19[33] at offset 4/11: Operator I64Const NYI
+memory.wast:326: $assert_return_20 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_20[34] at offset 5/13: Operator I64Const NYI
+memory.wast:327: $assert_return_21 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_21[35] at offset 5/13: Operator I64Const NYI
+memory.wast:328: $assert_return_22 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_22[36] at offset 5/13: Operator I64Const NYI
+memory.wast:329: $assert_return_23 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_23[37] at offset 5/13: Operator I64Const NYI
+14/27 tests passed.

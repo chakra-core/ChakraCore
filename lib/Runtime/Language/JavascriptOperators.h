@@ -24,8 +24,9 @@ namespace Js
 
 #define TYPEOF_ERROR_HANDLER_CATCH(scriptContext, var) \
     } \
-    catch (Js::JavascriptExceptionObject *exceptionObject) \
+    catch (const JavascriptException& err) \
     { \
+        JavascriptExceptionObject* exceptionObject = err.GetAndClear(); \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
         if (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
         { \
@@ -39,7 +40,7 @@ namespace Js
                 } \
                 else \
                 { \
-                    throw exceptionObject; \
+                    JavascriptExceptionOperators::DoThrow(exceptionObject, scriptContext); \
                 } \
             } \
         } \
@@ -364,8 +365,7 @@ namespace Js
         static void OP_InitComputedProperty(Var object, Var elementName, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static void OP_InitProto(Var object, PropertyId propertyId, Var value);
 
-        static ForInObjectEnumerator * OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext);
-        static void OP_ReleaseForInEnumerator(ForInObjectEnumerator * enumerator, ScriptContext* scriptContext);
+        static void OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, ForInCache * forInCache = nullptr);
         static Var OP_BrOnEmpty(ForInObjectEnumerator * enumerator);
         static BOOL OP_BrHasSideEffects(int se,ScriptContext* scriptContext);
         static BOOL OP_BrNotHasSideEffects(int se,ScriptContext* scriptContext);

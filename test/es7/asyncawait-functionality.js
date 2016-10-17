@@ -918,6 +918,23 @@ var tests = [
             });
         }
     },
+    {
+        name: "Async and arguments.callee",
+        body: function (index) {
+            async function asyncMethod() {
+                return arguments.callee;
+            }
+            asyncMethod().then(result => {
+                if (result === asyncMethod) {
+                    echo(`Test #${index} - Success async function and arguments.callee`);
+                } else {
+                    echo(`Test #${index} - Failed async function and arguments.callee called with result = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error async function and arguments.callee called with err = ${err}`);
+            });
+        }
+    }
 ];
 
 var index = 1;

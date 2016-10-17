@@ -881,7 +881,7 @@
   )
   (func (export "as-br_if-value-cond") (result i32)
     (block i32
-      (br_if 0 (i32.const 6) (br_table 0 0 (i32.const 9) (i32.const 0)))
+      (drop (br_if 0 (i32.const 6) (br_table 0 0 (i32.const 9) (i32.const 0))))
       (i32.const 7)
     )
   )
@@ -1158,7 +1158,7 @@
         (i32.const 1)
         (block i32
           (drop (i32.const 2))
-          (br_if 0 (i32.const 4) (br_table 0 1 0 (i32.const 8) (get_local 0)))
+          (drop (br_if 0 (i32.const 4) (br_table 0 1 0 (i32.const 8) (get_local 0))))
           (i32.const 16)
         )
       )
@@ -1381,11 +1381,6 @@
   ))
   "type mismatch"
 )
-
-;; TODO(stack): move this elsewhere
-(module (func $type-arg-num-vs-void
-  (block (br_table 0 (i32.const 0) (i32.const 1)))
-))
 
 (; TODO(stack): soft failure
 (assert_invalid

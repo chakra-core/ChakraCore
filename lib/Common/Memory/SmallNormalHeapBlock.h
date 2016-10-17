@@ -21,7 +21,11 @@ public:
     static SmallNormalHeapBlockT * New(HeapBucketT<SmallNormalHeapBlockT> * bucket);
     static void Delete(SmallNormalHeapBlockT * block);
 
-    SmallNormalHeapBlockT * GetNextBlock() const { return Base::GetNextBlock()->template AsNormalBlock<TBlockAttributes>(); }
+    SmallNormalHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = Base::GetNextBlock();
+        return block ? block->template AsNormalBlock<TBlockAttributes>() : nullptr;
+    }
     void SetNextBlock(SmallNormalHeapBlockT * next) { Base::SetNextBlock(next); }
 
     void ScanInitialImplicitRoots(Recycler * recycler);
@@ -66,7 +70,11 @@ public:
     static SmallNormalWithBarrierHeapBlockT * New(HeapBucketT<SmallNormalWithBarrierHeapBlockT> * bucket);
     static void Delete(SmallNormalWithBarrierHeapBlockT * heapBlock);
 
-    SmallNormalWithBarrierHeapBlockT * GetNextBlock() const { return ((SmallHeapBlock*) this)->GetNextBlock()->AsNormalWriteBarrierBlock<TBlockAttributes>(); }
+    SmallNormalWithBarrierHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsNormalWriteBarrierBlock<TBlockAttributes>() : nullptr;
+    }
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
     {

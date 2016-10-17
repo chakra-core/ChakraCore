@@ -128,7 +128,7 @@ namespace TTD
         {
             Js::Var message = InflateVarInReplay(ctx, errorData->Var1);
 
-            Js::Var res = nullptr; 
+            Js::Var res = nullptr;
             switch(eventKind)
             {
             case EventKind::CreateErrorActionTag:
@@ -564,7 +564,7 @@ namespace TTD
             Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
 
             //remove implicit constructor function as first arg in callInfo and argument loop below
-            Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)(ccAction->ArgCount - 1)); 
+            Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)(ccAction->ArgCount - 1));
             for(uint32 i = 1; i < ccAction->ArgCount; ++i)
             {
                 ccAction->ExecArgs[i - 1] = InflateVarInReplay(ctx, ccAction->ArgArray[i]);
@@ -937,9 +937,10 @@ namespace TTD
 
                     AssertMsg(EventCompletesScriptContextNormally(evt), "Why did we get a different completion");
                 }
-                catch(Js::JavascriptExceptionObject*)
+                catch(const Js::JavascriptException& err)
                 {
 #if ENABLE_TTD_DEBUGGING
+                    err.GetAndClear();  // discard exception object
                     AssertMsg(EventCompletesScriptContextWithException(evt), "Why did we get a different exception");
 
                     //convert to uncaught debugger exception for host

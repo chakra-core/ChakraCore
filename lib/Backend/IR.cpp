@@ -2429,7 +2429,8 @@ Instr::HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpC
     intptr_t address = memRefOpnd->GetMemLoc();
     IR::AddrOpndKind kind = memRefOpnd->GetAddrKind();
     Func *const func = m_func;
-    IR::IndirOpnd * indirOpnd = func->GetTopFunc()->GetConstantAddressIndirOpnd(address, kind, memRefOpnd->GetType(), loadOpCode);
+    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(address, kind, this->m_func, true);
+    IR::IndirOpnd * indirOpnd = func->GetTopFunc()->GetConstantAddressIndirOpnd(address, addrOpnd, kind, memRefOpnd->GetType(), loadOpCode);
 
     if (indirOpnd == nullptr)
     {

@@ -1,0 +1,17 @@
+globals.wast:29: $assert_return_0 unexpectedly threw: Error: Compiling wasm failed: function get-a[0] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:30: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_1[13] at offset 3/7: I64 return type NYI
+globals.wast:31: $assert_return_2 unexpectedly threw: Error: Compiling wasm failed: function get-x[2] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:32: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[15] at offset 3/7: I64 return type NYI
+globals.wast:34: $assert_return_4 unexpectedly threw: Error: Compiling wasm failed: function get-1[6] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:35: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_5[17] at offset 4/16: Operator I64ReinterpretF64 NYI
+globals.wast:36: $assert_return_6 unexpectedly threw: Error: Compiling wasm failed: function get-5[8] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:37: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[19] at offset 4/16: Operator I64ReinterpretF64 NYI
+globals.wast:39: $assert_return_8 unexpectedly threw: Error: Compiling wasm failed: function set-x[4] at offset 4/6: Unknown expression's op 0xBC
+globals.wast:40: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_9[21] at offset 3/9: Operator I64Const NYI
+globals.wast:41: $assert_return_10 unexpectedly threw: Error: Compiling wasm failed: function set-5[10] at offset 4/6: Unknown expression's op 0xBC
+globals.wast:42: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function set-6[11] at offset 4/6: Unknown expression's op 0xBC
+globals.wast:44: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function get-x[2] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:45: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_13[25] at offset 3/7: I64 return type NYI
+globals.wast:46: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function get-5[8] at offset 2/4: Unknown expression's op 0xBB
+globals.wast:47: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[27] at offset 4/16: Operator I64ReinterpretF64 NYI
+0/16 tests passed.

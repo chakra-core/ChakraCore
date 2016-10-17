@@ -73,7 +73,7 @@ namespace Js
             uint currentOffset;  // The global offset of last byte written to in the linked data structure
             bool fixedGrowthPolicy;
 
-            uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            void Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
             _NOINLINE void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 
@@ -90,24 +90,19 @@ namespace Js
             inline DataChunk * GetCurrentChunk() const { return &(*current); }
             void SetCurrent(uint offset, DataChunk* currChunk);
             void Copy(Recycler* alloc, ByteBlock ** finalBlock);
-            uint Encode(OpCode op, ByteCodeWriter* writer)
-            {
-                return EncodeT<Js::SmallLayout>(op, writer);
-            }
-            uint Encode(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer)
-            {
-                return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer);
-            }
-            uint Encode(const void * rawData, int byteSize);
+            void Encode(OpCode op, ByteCodeWriter* writer) { EncodeT<Js::SmallLayout>(op, writer); }
+            void Encode(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer) { EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer); }
+            void Encode(const void * rawData, int byteSize);
 
+            template <LayoutSize layoutSize> void EncodeOpCode(uint16 op, ByteCodeWriter* writer);
+            template <> void EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
+            // EncodeT functions return the global offset where the opcode has been encoded
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, ByteCodeWriter* writer);
-            template <> uint EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer);
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
             // asm.js encoding
-            uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
-            uint Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
+            void Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
+            void Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
-            template <> uint EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
 
             void Reset();
@@ -134,12 +129,10 @@ namespace Js
         bool inEnsureLongBranch;
         uint firstUnknownJumpInfo;
         int nextBranchIslandOffset;
-
         // Size of emitting a jump around byte code instruction
-        static size_t const JumpAroundSize = sizeof(byte) + sizeof(OpLayoutBr);
+        static const uint JumpAroundSize;
         // Size of emitting a long jump byte code instruction
-        CompileAssert(OpCodeInfo<Js::OpCode::BrLong>::IsExtendedOpcode);    // extended opcode, opcode size is always sizeof(OpCode)
-        static size_t const LongBranchSize = sizeof(OpCode) + sizeof(OpLayoutBrLong);
+        static const uint LongBranchSize;
 #endif
         JsUtil::List<JumpInfo, ArenaAllocator> * m_jumpOffsets;             // Offsets to replace "ByteCodeLabel" with actual destination
         JsUtil::List<LoopHeaderData, ArenaAllocator> * m_loopHeaders;       // Start/End offsets for loops
@@ -265,6 +258,7 @@ namespace Js
         void Br(ByteCodeLabel labelID);
         void Br(OpCode op, ByteCodeLabel labelID);
         void BrReg1(OpCode op, ByteCodeLabel labelID, RegSlot R1);
+        void BrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C1);
         void BrS(OpCode op, ByteCodeLabel labelID, byte val);
         void BrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
         void BrProperty(OpCode op, ByteCodeLabel labelID, RegSlot R1, PropertyIdIndexType propertyIdIndex);
@@ -312,6 +306,7 @@ namespace Js
         template <typename SizePolicy> bool TryWriteArg(OpCode op, ArgSlot arg, RegSlot reg);
         template <typename SizePolicy> bool TryWriteArgNoSrc(OpCode op, ArgSlot arg);
         template <typename SizePolicy> bool TryWriteBrReg1(OpCode op, ByteCodeLabel labelID, RegSlot R1);
+        template <typename SizePolicy> bool TryWriteBrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C2);
         template <typename SizePolicy> bool TryWriteBrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteCallI(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount);
         template <typename SizePolicy> bool TryWriteCallIFlags(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, CallFlags callFlags);

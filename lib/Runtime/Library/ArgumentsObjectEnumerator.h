@@ -28,9 +28,9 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR(ES5ArgumentsObjectEnumerator, ArgumentsObjectPrefixEnumerator);
         ES5ArgumentsObjectEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
-        BOOL Init();
+        BOOL Init(ForInCache * forInCache);
     public:
-        static ES5ArgumentsObjectEnumerator * New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
+        static ES5ArgumentsObjectEnumerator * New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache);
         virtual void Reset() override;
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     private:

@@ -285,165 +285,167 @@ namespace Js
 #define Uint32x4LayoutType typename SizePolicy::RegSlotType
 #define Uint16x8LayoutType typename SizePolicy::RegSlotType
 #define Uint8x16LayoutType typename SizePolicy::RegSlotType
+#define LAYOUT_FIELDS_HELPER(x, y) x ## y
+#define LAYOUT_FIELDS_DEF(x, y) LAYOUT_FIELDS_HELPER(x, y)
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) \
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
     };
 #define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) \
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
     };
 
 #define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
     };
 #define LAYOUT_TYPE_WMS_REG5(layout, t0, t1, t2, t3, t4)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
     };
 #define LAYOUT_TYPE_WMS_REG6(layout, t0, t1, t2, t3, t4, t5)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
     };
 #define LAYOUT_TYPE_WMS_REG7(layout, t0, t1, t2, t3, t4, t5, t6)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
     };
 #define LAYOUT_TYPE_WMS_REG9(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
     };
 #define LAYOUT_TYPE_WMS_REG10(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
-        t9##LayoutType LAYOUT_PREFIX_##t9()9;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
+        t9##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9);\
     };
 #define LAYOUT_TYPE_WMS_REG11(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
-        t9##LayoutType LAYOUT_PREFIX_##t9()9;\
-        t10##LayoutType LAYOUT_PREFIX_##t10()10;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
+        t9##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9);\
+        t10##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10);\
     };
 #define LAYOUT_TYPE_WMS_REG17(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
-        t9##LayoutType LAYOUT_PREFIX_##t9()9;\
-        t10##LayoutType LAYOUT_PREFIX_##t10()10;\
-        t11##LayoutType LAYOUT_PREFIX_##t11()11;\
-        t12##LayoutType LAYOUT_PREFIX_##t12()12;\
-        t13##LayoutType LAYOUT_PREFIX_##t13()13;\
-        t14##LayoutType LAYOUT_PREFIX_##t14()14;\
-        t15##LayoutType LAYOUT_PREFIX_##t15()15;\
-        t16##LayoutType LAYOUT_PREFIX_##t16()16;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
+        t9##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9);\
+        t10##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10);\
+        t11##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11);\
+        t12##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12);\
+        t13##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13);\
+        t14##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14);\
+        t15##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15);\
+        t16##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16);\
     };
 #define LAYOUT_TYPE_WMS_REG18(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
-        t9##LayoutType LAYOUT_PREFIX_##t9()9;\
-        t10##LayoutType LAYOUT_PREFIX_##t10()10;\
-        t11##LayoutType LAYOUT_PREFIX_##t11()11;\
-        t12##LayoutType LAYOUT_PREFIX_##t12()12;\
-        t13##LayoutType LAYOUT_PREFIX_##t13()13;\
-        t14##LayoutType LAYOUT_PREFIX_##t14()14;\
-        t15##LayoutType LAYOUT_PREFIX_##t15()15;\
-        t16##LayoutType LAYOUT_PREFIX_##t16()16;\
-        t17##LayoutType LAYOUT_PREFIX_##t17()17;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
+        t9##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9);\
+        t10##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10);\
+        t11##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11);\
+        t12##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12);\
+        t13##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13);\
+        t14##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14);\
+        t15##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15);\
+        t16##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16);\
+        t17##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t17(), 17);\
     };
 #define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18)\
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
-        t0##LayoutType LAYOUT_PREFIX_##t0()0;\
-        t1##LayoutType LAYOUT_PREFIX_##t1()1;\
-        t2##LayoutType LAYOUT_PREFIX_##t2()2;\
-        t3##LayoutType LAYOUT_PREFIX_##t3()3;\
-        t4##LayoutType LAYOUT_PREFIX_##t4()4;\
-        t5##LayoutType LAYOUT_PREFIX_##t5()5;\
-        t6##LayoutType LAYOUT_PREFIX_##t6()6;\
-        t7##LayoutType LAYOUT_PREFIX_##t7()7;\
-        t8##LayoutType LAYOUT_PREFIX_##t8()8;\
-        t9##LayoutType LAYOUT_PREFIX_##t9()9;\
-        t10##LayoutType LAYOUT_PREFIX_##t10()10;\
-        t11##LayoutType LAYOUT_PREFIX_##t11()11;\
-        t12##LayoutType LAYOUT_PREFIX_##t12()12;\
-        t13##LayoutType LAYOUT_PREFIX_##t13()13;\
-        t14##LayoutType LAYOUT_PREFIX_##t14()14;\
-        t15##LayoutType LAYOUT_PREFIX_##t15()15;\
-        t16##LayoutType LAYOUT_PREFIX_##t16()16;\
-        t17##LayoutType LAYOUT_PREFIX_##t17()17;\
-        t18##LayoutType LAYOUT_PREFIX_##t18()18;\
+        t0##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0);\
+        t1##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1);\
+        t2##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2);\
+        t3##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3);\
+        t4##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4);\
+        t5##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5);\
+        t6##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6);\
+        t7##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7);\
+        t8##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8);\
+        t9##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9);\
+        t10##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10);\
+        t11##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11);\
+        t12##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12);\
+        t13##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13);\
+        t14##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14);\
+        t15##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15);\
+        t16##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16);\
+        t17##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t17(), 17);\
+        t18##LayoutType LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t18(), 18);\
     };
 #include "LayoutTypesAsmJs.h"
 #undef RegLayoutType

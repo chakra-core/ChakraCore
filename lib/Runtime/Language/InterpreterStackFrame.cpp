@@ -12,7 +12,7 @@
 
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
-
+#include "Library/ForInObjectEnumerator.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -608,11 +608,11 @@
 
 #define PROCESS_BRBS(name, func) PROCESS_BRBS_COMMON(name, func,)
 
-#define PROCESS_BRBReturnP1toA1_COMMON(name, func, type, suffix) \
+#define PROCESS_BRBReturnP1toA1_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
-        PROCESS_READ_LAYOUT(name, BrReg2, suffix); \
-        SetReg(playout->R1, func((type)GetNonVarReg(playout->R2))); \
+        PROCESS_READ_LAYOUT(name, BrReg1Unsigned1, suffix); \
+        SetReg(playout->R1, func(GetForInEnumerator(playout->C2))); \
         if (!GetReg(playout->R1)) \
         { \
             ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
@@ -620,7 +620,7 @@
         break; \
     }
 
-#define PROCESS_BRBReturnP1toA1(name, func, type) PROCESS_BRBReturnP1toA1_COMMON(name, func, type,)
+#define PROCESS_BRBReturnP1toA1(name, func) PROCESS_BRBReturnP1toA1_COMMON(name, func,)
 
 #define PROCESS_BRBMem_ALLOW_STACK_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -732,11 +732,21 @@
     case OpCode::name: \
     { \
         PROCESS_READ_LAYOUT(name, Reg1Unsigned1, suffix); \
-        func(GetNonVarReg(playout->R0), playout->C1); \
+        func(GetReg(playout->R0), playout->C1); \
         break; \
     }
 
 #define PROCESS_A1U1toXX(name, func) PROCESS_A1U1toXX_COMMON(name, func,)
+
+#define PROCESS_A1U1toXXWithCache_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ProfiledReg1Unsigned1, suffix); \
+        func(GetReg(playout->R0), playout->C1, playout->profileId); \
+        break; \
+    }
+
+#define PROCESS_A1U1toXXWithCache(name, func) PROCESS_A1U1toXXWithCache_COMMON(name, func,)
 
 #define PROCESS_EnvU1toXX_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -1001,14 +1011,14 @@ namespace Js
     }
 
     const int k_stackFrameVarCount = (sizeof(InterpreterStackFrame) + sizeof(Var) - 1) / sizeof(Var);
-    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool inlinee)
-        : function(function), inParams(args.Values), inSlotsCount(args.Info.Count), executeFunction(function->GetFunctionBody()), callFlags(args.Info.Flags), bailedOutOfInlinee(inlinee)
+    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool bailedOut, bool inlinee)
+        : function(function), inParams(args.Values), inSlotsCount(args.Info.Count), executeFunction(function->GetFunctionBody()), callFlags(args.Info.Flags), bailedOutOfInlinee(inlinee), bailedOut(bailedOut)
     {
         SetupInternal();
     }
 
-    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Var * inParams, int inSlotsCount, bool inlinee)
-        : function(function), inParams(inParams), inSlotsCount(inSlotsCount), executeFunction(function->GetFunctionBody()), callFlags(CallFlags_None), bailedOutOfInlinee(inlinee)
+    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Var * inParams, int inSlotsCount)
+        : function(function), inParams(inParams), inSlotsCount(inSlotsCount), executeFunction(function->GetFunctionBody()), callFlags(CallFlags_None), bailedOutOfInlinee(false), bailedOut(false)
     {
         SetupInternal();
     }
@@ -1038,8 +1048,10 @@ namespace Js
             extraVarCount += (sizeof(ImplicitCallFlags) * this->executeFunction->GetLoopCount() + sizeof(Var) - 1) / sizeof(Var);
         }
 #endif
-
-        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + extraVarCount + this->executeFunction->GetInnerScopeCount();
+        // If we bailed out, we will use the JIT frame's for..in enumerators
+        uint forInVarCount = bailedOut? 0 : (this->executeFunction->GetForInLoopDepth() * (sizeof(Js::ForInObjectEnumerator) / sizeof(Var)));
+        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + forInVarCount +
+            extraVarCount + this->executeFunction->GetInnerScopeCount();
 
         if (this->executeFunction->DoStackNestedFunc() && this->executeFunction->GetNestedCount() != 0)
         {
@@ -1174,6 +1186,17 @@ namespace Js
         newInstance->savedLoopImplicitCallFlags = nullptr;
 #endif
         char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth());
+
+        // If we bailed out, we will use the JIT frame's for..in enumerators
+        if (bailedOut || this->executeFunction->GetForInLoopDepth() == 0)
+        {
+            newInstance->forInObjectEnumerators = nullptr;
+        }
+        else
+        {
+            newInstance->forInObjectEnumerators = (ForInObjectEnumerator *)nextAllocBytes;
+            nextAllocBytes += sizeof(ForInObjectEnumerator) * this->executeFunction->GetForInLoopDepth();
+        }
 
         if (this->executeFunction->GetInnerScopeCount())
         {
@@ -2345,8 +2368,9 @@ namespace Js
             {
                 return this->ProcessWithDebugging();
             }
-            catch (JavascriptExceptionObject *exception_)
+            catch (const Js::JavascriptException& err)
             {
+                JavascriptExceptionObject *exception_ = err.GetAndClear();
                 Assert(exception_);
                 exception = exception_;
             }
@@ -2377,18 +2401,13 @@ namespace Js
                     }
                 }
 
-                exception = exception->CloneIfStaticExceptionObject(scriptContext);
-                throw exception;
+                JavascriptExceptionOperators::DoThrowCheckClone(exception, scriptContext);
             }
         }
     }
 
-    template<>
-    OpCode InterpreterStackFrame::ReadByteOp<OpCode>(const byte *& ip
-#if DBG_DUMP
-        , bool isExtended /*= false*/
-#endif
-        )
+    template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+    OpCodeType InterpreterStackFrame::ReadOp(const byte *& ip)
     {
 #if DBG || DBG_DUMP
         //
@@ -2406,55 +2425,34 @@ namespace Js
         }
 #endif
 
-        OpCode op = ByteCodeReader::ReadByteOp(ip);
+        OpCodeType op = (OpCodeType)ReadOpFunc(ip);
 
 #if DBG_DUMP
-
-        this->scriptContext->byteCodeHistogram[(int)op]++;
-        if (PHASE_TRACE(Js::InterpreterPhase, this->m_functionBody))
-        {
-            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName((Js::OpCode)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
-        }
+        TracingFunc(this, op);
 #endif
         return op;
     }
 
-#ifdef ASMJS_PLAT
-    template<>
-    OpCodeAsmJs InterpreterStackFrame::ReadByteOp<OpCodeAsmJs>(const byte *& ip
-#if DBG_DUMP
-        , bool isExtended /*= false*/
-#endif
-        )
+    void InterpreterStackFrame::TraceOpCode(InterpreterStackFrame* that, Js::OpCode op)
     {
-#if DBG || DBG_DUMP
-        //
-        // For debugging byte-code, store the current offset before the instruction is read:
-        // - We convert this to "void *" to encourage the debugger to always display in hex,
-        //   which matches the displayed offsets used by ByteCodeDumper.
-        //
-        this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
-#endif
-
-#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
-        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
-        {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-        }
-#endif
-
-        OpCodeAsmJs op = (OpCodeAsmJs)ByteCodeReader::ReadByteOp(ip);
-
 #if DBG_DUMP
-        if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
+        that->scriptContext->byteCodeHistogram[(int)op]++;
+        if (PHASE_TRACE(Js::InterpreterPhase, that->m_functionBody))
         {
-            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName((Js::OpCodeAsmJs)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
-            Output::Flush();
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName(op), that->DEBUG_currentByteOffset);
         }
 #endif
-        return op;
     }
+
+    void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
+    {
+#if DBG_DUMP && defined(ASMJS_PLAT)
+        if (PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
+        {
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
+        }
 #endif
+    }
 
     _NOINLINE
     Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)
@@ -6559,11 +6557,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->TrySetRetOffset();
             }
         }
-        catch (Js::JavascriptExceptionObject * exceptionObject)
+        catch (const Js::JavascriptException& err)
         {
             // We are using C++ exception handling which does not unwind the stack in the catch block.
             // For stack overflow and OOM exceptions, we cannot run user code here because the stack is not unwind.
-            exception = exceptionObject;
+            exception = err.GetAndClear();
         }
 
         if (--this->nestedTryDepth == -1)
@@ -6578,7 +6576,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (exception->IsGeneratorReturnException())
             {
                 // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -6695,11 +6693,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->TrySetRetOffset();
                 }
             }
-            catch (Js::JavascriptExceptionObject * exceptionObject)
+            catch (const Js::JavascriptException& err)
             {
                 // We are using C++ exception handling which does not unwind the stack in the catch block.
                 // For stack overflow and OOM exceptions, we cannot run user code here because the stack is not unwind.
-                exception = exceptionObject;
+                exception = err.GetAndClear();
             }
         }
         else
@@ -6734,7 +6732,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (exception->IsGeneratorReturnException())
             {
                 // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                throw exception;
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -6774,7 +6772,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
             }
         }
-        return;
     }
 
     void InterpreterStackFrame::TrySetRetOffset()
@@ -6870,9 +6867,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 skipFinallyBlock = true;
             }
         }
-        catch (Js::JavascriptExceptionObject * e)
+        catch (const Js::JavascriptException& err)
         {
-            pExceptionObject = e;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (--this->nestedTryDepth == -1)
@@ -6939,7 +6936,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (pExceptionObject && (endOfFinallyBlock || !pExceptionObject->IsGeneratorReturnException()))
         {
-            throw pExceptionObject;
+            JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
     }
 
@@ -6988,7 +6985,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Js::JavascriptExceptionObject* exceptionObj = (Js::JavascriptExceptionObject*)GetNonVarReg(exceptionRegSlot);
         if (exceptionObj && (endOfFinallyBlock || !exceptionObj->IsGeneratorReturnException()))
         {
-            throw exceptionObj;
+            JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
         }
     }
 
@@ -8596,6 +8593,23 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         // Return the address of the first param after "this".
         return m_inParams + 1;
+    }
+
+    ForInObjectEnumerator * InterpreterStackFrame::GetForInEnumerator(uint forInLoopLevel)
+    {
+        Assert(forInLoopLevel < this->m_functionBody->GetForInLoopDepth());
+        return &this->forInObjectEnumerators[forInLoopLevel];
+    }
+
+    void InterpreterStackFrame::OP_InitForInEnumerator(Var object, uint forInLoopLevel)
+    {
+        JavascriptOperators::OP_InitForInEnumerator(object, GetForInEnumerator(forInLoopLevel), this->GetScriptContext());
+    }
+
+    void InterpreterStackFrame::OP_InitForInEnumeratorWithCache(Var object, uint forInLoopLevel, ProfileId profileId)
+    {
+        JavascriptOperators::OP_InitForInEnumerator(object, GetForInEnumerator(forInLoopLevel), this->GetScriptContext(),
+            m_functionBody->GetForInCache(profileId));
     }
 
     // Called for the debug purpose, to create the arguments object explicitly even though script has not declared it.

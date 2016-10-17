@@ -118,6 +118,7 @@ private:
             static void     LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint forms);
             template <bool verify = false>
             static void     MakeDstEquSrc1(IR::Instr *const instr);
+            static bool     HoistLargeConstant(IR::IndirOpnd *indirOpnd, IR::Opnd *src, IR::Instr *instr);
 public:
             IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail);
             void            GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *instrInsert, IR::LabelInstr *labelHelper, IR::Instr **instrFirst = nullptr, bool fContinueLabel = false);

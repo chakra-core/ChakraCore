@@ -855,10 +855,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-#ifdef ENABLE_BASIC_TELEMETRY
-    double startTime = scriptContext->GetThreadContext()->JITTelemetry.Now();
-#endif
-
     if (body->GetScriptContext()->IsClosed())
     {
         // Should not be jitting something in the foreground when the script context is actually closed
@@ -874,8 +870,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     auto& jitData = workItem->GetJITData()->jitData;
     jitData = AnewStructZ(&alloc, FunctionJITTimeDataIDL);
-    FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false);
-
+    FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false, foreground);
+    workItem->GetJITData()->profiledIterations = workItem->RecyclableData()->JitTimeData()->GetProfiledIterations();
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
@@ -894,30 +890,18 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #if !FLOATVAR
     workItem->GetJITData()->xProcNumberPageSegment = scriptContext->GetThreadContext()->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
 #endif
+    workItem->GetJITData()->globalThisAddr = (intptr_t)scriptContext->GetLibrary()->GetGlobalObject()->ToThis();
 
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        workItem->codeGenResult = JITManager::GetJITManager()->RemoteCodeGenCall(
+        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
-            scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
-        switch (workItem->codeGenResult)
-        {
-        case S_OK:
-            break;
-        case E_ABORT:
-            throw Js::OperationAbortedException();
-        case E_OUTOFMEMORY:
-            Js::Throw::OutOfMemory();
-        case VBSERR_OutOfStack:
-            throw Js::StackOverflowException();
-        default:
-            Js::Throw::FatalInternalError();
-        }
+        JITManager::HandleServerCallResult(hr);
     }
     else
     {
@@ -964,8 +948,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             (((double)((end_time.QuadPart - jitWriteData.startTime)* (double)1000.0 / (double)freq.QuadPart))) / (1));
         Output::Flush();
     }
-    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
-
 
     workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.frameHeight);
 
@@ -1106,7 +1088,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 #endif
 
-    scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
     workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -1158,9 +1139,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 #endif
 
-#ifdef ENABLE_BASIC_TELEMETRY
-    scriptContext->GetThreadContext()->JITTelemetry.LogTime(scriptContext->GetThreadContext()->JITTelemetry.Now() - startTime);
-#endif
+    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef BGJIT_STATS
     // Must be interlocked because the following data may be modified from the background and foreground threads concurrently
@@ -2035,23 +2014,11 @@ NativeCodeGenerator::UpdateJITState()
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        // ensure jit contexts have been set up
+        // TODO: OOP JIT, move server calls to background thread to reduce foreground thread delay
         if (!scriptContext->GetRemoteScriptAddr())
         {
-            scriptContext->InitializeRemoteScriptContext();
+            return;
         }
-
-        bool allowPrereserveAlloc = true;
-#if !_M_X64_OR_ARM64
-        if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
-        {
-            allowPrereserveAlloc = false;
-        }
-#endif
-#ifndef _CONTROL_FLOW_GUARD
-        allowPrereserveAlloc = false;
-#endif
-        scriptContext->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
 
         // update all property records on server that have been changed since last jit
         ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
@@ -2094,11 +2061,9 @@ NativeCodeGenerator::UpdateJITState()
             props.reclaimedPropertyIdArray = reclaimedPropArray;
             props.newRecordCount = newCount;
             props.newRecordArray = newPropArray;
+
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
-            if (hr != S_OK)
-            {
-                Js::Throw::FatalInternalError();
-            }
+
             if (newPropArray)
             {
                 HeapDeleteArray(newCount, newPropArray);
@@ -2107,6 +2072,8 @@ NativeCodeGenerator::UpdateJITState()
             {
                 HeapDeleteArray(reclaimedCount, reclaimedPropArray);
             }
+
+            JITManager::HandleServerCallResult(hr);
         }
     }
 }
@@ -3210,6 +3177,7 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
         ThreadContext * context = this->scriptContext->GetThreadContext();
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
+            // OOP JIT TODO: need error handling?
             JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
         }
         else
@@ -3229,8 +3197,11 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         return;
     }
 
-    //DeRegister Entry Point for CFG
-    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        //DeRegister Entry Point for CFG
+        ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
+    }
 
     // The foreground allocators may have been used
     ThreadContext * context = this->scriptContext->GetThreadContext();
@@ -3239,6 +3210,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             // TODO: OOP JIT, should we always just queue this in background?
+            // OOP JIT TODO: need error handling?
             JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
             return;
         }
@@ -3680,4 +3652,22 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     trace.Done(true);
 #endif
     return true;
+}
+
+void
+JITManager::HandleServerCallResult(HRESULT hr)
+{
+    switch (hr)
+    {
+    case S_OK:
+        break;
+    case E_ABORT:
+        throw Js::OperationAbortedException();
+    case E_OUTOFMEMORY:
+        Js::Throw::OutOfMemory();
+    case VBSERR_OutOfStack:
+        throw Js::StackOverflowException();
+    default:
+        Js::Throw::FatalInternalError();
+    }
 }

@@ -18,6 +18,10 @@ class VirtualAllocWrapper
 public:
     LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = GetCurrentProcess());
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
+
+    static VirtualAllocWrapper Instance;  // single instance
+private:
+    VirtualAllocWrapper() {}
 };
 
 /*

@@ -23,7 +23,11 @@ public:
     static SmallFinalizableHeapBlockT * New(HeapBucketT<SmallFinalizableHeapBlockT> * bucket);
     static void Delete(SmallFinalizableHeapBlockT * block);
 
-    SmallFinalizableHeapBlockT * GetNextBlock() const { return SmallHeapBlockT<TBlockAttributes>::GetNextBlock()->template AsFinalizableBlock<TBlockAttributes>(); }
+    SmallFinalizableHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsFinalizableBlock<TBlockAttributes>() : nullptr;
+    }
     void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
@@ -140,7 +144,11 @@ public:
     static SmallFinalizableWithBarrierHeapBlockT * New(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT> * bucket);
     static void Delete(SmallFinalizableWithBarrierHeapBlockT * block);
 
-    SmallFinalizableWithBarrierHeapBlockT * GetNextBlock() const { return ((SmallHeapBlock*) this)->GetNextBlock()->AsFinalizableWriteBarrierBlock<TBlockAttributes>(); }
+    SmallFinalizableWithBarrierHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsFinalizableWriteBarrierBlock<TBlockAttributes>() : nullptr;
+    }
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
     {

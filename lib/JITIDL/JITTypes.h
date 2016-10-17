@@ -321,7 +321,6 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR charStringCacheAddr;
     CHAKRA_PTR libraryAddr;
     CHAKRA_PTR globalObjectAddr;
-    CHAKRA_PTR globalObjectThisAddr;
     CHAKRA_PTR sideEffectsAddr;
     CHAKRA_PTR arraySetElementFastPathVtableAddr;
     CHAKRA_PTR intArraySetElementFastPathVtableAddr;
@@ -477,11 +476,8 @@ typedef struct FunctionBodyDataIDL
 
     unsigned short envDepth;
     unsigned short inParamCount;
-    unsigned short profiledIterations;
     unsigned short argUsedForBranch;
     unsigned short profiledCallSiteCount;
-
-    IDL_PAD2(0)
 
     unsigned int funcNumber;
     unsigned int sourceContextId;
@@ -505,7 +501,7 @@ typedef struct FunctionBodyDataIDL
     unsigned int loopCount;
     unsigned int recursiveCallSiteCount;
     unsigned int isInstInlineCacheCount; // TODO: only used in Assert
-
+    unsigned int forInLoopDepth;
     unsigned int byteCodeLength;
     unsigned int constCount;
     unsigned int inlineCacheCount;
@@ -518,8 +514,6 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
-
-    X64_PAD4(1)
 
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
@@ -565,6 +559,7 @@ typedef struct FunctionBodyDataIDL
     CHAKRA_PTR auxDataBufferAddr;
     CHAKRA_PTR objectLiteralTypesAddr;
     CHAKRA_PTR formalsPropIdArrayAddr;
+    CHAKRA_PTR forInCacheArrayAddr;
 } FunctionBodyDataIDL;
 
 typedef struct FunctionJITTimeDataIDL
@@ -642,9 +637,12 @@ typedef struct CodeGenWorkItemIDL
     byte type;
     char jitMode;
 
+    unsigned short profiledIterations;
+    IDL_PAD2(0)
     unsigned int loopNumber;
     unsigned int inlineeInfoCount;
     unsigned int symIdToValueTypeMapCount;
+    X64_PAD4(1)
     XProcNumberPageSegment * xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;
@@ -657,7 +655,9 @@ typedef struct CodeGenWorkItemIDL
     FunctionJITTimeDataIDL * jitData;
     CHAKRA_PTR jittedLoopIterationsSinceLastBailoutAddr;
     CHAKRA_PTR functionBodyAddr;
+    CHAKRA_PTR globalThisAddr;
     CHAKRA_PTR nativeDataAddr;
+    X86_PAD4(2)
     __int64 startTime;
 } CodeGenWorkItemIDL;
 

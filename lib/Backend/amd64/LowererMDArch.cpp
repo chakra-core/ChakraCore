@@ -1120,13 +1120,19 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
 {
     IR::Instr* done;
     IR::Opnd * src1 = instr->UnlinkSrc1();
+    IRType type = src1->GetType();
     IR::RegOpnd * indexOpnd = src1->AsIndirOpnd()->GetIndexOpnd();
     const uint8 dataWidth = instr->dataWidth;
 
     Assert(isSimdLoad == false || dataWidth == 4 || dataWidth == 8 || dataWidth == 12 || dataWidth == 16);
 
+#ifdef _WIN32
     // For x64, bound checks are required only for SIMD loads.
     if (isSimdLoad)
+#else
+    // xplat: Always do bound check. We don't support out-of-bound access violation recovery.
+    if (true)
+#endif
     {
         IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
         IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
@@ -1159,7 +1165,21 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
         }
         Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
-        lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        if (isSimdLoad)
+        {
+            lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        }
+        else
+        {
+            if (IRType_IsFloat(type))
+            {
+                Lowerer::InsertMove(instr->UnlinkDst(), IR::FloatConstOpnd::New(Js::NumberConstants::NaN, type, m_func), loadLabel);
+            }
+            else
+            {
+                Lowerer::InsertMove(instr->UnlinkDst(), IR::IntConstOpnd::New(0, TyInt8, m_func), loadLabel);
+            }
+        }
 
         Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, loadLabel);
         done = doneLabel;
@@ -1182,8 +1202,13 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
 
     Assert(isSimdStore == false || dataWidth == 4 || dataWidth == 8 || dataWidth == 12 || dataWidth == 16);
 
+#ifdef _WIN32
     // For x64, bound checks are required only for SIMD loads.
     if (isSimdStore)
+#else
+    // xplat: Always do bound check. We don't support out-of-bound access violation recovery.
+    if (true)
+#endif
     {
         IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
         IR::LabelInstr * storeLabel = Lowerer::InsertLabel(false, instr);
@@ -1216,7 +1241,10 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
         }
         Lowerer::InsertBranch(Js::OpCode::Br, storeLabel, helperLabel);
 
-        lowererMD->m_lowerer->GenerateRuntimeError(storeLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        if (isSimdStore)
+        {
+            lowererMD->m_lowerer->GenerateRuntimeError(storeLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        }
 
         Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, storeLabel);
         done = doneLabel;
@@ -1816,7 +1844,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         }
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
-                               IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func), this->m_func);
+                               IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instr);
 
         if (doInterruptProbe)
@@ -1830,7 +1858,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     {
         // TODO: michhol, check this math
         size_t scriptStackLimit = m_func->GetThreadContextInfo()->GetScriptStackLimit();
-        this->lowererMD->CreateAssign(stackLimitOpnd, IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindConstant, this->m_func), insertInstr);
+        this->lowererMD->CreateAssign(stackLimitOpnd, IR::IntConstOpnd::New((frameSize + scriptStackLimit), TyMachReg, this->m_func), insertInstr);
     }
 
     // CMP rsp, rax
@@ -1874,7 +1902,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         // MOV RegArg0, frameSize
         this->lowererMD->CreateAssign(
             IR::RegOpnd::New(nullptr, RegArg0, TyMachReg, this->m_func),
-            IR::AddrOpnd::New((void*)frameSize, IR::AddrOpndKindConstant, this->m_func), insertInstr);
+            IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), insertInstr);
 
         // MOV rax, ThreadContext::ProbeCurrentStack
         target = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, m_func);
@@ -2743,8 +2771,8 @@ LowererMDArch::LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, I
     IR::Instr   *xorTag      = IR::Instr::New(Js::OpCode::XOR,
                                               s2,
                                               s2,
-                                              IR::AddrOpnd::New((Js::Var)Js::FloatTag_Value,
-                                                                IR::AddrOpndKindConstantVar,
+                                              IR::IntConstOpnd::New(Js::FloatTag_Value,
+                                                                TyMachReg,
                                                                 this->m_func,
                                                                 /* dontEncode = */ true),
                                               this->m_func);

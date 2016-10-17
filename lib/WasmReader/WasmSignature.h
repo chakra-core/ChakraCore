@@ -24,6 +24,7 @@ public:
     uint32 GetParamsSize() const;
     uint32 GetSignatureId() const;
 
+    bool IsEquivalent(WasmSignature* sig) const;
 private:
     ArenaAllocator* m_alloc;
     WasmTypes::WasmType m_resultType;

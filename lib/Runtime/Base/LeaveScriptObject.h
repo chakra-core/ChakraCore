@@ -94,8 +94,9 @@
 
 #define END_TRANSLATE_SO_OOM_JSEXCEPTION(hr) \
         } \
-        catch (Js::JavascriptExceptionObject *) \
+        catch (const JavascriptException& err) \
         { \
+            err.GetAndClear(); \
         } \
         catch (Js::OutOfMemoryException) \
         { \
@@ -121,18 +122,6 @@
 // 'hasCaller' property set, which will enable the stack walking across frames.
 #define ENFORCE_ENTRYEXITRECORD_HASCALLER(scriptContext) \
         scriptContext->EnforceEERHasCaller();
-
-#define BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT2(scriptContext, doCleanup, hasCaller) \
-        BEGIN_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT \
-        BEGIN_ENTER_SCRIPT(scriptContext, doCleanup, /*isCallRoot*/ false, /*hasCaller*/hasCaller) \
-        { \
-
-// Same as above but allows custom handling of exception object.
-#define END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT2(hr, exceptionObject) \
-        } \
-        END_ENTER_SCRIPT \
-        END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT(hr) \
-        catch(Js::JavascriptExceptionObject *  exceptionObject)
 
 namespace Js
 {

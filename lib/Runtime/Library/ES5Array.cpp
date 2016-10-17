@@ -304,9 +304,9 @@ namespace Js
         return DynamicObject::Freeze();
     }
 
-    BOOL ES5Array::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
+    BOOL ES5Array::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        return enumerator->Initialize(nullptr, this, this, flags, requestContext);
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
     }
 
     JavascriptEnumerator * ES5Array::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext)

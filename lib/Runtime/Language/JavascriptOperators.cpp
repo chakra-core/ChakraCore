@@ -367,8 +367,9 @@ namespace Js
                 return JavascriptOperators::Typeof(value, scriptContext);
             }
         }
-        catch(Js::JavascriptExceptionObject * )
+        catch(const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
 
@@ -496,8 +497,9 @@ namespace Js
             threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
             return JavascriptOperators::Typeof(member, scriptContext);
         }
-        catch(Js::JavascriptExceptionObject * )
+        catch(const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             threadContext->CheckAndResetImplicitCallAccessorFlag();
             threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
@@ -1384,10 +1386,23 @@ CommonNumber:
 
     Var JavascriptOperators::OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        // We know we're going to read from this array. Do the conversion before we try to perform checks on the head segment.
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(aRight);
+#endif
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
-        if (((JavascriptArray::Is(aRight) && method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint())
-                || (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
+        if (((JavascriptArray::Is(aRight) &&
+              (
+                  method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint()
+                  // Verify that the head segment of the array covers all elements with no gaps.
+                  // Accessing an element on the prototype could have side-effects that would invalidate the optimization.
+                  && JavascriptArray::FromVar(aRight)->GetHead()->next == nullptr
+                  && JavascriptArray::FromVar(aRight)->GetHead()->left == 0
+                  && JavascriptArray::FromVar(aRight)->GetHead()->length == JavascriptArray::FromVar(aRight)->GetLength()
+                  && JavascriptArray::FromVar(aRight)->HasNoMissingValues()
+              )) ||
+             (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
             // We can't optimize away the iterator if the array iterator prototype is user defined.
             && !JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext))
         {
@@ -4931,7 +4946,7 @@ CommonNumber:
         if (loadRoot)
         {
             if (moduleID == 0)
-            {                
+            {
                 thisVar = (Js::Var)scriptContext->GetGlobalObjectThisAddr();
             }
             else
@@ -5223,42 +5238,18 @@ CommonNumber:
         return aEnumerator->MoveAndGetNext(id);
     }
 
-    ForInObjectEnumerator * JavascriptOperators::OP_GetForInEnumerator(Var enumerable, ScriptContext* scriptContext)
+    void JavascriptOperators::OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, ForInCache * forInCache)
     {
         RecyclableObject* enumerableObject;
-        bool isCrossSite;
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(enumerable);
 #endif
-        if (GetPropertyObject(enumerable, scriptContext, &enumerableObject))
-        {
-            isCrossSite = enumerableObject->GetScriptContext() != scriptContext;
-        }
-        else
+        if (!GetPropertyObject(enumerable, scriptContext, &enumerableObject))
         {
             enumerableObject = nullptr;
-            isCrossSite = false;
         }
-        if (!isCrossSite)
-        {
-            ForInObjectEnumerator * enumerator  = scriptContext->GetLibrary()->GetAndClearForInEnumeratorCache();
-            if(enumerator != NULL)
-            {
-                enumerator->Initialize(enumerableObject, scriptContext);
-                return enumerator;
-            }
-        }
-        return RecyclerNew(scriptContext->GetRecycler(), ForInObjectEnumerator, enumerableObject, scriptContext);
-    }
 
-    void JavascriptOperators::OP_ReleaseForInEnumerator(ForInObjectEnumerator * enumerator, ScriptContext* scriptContext)
-    {
-        // Debugger SetNextStatement may skip OP_GetForInEnumerator and result in NULL ForInObjectEnumerator here. See Win8 391556
-        if (enumerator && enumerator->CanBeReused())
-        {
-            enumerator->Clear();
-            scriptContext->GetLibrary()->SetForInEnumeratorCache(enumerator);
-        }
+        enumerator->Initialize(enumerableObject, scriptContext, false, forInCache);
     }
 
     Js::Var JavascriptOperators::OP_CmEq_A(Var a, Var b, ScriptContext* scriptContext)
@@ -8384,7 +8375,7 @@ CommonNumber:
                 // Else, set it to next element after current nextEvictionVictim index
                 cache->nextEvictionVictim = (cache->nextEvictionVictim + 1) & (EQUIVALENT_TYPE_CACHE_SIZE - 1);
             }
-   
+
             if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
             {
                 Output::Print(_u("EquivObjTypeSpec: Saving type in used slot of equiv types cache at index = %d. NextEvictionVictim = %d. \n"), index, cache->nextEvictionVictim);
@@ -9681,7 +9672,7 @@ CommonNumber:
                 }
 
                 // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                throw yieldData->exceptionObj;
+                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
             }
 
             if (!JavascriptConversion::IsCallable(prop))
@@ -9714,7 +9705,7 @@ CommonNumber:
                 Var value = JavascriptOperators::GetProperty(obj, PropertyIds::value, scriptContext);
                 yieldData->exceptionObj->SetThrownObject(value);
                 // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                throw yieldData->exceptionObj;
+                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
             }
             return result;
         }
@@ -9750,7 +9741,7 @@ CommonNumber:
         // have to wrap the call to the generator code in a try catch.
 
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-        throw yieldData->exceptionObj;
+        JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, yieldData->exceptionObj->GetScriptContext());
     }
 
     Js::Var
@@ -10518,8 +10509,9 @@ CommonNumber:
                 JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Js::Arguments(callInfo, args));
             }
         }
-        catch (JavascriptExceptionObject *)
+        catch (const JavascriptException& err)
         {
+            err.GetAndClear();  // discard exception object
             // We have arrived in this function due to AbruptCompletion (which is an exception), so we don't need to
             // propagate the exception of calling return function
         }

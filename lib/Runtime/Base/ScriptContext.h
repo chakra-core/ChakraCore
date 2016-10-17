@@ -516,7 +516,8 @@ namespace Js
 
         ArenaAllocator dynamicProfileInfoAllocator;
         InlineCacheAllocator inlineCacheAllocator;
-        IsInstInlineCacheAllocator isInstInlineCacheAllocator;
+        CacheAllocator isInstInlineCacheAllocator;
+        CacheAllocator forInCacheAllocator;
 
         ArenaAllocator* interpreterArena;
         ArenaAllocator* guestArena;
@@ -840,9 +841,6 @@ private:
         RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
 #endif
 #endif
-#if DEBUG
-        static int scriptContextCount;
-#endif
         // List of weak reference dictionaries. We'll walk through them
         // and clean them up post-collection
         // IWeakReferenceDictionary objects are added to this list by calling
@@ -914,7 +912,16 @@ private:
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
-        intptr_t GetRemoteScriptAddr() { return m_remoteScriptContextAddr; }
+        intptr_t GetRemoteScriptAddr() 
+        {
+#if ENABLE_OOP_NATIVE_CODEGEN
+            if (!m_remoteScriptContextAddr)
+            {
+                InitializeRemoteScriptContext();
+            }
+#endif
+            return m_remoteScriptContextAddr; 
+        }
 
         char16 const * GetUrl() const { return url; }
         void SetUrl(BSTR bstr);
@@ -1294,7 +1301,8 @@ private:
         ArenaAllocator* MiscAllocator() { return &miscAllocator; }
 #endif
         InlineCacheAllocator* GetInlineCacheAllocator() { return &inlineCacheAllocator; }
-        IsInstInlineCacheAllocator* GetIsInstInlineCacheAllocator() { return &isInstInlineCacheAllocator; }
+        CacheAllocator* GetIsInstInlineCacheAllocator() { return &isInstInlineCacheAllocator; }
+        CacheAllocator * ForInCacheAllocator() { return &forInCacheAllocator; }
         ArenaAllocator* DynamicProfileInfoAllocator() { return &dynamicProfileInfoAllocator; }
 
         ArenaAllocator* AllocatorForDiagnostics();
@@ -1471,6 +1479,7 @@ private:
 #endif
         void ClearInlineCaches();
         void ClearIsInstInlineCaches();
+        void ClearForInCaches();
 #ifdef PERSISTENT_INLINE_CACHES
         void ClearInlineCachesWithDeadWeakRefs();
 #endif

@@ -56,7 +56,7 @@
     (block i32 (br_if 0 (br 0 (i32.const 8)) (i32.const 1)) (i32.const 7))
   )
   (func (export "as-br_if-value-cond") (result i32)
-    (block i32 (br_if 0 (i32.const 6) (br 0 (i32.const 9))) (i32.const 7))
+    (block i32 (drop (br_if 0 (i32.const 6) (br 0 (i32.const 9)))) (i32.const 7))
   )
 
   (func (export "as-br_table-index")
@@ -247,7 +247,7 @@
       (i32.const 1)
       (block i32
         (drop (i32.const 2))
-        (br_if 0 (i32.const 4) (br 0 (i32.const 8)))
+        (drop (br_if 0 (i32.const 4) (br 0 (i32.const 8))))
         (i32.const 16)
       )
     )
@@ -373,7 +373,7 @@
 
 ;; TODO(stack): move this elsewhere
 (module (func $type-arg-num-vs-void
-  (block (i32.const 0) (br 0))
+  (block (drop (i32.const 0)) (br 0))
 ))
 
 (; TODO(stack): soft failure

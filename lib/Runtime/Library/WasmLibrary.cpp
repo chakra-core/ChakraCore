@@ -319,7 +319,8 @@ namespace Js
                 continue;
             }
 
-            uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
+            uint32 sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
+            sigId = wasmModule->GetEquivalentSignatureId(sigId);
             if (!indirectFunctionTables[sigId])
             {
                 // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing

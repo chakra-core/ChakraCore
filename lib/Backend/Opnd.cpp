@@ -2081,7 +2081,7 @@ AddrOpnd::NewFromNumberVar(double value, Func *func, bool dontEncode /* = false 
 AddrOpnd *
 AddrOpnd::NewNull(Func *func)
 {
-    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstant, func, true);
+    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstantAddress, func, true);
 }
 
 ///----------------------------------------------------------------------------
@@ -2538,6 +2538,7 @@ IndirOpnd::GetOriginalAddress() const
 void
 IndirOpnd::SetAddrKind(IR::AddrOpndKind kind, void * originalAddress)
 {
+    Assert(originalAddress != nullptr);
     this->m_addrKind = kind;
     this->m_originalAddress = originalAddress;
 }
@@ -3259,7 +3260,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
     {
         switch (addressKind)
         {
-        case IR::AddrOpndKindConstant:
+        case IR::AddrOpndKindConstantAddress:
         {
 #ifdef _M_X64_OR_ARM64
             char16 const * format = _u("0x%012I64X");
@@ -3553,6 +3554,18 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         case AddrOpndKindDynamicDoubleRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&(double)%f)"), *(double *)address);
+            break;
+        case AddrOpndKindForInCache:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (ForInCache)"));
+            break;
+        case AddrOpndKindForInCacheType:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->type)"));
+            break;
+        case AddrOpndKindForInCacheData:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->data)"));
             break;
         case AddrOpndKindDynamicNativeCodeDataRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);

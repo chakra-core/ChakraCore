@@ -1447,7 +1447,7 @@ void InlineCacheAllocator::ZeroAll()
 #endif
 
 #if DBG
-bool IsInstInlineCacheAllocator::IsAllZero()
+bool CacheAllocator::IsAllZero()
 {
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;
@@ -1493,7 +1493,7 @@ bool IsInstInlineCacheAllocator::IsAllZero()
 }
 #endif
 
-void IsInstInlineCacheAllocator::ZeroAll()
+void CacheAllocator::ZeroAll()
 {
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;

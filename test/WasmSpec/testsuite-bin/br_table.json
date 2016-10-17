@@ -717,8 +717,5 @@
       "file": "br_table.wast",
       "line": 1376
     }]
-  }, {
-    "filename": "br_table.1.wasm",
-    "commands": []
   }]
 }

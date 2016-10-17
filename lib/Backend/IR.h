@@ -606,7 +606,7 @@ class LabelInstr : public Instr
 
 public:
     LabelInstr(JitArenaAllocator * allocator) : Instr(), labelRefs(allocator), m_isLoopTop(false), m_block(nullptr), isOpHelper(false),
-        m_hasNonBranchRef(false), m_region(nullptr), m_loweredBasicBlock(nullptr), m_isDataLabel(false)
+        m_hasNonBranchRef(false), m_region(nullptr), m_loweredBasicBlock(nullptr), m_isDataLabel(false), m_isForInExit(false)
 #if DBG
         , m_noHelperAssert(false)
 #endif
@@ -627,6 +627,11 @@ public:
     BYTE                    isOpHelper : 1;
     BYTE                    m_hasNonBranchRef : 1;
     BYTE                    m_isDataLabel : 1;
+
+    // Indicate whether the label is the target of a for in loop exit (BrOnEmpty or BrOnNotEmpty)
+    // It is used by Inliner to track inlinee for in loop level to assign stack allocated for in 
+    // This bit has unknown validity outside of inliner
+    BYTE                    m_isForInExit : 1;
 #if DBG
     BYTE                    m_noHelperAssert : 1;
 #endif

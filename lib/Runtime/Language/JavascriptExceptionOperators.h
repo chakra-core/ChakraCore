@@ -48,6 +48,9 @@ namespace Js
         static void __declspec(noreturn) ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);
         static void __declspec(noreturn) RethrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false);
 
+        static void __declspec(noreturn) DoThrow(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+        static void __declspec(noreturn) DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+
 #ifdef _M_X64
         static void *OP_TryCatch(void *try_, void *catch_, void *frame, size_t spillSize, size_t argsSize, int hasBailedOutOffset, ScriptContext *scriptContext);
         static void *OP_TryFinally(void *try_, void *finally_, void *frame, size_t spillSize, size_t argsSize, ScriptContext *scriptContext);

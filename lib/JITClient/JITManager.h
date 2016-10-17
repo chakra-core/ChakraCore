@@ -5,7 +5,9 @@
 
 #pragma once
 
-#if ENABLE_OOP_NATIVE_CODEGEN
+// We need real JITManager code when on _WIN32 or explict ENABLE_OOP_NATIVE_CODEGEN.
+// Otherwise we use a dummy JITManager which disables OOP JIT to reduce code noise.
+#if _WIN32 || ENABLE_OOP_NATIVE_CODEGEN
 class JITManager
 {
 public:
@@ -47,6 +49,7 @@ public:
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
+        __in  intptr_t threadContextInfoAddress,
         __out intptr_t *scriptContextInfoAddress);
 
     HRESULT CleanupProcess();
@@ -72,13 +75,14 @@ public:
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
-        __in intptr_t threadContextInfoAddress,
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
 
     HRESULT Shutdown();
 
+
     static JITManager * GetJITManager();
+    static void HandleServerCallResult(HRESULT hr);
 private:
     JITManager();
     ~JITManager();
@@ -96,6 +100,7 @@ private:
     bool m_isJITServer;
 
     static JITManager s_jitManager;
+
 };
 
 #else  // !ENABLE_OOP_NATIVE_CODEGEN
@@ -148,6 +153,7 @@ public:
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
+        __in intptr_t threadContextInfoAddress,
         __out intptr_t *scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
@@ -180,7 +186,6 @@ public:
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
-        __in intptr_t threadContextInfoAddress,
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputIDL *jitData)
         { Assert(false); return E_FAIL; }
@@ -190,6 +195,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
+    static void HandleServerCallResult(HRESULT hr);
 
 private:
     static JITManager s_jitManager;

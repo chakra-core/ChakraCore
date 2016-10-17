@@ -292,6 +292,12 @@
   </test>
   <test>
     <default>
+      <files>bug9080773_2.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>

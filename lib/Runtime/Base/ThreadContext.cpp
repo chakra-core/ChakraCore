@@ -185,7 +185,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     rootPendingClose(nullptr),
     isProfilingUserCode(true),
     loopDepth(0),
-    maxGlobalFunctionExecTime(0.0),
     tridentLoadAddress(nullptr),
     m_remoteThreadContextInfo(0),
     debugManager(nullptr)
@@ -208,8 +207,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
     functionCount = 0;
     sourceInfoCount = 0;
-    scriptContextCount=0;
-
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
+    scriptContextCount = 0;
+#endif
     isScriptActive = false;
 
 #ifdef ENABLE_CUSTOM_ENTROPY
@@ -1979,6 +1979,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     {
         return;
     }
+
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
 
@@ -2007,7 +2008,8 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
     m_pendingJITProperties = propertyMap->Clone();
 
-    JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    JITManager::HandleServerCallResult(hr);
 }
 #endif
 
@@ -2248,7 +2250,8 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
 #if ENABLE_NATIVE_CODEGEN
         if (this->m_remoteThreadContextInfo != 0)
         {
-            JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
+            HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
+            JITManager::HandleServerCallResult(hr);
         }
 #endif
     }
@@ -2468,7 +2471,9 @@ ThreadContext::RegisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->ForceNoNative();
     }
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount++;
+#endif
     scriptContextEverRegistered = true;
 }
 
@@ -2492,7 +2497,9 @@ ThreadContext::UnregisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->next->prev = scriptContext->prev;
     }
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount--;
+#endif
 }
 
 ThreadContext::CollectCallBack *
@@ -2568,6 +2575,8 @@ ThreadContext::PreSweepCallback()
     ClearIsInstInlineCaches();
 
     ClearEquivalentTypeCaches();
+
+    ClearForInCaches();
 
     this->dynamicObjectEnumeratorCacheMap.Clear();
 }
@@ -2910,6 +2919,7 @@ ThreadContext::ClearInlineCaches()
     registeredInlineCacheCount = 0;
     unregisteredInlineCacheCount = 0;
 }
+#endif //PERSISTENT_INLINE_CACHES
 
 void
 ThreadContext::ClearIsInstInlineCaches()
@@ -2924,7 +2934,17 @@ ThreadContext::ClearIsInstInlineCaches()
     isInstInlineCacheThreadInfoAllocator.Reset();
     isInstInlineCacheByFunction.ResetNoDelete();
 }
-#endif //PERSISTENT_INLINE_CACHES
+
+void
+ThreadContext::ClearForInCaches()
+{
+    Js::ScriptContext *scriptContext = this->scriptContextList;
+    while (scriptContext != nullptr)
+    {
+        scriptContext->ClearForInCaches();
+        scriptContext = scriptContext->next;
+    }
+}
 
 void
 ThreadContext::ClearEquivalentTypeCaches()
@@ -3860,11 +3880,9 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
             return false;
         }
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
-        if (FAILED(hr))
-        {
-            // TODO: OOP JIT, what to do in failure case?
-            Js::Throw::FatalInternalError();
-        }
+
+        // TODO: OOP JIT, can we throw here?
+        JITManager::HandleServerCallResult(hr);
         return result;
     }
     else
@@ -4311,14 +4329,6 @@ void ThreadContext::ClearThreadContextFlag(ThreadContextFlags contextFlag)
 }
 
 #ifdef ENABLE_GLOBALIZATION
-#ifdef _CONTROL_FLOW_GUARD
-Js::DelayLoadWinCoreMemory * ThreadContext::GetWinCoreMemoryLibrary()
-{
-    delayLoadWinCoreMemoryLibrary.EnsureFromSystemDirOnly();
-    return &delayLoadWinCoreMemoryLibrary;
-}
-#endif
-
 Js::DelayLoadWinRtString * ThreadContext::GetWinRTStringLibrary()
 {
     delayLoadWinRtString.EnsureFromSystemDirOnly();
@@ -4377,80 +4387,6 @@ Js::DelayLoadWinRtFoundation* ThreadContext::GetWinRtFoundationLibrary()
 }
 #endif
 #endif // ENABLE_GLOBALIZATION
-
-bool ThreadContext::IsCFGEnabled()
-{
-#if defined(_CONTROL_FLOW_GUARD)
-    PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY CfgPolicy;
-    BOOL isGetMitigationPolicySucceeded = GetWinCoreProcessThreads()->GetMitigationPolicyForProcess(
-        GetCurrentProcess(),
-        ProcessControlFlowGuardPolicy,
-        &CfgPolicy,
-        sizeof(CfgPolicy));
-    Assert(isGetMitigationPolicySucceeded || !AutoSystemInfo::Data.IsCFGEnabled());
-    return CfgPolicy.EnableControlFlowGuard && AutoSystemInfo::Data.IsCFGEnabled();
-#else
-    return false;
-#endif
-}
-
-
-//Masking bits according to AutoSystemInfo::PageSize
-#define PAGE_START_ADDR(address) ((size_t)(address) & ~(size_t)(AutoSystemInfo::PageSize - 1))
-#define IS_16BYTE_ALIGNED(address) (((size_t)(address) & 0xF) == 0)
-#define OFFSET_ADDR_WITHIN_PAGE(address) ((size_t)(address) & (AutoSystemInfo::PageSize - 1))
-
-void ThreadContext::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid)
-{
-#ifdef _CONTROL_FLOW_GUARD
-    if (IsCFGEnabled())
-    {
-        AssertMsg(IS_16BYTE_ALIGNED(callTargetAddress), "callTargetAddress is not 16-byte page aligned?");
-
-        PVOID startAddressOfPage = (PVOID) (PAGE_START_ADDR(callTargetAddress));
-        size_t codeOffset = OFFSET_ADDR_WITHIN_PAGE(callTargetAddress);
-
-        CFG_CALL_TARGET_INFO callTargetInfo[1];
-
-        callTargetInfo[0].Offset = codeOffset;
-        callTargetInfo[0].Flags = (isSetValid? CFG_CALL_TARGET_VALID : 0);
-
-        AssertMsg((size_t)callTargetAddress - (size_t)startAddressOfPage <= AutoSystemInfo::PageSize - 1, "Only last bits corresponding to PageSize should be masked");
-        AssertMsg((size_t)startAddressOfPage + (size_t)codeOffset == (size_t)callTargetAddress, "Wrong masking of address?");
-
-        BOOL isCallTargetRegistrationSucceed = GetWinCoreMemoryLibrary()->SetProcessCallTargets(GetCurrentProcess(), startAddressOfPage, AutoSystemInfo::PageSize, 1, callTargetInfo);
-
-        if (!isCallTargetRegistrationSucceed)
-        {
-            if (GetLastError() == ERROR_COMMITMENT_LIMIT)
-            {
-                //Throw OOM, if there is not enough virtual memory for paging (required for CFG BitMap)
-                Js::Throw::OutOfMemory();
-            }
-            else
-            {
-                Js::Throw::InternalError();
-            }
-        }
-#if DBG
-        if (isSetValid)
-        {
-            _guard_check_icall((uintptr_t) callTargetAddress);
-        }
-
-        if (PHASE_TRACE1(Js::CFGPhase))
-        {
-            if (!isSetValid)
-            {
-                Output::Print(_u("DEREGISTER:"));
-            }
-            Output::Print(_u("CFGRegistration: StartAddr: 0x%p , Offset: 0x%x, TargetAddr: 0x%x \n"), (char*) startAddressOfPage, callTargetInfo[0].Offset, ((size_t) startAddressOfPage + (size_t) callTargetInfo[0].Offset));
-            Output::Flush();
-        }
-#endif
-    }
-#endif // _CONTROL_FLOW_GUARD
-}
 
 // Despite the name, callers expect this to return the highest propid + 1.
 
@@ -4528,118 +4464,6 @@ ThreadContext::ClearRootTrackerScriptContext(Js::ScriptContext * scriptContext)
     this->rootTrackerScriptContext = nullptr;
 }
 #endif
-
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-JITTimer::JITTimer()
-{
-    Reset();
-}
-
-double JITTimer::Now()
-{
-    return timer.Now();
-}
-
-JITStats JITTimer::GetStats()
-{
-     return stats;
-}
-
-void JITTimer::Reset()
-{
-     stats = { 0 };
-}
-
-void JITTimer::LogTime(double ms)
-{
-    if (ms <= 5.0)
-    {
-        stats.lessThan5ms++;
-    }
-    else if (ms <= 10.0)
-    {
-        stats.within5And10ms++;
-    }
-    else if (ms <= 20.0)
-    {
-        stats.within10And20ms++;
-    }
-    else if (ms <= 50.0)
-    {
-        stats.within20And50ms++;
-    }
-    else if (ms <= 100.0)
-    {
-        stats.within50And100ms++;
-    }
-    else if (ms <= 300.0)
-    {
-        stats.within100And300ms++;
-    }
-    else
-    {
-        stats.greaterThan300ms++;
-    }
-}
-#endif // NATIVE_CODE_GEN
-
-ParserTimer::ParserTimer()
-{
-    Reset();
-}
-
-double ParserTimer::Now()
-{
-    return timer.Now();
-}
-
-ParserStats ParserTimer::GetStats()
-{
-    return stats;
-}
-
-void ParserTimer::Reset()
-{
-    stats = { 0 };
-}
-
-void ParserTimer::LogTime(double ms)
-{
-    if (ms <= 1.0)
-    {
-        stats.lessThan1ms++;
-    }
-    else if (ms <= 3.0)
-    {
-        stats.within1And3ms++;
-    }
-    else if (ms <= 10.0)
-    {
-        stats.within3And10ms++;
-    }
-    else if (ms <= 20.0)
-    {
-        stats.within10And20ms++;
-    }
-    else if (ms <= 50.0)
-    {
-        stats.within20And50ms++;
-    }
-    else if (ms <= 100.0)
-    {
-        stats.within50And100ms++;
-    }
-    else if (ms <= 300.0)
-    {
-        stats.within100And300ms++;
-    }
-    else
-    {
-        stats.greaterThan300ms++;
-    }
-}
-#endif // ENABLE_BASIC_TELEMETRY
 
 AutoTagNativeLibraryEntry::AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr)
 {

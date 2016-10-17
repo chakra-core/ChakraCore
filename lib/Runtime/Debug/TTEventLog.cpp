@@ -459,7 +459,7 @@ namespace TTD
 
     const SingleCallCounter* EventLog::GetTopCallCallerCounter(bool justMyCode) const
     {
-        
+
         for(int32 pos = this->m_callStack.Count() - 2; pos >= 0; --pos)
         {
             const SingleCallCounter* csi = &(this->m_callStack.Item(pos));
@@ -700,7 +700,7 @@ namespace TTD
         : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
         m_eventTimeCtr(0), m_timer(), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_eventList(&this->m_eventSlabAllocator), m_eventListVTable(nullptr), m_currentReplayEventIterator(),
-        m_callStack(&HeapAllocator::Instance, 32), 
+        m_callStack(&HeapAllocator::Instance, 32),
 #if ENABLE_TTD_DEBUGGING
         m_lastReturnLocation(), m_lastReturnLocationJMC(), m_breakOnFirstUserCode(false), m_pendingTTDBP(), m_activeBPId(-1), m_shouldRemoveWhenDone(false), m_activeTTDBP(), m_breakpointInfoList(&HeapAllocator::Instance), m_bpPreserveList(&HeapAllocator::Instance),
 #endif
@@ -710,7 +710,7 @@ namespace TTD
         m_modeStack(), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
-        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator), 
+        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator),
         m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
     {
         this->InitializeEventListVTable();
@@ -1572,7 +1572,7 @@ namespace TTD
 
         SetDiagnosticOriginInformation(originInfo, srcLine, cfinfo.EventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
     }
-#endif 
+#endif
 
 #if ENABLE_TTD_DEBUGGING
     bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
@@ -1863,7 +1863,7 @@ namespace TTD
             {
                 validSnap = isSnap;
             }
-            
+
             if(validSnap && time <= targetTime)
             {
                 snapTime = time;
@@ -2157,11 +2157,11 @@ namespace TTD
 
                 AssertMsg(NSLogEvents::EventCompletesScriptContextNormally(evt), "All my action events should exit / terminate before return so no need to loop yet but may want to later");
             }
-            catch(Js::JavascriptExceptionObject *  exceptionObject)
+            catch(const Js::JavascriptException& err)
             {
                 AssertMsg(NSLogEvents::EventCompletesScriptContextWithException(evt), "Should see same execption here");
 
-                ctx->GetThreadContext()->SetRecordedException(exceptionObject);
+                ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
@@ -2194,12 +2194,12 @@ namespace TTD
 
                 AssertMsg(NSLogEvents::EventCompletesScriptContextNormally(evt), "All my action events should both exit / terminate before return so no need to loop yet but may want to later");
             }
-            catch(Js::JavascriptExceptionObject *  exceptionObject)
+            catch(const Js::JavascriptException& err)
             {
                 AssertMsg(NSLogEvents::EventCompletesScriptContextWithException(evt), "Should see same execption here");
 
                 AssertMsg(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
-                ctx->GetThreadContext()->SetRecordedException(exceptionObject);
+                ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
@@ -2901,7 +2901,7 @@ namespace TTD
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
-        //we haven't moved the properties to their serialized form them take care of it 
+        //we haven't moved the properties to their serialized form them take care of it
         AssertMsg(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
 
         for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())

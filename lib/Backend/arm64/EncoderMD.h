@@ -53,7 +53,7 @@ public:
     EncoderMD(Func * func) { }
     ptrdiff_t       Encode(IR::Instr * instr, BYTE *pc, BYTE* beginCodeAddress = nullptr) { __debugbreak(); return 0; }
     void            Init(Encoder *encoder) { __debugbreak(); }
-    void            ApplyRelocs(size_t codeBufferAddress) { __debugbreak(); }
+    void            ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation = false) { __debugbreak(); }
     static bool     TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd) { __debugbreak(); return 0; }
     static bool     TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd) { __debugbreak(); return 0; }
     const BYTE      GetRegEncode(IR::RegOpnd *regOpnd) { __debugbreak(); return 0; }

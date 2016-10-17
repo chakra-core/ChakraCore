@@ -39,8 +39,8 @@ namespace Js
         class Setup
         {
         public:
-            Setup(ScriptFunction * function, Arguments& args, bool inlinee = false);
-            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount, bool inlinee = false);
+            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
+            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
 
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
@@ -69,6 +69,7 @@ namespace Js
             uint varAllocCount;
             uint inlineCacheCount;
             Js::CallFlags callFlags;
+            bool bailedOut;
             bool bailedOutOfInlinee;
         };
     private:
@@ -85,6 +86,7 @@ namespace Js
         Var localClosure;
         Var paramClosure;
         Var *innerScopeArray;
+        ForInObjectEnumerator * forInObjectEnumerators;
         ScriptContext* scriptContext;
         ScriptFunction * function;
         FunctionBody * m_functionBody;
@@ -256,6 +258,7 @@ namespace Js
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
         static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
+        static uint32 GetOffsetOfForInEnumerators() { return offsetof(InterpreterStackFrame, forInObjectEnumerators); }
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -266,7 +269,8 @@ namespace Js
         static bool IsBrLong(OpCode op, const byte * ip)
         {
 #ifdef BYTECODE_BRANCH_ISLAND
-            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekByteOp(ip) + (OpCode::ExtendedOpcodePrefix << 8)) == OpCode::BrLong);
+            CompileAssert(Js::OpCodeInfo<Js::OpCode::BrLong>::IsExtendedOpcode);
+            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekExtOp(ip)) == OpCode::BrLong);
 #else
             return false;
 #endif
@@ -309,12 +313,11 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
 #endif
-        template<typename T>
-        T ReadByteOp( const byte *& ip
-#if DBG_DUMP
-                           , bool isExtended = false
-#endif
-                           );
+        template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+        OpCodeType ReadOp(const byte *& ip);
+
+        static void TraceOpCode(InterpreterStackFrame* that, Js::OpCode op);
+        static void TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op);
 
         void* __cdecl operator new(size_t byteSize, void* previousAllocation) throw();
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();
@@ -332,10 +335,10 @@ namespace Js
         Var ProcessProfiled();
         Var ProcessUnprofiled();
 
-        const byte* ProcessProfiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessUnprofiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessWithDebuggingExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessAsmJsExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessProfiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedOpcodePrefix(const byte* ip);
 
         const byte* ProcessProfiledMediumLayoutPrefix(const byte* ip, Var&);
         const byte* ProcessUnprofiledMediumLayoutPrefix(const byte* ip, Var&);
@@ -715,6 +718,10 @@ namespace Js
         template <class T> void OP_InitComputedProperty(const unaligned T * playout);
         template <class T> void OP_InitProto(const unaligned T * playout);
         void OP_BeginBodyScope();
+
+        void OP_InitForInEnumerator(Var object, uint forInLoopLevel);
+        void OP_InitForInEnumeratorWithCache(Var object, uint forInLoopLevel, ProfileId profileId);
+        ForInObjectEnumerator * GetForInEnumerator(uint forInLoopLevel);
 
         uint CallLoopBody(JavascriptMethod address);
         uint CallAsmJsLoopBody(JavascriptMethod address);

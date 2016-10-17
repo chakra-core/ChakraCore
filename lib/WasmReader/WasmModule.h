@@ -41,6 +41,9 @@ namespace Wasm
         void SetSignatureCount(uint32 count);
         uint32 GetSignatureCount() const;
 
+        void CalculateEquivalentSignatures();
+        uint32 GetEquivalentSignatureId(uint32 sigId) const;
+
         void AllocateTable(uint32 entries);
         void SetTableValue(uint32 funcIndex, uint32 indirectIndex);
         uint32 GetTableValue(uint32 indirTableIndex) const;
@@ -90,6 +93,7 @@ namespace Wasm
         WasmImport* m_imports;
         WasmDataSegment** m_datasegs;
         WasmBinaryReader* m_reader;
+        uint32* m_equivalentSignatureMap;
 
         uint m_signaturesCount;
         uint m_indirectFuncCount;

@@ -29,6 +29,6 @@
 
 (invoke "good" (i32.const 0))
 (invoke "good" (i32.const 65507))
-;;(assert_trap (invoke "good" (i32.const 65508)) "out of bounds memory access")
-;;(assert_trap (invoke "bad" (i32.const 0)) "out of bounds memory access")
-;;(assert_trap (invoke "bad" (i32.const 1)) "out of bounds memory access")
+(assert_trap (invoke "good" (i32.const 65508)) "out of bounds memory access")
+(assert_trap (invoke "bad" (i32.const 0)) "out of bounds memory access")
+(assert_trap (invoke "bad" (i32.const 1)) "out of bounds memory access")

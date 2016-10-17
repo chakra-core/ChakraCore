@@ -107,7 +107,7 @@ namespace Js
     {
         Recycler* recycler = this->GetRecycler();
 
-        // Recycler macros below expect that their arguments will not throw when they're evaluated. 
+        // Recycler macros below expect that their arguments will not throw when they're evaluated.
         // We allocate a lot of types for the built-in prototype objects which we need to store temporarily.
         DynamicType* tempDynamicType = nullptr;
         Type* tempType = StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr);
@@ -256,7 +256,7 @@ namespace Js
             simdFloat32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
         }
 #endif
-        
+
         if (scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             datePrototype = DynamicObject::New(recycler,
@@ -342,7 +342,6 @@ namespace Js
         functionPrototype = RecyclerNew(recycler, JavascriptFunction, tempDynamicType, &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
         promisePrototype = nullptr;
-        javascriptEnumeratorIteratorPrototype = nullptr;
         generatorFunctionPrototype = nullptr;
         generatorPrototype = nullptr;
         asyncFunctionPrototype = nullptr;
@@ -389,13 +388,6 @@ namespace Js
             promisePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-        }
-
-        if(scriptContext->GetConfig()->IsES6ProxyEnabled())
-        {
-            javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
         if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
@@ -504,7 +496,6 @@ namespace Js
         proxyType   = nullptr;
         promiseType = nullptr;
         moduleNamespaceType = nullptr;
-        javascriptEnumeratorIteratorType = nullptr;
 
         // Initialize boolean types
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
@@ -530,9 +521,6 @@ namespace Js
             // We can use GetType()->GetPrototype() in [[get]], [[set]], and [[hasProperty]] to force the prototype walk to stop at prototype so we don't need to
             // continue prototype chain walk after proxy.
             proxyType = DynamicType::New(scriptContext, TypeIds_Proxy, GetNull(), nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
-
-            javascriptEnumeratorIteratorType = DynamicType::New(scriptContext, TypeIds_JavascriptEnumeratorIterator, javascriptEnumeratorIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         }
 
         if (config->IsES6PromiseEnabled())
@@ -638,7 +626,7 @@ namespace Js
             simdUint8x16TypeStatic = StaticType::New(scriptContext, TypeIds_SIMDUint8x16, simdUint8x16Prototype, nullptr);
         }
 #endif
-        
+
         // Initialize Object types
         for (int16 i = 0; i < PreInitializedObjectTypeCount; i++)
         {
@@ -1156,7 +1144,7 @@ namespace Js
             simdUint8x16DisplayString = CreateStringFromCppLiteral(_u("uint8x16"));
         }
 #endif
-        
+
         symbolTypeDisplayString = CreateStringFromCppLiteral(_u("symbol"));
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
@@ -2707,7 +2695,7 @@ namespace Js
 
         /*** Float32x4 ***/
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObjectWithPrototype(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, library->simdFloat32x4Prototype, nullptr);
-        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Float32x4] = float32x4Function;        
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Float32x4] = float32x4Function;
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Check] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::check, &SIMDFloat32x4Lib::EntryInfo::Check, 2);
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Splat] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::splat, &SIMDFloat32x4Lib::EntryInfo::Splat, 2);
 
@@ -2720,7 +2708,7 @@ namespace Js
 #if 0
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2,     &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2,     2);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2Bits, &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2Bits, 2);
-#endif   
+#endif
         builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_FromInt32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4,       &SIMDFloat32x4Lib::EntryInfo::FromInt32x4,       2);
 
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4,      &SIMDFloat32x4Lib::EntryInfo::FromUint32x4,      2);
@@ -2770,7 +2758,7 @@ namespace Js
         /*** Float64x2 ***/
 #if 0
         JavascriptFunction* float64x2Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Float64x2, &SIMDFloat64x2Lib::EntryInfo::Float64x2, 3);
-        
+
         library->AddFunctionToLibraryObject(float64x2Function, PropertyIds::check, &SIMDFloat64x2Lib::EntryInfo::Check, 2);
         library->AddFunctionToLibraryObject(float64x2Function, PropertyIds::splat, &SIMDFloat64x2Lib::EntryInfo::Splat, 2);
         // type conversions
@@ -2854,7 +2842,7 @@ namespace Js
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shiftRightByScalar, &SIMDInt32x4Lib::EntryInfo::ShiftRightByScalar, 3);
         // select
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::select, &SIMDInt32x4Lib::EntryInfo::Select, 4);
- 
+
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load, &SIMDInt32x4Lib::EntryInfo::Load, 3);
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3);
         builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3);
@@ -4418,22 +4406,6 @@ namespace Js
         }
     }
 
-    void JavascriptLibrary::InitializeJavascriptEnumeratorIteratorPrototype(DynamicObject* javascriptEnumeratorIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
-    {
-        typeHandler->Convert(javascriptEnumeratorIteratorPrototype, mode, 2);
-        // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterEnumeratorIterator
-        // so that the update is in sync with profiler
-
-        JavascriptLibrary* library = javascriptEnumeratorIteratorPrototype->GetLibrary();
-        ScriptContext* scriptContext = library->GetScriptContext();
-        library->AddFunctionToLibraryObject(javascriptEnumeratorIteratorPrototype, PropertyIds::next, &JavascriptEnumeratorIterator::EntryInfo::Next, 0);
-
-        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-        {
-            library->AddMember(javascriptEnumeratorIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Enumerator Iterator")), PropertyConfigurable);
-        }
-    }
-
     RuntimeFunction* JavascriptLibrary::CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype)
     {
         Assert((functionInfo->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0);
@@ -4489,7 +4461,7 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
-        
+
         JavascriptExternalFunction* function = nullptr;
         if (entryPoint != nullptr)
         {
@@ -4498,7 +4470,7 @@ namespace Js
         }
         else
         {
-            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, 
+            function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction,
                 defaultExternalConstructorFunctionWithDeferredPrototypeType, method, deferredTypeSlots, hasAccessors);
         }
         function->SetFunctionNameId(TaggedInt::ToVarUnchecked(nameId));
@@ -4751,7 +4723,8 @@ namespace Js
             try
             {
                 this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
-            } catch (...)
+            }
+            catch (...)
             {
                 // Hosts are required not to pass exceptions back across the callback boundary. If
                 // this happens, it is a bug in the host, not something that we are expected to
@@ -4802,10 +4775,10 @@ namespace Js
         try
         {
             this->IntlObject->GetTypeHandler()->EnsureObjectReady(this->IntlObject);
-        } 
-        catch (JavascriptExceptionObject *e)
+        }
+        catch (const JavascriptException& err)
         {
-            caughtExceptionObject = e;
+            caughtExceptionObject = err.GetAndClear();
         }
 
         // Propagate the OOM and SOE exceptions only
@@ -4814,7 +4787,7 @@ namespace Js
             caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject()))
         {
             caughtExceptionObject = caughtExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-            throw caughtExceptionObject;
+            JavascriptExceptionOperators::DoThrow(caughtExceptionObject, scriptContext);
         }
     }
 
@@ -5652,7 +5625,7 @@ namespace Js
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
-        
+
         DynamicType * argumentsType = nullptr;
 
         if (isStrictMode)
@@ -6116,7 +6089,7 @@ namespace Js
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
 
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::CapabilitiesExecutorFunction;
-        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());        
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseCapabilitiesExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseCapabilitiesExecutorFunction, type, functionInfo, capability);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable, nullptr);
@@ -6584,24 +6557,6 @@ namespace Js
         return ThrowErrorObject::New(this->throwErrorObjectType, error, this->GetRecycler());
     }
 
-    void JavascriptLibrary::SetForInEnumeratorCache(ForInObjectEnumerator* enumerator)
-    {
-        Assert(enumerator);
-        this->cachedForInEnumerator = enumerator->GetWeakReference(this->recycler);
-    }
-
-    ForInObjectEnumerator* JavascriptLibrary::GetAndClearForInEnumeratorCache()
-    {
-        auto cachedEnumerator = this->cachedForInEnumerator;
-        if (cachedEnumerator)
-        {
-            ForInObjectEnumerator * enumerator = cachedEnumerator->Get();
-            this->cachedForInEnumerator = nullptr;
-            return enumerator;
-        }
-        return nullptr;
-    }
-
 #if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptLibrary::IsCopyOnAccessArrayCallSite(JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo, uint32 length)
     {
@@ -6654,11 +6609,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
-            if (!GetScriptContext()->GetRemoteScriptAddr())
-            {
-                GetScriptContext()->InitializeRemoteScriptContext();
-            }
-            JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
+            HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
+            JITManager::HandleServerCallResult(hr);
         }
 #endif
     }
@@ -6801,7 +6753,7 @@ namespace Js
 
     void JavascriptLibrary::BindReference(void * addr)
     {
-        // The last void* is the linklist connecting to next block. 
+        // The last void* is the linklist connecting to next block.
         if (bindRefChunkCurrent == bindRefChunkEnd)
         {
             void** tmpBindRefChunk = RecyclerNewArrayZ(recycler, void *, HeapConstants::ObjectGranularity / sizeof(void *));
@@ -6948,7 +6900,6 @@ namespace Js
         REGISTER_OBJECT(MapIterator);
         REGISTER_OBJECT(SetIterator);
         REGISTER_OBJECT(StringIterator);
-        REGISTER_OBJECT(EnumeratorIterator);
 
         REGISTER_OBJECT(TypedArray);
 
@@ -7529,18 +7480,6 @@ namespace Js
         DEFINE_OBJECT_NAME(String Iterator);
 
         REG_OBJECTS_LIB_FUNC(next, JavascriptStringIterator::EntryNext);
-
-        return hr;
-    }
-
-    HRESULT JavascriptLibrary::ProfilerRegisterEnumeratorIterator()
-    {
-        HRESULT hr = S_OK;
-        // Enumerator Iterator has no global constructor
-
-        DEFINE_OBJECT_NAME(Enumerator Iterator);
-
-        REG_OBJECTS_LIB_FUNC(next, JavascriptEnumeratorIterator::EntryNext);
 
         return hr;
     }

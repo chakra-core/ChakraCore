@@ -8,7 +8,7 @@ typedef HRESULT(__cdecl *InitializeMethod)(Js::Var instance);
 
 namespace Js
 {
-    typedef Var (__stdcall *StdCallJavascriptMethod)(RecyclableObject *callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState);
+    typedef Var (__stdcall *StdCallJavascriptMethod)(Var callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState);
     typedef int JavascriptTypeId;
 
     class JavascriptExternalFunction : public RuntimeFunction

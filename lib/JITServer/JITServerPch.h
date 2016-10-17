@@ -11,3 +11,4 @@
 
 #include "Runtime.h"
 #include "Backend.h"
+#include "JITServer.h"

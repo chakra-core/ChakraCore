@@ -78,7 +78,7 @@ function run(inPath, iStart, iEnd) {
           continue;
         }
         switch (command.type) {
-          case 'invoke':
+          case 'action':
             invoke(m, command);
             break;
 
@@ -147,6 +147,7 @@ function assertTrap(m, command) {
 
   if (threw) {
     passed++;
+    print(`${getCommandStr(command)} passed.`);
   } else {
     print(`${getCommandStr(command)} failed, didn't throw`);
     failed++;

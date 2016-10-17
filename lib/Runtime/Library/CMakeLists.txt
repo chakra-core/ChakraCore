@@ -36,7 +36,6 @@ set(CRLIB_SOURCE_CODES
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp
     JavascriptDate.cpp
-    JavascriptEnumeratorIterator.cpp
     JavascriptError.cpp
     # JavascriptErrorDebug.cpp
     JavascriptExternalFunction.cpp

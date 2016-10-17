@@ -176,7 +176,7 @@ namespace Js
 
     Var JavascriptExternalFunction::ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
@@ -261,7 +261,7 @@ namespace Js
 
     Var JavascriptExternalFunction::WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
         ScriptContext* scriptContext = externalFunction->type->GetScriptContext();
         Assert(!scriptContext->GetThreadContext()->IsDisableImplicitException());
@@ -285,7 +285,7 @@ namespace Js
 
     Var JavascriptExternalFunction::StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
 
         externalFunction->PrepareExternalCall(&args);
