@@ -657,7 +657,7 @@ void WasmBinaryReader::ReadExportTable()
             {
                 ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
             }
-            m_module->SetFunctionExport(iExport, index, exportName, nameLength, kind);
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
 
 #if DBG_DUMP
             uint32 normIndex = m_module->NormalizeFunctionIndex(index);
@@ -683,7 +683,7 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Global:
-            m_module->SetFunctionExport(iExport, index, exportName, nameLength, kind);
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         case ExternalKinds::Table:
             ThrowDecodingError(_u("Exported Kind Table, NYI"));

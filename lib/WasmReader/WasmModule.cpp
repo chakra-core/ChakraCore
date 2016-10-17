@@ -221,7 +221,7 @@ void WasmModule::AllocateFunctionExports(uint32 entries)
     m_exportCount = entries;
 }
 
-void WasmModule::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind)
+void WasmModule::SetExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;

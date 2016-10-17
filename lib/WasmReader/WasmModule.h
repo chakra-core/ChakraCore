@@ -53,7 +53,7 @@ namespace Wasm
 
         void AllocateFunctionExports(uint32 entries);
         uint GetExportCount() const { return m_exportCount; }
-        void SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind);
+        void SetExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind);
         WasmExport* GetFunctionExport(uint32 iExport) const;
 
         void AllocateFunctionImports(uint32 entries);
