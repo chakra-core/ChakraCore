@@ -58,7 +58,6 @@
     <PlatformPathNameAlt Condition="'$(Platform)'=='x64'">amd64</PlatformPathNameAlt>
   </PropertyGroup>
 
-
   <!-- Default output directories -->
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
@@ -69,7 +68,11 @@
   </PropertyGroup>
 
   <!-- Import generated build info -->
-  <Import Project="$(TF_BUILD_BUILDDIRECTORY)\Chakra.Generated.BuildInfo.props" Condition="'$(TF_BUILD_BUILDDIRECTORY)' != '' AND exists('$(TF_BUILD_BUILDDIRECTORY)\Chakra.Generated.BuildInfo.props')" />
+  <PropertyGroup>
+    <ObjectDirectory Condition="'$(TF_BUILD_BUILDDIRECTORY)'!=''">$(TF_BUILD_BUILDDIRECTORY)</ObjectDirectory>
+    <ObjectDirectory Condition="'$(TF_BUILD_BUILDDIRECTORY)'==''">$(IntBaseDir)\obj\$(PlatformPathName.ToLower())_$(Configuration.ToLower())</ObjectDirectory>
+  </PropertyGroup>
+  <Import Project="$(ObjectDirectory)\Chakra.Generated.BuildInfo.props" Condition="'$(ObjectDirectory)'!='' AND exists('$(ObjectDirectory)\Chakra.Generated.BuildInfo.props')" />
 
   <!-- Output directories -->
   <PropertyGroup>

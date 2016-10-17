@@ -41,6 +41,8 @@ test/benchmarks/*.dpl
 
 /Build/Chakra.Core.VC.db
 *.nupkg
+packages.config
+_DROP
 
 # CMake Files
 CMakeCache.txt
