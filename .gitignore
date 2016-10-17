@@ -40,6 +40,7 @@ Build/VCBuild/
 buildchk.*
 buildfre.*
 BuildLinux/
+_DROP/
 
 # Generated Files
 *.bc
@@ -56,6 +57,7 @@ test/*/*.baseline.rebase
 test/benchmarks/*.dpl
 test/benchmarks/*.txt
 testout*
+packages.config
 
 # CMake Files
 cmake_install.cmake
