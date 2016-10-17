@@ -39,49 +39,62 @@ if (typeof readbuffer == 'undefined') {
   readbuffer = function(path) { return read(path, 'binary'); };
 }
 
-if (arguments.length != 1) {
-  print('usage: <exe> spec.js -- <filename.json>');
+if (arguments.length < 1) {
+  print('usage: <exe> spec.js -args <filename.json> [start index] [end index] [-v] -endargs');
   quit(0);
 }
 
 var passed = 0;
 var failed = 0;
+const iVerbose = arguments.indexOf("-v");
+var verbose = iVerbose !== -1;
+if (verbose) {
+  arguments.splice(iVerbose, 1)
+}
+run(arguments[0], arguments[1]|0, arguments[2] === undefined ? undefined : arguments[2]|0);
 
-var quiet = false;
+function getCommandStr({file, line, name}) {
+  return `${file}:${line}: ${name}`;
+}
 
-run(arguments[0]);
-
-function run(inPath) {
+function run(inPath, iStart, iEnd) {
   var lastSlash = Math.max(inPath.lastIndexOf('/'), inPath.lastIndexOf('\\'));
   var inDir = lastSlash == -1 ? '.' : inPath.slice(0, lastSlash);
   var data = read(inPath);
   var jsonData = JSON.parse(data);
 
+  var iTest = 0;
   for (var i = 0; i < jsonData.modules.length; ++i) {
     var module = jsonData.modules[i] || {};
     try {
       var moduleFile = readbuffer(inDir + '/' + module.filename);
       var m = createModule(moduleFile);
-      for (var j = 0; j < module.commands.length; ++j) {
+      for (var j = 0; j < module.commands.length; ++j, ++iTest) {
         var command = module.commands[j];
+        if (iTest < iStart || iTest > iEnd) {
+          if (verbose) {
+            print(`${getCommandStr(command)}: Skipped`);
+          }
+          continue;
+        }
         switch (command.type) {
-          case 'invoke':
-            invoke(m, command.name, command.file, command.line);
+          case 'action':
+            invoke(m, command);
             break;
 
           case 'assert_return':
-            assertReturn(m, command.name, command.file, command.line);
+            assertReturn(m, command);
             break;
 
           case 'assert_return_nan':
-            assertReturn(m, command.name, command.file, command.line);
+            assertReturn(m, command);
             break;
 
           case 'assert_trap':
             // NYI implemented
             // assertTrap(m, command.name, command.file, command.line);
             failed++;
-            print(command.file + ":" + command.line + ": " + command.name + " failed, runtime trap NYI");
+            print(`${getCommandStr(command)} failed, runtime trap NYI`);
             break;
         }
       }
@@ -102,24 +115,29 @@ function createModule(a) {
   return module;
 }
 
-function assertReturn(m, name, file, line) {
+function assertReturn(m, command) {
+  const {file, line, name} = command;
   try {
     var result = m.exports[name]();
   } catch(e) {
-    print(file + ":" + line + ": " + name + " unexpectedly threw: " + e);
+    print(`${getCommandStr(command)} unexpectedly threw: ${e}`);
     failed++;
     return;
   }
 
   if (result == 1) {
     passed++;
+    if (verbose) {
+      print(`${getCommandStr(command)} passed.`);
+    }
   } else {
-    print(file + ":" + line + ": " + name + " failed.");
+    print(`${getCommandStr(command)} failed.`);
     failed++;
   }
 }
 
-function assertTrap(m, name, file, line) {
+function assertTrap(m, command) {
+  const {file, line, name} = command;
   var threw = false;
   try {
     m.exports[name]();
@@ -129,24 +147,24 @@ function assertTrap(m, name, file, line) {
 
   if (threw) {
     passed++;
+    print(`${getCommandStr(command)} passed.`);
   } else {
-    print(file + ":" + line + ": " + name + " failed, didn't throw");
+    print(`${getCommandStr(command)} failed, didn't throw`);
     failed++;
   }
 }
 
-function invoke(m, name, file, line) {
+function invoke(m, command) {
+  const {file, line, name} = command;
   try {
     var invokeResult = m.exports[name]();
   } catch(e) {
-    print(file + ":" + line + ": " + name + " unexpectedly threw: " + e);
+    print(`${getCommandStr(command)} unexpectedly threw: ${e}`);
   }
 
-  if (!quiet)
-    print(name + " = " + invokeResult);
+  print(name + " = " + invokeResult);
 }
 
 function end() {
-  if ((failed > 0) || !quiet)
-    print(passed + "/" + (passed + failed) + " tests passed.");
+  print(passed + "/" + (passed + failed) + " tests passed.");
 }

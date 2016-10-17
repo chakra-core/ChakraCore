@@ -79,6 +79,18 @@ WasmSignature::GetSignatureId() const
     return m_id;
 }
 
+bool
+WasmSignature::IsEquivalent(WasmSignature* sig) const
+{
+    if (GetResultType() == sig->GetResultType() &&
+        GetParamCount() == sig->GetParamCount() &&
+        GetParamsSize() == sig->GetParamsSize())
+    {
+        return GetParamCount() == 0 || memcmp(m_params, sig->m_params, GetParamCount() * sizeof(Local)) == 0;
+    }
+    return false;
+}
+
 uint32 WasmSignature::GetParamSize(uint index) const
 {
     switch (GetParam(index))

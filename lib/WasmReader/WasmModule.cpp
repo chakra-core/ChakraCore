@@ -16,6 +16,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_functionsInfo(nullptr),
     m_funcCount(0),
     m_importCount(0),
+    m_equivalentSignatureMap(nullptr),
     m_indirectfuncs(nullptr),
     m_indirectFuncCount(0),
     m_exports(nullptr),
@@ -136,6 +137,48 @@ uint32
 WasmModule::GetSignatureCount() const
 {
     return m_signaturesCount;
+}
+
+void
+WasmModule::CalculateEquivalentSignatures()
+{
+    Assert(m_equivalentSignatureMap == nullptr);
+    uint32 sigCount = GetSignatureCount();
+    m_equivalentSignatureMap = AnewArray(&m_alloc, uint32, sigCount);
+    memset(m_equivalentSignatureMap, -1, sigCount * sizeof(uint32));
+
+    const auto IsEquivalentSignatureSet = [this](uint32 sigId)
+    {
+        return m_equivalentSignatureMap[sigId] != (uint32)-1;
+    };
+
+    for (uint32 iSig = 0; iSig < sigCount; iSig++)
+    {
+        if (!IsEquivalentSignatureSet(iSig))
+        {
+            m_equivalentSignatureMap[iSig] = iSig;
+            WasmSignature* sig = GetSignature(iSig);
+            // todo:: Find a better way than O(n^2) algo here
+            for (uint32 iSig2 = iSig + 1; iSig2 < sigCount; iSig2++)
+            {
+                if (!IsEquivalentSignatureSet(iSig2) && sig->IsEquivalent(GetSignature(iSig2)))
+                {
+                    m_equivalentSignatureMap[iSig2] = iSig;
+                }
+            }
+        }
+    }
+}
+
+uint32
+WasmModule::GetEquivalentSignatureId(uint32 sigId) const
+{
+    if (m_equivalentSignatureMap && sigId < GetSignatureCount())
+    {
+        return m_equivalentSignatureMap[sigId];
+    }
+    Assert(UNREACHED);
+    return sigId;
 }
 
 void

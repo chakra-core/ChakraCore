@@ -1,0 +1,9 @@
+83
+$action_3 = undefined
+func_ptrs.wast:77: $assert_trap_7 failed, runtime trap NYI
+func_ptrs.wast:78: $assert_trap_8 failed, runtime trap NYI
+func_ptrs.wast:79: $assert_trap_9 failed, runtime trap NYI
+func_ptrs.wast:88: $assert_trap_17 failed, runtime trap NYI
+func_ptrs.wast:89: $assert_trap_18 failed, runtime trap NYI
+func_ptrs.wast:90: $assert_trap_19 failed, runtime trap NYI
+19/25 tests passed.

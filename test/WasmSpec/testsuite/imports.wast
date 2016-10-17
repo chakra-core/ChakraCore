@@ -1,16 +1,39 @@
+;; Auxiliary module to import from
+
+(module
+  (func (export "func"))
+  (func (export "func-i32") (param i32))
+  (func (export "func-f32") (param f32))
+  (func (export "func->i32") (result i32) (i32.const 22))
+  (func (export "func->f32") (result f32) (f32.const 11))
+  (func (export "func-i32->i32") (param i32) (result i32) (get_local 0))
+  (global (export "global-i32") i32 (i32.const 55))
+  (global (export "global-f32") f32 (f32.const 44))
+  (table (export "table-10-inf") 10 anyfunc)
+  ;; (table (export "table-10-20") 10 20 anyfunc)
+  (memory (export "memory-2-inf") 2)
+  ;; (memory (export "memory-2-4") 2 4)
+)
+
+(register "test")
+
+
 ;; Functions
 
 (module
+  (type $func_i32 (func (param i32)))
+  (type $func_i64 (func (param i64)))
+
   (import "spectest" "print" (func (param i32)))
   (func (import "spectest" "print") (param i64))
-
   (import "spectest" "print" (func $print_i32 (param i32)))
   (import "spectest" "print" (func $print_i64 (param i64)))
   (import "spectest" "print" (func $print_i32_f32 (param i32 f32)))
   (import "spectest" "print" (func $print_i64_f64 (param i64 f64)))
-
   (func $print_i32-2 (import "spectest" "print") (param i32))
   (func $print_i64-2 (import "spectest" "print") (param i64))
+
+  (table anyfunc (elem $print_i32 $print_i64))
 
   (func (export "print32") (param $i i32)
     (call 0 (get_local $i))
@@ -20,6 +43,7 @@
     )
     (call $print_i32 (get_local $i))
     (call $print_i32-2 (get_local $i))
+    (call_indirect $func_i32 (get_local $i) (i32.const 0))
   )
 
   (func (export "print64") (param $i i64)
@@ -30,24 +54,117 @@
     )
     (call $print_i64 (get_local $i))
     (call $print_i64-2 (get_local $i))
+    (call_indirect $func_i64 (get_local $i) (i32.const 1))
   )
 )
 
 (assert_return (invoke "print32" (i32.const 13)))
 (assert_return (invoke "print64" (i64.const 24)))
 
+(module (import "test" "func" (func)))
+(module (import "test" "func-i32" (func (param i32))))
+(module (import "test" "func-f32" (func (param f32))))
+(module (import "test" "func->i32" (func (result i32))))
+(module (import "test" "func->f32" (func (result f32))))
+(module (import "test" "func-i32->i32" (func (param i32) (result i32))))
+
+(assert_unlinkable
+  (module (import "test" "unknown" (func)))
+  "unknown import"
+)
 (assert_unlinkable
   (module (import "spectest" "unknown" (func)))
   "unknown import"
+)
+
+(assert_unlinkable
+  (module (import "test" "func" (func (param i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func" (func (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func" (func (param i32) (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32" (func)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32" (func (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32" (func (param f32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32" (func (param i64))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32" (func (param i32) (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func->i32" (func)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func->i32" (func (param i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func->i32" (func (result f32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func->i32" (func (result i64))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func->i32" (func (param i32) (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32->i32" (func)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32->i32" (func (param i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "func-i32->i32" (func (result i32))))
+  "type mismatch"
+)
+
+(assert_unlinkable
+  (module (import "test" "global-i32" (func (result i32))))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "table-10-inf" (func)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "memory-2-inf" (func)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "spectest" "global" (func)))
+  "type mismatch"
 )
 (assert_unlinkable
   (module (import "spectest" "table" (func)))
   "type mismatch"
 )
-
 (assert_unlinkable
-  (module (import "spectest" "print" (func)) (table anyfunc (elem 0)))
-  "invalid use of host function"
+  (module (import "spectest" "memory" (func)))
+  "type mismatch"
 )
 
 
@@ -60,16 +177,14 @@
   (import "spectest" "global" (global $x i32))
   (global $y (import "spectest" "global") i32)
 
+  (import "spectest" "global" (global i64))
+  (import "spectest" "global" (global f32))
+  (import "spectest" "global" (global f64))
+
   (func (export "get-0") (result i32) (get_global 0))
   (func (export "get-1") (result i32) (get_global 1))
   (func (export "get-x") (result i32) (get_global $x))
   (func (export "get-y") (result i32) (get_global $y))
-
-  ;; TODO: mutable globals
-  ;; (func (export "set-0") (param i32) (set_global 0 (get_local 0)))
-  ;; (func (export "set-1") (param i32) (set_global 1 (get_local 0)))
-  ;; (func (export "set-x") (param i32) (set_global $x (get_local 0)))
-  ;; (func (export "set-y") (param i32) (set_global $y (get_local 0)))
 )
 
 (assert_return (invoke "get-0") (i32.const 666))
@@ -77,18 +192,42 @@
 (assert_return (invoke "get-x") (i32.const 666))
 (assert_return (invoke "get-y") (i32.const 666))
 
+(module (import "test" "global-i32" (global i32)))
+(module (import "test" "global-f32" (global f32)))
+
+(assert_unlinkable
+  (module (import "test" "unknown" (global i32)))
+  "unknown import"
+)
 (assert_unlinkable
   (module (import "spectest" "unknown" (global i32)))
   "unknown import"
+)
+
+(assert_unlinkable
+  (module (import "test" "func" (global i32)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "table-10-inf" (global i32)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "memory-2-inf" (global i32)))
+  "type mismatch"
 )
 (assert_unlinkable
   (module (import "spectest" "print" (global i32)))
   "type mismatch"
 )
-
-(module (import "spectest" "global" (global i64)))
-(module (import "spectest" "global" (global f32)))
-(module (import "spectest" "global" (global f64)))
+(assert_unlinkable
+  (module (import "spectest" "table" (global i32)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "spectest" "memory" (global i32)))
+  "type mismatch"
+)
 
 
 ;; Tables
@@ -140,13 +279,34 @@
   "multiple tables"
 )
 
+(module (import "test" "table-10-inf" (table 10 anyfunc)))
+(module (import "test" "table-10-inf" (table 5 anyfunc)))
+(module (import "test" "table-10-inf" (table 0 anyfunc)))
+(module (import "spectest" "table" (table 10 anyfunc)))
+(module (import "spectest" "table" (table 5 anyfunc)))
+(module (import "spectest" "table" (table 0 anyfunc)))
+(module (import "spectest" "table" (table 10 20 anyfunc)))
+(module (import "spectest" "table" (table 5 20 anyfunc)))
+(module (import "spectest" "table" (table 0 20 anyfunc)))
+(module (import "spectest" "table" (table 10 25 anyfunc)))
+(module (import "spectest" "table" (table 5 25 anyfunc)))
+
+(assert_unlinkable
+  (module (import "test" "unknown" (table 10 anyfunc)))
+  "unknown import"
+)
 (assert_unlinkable
   (module (import "spectest" "unknown" (table 10 anyfunc)))
   "unknown import"
 )
+
 (assert_unlinkable
-  (module (import "spectest" "print" (table 10 anyfunc)))
-  "type mismatch"
+  (module (import "test" "table-10-inf" (table 12 anyfunc)))
+  "actual size smaller than declared"
+)
+(assert_unlinkable
+  (module (import "test" "table-10-inf" (table 10 20 anyfunc)))
+  "maximum size larger than declared"
 )
 (assert_unlinkable
   (module (import "spectest" "table" (table 12 anyfunc)))
@@ -156,6 +316,24 @@
   (module (import "spectest" "table" (table 10 15 anyfunc)))
   "maximum size larger than declared"
 )
+
+(assert_unlinkable
+  (module (import "test" "func" (table 10 anyfunc)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "global-i32" (table 10 anyfunc)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "memory-2-inf" (table 10 anyfunc)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "spectest" "print" (table 10 anyfunc)))
+  "type mismatch"
+)
+
 
 
 ;; Memories
@@ -196,14 +374,67 @@
   "multiple memories"
 )
 
+(module (import "test" "memory-2-inf" (memory 2)))
+(module (import "test" "memory-2-inf" (memory 1)))
+(module (import "test" "memory-2-inf" (memory 0)))
+(module (import "spectest" "memory" (memory 1)))
+(module (import "spectest" "memory" (memory 0)))
+(module (import "spectest" "memory" (memory 1 2)))
+(module (import "spectest" "memory" (memory 0 2)))
+(module (import "spectest" "memory" (memory 1 3)))
+(module (import "spectest" "memory" (memory 0 3)))
+
+(assert_unlinkable
+  (module (import "test" "unknown" (memory 1)))
+  "unknown import"
+)
 (assert_unlinkable
   (module (import "spectest" "unknown" (memory 1)))
   "unknown import"
+)
+
+(assert_unlinkable
+  (module (import "test" "memory-2-inf" (memory 3)))
+  "actual size smaller than declared"
+)
+(assert_unlinkable
+  (module (import "test" "memory-2-inf" (memory 2 3)))
+  "maximum size larger than declared"
+)
+(assert_unlinkable
+  (module (import "spectest" "memory" (memory 2)))
+  "actual size smaller than declared"
+)
+(assert_unlinkable
+  (module (import "spectest" "memory" (memory 1 1)))
+  "maximum size larger than declared"
+)
+
+(assert_unlinkable
+  (module (import "test" "func-i32" (memory 1)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "global-i32" (memory 1)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "test" "table-10-inf" (memory 1)))
+  "type mismatch"
 )
 (assert_unlinkable
   (module (import "spectest" "print" (memory 1)))
   "type mismatch"
 )
+(assert_unlinkable
+  (module (import "spectest" "global" (memory 1)))
+  "type mismatch"
+)
+(assert_unlinkable
+  (module (import "spectest" "table" (memory 1)))
+  "type mismatch"
+)
+
 (assert_unlinkable
   (module (import "spectest" "memory" (memory 2)))
   "actual size smaller than declared"

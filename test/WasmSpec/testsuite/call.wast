@@ -191,14 +191,6 @@
   "type mismatch"
 )
 
-;; TODO(stack): move these elsewhere
-(module
-  (func (param i32 i32))
-  (func $arity-nop-first (call 0 (nop) (i32.const 1) (i32.const 2)))
-  (func $arity-nop-mid (call 0 (i32.const 1) (nop) (i32.const 2)))
-  (func $arity-nop-last (call 0 (i32.const 1) (i32.const 2) (nop)))
-)
-
 (assert_invalid
   (module
     (func $type-first-void-vs-num (call 1 (nop) (i32.const 1)))

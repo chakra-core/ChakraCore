@@ -795,6 +795,7 @@ WasmBytecodeGenerator::EmitCall()
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
         signatureId = GetReader()->m_currentNode.call.num;
+        signatureId = m_module->GetEquivalentSignatureId(signatureId);
         calleeSignature = m_module->GetSignature(signatureId);
         ReleaseLocation(&indirectIndexInfo);
         break;

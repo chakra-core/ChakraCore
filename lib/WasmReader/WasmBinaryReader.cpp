@@ -715,6 +715,7 @@ void WasmBinaryReader::ReadTableSection()
             initialLength = maximumLength;
         }
         m_module->AllocateTable(initialLength);
+        m_module->CalculateEquivalentSignatures();
         TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
     }
 }
