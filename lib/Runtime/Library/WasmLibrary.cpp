@@ -253,18 +253,14 @@ namespace Js
                 PropertyRecord const * propertyRecord = nullptr;
                 ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
 
-                Var obj = nullptr;
+                Var obj = ctx->GetLibrary()->GetUndefined();
                 switch (funcExport->kind)
                 {
-                case Wasm::ImportKinds::Function:
+                case Wasm::ExternalKinds::Function:
 
                     obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
-                    if (!obj)
-                    {
-                        obj = ctx->GetLibrary()->GetUndefined();
-                    }
                     break;
-                case Wasm::ImportKinds::Global:
+                case Wasm::ExternalKinds::Global:
                     Wasm::WasmGlobal* global = wasmModule->globals.Item(funcExport->funcIndex);
                     Assert(global->GetReferenceType() == Wasm::WasmGlobal::Const); //every global has to be resolved by this point
 
@@ -303,13 +299,14 @@ namespace Js
         ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
         Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
 
-        PropertyRecord const * propertyRecord = nullptr;
+
 
         char16* name = wi->fnName;
         uint32 nameLen = wi->fnNameLen;
         Var prop = nullptr;
         if (nameLen > 0)
         {
+            PropertyRecord const * propertyRecord = nullptr;
             ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
 
             if (!JavascriptObject::Is(modProp))
@@ -359,7 +356,6 @@ namespace Js
             uint offset = wasmModule->GetOffsetForGlobal(global);
             global->SetReferenceType(Wasm::WasmGlobal::Const);
 
-
             if (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop))
             {
                 throw Wasm::WasmCompilationException(_u("Import global %s.%s (%d) isn't a valid javascript number"), global->importVar->modName, global->importVar->fnName, i);
@@ -370,14 +366,14 @@ namespace Js
             case Wasm::WasmTypes::I32:
             {
                 int val;
-                bool isInt32;
-
                 if (TaggedInt::Is(prop))
                 {
                     val = TaggedInt::ToInt32(prop);
                 }
                 else
                 {
+
+                    bool isInt32;
                     bool isInt = JavascriptNumber::TryGetInt32OrUInt32Value(JavascriptNumber::GetValue(prop), &val, &isInt32);
                     if (!isInt)
                     {
@@ -396,7 +392,7 @@ namespace Js
             }
             case Wasm::WasmTypes::F64:
             {
-                double val = (double)JavascriptNumber::GetValue(prop);
+                double val = JavascriptNumber::GetValue(prop);
                 global->cnst.f64 = val;
                 SetGlobalValue(moduleEnv, offset, val);
                 break;
@@ -425,8 +421,13 @@ namespace Js
             }
             else
             {
-                Assert(global->GetReferenceType() == Wasm::WasmGlobal::LocalReference); //no imported globals at this point
                 sourceGlobal = wasmModule->globals.Item(global->var.num);
+                Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
+                if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
+                {
+                    throw Wasm::WasmCompilationException(_u("Global %d is initialized with global %d "
+                        "which is not a const. Forward references aren't supported!"), i, global->var.num);
+                }
                 global->SetReferenceType(Wasm::WasmGlobal::Const); //resolve global to const
                 global->cnst = sourceGlobal->cnst;
 

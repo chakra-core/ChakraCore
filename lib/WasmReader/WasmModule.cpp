@@ -221,7 +221,7 @@ void WasmModule::AllocateFunctionExports(uint32 entries)
     m_exportCount = entries;
 }
 
-void WasmModule::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ImportKinds::ImportKind kind)
+void WasmModule::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;
@@ -246,13 +246,28 @@ WasmModule::AllocateFunctionImports(uint32 entries)
 }
 
 void
-WasmModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ImportKinds::ImportKind kind)
+WasmModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ExternalKinds::ExternalKind kind)
 {
     m_imports[i].sigId = sigId;
     m_imports[i].modNameLen = modNameLen;
     m_imports[i].modName = modName;
     m_imports[i].fnNameLen = fnNameLen;
     m_imports[i].fnName = fnName;
+}
+
+void
+WasmModule::AddGlobalImport(char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ExternalKinds::ExternalKind kind, WasmGlobal* importedGlobal)
+{
+    WasmImport* wi = Anew(&m_alloc, WasmImport);
+    wi->sigId = 0;
+    wi->fnName = fnName;
+    wi->fnNameLen = fnNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+
+    importedGlobal->importVar = wi;
+    importedGlobal->SetReferenceType(WasmGlobal::ImportedReference);
+    globals.Add(importedGlobal);
 }
 
 Wasm::WasmImport*
@@ -357,8 +372,10 @@ uint WasmModule::GetOffsetForGlobal(WasmGlobal* global)
     double sizeInInts = 0;
     WasmTypes::WasmType type = global->GetType();
 
-    for (uint i = 0; i < (uint) type; i++)
+    for (uint i = 0; i < (uint)type; i++)
+    {
         sizeInInts += globalCounts[i] * slotSizesInInts[i];
+    }
 
     sizeInInts += global->GetOffset() * slotSizesInInts[type];
     return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);

@@ -71,7 +71,8 @@ namespace Wasm
         char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
         UINT LEB128(UINT &length, bool sgn = false);
         INT SLEB128(UINT &length);
-        WasmNode ReadInitExpr();
+        void ReadInitExpr(WasmGlobal* global);
+        UINT32 ReadIntConstExpr(char16* msg);
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();

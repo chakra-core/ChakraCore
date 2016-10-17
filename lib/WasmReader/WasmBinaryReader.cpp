@@ -646,11 +646,11 @@ void WasmBinaryReader::ReadExportTable()
         uint32 nameLength;
         char16* exportName = ReadInlineName(length, nameLength);
 
-        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         uint32 index = LEB128(length);
         switch (kind)
         {
-        case ImportKinds::Function:
+        case ExternalKinds::Function:
         {
             FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
             if (type == FunctionIndexTypes::Invalid)
@@ -673,7 +673,7 @@ void WasmBinaryReader::ReadExportTable()
 #endif
             break;
         }
-        case ImportKinds::Memory:
+        case ExternalKinds::Memory:
         {
             if (index != 0)
             {
@@ -682,10 +682,10 @@ void WasmBinaryReader::ReadExportTable()
             m_module->SetMemoryIsExported();
             break;
         }
-        case ImportKinds::Global:
+        case ExternalKinds::Global:
             m_module->SetFunctionExport(iExport, index, exportName, nameLength, kind);
             break;
-        case ImportKinds::Table:
+        case ExternalKinds::Table:
             ThrowDecodingError(_u("Exported Kind Table, NYI"));
         default:
             ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
@@ -739,13 +739,7 @@ WasmBinaryReader::ReadElementSection()
             ThrowDecodingError(_u("Invalid table index %d"), index);
         }
 
-        WasmNode initExpr = ReadInitExpr();
-        if (initExpr.op != wbI32Const)
-        {
-            ThrowDecodingError(_u("Only int32.const supported for element offset"));
-        }
-
-        uint32 offset = initExpr.cnst.i32;
+        uint32 offset = ReadIntConstExpr(_u("Only int32.const supported for element offset"));
         uint32 numElem = LEB128(length);
         uint32 end = UInt32Math::Add(offset, numElem);
         if (end > m_module->GetTableSize())
@@ -788,12 +782,8 @@ WasmBinaryReader::ReadDataSegments()
             ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
         }
         TRACE_WASM_DECODER(L"Data Segment #%u", i);
-        WasmNode initExpr = ReadInitExpr();
-        if (initExpr.op != wbI32Const)
-        {
-            ThrowDecodingError(_u("Only i32.const supported for data segment offset"));
-        }
-        UINT32 offset = initExpr.cnst.i32;
+
+        UINT32 offset = ReadIntConstExpr(_u("Only i32.const supported for data segment offset"));
         UINT32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
@@ -837,26 +827,7 @@ WasmBinaryReader::ReadGlobalsSection()
         WasmTypes::WasmType type = ReadWasmType(len);
         bool mutability = ReadConst<UINT8>() == 1;
         WasmGlobal* global = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
-        m_funcState.count = 0;
-        m_funcState.size = (UINT)(m_end - m_pc);
-
-        WasmOp op = ReadExpr();
-        switch (op) {
-            case  wbI32Const:
-            case  wbI64Const:
-            case  wbF32Const:
-            case  wbF64Const:
-                global->SetReferenceType(WasmGlobal::Const);
-                global->cnst = m_currentNode.cnst;
-                break;
-            case  wbGetGlobal:
-                global->SetReferenceType(WasmGlobal::LocalReference);
-                global->var = m_currentNode.var;
-                break;
-        }
-
-        op = ReadExpr();
-        Assert(op == wbEnd);
+        ReadInitExpr(global);
         m_module->globals.Add(global);
     }
 
@@ -906,49 +877,39 @@ WasmBinaryReader::ReadImportEntries()
         char16* modName = ReadInlineName(len, modNameLen);
         char16* fnName = ReadInlineName(len, fnNameLen);
 
-        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\", kind: %d"), i, modName, fnName, kind);
         switch (kind)
         {
-        case ImportKinds::Function:
+        case ExternalKinds::Function:
         {
             uint32 sigId = LEB128(len);
             if (sigId >= m_module->GetSignatureCount())
             {
                 ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
             }
-            m_module->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen, kind);
+            m_module->SetFunctionImport(importFunctionCount, sigId, modName, modNameLen, fnName, fnNameLen, kind);
             importFunctionCount++;
             break;
         }
-        case ImportKinds::Global:
+        case ExternalKinds::Global:
         {
             WasmTypes::WasmType type = ReadWasmType(len);
             bool mutability = ReadConst<UINT8>() == 1;
             WasmGlobal* importedGlobal = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
-
-            WasmImport* wi = Anew(m_alloc, WasmImport); //globals live in a separate namespace from functions
-            wi->sigId = 0;
-            wi->fnName = fnName;
-            wi->fnNameLen = fnNameLen;
-            wi->modName = modName;
-            wi->modNameLen = modNameLen;
-
-            importedGlobal->importVar = wi;
-            importedGlobal->SetReferenceType(WasmGlobal::ImportedReference);
-            m_module->globals.Add(importedGlobal);
-            importGlobalCount++;
+            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, kind, importedGlobal);
             break;
         }
-        case ImportKinds::Table:
+        case ExternalKinds::Table:
             ThrowDecodingError(_u("Imported Kind Table, NYI"));
-        case ImportKinds::Memory:
+        case ExternalKinds::Memory:
             ThrowDecodingError(_u("Imported Kind Memory, NYI"));
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
             break;
         }
     }
+    importGlobalCount = m_module->globals.Count();
     m_module->SetImportGlobalCount(importGlobalCount);
     m_module->SetImportCount(importFunctionCount);
 }
@@ -1023,30 +984,49 @@ WasmBinaryReader::SLEB128(UINT &length)
     return result;
 }
 
-WasmNode
-WasmBinaryReader::ReadInitExpr()
+UINT32
+WasmBinaryReader::ReadIntConstExpr(char16* msg)
 {
     m_funcState.count = 0;
-    m_funcState.size = 123456; // some aribtrary big value
+    m_funcState.size = (UINT)(m_end - m_pc);
     ReadExpr();
     WasmNode node = m_currentNode;
-    switch (node.op)
+    if (node.op != wbI32Const)
     {
-    case wbI32Const:
-    case wbF32Const:
-    case wbI64Const:
-    case wbF64Const:
-    //case wbGetGlobal:
-        break;
-    default:
-        ThrowDecodingError(_u("Invalid initexpr opcode"));
+        ThrowDecodingError(_u("Invalid initexpr opcode. Int32 Const expected."));
     }
 
     if (ReadExpr() != wbEnd)
     {
         ThrowDecodingError(_u("Missing end opcode after init expr"));
     }
-    return node;
+    return node.cnst.i32;
+}
+
+void
+WasmBinaryReader::ReadInitExpr(WasmGlobal* global)
+{
+    m_funcState.count = 0;
+    m_funcState.size = (UINT)(m_end - m_pc);
+    WasmOp op = ReadExpr();
+    switch (op) {
+    case  wbI32Const:
+    case  wbI64Const:
+    case  wbF32Const:
+    case  wbF64Const:
+        global->SetReferenceType(WasmGlobal::Const);
+        global->cnst = m_currentNode.cnst;
+        break;
+    case  wbGetGlobal:
+        global->SetReferenceType(WasmGlobal::LocalReference);
+        global->var = m_currentNode.var;
+        break;
+    }
+
+    if (ReadExpr() != wbEnd)
+    {
+        ThrowDecodingError(_u("Missing end opcode after init expr"));
+    }
 }
 
 template <typename T>

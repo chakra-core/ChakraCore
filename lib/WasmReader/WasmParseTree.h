@@ -22,9 +22,9 @@ namespace Wasm
         bool IsLocalType(WasmTypes::WasmType type);
     }
 
-    namespace ImportKinds
+    namespace ExternalKinds
     {
-        enum ImportKind
+        enum ExternalKind
         {
             Function = 0,
             Table = 1,
@@ -133,7 +133,7 @@ namespace Wasm
         uint32 funcIndex;
         uint32 nameLength;
         char16* name;
-        ImportKinds::ImportKind kind;
+        ExternalKinds::ExternalKind kind;
     };
 
     struct WasmImport

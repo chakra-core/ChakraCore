@@ -1429,7 +1429,7 @@ WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
     Assert(info.label == labelValidation);
 
     EmitInfo yieldEmitInfo;
-    if (info.HasYield()) 
+    if (info.HasYield())
     {
         yieldEmitInfo = info.yieldInfo->info;
         if (!info.DidYield())
@@ -1489,7 +1489,6 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
 
         blockInfo.yieldInfo->didYield = true;
         m_writer.AsmReg2(GetLoadOp(expr.type), yieldInfo.location, expr.location);
-        //ReleaseLocation(&expr);
     }
 }
 
