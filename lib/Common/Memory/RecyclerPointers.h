@@ -46,7 +46,7 @@ public:
     T** operator&() { return &value; }
 
     // Setters
-    NoWriteBarrierPtr& operator=(T const& value)
+    NoWriteBarrierPtr& operator=(T * value)
     {
         this->value = value;
         return *this;
@@ -98,15 +98,15 @@ public:
     T const** AddressOf() const { return &ptr; }
     T** AddressOf() { return &ptr; }
 
-    T const** operator&() const 
-    { 
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead."); 
-        return &ptr; 
-    }
-    T** operator&() 
+    T const** operator&() const
     {
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead."); 
-        return &ptr; 
+        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
+        return &ptr;
+    }
+    T** operator&()
+    {
+        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
+        return &ptr;
     }
 
     // Setters

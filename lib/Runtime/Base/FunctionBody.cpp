@@ -4308,7 +4308,7 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         if (m_isAsmJsFunction && m_dynamicInterpreterThunk)
         {
-            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, true);
+            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk(this->m_dynamicInterpreterThunk, true);
             this->m_dynamicInterpreterThunk = nullptr;
         }
 #endif
@@ -7329,11 +7329,11 @@ namespace Js
             {
                 if (m_isAsmJsFunction)
                 {
-                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk(this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
                 }
                 else
                 {
-                    m_scriptContext->ReleaseDynamicInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicInterpreterThunk(this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
                 }
             }
         }

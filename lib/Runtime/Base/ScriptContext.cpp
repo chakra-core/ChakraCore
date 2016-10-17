@@ -4853,15 +4853,15 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return this->interpreterThunkEmitter->IsInHeap((void*)address);
     }
 
-    void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)
+    void ScriptContext::ReleaseDynamicInterpreterThunk(void* address, bool addtoFreeList)
     {
-        this->interpreterThunkEmitter->Release(address, addtoFreeList);
+        this->interpreterThunkEmitter->Release((BYTE*)address, addtoFreeList);
     }
 
-    void ScriptContext::ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList)
+    void ScriptContext::ReleaseDynamicAsmJsInterpreterThunk(void* address, bool addtoFreeList)
     {
 #ifdef ASMJS_PLAT
-        this->asmJsInterpreterThunkEmitter->Release(address, addtoFreeList);
+        this->asmJsInterpreterThunkEmitter->Release((BYTE*)address, addtoFreeList);
 #else
         Assert(UNREACHED);
 #endif
