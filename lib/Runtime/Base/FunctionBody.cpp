@@ -6453,7 +6453,7 @@ namespace Js
                 if(GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
                 {
                     Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-                    const int newSimpleJitCallCount = max(0, simpleJitEntryPointInfo->callsCount + limitScale);
+                    const int newSimpleJitCallCount = max(0, (int)simpleJitEntryPointInfo->callsCount + limitScale);
                     Assert(static_cast<int>(static_cast<uint16>(newSimpleJitCallCount)) == newSimpleJitCallCount);
                     SetSimpleJitCallCount(static_cast<uint16>(newSimpleJitCallCount));
                 }
@@ -6591,11 +6591,11 @@ namespace Js
         }
 
         // Simple JIT counts down and transitions on overflow
-        const uint8 callCount = simpleJitEntryPointInfo->callsCount;
+        const uint32 callCount = simpleJitEntryPointInfo->callsCount;
         Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
         return callCount == 0 ?
             static_cast<uint16>(simpleJitLimit) :
-            static_cast<uint16>(simpleJitLimit) - callCount - 1;
+            static_cast<uint16>(simpleJitLimit) - static_cast<uint8>(callCount) - 1;
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
