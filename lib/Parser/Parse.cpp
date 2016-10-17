@@ -6759,11 +6759,6 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
     pnodeFnc->ichLim = m_pscan->IchLimTok();
     pnodeFnc->sxFnc.cbLim = m_pscan->IecpLimTok();
 
-    // Restore the lists of scopes that contain function expressions.
-    // Save the temps and restore the outer scope's list.
-    // NOTE: Eze makes no use of this.
-    //pnodeFnc->sxFnc.pnodeTmps = *m_ppnodeVar;
-
 #ifdef ENABLE_JS_ETW
     int32 astSize = *m_pCurrentAstSize - startAstSize;
     EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeFnc->sxFnc.functionId, astSize, m_parseType, name);
@@ -8751,7 +8746,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
 Parse try-catch-finally statement
 ***************************************************************************/
 
-// Eze try-catch-finally tree nests the try-catch within a try-finally.
+// The try-catch-finally tree nests the try-catch within a try-finally.
 // This matches the new runtime implementation.
 template<bool buildAST>
 ParseNodePtr Parser::ParseTryCatchFinally()
@@ -10895,9 +10890,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     pnodeProg->ichLim = m_pscan->IchLimTok();
     pnodeProg->sxFnc.cbLim = m_pscan->IecpLimTok();
 
-    // save the temps and terminate the local list
-    // NOTE: Eze makes no use of this.
-    //pnodeProg->sxFnc.pnodeTmps = *m_ppnodeVar;
+    // Terminate the local list
     *m_ppnodeVar = nullptr;
 
     Assert(nullptr == *m_ppnodeScope);
