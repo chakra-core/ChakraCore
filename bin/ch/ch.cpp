@@ -69,7 +69,7 @@ void __stdcall PrintUsageFormat()
 
 void __stdcall PrintUsage()
 {
-#ifndef DEBUG
+#if !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     wprintf(_u("\nUsage: %s <source file> %s"), hostName,
             _u("\n[flaglist] is not supported for Release mode\n"));
 #else
