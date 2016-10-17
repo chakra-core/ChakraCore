@@ -1487,6 +1487,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::CMOVS:
             if (instr->GetSrc2())
             {
+                Assert(instr->GetDst()->GetSize() == instr->GetSrc2()->GetSize());
+                Assert(instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
                 // sometimes we have fake src1 to help reg alloc
                 LegalizeOpnds<verify>(
                     instr,
@@ -1496,6 +1498,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             }
             else
             {
+                Assert(instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
                 LegalizeOpnds<verify>(
                     instr,
                     L_Reg,
@@ -5802,7 +5805,7 @@ LowererMD::GenerateCtz(IR::Instr * instr)
         instr->m_opcode = Js::OpCode::BSF;
         Legalize(instr);
 
-        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(32, TyInt8, m_func);
+        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(32, instr->GetDst()->GetType(), m_func);
         IR::Instr* cmove = IR::Instr::New(Js::OpCode::CMOVE, instr->GetDst(), instr->GetDst(), const32, this->m_func);
         instr->InsertAfter(cmove);
         Legalize(cmove);
