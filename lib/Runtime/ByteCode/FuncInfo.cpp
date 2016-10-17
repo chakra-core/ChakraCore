@@ -96,7 +96,9 @@ FuncInfo::FuncInfo(
     stringToRegister(alloc, 17),
     doubleConstantToRegister(alloc, 17),
     stringTemplateCallsiteRegisterMap(alloc, 17),
-    targetStatements(alloc)
+    targetStatements(alloc),
+    nextForInLoopLevel(0),
+    maxForInLoopLevel(0)
 {
     this->byteCodeFunction = byteCodeFunction;
     bodyScope->SetFunc(this);

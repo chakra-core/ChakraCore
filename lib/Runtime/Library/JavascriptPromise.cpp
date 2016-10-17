@@ -69,7 +69,7 @@ namespace Js
         InitializePromise(promise, &resolve, &reject, scriptContext);
 
         JavascriptExceptionObject* exception = nullptr;
-        
+
         // 9. Let completion be Call(executor, undefined, << resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] >>).
         try
         {
@@ -78,9 +78,9 @@ namespace Js
                 resolve,
                 reject);
         }
-        catch (JavascriptExceptionObject* e)
+        catch (const JavascriptException& err)
         {
-            exception = e;
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)
@@ -89,8 +89,8 @@ namespace Js
             //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, << completion.[[Value]] >>).
             TryRejectWithExceptionObject(exception, reject, scriptContext);
         }
-        
-        // 11. Return promise. 
+
+        // 11. Return promise.
         return promise;
     }
 
@@ -250,9 +250,9 @@ namespace Js
                 index++;
             });
         }
-        catch (JavascriptExceptionObject* e)
+        catch (const JavascriptException& err)
         {
-            exception = e;
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)
@@ -406,9 +406,9 @@ namespace Js
 
             });
         }
-        catch (JavascriptExceptionObject* e)
+        catch (const JavascriptException& err)
         {
-            exception = e;
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)
@@ -642,9 +642,9 @@ namespace Js
                         return undefinedVar;
                     }
                 }
-                catch (JavascriptExceptionObject* e)
+                catch (const JavascriptException& err)
                 {
-                    resolution = e->GetThrownObject(scriptContext);
+                    resolution = err.GetAndClear()->GetThrownObject(scriptContext);
 
                     if (resolution == nullptr)
                     {
@@ -743,12 +743,12 @@ namespace Js
                     undefinedVar,
                     argument);
             }
-            catch (JavascriptExceptionObject* e)
+            catch (const JavascriptException& err)
             {
-                exception = e;
+                exception = err.GetAndClear();
             }
         }
-        
+
         if (exception != nullptr)
         {
             return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
@@ -818,9 +818,9 @@ namespace Js
                     resolve,
                     reject);
             }
-            catch (JavascriptExceptionObject* e)
+            catch (const JavascriptException& err)
             {
-                exception = e;
+                exception = err.GetAndClear();
             }
         }
 
@@ -910,9 +910,9 @@ namespace Js
         {
             values->DirectSetItemAt(index, x);
         }
-        catch (JavascriptExceptionObject* e)
+        catch (const JavascriptException& err)
         {
-            exception = e;
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)
@@ -1029,9 +1029,9 @@ namespace Js
         {
             next = RecyclableObject::FromVar(CALL_FUNCTION(nextFunction, CallInfo(CallFlags_Value, 1), undefinedVar));
         }
-        catch (JavascriptExceptionObject* e)
+        catch (const JavascriptException& err)
         {
-            exception = e;
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)

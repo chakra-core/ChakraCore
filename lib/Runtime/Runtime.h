@@ -82,6 +82,7 @@ namespace Js
     struct ByteCodeReader;
     struct ByteCodeWriter;
     enum class EnumeratorFlags : byte;
+    struct ForInCache;
     class JavascriptStaticEnumerator;
     class ForInObjectEnumerator;
     class JavascriptConversion;

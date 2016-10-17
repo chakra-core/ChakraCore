@@ -549,10 +549,9 @@ MACRO_WMS(              NewRegEx,           Reg1Unsigned1,  OpTempObjectCanStore
 MACRO_WMS(              IsInst,             Reg3C,          OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)  // instanceof() - SideEffect: can throw...
 
 // Collection operations
-MACRO_WMS(              GetForInEnumerator, Reg2,           OpSideEffect|OpHasImplicitCall)         // Get enumerator from collection
-MACRO_WMS(              BrOnEmpty,          BrReg2,         OpSideEffect|OpHasImplicitCall)         // Move to next item; return value if not NULL, otherwise branch
-MACRO_BACKEND_ONLY (    BrOnNotEmpty,       BrReg2,         OpSideEffect|OpHasImplicitCall)         // Move to next item; return true if done
-MACRO_WMS(              ReleaseForInEnumerator,  Reg1,      OpSideEffect|OpHasImplicitCall)         // Release enumerator
+MACRO_WMS_PROFILED(     InitForInEnumerator,Reg1Unsigned1,  OpSideEffect|OpHasImplicitCall)         // Get enumerator from collection
+MACRO_WMS(              BrOnEmpty,          BrReg1Unsigned1,OpSideEffect|OpHasImplicitCall)         // Move to next item; return value if not NULL, otherwise branch
+MACRO_BACKEND_ONLY (    BrOnNotEmpty,       BrReg1Unsigned1,OpSideEffect|OpHasImplicitCall)         // Move to next item; return true if done
 
 MACRO(                  TryCatch,           Br,             OpSideEffect)
 MACRO(                  TryFinally,         Br,             OpSideEffect|OpPostOpDbgBailOut)

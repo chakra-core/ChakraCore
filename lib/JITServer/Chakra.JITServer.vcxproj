@@ -28,6 +28,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITServer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="JITServer.h" />
     <ClInclude Include="JITServerPch.h" />
   </ItemGroup>
   <ItemGroup>

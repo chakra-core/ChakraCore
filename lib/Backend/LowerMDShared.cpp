@@ -1296,7 +1296,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 {
     Assert(instr);
     Assert(!instr->isInlineeEntryInstr
-        || (instr->m_opcode == Js::OpCode::MOV && instr->GetSrc1()->IsAddrOpnd()));
+        || (instr->m_opcode == Js::OpCode::MOV && instr->GetSrc1()->IsIntConstOpnd()));
 
     switch(instr->m_opcode)
     {
@@ -1928,6 +1928,26 @@ void LowererMD::LegalizeDst(IR::Instr *const instr, const uint forms)
     }
 }
 
+bool LowererMD::HoistLargeConstant(IR::IndirOpnd *indirOpnd, IR::Opnd *src, IR::Instr *instr) {
+        if (indirOpnd != nullptr)
+        {
+            if (indirOpnd->GetOffset() == 0)
+            {
+                instr->ReplaceSrc(src, indirOpnd->GetBaseOpnd());
+            }
+            else
+            {
+                // Hoist the address load as LEA [reg + offset]
+                // with the reg = MOV <some address within 32-bit range at the start of the function
+                IR::RegOpnd * regOpnd = IR::RegOpnd::New(TyMachPtr, instr->m_func);
+                Lowerer::InsertLea(regOpnd, indirOpnd, instr);
+                instr->ReplaceSrc(src, regOpnd);
+            }
+            return true;
+        }
+        return false;
+}
+
 template <bool verify>
 void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint forms)
 {
@@ -1943,13 +1963,43 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
             return;
 
         case IR::OpndKindIntConst:
-            Assert(!instr->isInlineeEntryInstr);
-            if(forms & L_Imm32)
+            if(forms & L_Ptr)
             {
                 return;
             }
+#ifdef _M_X64
+            {
+                IR::IntConstOpnd * intOpnd = src->AsIntConstOpnd();
+                if ((TySize[intOpnd->GetType()] != 8) ||
+                    (!instr->isInlineeEntryInstr && Math::FitsInDWord(intOpnd->GetValue())))
+                {
+                    if (forms & L_Imm32)
+                    {
+                        // the constant fits in 32-bit, no need to hoist
+                        return;
+                    }
+                    break;
+                }
+                if (verify)
+                {
+                    AssertMsg(false, "Missing legalization");
+                    return;
+                }
+                // The actual value for inlinee entry instr isn't determined until encoder
+                // So it need to be hoisted conventionally.
+                if (!instr->isInlineeEntryInstr)
+                {
+                    Assert(forms & L_Reg);
+                    IR::IntConstOpnd * newIntOpnd = IR::IntConstOpnd::New(intOpnd->GetValue(), intOpnd->GetType(), instr->m_func, true);
+                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd(intOpnd->GetValue(), newIntOpnd, IR::AddrOpndKindConstantAddress, TyMachPtr, Js::OpCode::MOV);
+                    if (HoistLargeConstant(indirOpnd, src, instr))
+                    {
+                        return;
+                    }
+                }
+            }
+#endif
             break;
-
         case IR::OpndKindFloatConst:
             break; // assume for now that it always needs to be hoisted
 
@@ -1973,29 +2023,14 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
                     return;
                 }
 
-                // The actual value for inlinee entry instr isn't determined until encoder
-                // So it need to be hoisted conventionally.
-                if (!instr->isInlineeEntryInstr)
+                Assert(!instr->isInlineeEntryInstr);
+                Assert(forms & L_Reg);
+                // TODO: michhol, remove cast after making m_address intptr
+                IR::AddrOpnd * newAddrOpnd = IR::AddrOpnd::New(addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), instr->m_func, true);
+                IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd((intptr_t)addrOpnd->m_address, newAddrOpnd, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
+                if (HoistLargeConstant(indirOpnd, src, instr))
                 {
-                    Assert(forms & L_Reg);
-                    // TODO: michhol, remove cast after making m_address intptr
-                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd((intptr_t)addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
-                    if (indirOpnd != nullptr)
-                    {
-                        if (indirOpnd->GetOffset() == 0)
-                        {
-                            instr->ReplaceSrc(src, indirOpnd->GetBaseOpnd());
-                        }
-                        else
-                        {
-                            // Hoist the address load as LEA [reg + offset]
-                            // with the reg = MOV <some address within 32-bit range at the start of the function
-                            IR::RegOpnd * regOpnd = IR::RegOpnd::New(TyMachPtr, instr->m_func);
-                            Lowerer::InsertLea(regOpnd, indirOpnd, instr);
-                            instr->ReplaceSrc(src, regOpnd);
-                        }
-                        return;
-                    }
+                    return;
                 }
             }
 #endif
@@ -4540,7 +4575,7 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     Assert(rightShiftAmount > leftShiftAmount);
     instr = IR::Instr::New(Js::OpCode::SHR, opndOffset, opndOffset, IR::IntConstOpnd::New(rightShiftAmount - leftShiftAmount, TyUint8, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
-    instr = IR::Instr::New(Js::OpCode::AND, opndOffset, opndOffset, IR::AddrOpnd::New((void*)((__int64)(polymorphicInlineCacheSize - 1) << leftShiftAmount), IR::AddrOpndKindConstant, instrLdSt->m_func, true), instrLdSt->m_func);
+    instr = IR::Instr::New(Js::OpCode::AND, opndOffset, opndOffset, IR::IntConstOpnd::New(((__int64)(polymorphicInlineCacheSize - 1) << leftShiftAmount), TyMachReg, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
 
     // LEA inlineCache, [inlineCache + r1]
@@ -5521,7 +5556,7 @@ LowererMD::GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, I
 
         // Unconditionally set the sign bit. This will get XORd away when we remove the tag.
         // dst64 = OR 0x8000000000000000
-        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::OR, dst, dst, IR::AddrOpnd::New((void *)MachSignBit, IR::AddrOpndKindConstant, this->m_func), this->m_func));
+        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::OR, dst, dst, IR::IntConstOpnd::New(MachSignBit, TyMachReg, this->m_func), this->m_func));
 #endif
     }
     else if(!isInt)
@@ -7800,7 +7835,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         // CMP dst, 0x80000000 {0x8000000000000000 on x64}    -- Check for overflow
         instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
         instr->SetSrc1(dstOpnd);
-        instr->SetSrc2(IR::AddrOpnd::New((Js::Var)MachSignBit, IR::AddrOpndKindConstant, this->m_func, true));
+        instr->SetSrc2(IR::IntConstOpnd::New(MachSignBit, TyMachReg, this->m_func, true));
         instInsert->InsertBefore(instr);
         Legalize(instr);
 
@@ -8991,7 +9026,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 Assert(src->IsFloat32());
                 zero = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatZeroAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
             }
-
+            IR::AutoReuseOpnd autoReuseZero(zero, this->m_func);
             IR::LabelInstr * skipRoundSd = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
             if(instr->m_opcode == Js::OpCode::InlineMathRound)

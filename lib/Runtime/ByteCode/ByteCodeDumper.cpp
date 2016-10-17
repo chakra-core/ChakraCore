@@ -799,6 +799,12 @@ namespace Js
 #endif
                 break;
             }
+            case OpCode::InitForInEnumerator:
+            {
+                DumpReg(data->R0);
+                DumpU4(data->C1);
+                break;
+            }
             default:
                 DumpReg(data->R0);
                 Output::Print(_u("="));
@@ -1494,6 +1500,14 @@ namespace Js
     {
         DumpOffset(data->RelativeJumpOffset, reader);
         DumpReg(data->R1);
+    }
+
+    template <class T>
+    void ByteCodeDumper::DumpBrReg1Unsigned1(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpOffset(data->RelativeJumpOffset, reader);
+        DumpReg(data->R1);
+        DumpU4(data->C2);
     }
 
     template <class T>

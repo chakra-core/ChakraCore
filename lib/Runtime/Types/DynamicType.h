@@ -87,7 +87,7 @@ namespace Js
 
         static uint32 GetOffsetOfTypeHandler() { return offsetof(DynamicType, typeHandler); }
         static uint32 GetOffsetOfIsShared() { return offsetof(DynamicType, isShared); }
-
+        static uint32 GetOffsetOfHasNoEnumerableProperties() { return offsetof(DynamicType, hasNoEnumerableProperties); }
     private:
         void SetIsLocked() { Assert(this->GetTypeHandler()->GetIsLocked()); this->isLocked = true; }
         void SetIsShared() { Assert(this->GetIsLocked() && this->GetTypeHandler()->GetIsShared()); this->isShared = true; }

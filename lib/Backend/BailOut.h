@@ -464,6 +464,7 @@ struct GlobalBailOutRecordDataTable
     uint32 length;
     uint32 size;
     int32  firstActualStackOffset;
+    int forInEnumeratorArrayRestoreOffset;
     Js::RegSlot returnValueRegSlot;
     bool isInlinedFunction;
     bool isInlinedConstructor;

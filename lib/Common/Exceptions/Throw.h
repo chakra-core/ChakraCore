@@ -20,6 +20,7 @@ namespace Js {
         static void __declspec(noreturn) NotImplemented();
         static void __declspec(noreturn) InternalError();
         static void __declspec(noreturn) FatalInternalError();
+        static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalProjectionError();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
@@ -165,8 +166,9 @@ namespace Js {
     CATCH_UNHANDLED_EXCEPTION(hr)
 
 #define END_TRANSLATE_ERROROBJECT_TO_HRESULT_EX(hr, GetRuntimeErrorFunc) \
-    catch(Js::JavascriptExceptionObject *  exceptionObject)  \
+    catch(const Js::JavascriptException& err)  \
     {   \
+        Js::JavascriptExceptionObject* exceptionObject = err.GetAndClear(); \
         GET_RUNTIME_ERROR_IMPL(hr, GetRuntimeErrorFunc, exceptionObject); \
     }
 
@@ -192,8 +194,9 @@ namespace Js {
     END_TRANSLATE_ERROROBJECT_TO_HRESULT_EX(hr, Js::JavascriptError::GetRuntimeErrorWithScriptEnter)
 
 #define END_GET_ERROROBJECT(hr, scriptContext, exceptionObject) \
-    catch (Js::JavascriptExceptionObject *  _exceptionObject)  \
+    catch (const Js::JavascriptException& err)  \
     {   \
+        Js::JavascriptExceptionObject *  _exceptionObject = err.GetAndClear(); \
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED \
             exceptionObject = _exceptionObject; \
             exceptionObject = exceptionObject->CloneIfStaticExceptionObject(scriptContext);  \

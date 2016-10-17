@@ -5,8 +5,10 @@
 
 #include "WasmReaderPch.h"
 
-
 #ifdef ENABLE_WASM
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#include "Codex\Utf8Helper.h"
+#endif
 
 namespace Wasm
 {
@@ -188,18 +190,15 @@ WasmBinaryReader::ReadSectionHeader()
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    char16 buf[64] = _u("Unknown Section (name is too long)");
-    if (nameLength < 64)
+    if (DO_WASM_TRACE_SECTION)
     {
-
-        size_t convertedChars = 0;
-        mbstowcs_s(&convertedChars, buf, nameLength + 1, sectionName, _TRUNCATE);
-        buf[nameLength] = 0;
+        char16* wstr = nullptr;
+        size_t unused;
+        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, nameLength, &wstr, &unused);
+        TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), wstr, sectionSize, sectionSize);
+        free(wstr);
     }
-    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
 #endif
-
-    Assert(header.code != bSectInvalid);
     return header;
 }
 
@@ -237,7 +236,7 @@ WasmBinaryReader::PrintOps()
     case opcode: \
         Output::Print(_u("%s\r\n"), _u(#opname)); \
         break;
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
         }
     }
     HeapDeleteArray(m_ops->Count(), ops);
@@ -389,7 +388,7 @@ WasmBinaryReader::ReadExpr()
     case wb##opname: \
         MemNode(); \
     break;
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
     default:
         break;
     }
@@ -782,7 +781,7 @@ WasmBinaryReader::ReadDataSegments()
         {
             ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
         }
-        TRACE_WASM_DECODER(L"Data Segment #%u", i);
+        TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         WasmNode initExpr = ReadInitExpr();
         if (initExpr.op != wbI32Const)
         {

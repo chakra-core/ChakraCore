@@ -57,11 +57,12 @@ namespace Js
                 result = JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
                 helper.DidNotThrow();
             }
-            catch (Js::JavascriptExceptionObject* exceptionObj)
+            catch (const JavascriptException& err)
             {
+                Js::JavascriptExceptionObject* exceptionObj = err.GetAndClear();
                 if (!exceptionObj->IsGeneratorReturnException())
                 {
-                    throw exceptionObj;
+                    JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
                 }
                 result = exceptionObj->GetThrownObject(nullptr);
             }

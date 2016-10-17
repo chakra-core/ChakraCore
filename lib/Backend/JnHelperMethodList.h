@@ -258,8 +258,7 @@ HELPERCALL(OP_InitElemGetter, Js::JavascriptOperators::OP_InitElemGetter, AttrCa
 HELPERCALL(OP_InitComputedProperty, Js::JavascriptOperators::OP_InitComputedProperty, AttrCanThrow)
 HELPERCALL(OP_InitProto, Js::JavascriptOperators::OP_InitProto, AttrCanThrow)
 
-HELPERCALL(Op_OP_GetForInEnumerator, Js::JavascriptOperators::OP_GetForInEnumerator, 0)
-HELPERCALL(Op_OP_ReleaseForInEnumerator, Js::JavascriptOperators::OP_ReleaseForInEnumerator, 0)
+HELPERCALL(Op_OP_InitForInEnumerator, Js::JavascriptOperators::OP_InitForInEnumerator, 0)
 HELPERCALL(Op_OP_BrOnEmpty, Js::JavascriptOperators::OP_BrOnEmpty, 0)
 
 HELPERCALL(Op_OP_BrFncEqApply, Js::JavascriptOperators::OP_BrFncEqApply, 0)

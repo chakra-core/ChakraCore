@@ -443,6 +443,7 @@ JITManager::UpdatePropertyRecordMap(
 HRESULT
 JITManager::InitializeScriptContext(
     __in ScriptContextDataIDL * data,
+    __in intptr_t threadContextInfoAddress,
     __out intptr_t * scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
@@ -450,7 +451,7 @@ JITManager::InitializeScriptContext(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, scriptContextInfoAddress);
+        hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, threadContextInfoAddress, scriptContextInfoAddress);
     }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
@@ -547,7 +548,6 @@ JITManager::IsNativeAddr(
 HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemIDL *workItemData,
-    __in intptr_t threadContextInfoAddress,
     __in intptr_t scriptContextInfoAddress,
     __out JITOutputIDL *jitData)
 {
@@ -556,7 +556,7 @@ JITManager::RemoteCodeGenCall(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData);
+        hr = ClientRemoteCodeGen(m_rpcBindingHandle, scriptContextInfoAddress, workItemData, jitData);
     }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

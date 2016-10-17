@@ -127,7 +127,7 @@
     <default>
       <files>polyInliningFixedMethods.js</files>
       <baseline>polyInliningFixedMethods.baseline</baseline>
-      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1</compile-flags>
+      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -extendederrorstackfortesthost</compile-flags>
     </default>
   </test>
   <test>

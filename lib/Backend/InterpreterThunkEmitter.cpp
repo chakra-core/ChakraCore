@@ -308,6 +308,10 @@ void InterpreterThunkEmitter::NewThunkBlock()
     }
 
     allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);
+    if (allocation == nullptr) 
+    {
+        Js::Throw::OutOfMemory();
+    }
     if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
     {
         Js::Throw::OutOfMemory();

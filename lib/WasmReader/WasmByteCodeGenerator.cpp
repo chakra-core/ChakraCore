@@ -16,7 +16,7 @@
 namespace Wasm
 {
 #define WASM_SIGNATURE(id, nTypes, ...) const WasmTypes::WasmType WasmOpCodeSignatures::id[] = {__VA_ARGS__};
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
 
 #if DBG_DUMP
 void
@@ -467,7 +467,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #define WASM_OPCODE(opname, opcode, sig, nyi) \
     case opcode: \
         if (nyi) throw WasmCompilationException(_u("Operator %s NYI"), _u(#opname)); break;
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
     default:
         break;
     }
@@ -1011,7 +1011,7 @@ WasmBytecodeGenerator::EmitBrTable()
 
     if (scrutineeInfo.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"br_table expression must be of type I32");
+        throw WasmCompilationException(_u("br_table expression must be of type I32"));
     }
 
     m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);

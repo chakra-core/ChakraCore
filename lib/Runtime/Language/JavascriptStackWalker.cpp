@@ -69,6 +69,11 @@ namespace Js
         return (char *)varPtr;
     }
 
+    ForInObjectEnumerator * JavascriptCallStackLayout::GetForInObjectEnumeratorArrayAtOffset(int offset) const
+    {
+        return (ForInObjectEnumerator *)(((char *)this) + offset);
+    }
+
     JavascriptCallStackLayout *JavascriptCallStackLayout::FromFramePointer(void *const framePointer)
     {
         return

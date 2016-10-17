@@ -72,7 +72,6 @@
 #include "Library/JavascriptMapIterator.h"
 #include "Library/JavascriptSetIterator.h"
 #include "Library/JavascriptStringIterator.h"
-#include "Library/JavascriptEnumeratorIterator.h"
 #include "Library/JavascriptListIterator.h"
 
 #include "Library/UriHelper.h"

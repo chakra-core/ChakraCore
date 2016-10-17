@@ -14,7 +14,7 @@ JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyDataIDL * bodyData) :
 /* static */
 void
 JITTimeFunctionBody::InitializeJITFunctionData(
-    __in Recycler * recycler,
+    __in ArenaAllocator * arena,
     __in Js::FunctionBody *functionBody,
     __out FunctionBodyDataIDL * jitBody)
 {
@@ -27,9 +27,9 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
         if (!functionBody->GetIsAsmJsFunction())
         {
-            jitBody->constTableContent = RecyclerNewStructZ(recycler, ConstTableContentIDL);
+            jitBody->constTableContent = AnewStructZ(arena, ConstTableContentIDL);
             jitBody->constTableContent->count = functionBody->GetConstantCount();
-            jitBody->constTableContent->content = RecyclerNewArrayZ(recycler, RecyclableObjectIDL*, functionBody->GetConstantCount());
+            jitBody->constTableContent->content = AnewArrayZ(arena, RecyclableObjectIDL*, functionBody->GetConstantCount());
 
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
@@ -74,7 +74,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
         auto fullStatementMaps = functionBody->GetStatementMaps();
         jitBody->fullStatementMapCount = fullStatementMaps->Count();
-        jitBody->fullStatementMaps = RecyclerNewArrayZ(recycler, StatementMapIDL, jitBody->fullStatementMapCount);
+        jitBody->fullStatementMaps = AnewArrayZ(arena, StatementMapIDL, jitBody->fullStatementMapCount);
         fullStatementMaps->Map([jitBody](int index, Js::FunctionBody::StatementMap * map) {
 
             jitBody->fullStatementMaps[index] = *(StatementMapIDL*)map;
@@ -86,10 +86,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             Assert((jitBody->fullStatementMaps[index].isSubExpression != FALSE) == map->isSubexpression);
         });
 
-        if (functionBody->GetPropertyIdOnRegSlotsContainer())
+        Js::PropertyIdOnRegSlotsContainer * propOnRegSlots = functionBody->GetPropertyIdOnRegSlotsContainerWithLock();
+        if (propOnRegSlots)
         {
-            jitBody->propertyIdsForRegSlotsCount = functionBody->GetPropertyIdOnRegSlotsContainer()->length;
-            jitBody->propertyIdsForRegSlots = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots;
+            jitBody->propertyIdsForRegSlotsCount = propOnRegSlots->length;
+            jitBody->propertyIdsForRegSlots = propOnRegSlots->propertyIdsForRegSlots;
         }
     }
     else
@@ -98,7 +99,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
         if (!functionBody->IsWasmFunction()) {
             Assert(statementMap);
-            jitBody->statementMap = RecyclerNewStructZ(recycler, SmallSpanSequenceIDL);
+            jitBody->statementMap = AnewStructZ(arena, SmallSpanSequenceIDL);
             jitBody->statementMap->baseValue = statementMap->baseValue;
 
             if (statementMap->pActualOffsetList)
@@ -148,18 +149,19 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->nonLoadByteCodeCount = functionBody->GetByteCodeWithoutLDACount();
     jitBody->loopCount = functionBody->GetLoopCount();
 
-    if (functionBody->GetHasAllocatedLoopHeaders())
+    Js::LoopHeader * loopHeaders = functionBody->GetLoopHeaderArrayWithLock();
+    if (loopHeaders != nullptr)
     {
-        jitBody->loopHeaderArrayAddr = (intptr_t)functionBody->GetLoopHeaderArrayPtr();
+        jitBody->loopHeaderArrayAddr = (intptr_t)loopHeaders;
         jitBody->loopHeaderArrayLength = functionBody->GetLoopCount();
-        jitBody->loopHeaders = RecyclerNewArray(recycler, JITLoopHeaderIDL, functionBody->GetLoopCount());
+        jitBody->loopHeaders = AnewArray(arena, JITLoopHeaderIDL, functionBody->GetLoopCount());
         for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
         {
-            jitBody->loopHeaders[i].startOffset = functionBody->GetLoopHeader(i)->startOffset;
-            jitBody->loopHeaders[i].endOffset = functionBody->GetLoopHeader(i)->endOffset;
-            jitBody->loopHeaders[i].isNested = functionBody->GetLoopHeader(i)->isNested;
-            jitBody->loopHeaders[i].isInTry = functionBody->GetLoopHeader(i)->isInTry;
-            jitBody->loopHeaders[i].interpretCount = functionBody->GetLoopInterpretCount(functionBody->GetLoopHeader(i));
+            jitBody->loopHeaders[i].startOffset = loopHeaders[i].startOffset;
+            jitBody->loopHeaders[i].endOffset = loopHeaders[i].endOffset;
+            jitBody->loopHeaders[i].isNested = loopHeaders[i].isNested;
+            jitBody->loopHeaders[i].isInTry = loopHeaders[i].isInTry;
+            jitBody->loopHeaders[i].interpretCount = functionBody->GetLoopInterpretCount(&loopHeaders[i]);
         }
     }
 
@@ -174,12 +176,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->firstInnerScopeReg = functionBody->GetFirstInnerScopeRegister();
     }
     jitBody->envDepth = functionBody->GetEnvDepth();
-    jitBody->profiledIterations = functionBody->GetProfiledIterations();
     jitBody->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     jitBody->inParamCount = functionBody->GetInParamsCount();
     jitBody->thisRegisterForEventHandler = functionBody->GetThisRegisterForEventHandler();
     jitBody->funcExprScopeRegister = functionBody->GetFuncExprScopeRegister();
     jitBody->recursiveCallSiteCount = functionBody->GetNumberOfRecursiveCallSites();
+    jitBody->forInLoopDepth = functionBody->GetForInLoopDepth();
     jitBody->argUsedForBranch = functionBody->m_argUsedForBranch;
 
     jitBody->flags = functionBody->GetFlags();
@@ -207,23 +209,25 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     //CompileAssert(sizeof(PropertyIdArrayIDL) == sizeof(Js::PropertyIdArray));
     jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
     jitBody->formalsPropIdArrayAddr = (intptr_t)functionBody->GetFormalsPropIdArray(false);
+    jitBody->forInCacheArrayAddr = (intptr_t)functionBody->GetForInCacheArray();
 
     if (functionBody->HasDynamicProfileInfo() && Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
     {
         jitBody->hasNonBuiltInCallee = functionBody->HasNonBuiltInCallee();
     }
 
-    if (functionBody->GetAuxiliaryData() != nullptr)
+    Js::ByteBlock * auxData = functionBody->GetAuxiliaryDataWithLock();
+    if (auxData != nullptr)
     {
-        jitBody->auxDataCount = functionBody->GetAuxiliaryData()->GetLength();
-        jitBody->auxData = functionBody->GetAuxiliaryData()->GetBuffer();
-        jitBody->auxDataBufferAddr = (intptr_t)functionBody->GetAuxiliaryData()->GetBuffer();
+        jitBody->auxDataCount = auxData->GetLength();
+        jitBody->auxData = auxData->GetBuffer();
+        jitBody->auxDataBufferAddr = (intptr_t)auxData->GetBuffer();
     }
-
-    if (functionBody->GetAuxiliaryContextData() != nullptr)
+    Js::ByteBlock * auxContextData = functionBody->GetAuxiliaryContextDataWithLock();
+    if (auxContextData != nullptr)
     {
-        jitBody->auxContextDataCount = functionBody->GetAuxiliaryContextData()->GetLength();
-        jitBody->auxContextData = functionBody->GetAuxiliaryContextData()->GetBuffer();
+        jitBody->auxContextDataCount = auxContextData->GetLength();
+        jitBody->auxContextData = auxContextData->GetBuffer();
     }
 
     jitBody->scriptIdAddr = (intptr_t)functionBody->GetAddressOfScriptId();
@@ -234,20 +238,20 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->callCountStatsAddr = (intptr_t)&functionBody->callCountStats;
 
     jitBody->referencedPropertyIdCount = functionBody->GetReferencedPropertyIdCount();
-    jitBody->referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMap();
+    jitBody->referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMapWithLock();
     jitBody->hasFinally = functionBody->GetHasFinally();
 
     jitBody->nameLength = functionBody->GetDisplayNameLength() + 1; // +1 for null terminator
     jitBody->displayName = (char16 *)functionBody->GetDisplayName();
-    jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
+    jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypesWithLock();
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
-    jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
+    jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexesWithLock();
 
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
-        jitBody->asmJsData = RecyclerNew(recycler, AsmJsDataIDL);
-        Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfo();
+        jitBody->asmJsData = Anew(arena, AsmJsDataIDL);
+        Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfoWithLock();
         jitBody->asmJsData->intConstCount = asmFuncInfo->GetIntConstCount();
         jitBody->asmJsData->doubleConstCount = asmFuncInfo->GetDoubleConstCount();
         jitBody->asmJsData->floatConstCount = asmFuncInfo->GetFloatConstCount();
@@ -363,6 +367,12 @@ uint
 JITTimeFunctionBody::GetRecursiveCallSiteCount() const
 {
     return m_bodyData.recursiveCallSiteCount;
+}
+
+uint
+JITTimeFunctionBody::GetForInLoopDepth() const
+{
+    return m_bodyData.forInLoopDepth;
 }
 
 Js::RegSlot
@@ -502,12 +512,6 @@ uint16
 JITTimeFunctionBody::GetEnvDepth() const
 {
     return m_bodyData.envDepth;
-}
-
-uint16
-JITTimeFunctionBody::GetProfiledIterations() const
-{
-    return m_bodyData.profiledIterations;
 }
 
 Js::ProfileId
@@ -1056,6 +1060,12 @@ Js::PropertyIdArray *
 JITTimeFunctionBody::GetFormalsPropIdArray() const
 {
     return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
+}
+
+Js::ForInCache *
+JITTimeFunctionBody::GetForInCache(uint profileId) const
+{
+    return  &((Js::ForInCache *)m_bodyData.forInCacheArrayAddr)[profileId];
 }
 
 bool

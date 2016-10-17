@@ -9,6 +9,8 @@
 #include "Base/VTuneChakraProfile.h"
 #endif
 
+#include "Library/ForInObjectEnumerator.h"
+
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
@@ -140,6 +142,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
+    , m_forInLoopBaseDepth(0)
+    , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
 {
@@ -253,6 +257,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     }
 
     canHoistConstantAddressLoad = !PHASE_OFF(Js::HoistConstAddrPhase, this);
+
+    m_forInLoopMaxDepth = this->GetJITFunctionBody()->GetForInLoopDepth();
 }
 
 bool
@@ -1720,7 +1726,7 @@ void Func::ThrowIfScriptClosed()
     }
 }
 
-IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
+IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::Opnd * largeConstOpnd, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
 {
     Assert(this->GetTopFunc() == this);
     if (!canHoistConstantAddressLoad)
@@ -1733,7 +1739,10 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
     IR::RegOpnd ** foundRegOpnd = this->constantAddressRegOpnd.Find([address, &offset](IR::RegOpnd * regOpnd)
     {
         Assert(regOpnd->m_sym->IsSingleDef());
-        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address;
+        Assert(regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() || regOpnd->m_sym->m_instrDef->GetSrc1()->IsIntConstOpnd());
+        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() ?
+                      regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address :
+                      (void *)regOpnd->m_sym->m_instrDef->GetSrc1()->AsIntConstOpnd()->GetValue();
         ptrdiff_t diff = (uintptr_t)address - (uintptr_t)curr;
         if (!Math::FitsInDWord(diff))
         {
@@ -1757,7 +1766,7 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpnd
             IR::Instr::New(
             loadOpCode,
             addressRegOpnd,
-            IR::AddrOpnd::New(address, kind, this, true),
+            largeConstOpnd,
             this);
         this->constantAddressRegOpnd.Prepend(addressRegOpnd);
 
@@ -1837,6 +1846,22 @@ Func::DumpFullFunctionName()
     Output::Print(_u("Function %s (%s)"), GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
 }
 #endif
+
+void
+Func::UpdateForInLoopMaxDepth(uint forInLoopMaxDepth)
+{
+    Assert(this->IsTopFunc());
+    this->m_forInLoopMaxDepth = max(this->m_forInLoopMaxDepth, forInLoopMaxDepth);
+}
+
+int
+Func::GetForInEnumeratorArrayOffset() const
+{
+    Func const* topFunc = this->GetTopFunc();
+    Assert(this->m_forInLoopBaseDepth + this->GetJITFunctionBody()->GetForInLoopDepth() <= topFunc->m_forInLoopMaxDepth);
+    return topFunc->m_forInEnumeratorArrayOffset
+        + this->m_forInLoopBaseDepth * sizeof(Js::ForInObjectEnumerator);
+}
 
 #if DBG_DUMP
 ///----------------------------------------------------------------------------

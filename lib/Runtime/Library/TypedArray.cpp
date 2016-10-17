@@ -728,9 +728,9 @@ namespace Js
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     }
 
-    BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext)
+    BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        return enumerator->Initialize(nullptr, this, this, flags, requestContext);
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
     }
 
     JavascriptEnumerator * TypedArrayBase::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext)

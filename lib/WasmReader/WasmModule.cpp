@@ -338,7 +338,7 @@ void
 WasmModule::SetStartFunction(uint32 i)
 {
     if (i >= m_funcCount) {
-        TRACE_WASM_DECODER(L"Invalid start function index");
+        TRACE_WASM_DECODER(_u("Invalid start function index"));
         return;
     }
     m_startFuncIndex = i;

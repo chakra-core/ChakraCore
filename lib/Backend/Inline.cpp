@@ -31,6 +31,9 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
     func->actualCount = callerArgOutCount;
 
+    // Current for..in depth starts with the inlinee's base depth
+    this->currentForInDepth = func->m_forInLoopBaseDepth;
+
     // Keep the caller's "this" symbol (if any).
     StackSym *symThis = nullptr;
     lastStatementBoundary = nullptr;
@@ -63,9 +66,34 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         this->isInLoop++;
                         backEdgeCount = loopTop->labelRefs.Count();
                     }
+
+                    if (instr->AsLabelInstr()->m_isForInExit)
+                    {
+                        Assert(this->currentForInDepth != 0);
+                        this->currentForInDepth--;
+                    }
                 }
                 break;
-
+            case Js::OpCode::InitForInEnumerator:
+                // Loop body uses the for in enumerator in the interpreter frame.
+                // No need to keep track of its depth
+                if (!func->IsLoopBody())
+                {
+                    this->currentForInDepth++;
+                }
+                break;
+            case Js::OpCode::BrOnNotEmpty:
+                // Byte code doesn't emit BrOnNotEmpty, and we have done any transformation yet.
+                Assert(false);
+                break;
+            case Js::OpCode::BrOnEmpty:
+                // Loop body uses the for in enumerator in the interpreter frame.
+                // No need to keep track of its depth
+                if (!func->IsLoopBody())
+                {
+                    instr->AsBranchInstr()->GetTarget()->m_isForInExit = true;
+                }
+                break;
             case Js::OpCode::StFld:
             case Js::OpCode::LdFld:
             case Js::OpCode::LdFldForCallApplyTarget:
@@ -853,6 +881,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
 
     this->topFunc->SetHasInlinee();
     InsertStatementBoundary(instrNext);
+    InsertStatementBoundary(ldMethodFldInstr);
 
     return instrNext;
 }
@@ -1226,6 +1255,12 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
 void
 Inline::BuildIRForInlinee(Func *inlinee, JITTimeFunctionBody *funcBody, IR::Instr *callInstr, bool isApplyTarget, uint recursiveInlineDepth)
 {
+    // Update for..in max depth for the whole function
+    this->topFunc->UpdateForInLoopMaxDepth(this->currentForInDepth + funcBody->GetForInLoopDepth());
+
+    // Set for..in base depth of inlinee
+    inlinee->m_forInLoopBaseDepth = this->currentForInDepth;
+
     Js::ArgSlot actualsCount = 0;
     IR::Instr *argOuts[Js::InlineeCallInfo::MaxInlineeArgoutCount];
 #if DBG
@@ -4799,7 +4834,26 @@ Inline::MapFormals(Func *inlinee,
                     // "this" is a constant, so map it now.
                     // Don't bother mapping if it's not an object, though, since we'd have to create a
                     // boxed value at JIT time, and that case doesn't seem worth it.
-                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeIdNoCheck(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()));
+                    Js::TypeId typeId = Js::TypeIds_Limit;
+                    Js::Var localVar = thisConstSym->GetConstAddress(topFunc->IsOOPJIT());
+                    if (localVar != nullptr)
+                    {
+                        typeId = Js::JavascriptOperators::GetTypeIdNoCheck(localVar);
+                    }
+                    else
+                    {
+                        Assert(JITManager::GetJITManager()->IsJITServer());
+                        // with OOP JIT we may create const Opnds for library vars without materializing a JITRecyclableObject
+                        IR::Opnd * thisConstOpnd = thisConstSym->GetConstOpnd();
+                        if (thisConstOpnd->GetValueType().IsUndefined())
+                        {
+                            typeId = Js::TypeIds_Undefined;
+                        }
+                        else if (thisConstOpnd->GetValueType().IsNull())
+                        {
+                            typeId = Js::TypeIds_Null;
+                        }
+                    }
                     if (Js::JavascriptOperators::IsObjectType(typeId) ||
                         Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
                     {
@@ -4810,7 +4864,7 @@ Inline::MapFormals(Func *inlinee,
                             int moduleId = instr->GetSrc2()->AsIntConstOpnd()->AsInt32();
                             // TODO OOP JIT, create and use server copy of module roots
                             Assert(!topFunc->IsOOPJIT() || moduleId == 0);
-                            thisConstVar = Js::JavascriptOperators::GetThisHelper(thisConstSym->GetConstAddress(topFunc->IsOOPJIT()), typeId, moduleId, scriptContext);
+                            thisConstVar = Js::JavascriptOperators::GetThisHelper(localVar, typeId, moduleId, scriptContext);
                             instr->FreeSrc2();
                         }
                         else if (typeId == Js::TypeIds_ActivationObject)
@@ -4874,7 +4928,7 @@ Inline::SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot ac
     };
 
     IR::Opnd *srcs[Js::Constants::InlineeMetaArgCount] = {
-        IR::AddrOpnd::New((Js::Var)actualCount, IR::AddrOpndKindConstant, inlinee, true /*dontEncode*/),
+        IR::IntConstOpnd::New(actualCount, TyInt16, inlinee, true /*dontEncode*/),
 
         /*
          * Don't initialize this slot with the function object yet. In compat mode we evaluate

@@ -303,7 +303,7 @@ Peeps::PeepAssign(IR::Instr *assign)
     IR::Instr *instrNext = assign->m_next;
 
     // MOV reg, sym
-    if (src->IsSymOpnd())
+    if (src->IsSymOpnd() && src->AsSymOpnd()->m_offset == 0)
     {
         AssertMsg(src->AsSymOpnd()->m_sym->IsStackSym(), "Only expect stackSyms at this point");
         StackSym *sym = src->AsSymOpnd()->m_sym->AsStackSym();
@@ -353,7 +353,7 @@ Peeps::PeepAssign(IR::Instr *assign)
             this->ClearReg(dstReg);
         }
     }
-    else if (dst->IsSymOpnd() && src->IsRegOpnd())
+    else if (dst->IsSymOpnd() && dst->AsSymOpnd()->m_offset == 0 && src->IsRegOpnd())
     {
         // MOV Sym, Reg
         // Track this reg

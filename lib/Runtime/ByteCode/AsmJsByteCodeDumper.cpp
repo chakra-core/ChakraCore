@@ -412,7 +412,7 @@ namespace Js
     void AsmJsByteCodeDumper::DumpUint8x16Reg(RegSlot reg)
     {
         Output::Print(_u("U16_%d "), (int)reg);
- }
+    }
     // Bool32x4
     void AsmJsByteCodeDumper::DumpBool32x4Reg(RegSlot reg)
     {
@@ -767,161 +767,161 @@ namespace Js
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) \
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
     }
 #define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) \
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
     }
 #define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
     };
 #define LAYOUT_TYPE_WMS_REG5(layout, t0, t1, t2, t3, t4)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
     };
 #define LAYOUT_TYPE_WMS_REG6(layout, t0, t1, t2, t3, t4, t5)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
     };
 #define LAYOUT_TYPE_WMS_REG7(layout, t0, t1, t2, t3, t4, t5, t6)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
     };
 #define LAYOUT_TYPE_WMS_REG9(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
     };
 #define LAYOUT_TYPE_WMS_REG10(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
-        Dump##t9##Reg(data->LAYOUT_PREFIX_##t9()9);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
+        Dump##t9##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9));\
     };
 #define LAYOUT_TYPE_WMS_REG11(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
-        Dump##t9##Reg(data->LAYOUT_PREFIX_##t9()9);\
-        Dump##t10##Reg(data->LAYOUT_PREFIX_##t10()10);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
+        Dump##t9##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9));\
+        Dump##t10##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10));\
     };
 #define LAYOUT_TYPE_WMS_REG17(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
-        Dump##t9##Reg(data->LAYOUT_PREFIX_##t9()9);\
-        Dump##t10##Reg(data->LAYOUT_PREFIX_##t10()10);\
-        Dump##t11##Reg(data->LAYOUT_PREFIX_##t11()11);\
-        Dump##t12##Reg(data->LAYOUT_PREFIX_##t12()12);\
-        Dump##t13##Reg(data->LAYOUT_PREFIX_##t13()13);\
-        Dump##t14##Reg(data->LAYOUT_PREFIX_##t14()14);\
-        Dump##t15##Reg(data->LAYOUT_PREFIX_##t15()15);\
-        Dump##t16##Reg(data->LAYOUT_PREFIX_##t16()16);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
+        Dump##t9##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9));\
+        Dump##t10##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10));\
+        Dump##t11##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11));\
+        Dump##t12##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12));\
+        Dump##t13##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13));\
+        Dump##t14##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14));\
+        Dump##t15##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15));\
+        Dump##t16##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16));\
     };
 #define LAYOUT_TYPE_WMS_REG18(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
-        Dump##t9##Reg(data->LAYOUT_PREFIX_##t9()9);\
-        Dump##t10##Reg(data->LAYOUT_PREFIX_##t10()10);\
-        Dump##t11##Reg(data->LAYOUT_PREFIX_##t11()11);\
-        Dump##t12##Reg(data->LAYOUT_PREFIX_##t12()12);\
-        Dump##t13##Reg(data->LAYOUT_PREFIX_##t13()13);\
-        Dump##t14##Reg(data->LAYOUT_PREFIX_##t14()14);\
-        Dump##t15##Reg(data->LAYOUT_PREFIX_##t15()15);\
-        Dump##t16##Reg(data->LAYOUT_PREFIX_##t16()16);\
-        Dump##t17##Reg(data->LAYOUT_PREFIX_##t17()17);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
+        Dump##t9##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9));\
+        Dump##t10##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10));\
+        Dump##t11##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11));\
+        Dump##t12##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12));\
+        Dump##t13##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13));\
+        Dump##t14##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14));\
+        Dump##t15##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15));\
+        Dump##t16##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16));\
+        Dump##t17##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t17(), 17));\
     };
 #define LAYOUT_TYPE_WMS_REG19(layout, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18)\
     template <class T> void AsmJsByteCodeDumper::Dump##layout(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)\
     {\
-        Dump##t0##Reg(data->LAYOUT_PREFIX_##t0()0);\
-        Dump##t1##Reg(data->LAYOUT_PREFIX_##t1()1);\
-        Dump##t2##Reg(data->LAYOUT_PREFIX_##t2()2);\
-        Dump##t3##Reg(data->LAYOUT_PREFIX_##t3()3);\
-        Dump##t4##Reg(data->LAYOUT_PREFIX_##t4()4);\
-        Dump##t5##Reg(data->LAYOUT_PREFIX_##t5()5);\
-        Dump##t6##Reg(data->LAYOUT_PREFIX_##t6()6);\
-        Dump##t7##Reg(data->LAYOUT_PREFIX_##t7()7);\
-        Dump##t8##Reg(data->LAYOUT_PREFIX_##t8()8);\
-        Dump##t9##Reg(data->LAYOUT_PREFIX_##t9()9);\
-        Dump##t10##Reg(data->LAYOUT_PREFIX_##t10()10);\
-        Dump##t11##Reg(data->LAYOUT_PREFIX_##t11()11);\
-        Dump##t12##Reg(data->LAYOUT_PREFIX_##t12()12);\
-        Dump##t13##Reg(data->LAYOUT_PREFIX_##t13()13);\
-        Dump##t14##Reg(data->LAYOUT_PREFIX_##t14()14);\
-        Dump##t15##Reg(data->LAYOUT_PREFIX_##t15()15);\
-        Dump##t16##Reg(data->LAYOUT_PREFIX_##t16()16);\
-        Dump##t17##Reg(data->LAYOUT_PREFIX_##t17()17);\
-        Dump##t18##Reg(data->LAYOUT_PREFIX_##t18()18);\
+        Dump##t0##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t0(), 0));\
+        Dump##t1##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t1(), 1));\
+        Dump##t2##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t2(), 2));\
+        Dump##t3##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t3(), 3));\
+        Dump##t4##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t4(), 4));\
+        Dump##t5##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t5(), 5));\
+        Dump##t6##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t6(), 6));\
+        Dump##t7##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t7(), 7));\
+        Dump##t8##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t8(), 8));\
+        Dump##t9##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t9(), 9));\
+        Dump##t10##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t10(), 10));\
+        Dump##t11##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t11(), 11));\
+        Dump##t12##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t12(), 12));\
+        Dump##t13##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t13(), 13));\
+        Dump##t14##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t14(), 14));\
+        Dump##t15##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t15(), 15));\
+        Dump##t16##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t16(), 16));\
+        Dump##t17##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t17(), 17));\
+        Dump##t18##Reg(data->LAYOUT_FIELDS_DEF(LAYOUT_PREFIX_##t18(), 18));\
     };
 
 #include "LayoutTypesAsmJs.h"

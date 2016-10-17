@@ -123,6 +123,12 @@ JITTimeWorkItem::GetJITFunctionBody()
     return &m_jitBody;
 }
 
+uint16
+JITTimeWorkItem::GetProfiledIterations() const
+{
+    return m_workItemData->profiledIterations;
+}
+
 CodeGenWorkItemIDL *
 JITTimeWorkItem::GetWorkItemData()
 {

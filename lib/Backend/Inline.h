@@ -16,6 +16,7 @@ private:
     Func *topFunc;
     uint inlineesProcessed;
     uint currentInlineeFrameSlot;
+    uint currentForInDepth;
 
     // Indicates if you are in loop, counter can increment beyond 1 for nested inlined functions
     // But for a single function won't increment beyond 1 for nested loops.

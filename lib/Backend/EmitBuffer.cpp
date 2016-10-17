@@ -290,6 +290,14 @@ EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t 
 #if DBG
     MEMORY_BASIC_INFORMATION memBasicInfo;
     size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+    if (resultBytes == 0) 
+    {
+        MemoryOperationLastError::RecordLastError();
+        if (this->processHandle != GetCurrentProcess())
+        {            
+            return nullptr;
+        }
+    }
     Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
