@@ -365,7 +365,7 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
     Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
     WAsmJs::TypedSlotInfo info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
-    int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.byteOffset);
+    int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.constSrcByteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
     Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount && info.isValidType);
     const int32 value = intConstTable[srcReg];
@@ -1840,7 +1840,9 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
 #define Uint32x4Proc(v) GetRegSlotFromSimd128Reg(v)
 #define Uint16x8Proc(v) GetRegSlotFromSimd128Reg(v)
 #define Uint8x16Proc(v) GetRegSlotFromSimd128Reg(v)
-#define _M(ti, i) ti##Proc(_layout->LAYOUT_PREFIX_##ti()i)
+#define _PREFIX_HELPER(prefix, index) prefix##index
+#define _PREFIX_NAME(prefix, index) _PREFIX_HELPER(prefix, index)
+#define _M(ti, i) ti##Proc(_layout-> _PREFIX_NAME(LAYOUT_PREFIX_##ti(), i))
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) BUILD_LAYOUT_IMPL(layout, _M(t0, 0), _M(t1, 1))
 #define LAYOUT_TYPE_WMS_REG3(layout, t0, t1, t2) BUILD_LAYOUT_IMPL(layout, _M(t0, 0), _M(t1, 1), _M(t2, 2))
 #define LAYOUT_TYPE_WMS_REG4(layout, t0, t1, t2, t3) BUILD_LAYOUT_IMPL(layout, _M(t0, 0), _M(t1, 1), _M(t2, 2), _M(t3, 3))
@@ -1856,6 +1858,8 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
 #define EXCLUDE_FRONTEND_LAYOUT
 #include "LayoutTypesAsmJs.h"
 #undef BUILD_LAYOUT_IMPL
+#undef _PREFIX_NAME
+#undef _PREFIX_HELPER
 #undef _M
 #undef RegProc
 #undef IntProc
