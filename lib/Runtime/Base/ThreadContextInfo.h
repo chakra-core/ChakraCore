@@ -90,7 +90,7 @@ public:
     virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif
 
-    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
 
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
 

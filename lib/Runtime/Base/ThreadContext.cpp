@@ -881,6 +881,12 @@ ThreadContext::GetPropertyRecord(Js::PropertyId propertyId)
     return GetPropertyNameLocked(propertyId);
 }
 
+bool
+ThreadContext::IsNumericProperty(Js::PropertyId propertyId)
+{
+    return GetPropertyRecord(propertyId)->IsNumeric();
+}
+
 const Js::PropertyRecord *
 ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameLength)
 {
@@ -1106,8 +1112,11 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     if (m_pendingJITProperties)
     {
         Assert(m_reclaimedJITProperties);
-        m_pendingJITProperties->Add(propertyRecord);
-        m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
+        if (propertyRecord->IsNumeric())
+        {
+            m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
+            m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
+        }
     }
 #endif
 
@@ -1264,7 +1273,7 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
 #if ENABLE_NATIVE_CODEGEN
-    if (m_pendingJITProperties && !m_pendingJITProperties->Remove(propertyRecord))
+    if (propertyRecord->IsNumeric() && m_pendingJITProperties && !m_pendingJITProperties->Remove(propertyRecord->GetPropertyId()))
     {
         // if it wasn't pending, that means it was already sent to the jit, so add to list that jit needs to reclaim
         m_reclaimedJITProperties->PrependNoThrow(&HeapAllocator::Instance, propertyRecord->GetPropertyId());
@@ -1978,7 +1987,15 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 #endif
 
     m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
-    m_pendingJITProperties = propertyMap->Clone();
+    m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
+    
+    for (auto iter = propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+    {
+        if (iter.CurrentKey()->IsNumeric())
+        {
+            m_pendingJITProperties->Prepend(iter.CurrentKey()->GetPropertyId());
+        }
+    }
 
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     JITManager::HandleServerCallResult(hr);

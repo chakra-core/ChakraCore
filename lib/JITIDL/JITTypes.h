@@ -390,19 +390,6 @@ typedef struct AsmJsDataIDL
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;
 
-typedef struct PropertyRecordIDL
-{
-    CHAKRA_PTR vTable;
-    int pid;
-    unsigned int hash;
-    boolean isNumeric;
-    boolean isBound;
-    boolean isSymbol;
-    IDL_PAD1(0)
-    unsigned int byteCount;
-    IDL_DEF([size_is(byteCount + sizeof(wchar_t) + (isNumeric ? sizeof(unsigned int) : 0))]) byte buffer[IDL_DEF(*)];
-} PropertyRecordIDL;
-
 typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
@@ -804,9 +791,9 @@ typedef struct JITOutputIDL
 typedef struct UpdatedPropertysIDL
 {
     unsigned int reclaimedPropertyCount;
-    unsigned int newRecordCount;
+    unsigned int newPropertyCount;
     [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
-    [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
+    [size_is(newPropertyCount)] int * newPropertyIdArray;
 } UpdatedPropertysIDL;
 
 typedef struct InterpreterThunkInfoIDL

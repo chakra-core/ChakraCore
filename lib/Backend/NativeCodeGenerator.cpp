@@ -2007,20 +2007,17 @@ NativeCodeGenerator::UpdateJITState()
         }
 
         // update all property records on server that have been changed since last jit
-        ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
-        PropertyRecordIDL ** newPropArray = nullptr;
+        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
+        int * newPropArray = nullptr;
         uint newCount = 0;
         if (pendingProps->Count() > 0)
         {
             newCount = (uint)pendingProps->Count();
-            newPropArray = HeapNewArray(PropertyRecordIDL*, newCount);
+            newPropArray = HeapNewArray(int, newCount);
             uint index = 0;
-            auto iter = pendingProps->GetIteratorWithRemovalSupport();
-            while (iter.IsValid())
+            while (!pendingProps->Empty())
             {
-                newPropArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
-                iter.RemoveCurrent();
-                iter.MoveNext();
+                newPropArray[index++] = (int)pendingProps->Pop();
             }
             Assert(index == newCount);
         }
@@ -2045,8 +2042,8 @@ NativeCodeGenerator::UpdateJITState()
             UpdatedPropertysIDL props = {0};
             props.reclaimedPropertyCount = reclaimedCount;
             props.reclaimedPropertyIdArray = reclaimedPropArray;
-            props.newRecordCount = newCount;
-            props.newRecordArray = newPropArray;
+            props.newPropertyCount = newCount;
+            props.newPropertyIdArray = newPropArray;
 
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
 
