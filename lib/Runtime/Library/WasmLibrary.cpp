@@ -214,7 +214,7 @@ namespace Js
             funcObj->SetEnvironment(frameDisplay);
             localModuleFunctions[i] = funcObj;
 
-            if (PHASE_ON(WasmDeferredPhase, funcObj->GetFunctionBody()))
+            if (!PHASE_OFF(WasmDeferredPhase, funcObj->GetFunctionBody()))
             {
                 funcObj->GetDynamicType()->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
                 entypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
