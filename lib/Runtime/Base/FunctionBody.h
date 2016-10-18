@@ -1061,8 +1061,8 @@ namespace Js
         int32 localVarChangedOffset;
         uint entryPointIndex;
 
-        uint8 callsCount;
-        uint8 lastCallsCount;
+        uint32 callsCount;
+        uint32 lastCallsCount;
         bool nativeEntryPointProcessed;
 
     private:
@@ -1091,9 +1091,9 @@ namespace Js
         virtual void Expire() override;
         virtual void EnterExpirableCollectMode() override;
         virtual void ResetOnNativeCodeInstallFailure() override;
-        static const uint8 GetDecrCallCountPerBailout()
+        static const uint32 GetDecrCallCountPerBailout()
         {
-            return (uint8)CONFIG_FLAG(CallsToBailoutsRatioForRejit) + 1;
+            return CONFIG_FLAG(CallsToBailoutsRatioForRejit) + 1;
         }
 #endif
 
