@@ -910,7 +910,7 @@ private:
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
-        intptr_t GetRemoteScriptAddr() 
+        intptr_t GetRemoteScriptAddr()
         {
 #if ENABLE_OOP_NATIVE_CODEGEN
             if (!m_remoteScriptContextAddr)
@@ -918,7 +918,7 @@ private:
                 InitializeRemoteScriptContext();
             }
 #endif
-            return m_remoteScriptContextAddr; 
+            return m_remoteScriptContextAddr;
         }
 
         char16 const * GetUrl() const { return url; }
@@ -1657,8 +1657,8 @@ private:
         JavascriptMethod GetNextDynamicAsmJsInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         JavascriptMethod GetNextDynamicInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         BOOL IsDynamicInterpreterThunk(JavascriptMethod address);
-        void ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList);
-        void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
+        void ReleaseDynamicInterpreterThunk(void* address, bool addtoFreeList);
+        void ReleaseDynamicAsmJsInterpreterThunk(void* address, bool addtoFreeList);
 #endif
 
         static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -1770,7 +1770,7 @@ private:
 
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
- 
+
         virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
         Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
