@@ -51,6 +51,11 @@ var verbose = iVerbose !== -1;
 if (verbose) {
   arguments.splice(iVerbose, 1)
 }
+const iTrap = arguments.indexOf("-t");
+var trap = iTrap !== -1;
+if (trap) {
+  arguments.splice(iTrap, 1)
+}
 run(arguments[0], arguments[1]|0, arguments[2] === undefined ? undefined : arguments[2]|0);
 
 function getCommandStr({file, line, name}) {
@@ -64,11 +69,12 @@ function run(inPath, iStart, iEnd) {
   var jsonData = JSON.parse(data);
 
   var iTest = 0;
+  var registry = {spectest: {print: print, global : 666}};
   for (var i = 0; i < jsonData.modules.length; ++i) {
     var module = jsonData.modules[i] || {};
     try {
       var moduleFile = readbuffer(inDir + '/' + module.filename);
-      var m = createModule(moduleFile);
+      var m = createModule(moduleFile, registry);
       for (var j = 0; j < module.commands.length; ++j, ++iTest) {
         var command = module.commands[j];
         if (iTest < iStart || iTest > iEnd) {
@@ -78,6 +84,9 @@ function run(inPath, iStart, iEnd) {
           continue;
         }
         switch (command.type) {
+          case 'register':
+            registry[command.name] = m.exports;
+            break;
           case 'action':
             invoke(m, command);
             break;
@@ -91,10 +100,12 @@ function run(inPath, iStart, iEnd) {
             break;
 
           case 'assert_trap':
-            // NYI implemented
-            // assertTrap(m, command.name, command.file, command.line);
-            failed++;
-            print(`${getCommandStr(command)} failed, runtime trap NYI`);
+            if (trap) {
+              assertTrap(m, command);
+            } else {
+              failed++;
+              print(`${getCommandStr(command)} failed, runtime trap NYI`);
+            }
             break;
         }
       }
@@ -106,11 +117,10 @@ function run(inPath, iStart, iEnd) {
   end();
 }
 
-function createModule(a) {
+function createModule(a, registry) {
   var memory = null;
   var u8a = new Uint8Array(a);
-  var ffi = {spectest: {print: print, global : 666}};
-  var module = Wasm.instantiateModule(u8a, ffi);
+  var module = Wasm.instantiateModule(u8a, registry);
   memory = module.memory;
   return module;
 }
@@ -139,15 +149,19 @@ function assertReturn(m, command) {
 function assertTrap(m, command) {
   const {file, line, name} = command;
   var threw = false;
+  var error;
   try {
     m.exports[name]();
   } catch (e) {
+    error = e;
     threw = true;
   }
 
   if (threw) {
     passed++;
-    print(`${getCommandStr(command)} passed.`);
+    if (verbose) {
+      print(`${getCommandStr(command)} passed. Error thrown: ${error}`);
+    }
   } else {
     print(`${getCommandStr(command)} failed, didn't throw`);
     failed++;

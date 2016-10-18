@@ -287,21 +287,24 @@ WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
     uint32 entries = LEB128(len);
-    if (entries != m_module->GetWasmFunctionCount())
+    uint32 importCount = m_module->GetImportCount();
+    if (m_module->GetWasmFunctionCount() < importCount ||
+        entries != m_module->GetWasmFunctionCount() - importCount)
     {
         ThrowDecodingError(_u("Function signatures and function bodies count mismatch"));
     }
 
     for (uint32 i = 0; i < entries; ++i)
     {
-        WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(i);
+        uint32 funcIndex = i + importCount;
+        WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(funcIndex);
 
         const uint32 funcSize = LEB128(len);
-        funcInfo->m_readerInfo.index = i;
+        funcInfo->m_readerInfo.index = funcIndex;
         funcInfo->m_readerInfo.size = funcSize;
         funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
         CheckBytesLeft(funcSize);
-        TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), i, funcSize);
+        TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), funcIndex, funcSize);
         const byte* end = m_pc + funcSize;
         m_pc = end;
     }
@@ -667,7 +670,6 @@ WasmBinaryReader::ReadFunctionsSignatures()
 {
     UINT len = 0;
     uint32 nFunctions = LEB128(len);
-    m_module->AllocateWasmFunctions(nFunctions);
 
     for (uint32 iFunc = 0; iFunc < nFunctions; iFunc++)
     {
@@ -678,7 +680,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         }
 
         WasmSignature* sig = m_module->GetSignature(sigIndex);
-        m_module->SetWasmFunctionInfo(sig, iFunc);
+        m_module->AddWasmFunctionInfo(sig);
     }
 }
 
@@ -700,22 +702,21 @@ void WasmBinaryReader::ReadExportTable()
         case ExternalKinds::Function:
         {
             FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
-            if (type == FunctionIndexTypes::Invalid)
+            if (type != FunctionIndexTypes::ImportThunk && type != FunctionIndexTypes::Function)
             {
                 ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
             }
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
 
 #if DBG_DUMP
-            uint32 normIndex = m_module->NormalizeFunctionIndex(index);
-            if (type == FunctionIndexTypes::Import)
+            if (type == FunctionIndexTypes::ImportThunk)
             {
-                WasmImport* import = m_module->GetFunctionImport(normIndex);
-                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, normIndex, exportName);
+                WasmImport* import = m_module->GetFunctionImport(index);
+                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, index, exportName);
             }
             else
             {
-                TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, normIndex, exportName);
+                TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, index, exportName);
             }
 #endif
             break;
@@ -807,7 +808,7 @@ WasmBinaryReader::ReadElementSection()
             }
             if (funcType == FunctionIndexTypes::Import)
             {
-                ThrowDecodingError(_u("Import functions in the table NYI"));
+                ThrowDecodingError(_u("Imported functions are not allowed in the table"));
             }
             eSeg->AddElement(elem, *m_module);
         }
@@ -932,12 +933,6 @@ WasmBinaryReader::ReadImportEntries()
     uint32 len = 0;
     uint32 entries = LEB128(len);
 
-    uint importFunctionCount = 0; //TODO: we are probably much better of using lists
-
-    if (entries > 0)
-    {
-        m_module->AllocateFunctionImports(entries);
-    }
     for (uint32 i = 0; i < entries; ++i)
     {
         uint32 modNameLen = 0, fnNameLen = 0;
@@ -951,12 +946,7 @@ WasmBinaryReader::ReadImportEntries()
         case ExternalKinds::Function:
         {
             uint32 sigId = LEB128(len);
-            if (sigId >= m_module->GetSignatureCount())
-            {
-                ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
-            }
-            m_module->SetFunctionImport(importFunctionCount, sigId, modName, modNameLen, fnName, fnNameLen, kind);
-            importFunctionCount++;
+            m_module->AddFunctionImport(sigId, modName, modNameLen, fnName, fnNameLen);
             break;
         }
         case ExternalKinds::Global:
@@ -980,7 +970,6 @@ WasmBinaryReader::ReadImportEntries()
             break;
         }
     }
-    m_module->SetImportCount(importFunctionCount);
 }
 
 void

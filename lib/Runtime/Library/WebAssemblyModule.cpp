@@ -15,9 +15,6 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     DynamicObject(type),
     m_memory(nullptr),
     m_alloc(_u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
-    m_functionsInfo(nullptr),
-    m_funcCount(0),
-    m_importCount(0),
     m_indirectfuncs(nullptr),
     m_indirectFuncCount(0),
     m_exports(nullptr),
@@ -33,6 +30,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
+    m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
+    m_imports = Anew(&m_alloc, WasmImportsList, &m_alloc);
     globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
     m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
 }
@@ -194,7 +193,7 @@ WebAssemblyModule::ValidateModule(
 uint32
 WebAssemblyModule::GetMaxFunctionIndex() const
 {
-    return UInt32Math::Add(GetImportCount(), GetWasmFunctionCount());
+    return GetWasmFunctionCount();
 }
 
 Wasm::WasmSignature*
@@ -206,11 +205,9 @@ WebAssemblyModule::GetFunctionSignature(uint32 funcIndex) const
         throw Wasm::WasmCompilationException(_u("Function index out of range"));
     }
 
-    funcIndex = NormalizeFunctionIndex(funcIndex);
     switch (funcType)
     {
-    case Wasm::FunctionIndexTypes::Import:
-        return GetSignature(GetFunctionImport(funcIndex)->sigId);
+    case Wasm::FunctionIndexTypes::ImportThunk:
     case Wasm::FunctionIndexTypes::Function:
         return GetWasmFunctionInfo(funcIndex)->GetSignature();
     default:
@@ -227,24 +224,9 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
     }
     if (funcIndex < GetImportCount())
     {
-        return Wasm::FunctionIndexTypes::Import;
+        return Wasm::FunctionIndexTypes::ImportThunk;
     }
     return Wasm::FunctionIndexTypes::Function;
-}
-
-uint32
-WebAssemblyModule::NormalizeFunctionIndex(uint32 funcIndex) const
-{
-    switch (GetFunctionIndexType(funcIndex))
-    {
-    case Wasm::FunctionIndexTypes::Import:
-        return funcIndex;
-    case Wasm::FunctionIndexTypes::Function:
-        Assert(funcIndex >= GetImportCount());
-        return funcIndex - GetImportCount();
-    default:
-        throw Wasm::WasmCompilationException(_u("Failed function index normalization: function index out of range"));
-    }
 }
 
 void
@@ -391,48 +373,39 @@ WebAssemblyModule::GetTableSize() const
 uint32
 WebAssemblyModule::GetWasmFunctionCount() const
 {
-    return m_funcCount;
+    return (uint32)m_functionsInfo->Count();
 }
 
-void WebAssemblyModule::AllocateWasmFunctions(uint32 count)
+Wasm::WasmFunctionInfo*
+WebAssemblyModule::AddWasmFunctionInfo(Wasm::WasmSignature* sig)
 {
-    m_funcCount = count;
-    if (count > 0)
-    {
-        m_functionsInfo = RecyclerNewArrayZ(GetRecycler(), Wasm::WasmFunctionInfo*, count);
-    }
-}
-
-bool
-WebAssemblyModule::SetWasmFunctionInfo(Wasm::WasmSignature* sig, uint32 index)
-{
-    if (index < m_funcCount)
-    {
-        // must be recycler memory, since it holds reference to the function body
-        m_functionsInfo[index] = RecyclerNew(GetRecycler(), Wasm::WasmFunctionInfo, &m_alloc, sig, index);
-        return true;
-    }
-    return false;
+    uint32 functionId = GetWasmFunctionCount();
+    // must be recycler memory, since it holds reference to the function body
+    Wasm::WasmFunctionInfo* funcInfo = RecyclerNew(GetRecycler(), Wasm::WasmFunctionInfo, &m_alloc, sig, functionId);
+    m_functionsInfo->Add(funcInfo);
+    return funcInfo;
 }
 
 Wasm::WasmFunctionInfo*
 WebAssemblyModule::GetWasmFunctionInfo(uint index) const
 {
-    if (index >= m_funcCount)
+    if (index >= GetWasmFunctionCount())
     {
         throw Wasm::WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    return m_functionsInfo[index];
+    return m_functionsInfo->Item(index);
 }
 
-void WebAssemblyModule::AllocateFunctionExports(uint32 entries)
+void
+WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 {
     m_exports = AnewArrayZ(&m_alloc, Wasm::WasmExport, entries);
     m_exportCount = entries;
 }
 
-void WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
+void
+WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;
@@ -440,7 +413,8 @@ void WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16
     m_exports[iExport].kind = kind;
 }
 
-Wasm::WasmExport* WebAssemblyModule::GetFunctionExport(uint32 iExport) const
+Wasm::WasmExport*
+WebAssemblyModule::GetFunctionExport(uint32 iExport) const
 {
     if (iExport >= m_exportCount)
     {
@@ -449,21 +423,59 @@ Wasm::WasmExport* WebAssemblyModule::GetFunctionExport(uint32 iExport) const
     return &m_exports[iExport];
 }
 
-void
-WebAssemblyModule::AllocateFunctionImports(uint32 entries)
+uint32
+WebAssemblyModule::GetImportCount() const
 {
-    m_imports = AnewArrayZ(&m_alloc, Wasm::WasmImport, entries);
-    m_importCount = entries;
+    return (uint32)m_imports->Count();
 }
 
 void
-WebAssemblyModule::SetFunctionImport(uint32 i, uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen)
 {
-    m_imports[i].sigId = sigId;
-    m_imports[i].modNameLen = modNameLen;
-    m_imports[i].modName = modName;
-    m_imports[i].fnNameLen = fnNameLen;
-    m_imports[i].fnName = fnName;
+    if (sigId >= GetSignatureCount())
+    {
+        throw Wasm::WasmCompilationException(_u("Function signature %u is out of bound"), sigId);
+    }
+    uint32 importId = GetImportCount();
+    Wasm::WasmSignature* signature = GetSignature(sigId);
+    Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
+    // Create the custom reader to generate the import thunk
+    Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
+    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    {
+        Wasm::WasmNode node;
+        node.op = Wasm::wbGetLocal;
+        node.var.num = iParam;
+        customReader->AddNode(node);
+    }
+    Wasm::WasmNode callNode;
+    callNode.op = Wasm::wbCall;
+    callNode.call.num = importId;
+    callNode.call.funcType = Wasm::FunctionIndexTypes::Import;
+    customReader->AddNode(callNode);
+    funcInfo->SetCustomReader(customReader);
+    char16 * autoName = RecyclerNewArrayLeafZ(GetScriptContext()->GetRecycler(), char16, modNameLen + fnNameLen + 32);
+    uint32 nameLength = swprintf_s(autoName, 32, _u("%s.%s.Thunk[%u]"), modName, fnName, funcInfo->GetNumber());
+    funcInfo->SetName(autoName, nameLength);
+
+    // Store the information about the import
+    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
+    importInfo->sigId = sigId;
+    importInfo->modNameLen = modNameLen;
+    importInfo->modName = modName;
+    importInfo->fnNameLen = fnNameLen;
+    importInfo->fnName = fnName;
+    m_imports->Add(importInfo);
+}
+
+Wasm::WasmImport*
+WebAssemblyModule::GetFunctionImport(uint32 i) const
+{
+    if (i >= GetImportCount())
+    {
+        throw Wasm::WasmCompilationException(_u("Import function index out of range"));
+    }
+    return m_imports->Item(i);
 }
 
 void
@@ -479,16 +491,6 @@ WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, con
     importedGlobal->importVar = wi;
     importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
     globals->Add(importedGlobal);
-}
-
-Wasm::WasmImport*
-WebAssemblyModule::GetFunctionImport(uint32 i) const
-{
-    if (i >= m_importCount)
-    {
-        throw Wasm::WasmCompilationException(_u("Import function index out of range"));
-    }
-    return &m_imports[i];
 }
 
 uint
@@ -577,7 +579,8 @@ WebAssemblyModule::GetElementSeg(uint32 index) const
 void
 WebAssemblyModule::SetStartFunction(uint32 i)
 {
-    if (i >= m_funcCount) {
+    if (i >= GetWasmFunctionCount())
+    {
         TRACE_WASM_DECODER(_u("Invalid start function index"));
         return;
     }

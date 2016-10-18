@@ -168,7 +168,7 @@ namespace Wasm
         bool IsUnreachable() const { return this->isUnreachable; }
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
-        WasmBinaryReader* GetReader() const;
+        WasmReaderBase* GetReader() const;
 
         ArenaAllocator m_alloc;
 

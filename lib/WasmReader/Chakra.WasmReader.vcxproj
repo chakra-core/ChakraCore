@@ -47,14 +47,17 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmGlobal.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmCustomReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WasmGlobal.h" />
+    <ClInclude Include="WasmCustomReader.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmDataSegment.h" />
     <ClInclude Include="WasmElementSegment.h" />
     <ClInclude Include="WasmFunctionInfo.h" />
     <ClInclude Include="WasmReader.h" />
+    <ClInclude Include="WasmReaderBase.h" />
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmParseTree.h" />
     <ClInclude Include="WasmSection.h" />
