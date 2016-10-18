@@ -16,7 +16,7 @@ namespace Js
 #endif
         next(0),
         ldFldInlinees(nullptr),
-        globalThisObject(isInlined ? nullptr : GetFunctionBody()->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis()),
+        globalThisObject(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis() : 0),
         profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0)
     {
     }
