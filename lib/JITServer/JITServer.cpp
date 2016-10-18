@@ -131,15 +131,18 @@ ServerInitializeThreadContext(
     /* [out] */ __RPC__out intptr_t *threadContextRoot,
     /* [out] */ __RPC__out intptr_t *prereservedRegionAddr)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-    ServerThreadContext * contextInfo = HeapNewNoThrow(ServerThreadContext, threadContextData);
-    if (contextInfo == nullptr)
+    ServerThreadContext * contextInfo = nullptr;
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
+        contextInfo = HeapNew(ServerThreadContext, threadContextData);
+        ServerContextManager::RegisterThreadContext(contextInfo);
+    }
+    catch (Js::OutOfMemoryException)
     {
         return E_OUTOFMEMORY;
     }
 
-    ServerContextManager::RegisterThreadContext(contextInfo);
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
         *threadContextRoot = (intptr_t)EncodePointer(contextInfo);
@@ -175,8 +178,6 @@ ServerUpdatePropertyRecordMap(
     /* [in] */ intptr_t threadContextInfoAddress,
     /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     if (threadContextInfo == nullptr)
@@ -208,8 +209,6 @@ ServerAddDOMFastPathHelper(
     /* [in] */ intptr_t funcInfoAddr,
     /* [in] */ int helper)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextRoot);
 
     if (scriptContextInfo == nullptr)
@@ -232,8 +231,6 @@ ServerAddModuleRecordInfo(
     /* [in] */ unsigned int moduleId,
     /* [in] */ intptr_t localExportSlotsAddr)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerScriptContext * serverScriptContext = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
     if (serverScriptContext == nullptr)
     {
@@ -277,8 +274,6 @@ ServerInitializeScriptContext(
     /* [in] */ intptr_t threadContextInfoAddress,
     /* [out] */ __RPC__out intptr_t * scriptContextInfoAddress)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer((void*)threadContextInfoAddress);
 
     *scriptContextInfoAddress = 0;
@@ -351,6 +346,111 @@ ServerCloseScriptContext(
 }
 
 HRESULT
+ServerDecommitInterpreterBufferManager(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ boolean asmJsManager)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
+        return S_OK;
+    });
+}
+
+HRESULT
+ServerNewInterpreterThunkBlock(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfo,
+    /* [in] */ boolean asmJsThunk,
+    /* [out] */ __RPC__out InterpreterThunkInfoIDL * thunkInfo)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfo);
+
+    memset(thunkInfo, 0, sizeof(InterpreterThunkInfoIDL));
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        const DWORD bufferSize = InterpreterThunkEmitter::BlockSize;
+        DWORD thunkCount = 0;
+
+#if PDATA_ENABLED
+        PRUNTIME_FUNCTION pdataStart;
+        intptr_t epilogEnd;
+#endif
+        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
+        EmitBufferManager<> * emitBufferManager = scriptContext->GetEmitBufferManager(asmJsThunk != FALSE);
+
+        // REVIEW: OOP JIT should we clear arena at end?
+        ArenaAllocator * arena = scriptContext->GetSourceCodeArena();
+        BYTE * localBuffer = AnewArray(arena, BYTE, bufferSize);
+
+        BYTE* remoteBuffer;
+        EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(bufferSize, &remoteBuffer);
+        if (!allocation)
+        {
+            Js::Throw::OutOfMemory();
+        }
+
+        InterpreterThunkEmitter::FillBuffer(
+            arena,
+            threadContext,
+            asmJsThunk != FALSE,
+            (intptr_t)remoteBuffer,
+            bufferSize,
+            localBuffer,
+#if PDATA_ENABLED
+            &pdataStart,
+            &epilogEnd,
+#endif
+            &thunkCount
+        );
+
+        if (!emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+        {
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+        }
+
+        if (!WriteProcessMemory(threadContext->GetProcessHandle(), remoteBuffer, localBuffer, bufferSize, nullptr))
+        {
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+        }
+
+        if (!emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, remoteBuffer, bufferSize))
+        {
+            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+        }
+
+        // Call to set VALID flag for CFG check
+        threadContext->SetValidCallTargetForCFG(remoteBuffer);
+
+        thunkInfo->thunkBlockAddr = (intptr_t)remoteBuffer;
+        thunkInfo->thunkCount = thunkCount;
+#if PDATA_ENABLED
+        thunkInfo->pdataTableStart = (intptr_t)pdataStart;
+        thunkInfo->epilogEndAddr = epilogEnd;
+#endif
+        arena->Clear();
+
+        return S_OK;
+    });
+}
+
+HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t threadContextInfo,
@@ -371,6 +471,35 @@ ServerFreeAllocation(
         return S_OK;
     });
 }
+
+#if DBG
+HRESULT
+ServerIsInterpreterThunkAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ intptr_t address,
+    /* [in] */ boolean asmjsThunk,
+    /* [out] */ __RPC__out boolean * result)
+{
+    ServerScriptContext * context = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (context == nullptr)
+    {
+        *result = false;
+        return RPC_S_INVALID_ARG;
+    }
+    EmitBufferManager<> * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    if (manager == nullptr)
+    {
+        *result = false;
+        return S_OK;
+    }
+
+    *result = manager->IsInHeap((void*)address);
+
+    return S_OK;
+}
+#endif
 
 HRESULT
 ServerIsNativeAddr(
@@ -437,8 +566,6 @@ ServerRemoteCodeGen(
     /* [in] */ __RPC__in CodeGenWorkItemIDL *workItemData,
     /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
     memset(jitData, 0, sizeof(JITOutputIDL));
 
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
@@ -664,6 +791,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     HRESULT hr = S_OK;
     try
     {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
         AutoReleaseThreadContext autoThreadContext(threadContextInfo);
         hr = fn();
 

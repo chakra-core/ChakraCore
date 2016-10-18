@@ -16,7 +16,15 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    m_thunkPageAllocators(&m_policyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, (HANDLE)data->processHandle),
+#endif
     m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
+    m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+        AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount
+    ),
     // TODO: OOP JIT, don't hardcode name
 #ifdef NTBUILD
     m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("Chakra.dll"))),
@@ -167,6 +175,14 @@ ServerThreadContext::GetProcessHandle() const
     return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
 }
 
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+CustomHeap::CodePageAllocators *
+ServerThreadContext::GetThunkPageAllocators()
+{
+    return &m_thunkPageAllocators;
+}
+#endif
+
 CustomHeap::CodePageAllocators *
 ServerThreadContext::GetCodePageAllocators()
 {
@@ -195,6 +211,12 @@ intptr_t
 ServerThreadContext::GetRuntimeCRTBaseAddress() const
 {
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
+}
+
+PageAllocator *
+ServerThreadContext::GetForegroundPageAllocator()
+{
+    return &m_pageAlloc;
 }
 
 Js::PropertyRecord const *

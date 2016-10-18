@@ -851,7 +851,7 @@ namespace Js
         entryPointInfo->entryPointIndex = this->entryPoints->Add(recycler->CreateWeakReferenceHandle(entryPointInfo));
     }
 
-
+#if DBG
     BOOL FunctionBody::IsInterpreterThunk() const
     {
         bool isInterpreterThunk = this->originalEntryPoint == DefaultEntryThunk;
@@ -869,6 +869,7 @@ namespace Js
         return FALSE;
 #endif
     }
+#endif
 
     FunctionEntryPointInfo * FunctionBody::TryGetEntryPointInfo(int index) const
     {
