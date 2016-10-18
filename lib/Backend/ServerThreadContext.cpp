@@ -94,30 +94,6 @@ ServerThreadContext::GetBailOutRegisterSaveSpaceAddr() const
     return static_cast<intptr_t>(m_threadContextData.bailOutRegisterSaveSpaceAddr);
 }
 
-intptr_t
-ServerThreadContext::GetDebuggingFlagsAddr() const
-{
-    return static_cast<intptr_t>(m_threadContextData.debuggingFlagsAddr);
-}
-
-intptr_t
-ServerThreadContext::GetDebugStepTypeAddr() const
-{
-    return static_cast<intptr_t>(m_threadContextData.debugStepTypeAddr);
-}
-
-intptr_t
-ServerThreadContext::GetDebugFrameAddressAddr() const
-{
-    return static_cast<intptr_t>(m_threadContextData.debugFrameAddressAddr);
-}
-
-intptr_t
-ServerThreadContext::GetDebugScriptIdWhenSetAddr() const
-{
-    return static_cast<intptr_t>(m_threadContextData.debugScriptIdWhenSetAddr);
-}
-
 ptrdiff_t
 ServerThreadContext::GetChakraBaseAddressDifference() const
 {

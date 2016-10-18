@@ -27,11 +27,6 @@ public:
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override;
 
-    virtual intptr_t GetDebuggingFlagsAddr() const override;
-    virtual intptr_t GetDebugStepTypeAddr() const override;
-    virtual intptr_t GetDebugFrameAddressAddr() const override;
-    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
-
     ptrdiff_t GetChakraBaseAddressDifference() const;
     ptrdiff_t GetCRTBaseAddressDifference() const;
 

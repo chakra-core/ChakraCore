@@ -1760,6 +1760,11 @@ private:
         virtual bool IsPRNGSeeded() const override;
         virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
+        virtual intptr_t GetDebuggingFlagsAddr() const override;
+        virtual intptr_t GetDebugStepTypeAddr() const override;
+        virtual intptr_t GetDebugFrameAddressAddr() const override;
+        virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
+
 #if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
         virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
