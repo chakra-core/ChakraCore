@@ -35,9 +35,7 @@ public:
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
     CodeGenAllocators * GetCodeGenAllocators();
-    AllocationPolicyManager * GetAllocationPolicyManager();
     CustomHeap::CodePageAllocators * GetCodePageAllocators();
-    PageAllocator* GetPageAllocator();
     void RemoveFromNumericPropertySet(Js::PropertyId reclaimedId);
     void AddToNumericPropertySet(Js::PropertyId propertyId);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
@@ -60,8 +58,6 @@ private:
         DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertySet;
     PropertySet * m_numericPropertySet;
 
-    AllocationPolicyManager m_policyManager;
-    JsUtil::BaseDictionary<DWORD, PageAllocator*, HeapAllocator> m_pageAllocs;
     PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     CustomHeap::CodePageAllocators m_thunkPageAllocators;
@@ -78,5 +74,4 @@ private:
     intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
-
 };

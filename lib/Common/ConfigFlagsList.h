@@ -1478,6 +1478,8 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
     FLAGNR(Number, SimulatePolyCacheWithOneTypeForInlineCacheIndex, "Use with SimulatePolyCacheWithOneTypeForFunction to simulate creating a polymorphic inline cache containing only one type due to a collision, for testing ObjTypeSpec", -1)
 #endif
 
+FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
+FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
 
