@@ -39,6 +39,7 @@ namespace Wasm
         enum Type
         {
             Invalid = -1,
+            ImportThunk,
             Function,
             Import
         };

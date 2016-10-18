@@ -28,7 +28,7 @@ namespace Js
         static void LoadDataSegs(WebAssemblyModule * wasmModule, Var* memory, ScriptContext* ctx);
         static void LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* localModuleFunctions);
         static void BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, Var exportObj, Var* localModuleFunctions, Var* importFunctions);
-        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi, Var* memoryObject);
+        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject);
         static void LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi);
         static void LoadIndirectFunctionTables(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions);
         static Var GetFunctionObjFromFunctionIndex(WebAssemblyModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions);

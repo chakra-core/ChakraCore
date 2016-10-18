@@ -29,7 +29,7 @@ namespace Wasm
 
     static const unsigned int experimentalVersion = 0xd;
 
-    class WasmBinaryReader
+    class WasmBinaryReader : public WasmReaderBase
     {
     public:
         WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
@@ -38,15 +38,14 @@ namespace Wasm
         bool ReadNextSection(SectionCode nextSection);
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
-        void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo);
-        void FunctionEnd();
-        bool IsCurrentFunctionCompleted() const;
-        WasmOp ReadExpr();
+        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
+        virtual bool IsCurrentFunctionCompleted() const override;
+        virtual WasmOp ReadExpr() override;
+        virtual void FunctionEnd() override;
 #if DBG_DUMP
         void PrintOps();
 #endif
         intptr_t GetCurrentOffset() const { return m_pc - m_start; }
-        WasmNode    m_currentNode;
     private:
         struct ReaderState
         {
