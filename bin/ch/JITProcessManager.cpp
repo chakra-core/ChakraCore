@@ -67,7 +67,11 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
     RPC_WSTR connectionUuidString = NULL;
 
 #pragma warning(suppress: 6386) // buffer overrun
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    hr = StringCchCopyW(cmdLine, cmdLineSize, L"ch.exe -OOPCFGRegistration- -CheckOpHelpers -jitserver:");
+#else
     hr = StringCchCopyW(cmdLine, cmdLineSize, L"ch.exe -jitserver:");
+#endif
     if (FAILED(hr))
     {
         return hr;

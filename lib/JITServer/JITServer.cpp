@@ -435,8 +435,10 @@ ServerNewInterpreterThunkBlock(
             MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
         }
 
-        // Call to set VALID flag for CFG check
-        threadContext->SetValidCallTargetForCFG(remoteBuffer);
+        if(CONFIG_FLAG(OOPCFGRegistration))
+        {
+            threadContext->SetValidCallTargetForCFG(remoteBuffer);
+        }
 
         thunkInfo->thunkBlockAddr = (intptr_t)remoteBuffer;
         thunkInfo->thunkCount = thunkCount;
@@ -465,7 +467,10 @@ ServerFreeAllocation(
 
     return ServerCallWrapper(context, [&]()->HRESULT 
     {
-        context->SetValidCallTargetForCFG((PVOID)address, false);
+        if (CONFIG_FLAG(OOPCFGRegistration))
+        {
+            context->SetValidCallTargetForCFG((PVOID)address, false);
+        }
         context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
         return S_OK;
     });

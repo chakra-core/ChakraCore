@@ -244,6 +244,9 @@ public:
 #ifdef DEBUG
     static HRESULT SetCheckOpHelpersFlag(bool flag) { return CHECKED_CALL(SetCheckOpHelpersFlag, flag); }
 #endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT SetOOPCFGRegistrationFlag(bool flag) { return CHECKED_CALL(SetOOPCFGRegistrationFlag, flag); }
+#endif
 
     static HRESULT GetCrashOnExceptionFlag(bool * flag)
     {
