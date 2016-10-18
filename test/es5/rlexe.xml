@@ -286,6 +286,11 @@
   </test>
   <test>
     <default>
+      <files>es5array_objproto_builtin.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>es5array_arrayproto.js</files>
       <baseline>es5array_arrayproto.baseline</baseline>
     </default>
