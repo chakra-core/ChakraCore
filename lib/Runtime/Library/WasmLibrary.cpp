@@ -472,6 +472,9 @@ namespace Js
                 // now, indirect func call to invalid type will give nullptr deref
                 indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
             }
+            // There should be no import function that ends up in the indirect table
+            DebugOnly(Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex));
+            Assert(funcType == Wasm::FunctionIndexTypes::Function || funcType == Wasm::FunctionIndexTypes::InternalFunction);
             Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, localModuleFunctions, importFunctions);
             if (funcObj)
             {
@@ -482,11 +485,12 @@ namespace Js
 
     Var WasmLibrary::GetFunctionObjFromFunctionIndex(Wasm::WasmModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions)
     {
-        Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
-        uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcIndex);
+        uint32 normIndex = 0;
+        Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex, &normIndex);
         switch (funcType)
         {
         case Wasm::FunctionIndexTypes::Function:
+        case Wasm::FunctionIndexTypes::InternalFunction:
             return localModuleFunctions[normIndex];
             break;
         case Wasm::FunctionIndexTypes::Import:
