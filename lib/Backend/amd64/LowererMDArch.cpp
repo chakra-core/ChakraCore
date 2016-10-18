@@ -2130,7 +2130,7 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     IR::RegOpnd *regEDX;
 
     bool legalize = false;
-    bool isInt64Instr = instr->HasAnyInt64Opnd();
+    bool isInt64Instr = instr->AreAllOpndInt64();
     if (!isInt64Instr)
     {
         if (dst && !dst->IsUInt32())
@@ -2148,7 +2148,6 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     }
     else
     {
-        Assert(instr->AreAllOpndInt64());
         legalize = true;
     }
 

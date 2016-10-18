@@ -828,7 +828,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         case Js::AsmJsRetType::Float:
             regType = TyFloat32;
             break;
-		case Js::AsmJsRetType::Int64:
+        case Js::AsmJsRetType::Int64:
         {
             regType = TyInt64;
 #ifdef _M_IX86
@@ -5991,7 +5991,7 @@ LowererMD::GenerateClz(IR::Instr * instr)
             // dst = mov 64; for int64
         // $done
         int instrSize = instr->GetSrc1()->GetSize();
-        IRType type = instrSize == 8 ? TyInt64 : TyInt8;
+        IRType type = instrSize == 8 ? TyInt64 : TyInt32;
         IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr->m_next);
         IR::Opnd * dst = instr->UnlinkDst();
         IR::Opnd * tmpOpnd = IR::RegOpnd::New(type, m_func);

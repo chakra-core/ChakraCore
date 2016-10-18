@@ -1367,8 +1367,7 @@ IntConstOpnd::New(IntConstType value, IRType type, const char16 * name, Func *fu
 
 IR::Opnd* IntConstOpnd::NewFromType(int64 value, IRType type, Func* func)
 {
-    bool isInt64Type = type == TyInt64 || type == TyUint64;
-    if (isInt64Type)
+    if (IRType_IsInt64(type))
     {
         return Int64ConstOpnd::New(value, type, func);
     }
