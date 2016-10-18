@@ -222,8 +222,6 @@ const BYTE InterpreterThunkEmitter::Call[] = {
 
 #endif
 
-const BYTE InterpreterThunkEmitter::PageCount = 1;
-const uint InterpreterThunkEmitter::BlockSize = AutoSystemInfo::PageSize * InterpreterThunkEmitter::PageCount;
 const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
@@ -325,7 +323,6 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
 
     FillBuffer(
-        this->allocator,
         this->scriptContext->GetThreadContext(),
         this->isAsmInterpreterThunk,
         (intptr_t)buffer,
@@ -387,7 +384,6 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
 /* static */
 void InterpreterThunkEmitter::FillBuffer(
-    _In_ ArenaAllocator * arena,
     _In_ ThreadContextInfo * threadContext,
     _In_ bool asmJsThunk,
     _In_ intptr_t finalAddr,
@@ -401,7 +397,7 @@ void InterpreterThunkEmitter::FillBuffer(
     )
 {
 #ifdef _M_X64
-    PrologEncoder prologEncoder(arena);
+    PrologEncoder prologEncoder;
     prologEncoder.EncodeSmallProlog(PrologSize, StackAllocSize);
     DWORD pdataSize = prologEncoder.SizeOfPData();
 #elif defined(_M_ARM32_OR_ARM64)

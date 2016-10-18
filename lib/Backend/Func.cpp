@@ -120,9 +120,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 #endif
     , m_funcStartLabel(nullptr)
     , m_funcEndLabel(nullptr)
-#ifdef _M_X64
-    , m_prologEncoder(alloc)
-#endif
 #if DBG
     , hasCalledSetDoFastPaths(false)
     , allowRemoveBailOutArgInstr(false)
