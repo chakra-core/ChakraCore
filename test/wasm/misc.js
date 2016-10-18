@@ -43,4 +43,4 @@ print(a.f64nearest(NaN)); // == NaN
 print(a.f64nearest(-NaN)); // == NaN
 print(a.f64nearest(Infinity)); // == Infinity
 print(a.f64nearest(-Infinity)); // == -Infinity
-//print(a.f64copysign(255.0,-1.0)); // == -255.0
+print(a.f64copysign(255.0,-1.0)); // == -255.0
