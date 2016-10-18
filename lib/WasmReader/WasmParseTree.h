@@ -47,8 +47,7 @@ namespace Wasm
         {
             Invalid = -1,
             Function,
-            Import,
-            InternalFunction
+            Import
         };
     }
 

@@ -93,7 +93,28 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
 WasmModule*
 WasmModuleGenerator::GenerateModule()
 {
+    m_module->SetHeapOffset(0);
+    m_module->SetImportFuncOffset(m_module->GetHeapOffset() + 1);
+    m_module->SetFuncOffset(m_module->GetHeapOffset() + 1);
+
     BVStatic<bSectLimit + 1> visitedSections;
+
+    // Will callback regardless if the section is present or not
+    AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
+
+    afterSectionCallback[bSectFunctionSignatures] = [](WasmModuleGenerator* gen) {
+        gen->m_module->SetFuncOffset(gen->m_module->GetImportFuncOffset() + gen->m_module->GetImportCount());
+    };
+    afterSectionCallback[bSectIndirectFunctionTable] = [](WasmModuleGenerator* gen) {
+        gen->m_module->SetTableEnvironmentOffset(gen->m_module->GetFuncOffset() + gen->m_module->GetWasmFunctionCount());
+    };
+    afterSectionCallback[bSectFunctionBodies] = [](WasmModuleGenerator* gen) {
+        uint32 funcCount = gen->m_module->GetWasmFunctionCount();
+        for (uint32 i = 0; i < funcCount; ++i)
+        {
+            gen->GenerateFunctionHeader(i);
+        }
+    };
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
     {
@@ -113,12 +134,11 @@ WasmModuleGenerator::GenerateModule()
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
         }
-    }
 
-    uint32 funcCount = m_module->GetWasmFunctionCount();
-    for (uint32 i = 0; i < funcCount; ++i)
-    {
-        GenerateFunctionHeader(i);
+        if (afterSectionCallback[sectionCode])
+        {
+            afterSectionCallback[sectionCode](this);
+        }
     }
 
 #if DBG_DUMP
@@ -158,11 +178,10 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
-            uint32 normIndex = 0;
             if (funcExport &&
                 funcExport->nameLength > 0 &&
-                m_module->GetFunctionIndexType(funcExport->funcIndex, &normIndex) == FunctionIndexTypes::Function &&
-                normIndex == wasmInfo->GetNumber())
+                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
+                m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
                 functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
@@ -869,12 +888,7 @@ WasmBytecodeGenerator::EmitCall()
     case wbCall:
     {
         uint32 offset = isImportCall ? m_module->GetImportFuncOffset() : m_module->GetFuncOffset();
-        uint32 normIndex = 0;
-        FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(funcNum, &normIndex);
-        Assert(funcType == FunctionIndexTypes::Import || !isImportCall);
-        Unused(funcType);
-
-        uint32 index = UInt32Math::Add(offset, normIndex);
+        uint32 index = UInt32Math::Add(offset, m_module->NormalizeFunctionIndex(funcNum));
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index);
         break;
     }
@@ -1508,15 +1522,6 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     }
 
     this->isUnreachable = isUnreachable;
-}
-
-Wasm::WasmReaderBase* WasmBytecodeGenerator::GetReader() const
-{
-    if (m_funcInfo->GetCustomReader())
-    {
-        return m_funcInfo->GetCustomReader();
-    }
-    return m_module->GetReader();
 }
 
 void

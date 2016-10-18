@@ -13,8 +13,6 @@
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />
     <ClInclude Include="WasmDataSegment.h" />
-    <ClInclude Include="WasmReaderBase.h" />
-    <ClInclude Include="WasmCustomReader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
@@ -25,6 +23,5 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp" />
-    <ClCompile Include="WasmCustomReader.cpp" />
   </ItemGroup>
 </Project>
