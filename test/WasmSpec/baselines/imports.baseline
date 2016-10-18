@@ -1,7 +1,7 @@
 Unexpected Error while compiling imports.0.wasm
 Error: Compiling wasm failed: Exported Kind Global, NYI
-Unexpected Error while compiling imports.1.wasm
-Error: Compiling wasm failed: Import functions in the table NYI
+imports.wast:61: $assert_return_0 unexpectedly threw: Error: Compiling wasm failed: function print32[0] at offset 17/32: External calls with float argument NYI
+imports.wast:62: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_1[3] at offset 3/9: Operator I64Const NYI
 Unexpected Error while compiling imports.2.wasm
 Error: Compiling wasm failed: Import module test is invalid
 Unexpected Error while compiling imports.3.wasm
@@ -70,4 +70,4 @@ Unexpected Error while compiling imports.34.wasm
 Error: Compiling wasm failed: Imported Kind Memory, NYI
 Unexpected Error while compiling imports.35.wasm
 Error: Compiling wasm failed: Imported Kind Memory, NYI
-0/0 tests passed.
+0/2 tests passed.
