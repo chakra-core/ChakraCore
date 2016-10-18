@@ -66,8 +66,6 @@ public:
     uint32 GetMaxFunctionIndex() const;
     Wasm::WasmSignature* GetFunctionSignature(uint32 funcIndex) const;
     Wasm::FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex) const;
-    // Returns index in the respective table's type
-    uint32 NormalizeFunctionIndex(uint32 funcIndex) const;
 
     void InitializeMemory(uint32 minSize, uint32 maxSize);
     void SetMemoryExported() { isMemExported = true; }
@@ -88,8 +86,7 @@ public:
     uint32 GetTableSize() const;
 
     uint GetWasmFunctionCount() const;
-    void AllocateWasmFunctions(uint32 count);
-    bool SetWasmFunctionInfo(Wasm::WasmSignature* funsig, uint32 index);
+    Wasm::WasmFunctionInfo* AddWasmFunctionInfo(Wasm::WasmSignature* funsig);
     Wasm::WasmFunctionInfo* GetWasmFunctionInfo(uint index) const;
 
     void AllocateFunctionExports(uint32 entries);
@@ -97,10 +94,8 @@ public:
     void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
     Wasm::WasmExport* GetFunctionExport(uint32 iExport) const;
 
-    void AllocateFunctionImports(uint32 entries);
-    uint32 GetImportCount() const { return m_importCount; }
-    void SetImportCount(uint count) { m_importCount = count; }
-    void SetFunctionImport(uint32 i, uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind);
+    uint32 GetImportCount() const;
+    void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
     Wasm::WasmImport* GetFunctionImport(uint32 i) const;
     void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal);
 
@@ -148,18 +143,18 @@ private:
     Wasm::WasmSignature** m_signatures;
     uint32* m_indirectfuncs;
     Wasm::WasmElementSegment** m_elementsegs;
-    Wasm::WasmFunctionInfo** m_functionsInfo;
+    typedef JsUtil::List<Wasm::WasmFunctionInfo*, Recycler> WasmFunctionInfosList;
+    WasmFunctionInfosList* m_functionsInfo;
     Wasm::WasmExport* m_exports;
-    Wasm::WasmImport* m_imports;
+    typedef JsUtil::List<Wasm::WasmImport*, ArenaAllocator> WasmImportsList;
+    WasmImportsList* m_imports;
     Wasm::WasmDataSegment** m_datasegs;
     Wasm::WasmBinaryReader* m_reader;
     uint32* m_equivalentSignatureMap;
 
     uint m_signaturesCount;
     uint m_indirectFuncCount;
-    uint m_funcCount;
     uint m_exportCount;
-    uint32 m_importCount;
     uint32 m_datasegCount;
     uint32 m_elementsegCount;
 
