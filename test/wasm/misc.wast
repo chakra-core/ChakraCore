@@ -7,8 +7,8 @@
   (func (export "f32copysign") (param f32) (param f32) (result f32)
     (return (f32.copysign (get_local 0) (get_local 1))))
 
-  ;;(func (export "f64copysign") (param f64) (param f64) (result f64)
-  ;;  (return (f64.copysign (get_local 0) (get_local 1))))
+  (func (export "f64copysign") (param f64) (param f64) (result f64)
+    (return (f64.copysign (get_local 0) (get_local 1))))
 
   (func (export "eqz") (param i32) (result i32)
     (return (i32.eqz (get_local 0))))

@@ -28,5 +28,4 @@ left-to-right.wast:207: $assert_return_52 unexpectedly threw: Error: Compiling w
 left-to-right.wast:208: $assert_return_54 unexpectedly threw: Error: Compiling wasm failed: function i64_call[91] at offset 5/12: I64 return type NYI
 left-to-right.wast:210: $assert_return_56 unexpectedly threw: Error: Compiling wasm failed: function i64_call_indirect[92] at offset 5/15: I64 return type NYI
 left-to-right.wast:211: $assert_return_58 unexpectedly threw: Error: Compiling wasm failed: function i64_select[93] at offset 5/14: I64 return type NYI
-left-to-right.wast:217: $assert_return_68 unexpectedly threw: Error: Compiling wasm failed: function f64_copysign[115] at offset 8/12: Operator F64CopySign NYI
-64/95 tests passed.
+65/95 tests passed.
