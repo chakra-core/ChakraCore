@@ -4,26 +4,25 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
-#endif
+#endif //ENABLE_OOP_NATIVE_CODEGEN
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_refCount(0),
-    m_policyManager(true),
     m_numericPropertySet(nullptr),
-    m_pageAllocs(&HeapAllocator::Instance),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
-    m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
+    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    m_thunkPageAllocators(&m_policyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, (HANDLE)data->processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, /* virtualAllocator */ nullptr, (HANDLE)data->processHandle),
 #endif
-    m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
-    m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
+    m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
-            PageAllocator::DefaultLowMaxFreePageCount :
-            PageAllocator::DefaultMaxFreePageCount
+        PageAllocator::DefaultLowMaxFreePageCount :
+        PageAllocator::DefaultMaxFreePageCount
     ),
     // TODO: OOP JIT, don't hardcode name
 #ifdef NTBUILD
@@ -51,10 +50,7 @@ ServerThreadContext::~ServerThreadContext()
         HeapDelete(m_numericPropertySet);
         this->m_numericPropertySet = nullptr;
     }
-    this->m_pageAllocs.Map([](DWORD thread, PageAllocator* alloc)
-    {
-        HeapDelete(alloc);
-    });
+
 }
 
 PreReservedVirtualAllocWrapper *
@@ -62,26 +58,6 @@ ServerThreadContext::GetPreReservedVirtualAllocator()
 {
     return &m_preReservedVirtualAllocator;
 }
-
-PageAllocator*
-ServerThreadContext::GetPageAllocator()
-{
-    PageAllocator * alloc;
-
-    if (!m_pageAllocs.TryGetValue(GetCurrentThreadId(), &alloc))
-    {
-        alloc = HeapNew(PageAllocator,
-            &m_policyManager,
-            Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-            AutoSystemInfo::Data.IsLowMemoryProcess() ?
-            PageAllocator::DefaultLowMaxFreePageCount :
-            PageAllocator::DefaultMaxFreePageCount);
-
-        m_pageAllocs.Add(GetCurrentThreadId(), alloc);
-    }
-    return alloc;
-}
-
 
 intptr_t
 ServerThreadContext::GetBailOutRegisterSaveSpaceAddr() const
@@ -164,12 +140,6 @@ CodeGenAllocators *
 ServerThreadContext::GetCodeGenAllocators()
 {
     return &m_codeGenAlloc;
-}
-
-AllocationPolicyManager *
-ServerThreadContext::GetAllocationPolicyManager()
-{
-    return &m_policyManager;
 }
 
 intptr_t

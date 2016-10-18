@@ -51,6 +51,7 @@ HRESULT JsInitializeJITServer(
     {
         return status;
     }
+
     status = RpcServerInqBindings(&bindingVector);
     if (status != RPC_S_OK)
     {
@@ -62,14 +63,20 @@ HRESULT JsInitializeJITServer(
         bindingVector,
         &uuidVector,
         NULL);
+    if (status != RPC_S_OK)
+    {
+        return status;
+    }
 
-    RpcBindingVectorFree(&bindingVector);
+    status = RpcBindingVectorFree(&bindingVector);
 
     if (status != RPC_S_OK)
     {
         return status;
     }
+
     JITManager::GetJITManager()->SetIsJITServer();
+    PageAllocatorPool::Initialize();
 
     status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, FALSE);
 
@@ -88,6 +95,7 @@ ShutdownCommon()
     status = RpcServerUnregisterIf(ServerIChakraJIT_v0_0_s_ifspec, NULL, FALSE);
 
     ServerContextManager::Shutdown();
+    PageAllocatorPool::Shutdown();
     return status;
 }
 
@@ -586,7 +594,10 @@ ServerRemoteCodeGen(
         scriptContextInfo->UpdateGlobalObjectThisAddr(workItemData->globalThisAddr);
         ServerThreadContext * threadContextInfo = scriptContextInfo->GetThreadContext();
 
-        NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
+        AutoReturnPageAllocator autoReturnPageAllocator;
+        PageAllocator* pageAllocator = autoReturnPageAllocator.GetPageAllocator();
+
+        NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", pageAllocator, Js::Throw::OutOfMemory);
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
         if (PHASE_VERBOSE_TRACE_RAW(Js::BackEndPhase, jitWorkItem->GetJITTimeInfo()->GetSourceContextId(), jitWorkItem->GetJITTimeInfo()->GetLocalFunctionId()))
@@ -607,7 +618,7 @@ ServerRemoteCodeGen(
 #ifdef PROFILE_EXEC
         if (profiler && !profiler->IsInitialized())
         {
-            profiler->Initialize(threadContextInfo->GetPageAllocator(), nullptr);
+            profiler->Initialize(pageAllocator, nullptr);
         }
 #endif
         if (jitWorkItem->GetWorkItemData()->xProcNumberPageSegment)
@@ -782,6 +793,29 @@ bool ServerContextManager::CheckLivenessAndAddref(ServerThreadContext* context)
     return false;
 }
 
+void ServerContextManager::IdleCleanup()
+{
+    JsUtil::BaseHashSet<HANDLE, HeapAllocator> clientProcesses(&HeapAllocator::Instance);
+    {
+        AutoCriticalSection autoCS(&cs);
+        threadContexts.Map([&clientProcesses](ServerThreadContext* threadContext)
+        {
+            if (!clientProcesses.ContainsKey(threadContext->GetProcessHandle()))
+            {
+                clientProcesses.Add(threadContext->GetProcessHandle());
+            }
+        });
+    }
+
+    clientProcesses.Map([](HANDLE hProcess)
+    {
+        DWORD exitCode = STILL_ACTIVE;
+        if (!GetExitCodeProcess(hProcess, &exitCode) && exitCode != STILL_ACTIVE)
+        {
+            CleanUpForProcess(hProcess);
+        }
+    });
+}
 
 template<typename Fn>
 HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
