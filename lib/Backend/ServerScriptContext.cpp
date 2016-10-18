@@ -30,6 +30,10 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
         m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
     }
 #endif
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
+    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
+#endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 

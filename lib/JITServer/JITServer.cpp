@@ -444,7 +444,6 @@ ServerNewInterpreterThunkBlock(
         thunkInfo->pdataTableStart = (intptr_t)pdataStart;
         thunkInfo->epilogEndAddr = epilogEnd;
 #endif
-        arena->Clear();
 
         return S_OK;
     });
