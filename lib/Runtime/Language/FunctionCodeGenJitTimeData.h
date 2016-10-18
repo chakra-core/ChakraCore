@@ -37,6 +37,9 @@ namespace Js
         PolymorphicInlineCacheInfoIDL* selfInfo;
         PolymorphicInlineCacheIDL* polymorphicInlineCaches;
 
+        // current value of global this object, may be changed in case of script engine invalidation
+        Var globalThisObject;
+
         // Number of functions that are to be inlined (this is not the length of the 'inlinees' array above, includes getter setter inlinee count)
         uint inlineeCount;
         // Number of counts of getter setter to be inlined. This is not an exact count as inline caches are shared and we have no way of knowing
@@ -70,6 +73,7 @@ namespace Js
 
         FunctionInfo *GetFunctionInfo() const;
         FunctionBody *GetFunctionBody() const;
+        Var GetGlobalThisObject() const;
         FunctionBodyDataIDL *GetJITBody() const;
         FunctionCodeGenJitTimeData *GetNext() const { return next; }
 
