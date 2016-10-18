@@ -7,6 +7,7 @@
 
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
+#endif //ENABLE_OOP_NATIVE_CODEGEN
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
@@ -220,5 +221,3 @@ void ServerThreadContext::Close()
     ServerContextManager::RecordCloseContext(this);
 #endif
 }
-
-#endif //ENABLE_OOP_NATIVE_CODEGEN
