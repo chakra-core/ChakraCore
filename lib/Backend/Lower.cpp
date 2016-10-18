@@ -11482,7 +11482,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
 
     if (!(bailOutKind & IR::BailOutExplicit))
     {
-        intptr_t flags = m_func->GetThreadContextInfo()->GetDebuggingFlagsAddr();
+        intptr_t flags = m_func->GetScriptContextInfo()->GetDebuggingFlagsAddr();
 
         // Check 1 (do we need to bail out?)
         // JXX bailoutLabel
@@ -11556,13 +11556,13 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
         {
             // TEST STEP_BAILOUT, [&stepController->StepType]
             // BNE BailoutLabel
-            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             IR::Opnd* opnd2 = IR::IntConstOpnd::New(Js::STEP_BAILOUT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertTestBranch(opnd1, opnd2, Js::OpCode::BrNeq_A, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11583,12 +11583,12 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             effectiveFrameBaseReg = m_lowererMD.GetRegFramePointer();
 #endif
             IR::Opnd* opnd1 = IR::RegOpnd::New(nullptr, effectiveFrameBaseReg, TyMachReg, m_func);
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugFrameAddressAddr(), TyMachReg, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugFrameAddressAddr(), TyMachReg, m_func);
             this->InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrGt_A, /*isUnsigned*/ true, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11623,7 +11623,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             // bailOutLabel:                // (fallthrough bailOutLabel)
             IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetScriptIdAddr(), TyInt32, m_func);
 
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugScriptIdWhenSetAddr(), TyInt32, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugScriptIdWhenSetAddr(), TyInt32, m_func);
             IR::RegOpnd* reg1 = IR::RegOpnd::New(TyInt32, m_func);
             InsertMove(reg1, opnd2, bailOutLabel);
 

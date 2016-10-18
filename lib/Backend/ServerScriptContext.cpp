@@ -259,6 +259,30 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+intptr_t
+ServerScriptContext::GetDebuggingFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debuggingFlagsAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugStepTypeAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugStepTypeAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugFrameAddressAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugFrameAddressAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
+}
+
 bool
 ServerScriptContext::IsClosed() const
 {

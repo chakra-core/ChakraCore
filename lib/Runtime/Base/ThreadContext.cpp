@@ -341,30 +341,6 @@ ThreadContext::GetImplicitCallFlagsAddr() const
     return (intptr_t)&implicitCallFlags;
 }
 
-intptr_t
-ThreadContext::GetDebuggingFlagsAddr() const
-{
-    return this->debugManager->GetDebuggingFlagsAddr();
-}
-
-intptr_t
-ThreadContext::GetDebugStepTypeAddr() const
-{
-    return (intptr_t)this->debugManager->stepController.GetAddressOfStepType();
-}
-
-intptr_t
-ThreadContext::GetDebugFrameAddressAddr() const
-{
-    return (intptr_t)this->debugManager->stepController.GetAddressOfFrameAddress();
-}
-
-intptr_t
-ThreadContext::GetDebugScriptIdWhenSetAddr() const
-{
-    return (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
-}
-
 ptrdiff_t
 ThreadContext::GetChakraBaseAddressDifference() const
 {
@@ -1994,10 +1970,6 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
     contextData.implicitCallFlagsAddr = (intptr_t)GetAddressOfImplicitCallFlags();
-    contextData.debuggingFlagsAddr = (intptr_t)this->debugManager->GetDebuggingFlags();
-    contextData.debugStepTypeAddr = (intptr_t)this->debugManager->stepController.GetAddressOfStepType();
-    contextData.debugFrameAddressAddr = (intptr_t)this->debugManager->stepController.GetAddressOfFrameAddress();
-    contextData.debugScriptIdWhenSetAddr = (intptr_t)this->debugManager->stepController.GetAddressOfScriptIdWhenSet();
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;

@@ -283,10 +283,6 @@ typedef struct ThreadContextDataIDL
     CHAKRA_PTR bailOutRegisterSaveSpaceAddr;
     CHAKRA_PTR disableImplicitFlagsAddr;
     CHAKRA_PTR implicitCallFlagsAddr;
-    CHAKRA_PTR debuggingFlagsAddr;
-    CHAKRA_PTR debugStepTypeAddr;
-    CHAKRA_PTR debugFrameAddressAddr;
-    CHAKRA_PTR debugScriptIdWhenSetAddr;
     CHAKRA_PTR stringReplaceNameAddr;
     CHAKRA_PTR stringMatchNameAddr;
     CHAKRA_PTR simdTempAreaBaseAddr;
@@ -328,6 +324,10 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR numberAllocatorAddr;
     CHAKRA_PTR recyclerAddr;
     CHAKRA_PTR builtinFunctionsBaseAddr;
+    CHAKRA_PTR debuggingFlagsAddr;
+    CHAKRA_PTR debugStepTypeAddr;
+    CHAKRA_PTR debugFrameAddressAddr;
+    CHAKRA_PTR debugScriptIdWhenSetAddr;
 } ScriptContextDataIDL;
 
 typedef struct SmallSpanSequenceIDL

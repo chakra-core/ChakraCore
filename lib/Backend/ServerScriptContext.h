@@ -42,6 +42,11 @@ public:
     virtual bool IsClosed() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
+    virtual intptr_t GetDebuggingFlagsAddr() const override;
+    virtual intptr_t GetDebugStepTypeAddr() const override;
+    virtual intptr_t GetDebugFrameAddressAddr() const override;
+    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
+
     virtual intptr_t GetAddr() const override;
 
     virtual intptr_t GetVTableAddress(VTableValue vtableType) const override;
