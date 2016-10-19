@@ -366,7 +366,13 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     );
     JITManager::HandleServerCallResult(hr);
 
+
     this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+
+    if (!CONFIG_FLAG(OOPCFGRegistration))
+    {
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(this->thunkBuffer);
+    }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
     auto block = this->thunkBlocks.PrependNode(allocator, this->thunkBuffer);
