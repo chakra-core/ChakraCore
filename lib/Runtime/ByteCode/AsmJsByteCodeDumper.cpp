@@ -312,68 +312,67 @@ namespace Js
     // Float32x4
     void AsmJsByteCodeDumper::DumpFloat32x4Reg(RegSlot reg)
     {
-        Output::Print(_u("F4_%d "), (int)reg);
+        Output::Print(_u(" F4_%d "), (int)reg);
     }
 
     // Int32x4
     void AsmJsByteCodeDumper::DumpInt32x4Reg(RegSlot reg)
     {
-        Output::Print(_u("I4_%d "), (int)reg);
+        Output::Print(_u(" I4_%d "), (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpUint32x4Reg(RegSlot reg)
     {
-        Output::Print(_u("U4_%d "), (int)reg);
+        Output::Print(_u(" U4_%d "), (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpInt16x8Reg(RegSlot reg)
     {
-        Output::Print(_u("I8_%d "), (int)reg);
+        Output::Print(_u(" I8_%d "), (int)reg);
     }
 
     // Int8x16
     void AsmJsByteCodeDumper::DumpInt8x16Reg(RegSlot reg)
     {
-        Output::Print(_u("I16_%d "), (int)reg);
+        Output::Print(_u(" I16_%d "), (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpUint16x8Reg(RegSlot reg)
     {
-        Output::Print(_u("U8_%d "), (int)reg);
+        Output::Print(_u(" U8_%d "), (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpUint8x16Reg(RegSlot reg)
     {
-        Output::Print(_u("U16_%d "), (int)reg);
+        Output::Print(_u(" U16_%d "), (int)reg);
     }
     // Bool32x4
     void AsmJsByteCodeDumper::DumpBool32x4Reg(RegSlot reg)
     {
-        Output::Print(_u("B4_%d "), (int)reg);
+        Output::Print(_u(" B4_%d "), (int)reg);
     }
 
     // Bool16x8
     void AsmJsByteCodeDumper::DumpBool16x8Reg(RegSlot reg)
     {
-        Output::Print(_u("B8_%d "), (int)reg);
+        Output::Print(_u(" B8_%d "), (int)reg);
     }
 
     // Bool32x4
     void AsmJsByteCodeDumper::DumpBool8x16Reg(RegSlot reg)
     {
-        Output::Print(_u("B16_%d "), (int)reg);
+        Output::Print(_u(" B16_%d "), (int)reg);
     }
 
     // Float64x2
     void AsmJsByteCodeDumper::DumpFloat64x2Reg(RegSlot reg)
     {
-        Output::Print(_u("D2_%d "), (int)reg);
+        Output::Print(_u(" D2_%d "), (int)reg);
     }
 
     template <class T>
     void AsmJsByteCodeDumper::DumpElementSlot(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-
         switch (op)
         {
         case OpCodeAsmJs::LdSlot:
@@ -431,6 +430,21 @@ namespace Js
         case OpCodeAsmJs::Simd128_LdSlot_I4:
             Output::Print(_u(" I4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
+        case OpCodeAsmJs::Simd128_LdSlot_I8:
+            Output::Print(_u(" I8_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
+        case OpCodeAsmJs::Simd128_LdSlot_I16:
+            Output::Print(_u(" I16_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
+        case OpCodeAsmJs::Simd128_LdSlot_U4:
+            Output::Print(_u(" U4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
+        case OpCodeAsmJs::Simd128_LdSlot_U8:
+            Output::Print(_u(" U8_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
+        case OpCodeAsmJs::Simd128_LdSlot_U16:
+            Output::Print(_u(" U16_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
         case OpCodeAsmJs::Simd128_LdSlot_B4:
             Output::Print(_u(" B4_%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
@@ -452,6 +466,21 @@ namespace Js
             break;
         case OpCodeAsmJs::Simd128_StSlot_I4:
             Output::Print(_u(" R%d[%d]  = I4_%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
+        case OpCodeAsmJs::Simd128_StSlot_I8:
+            Output::Print(_u(" R%d[%d]  = I8_%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
+        case OpCodeAsmJs::Simd128_StSlot_I16:
+            Output::Print(_u(" R%d[%d]  = I16_%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
+        case OpCodeAsmJs::Simd128_StSlot_U4:
+            Output::Print(_u(" R%d[%d]  = U4_%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
+        case OpCodeAsmJs::Simd128_StSlot_U8:
+            Output::Print(_u(" R%d[%d]  = U8_%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
+        case OpCodeAsmJs::Simd128_StSlot_U16:
+            Output::Print(_u(" R%d[%d]  = U16_%d"), data->Instance, data->SlotIndex, data->Value);
             break;
         case OpCodeAsmJs::Simd128_StSlot_B4:
             Output::Print(_u(" R%d[%d]  = B4_%d"), data->Instance, data->SlotIndex, data->Value);

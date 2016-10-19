@@ -1299,7 +1299,7 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32
         goto ProcessSimdSlot;
     case Js::OpCodeAsmJs::Simd128_StSlot_U8:
     case Js::OpCodeAsmJs::Simd128_LdSlot_U8:
-        irType = TySimd128U4;
+        irType = TySimd128U8;
         isStore = newOpcode == Js::OpCodeAsmJs::Simd128_StSlot_U8;
         goto ProcessSimdSlot;
     case Js::OpCodeAsmJs::Simd128_StSlot_U16:
