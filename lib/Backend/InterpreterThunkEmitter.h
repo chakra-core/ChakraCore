@@ -86,7 +86,7 @@ private:
 
     static const BYTE Epilog[];
 
-    static const BYTE PageCount;
+    static const BYTE PageCount = 1;
 #if defined(_M_X64)
     static const BYTE PrologSize;
     static const BYTE StackAllocSize;
@@ -126,7 +126,7 @@ public:
     static const BYTE HeaderSize;
     static const BYTE ThunkSize;
     static const uint ThunksPerBlock;
-    static const uint BlockSize;
+    static const uint BlockSize= AutoSystemInfo::PageSize * PageCount;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
     InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
@@ -145,7 +145,6 @@ public:
     }
 
     static void FillBuffer(
-        _In_ ArenaAllocator * arena,
         _In_ ThreadContextInfo * context,
         _In_ bool asmJsThunk,
         _In_ intptr_t finalAddr,

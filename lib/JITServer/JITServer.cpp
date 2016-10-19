@@ -403,19 +403,12 @@ ServerNewInterpreterThunkBlock(
         ServerThreadContext * threadContext = scriptContext->GetThreadContext();
         EmitBufferManager<> * emitBufferManager = scriptContext->GetEmitBufferManager(asmJsThunk != FALSE);
 
-        // REVIEW: OOP JIT should we clear arena at end?
-        ArenaAllocator * arena = scriptContext->GetSourceCodeArena();
-        BYTE * localBuffer = AnewArray(arena, BYTE, bufferSize);
-
         BYTE* remoteBuffer;
         EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(bufferSize, &remoteBuffer);
-        if (!allocation)
-        {
-            Js::Throw::OutOfMemory();
-        }
 
+        Assert(bufferSize <= 0x1000); // in case this is changed some day we might switch to use other allocator
+        BYTE  localBuffer[bufferSize];
         InterpreterThunkEmitter::FillBuffer(
-            arena,
             threadContext,
             asmJsThunk != FALSE,
             (intptr_t)remoteBuffer,
