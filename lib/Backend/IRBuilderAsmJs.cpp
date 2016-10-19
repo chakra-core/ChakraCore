@@ -4027,24 +4027,24 @@ void IRBuilderAsmJs::BuildInt8x16_1Int16(Js::OpCodeAsmJs newOpcode, uint32 offse
 {
     AssertMsg(newOpcode == Js::OpCodeAsmJs::Simd128_IntsToI16, "Unexpected opcode for this format.");
     uint const LANES = 16;
-    Js::RegSlot srcRegSlots[LANES];
-
-    srcRegSlots[0]  = GetRegSlotFromIntReg(src1RegSlot);
-    srcRegSlots[1]  = GetRegSlotFromIntReg(src2RegSlot);
-    srcRegSlots[2]  = GetRegSlotFromIntReg(src3RegSlot);
-    srcRegSlots[3]  = GetRegSlotFromIntReg(src4RegSlot);
-    srcRegSlots[4]  = GetRegSlotFromIntReg(src5RegSlot);
-    srcRegSlots[5]  = GetRegSlotFromIntReg(src6RegSlot);
-    srcRegSlots[6]  = GetRegSlotFromIntReg(src7RegSlot);
-    srcRegSlots[7]  = GetRegSlotFromIntReg(src8RegSlot);
-    srcRegSlots[8]  = GetRegSlotFromIntReg(src9RegSlot);
-    srcRegSlots[9]  = GetRegSlotFromIntReg(src10RegSlot);
-    srcRegSlots[10] = GetRegSlotFromIntReg(src11RegSlot);
-    srcRegSlots[11] = GetRegSlotFromIntReg(src12RegSlot);
-    srcRegSlots[12] = GetRegSlotFromIntReg(src13RegSlot);
-    srcRegSlots[13] = GetRegSlotFromIntReg(src14RegSlot);
-    srcRegSlots[14] = GetRegSlotFromIntReg(src15RegSlot);
-    srcRegSlots[15] = GetRegSlotFromIntReg(src16RegSlot);
+    Js::RegSlot srcRegSlots[LANES] = {
+        srcRegSlots[0]  = src1RegSlot,
+        srcRegSlots[1]  = src2RegSlot,
+        srcRegSlots[2]  = src3RegSlot,
+        srcRegSlots[3]  = src4RegSlot,
+        srcRegSlots[4]  = src5RegSlot,
+        srcRegSlots[5]  = src6RegSlot,
+        srcRegSlots[6]  = src7RegSlot,
+        srcRegSlots[7]  = src8RegSlot,
+        srcRegSlots[8]  = src9RegSlot,
+        srcRegSlots[9]  = src10RegSlot,
+        srcRegSlots[10] = src11RegSlot,
+        srcRegSlots[11] = src12RegSlot,
+        srcRegSlots[12] = src13RegSlot,
+        srcRegSlots[13] = src14RegSlot,
+        srcRegSlots[14] = src15RegSlot,
+        srcRegSlots[15] = src16RegSlot
+    };
 
     BuildSimd_1Ints(newOpcode, offset, TySimd128I16, srcRegSlots, dstRegSlot, LANES);
 }

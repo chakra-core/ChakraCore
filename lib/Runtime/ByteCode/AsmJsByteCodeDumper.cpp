@@ -239,10 +239,10 @@ namespace Js
                 case WAsmJs::FLOAT32: PrintTypedConstants<float>(tableOffseted, type, constCount, [](float v) {Output::Print(_u("%.4f"), v);}); break;
                 case WAsmJs::FLOAT64: PrintTypedConstants<double>(tableOffseted, type, constCount, [](double v) {Output::Print(_u("%.4f"), v);}); break;
                 case WAsmJs::SIMD:    PrintTypedConstants<AsmJsSIMDValue>(tableOffseted, type, constCount, [](AsmJsSIMDValue v) {
-                    Output::Print(_u("\tI4(%d, %d, %d, %d),"), v.i32[SIMD_X], v.i32[SIMD_Y], v.i32[SIMD_Z], v.i32[SIMD_W]);
-                    Output::Print(_u("\tF4(%.4f, %.4f, %.4f, %.4f),"), v.f32[SIMD_X], v.f32[SIMD_Y], v.f32[SIMD_Z], v.f32[SIMD_W]);
-                    Output::Print(_u("\tD2(%.4f, %.4f)\n    "), v.f64[SIMD_X], v.f64[SIMD_Y]);
-                    Output::Print(_u("\tI8(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d )"),
+                    Output::Print(_u("\n       I32(%d, %d, %d, %d),"), v.i32[SIMD_X], v.i32[SIMD_Y], v.i32[SIMD_Z], v.i32[SIMD_W]);
+                    Output::Print(_u("\n       F32(%.4f, %.4f, %.4f, %.4f),"), v.f32[SIMD_X], v.f32[SIMD_Y], v.f32[SIMD_Z], v.f32[SIMD_W]);
+                    Output::Print(_u("\n       D64(%.4f, %.4f),"), v.f64[SIMD_X], v.f64[SIMD_Y]);
+                    Output::Print(_u("\n       I8(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)"),
                                   v.i8[0], v.i8[1], v.i8[2], v.i8[3], v.i8[4], v.i8[5], v.i8[6], v.i8[7],
                                   v.i8[8], v.i8[9], v.i8[10], v.i8[11], v.i8[12], v.i8[13], v.i8[14], v.i8[15]);
                     });
@@ -937,53 +937,35 @@ namespace Js
             break;
         }
 
-        switch (op)
-        {
-        case OpCodeAsmJs::Simd128_LdArrConst_I4:
-        case OpCodeAsmJs::Simd128_LdArrConst_F4:
-        //case OpCodeAsmJs::Simd128_LdArrConst_D2:
-        case OpCodeAsmJs::Simd128_StArrConst_I4:
-        case OpCodeAsmJs::Simd128_StArrConst_F4:
-        //case OpCodeAsmJs::Simd128_StArrConst_D2:
-            Output::Print(_u(" %s[%d] "), heapTag, data->SlotIndex);
-            break;
-        case OpCodeAsmJs::Simd128_LdArr_I4:
-        case OpCodeAsmJs::Simd128_LdArr_F4:
-        //case OpCodeAsmJs::Simd128_LdArr_D2:
-        case OpCodeAsmJs::Simd128_StArr_I4:
-        case OpCodeAsmJs::Simd128_StArr_F4:
-        //case OpCodeAsmJs::Simd128_StArr_D2:
-            Output::Print(_u(" %s[I%d] "), heapTag, data->SlotIndex);
-            break;
-        default:
-            Assert(false);
-            __assume(false);
-            break;
-        }
+#define SIMD_DUMP_ARR_I4 DumpInt32x4Reg
+#define SIMD_DUMP_ARR_I8 DumpInt16x8Reg
+#define SIMD_DUMP_ARR_I16 DumpInt8x16Reg
+#define SIMD_DUMP_ARR_U4 DumpUint32x4Reg
+#define SIMD_DUMP_ARR_U8 DumpUint16x8Reg
+#define SIMD_DUMP_ARR_U16 DumpUint8x16Reg
+#define SIMD_DUMP_ARR_F4 DumpFloat32x4Reg
+#define SIMD_DUMP_ARR_D2 DumpFloat64x2Reg
+#define SIMD_DUMP_REG(type) SIMD_DUMP_ARR_##type(data->Value)
+#define SIMD_DUMP_ARR_VALUE(type) \
+        case OpCodeAsmJs::Simd128_LdArr_##type:\
+            SIMD_DUMP_REG(type); Output::Print(_u("= %s[I%d] "), heapTag, data->SlotIndex); break;\
+        case OpCodeAsmJs::Simd128_LdArrConst_##type:\
+            SIMD_DUMP_REG(type); Output::Print(_u("= %s[%d] "), heapTag, data->SlotIndex); break;\
+        case OpCodeAsmJs::Simd128_StArr_##type:\
+            Output::Print(_u("%s[I%d] = "), heapTag, data->SlotIndex); SIMD_DUMP_REG(type); break;\
+        case OpCodeAsmJs::Simd128_StArrConst_##type:\
+            Output::Print(_u("%s[%d] = "), heapTag, data->SlotIndex); SIMD_DUMP_REG(type); break;\
 
         switch (op)
         {
-        case OpCodeAsmJs::Simd128_LdArr_I4:
-        case OpCodeAsmJs::Simd128_LdArrConst_I4:
-        case OpCodeAsmJs::Simd128_StArr_I4:
-        case OpCodeAsmJs::Simd128_StArrConst_I4:
-            DumpInt32x4Reg(data->Value);
-            break;
-        case OpCodeAsmJs::Simd128_LdArr_F4:
-        case OpCodeAsmJs::Simd128_LdArrConst_F4:
-        case OpCodeAsmJs::Simd128_StArr_F4:
-        case OpCodeAsmJs::Simd128_StArrConst_F4:
-            DumpFloat32x4Reg(data->Value);
-            break;
-#if 0
-        case OpCodeAsmJs::Simd128_LdArr_D2:
-        case OpCodeAsmJs::Simd128_LdArrConst_D2:
-        case OpCodeAsmJs::Simd128_StArr_D2:
-        case OpCodeAsmJs::Simd128_StArrConst_D2:
-            DumpFloat64x2Reg(data->Value);
-            break;
-#endif // 0
-
+            SIMD_DUMP_ARR_VALUE(I4)
+            SIMD_DUMP_ARR_VALUE(I8)
+            SIMD_DUMP_ARR_VALUE(I16)
+            SIMD_DUMP_ARR_VALUE(U4)
+            SIMD_DUMP_ARR_VALUE(U8)
+            SIMD_DUMP_ARR_VALUE(U16)
+            SIMD_DUMP_ARR_VALUE(F4)
+            //SIMD_DUMP_ARR_VALUE(D2)
         default:
             Assert(false);
             __assume(false);
