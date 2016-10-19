@@ -227,25 +227,13 @@ const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
-    emitBufferManager(nullptr),
+    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     scriptContext(context),
     allocator(allocator),
     thunkCount(0),
     thunkBuffer(nullptr),
     isAsmInterpreterThunk(isAsmInterpreterThunk)
 {
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
-    {
-        emitBufferManager = HeapNew(EmitBufferManager<>, allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess());
-    }
-}
-
-InterpreterThunkEmitter::~InterpreterThunkEmitter()
-{
-    if (emitBufferManager != nullptr)
-    {
-        HeapDelete(emitBufferManager);
-    }
 }
 
 //
@@ -307,12 +295,12 @@ void InterpreterThunkEmitter::NewThunkBlock()
     Assert(this->thunkCount == 0);
     BYTE* buffer;
 
-    EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(BlockSize, &buffer);
+    EmitBufferAllocation * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
     if (allocation == nullptr) 
     {
         Js::Throw::OutOfMemory();
     }
-    if (!emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+    if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
     {
         Js::Throw::OutOfMemory();
     }
@@ -335,7 +323,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
         &this->thunkCount
     );
 
-    if (!emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
+    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
     {
         Js::Throw::OutOfMemory();
     }
@@ -731,7 +719,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
     else
 #endif
     {
-        return emitBufferManager->IsInHeap(address);
+        return emitBufferManager.IsInHeap(address);
     }
 }
 #endif
@@ -763,7 +751,7 @@ void InterpreterThunkEmitter::Close()
     else
 #endif
     {
-        emitBufferManager->Decommit();
+        emitBufferManager.Decommit();
     }
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;
