@@ -44,79 +44,82 @@ public:
     {
         std::string typeName = recordDecl->getQualifiedNameAsString();
 
+        // Ignore (system/non-GC types) before seeing "Memory::NoWriteBarrierField"
         if (!_barrierTypeDefined)
         {
-            if (typeName == "Memory::NoWriteBarrierField")
-            {
-                _barrierTypeDefined = true;
-            }
-            else
+            if (typeName != "Memory::NoWriteBarrierField")
             {
                 return true;
             }
+
+            _barrierTypeDefined = true;
         }
 
-        if (recordDecl->hasDefinition())
+        if (!recordDecl->hasDefinition())
         {
-            bool hasUnbarrieredPointer = false;
-            const FieldDecl* unbarrieredPointerField = nullptr;
-            bool hasBarrieredField = false;
+            return true;
+        }
 
-            for (auto field : recordDecl->fields())
+        bool hasUnbarrieredPointer = false;
+        const FieldDecl* unbarrieredPointerField = nullptr;
+        bool hasBarrieredField = false;
+
+        for (auto field : recordDecl->fields())
+        {
+            const QualType qualType = field->getType();
+            const Type* type = qualType.getTypePtr();
+
+            if (type->isPointerType())
             {
-                const QualType   qualType = field->getType();
-                const Type*      type = qualType.getTypePtr();
-
-                if (type->isPointerType())
+                hasUnbarrieredPointer = true;
+                if (!unbarrieredPointerField)
                 {
-                    hasUnbarrieredPointer = true;
-                    if (!unbarrieredPointerField)
-                    {
-                        unbarrieredPointerField = field;
-                    }
+                    unbarrieredPointerField = field;
                 }
-                else
+            }
+            else
+            {
+                auto fieldTypeName = qualType.getAsString();
+                if (fieldTypeName.find("WriteBarrierPtr") == 0)  // starts with
                 {
-                    auto fieldTypeName = qualType.getAsString();
-                    if (fieldTypeName.find("WriteBarrierPtr") == 0)
+                    hasBarrieredField = true;
+                }
+                else if (type->isCompoundType())
+                {
+                    // If the field is a compound type,
+                    // check if it is a fully barriered type or
+                    // has unprotected pointer fields
+                    if (_pointerClasses.find(fieldTypeName) != _pointerClasses.end())
+                    {
+                        hasUnbarrieredPointer = true;
+                        if (!unbarrieredPointerField)
+                            unbarrieredPointerField = field;
+                    }
+                    else if (_barrieredClasses.find(fieldTypeName) != _barrieredClasses.end())
                     {
                         hasBarrieredField = true;
                     }
-                    else if (type->isCompoundType())
-                    {
-                        // If the field is a compound type,
-                        // check if it is a fully barriered type or
-                        // has unprotected pointer fields
-                        if (_pointerClasses.find(fieldTypeName) != _pointerClasses.end())
-                        {
-                            hasUnbarrieredPointer = true;
-                            if (!unbarrieredPointerField)
-                                unbarrieredPointerField = field;
-                        }
-                        else if (_barrieredClasses.find(fieldTypeName) != _barrieredClasses.end())
-                        {
-                            hasBarrieredField = true;
-                        }
-                    }
                 }
             }
+        }
 
-            if (hasUnbarrieredPointer)
+        if (hasUnbarrieredPointer)
+        {
+            _pointerClasses.insert(typeName);
+        }
+
+        if (hasBarrieredField)
+        {
+            llvm::outs() << "Type with barrier found: \"" << typeName << "\"\n";
+            if (!hasUnbarrieredPointer)
             {
-                _pointerClasses.insert(typeName);
+                _barrieredClasses.insert(typeName);
             }
-
-            if (hasBarrieredField)
+            else
             {
-                llvm::outs()<<"Type with barrier found: \""<<typeName<<"\"\n";
-                if (!hasUnbarrieredPointer)
-                {
-                    _barrieredClasses.insert(typeName);
-                }
-                else
-                {
-                    llvm::outs()<<"Unbarriered field: \""<<unbarrieredPointerField->getQualifiedNameAsString()<<"\"\n";
-                }
+                llvm::outs() << "ERROR: Unbarriered field: \""
+                             << unbarrieredPointerField->getQualifiedNameAsString()
+                             << "\"\n";
             }
         }
 
@@ -135,9 +138,9 @@ public:
         return true;
     }
 
-    void RecordWriteBarrierAllocation(const string& allocationType)
+    void RecordWriteBarrierAllocation(const QualType& allocationType)
     {
-        _barrierAllocations.insert(allocationType);
+        _barrierAllocations.insert(allocationType.getTypePtr());
     }
 
     void RecordRecyclerAllocation(const string& allocationFunction, const string& type)
@@ -151,40 +154,71 @@ public:
     }
 
 #define Dump(coll) \
-    dump(_##coll, #coll)
+    dump(#coll, _##coll)
 
     void Inspect()
     {
         Dump(pointerClasses);
         Dump(barrieredClasses);
 
-        llvm::outs()<<"Recycler allocations\n";
+        llvm::outs() << "Recycler allocations\n";
         for (auto item : _allocatorTypeMap)
         {
-            dump(item.second, item.first.c_str());
+            dump(item.first.c_str(), item.second);
         }
 
         Dump(barrierAllocations);
     }
 
 private:
-    void dump(const set<string>& set, const char* name)
+    template <class Set, class DumpItemFunc>
+    void dump(const char* name, const Set& set, const DumpItemFunc& func)
     {
-        llvm::outs()<<"-------------------------\n\n";
-        llvm::outs()<<name<<"\n";
-        llvm::outs()<<"-------------------------\n\n";
+        llvm::outs() << "-------------------------\n\n";
+        llvm::outs() << name << "\n";
+        llvm::outs() << "-------------------------\n\n";
         for (auto item : set)
         {
-            llvm::outs()<<"  "<<item<<"\n";
+            func(llvm::outs(), item);
         }
-        llvm::outs()<<"-------------------------\n\n";
+        llvm::outs() << "-------------------------\n\n";
+    }
+
+    template <class Item>
+    void dump(const char* name, const set<Item>& set)
+    {
+        dump(name, set, [](raw_ostream& out, const Item& item)
+        {
+            out << "  " << item << "\n";
+        });
+    }
+
+    void dump(const char* name, const set<const Type*> set)
+    {
+        dump(name, set, [this](raw_ostream& out, const Type* type)
+        {
+            out << "  " << QualType(type, 0).getAsString() << "\n";
+
+            // Examine underlying "canonical" type (strip typedef) and try to
+            // match declaration. If we find it in _pointerClasses, the type
+            // is missing write-barrier decorations.
+            auto r = type->getCanonicalTypeInternal()->getAsCXXRecordDecl();
+            if (r)
+            {
+                auto typeName = r->getQualifiedNameAsString();
+                if (_pointerClasses.find(typeName) != _pointerClasses.end())
+                {
+                    out << "    ERROR: Unbarried type " << typeName << "\n";
+                }
+            }
+        });
     }
 
     bool _barrierTypeDefined;
     map<string, set<string> > _allocatorTypeMap;
     set<string> _pointerClasses;
     set<string> _barrieredClasses;
-    set<string> _barrierAllocations;
+    set<const Type*> _barrierAllocations;
 };
 
 static bool isCastToRecycler(const CXXStaticCastExpr* castNode)
@@ -240,9 +274,9 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
 
                         if (allocationFunctionStr.find("WithBarrier") != string::npos)
                         {
-                            llvm::outs()<<"In \""<<_functionDecl->getQualifiedNameAsString()<<"\"\n";
-                            llvm::outs()<<"  Allocating \""<<allocatedTypeStr<<"\" in write barriered memory\n";
-                            _mainVisitor->RecordWriteBarrierAllocation(allocatedTypeStr);
+                            llvm::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
+                            llvm::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
+                            _mainVisitor->RecordWriteBarrierAllocation(allocatedType);
                         }
                     }
                     else

@@ -97,7 +97,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Core/FinalizableObject.h"
 #include "Memory/RecyclerRootPtr.h"
 #include "Memory/RecyclerFastAllocator.h"
-#include "Memory/RecyclerPointers.h"
 #include "Util/Pinned.h"
 
 // Data Structures 2
