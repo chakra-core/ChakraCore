@@ -841,7 +841,6 @@ WasmBinaryReader::ReadGlobalsSection()
         WasmNode globalNode = ReadInitExpr();
         switch (globalNode.op) {
         case  wbI32Const:
-        case  wbI64Const:
         case  wbF32Const:
         case  wbF64Const:
             global->SetReferenceType(WasmGlobal::Const);
@@ -851,6 +850,8 @@ WasmBinaryReader::ReadGlobalsSection()
             global->SetReferenceType(WasmGlobal::LocalReference);
             global->var = globalNode.var;
             break;
+        case  wbI64Const:
+            ThrowDecodingError(_u("i64 globals NYI"));
         default:
             Assert(UNREACHED);
         }
