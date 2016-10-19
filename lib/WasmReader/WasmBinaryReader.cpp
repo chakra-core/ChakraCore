@@ -892,7 +892,6 @@ WasmBinaryReader::ReadImportEntries()
     uint32 entries = LEB128(len);
 
     uint importFunctionCount = 0; //TODO: we are probably much better of using lists
-    uint importGlobalCount = 0;
 
     if (entries > 0)
     {
@@ -940,8 +939,6 @@ WasmBinaryReader::ReadImportEntries()
             break;
         }
     }
-    importGlobalCount = m_module->globals.Count();
-    m_module->SetImportGlobalCount(importGlobalCount);
     m_module->SetImportCount(importFunctionCount);
 }
 

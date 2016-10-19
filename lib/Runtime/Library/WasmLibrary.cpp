@@ -351,7 +351,9 @@ namespace Js
 
     void WasmLibrary::WasmLoadGlobals(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi)
     {
-        for (uint i = 0; i < wasmModule->GetImportGlobalCount(); i++)
+        uint i = 0;
+        uint count = (uint) wasmModule->globals.Count();
+        while (i < count && wasmModule->globals.Item(i)->GetReferenceType() == Wasm::WasmGlobal::ImportedReference)
         {
             Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
             Var prop = GetImportVariable(global->importVar, ctx, ffi);
@@ -406,11 +408,11 @@ namespace Js
                 break;
 
             }
-
+            i++;
         }
 
 
-        for (uint i = wasmModule->GetImportGlobalCount(); i < (uint) wasmModule->globals.Count(); i++)
+        for (; i < count; i++)
         {
             Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
 

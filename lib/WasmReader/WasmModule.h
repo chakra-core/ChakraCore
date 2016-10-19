@@ -88,8 +88,6 @@ namespace Wasm
         uint GetGlobalOffset() const { return globalOffset;  }
         void SetGlobalOffset(uint val) { globalOffset = val; }
         uint GetOffsetForGlobal(WasmGlobal* global);
-        void SetImportGlobalCount(uint count) { importGlobalCount = count;  }
-        uint GetImportGlobalCount() { return importGlobalCount; }
 
         WasmBinaryReader* GetReader() const { return m_reader; }
 
@@ -127,6 +125,5 @@ namespace Wasm
         uint importFuncOffset;
         uint indirFuncTableOffset;
         uint globalOffset;
-        uint importGlobalCount;
     };
 } // namespace Wasm
