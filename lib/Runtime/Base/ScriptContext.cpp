@@ -1210,11 +1210,11 @@ if (!sourceList)
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators());
 #endif
 
 #ifdef ASMJS_PLAT
-        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
+        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
             true);
 #endif
 
@@ -4489,6 +4489,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.isRecyclerVerifyEnabled = FALSE;
         contextData.recyclerVerifyPad = 0;
 #endif
+        contextData.debuggingFlagsAddr = GetDebuggingFlagsAddr();
+        contextData.debugStepTypeAddr = GetDebugStepTypeAddr();
+        contextData.debugFrameAddressAddr = GetDebugFrameAddressAddr();
+        contextData.debugScriptIdWhenSetAddr = GetDebugScriptIdWhenSetAddr();
+
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
         contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
         CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl when this changes
@@ -4649,6 +4654,26 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     intptr_t ScriptContext::GetRecyclerAddr() const
     {
         return (intptr_t)GetRecycler();
+    }
+
+    intptr_t ScriptContext::GetDebuggingFlagsAddr() const
+    {
+        return this->threadContext->GetDebugManager()->GetDebuggingFlagsAddr();
+    }
+
+    intptr_t ScriptContext::GetDebugStepTypeAddr() const
+    {
+        return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfStepType();
+    }
+
+    intptr_t ScriptContext::GetDebugFrameAddressAddr() const
+    {
+        return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfFrameAddress();
+    }
+
+    intptr_t ScriptContext::GetDebugScriptIdWhenSetAddr() const
+    {
+        return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfScriptIdWhenSet();
     }
 
     bool ScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
@@ -4849,10 +4874,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (JavascriptMethod)this->interpreterThunkEmitter->GetNextThunk(ppDynamicInterpreterThunk);
     }
 
+#if DBG
     BOOL ScriptContext::IsDynamicInterpreterThunk(JavascriptMethod address)
     {
         return this->interpreterThunkEmitter->IsInHeap((void*)address);
     }
+#endif
 
     void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)
     {

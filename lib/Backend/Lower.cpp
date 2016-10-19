@@ -5903,10 +5903,9 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
+        _u("Field load: %s, property ID: %d, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(
-            propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
+        propertySymOpnd->m_sym->AsPropertySym()->m_propertyId,
         this->m_func->GetJITFunctionBody()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex,
         propertySymOpnd->GetCacheLayoutString(),
@@ -6111,9 +6110,9 @@ Lowerer::GenerateCheckFixedFld(IR::Instr * instrChkFld)
     OUTPUT_TRACE_FUNC(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Fixed field check: %s, property: %s, cache ID: %u, cloned cache: true, layout: %s, redundant check: %s count of props: %u \n"),
+        _u("Fixed field check: %s, property ID: %d, cache ID: %u, cloned cache: true, layout: %s, redundant check: %s count of props: %u \n"),
         Js::OpCodeUtil::GetOpCodeName(instrChkFld->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(),
+        propertySym->m_propertyId,
         inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), propertySymOpnd->IsTypeChecked() ? _u("true") : _u("false"),
         propertySymOpnd->GetGuardedPropOps() ? propertySymOpnd->GetGuardedPropOps()->Count() : 0);
 
@@ -6211,9 +6210,9 @@ Lowerer::GenerateCheckObjType(IR::Instr * instrChkObjType)
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Object type check: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
+        _u("Object type check: %s, property ID: %d, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrChkObjType->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(),
+        propertySym->m_propertyId,
         this->m_func->GetJITFunctionBody()->GetDisplayName(),
         inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), _u("false"));
 
@@ -7004,9 +7003,9 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
+        _u("Field store: %s, property ID: %d, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
+        propertySymOpnd->m_sym->AsPropertySym()->m_propertyId,
         this->m_func->GetJITFunctionBody()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(),
         propertySymOpnd->IsTypeChecked() ? _u("true") : _u("false"));
@@ -7304,9 +7303,9 @@ Lowerer::PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::Pro
     if (PHASE_TRACE(Js::TracePinnedTypesPhase, this->m_func))
     {
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(_u("PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n"),
+        Output::Print(_u("PinnedTypes: function %s(%s) instr %s property ID %u pinned %s reference 0x%p to type 0x%p.\n"),
             this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-            Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId,
+            Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), propertyId,
             typeRef == type.t ? _u("strong") : _u("weak"), typeRef, type.t);
         Output::Flush();
     }
@@ -7417,9 +7416,9 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::Pro
                 if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
                 {
                     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Output::Print(_u("ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property %s (%u).\n"),
+                    Output::Print(_u("ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property ID %u.\n"),
                         m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                        guard, guard->GetValue(), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId);
+                        guard, guard->GetValue(), propertyId);
                     Output::Flush();
                 }
 
@@ -7447,9 +7446,9 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(_u("ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n"),
+                Output::Print(_u("ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property ID %u.\n"),
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                    guard, guard->GetValue(), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId);
+                    guard, guard->GetValue(), propertyId);
                 Output::Flush();
             }
 
@@ -7526,8 +7525,8 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
                 if (PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->m_func))
                 {
                     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) \n"),
-                        m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), propertyId, m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer());
+                    Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %d \n"),
+                        m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), propertyId);
                     Output::Flush();
                 }
                 Assert(propIdCount < propOpCount);
@@ -7581,9 +7580,9 @@ Lowerer::LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* ctorCache)
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(_u("ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n"),
+                Output::Print(_u("ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %u.\n"),
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                    ctorCache->GetRuntimeCacheAddr(), ctorCache->GetType()->GetAddr(), m_func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer(), propertyId);
+                    ctorCache->GetRuntimeCacheAddr(), ctorCache->GetType()->GetAddr(), propertyId);
                 Output::Flush();
             }
 
@@ -11523,7 +11522,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
 
     if (!(bailOutKind & IR::BailOutExplicit))
     {
-        intptr_t flags = m_func->GetThreadContextInfo()->GetDebuggingFlagsAddr();
+        intptr_t flags = m_func->GetScriptContextInfo()->GetDebuggingFlagsAddr();
 
         // Check 1 (do we need to bail out?)
         // JXX bailoutLabel
@@ -11597,13 +11596,13 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
         {
             // TEST STEP_BAILOUT, [&stepController->StepType]
             // BNE BailoutLabel
-            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             IR::Opnd* opnd2 = IR::IntConstOpnd::New(Js::STEP_BAILOUT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertTestBranch(opnd1, opnd2, Js::OpCode::BrNeq_A, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11624,12 +11623,12 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             effectiveFrameBaseReg = m_lowererMD.GetRegFramePointer();
 #endif
             IR::Opnd* opnd1 = IR::RegOpnd::New(nullptr, effectiveFrameBaseReg, TyMachReg, m_func);
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugFrameAddressAddr(), TyMachReg, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugFrameAddressAddr(), TyMachReg, m_func);
             this->InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrGt_A, /*isUnsigned*/ true, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11664,7 +11663,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             // bailOutLabel:                // (fallthrough bailOutLabel)
             IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetScriptIdAddr(), TyInt32, m_func);
 
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugScriptIdWhenSetAddr(), TyInt32, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetDebugScriptIdWhenSetAddr(), TyInt32, m_func);
             IR::RegOpnd* reg1 = IR::RegOpnd::New(TyInt32, m_func);
             InsertMove(reg1, opnd2, bailOutLabel);
 
@@ -19058,9 +19057,9 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n"),
+        _u("Field load: %s, property ID: %d, func: %s, cache ID: %d, cloned cache: false\n"),
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(),
+        propertySym->m_propertyId,
         this->m_func->GetJITFunctionBody()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex);
 
@@ -19313,9 +19312,9 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        _u("Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n"),
+        _u("Field store: %s, property ID: %u, func: %s, cache ID: %d, cloned cache: false\n"),
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
-        this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(),
+        propertySym->m_propertyId,
         this->m_func->GetJITFunctionBody()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex);
 
@@ -19359,9 +19358,9 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 #endif
                 PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
-                    _u("AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n"),
+                    _u("AddFldFastPath: function: %s(%s) property ID: %u no fast path, because the phase is off.\n"),
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                    this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId);
+                    propertySym->m_propertyId);
             }
 
             if ((profiledInstrStFld->u.FldInfo().flags & (Js::FldInfo_FromInlineSlots | Js::FldInfo_FromAuxSlots)) == Js::FldInfo_FromInlineSlots)
@@ -19400,9 +19399,9 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
         PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
-            _u("AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n"),
+            _u("AddFldFastPath: function: %s(%s) property ID: %d %s fast path for %s.\n"),
             this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-            this->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId,
+            propertySym->m_propertyId,
             usePolymorphicInlineCache ? _u("poly") : _u("mono"), doStore ? _u("store and add") : _u("add only"));
     }
 

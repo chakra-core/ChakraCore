@@ -215,6 +215,12 @@ public:
         return m_workItem;
     }
 
+    ThreadContext * GetInProcThreadContext() const
+    {
+        Assert(!IsOOPJIT());
+        return (ThreadContext*)m_threadContextInfo;
+    }
+
     ThreadContextInfo * GetThreadContextInfo() const
     {
         return m_threadContextInfo;

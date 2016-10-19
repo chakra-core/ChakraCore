@@ -220,7 +220,7 @@ namespace TTD
         InflateMap* m_lastInflateMap;
 
         //Pin set of all property records created during this logging session
-        PropertyRecordPinSet* m_propertyRecordPinSet;
+        RecyclerRootPtr<PropertyRecordPinSet> m_propertyRecordPinSet;
         UnorderedArrayList<NSSnapType::SnapPropertyRecord, TTD_ARRAY_LIST_SIZE_DEFAULT> m_propertyRecordList;
 
         //A list of all *root* scripts that have been loaded during this session

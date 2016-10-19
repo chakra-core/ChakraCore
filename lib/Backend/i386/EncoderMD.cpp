@@ -921,7 +921,7 @@ modrm:
             {
                 AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc, nullptr, (void*)opr1->AsIntConstOpnd()->GetValue());
                 this->EmitConst(0, 4);
-                AssertMsg( ( ((BYTE*)opr1->AsIntConstOpnd()->GetValue()) < m_encoder->m_encodeBuffer || ((BYTE *)opr1->AsIntConstOpnd()->GetValue()) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
+                AssertMsg(m_func->IsOOPJIT() || ( ((BYTE*)opr1->AsIntConstOpnd()->GetValue()) < m_encoder->m_encodeBuffer || ((BYTE *)opr1->AsIntConstOpnd()->GetValue()) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
             }
             else if (opr1->IsHelperCallOpnd())
             {
@@ -929,16 +929,7 @@ modrm:
                 AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc, nullptr, fnAddress);
                 AssertMsg(sizeof(uint32) == sizeof(void*), "Sizes of void* assumed to be 32-bits");
                 this->EmitConst(0, 4);
-#if DBG
-                if (this->m_func->IsOOPJIT())
-                {
-                    // TODO: OOP JIT, use the helper function address from JIT process to do the assertion
-                }
-                else
-                {
-                    AssertMsg((((BYTE*)fnAddress) < m_encoder->m_encodeBuffer || ((BYTE *)fnAddress) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
-                }
-#endif
+                AssertMsg(m_func->IsOOPJIT() || (((BYTE*)fnAddress) < m_encoder->m_encodeBuffer || ((BYTE *)fnAddress) >= m_encoder->m_encodeBuffer + m_encoder->m_encodeBufferSize), "Call Target within buffer.");
             }
             else
             {

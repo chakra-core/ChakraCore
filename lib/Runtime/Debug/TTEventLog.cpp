@@ -536,8 +536,7 @@ namespace TTD
 
         if(this->m_propertyRecordPinSet != nullptr)
         {
-            this->m_propertyRecordPinSet->GetAllocator()->RootRelease(this->m_propertyRecordPinSet);
-            this->m_propertyRecordPinSet = nullptr;
+            this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator());
         }
     }
 
@@ -710,15 +709,15 @@ namespace TTD
         m_modeStack(), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
-        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator),
+        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator),
         m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
     {
         this->InitializeEventListVTable();
 
         this->m_modeStack.Push(TTDMode::Pending);
 
-        this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), PropertyRecordPinSet, threadContext->GetRecycler());
-        this->m_threadContext->GetRecycler()->RootAddRef(this->m_propertyRecordPinSet);
+        Recycler * recycler = threadContext->GetRecycler();
+        this->m_propertyRecordPinSet.Root(RecyclerNew(recycler, PropertyRecordPinSet, recycler), recycler);
     }
 
     EventLog::~EventLog()

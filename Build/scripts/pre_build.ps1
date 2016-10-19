@@ -20,7 +20,7 @@
 #   $Env:TF_BUILD_BUILDDIRECTORY    (a.k.a. $objpath)
 #   $Env:TF_BUILD_BINARIESDIRECTORY (a.k.a. $binpath)
 #
-# Optional information:
+# Optional information (metadata only):
 #   $Env:TF_BUILD_BUILDDEFINITIONNAME
 #   $Env:TF_BUILD_BUILDNUMBER
 #   $Env:TF_BUILD_BUILDURI
@@ -32,7 +32,6 @@ param (
     [Parameter(Mandatory=$True)]
     [ValidateSet("debug", "release", "test", "codecoverage")]
     [string]$flavor,
-
     [ValidateSet("default", "codecoverage", "pogo")]
     [string]$subtype = "default",
 
@@ -43,7 +42,6 @@ param (
 
     [string]$corePath = "core",
 
-    [Parameter(Mandatory=$True)]
     [string]$oauth
 )
 
@@ -108,7 +106,7 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 
     $info = GetBuildInfo $oauth $commitHash
 
-    $BuildDate = ([datetime]$info.push.date).toString("yyMMdd-HHmm")
+    $BuildDate = ([DateTime]$info.push.date).toString("yyMMdd-HHmm")
 
     $buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
 
@@ -157,12 +155,12 @@ $CommitMessage
     $changeJson | Add-Member -type NoteProperty -name PushIdPart2 -value $BuildPushIdPart2
     $changeJson | Add-Member -type NoteProperty -name PushIdString -value $BuildPushIdString
     $changeJson | Add-Member -type NoteProperty -name Username -value $Env:Username
-    $changeJson | Add-Member -type NoteProperty -name CommitMessage -value $CommitMessage
+    $changeJson | Add-Member -type NoteProperty -name CommitMessage -value $CommitMessageLines
 
     Write-Output "-----"
     Write-Output $outputJsonFile
     $changeJson | ConvertTo-Json | Write-Output
-    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding Ascii
+    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding utf8
 
     $buildInfoOutputDir = $objpath
     if (-not(Test-Path -Path $buildInfoOutputDir)) {

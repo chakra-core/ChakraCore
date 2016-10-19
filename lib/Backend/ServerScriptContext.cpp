@@ -12,6 +12,9 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_contextData(*contextData),
     threadContextInfo(threadContextInfo),
     m_isPRNGSeeded(false),
+    m_interpreterThunkBufferManager(nullptr),
+    m_asmJsInterpreterThunkBufferManager(nullptr),
+    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -26,6 +29,10 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     {
         m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
     }
+#endif
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
+    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
 #endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
@@ -44,6 +51,14 @@ ServerScriptContext::~ServerScriptContext()
         HeapDelete(m_codeGenProfiler);
     }
 #endif
+    if (m_asmJsInterpreterThunkBufferManager)
+    {
+        HeapDelete(m_asmJsInterpreterThunkBufferManager);
+    }
+    if (m_interpreterThunkBufferManager)
+    {
+        HeapDelete(m_interpreterThunkBufferManager);
+    }
 }
 
 intptr_t
@@ -193,8 +208,6 @@ ServerScriptContext::GetGlobalObjectThisAddr() const
 void
 ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
 {
-    // this should stay constant once context initialization is complete
-    Assert(!m_globalThisAddr || m_globalThisAddr == globalThis);
     m_globalThisAddr = globalThis;
 }
 
@@ -259,6 +272,30 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+intptr_t
+ServerScriptContext::GetDebuggingFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debuggingFlagsAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugStepTypeAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugStepTypeAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugFrameAddressAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugFrameAddressAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
+}
+
 bool
 ServerScriptContext::IsClosed() const
 {
@@ -269,6 +306,35 @@ void
 ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
     m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+}
+
+ArenaAllocator *
+ServerScriptContext::GetSourceCodeArena()
+{
+    return &m_sourceCodeArena;
+}
+
+void
+ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
+{
+    EmitBufferManager<> * manager = GetEmitBufferManager(asmJsManager);
+    if (manager != nullptr)
+    {
+        manager->Decommit();
+    }
+}
+
+EmitBufferManager<> *
+ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
+{
+    if (asmJsManager)
+    {
+        return m_asmJsInterpreterThunkBufferManager;
+    }
+    else
+    {
+        return m_interpreterThunkBufferManager;
+    }
 }
 
 IR::JnHelperMethod
