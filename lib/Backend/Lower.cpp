@@ -14205,22 +14205,65 @@ IR::Instr *Lowerer::InsertConvertFloat64ToFloat32(
     return instr;
 }
 
-void Lowerer::InsertIncUInt8PreventOverflow(
+void Lowerer::InsertDecUInt32PreventOverflow(
     IR::Opnd *const dst,
     IR::Opnd *const src,
     IR::Instr *const insertBeforeInstr,
     IR::Instr * *const onOverflowInsertBeforeInstrRef)
 {
-    LowererMD::InsertIncUInt8PreventOverflow(dst, src, insertBeforeInstr, onOverflowInsertBeforeInstrRef);
-}
+    Assert(dst);
+    Assert(dst->GetType() == TyUint32);
+    Assert(src);
+    Assert(src->GetType() == TyUint32);
+    Assert(insertBeforeInstr);
 
-void Lowerer::InsertDecUInt8PreventOverflow(
-    IR::Opnd *const dst,
-    IR::Opnd *const src,
-    IR::Instr *const insertBeforeInstr,
-    IR::Instr * *const onOverflowInsertBeforeInstrRef)
-{
-    LowererMD::InsertDecUInt8PreventOverflow(dst, src, insertBeforeInstr, onOverflowInsertBeforeInstrRef);
+    Func *const func = insertBeforeInstr->m_func;
+
+    // Generate:
+    //     subs temp, src, 1
+    //     bcs $overflow
+    //     mov dst, temp
+    //     b $continue
+    //   $overflow:
+    //     mov dst, 0
+    //   $continue:
+
+    IR::LabelInstr *const overflowLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
+
+    //     subs temp, src, 1
+    IR::RegOpnd *const tempOpnd = IR::RegOpnd::New(StackSym::New(TyUint32, func), TyUint32, func);
+    const IR::AutoReuseOpnd autoReuseTempOpnd(tempOpnd, func);
+    Lowerer::InsertSub(true, tempOpnd, src, IR::IntConstOpnd::New(1, TyUint32, func, true), overflowLabel);
+
+    //     bcs $overflow
+    Lowerer::InsertBranch(Js::OpCode::BrLt_A, true, overflowLabel, overflowLabel);
+
+    //     mov dst, temp
+    Lowerer::InsertMove(dst, tempOpnd, overflowLabel);
+
+    const bool dstEqualsSrc = dst->IsEqual(src);
+    if(!dstEqualsSrc || onOverflowInsertBeforeInstrRef)
+    {
+        //     b $continue
+        //   $overflow:
+        //     mov dst, 0
+        //   $continue:
+        IR::LabelInstr *const continueLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
+        Lowerer::InsertBranch(Js::OpCode::Br, continueLabel, overflowLabel);
+        if(!dstEqualsSrc)
+        {
+            Lowerer::InsertMove(dst, IR::IntConstOpnd::New(0, TyUint32, func, true), continueLabel);
+        }
+
+        if(onOverflowInsertBeforeInstrRef)
+        {
+            *onOverflowInsertBeforeInstrRef = continueLabel;
+        }
+    }
+    else
+    {
+        //   $overflow:
+    }
 }
 
 void Lowerer::InsertFloatCheckForZeroOrNanBranch(
@@ -21541,18 +21584,16 @@ void Lowerer::LowerFunctionBodyCallCountChange(IR::Instr *const insertBeforeInst
         IR::AddrOpnd::New(func->GetCallsCountAddress(), IR::AddrOpndKindDynamicMisc, func, true),
         insertBeforeInstr);
 
-    IR::IndirOpnd *const countOpnd = IR::IndirOpnd::New(countAddressOpnd, 0, TyUint8, func);
+    IR::IndirOpnd *const countOpnd = IR::IndirOpnd::New(countAddressOpnd, 0, TyUint32, func);
     const IR::AutoReuseOpnd autoReuseCountOpnd(countOpnd, func);
     if(!isSimpleJit)
     {
-        // InsertIncUint8PreventOverflow [countAddress]
-        InsertIncUInt8PreventOverflow(countOpnd, countOpnd, insertBeforeInstr);
+        InsertAdd(false, countOpnd, countOpnd, IR::IntConstOpnd::New(1, TyUint32, func), insertBeforeInstr);
         return;
     }
 
-    // InsertDecUint8PreventOverflow [countAddress]
     IR::Instr *onOverflowInsertBeforeInstr;
-    InsertDecUInt8PreventOverflow(
+    InsertDecUInt32PreventOverflow(
         countOpnd,
         countOpnd,
         insertBeforeInstr,

@@ -439,6 +439,7 @@ namespace Js
         m_argUsedForBranch(0),
         m_envDepth((uint16)-1),
         interpretedCount(0),
+        lastInterpretedCount(0),
         loopInterpreterLimit(CONFIG_FLAG(LoopInterpretCount)),
         savedPolymorphicCacheState(0),
         debuggerScopeIndex(0),
@@ -495,8 +496,7 @@ namespace Js
         hasNestedLoop(false),
         recentlyBailedOutOfJittedLoopBody(false),
         m_isAsmJsScheduledForFullJIT(false),
-        m_asmJsTotalLoopCount(0),
-        inactiveCount(0)
+        m_asmJsTotalLoopCount(0)
         //
         // Even if the function does not require any locals, we must always have "R0" to propagate
         // a return value.  By enabling this here, we avoid unnecessary conditionals during execution.
@@ -529,7 +529,6 @@ namespace Js
 #endif
     {
         SetCountField(CounterFields::ConstantCount, 1);
-        SetInactiveCount(0);
 
         this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
         this->m_hasBeenParsed = true;
@@ -552,6 +551,21 @@ namespace Js
 
         InitDisableInlineApply();
         InitDisableInlineSpread();
+    }
+
+    bool FunctionBody::InterpretedSinceCallCountCollection() const
+    {
+        return this->interpretedCount != this->lastInterpretedCount;
+    }
+
+    void FunctionBody::CollectInterpretedCounts()
+    {
+        this->lastInterpretedCount = this->interpretedCount;
+    }
+
+    void FunctionBody::IncrInactiveCount(uint increment)
+    {
+        this->inactiveCount = UInt32Math::Add(this->inactiveCount, increment);
     }
 
     void FunctionBody::UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const
@@ -6578,7 +6592,7 @@ namespace Js
                 if(GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
                 {
                     Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-                    const int newSimpleJitCallCount = max(0, simpleJitEntryPointInfo->callsCount + limitScale);
+                    const int newSimpleJitCallCount = max(0, (int)simpleJitEntryPointInfo->callsCount + limitScale);
                     Assert(static_cast<int>(static_cast<uint16>(newSimpleJitCallCount)) == newSimpleJitCallCount);
                     SetSimpleJitCallCount(static_cast<uint16>(newSimpleJitCallCount));
                 }
@@ -6716,11 +6730,11 @@ namespace Js
         }
 
         // Simple JIT counts down and transitions on overflow
-        const uint8 callCount = simpleJitEntryPointInfo->callsCount;
+        const uint32 callCount = simpleJitEntryPointInfo->callsCount;
         Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
         return callCount == 0 ?
             static_cast<uint16>(simpleJitLimit) :
-            static_cast<uint16>(simpleJitLimit) - callCount - 1;
+            static_cast<uint16>(simpleJitLimit) - static_cast<uint16>(callCount) - 1;
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
@@ -8791,6 +8805,16 @@ namespace Js
         this->jitMode = jitMode;
     }
 #endif
+
+    bool FunctionEntryPointInfo::ExecutedSinceCallCountCollection() const
+    {
+        return this->callsCount != this->lastCallsCount;
+    }
+
+    void FunctionEntryPointInfo::CollectCallCounts()
+    {
+        this->lastCallsCount = this->callsCount;
+    }
 
     void FunctionEntryPointInfo::ReleasePendingWorkItem()
     {

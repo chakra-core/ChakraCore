@@ -1018,25 +1018,36 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::UpdateInactiveCounts()
-    {
-        Assert(!this->IsClosed());
-
-        auto fn = [&](FunctionBody *functionBody) {
-            functionBody->SetInactiveCount(UInt32Math::Add(functionBody->GetInactiveCount(), 1));
-        };
-
-        this->MapFunction(fn);
-    }
-
     void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs, uint inactiveThreshold)
     {
         Assert(!this->IsClosed());
 
         auto fn = [&](FunctionBody *functionBody) {
-            if (functionBody->GetFunctionInfo()->GetFunctionProxy() == functionBody && functionBody->CanBeDeferred() && !pActiveFuncs->Test(functionBody->GetFunctionNumber()) && functionBody->GetByteCode() != nullptr && functionBody->GetCanDefer())
+            bool exec = functionBody->InterpretedSinceCallCountCollection();
+            functionBody->CollectInterpretedCounts();
+            functionBody->MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo) {
+                if (!entryPointInfo->IsCleanedUp() && entryPointInfo->ExecutedSinceCallCountCollection())
+                {
+                    exec = true;
+                }
+                entryPointInfo->CollectCallCounts();
+            });
+            if (exec)
             {
-                functionBody->RedeferFunction(inactiveThreshold);
+                functionBody->SetInactiveCount(0);
+            }
+            else
+            {
+                functionBody->IncrInactiveCount(inactiveThreshold);
+            }
+
+            if (pActiveFuncs)
+            {
+                Assert(this->GetThreadContext()->DoRedeferFunctionBodies());
+                if (functionBody->GetFunctionInfo()->GetFunctionProxy() == functionBody && functionBody->CanBeDeferred() && !pActiveFuncs->Test(functionBody->GetFunctionNumber()) && functionBody->GetByteCode() != nullptr && functionBody->GetCanDefer())
+                {
+                    functionBody->RedeferFunction(inactiveThreshold);
+                }
             }
         };
 

@@ -190,6 +190,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isAllJITCodeInPreReservedRegion(true),
     redeferralState(InitialRedeferralState),
     gcSinceLastRedeferral(0),
+    gcSinceCallCountsCollected(0),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
@@ -1608,7 +1609,7 @@ ThreadContext::ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext
     {
         if (JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext())
         {
-            this->RedeferFunctionBodies();
+            this->TryRedeferral();
         }
     }
 }
@@ -2431,102 +2432,134 @@ ThreadContext::PostCollectionCallBack()
             }
         }
 
-        if (PHASE_ON1(Js::RedeferralPhase) && this->redeferralState != InitialRedeferralState)
-        {
-            this->UpdateInactiveCounts();
-        }
-        if (this->DoRedeferralOnGc())
+        if (this->DoTryRedeferral())
         {
             HRESULT hr = S_OK;
             BEGIN_TRANSLATE_OOM_TO_HRESULT
             {
-                this->RedeferFunctionBodies();
+                this->TryRedeferral();
             }
             END_TRANSLATE_OOM_TO_HRESULT(hr);
-            if (hr == S_OK)
-            {
-                gcSinceLastRedeferral = 0;
-                if (redeferralState == StartupRedeferralState)
-                {
-                    redeferralState = MainRedeferralState;
-                }
-            }
         }
-    }
-}
 
-void
-ThreadContext::UpdateInactiveCounts()
-{
-    Js::ScriptContext *scriptContext;
-    for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
-    {
-        if (scriptContext->IsClosed())
-        {
-            continue;
-        }
-        scriptContext->UpdateInactiveCounts();
+        this->UpdateRedeferralState();
     }
 }
 
 bool
-ThreadContext::DoRedeferralOnGc()
+ThreadContext::DoTryRedeferral() const
 {
+    if (PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase))
+    {
+        return true;
+    }
+
     if (!PHASE_ON1(Js::RedeferralPhase))
     {
         return false;
     }
 
-    if (PHASE_FORCE1(Js::RedeferralPhase))
-    {
-        return true;
-    }
-
-    gcSinceLastRedeferral++;
-    Assert(gcSinceLastRedeferral != 0);
-    switch(redeferralState)
+    switch (this->redeferralState)
     {
         case InitialRedeferralState:
-            if (gcSinceLastRedeferral == InitialRedeferralDelay)
-            {
-                redeferralState = StartupRedeferralState;
-            }
             return false;
 
         case StartupRedeferralState:
-            return (gcSinceLastRedeferral >= StartupRedeferralCheckInterval);
+            return gcSinceCallCountsCollected >= StartupRedeferralInactiveThreshold;
 
         case MainRedeferralState:
-            return (gcSinceLastRedeferral >= MainRedeferralCheckInterval);
+            return gcSinceCallCountsCollected >= MainRedeferralInactiveThreshold;
 
         default:
             Assert(0);
             return false;
+    };
+}
+
+bool
+ThreadContext::DoRedeferFunctionBodies() const
+{
+    if (PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase))
+    {
+        return true;
+    }
+
+    if (!PHASE_ON1(Js::RedeferralPhase))
+    {
+        return false;
+    }
+
+    switch (this->redeferralState)
+    {
+        case InitialRedeferralState:
+            return false;
+
+        case StartupRedeferralState:
+            return gcSinceLastRedeferral >= StartupRedeferralCheckInterval;
+
+        case MainRedeferralState:
+            return gcSinceLastRedeferral >= MainRedeferralCheckInterval;
+
+        default:
+            Assert(0);
+            return false;
+    };
+}
+
+uint
+ThreadContext::GetRedeferralCollectionInterval() const
+{
+    switch(this->redeferralState)
+    {
+        case InitialRedeferralState:
+            return InitialRedeferralDelay;
+
+        case StartupRedeferralState:
+            return StartupRedeferralCheckInterval;
+
+        case MainRedeferralState:
+            return MainRedeferralCheckInterval;
+
+        default:
+            Assert(0);
+            return (uint)-1;
+    }
+}
+
+uint
+ThreadContext::GetRedeferralInactiveThreshold() const
+{
+    switch(this->redeferralState)
+    {
+        case InitialRedeferralState:
+            return InitialRedeferralDelay;
+
+        case StartupRedeferralState:
+            return StartupRedeferralInactiveThreshold;
+
+        case MainRedeferralState:
+            return MainRedeferralInactiveThreshold;
+
+        default:
+            Assert(0);
+            return (uint)-1;
     }
 }
 
 void
-ThreadContext::RedeferFunctionBodies()
+ThreadContext::TryRedeferral()
 {
+    bool doRedefer = this->DoRedeferFunctionBodies();
+
     // Collect the set of active functions.
     ActiveFunctionSet *pActiveFuncs = nullptr;
-    pActiveFuncs = Anew(this->GetThreadAlloc(), ActiveFunctionSet, this->GetThreadAlloc());
-    this->GetActiveFunctions(pActiveFuncs);
-
-    uint inactiveThreshold = 0;
-    switch (redeferralState)
+    if (doRedefer)
     {
-        case StartupRedeferralState:
-            inactiveThreshold = StartupRedeferralInactiveThreshold;
-            break;
-        case MainRedeferralState:
-            inactiveThreshold = MainRedeferralInactiveThreshold;
-            break;
-        default:
-            Assert(PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase));
-            break;
+        pActiveFuncs = Anew(this->GetThreadAlloc(), ActiveFunctionSet, this->GetThreadAlloc());
+        this->GetActiveFunctions(pActiveFuncs);
     }
-
+    
+    uint inactiveThreshold = this->GetRedeferralInactiveThreshold();
     Js::ScriptContext *scriptContext;
     for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
     {
@@ -2537,7 +2570,10 @@ ThreadContext::RedeferFunctionBodies()
         scriptContext->RedeferFunctionBodies(pActiveFuncs, inactiveThreshold);
     }
 
-    Adelete(this->GetThreadAlloc(), pActiveFuncs);
+    if (pActiveFuncs)
+    {
+        Adelete(this->GetThreadAlloc(), pActiveFuncs);
+    }
 }
 
 void
@@ -2557,6 +2593,44 @@ ThreadContext::GetActiveFunctions(ActiveFunctionSet * pActiveFuncs)
             Js::FunctionBody *body = function->GetFunctionInfo()->GetFunctionBody();
             body->UpdateActiveFunctionSet(pActiveFuncs);
         }
+    }
+}
+
+void
+ThreadContext::UpdateRedeferralState()
+{
+    uint inactiveThreshold = this->GetRedeferralInactiveThreshold();
+    uint collectInterval = this->GetRedeferralCollectionInterval();
+
+    this->gcSinceCallCountsCollected++;
+    if (this->gcSinceCallCountsCollected >= inactiveThreshold)
+    {
+        this->gcSinceCallCountsCollected = 0;
+    }
+
+    this->gcSinceLastRedeferral++;
+    if (this->gcSinceLastRedeferral >= collectInterval)
+    {
+        // Advance state
+        switch (this->redeferralState)
+        {
+            case InitialRedeferralState:
+                this->redeferralState = StartupRedeferralState;
+                break;
+
+            case StartupRedeferralState:
+                this->redeferralState = MainRedeferralState;
+                break;
+
+            case MainRedeferralState:
+                break;
+
+            default:
+                Assert(0);
+                break;
+        }
+
+        this->gcSinceLastRedeferral = 0;
     }
 }
 

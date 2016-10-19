@@ -1268,7 +1268,7 @@ Func::CreateInlineeStackSym()
     return stackSym;
 }
 
-uint8 *
+uint32 *
 Func::GetCallsCountAddress() const
 {
     Assert(this->m_workItem->Type() == JsFunctionType);

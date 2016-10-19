@@ -674,6 +674,7 @@ private:
     };
     RedeferralState redeferralState;
     uint gcSinceLastRedeferral;
+    uint gcSinceCallCountsCollected;
 
     static const uint InitialRedeferralDelay = 5;
     static const uint StartupRedeferralCheckInterval = 10;
@@ -1205,10 +1206,13 @@ public:
     static size_t  GetProcessCodeSize() { return processNativeCodeSize; }
     size_t GetSourceSize() { return sourceCodeSize; }
 
-    void UpdateInactiveCounts();
-    void RedeferFunctionBodies();
-    void GetActiveFunctions(ActiveFunctionSet * ppActive);
-    bool DoRedeferralOnGc();
+    bool DoTryRedeferral() const;
+    void TryRedeferral();
+    bool DoRedeferFunctionBodies() const;
+    void UpdateRedeferralState();
+    uint GetRedeferralCollectionInterval() const;
+    uint GetRedeferralInactiveThreshold() const;
+    void GetActiveFunctions(ActiveFunctionSet * pActive);
 
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);

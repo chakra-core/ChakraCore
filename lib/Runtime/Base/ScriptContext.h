@@ -425,7 +425,6 @@ namespace Js
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
-        void UpdateInactiveCounts();
         void RedeferFunctionBodies(ActiveFunctionSet *pActive, uint inactiveThreshold);
         bool DoUndeferGlobalFunctions() const;
 

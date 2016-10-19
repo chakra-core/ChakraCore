@@ -986,8 +986,8 @@ namespace Js
         int32 localVarChangedOffset;
         uint entryPointIndex;
 
-        uint8 callsCount;
-        uint8 lastCallsCount;
+        uint32 callsCount;
+        uint32 lastCallsCount;
         bool nativeEntryPointProcessed;
 
     private:
@@ -1007,6 +1007,9 @@ namespace Js
         //End AsmJS Support
 #endif
 
+        bool ExecutedSinceCallCountCollection() const;
+        void CollectCallCounts();
+
         virtual FunctionBody *GetFunctionBody() const override;
 #if ENABLE_NATIVE_CODEGEN
         ExecutionMode GetJitMode() const;
@@ -1016,9 +1019,9 @@ namespace Js
         virtual void Expire() override;
         virtual void EnterExpirableCollectMode() override;
         virtual void ResetOnNativeCodeInstallFailure() override;
-        static const uint8 GetDecrCallCountPerBailout()
+        static const uint32 GetDecrCallCountPerBailout()
         {
-            return (uint8)CONFIG_FLAG(CallsToBailoutsRatioForRejit) + 1;
+            return (uint32)CONFIG_FLAG(CallsToBailoutsRatioForRejit) + 1;
         }
 #endif
 
@@ -2379,6 +2382,7 @@ namespace Js
         NoWriteBarrierField<uint> inactiveCount;
 
         uint32 interpretedCount;
+        uint32 lastInterpretedCount;
         uint32 loopInterpreterLimit;
         uint32 debuggerScopeIndex;
         uint32 savedPolymorphicCacheState;
@@ -2454,6 +2458,9 @@ namespace Js
         void UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const;
         uint GetInactiveCount() const { return inactiveCount; }
         void SetInactiveCount(uint count) { inactiveCount = count; }
+        void IncrInactiveCount(uint increment);
+        bool InterpretedSinceCallCountCollection() const;
+        void CollectInterpretedCounts();
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
@@ -2585,7 +2592,7 @@ namespace Js
             return (void*)&m_uScriptId;
         }
 
-        uint8 *GetCallsCountAddress(EntryPointInfo* info) const
+        uint32 *GetCallsCountAddress(EntryPointInfo* info) const
         {
             FunctionEntryPointInfo* entryPoint = (FunctionEntryPointInfo*) info;
             return &entryPoint->callsCount;
