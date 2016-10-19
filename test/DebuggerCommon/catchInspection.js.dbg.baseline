@@ -2,6 +2,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -39,6 +41,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -58,6 +62,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -95,6 +101,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -114,6 +122,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -155,6 +165,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -174,6 +186,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -201,6 +215,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -220,6 +236,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -256,6 +274,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -275,6 +295,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -312,6 +334,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -331,6 +355,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -368,6 +394,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -387,6 +415,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -420,6 +450,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -439,6 +471,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -472,6 +506,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -491,6 +527,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -524,6 +562,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -543,6 +583,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -577,6 +619,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -596,6 +640,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -618,6 +664,20 @@
         "description": "string <large string>",
         "number": "number -2146823279",
         "stack": "string <large string>"
+      },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
       },
       "console": {
         "#__proto__": "Object {...}",
@@ -792,6 +852,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -825,6 +887,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -866,6 +930,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -893,6 +959,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -940,6 +1008,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
@@ -970,6 +1040,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",

@@ -34,6 +34,7 @@
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\WasmReader;
         $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>

@@ -438,6 +438,81 @@ void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
     va_end(args);
 }
 
+HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthBytes, bool printFileOpenError)
+{
+    HRESULT hr = S_OK;
+    contents = nullptr;
+    lengthBytes = 0;
+    size_t result;
+    FILE * file;
+
+    //
+    // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
+    // etc.
+    //
+    if (fopen_s(&file, filename, "rb") != 0)
+    {
+        if (printFileOpenError)
+        {
+#ifdef _WIN32
+            DWORD lastError = GetLastError();
+            char16 wszBuff[512];
+            fprintf(stderr, "Error in opening file '%s' ", filename);
+            wszBuff[0] = 0;
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                nullptr,
+                lastError,
+                0,
+                wszBuff,
+                _countof(wszBuff),
+                nullptr))
+            {
+                fwprintf(stderr, _u(": %s"), wszBuff);
+            }
+#endif
+            fprintf(stderr, "\n");
+            IfFailGo(E_FAIL);
+        }
+        else
+        {
+            return E_FAIL;
+        }
+    }
+    // file will not be nullptr if _wfopen_s succeeds
+    __analysis_assume(file != nullptr);
+
+    //
+    // Determine the file length, in bytes.
+    //
+    fseek(file, 0, SEEK_END);
+    lengthBytes = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    contents = (LPCSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes);
+    if (nullptr == contents)
+    {
+        fwprintf(stderr, _u("out of memory"));
+        IfFailGo(E_OUTOFMEMORY);
+    }
+    //
+    // Read the entire content as a binary block.
+    //
+    result = fread((void*)contents, sizeof(char), lengthBytes, file);
+    if (result != lengthBytes)
+    {
+        fwprintf(stderr, _u("Read error"));
+        IfFailGo(E_FAIL);
+    }
+    fclose(file);
+
+Error:
+    if (contents && FAILED(hr))
+    {
+        HeapFree(GetProcessHeap(), 0, (void*)contents);
+        contents = nullptr;
+    }
+
+    return hr;
+}
 void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
 {
     if(!ok)

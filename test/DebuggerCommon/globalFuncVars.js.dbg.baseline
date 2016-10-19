@@ -2,6 +2,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "bar": "function <large string>",
@@ -9,6 +11,20 @@
       "c": "undefined undefined"
     },
     "locals": {
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"
@@ -37,6 +53,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "bar": "function <large string>",
@@ -51,6 +69,20 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"
@@ -79,6 +111,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "foo": "function <large string>",
       "bar": "function <large string>",
@@ -86,6 +120,20 @@
       "c": "number 10"
     },
     "locals": {
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"

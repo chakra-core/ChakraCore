@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define ASMMATH_BUILTIN_SIZE (32)
 #define ASMARRAY_BUILTIN_SIZE (16)
 #define ASMSIMD_BUILTIN_SIZE (512)
@@ -137,12 +137,12 @@ namespace Js {
         typedef JsUtil::List<AsmJsFunctionTable*, ArenaAllocator> ModuleFunctionTableArray;
         typedef JsUtil::List<AsmJsModuleExport, ArenaAllocator> ModuleExportArray;
         typedef JsUtil::Queue<AsmJsArrayView *, ArenaAllocator> ModuleArrayViewList;
-        typedef AsmJsRegisterSpaceGeneric<int, 0> ModuleIntVars;
-        typedef AsmJsRegisterSpaceGeneric<double, 0> ModuleDoubleVars;
-        typedef AsmJsRegisterSpaceGeneric<float, 0> ModuleFloatVars;
-        typedef AsmJsRegisterSpaceGeneric<AsmJsImportFunction, 0> ModuleImportFunctions;
+        typedef WAsmJs::RegisterSpace ModuleIntVars;
+        typedef WAsmJs::RegisterSpace ModuleDoubleVars;
+        typedef WAsmJs::RegisterSpace ModuleFloatVars;
+        typedef WAsmJs::RegisterSpace ModuleImportFunctions;
 
-        typedef AsmJsRegisterSpaceGeneric<AsmJsSIMDValue, 0> ModuleSIMDVars;
+        typedef WAsmJs::RegisterSpace ModuleSIMDVars;
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSIMDFunction*, ArenaAllocator> SIMDNameMap;
 
         inline bool LookupStdLibSIMDNameInMap   (PropertyName name, AsmJsSIMDFunction **simdFunc, SIMDNameMap* map) const;

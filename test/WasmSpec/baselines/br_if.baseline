@@ -1,0 +1,3 @@
+br_if.wast:170: $assert_return_28 unexpectedly threw: Error: Compiling wasm failed: function as-return-value[12]: Nonzero arity for return op in void function
+br_if.wast:171: $assert_return_29 unexpectedly threw: Error: Compiling wasm failed: function as-return-value[12]: Nonzero arity for return op in void function
+48/50 tests passed.

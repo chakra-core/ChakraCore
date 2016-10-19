@@ -1,0 +1,3 @@
+runaway-recursion.wast:16: $assert_trap_0 failed, runtime trap NYI
+runaway-recursion.wast:17: $assert_trap_1 failed, runtime trap NYI
+0/2 tests passed.

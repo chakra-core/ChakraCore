@@ -180,6 +180,7 @@ namespace Js
         void SetClosureInitDone(bool done) { closureInitDone = done; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
+        int OP_GetMemorySize();
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
@@ -585,8 +586,10 @@ namespace Js
         template <class T, typename T2> inline void OP_StSlotPrimitive(const unaligned T* playout);
         template <class T, typename T2> inline void OP_LdSlotPrimitive( const unaligned T* playout );
         template <class T> inline void OP_LdArrGeneric   ( const unaligned T* playout );
+        template <class T> inline void OP_LdArrWasm      ( const unaligned T* playout );
         template <class T> inline void OP_LdArrConstIndex( const unaligned T* playout );
         template <class T> inline void OP_StArrGeneric   ( const unaligned T* playout );
+        template <class T> inline void OP_StArrWasm      ( const unaligned T* playout );
         template <class T> inline void OP_StArrConstIndex( const unaligned T* playout );
         inline Var OP_LdSlot(Var instance, int32 slotIndex);
         inline Var OP_LdObjSlot(Var instance, int32 slotIndex);

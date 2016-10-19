@@ -23,6 +23,7 @@
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Backend;
+        $(MSBuildThisFileDirectory)..\WasmReader;
         $(MSBuildThisFileDirectory)..\JITClient;
         $(MSBuildThisFileDirectory)..\Runtime;
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;

@@ -450,6 +450,7 @@ typedef struct FunctionBodyDataIDL
     boolean doBackendArgumentsOptimization;
     boolean isLibraryCode;
     boolean isAsmJsMode;
+    boolean isWasmFunction;
     boolean hasImplicitArgIns;
     boolean isStrictMode;
     boolean isEval;

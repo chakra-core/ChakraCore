@@ -15,6 +15,7 @@ namespace Js
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
     // Redeclare static constants
     const UINT64 NumberConstantsBase::k_Nan;
+    const UINT32 NumberConstantsBase::k_Nan32;
     const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
     const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
     const uint64 NumberConstants::k_PosInf;
@@ -55,6 +56,12 @@ namespace Js
       0xFF, 0xFF, 0xFF, 0x7F,
       0xFF, 0xFF, 0xFF, 0x7F,
       0xFF, 0xFF, 0xFF, 0x7F };
+
+    __declspec(align(16)) const BYTE NumberConstants::SgnBitCst[] =
+    { 0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80 };
 
     __declspec(align(16)) double const NumberConstants::UIntConvertConst[2] = { 0, 4294967296.000000 };
     __declspec(align(16)) float const NumberConstants::MaskNegFloat[] = { -0.0f, -0.0f, -0.0f, -0.0f };

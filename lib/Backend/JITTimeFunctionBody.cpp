@@ -54,6 +54,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
                 }
             }
         }
+        else if (functionBody->IsWasmFunction())
+        {
+            // no consts in wasm
+            Assert(jitBody->constTable == nullptr);
+            jitBody->constCount = 0;
+        }
     }
 
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
@@ -89,26 +95,25 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     }
     else
     {
-        Assert(statementMap);
-
         jitBody->byteCodeLength = functionBody->GetByteCode()->GetLength();
         jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
+        if (!functionBody->IsWasmFunction()) {
+            Assert(statementMap);
+            jitBody->statementMap = AnewStructZ(arena, SmallSpanSequenceIDL);
+            jitBody->statementMap->baseValue = statementMap->baseValue;
 
-        jitBody->statementMap = AnewStructZ(arena, SmallSpanSequenceIDL);
-        jitBody->statementMap->baseValue = statementMap->baseValue;
+            if (statementMap->pActualOffsetList)
+            {
+                jitBody->statementMap->actualOffsetLength = statementMap->pActualOffsetList->Count();
+                jitBody->statementMap->actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
+            }
 
-        if (statementMap->pActualOffsetList)
-        {
-            jitBody->statementMap->actualOffsetLength = statementMap->pActualOffsetList->Count();
-            jitBody->statementMap->actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
+            if (statementMap->pStatementBuffer)
+            {
+                jitBody->statementMap->statementLength = statementMap->pStatementBuffer->Count();
+                jitBody->statementMap->statementBuffer = statementMap->pStatementBuffer->GetBuffer();
+            }
         }
-
-        if (statementMap->pStatementBuffer)
-        {
-            jitBody->statementMap->statementLength = statementMap->pStatementBuffer->Count();
-            jitBody->statementMap->statementBuffer = statementMap->pStatementBuffer->GetBuffer();
-        }
-
     }
 
     jitBody->inlineCacheCount = functionBody->GetInlineCacheCount();
@@ -184,6 +189,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->doBackendArgumentsOptimization = functionBody->GetDoBackendArgumentsOptimization();
     jitBody->isLibraryCode = functionBody->GetUtf8SourceInfo()->GetIsLibraryCode();
     jitBody->isAsmJsMode = functionBody->GetIsAsmjsMode();
+    jitBody->isWasmFunction = functionBody->IsWasmFunction();
     jitBody->isStrictMode = functionBody->GetIsStrictMode();
     jitBody->isEval = functionBody->IsEval();
     jitBody->isGlobalFunc = functionBody->GetIsGlobalFunc();
@@ -241,6 +247,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexesWithLock();
 
+#ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
         jitBody->asmJsData = Anew(arena, AsmJsDataIDL);
@@ -269,6 +276,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
     }
+#endif
 }
 
 intptr_t
@@ -570,6 +578,12 @@ bool
 JITTimeFunctionBody::IsAsmJsMode() const
 {
     return m_bodyData.isAsmJsMode != FALSE;
+}
+
+bool
+JITTimeFunctionBody::IsWasmFunction() const
+{
+    return m_bodyData.isWasmFunction != FALSE;
 }
 
 bool

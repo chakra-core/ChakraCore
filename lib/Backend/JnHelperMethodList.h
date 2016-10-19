@@ -96,7 +96,6 @@ HELPERCALL_FULL_OR_INPLACE_MATH(Op_Multiply, Js::JavascriptMath::Multiply, Js::S
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Subtract, Js::JavascriptMath::Subtract, Js::SSE2::JavascriptMath::Subtract, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Exponentiation, Js::JavascriptMath::Exponentiation, Js::SSE2::JavascriptMath::Exponentiation, AttrCanThrow)
 
-
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_And, Js::JavascriptMath::And, Js::SSE2::JavascriptMath::And, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Or, Js::JavascriptMath::Or, Js::SSE2::JavascriptMath::Or, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Xor, Js::JavascriptMath::Xor, Js::SSE2::JavascriptMath::Xor, AttrCanThrow)
@@ -510,7 +509,6 @@ HELPERCALL(DirectMath_PowDoubleInt, (double(*)(double, int32))Js::JavascriptNumb
 HELPERCALL(DirectMath_Pow, (double(*)(double, double))Js::JavascriptNumber::DirectPow, 0)
 HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::JavascriptMath::Random, (double(*)(Js::ScriptContext*))Js::SSE2::JavascriptMath::Random, 0)
 
-
 //
 // Putting dllimport function ptr in JnHelperMethodAddresses will cause the table to be allocated in read-write memory
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
@@ -523,6 +521,13 @@ HELPERCALL(DirectMath_FloorDb, nullptr, 0)
 HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
 HELPERCALL(DirectMath_CeilDb, nullptr, 0)
 HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
+
+HELPERCALL(DirectMath_TruncDb, (double(*)(double)) Wasm::WasmMath::Trunc<double>, 0)
+HELPERCALL(DirectMath_TruncFlt, (float(*)(float)) Wasm::WasmMath::Trunc<float>, 0)
+HELPERCALL(DirectMath_NearestDb, (double(*)(double)) Wasm::WasmMath::Nearest<double>, 0)
+HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<float>, 0)
+
+HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)

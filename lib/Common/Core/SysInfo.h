@@ -30,6 +30,7 @@ public:
     BOOL SSE4_2Available() const;
     BOOL PopCntAvailable() const;
     BOOL LZCntAvailable() const;
+    BOOL TZCntAvailable() const;
     bool IsAtomPlatform() const;
 #endif
     bool IsLowMemoryProcess();

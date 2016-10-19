@@ -73,6 +73,7 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
   DEF3_WMS( INT2       , BeginSwitch_Int   , Ld_Int                  , Int2          )
   DEF3    ( CUSTOM     , EndSwitch_Int     , OP_Br                   , AsmBr         )
   DEF3_WMS( CUSTOM     , Case_Int          , OP_BrEq                 , BrInt2        )
+  DEF3_WMS( CUSTOM     , Case_IntConst     , OP_BrEqConst            , BrInt1Const1  )
 
   DEF3_WMS( CUSTOM     , Conv_DTI          , Op_Db_To_Int            , Int1Double1   )
   DEF3_WMS( CUSTOM     , Conv_ITD          , Op_Int_To_Db            , Double1Int1   )
@@ -118,7 +119,7 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
   DEF3_WMS( INT3       , Xor_Int           , Xor_Int                 , Int3          )
   DEF3_WMS( INT3       , Shl_Int           , Shl_Int                 , Int3          )
   DEF3_WMS( INT3       , Shr_Int           , Shr_Int                 , Int3          )
-  DEF3_WMS( INT3       , ShrU_Int          , ShrU_Int                , Int3          )
+  DEF3_WMS( INT3       , Shr_UInt          , Shr_UInt                , Int3          )
 
   DEF3_WMS( INT3       , Mul_UInt          , Mul_UInt                , Int3          )
   DEF3_WMS( INT3       , Div_UInt          , Div_UInt                , Int3          )
@@ -147,10 +148,10 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
   DEF3_WMS( INT3       , CmEq_Int          , Eq_Int                  , Int3          )
   DEF3_WMS( INT3       , CmNe_Int          , Ne_Int                  , Int3          )
 
-  DEF3_WMS( INT3       , CmLt_UnInt        , Lt_UInt                 , Int3          )
-  DEF3_WMS( INT3       , CmLe_UnInt        , Le_UInt                 , Int3          )
-  DEF3_WMS( INT3       , CmGt_UnInt        , Gt_UInt                 , Int3          )
-  DEF3_WMS( INT3       , CmGe_UnInt        , Ge_UInt                 , Int3          )
+  DEF3_WMS( INT3       , CmLt_UInt        , Lt_UInt                 , Int3          )
+  DEF3_WMS( INT3       , CmLe_UInt        , Le_UInt                 , Int3          )
+  DEF3_WMS( INT3       , CmGt_UInt        , Gt_UInt                 , Int3          )
+  DEF3_WMS( INT3       , CmGe_UInt        , Ge_UInt                 , Int3          )
 
   DEF3_WMS( INT1DOUBLE2, CmLt_Db           , CmpLt_Db                , Int1Double2   )
   DEF3_WMS( INT1DOUBLE2, CmLe_Db           , CmpLe_Db                , Int1Double2   )

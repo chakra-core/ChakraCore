@@ -1505,6 +1505,16 @@ namespace Js
             DeferredTypeHandler<InitializeURIErrorConstructor>::GetDefaultInstance(),
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
+
+#ifdef ENABLE_WASM
+        if (PHASE_ON1(WasmPhase))
+        {
+            wasmObject  = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeWasmObject>::GetDefaultInstance()));
+            AddMember(globalObject, PropertyIds::Wasm, wasmObject);
+        }
+#endif
     }
 
     void JavascriptLibrary::EnsureDebugObject(DynamicObject* newDebugObject)
@@ -2661,6 +2671,16 @@ namespace Js
 
         mathObject->SetHasNoEnumerableProperties(true);
     }
+
+#ifdef ENABLE_WASM
+    void __cdecl JavascriptLibrary::InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(WasmObject, mode, 1);
+        JavascriptLibrary* library = WasmObject->GetLibrary();
+        library->AddFunctionToLibraryObject(WasmObject, PropertyIds::instantiateModule, &WasmLibrary::EntryInfo::instantiateModule, 2);
+        library->AddMember(WasmObject, PropertyIds::experimentalVersion, JavascriptNumber::New(WasmLibrary::experimentalVersion, library->scriptContext), PropertyNone);
+    }
+#endif
 
     // SIMD_JS
 #ifdef ENABLE_SIMDJS

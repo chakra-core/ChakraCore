@@ -28,6 +28,7 @@
 #ifdef ASMJS_PLAT
 #include "Language/AsmJsEncoder.h"
 #include "Language/AsmJsCodeGenerator.h"
+#include "Language/AsmJsUtils.h"
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY

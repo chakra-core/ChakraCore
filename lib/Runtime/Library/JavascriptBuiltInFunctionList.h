@@ -299,6 +299,11 @@ BUILTIN(Math, Cbrt, Cbrt, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
+// Wasm entry points
+#ifdef ENABLE_WASM
+BUILTIN(WasmLibrary, instantiateModule, instantiateModule, FunctionInfo::ErrorOnNew)
+#endif
+
 // SIMDFloat32x4Lib entry points
 #ifdef ENABLE_SIMDJS
 BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::ErrorOnNew)

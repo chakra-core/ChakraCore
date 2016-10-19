@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.WasmReader</TargetName>
+    <ProjectGuid>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</ProjectGuid>
+    <RootNamespace>JS</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>Chakra.WasmReader</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(MSBuildThisFileDirectory)..\Common;
+        $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
+        $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\Backend;
+        $(MSBuildThisFileDirectory)..\JITClient;
+        $(ChakraJITIDLIntDir);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>WasmReaderPch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmFunctionInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmBinaryReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WasmModule.h" />
+    <ClInclude Include="WasmBytecodeGenerator.h" />
+    <ClInclude Include="WasmDataSegment.h" />
+    <ClInclude Include="WasmFunctionInfo.h" />
+    <ClInclude Include="WasmReader.h" />
+    <ClInclude Include="WasmReaderPch.h" />
+    <ClInclude Include="WasmParseTree.h" />
+    <ClInclude Include="WasmSection.h" />
+    <ClInclude Include="WasmSections.h" />
+    <ClInclude Include="WasmSignature.h" />
+    <ClInclude Include="WasmBinaryReader.h" />
+    <ClInclude Include="WasmBinaryOpcodes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

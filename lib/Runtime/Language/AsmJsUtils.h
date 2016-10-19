@@ -22,16 +22,11 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 // Removed code from original location, if the expression is true, check if extra code needed
 #define MaybeTodo( expr ) AssertMsg( !(expr), "Unhandled scenario in asm.js" )
 
 namespace Js {
-    static const int DOUBLE_SLOTS_SPACE = (sizeof(double) / sizeof(Var)); // 2 in x86 and 1 in x64
-    static const double FLOAT_SLOTS_SPACE = (sizeof(float) / (double)sizeof(Var)); // 1 in x86 and 0.5 in x64
-    static const double INT_SLOTS_SPACE = ( sizeof( int ) / (double)sizeof( Var ) ); // 1 in x86 and 0.5 in x64
-    static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Var)); // 4 in x86 and 2 in x64
-
     Var AsmJsChangeHeapBuffer(RecyclableObject * function, CallInfo callInfo, ...);
 
 #if _M_X64

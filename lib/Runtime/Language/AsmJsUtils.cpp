@@ -22,7 +22,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
 
@@ -487,6 +487,7 @@ namespace Js
         char* dst;
         Var returnValue = 0;
 
+        // TODO (michhol): wasm, heap should not ever be detached
         AsmJsModuleInfo::EnsureHeapAttached(func);
 
         argSize = ::Math::Align<int32>(argSize, 8);

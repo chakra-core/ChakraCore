@@ -937,7 +937,7 @@ namespace Js
         , (uint32)~7 //TYPE_FLOAT64
     };
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
 
     const ArrFunc InterpreterStackFrame::StArrFunc[8] =
@@ -1252,10 +1252,13 @@ namespace Js
         // it to be valid on entry to the loop, where "valid" means either a var or null.
         newInstance->SetNonVarReg(0, NULL);
 #endif
-
-        // Initialize the low end of the local slots from the constant table.
-        // Skip the slot for the return value register.
-        this->executeFunction->InitConstantSlots(&newInstance->m_localSlots[FunctionBody::FirstRegSlot]);
+        // Wasm doesn't use const table
+        if (!executeFunction->IsWasmFunction())
+        {
+            // Initialize the low end of the local slots from the constant table.
+            // Skip the slot for the return value register.
+            this->executeFunction->InitConstantSlots(&newInstance->m_localSlots[FunctionBody::FirstRegSlot]);
+        }
         // Set local FD/SS pointers to null until after we've successfully probed the stack in the process loop.
         // That way we avoid trying to box these structures before they've been initialized in the byte code.
         if (this->executeFunction->DoStackFrameDisplay())
@@ -1476,7 +1479,7 @@ namespace Js
     }
 
 #ifdef _M_IX86
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     int InterpreterStackFrame::GetAsmJsArgSize(AsmJsCallStackLayout* stack)
     {
         JavascriptFunction * func = stack->functionObject;
@@ -2007,7 +2010,7 @@ namespace Js
         return aReturn;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
     {
@@ -2383,7 +2386,7 @@ namespace Js
 
     void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
     {
-#if DBG_DUMP && !defined(TEMP_DISABLE_ASMJS)
+#if DBG_DUMP && defined(ASMJS_PLAT)
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
         {
             Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
@@ -2690,7 +2693,10 @@ namespace Js
         }
 // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        if ((PHASE_ON1(Js::AsmJsJITTemplatePhase) && CONFIG_FLAG(MaxTemplatizedJitRunCount) == 0) || (!PHASE_ON1(Js::AsmJsJITTemplatePhase) && CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
+        if (
+            (PHASE_ON1(Js::AsmJsJITTemplatePhase) && CONFIG_FLAG(MaxTemplatizedJitRunCount) == 0) ||
+            (!PHASE_ON1(Js::AsmJsJITTemplatePhase) && (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0 || CONFIG_FLAG(ForceNative)))
+        )
         {
             if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
             {
@@ -2853,7 +2859,7 @@ namespace Js
         Output::Print(_u("\n"));
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     // Function memory allocation should be done the same way as
     // T AsmJsCommunEntryPoint(Js::ScriptFunction* func, ...)  (AsmJSJitTemplate.cpp)
     // update any changes there
@@ -2883,7 +2889,6 @@ namespace Js
     {
         FunctionBody *const functionBody = GetFunctionBody();
         ScriptFunction* func = GetJavascriptFunction();
-
         //schedule for codegen here only if TJ is collected
         if (!functionBody->GetIsAsmJsFullJitScheduled() && !PHASE_OFF(BackEndPhase, functionBody)
             && !PHASE_OFF(FullJitPhase, functionBody) && !this->scriptContext->GetConfig()->IsNoNative())
@@ -2997,6 +3002,23 @@ namespace Js
         uint homingAreaSize = 0;
 #endif
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        const bool tracingFunc = PHASE_TRACE(AsmjsFunctionEntryPhase, functionBody);
+        if (tracingFunc)
+        {
+#if DBG_DUMP
+            if (AsmJsCallDepth)
+            {
+                Output::Print(_u("%*c"), AsmJsCallDepth, ' ');
+            }
+            Output::Print(_u("Executing function %s("), functionBody->GetDisplayName());
+            ++AsmJsCallDepth;
+#else
+            Output::Print(_u("%s()\n"), functionBody->GetDisplayName());
+            Output::Flush();
+#endif
+        }
+#endif
         uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
@@ -3033,18 +3055,36 @@ namespace Js
                 if (info->GetArgType(i).isInt())
                 {
                     *intArg = *(int*)argAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%d, "), *intArg);
+                    }
+#endif
                     ++intArg;
                     homingAreaSize += MachPtr;
                 }
                 else if (info->GetArgType(i).isFloat())
                 {
                     *floatArg = *(float*)floatSpillAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%.2f, "), *floatArg);
+                    }
+#endif
                     ++floatArg;
                     homingAreaSize += MachPtr;
                 }
                 else if (info->GetArgType(i).isDouble())
                 {
                     *doubleArg = *(double*)floatSpillAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%.2f, "), *doubleArg);
+                    }
+#endif
                     ++doubleArg;
                     homingAreaSize += MachPtr;
                 }
@@ -3072,12 +3112,24 @@ namespace Js
             if (info->GetArgType(i).isInt())
             {
                 *intArg = *(int*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%d, "), *intArg);
+                }
+#endif
                 ++intArg;
                 argAddress += MachPtr;
             }
             else if (info->GetArgType(i).isFloat())
             {
                 *floatArg = *(float*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%.2f, "), *floatArg);
+                }
+#endif
                 ++floatArg;
                 argAddress += MachPtr;
             }
@@ -3085,6 +3137,12 @@ namespace Js
             {
                 Assert(info->GetArgType(i).isDouble());
                 *doubleArg = *(double*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%.2f, "), *doubleArg);
+                }
+#endif
                 ++doubleArg;
                 argAddress += sizeof(double);
             }
@@ -3101,22 +3159,10 @@ namespace Js
         }
 
 #if DBG_DUMP
-        const bool tracingFunc = PHASE_TRACE( AsmjsFunctionEntryPhase, functionBody );
-        if( tracingFunc )
-        {
-            if( AsmJsCallDepth )
-            {
-                Output::Print( _u("%*c"), AsmJsCallDepth,' ');
-            }
-            Output::Print( _u("Executing function %s"), functionBody->GetDisplayName());
-            ++AsmJsCallDepth;
-        }
-#endif
-
-#if DBG_DUMP
         if (tracingFunc)
         {
             Output::Print(_u("){\n"));
+            Output::Flush();
         }
 #endif
         if( info->GetReturnType() == AsmJsRetType::Void )
@@ -3149,7 +3195,7 @@ namespace Js
 #include "InterpreterLoop.inl"
 #undef INTERPRETERLOOPNAME
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define INTERPRETERLOOPNAME ProcessAsmJs
 #define INTERPRETER_ASMJS
 #include "InterpreterProcessOpCodeAsmJs.h"
@@ -3218,10 +3264,10 @@ namespace Js
                 this->ehBailoutData = nullptr;
             }
         }
-#ifndef TEMP_DISABLE_ASMJS
-        FunctionBody *const functionBody = GetFunctionBody();
-        if( functionBody->GetIsAsmjsMode() )
+#ifdef ASMJS_PLAT
+        if( GetFunctionBody()->GetIsAsmjsMode() )
         {
+            FunctionBody *const functionBody = GetFunctionBody();
             AsmJsFunctionInfo* asmInfo = functionBody->GetAsmJsFunctionInfo();
             if (asmInfo)
             {
@@ -3244,16 +3290,19 @@ namespace Js
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-                        Output::Print( _u(" = %d"), JavascriptMath::ToInt32( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %d"), m_localIntSlots[0] );
                         break;
                     case AsmJsRetType::Float:
+                        Output::Print(_u(" = %.4f"), m_localFloatSlots[0]);
+                        break;
                     case AsmJsRetType::Double:
-                        Output::Print( _u(" = %.4f"), JavascriptConversion::ToNumber( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %.4f"), m_localDoubleSlots[0]);
                         break;
                     default:
                         break;
                     }
                     Output::Print( _u(";\n") );
+                    Output::Flush();
                 }
 #endif
                 return returnVar;
@@ -3272,6 +3321,7 @@ namespace Js
 #endif
 
 #if ENABLE_PROFILE_INFO
+        FunctionBody *const functionBody = GetFunctionBody();
         const ExecutionMode interpreterExecutionMode =
             functionBody->GetInterpreterExecutionMode(!!(GetFlags() & InterpreterStackFrameFlags_FromBailOut));
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
@@ -3582,7 +3632,7 @@ namespace Js
 
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #if _M_X64
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
@@ -7647,6 +7697,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         m_localSimdSlots[localRegisterID] = bValue;
     }
 
+    int InterpreterStackFrame::OP_GetMemorySize()
+    {
+#ifdef ASMJS_PLAT
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        return arr ? arr->GetByteLength() >> 16 : 0;
+#else
+        return 0;
+#endif
+    }
+
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
@@ -8134,7 +8194,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return this->localClosure;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     template <typename T2>
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot value)
     {
@@ -8170,7 +8230,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         m_localSlots[playout->Value] = arr[index];
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     template <typename T2>
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot value)
     {
@@ -8209,6 +8269,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
+    void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
+    {
+        Assert(playout->ViewType < 8);
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
+    }
+    template <class T>
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
     {
         const uint32 index = playout->SlotIndex;
@@ -8220,6 +8287,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < 8);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        (this->*StArrFunc[playout->ViewType])(index, playout->Value);
+    }
+    template <class T>
+    void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
+    {
+        Assert(playout->ViewType < 8);
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>

@@ -1,0 +1,5 @@
+functions.wast:40: $assert_return_6 unexpectedly threw: Error: Compiling wasm failed: function return-nop[6]: Nonzero arity for return op in void function
+functions.wast:41: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function return-drop[7]: Nonzero arity for return op in void function
+functions.wast:42: $assert_return_8 unexpectedly threw: Error: Compiling wasm failed: function return-block-nop[8]: Nonzero arity for return op in void function
+functions.wast:43: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function return-block-drop[9]: Nonzero arity for return op in void function
+6/10 tests passed.

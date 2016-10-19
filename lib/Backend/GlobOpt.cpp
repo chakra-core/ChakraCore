@@ -9531,6 +9531,20 @@ GlobOpt::OptConstFoldUnary(
         instr->ClearBailOutInfo();
         break;
 
+    case Js::OpCode::Ctz:
+        Assert(func->GetJITFunctionBody()->IsWasmFunction());
+        Assert(!instr->HasBailOutInfo());
+        DWORD ctz;
+        if (_BitScanForward(&ctz, intConstantValue))
+        {
+            value = ctz;
+        }
+        else
+        {
+            value = 32;
+        }
+        break;
+
     case Js::OpCode::InlineMathFloor:
         value = intConstantValue;
         instr->ClearBailOutInfo();

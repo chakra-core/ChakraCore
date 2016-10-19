@@ -233,6 +233,23 @@ namespace Js
     }
 
     template <class T>
+    void AsmJsEncoder::OP_BrEqConst(const unaligned T* playout)
+    {
+        if (playout->RelativeJumpOffset)
+        {
+            const int labelOffset = mReader.GetCurrentOffset() + playout->RelativeJumpOffset;
+            Assert(playout->RelativeJumpOffset > 0 || mRelocLabelMap->ContainsKey(labelOffset));
+            bool isBackEdge = false;
+            if (playout->RelativeJumpOffset < 0)
+                isBackEdge = true;
+            BYTE* relocAddr = nullptr;
+            AsmJsJitTemplate::BrEq::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I1), playout->C1, &relocAddr, isBackEdge, true);
+            Assert(relocAddr);
+            AddReloc(labelOffset, relocAddr);
+        }
+    }
+
+    template <class T>
     void Js::AsmJsEncoder::Op_LdConst_Int( const unaligned T* playout )
     {
         AsmJsJitTemplate::LdConst_Int::ApplyTemplate( this, mPc, CalculateOffset<int>(playout->I0), playout->C1 );
