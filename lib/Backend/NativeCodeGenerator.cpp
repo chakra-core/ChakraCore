@@ -3651,6 +3651,6 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        Js::Throw::FatalInternalError();
+        RpcFailure_fatal_error(hr);
     }
 }

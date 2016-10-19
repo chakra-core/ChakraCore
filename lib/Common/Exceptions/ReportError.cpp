@@ -132,4 +132,10 @@ _NOINLINE void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * orig
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_UnexpectedExceptionHandling, scenario);
 }
 
+_NOINLINE void RpcFailure_fatal_error(HRESULT hr)
+{
+    int scenario = 8;
+    ReportFatalException(NULL, hr, Fatal_RpcFailure, scenario);
+}
+
 #pragma optimize("",on)

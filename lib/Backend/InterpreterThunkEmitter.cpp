@@ -722,7 +722,8 @@ InterpreterThunkEmitter::IsInHeap(void* address)
             return false;
         }
         boolean result;
-        JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        JITManager::HandleServerCallResult(hr);
         return result != FALSE;
     }
     else
