@@ -204,11 +204,13 @@ public:
 #endif
 #endif
 
+#ifdef NTBUILD
 struct ThreadContextWatsonTelemetryBlock
 {
     FILETIME lastScriptStartTime;
     FILETIME lastScriptEndTime;
 };
+#endif
 
 class NativeLibraryEntryRecord
 {
@@ -781,8 +783,10 @@ private:
     typedef JsUtil::BaseDictionary<Js::DynamicType const *, void *, HeapAllocator, PowerOf2SizePolicy> DynamicObjectEnumeratorCacheMap;
     DynamicObjectEnumeratorCacheMap dynamicObjectEnumeratorCacheMap;
 
+#ifdef NTBUILD
     ThreadContextWatsonTelemetryBlock localTelemetryBlock;
     ThreadContextWatsonTelemetryBlock * telemetryBlock;
+#endif
 
     NativeLibraryEntryRecord nativeLibraryEntry;
 
@@ -1002,8 +1006,6 @@ public:
 #endif
     }
 
-
-
     DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
     static CriticalSection * GetCriticalSection() { return &s_csThreadContext; }
@@ -1014,7 +1016,9 @@ public:
     ThreadConfiguration const * GetConfig() const { return &configuration; }
 
 public:
+#ifdef NTBUILD
     void SetTelemetryBlock(ThreadContextWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
+#endif
 
     static ThreadContext* GetContextForCurrentThread();
 

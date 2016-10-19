@@ -178,7 +178,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #endif
     dynamicObjectEnumeratorCacheMap(&HeapAllocator::Instance, 16),
     //threadContextFlags(ThreadContextFlagNoFlag),
+#ifdef NTBUILD
     telemetryBlock(&localTelemetryBlock),
+#endif
     configuration(enableExperimentalFeatures),
     jsrtRuntime(nullptr),
     propertyMap(nullptr),
@@ -248,7 +250,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     this->threadId = ::GetCurrentThreadId();
 #endif
 
+#ifdef NTBUILD
     memset(&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
+#endif
 
     AutoCriticalSection autocs(ThreadContext::GetCriticalSection());
     ThreadContext::LinkToBeginning(this, &ThreadContext::globalListFirst, &ThreadContext::globalListLast);

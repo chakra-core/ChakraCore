@@ -1009,9 +1009,10 @@ private:
 #if DBG || defined(RECYCLER_STATS)
     bool isForceSweeping;
 #endif
+#ifdef NTBUILD
     RecyclerWatsonTelemetryBlock localTelemetryBlock;
     RecyclerWatsonTelemetryBlock * telemetryBlock;
-
+#endif
 #ifdef RECYCLER_STATS
     RecyclerCollectionStats collectionStats;
     void PrintHeapBlockStats(char16 const * name, HeapBlock::HeapBlockType type);
@@ -1072,7 +1073,9 @@ public:
     void LogMemProtectHeapSize(bool fromGC);
 
     char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes, bool truncate = true);
+#ifdef NTBUILD
     void SetTelemetryBlock(RecyclerWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
+#endif
 
     void Prime();
 
