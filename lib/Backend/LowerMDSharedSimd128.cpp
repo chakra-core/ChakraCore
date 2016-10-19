@@ -386,7 +386,7 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
     {
         int offset = NativeCodeData::GetDataTotalOffset(pValue);
 
-        simdRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, TyMachDouble,
+        simdRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, instr->GetDst()->GetType(),
 #if DBG
             NativeCodeData::GetDataDescription(pValue, m_func->m_alloc),
 #endif
@@ -732,7 +732,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
             Legalize(shiftInstr);
         }
         // MOVSS/MOVSD/MOVD dst, tmp
-        instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
+        instr->InsertBefore(IR::Instr::New(movOpcode, movOpcode == Js::OpCode::MOVD ? dst : dst->UseWithNewType(tmp->GetType(), m_func), tmp, m_func));
     }
 
     // dst has the 4-byte lane
@@ -1289,7 +1289,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *shamt = IR::RegOpnd::New(src2->GetType(), m_func);
     // en-register
     IR::Opnd *origShamt = EnregisterIntConst(instr, src2); //unnormalized shift amount
-    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt32, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
