@@ -1667,6 +1667,7 @@ namespace Js
     {
 #if DYNAMIC_INTERPRETER_THUNK
         Assert(function);
+
         Js::FunctionBody *functionBody = function->GetFunctionBody();
         JavascriptMethod entrypoint = functionBody->EnsureDynamicInterpreterThunk(function->GetFunctionEntryPointInfo());
         Assert(!IsDelayDynamicInterpreterThunk(functionBody->GetDirectEntryPoint(function->GetEntryPointInfo())));
@@ -4636,11 +4637,6 @@ namespace Js
 
         return result;
     }
-
-#ifdef __clang__
-    // clang <= 7.x optimizes this away (if it is defined only under DynamicProfileInfo.cpp)
-    DEFINE_DYNAMICPROFILEINFO_RECORDMODULUSOPTYPE_FNC
-#endif
 
     template <bool doProfile>
     Var InterpreterStackFrame::ProfileModulus(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
