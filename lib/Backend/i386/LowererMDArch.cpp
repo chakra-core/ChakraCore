@@ -1237,7 +1237,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
             movInstr = IR::Instr::New(assignOp, oldDst, newDstOpnd, this->m_func);
             floatPopInstr->InsertAfter(movInstr);
         }
-        if (IRType_IsInt64(dstType))
+        else if (IRType_IsInt64(dstType))
         {
             retInstr = movInstr = LowerInt64CallDst(callInstr);
         }
