@@ -126,7 +126,7 @@ namespace Js
             {
                 Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
                 Assert(segment != nullptr);
-                const uint32 offset = segment->getDestAddr();
+                const uint32 offset = segment->getDestAddr(wasmModule);
                 const uint32 size = segment->getSourceSize();
                 if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
                 {
@@ -347,7 +347,10 @@ namespace Js
             }
             importFunctions[i] = prop;
         }
+    }
 
+    void WasmLibrary::WasmLoadGlobals(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi)
+    {
         for (uint i = 0; i < wasmModule->GetImportGlobalCount(); i++)
         {
             Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
@@ -386,7 +389,7 @@ namespace Js
             }
             case Wasm::WasmTypes::F32:
             {
-                float val = (float) JavascriptNumber::GetValue(prop);
+                float val = (float)JavascriptNumber::GetValue(prop);
                 global->cnst.f32 = val;
                 SetGlobalValue(moduleEnv, offset, val);
             }
@@ -405,10 +408,8 @@ namespace Js
             }
 
         }
-    }
 
-    void WasmLibrary::WasmLoadGlobals(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var moduleEnv)
-    {
+
         for (uint i = wasmModule->GetImportGlobalCount(); i < (uint) wasmModule->globals.Count(); i++)
         {
             Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
@@ -542,6 +543,7 @@ namespace Js
             exportObj = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
             Var* localModuleFunctions = moduleEnvironmentPtr + wasmModule->GetFuncOffset();
 
+            WasmLoadGlobals(wasmModule, scriptContext, moduleEnvironmentPtr, ffi);
             WasmLoadDataSegs(wasmModule, heap, scriptContext);
 
             bool hasAnyLazyTraps = false;
@@ -549,7 +551,7 @@ namespace Js
 
             Var* importFunctions = moduleEnvironmentPtr + wasmModule->GetImportFuncOffset();
             WasmLoadImports(wasmModule, scriptContext, importFunctions, moduleEnvironmentPtr, ffi);
-            WasmLoadGlobals(wasmModule, scriptContext, moduleEnvironmentPtr);
+
 
             Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
             WasmBuildObject(wasmModule, scriptContext, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions, importFunctions);

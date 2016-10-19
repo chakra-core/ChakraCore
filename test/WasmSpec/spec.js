@@ -109,7 +109,7 @@ function run(inPath, iStart, iEnd) {
 function createModule(a) {
   var memory = null;
   var u8a = new Uint8Array(a);
-  var ffi = {spectest: {print: print}};
+  var ffi = {spectest: {print: print, global : 666}};
   var module = Wasm.instantiateModule(u8a, ffi);
   memory = module.memory;
   return module;

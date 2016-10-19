@@ -789,13 +789,13 @@ WasmBinaryReader::ReadDataSegments()
         }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         WasmNode initExpr = ReadInitExpr();
-        if (initExpr.op != wbI32Const)
+        if (initExpr.op != wbI32Const && initExpr.op != wbGetGlobal)
         {
             ThrowDecodingError(_u("Only i32.const supported for data segment offset"));
         }
-        UINT32 offset = initExpr.cnst.i32;
+        //UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
-        WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
+        WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
         m_module->AddDataSeg(dseg, i);
@@ -841,7 +841,6 @@ WasmBinaryReader::ReadGlobalsSection()
         WasmNode globalNode = ReadInitExpr();
         switch (globalNode.op) {
         case  wbI32Const:
-        case  wbI64Const:
         case  wbF32Const:
         case  wbF64Const:
             global->SetReferenceType(WasmGlobal::Const);
@@ -851,6 +850,8 @@ WasmBinaryReader::ReadGlobalsSection()
             global->SetReferenceType(WasmGlobal::LocalReference);
             global->var = globalNode.var;
             break;
+        case  wbI64Const:
+            ThrowDecodingError(_u("i64 globals NYI"));
         default:
             Assert(UNREACHED);
         }
@@ -923,6 +924,10 @@ WasmBinaryReader::ReadImportEntries()
             WasmTypes::WasmType type = ReadWasmType(len);
             bool mutability = ReadConst<UINT8>() == 1;
             WasmGlobal* importedGlobal = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
+            if (importedGlobal->GetType() == WasmTypes::I64)
+            {
+                ThrowDecodingError(_u("I64 Globals, NYI"));
+            }
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, kind, importedGlobal);
             break;
         }

@@ -11,15 +11,14 @@ namespace Wasm
 class WasmDataSegment
 {
 public:
-    WasmDataSegment(ArenaAllocator * alloc, uint32 _dest_addr, uint32 _source_size, byte* _data);
-    uint32 getDestAddr() const;
+    WasmDataSegment(ArenaAllocator * alloc, WasmNode initExpr, uint32 _source_size, byte* _data);
+    uint32 getDestAddr(WasmModule* module) const;
     uint32 getSourceSize() const;
     byte* getData() const;
 
 private:
     ArenaAllocator * m_alloc;
-
-    uint32 dest_addr; // offset in linear memory at which to store data
+    WasmNode initExpr;
     uint32 source_size;
     byte* data;
 };
