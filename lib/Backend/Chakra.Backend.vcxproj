@@ -180,6 +180,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Opnd.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PageAllocatorPool.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PDataManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Peeps.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PreLowerPeeps.cpp" />
@@ -460,9 +461,6 @@
     <ClInclude Include="CRC.h">
       <FileType>CppCode</FileType>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="PageAllocatorPool.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
