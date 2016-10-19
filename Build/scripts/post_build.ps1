@@ -37,8 +37,14 @@ param (
     [string[]]$pogo = @(),
     [string]$pogoscript = "",
 
-    [switch]$noaction
+    #
+    # Skip flags
+    #
+
+    [switch]$skipTests # or set $Env:SKIP_TESTS before invoking build
 )
+
+$skipTests = $skipTests -or (Test-Path Env:\SKIP_TESTS)
 
 $global:exitcode = 0
 
@@ -105,7 +111,9 @@ if ($arch -eq "*") {
         }
 
         # run tests
-        ExecuteCommand("$bvtcmdpath -$arch$flavor")
+        if (-not $skipTests) {
+            ExecuteCommand("$bvtcmdpath -$arch$flavor")
+        }
     }
 
     # check prefast

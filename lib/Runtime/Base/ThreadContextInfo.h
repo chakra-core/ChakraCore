@@ -92,12 +92,7 @@ public:
     virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif
 
-    virtual intptr_t GetDebuggingFlagsAddr() const = 0;
-    virtual intptr_t GetDebugStepTypeAddr() const = 0;
-    virtual intptr_t GetDebugFrameAddressAddr() const = 0;
-    virtual intptr_t GetDebugScriptIdWhenSetAddr() const = 0;
-
-    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
 
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
 

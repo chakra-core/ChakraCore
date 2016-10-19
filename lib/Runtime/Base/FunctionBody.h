@@ -2639,8 +2639,10 @@ namespace Js
         void AddEntryPointToEntryPointList(FunctionEntryPointInfo* entryPoint);
 
         // Kind of entry point for original entry point
+#if DBG
         BOOL IsInterpreterThunk() const;
         BOOL IsDynamicInterpreterThunk() const;
+#endif
         BOOL IsNativeOriginalEntryPoint() const;
         bool IsSimpleJitOriginalEntryPoint() const;
 

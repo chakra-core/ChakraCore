@@ -10,38 +10,28 @@ namespace TTD
 {
     ScriptContextTTD::ScriptContextTTD(Js::ScriptContext* ctx)
         : m_ctx(ctx),
-        m_ttdRootSet(nullptr), m_ttdLocalRootSet(nullptr), m_ttdRootTagIdMap(&HeapAllocator::Instance), m_ttdPendingAsyncModList(&HeapAllocator::Instance),
+        m_ttdRootTagIdMap(&HeapAllocator::Instance), m_ttdPendingAsyncModList(&HeapAllocator::Instance),
         m_ttdTopLevelScriptLoad(&HeapAllocator::Instance), m_ttdTopLevelNewFunction(&HeapAllocator::Instance), m_ttdTopLevelEval(&HeapAllocator::Instance),
-        m_ttdPinnedRootFunctionSet(nullptr), m_ttdFunctionBodyParentMap(&HeapAllocator::Instance),
-        TTDWeakReferencePinSet(nullptr)
+        m_ttdFunctionBodyParentMap(&HeapAllocator::Instance)
     {
         Recycler* ctxRecycler = this->m_ctx->GetRecycler();
 
-        this->m_ttdRootSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
-        ctxRecycler->RootAddRef(this->m_ttdRootSet);
-
-        this->m_ttdLocalRootSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
-        ctxRecycler->RootAddRef(this->m_ttdLocalRootSet);
-
-        this->m_ttdPinnedRootFunctionSet = RecyclerNew(ctxRecycler, TTD::FunctionBodyPinSet, ctxRecycler);
-        ctxRecycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
-
-        this->TTDWeakReferencePinSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
-        ctxRecycler->RootAddRef(this->TTDWeakReferencePinSet);
+        this->m_ttdRootSet.Root(RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler), ctxRecycler);
+        this->m_ttdLocalRootSet.Root(RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler), ctxRecycler);
+        this->m_ttdPinnedRootFunctionSet.Root(RecyclerNew(ctxRecycler, TTD::FunctionBodyPinSet, ctxRecycler), ctxRecycler);
+        this->TTDWeakReferencePinSet.Root(RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler), ctxRecycler);        
     }
 
     ScriptContextTTD::~ScriptContextTTD()
     {
         if(this->m_ttdRootSet != nullptr)
         {
-            this->m_ttdRootSet->GetAllocator()->RootRelease(this->m_ttdRootSet);
-            this->m_ttdRootSet = nullptr;
+            this->m_ttdRootSet.Unroot(this->m_ttdRootSet->GetAllocator());            
         }
 
         if(this->m_ttdLocalRootSet != nullptr)
         {
-            this->m_ttdLocalRootSet->GetAllocator()->RootRelease(this->m_ttdLocalRootSet);
-            this->m_ttdLocalRootSet = nullptr;
+            this->m_ttdLocalRootSet.Unroot(this->m_ttdLocalRootSet->GetAllocator());
         }
 
         this->m_ttdRootTagIdMap.Clear();
@@ -54,16 +44,14 @@ namespace TTD
 
         if(this->m_ttdPinnedRootFunctionSet != nullptr)
         {
-            this->m_ttdPinnedRootFunctionSet->GetAllocator()->RootRelease(this->m_ttdPinnedRootFunctionSet);
-            this->m_ttdPinnedRootFunctionSet = nullptr;
+            this->m_ttdPinnedRootFunctionSet.Unroot(this->m_ttdPinnedRootFunctionSet->GetAllocator());
         }
 
         this->m_ttdFunctionBodyParentMap.Clear();
 
         if(this->TTDWeakReferencePinSet != nullptr)
         {
-            this->TTDWeakReferencePinSet->GetAllocator()->RootRelease(this->TTDWeakReferencePinSet);
-            this->TTDWeakReferencePinSet = nullptr;
+            this->TTDWeakReferencePinSet.Unroot(this->TTDWeakReferencePinSet->GetAllocator());
         }
     }
 

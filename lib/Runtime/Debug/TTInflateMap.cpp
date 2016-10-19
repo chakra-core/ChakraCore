@@ -13,7 +13,6 @@ namespace TTD
         m_tagToGlobalObjectMap(), m_objectMap(),
         m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
         m_debuggerScopeHomeBodyMap(), m_debuggerScopeChainIndexMap(),
-        m_inflatePinSet(nullptr), m_environmentPinSet(nullptr), m_slotArrayPinSet(nullptr), m_oldInflatePinSet(nullptr),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
         ;
@@ -23,26 +22,22 @@ namespace TTD
     {
         if(this->m_inflatePinSet != nullptr)
         {
-            this->m_inflatePinSet->GetAllocator()->RootRelease(this->m_inflatePinSet);
-            this->m_inflatePinSet = nullptr;
+            this->m_inflatePinSet.Unroot(this->m_inflatePinSet->GetAllocator());
         }
 
         if(this->m_environmentPinSet != nullptr)
         {
-            this->m_environmentPinSet->GetAllocator()->RootRelease(this->m_environmentPinSet);
-            this->m_environmentPinSet = nullptr;
+            this->m_environmentPinSet.Unroot(this->m_environmentPinSet->GetAllocator());
         }
 
         if(this->m_slotArrayPinSet != nullptr)
         {
-            this->m_slotArrayPinSet->GetAllocator()->RootRelease(this->m_slotArrayPinSet);
-            this->m_slotArrayPinSet = nullptr;
+            this->m_slotArrayPinSet.Unroot(this->m_slotArrayPinSet->GetAllocator());
         }
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet->GetAllocator()->RootRelease(this->m_oldInflatePinSet);
-            this->m_oldInflatePinSet = nullptr;
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
         }
     }
 
@@ -59,14 +54,10 @@ namespace TTD
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
 
-        this->m_inflatePinSet = RecyclerNew(threadContext->GetRecycler(), ObjectPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_inflatePinSet);
-
-        this->m_environmentPinSet = RecyclerNew(threadContext->GetRecycler(), EnvironmentPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_environmentPinSet);
-
-        this->m_slotArrayPinSet = RecyclerNew(threadContext->GetRecycler(), SlotArrayPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_slotArrayPinSet);
+        Recycler * recycler = threadContext->GetRecycler();
+        this->m_inflatePinSet.Root(RecyclerNew(recycler, ObjectPinSet, recycler, objectCount), recycler);
+        this->m_environmentPinSet.Root(RecyclerNew(recycler, EnvironmentPinSet, recycler, objectCount), recycler);
+        this->m_slotArrayPinSet.Root(RecyclerNew(recycler, SlotArrayPinSet, recycler, objectCount), recycler);
     }
 
     void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
@@ -91,8 +82,7 @@ namespace TTD
         //allocate the old pin set and fill it
         AssertMsg(this->m_oldInflatePinSet == nullptr, "Old pin set is not null.");
         Recycler* pinRecycler = this->m_inflatePinSet->GetAllocator();
-        this->m_oldInflatePinSet = RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count());
-        pinRecycler->RootAddRef(this->m_oldInflatePinSet);
+        this->m_oldInflatePinSet.Root(RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count()), pinRecycler);
 
         for(auto iter = this->m_inflatePinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
@@ -125,8 +115,7 @@ namespace TTD
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet->GetAllocator()->RootRelease(this->m_oldInflatePinSet);
-            this->m_oldInflatePinSet = nullptr;
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
         }
     }
 

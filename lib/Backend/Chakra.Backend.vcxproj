@@ -403,6 +403,7 @@
     <ClInclude Include="LinearScanMDShared.h" />
     <ClInclude Include="LowerMDShared.h" />
     <ClInclude Include="NativeCodeData.h" />
+    <ClInclude Include="PageAllocatorPool.h" />
     <ClInclude Include="PDataManager.h" />
     <ClInclude Include="PrologEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
@@ -459,6 +460,9 @@
     <ClInclude Include="CRC.h">
       <FileType>CppCode</FileType>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="PageAllocatorPool.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

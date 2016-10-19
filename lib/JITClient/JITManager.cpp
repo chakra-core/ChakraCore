@@ -373,6 +373,49 @@ JITManager::SetIsPRNGSeeded(
 
 }
 
+HRESULT
+JITManager::DecommitInterpreterBufferManager(
+    __in intptr_t scriptContextInfoAddress,
+    __in boolean asmJsThunk)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientDecommitInterpreterBufferManager(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk);
+    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
+JITManager::NewInterpreterThunkBlock(
+    __in intptr_t scriptContextInfoAddress,
+    __in boolean asmJsThunk,
+    __out InterpreterThunkInfoIDL * thunkInfo)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk, thunkInfo);
+    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
 HRESULT 
 JITManager::AddModuleRecordInfo(
     /* [in] */ intptr_t scriptContextInfoAddress,
@@ -522,6 +565,31 @@ JITManager::FreeAllocation(
 
     return hr;
 }
+
+#if DBG
+HRESULT
+JITManager::IsInterpreterThunkAddr(
+    __in intptr_t scriptContextInfoAddress,
+    __in intptr_t address,
+    __in boolean asmjsThunk,
+    __out boolean * result)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientIsInterpreterThunkAddr(m_rpcBindingHandle, scriptContextInfoAddress, address, asmjsThunk, result);
+    }
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+#endif
 
 HRESULT
 JITManager::IsNativeAddr(

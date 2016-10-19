@@ -572,9 +572,6 @@ namespace Js
         static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);
         void SortElements(Element* elements, uint32 left, uint32 right);
 
-        template <typename Fn>
-        static void ForEachOwnArrayIndexOfObject(RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, Fn fn);
-
         template <typename T, typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn);
 

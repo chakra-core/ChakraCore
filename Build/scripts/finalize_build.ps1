@@ -101,7 +101,7 @@ $buildFlavorJson | Add-Member -type NoteProperty -name flavor -value $Env:BuildC
 $buildFlavorJson | Add-Member -type NoteProperty -name subtype -value $Env:BuildSubtype
 
 $buildFlavorJson | ConvertTo-Json | Write-Output
-$buildFlavorJson | ConvertTo-Json | Out-File $buildFlavorJsonFile -Encoding ascii
+$buildFlavorJson | ConvertTo-Json | Out-File $buildFlavorJsonFile -Encoding utf8
 
 #
 # Copy outputs to metadata directory
