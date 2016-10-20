@@ -10,11 +10,6 @@
 
 namespace Js
 {
-#ifdef __clang__
-    // clang <= 7.x optimizes this away (if it is defined only under ByteCodeWriter.cpp)
-    DEFINE_TEMPLATE_BYTECODEWRITER_DATA_ENCODEOPCODE_FNC
-#endif
-
     template <LayoutSize layoutSize>
     inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
@@ -386,7 +381,7 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg7, op, R0, R1, R2, R3, R4, R5, R6);
     }
-
+    
     void AsmJsByteCodeWriter::AsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg9, op, R0, R1, R2, R3, R4, R5, R6, R7, R8);
@@ -396,7 +391,7 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg10, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
     }
-
+    
     void AsmJsByteCodeWriter::AsmReg11(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9, RegSlot R10)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg11, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
@@ -407,7 +402,7 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg17, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16);
     }
-
+    
     void AsmJsByteCodeWriter::AsmReg18(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
         RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17)
     {
