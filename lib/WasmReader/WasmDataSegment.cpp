@@ -19,17 +19,17 @@ WasmDataSegment::WasmDataSegment(ArenaAllocator * alloc, WasmNode ie, uint32 _so
 }
 
 uint32
-WasmDataSegment::getDestAddr(WasmModule* module) const
+WasmDataSegment::getDestAddr(Js::WebAssemblyModule* module) const
 {
     if (initExpr.op == wbI32Const)
     {
         return initExpr.cnst.i32;
     }
-    if (initExpr.var.num >= (uint) module->globals.Count())
+    if (initExpr.var.num >= (uint) module->globals->Count())
     {
         throw WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
     }
-    WasmGlobal* global = module->globals.Item(initExpr.var.num);
+    WasmGlobal* global = module->globals->Item(initExpr.var.num);
     Assert(global->GetReferenceType() == WasmGlobal::Const);
 
     if (global->GetType() != WasmTypes::I32)

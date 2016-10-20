@@ -61,12 +61,13 @@ namespace Wasm
 #include "WasmSignature.h"
 #include "WasmDataSegment.h"
 #include "WasmFunctionInfo.h"
-#include "WasmModule.h"
 
 #include "WasmSection.h"
 
 #include "WasmBinaryReader.h"
 #include "WasmByteCodeGenerator.h"
+
+#include "WasmGlobal.h"
 
 // TODO (michhol): cleanup includes
 #include "ByteCode/AsmJsByteCodeWriter.h"

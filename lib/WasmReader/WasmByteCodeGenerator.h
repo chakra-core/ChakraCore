@@ -74,7 +74,7 @@ namespace Wasm
     struct WasmReaderInfo
     {
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
         Js::Var m_bufferSrc;
     };
 
@@ -82,7 +82,7 @@ namespace Wasm
     {
     public:
         WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc);
-        WasmModule* GenerateModule();
+        Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
         WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
@@ -90,7 +90,7 @@ namespace Wasm
         Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo* m_sourceInfo;
         Js::ScriptContext* m_scriptContext;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
         Js::Var m_bufferSrc;
     };
 
@@ -177,7 +177,7 @@ namespace Wasm
         WasmLocal* m_locals;
 
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
 
         uint m_maxArgOutDepth;
 

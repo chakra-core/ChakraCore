@@ -305,6 +305,7 @@ BUILTIN(WasmLibrary, instantiateModule, instantiateModule, FunctionInfo::ErrorOn
 BUILTIN(WasmLibrary, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
 BUILTIN(WasmLibrary, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 #endif
 
 // SIMDFloat32x4Lib entry points

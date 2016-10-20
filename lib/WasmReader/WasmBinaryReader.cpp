@@ -51,7 +51,7 @@ LanguageTypes::ToWasmType(int8 binType)
     }
 }
 
-WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
+WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
     m_alloc(alloc)
@@ -887,7 +887,7 @@ WasmBinaryReader::ReadGlobalsSection()
             Assert(UNREACHED);
         }
 
-        m_module->globals.Add(global);
+        m_module->globals->Add(global);
     }
 }
 
@@ -1087,11 +1087,11 @@ WasmBinaryReader::ReadInitExpr()
     case wbGetGlobal:
     {
         uint32 globalIndex = node.var.num;
-        if (globalIndex >= (uint32)m_module->globals.Count())
+        if (globalIndex >= (uint32)m_module->globals->Count())
         {
             ThrowDecodingError(_u("Global %u out of bounds"), globalIndex);
         }
-        WasmGlobal* global = m_module->globals.Item(globalIndex);
+        WasmGlobal* global = m_module->globals->Item(globalIndex);
         if (global->GetMutability())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));

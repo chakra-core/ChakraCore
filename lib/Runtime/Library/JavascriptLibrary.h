@@ -263,6 +263,7 @@ namespace Js
         StaticType  * uint64NumberTypeStatic;
 
         DynamicType * webAssemblyModuleType;
+        DynamicType * webAssemblyInstanceType;
 
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
@@ -727,6 +728,7 @@ namespace Js
         DynamicType * GetPromiseType() const { return promiseType; }
 
         DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
+        DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
@@ -1210,6 +1212,8 @@ namespace Js
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #ifdef ENABLE_WASM
+        static void __cdecl InitializeWebAssemblyModuleObject(DynamicObject* moduleObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeWebAssemblyInstanceObject(DynamicObject* instanceObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeWebAssemblyObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif

@@ -632,6 +632,7 @@ namespace Js
         {
             // TODO: what should prototype be?
             webAssemblyModuleType = DynamicType::New(scriptContext, TypeIds_WebAssemblyModule, objectPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+            webAssemblyInstanceType = DynamicType::New(scriptContext, TypeIds_WebAssemblyInstance, objectPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
         }
 #endif
         // Initialize Object types
@@ -2695,16 +2696,34 @@ namespace Js
         library->AddMember(WasmObject, PropertyIds::experimentalVersion, JavascriptNumber::New(WasmLibrary::experimentalVersion, library->scriptContext), PropertyNone);
     }
 
+    void JavascriptLibrary::InitializeWebAssemblyInstanceObject(DynamicObject* instanceObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(instanceObject, mode, 0);
+
+        instanceObject->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeWebAssemblyModuleObject(DynamicObject* moduleObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(moduleObject, mode, 0);
+
+        moduleObject->SetHasNoEnumerableProperties(true);
+    }
+
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(webAssemblyObject, mode, 1);
+        typeHandler->Convert(webAssemblyObject, mode, 6);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WasmLibrary::EntryInfo::Compile, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WasmLibrary::EntryInfo::Validate, 2);
 
-        Js::RuntimeFunction * webAssemblyConstructor = library->CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
-            DeferredTypeHandler<InitializeArrayBufferConstructor>::GetDefaultInstance());
-        library->AddFunction(webAssemblyObject, PropertyIds::Module, webAssemblyConstructor);
+        Js::RuntimeFunction * moduleConstructor = library->CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWebAssemblyModuleObject>::GetDefaultInstance());
+        library->AddFunction(webAssemblyObject, PropertyIds::Module, moduleConstructor);
+
+        Js::RuntimeFunction * instanceConstructor = library->CreateBuiltinConstructor(&WebAssemblyInstance::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWebAssemblyInstanceObject>::GetDefaultInstance());
+        library->AddFunction(webAssemblyObject, PropertyIds::Instance, instanceConstructor);
     }
 #endif
 

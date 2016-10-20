@@ -366,3 +366,4 @@ RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurabl
 
 RT_ERROR_MSG(WASMERR_Unreachable, 5667, "", "Unreachable Code", kjstError, 0)
 RT_ERROR_MSG(WASMERR_NeedBufferSource, 5668, "%s is not a BufferSource", "BufferSource expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedModule, 5669, "%s is not a WebAssembly.Module", "WebAssembly.Module expected", kjstTypeError, 0)

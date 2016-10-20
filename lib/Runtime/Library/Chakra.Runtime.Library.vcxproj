@@ -156,6 +156,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
+    <ClCompile Include="WebAssemblyInstance.cpp" />
     <ClCompile Include="WebAssemblyModule.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -285,6 +286,7 @@
     <ClInclude Include="SubString.h" />
     <ClInclude Include="UriHelper.h" />
     <ClInclude Include="WasmLibrary.h" />
+    <ClInclude Include="WebAssemblyInstance.h" />
     <ClInclude Include="WebAssemblyModule.h" />
   </ItemGroup>
   <ItemGroup>

@@ -114,6 +114,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexSnapshotEnumerator.cpp" />
     <ClCompile Include="WebAssemblyModule.cpp" />
+    <ClCompile Include="WebAssemblyInstance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -244,6 +245,7 @@
     <ClInclude Include="JavascriptArrayIndexSnapshotEnumerator.h" />
     <ClInclude Include="TypedArrayIndexEnumerator.h" />
     <ClInclude Include="WebAssemblyModule.h" />
+    <ClInclude Include="WebAssemblyInstance.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

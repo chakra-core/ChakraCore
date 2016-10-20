@@ -12,7 +12,7 @@ class WasmDataSegment
 {
 public:
     WasmDataSegment(ArenaAllocator * alloc, WasmNode initExpr, uint32 _source_size, byte* _data);
-    uint32 getDestAddr(WasmModule* module) const;
+    uint32 getDestAddr(Js::WebAssemblyModule* module) const;
     uint32 getSourceSize() const;
     byte* getData() const;
 

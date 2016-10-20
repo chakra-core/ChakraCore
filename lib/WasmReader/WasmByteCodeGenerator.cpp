@@ -74,13 +74,13 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
     m_recycler(scriptContext->GetRecycler()),
     m_bufferSrc(bufferSrc)
 {
-    m_module = RecyclerNewFinalizedLeaf(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
+    m_module = RecyclerNewFinalizedLeaf(m_recycler, Js::WebAssemblyModule, scriptContext, binaryBuffer, binaryBufferLength, scriptContext->GetLibrary()->GetWebAssemblyModuleType());
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 }
 
-WasmModule*
+Js::WebAssemblyModule*
 WasmModuleGenerator::GenerateModule()
 {
     BVStatic<bSectLimit + 1> visitedSections;
@@ -563,7 +563,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitGetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals.Item(globalIndex);
+    WasmGlobal* global = m_module->globals->Item(globalIndex);
 
     WasmTypes::WasmType type = global->GetType();
 
@@ -593,7 +593,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitSetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals.Item(globalIndex);
+    WasmGlobal* global = m_module->globals->Item(globalIndex);
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
     WasmTypes::WasmType type = global->GetType();
