@@ -557,9 +557,6 @@ Func::TryCodegen()
         auto dataAllocator = this->GetNativeCodeDataAllocator();
         if (dataAllocator->allocCount > 0)
         {
-            // fill in the fixup list by scanning the memory
-            // todo: this should be done while generating code
-
             NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
             NativeCodeData::DataChunk *next1 = chunk;
             while (next1)
@@ -568,8 +565,10 @@ Func::TryCodegen()
                 {
                     next1->fixupFunc(next1->data, chunk);
                 }
-
 #if DBG
+                // Scan memory to see if there's missing pointer needs to be fixed up
+                // This can hit false positive if some data field happens to have value 
+                // falls into the NativeCodeData memory range.
                 NativeCodeData::DataChunk *next2 = chunk;
                 while (next2)
                 {
@@ -578,7 +577,6 @@ Func::TryCodegen()
                         if (((void**)next1->data)[i] == (void*)next2->data)
                         {
                             NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
-                            //NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data, chunk);
                         }
                     }
                     next2 = next2->next;
@@ -586,7 +584,6 @@ Func::TryCodegen()
 #endif
                 next1 = next1->next;
             }
-            ////
 
             JITOutputIDL* jitOutputData = m_output.GetOutputData();
             size_t allocSize = offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount);
