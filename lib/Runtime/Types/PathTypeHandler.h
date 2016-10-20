@@ -203,6 +203,8 @@ namespace Js
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) = 0;
         virtual bool GetMaxPathLength(uint16 * maxPathLength) = 0;
+        void MoveAuxSlotsToObjectHeader(DynamicObject *const object);
+        BOOL DeleteLastProperty(DynamicObject *const object);
 
 #if ENABLE_TTD
     public:
