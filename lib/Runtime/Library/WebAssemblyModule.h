@@ -49,12 +49,9 @@ public:
     static bool Is(Var aValue);
     static WebAssemblyModule * FromVar(Var aValue);
 
-    static WebAssemblyModule * CompileModule(
+    static WebAssemblyModule * CreateModule(
         ScriptContext* scriptContext,
-        const char16* script,
-        SRCINFO const * pSrcInfo,
-        CompileScriptException * pse,
-        Utf8SourceInfo** ppSourceInfo,
+        const byte* buffer,
         const uint lengthBytes,
         bool validateOnly = false,
         Var bufferSrc = nullptr);
@@ -72,7 +69,7 @@ private:
     } m_memory;
 
 public:
-    WebAssemblyModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength, DynamicType * type);
+    WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type);
 
     // The index used by those methods is the function index as describe by the WebAssembly design, ie: imports first then wasm functions
     uint32 GetMaxFunctionIndex() const;
@@ -105,15 +102,15 @@ public:
 
     void AllocateFunctionExports(uint32 entries);
     uint GetExportCount() const { return m_exportCount; }
-    void SetExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
+    void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
     Wasm::WasmExport* GetFunctionExport(uint32 iExport) const;
 
     void AllocateFunctionImports(uint32 entries);
     uint32 GetImportCount() const { return m_importCount; }
     void SetImportCount(uint count) { m_importCount = count; }
-    void SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind);
+    void SetFunctionImport(uint32 i, uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind);
     Wasm::WasmImport* GetFunctionImport(uint32 i) const;
-    void AddGlobalImport(char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal);
+    void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal);
 
     void AllocateDataSegs(uint32 count);
     bool AddDataSeg(Wasm::WasmDataSegment* seg, uint32 index);

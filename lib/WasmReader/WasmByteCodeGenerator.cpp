@@ -68,7 +68,7 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 typedef bool(*SectionProcessFunc)(WasmModuleGenerator*);
 typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 
-WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc) :
+WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc) :
     m_sourceInfo(sourceInfo),
     m_scriptContext(scriptContext),
     m_recycler(scriptContext->GetRecycler()),
@@ -136,7 +136,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    char16* functionName = nullptr;
+    const char16* functionName = nullptr;
     int nameLength = 0;
 
     if (wasmInfo->GetNameLength() > 0)
@@ -155,8 +155,9 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
                 m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
-                functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
-                nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
+                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                functionName = autoName;
                 break;
             }
         }
@@ -164,8 +165,9 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     if (!functionName)
     {
-        functionName = RecyclerNewArrayLeafZ(m_recycler, char16, 32);
-        nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+        char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, 32);
+        nameLength = swprintf_s(autoName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+        functionName = autoName;
     }
 
     Js::FunctionBody* body = Js::FunctionBody::NewFromRecycler(

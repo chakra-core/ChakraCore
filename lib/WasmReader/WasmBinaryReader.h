@@ -23,8 +23,8 @@ namespace Wasm
     struct SectionHeader
     {
         SectionCode code;
-        byte* start;
-        byte* end;
+        const byte* start;
+        const byte* end;
     };
 
     static const unsigned int experimentalVersion = 0xd;
@@ -32,7 +32,7 @@ namespace Wasm
     class WasmBinaryReader
     {
     public:
-        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, byte* source, size_t length);
+        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
 
         void InitializeReader();
         bool ReadNextSection(SectionCode nextSection);
@@ -80,8 +80,8 @@ namespace Wasm
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
-        char16* ReadInlineName(uint32& length, uint32& nameLength);
-        char16* CvtUtf8Str(LPUTF8 name, uint32 nameLen);
+        const char16* ReadInlineName(uint32& length, uint32& nameLength);
+        const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen);
         template<typename MaxAllowedType = UINT>
         MaxAllowedType LEB128(UINT &length, bool sgn = false);
         template<typename MaxAllowedType = INT>
@@ -96,7 +96,7 @@ namespace Wasm
 
         ArenaAllocator* m_alloc;
         uint m_funcNumber;
-        byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
+        const byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
         ReaderState m_funcState;   // func AST level
 

@@ -13,7 +13,6 @@ namespace Js
 {
     const unsigned int WasmLibrary::experimentalVersion = Wasm::experimentalVersion;
 
-
     Var WasmLibrary::instantiateModule(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -40,18 +39,18 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[Wasm].instantiateModule(typedArray,)"));
         }
-
         BYTE* buffer;
         uint byteLength;
+		Var bufferSrc = args[1];
         if (isTypedArray)
         {
-            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
+            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(bufferSrc);
             buffer = array->GetByteBuffer();
             byteLength = array->GetByteLength();
         }
         else
         {
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
+            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferSrc);
             buffer = arrayBuffer->GetBuffer();
             byteLength = arrayBuffer->GetByteLength();
         }
@@ -60,47 +59,8 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[Wasm].instantiateModule(,ffi)"));
         }
-#if 0
-        Js::Var ffi = args[2];
-
-        CompileScriptException se;
-        Js::Var exportObject;
-        Js::Var start = nullptr;
-        Js::Utf8SourceInfo* utf8SourceInfo;
-        BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
-            exportObject = WasmLibrary::LoadWasmScript(
-                scriptContext,
-                (const char16*)buffer,
-                args[1],
-                nullptr, // source info
-                &se,
-                &utf8SourceInfo,
-                byteLength,
-                ffi,
-                &start
-            );
-        END_LEAVE_SCRIPT_INTERNAL(scriptContext);
-
-        HRESULT hr = se.ei.scode;
-        if (FAILED(hr))
-        {
-            if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
-            {
-                Js::Throw::OutOfMemory();
-            }
-            JavascriptError::ThrowParserError(scriptContext, hr, &se);
-        }
-
-        if (exportObject && start)
-        {
-            Js::ScriptFunction* f = Js::AsmJsScriptFunction::FromVar(start);
-            Js::CallInfo info(Js::CallFlags_New, 1);
-            Js::Arguments startArg(info, &start);
-            Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
-        }
-        return exportObject;
-#endif
-        return nullptr;
+        WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength, false, bufferSrc);
+        return WebAssemblyInstance::CreateInstance(module, args[2]);
     }
 
     Var WasmLibrary::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...)

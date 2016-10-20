@@ -11,7 +11,7 @@
 
 namespace Js
 {
-WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength, DynamicType * type) :
+WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type) :
     DynamicObject(type),
     m_memory(),
     m_alloc(_u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
@@ -98,44 +98,31 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
         byteLength = arrayBuffer->GetByteLength();
     }
 
-    CompileScriptException se;
-    Js::Utf8SourceInfo* utf8SourceInfo;
-
-    return CompileModule(scriptContext, (const char16*)buffer, nullptr, &se, &utf8SourceInfo, byteLength, false, bufferSrc);
+    return CreateModule(scriptContext, buffer, byteLength, false, bufferSrc);
 }
 
 /* static */
 WebAssemblyModule *
-WebAssemblyModule::CompileModule(
+WebAssemblyModule::CreateModule(
     ScriptContext* scriptContext,
-    const char16* script,
-    SRCINFO const * pSrcInfo,
-    CompileScriptException * pse,
-    Utf8SourceInfo** ppSourceInfo,
+    const byte* buffer,
     const uint lengthBytes,
     bool validateOnly,
     Var bufferSrc)
 {
-    WebAssemblyModule * WebAssemblyModule = nullptr;
-    if (pSrcInfo == nullptr)
-    {
-        pSrcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-    }
-
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
     Unused(wasmPhase);
 
-    Assert(pse != nullptr);
+    WebAssemblyModule * WebAssemblyModule = nullptr;
     Wasm::WasmReaderInfo * readerInfo = nullptr;
     Js::FunctionBody * currentBody = nullptr;
     try
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        *ppSourceInfo = nullptr;
+        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
-        *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, *ppSourceInfo, (byte*)script, lengthBytes, bufferSrc);
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
 
         WebAssemblyModule = bytecodeGen.GenerateModule();
 
@@ -407,7 +394,7 @@ void WebAssemblyModule::AllocateFunctionExports(uint32 entries)
     m_exportCount = entries;
 }
 
-void WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
+void WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;
@@ -432,7 +419,7 @@ WebAssemblyModule::AllocateFunctionImports(uint32 entries)
 }
 
 void
-WebAssemblyModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::SetFunctionImport(uint32 i, uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind)
 {
     m_imports[i].sigId = sigId;
     m_imports[i].modNameLen = modNameLen;
@@ -442,7 +429,7 @@ WebAssemblyModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, ui
 }
 
 void
-WebAssemblyModule::AddGlobalImport(char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal)
+WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
     wi->sigId = 0;

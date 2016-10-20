@@ -81,7 +81,7 @@ namespace Wasm
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc);
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc);
         Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:

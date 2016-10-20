@@ -21,6 +21,7 @@ namespace Js
         static bool Is(Var aValue);
         static WebAssemblyInstance * FromVar(Var aValue);
 
+        static WebAssemblyInstance * CreateInstance(WebAssemblyModule * module, Var importObject);
     private:
         WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type);
 

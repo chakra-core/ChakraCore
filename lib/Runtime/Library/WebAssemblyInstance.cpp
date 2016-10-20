@@ -79,6 +79,13 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("WebAssembly.Instance"));
     }
 
+    return CreateInstance(module, importObject);
+}
+
+WebAssemblyInstance *
+WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject)
+{
+    ScriptContext * scriptContext = module->GetScriptContext();
     Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, module->GetModuleEnvironmentSize());
     Var* heap = moduleEnvironmentPtr + module->GetHeapOffset();
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
@@ -106,7 +113,7 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
         Js::Arguments startArg(info, &start);
         Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
     }
-    
+
     return newInstance;
 }
 
@@ -248,14 +255,14 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
 static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
 {
     PropertyRecord const * modPropertyRecord = nullptr;
-    char16* modName = wi->modName;
+    const char16* modName = wi->modName;
     uint32 modNameLen = wi->modNameLen;
     ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
     Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
 
 
 
-    char16* name = wi->fnName;
+    const char16* name = wi->fnName;
     uint32 nameLen = wi->fnNameLen;
     Var prop = nullptr;
     if (nameLen > 0)
