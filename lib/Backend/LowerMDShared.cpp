@@ -6219,21 +6219,14 @@ LowererMD::GenerateCopysign(IR::Instr * instr)
 
     // Copy sign from src2 to src1
     IR::Opnd* src1 = instr->GetSrc1();
+    Assert(src1->IsFloat32() || src1->IsFloat64());
     GenerateFloatAbs(src1->AsRegOpnd(), instr);
 
-    if (src1->IsFloat64())
-    {
-        Assert(UNREACHED);
-    }
-    else
-    {
-        Assert(src1->IsFloat32());
-        IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
-            IR::MemRefOpnd::New(this->m_func->GetThreadContextInfo()->GetSgnBitCst(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef),
-            m_func);
-        instr->InsertBefore(t2);
-        Legalize(t2);
-    }
+    IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
+        IR::MemRefOpnd::New(this->m_func->GetThreadContextInfo()->GetSgnBitCst(), src1->GetType(), this->m_func, src1->IsFloat32() ? IR::AddrOpndKindDynamicFloatRef : IR::AddrOpndKindDynamicDoubleRef),
+        m_func);
+    instr->InsertBefore(t2);
+    Legalize(t2);
 
     instr->m_opcode = Js::OpCode::ORPS;
     Legalize(instr);

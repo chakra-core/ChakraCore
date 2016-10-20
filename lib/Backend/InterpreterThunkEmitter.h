@@ -57,13 +57,13 @@ class InterpreterThunkEmitter
 {
 private:
     /* ------- instance methods --------*/
-    EmitBufferManager<> emitBufferManager;
-    EmitBufferAllocation *allocation;
+    EmitBufferManager<> * emitBufferManager;
     SListBase<ThunkBlock> thunkBlocks;
     SListBase<ThunkBlock> freeListedThunkBlocks;
     bool isAsmInterpreterThunk; // To emit address of InterpreterAsmThunk or InterpreterThunk
     BYTE*                thunkBuffer;
     ArenaAllocator*      allocator;
+    Js::ScriptContext *  scriptContext;
     DWORD thunkCount;                      // Count of thunks available in the current thunk block
 
     /* -------static constants ----------*/
@@ -94,10 +94,21 @@ private:
 
     /* ------private helpers -----------*/
     void NewThunkBlock();
-    void EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk);
+
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    void NewOOPJITThunkBlock();
+#endif
+
+    static void EncodeInterpreterThunk(
+        __in_bcount(thunkSize) BYTE* thunkBuffer,
+        __in const intptr_t thunkBufferStartAddress,
+        __in const DWORD thunkSize,
+        __in const intptr_t epilogStart,
+        __in const DWORD epilogSize,
+        __in const intptr_t interpreterThunk);
 #if defined(_M_ARM32_OR_ARM64)
-    DWORD EncodeMove(DWORD opCode, int reg, DWORD imm16);
-    void GeneratePdata(_In_ const BYTE* entryPoint, _In_ const DWORD functionSize, _Out_ RUNTIME_FUNCTION* function);
+    static DWORD EncodeMove(DWORD opCode, int reg, DWORD imm16);
+    static void GeneratePdata(_In_ const BYTE* entryPoint, _In_ const DWORD functionSize, _Out_ RUNTIME_FUNCTION* function);
 #endif
 
     /*-------static helpers ---------*/
@@ -109,6 +120,8 @@ private:
         AssertMsg(*(T*) (dest + offset) == 0, "Overwriting an already existing opcode?");
         *(T*)(dest + offset) = value;
     };
+
+    BYTE* AllocateFromFreeList(PVOID* ppDynamicInterpreterThunk);
 public:
     static const BYTE HeaderSize;
     static const BYTE ThunkSize;
@@ -116,24 +129,34 @@ public:
     static const uint BlockSize;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
-    InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
-
+    InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
+    ~InterpreterThunkEmitter();
     BYTE* GetNextThunk(PVOID* ppDynamicInterpreterThunk);
-
-    BYTE* AllocateFromFreeList(PVOID* ppDynamicInterpreterThunk);
 
     void Close();
     void Release(BYTE* thunkAddress, bool addtoFreeList);
-
     // Returns true if the argument falls within the range managed by this buffer.
-    inline bool IsInHeap(void* address)
-    {
-        return emitBufferManager.IsInHeap(address);
-    }
+#if DBG
+    bool IsInHeap(void* address);
+#endif
     const EmitBufferManager<>* GetEmitBufferManager() const
     {
-        return &emitBufferManager;
+        return emitBufferManager;
     }
+
+    static void FillBuffer(
+        _In_ ArenaAllocator * arena,
+        _In_ ThreadContextInfo * context,
+        _In_ bool asmJsThunk,
+        _In_ intptr_t finalAddr,
+        _In_ size_t bufferSize,
+        _Out_writes_bytes_all_(bufferSize) BYTE* buffer,
+#if PDATA_ENABLED
+        _Out_ PRUNTIME_FUNCTION * pdataTableStart,
+        _Out_ intptr_t * epilogEndAddr,
+#endif
+        _Out_ DWORD * thunkCount
+    );
 
 };
 #endif

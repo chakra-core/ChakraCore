@@ -1,2 +1,1 @@
-left-to-right.wast:217: $assert_return_68 unexpectedly threw: Error: Compiling wasm failed: function f64_copysign[115] at offset 8/12: Operator F64CopySign NYI
-94/95 tests passed.
+95/95 tests passed.

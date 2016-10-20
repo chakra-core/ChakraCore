@@ -42,6 +42,11 @@ public:
     virtual bool IsClosed() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
+    virtual intptr_t GetDebuggingFlagsAddr() const override;
+    virtual intptr_t GetDebugStepTypeAddr() const override;
+    virtual intptr_t GetDebugFrameAddressAddr() const override;
+    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
+
     virtual intptr_t GetAddr() const override;
 
     virtual intptr_t GetVTableAddress(VTableValue vtableType) const override;
@@ -61,10 +66,12 @@ public:
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
-
+    EmitBufferManager<> * GetEmitBufferManager(bool asmJsManager);
+    void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextInfo; }
 
+    ArenaAllocator * GetSourceCodeArena();
     void Close();
     void AddRef();
     void Release();
@@ -74,6 +81,10 @@ private:
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler * m_codeGenProfiler;
 #endif
+    ArenaAllocator m_sourceCodeArena;
+
+    EmitBufferManager<> * m_interpreterThunkBufferManager;
+    EmitBufferManager<> * m_asmJsInterpreterThunkBufferManager;
 
     ScriptContextDataIDL m_contextData;
     intptr_t m_globalThisAddr;

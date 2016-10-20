@@ -385,7 +385,9 @@ public:
     void SetHeapEnum(IActiveScriptProfilerHeapEnum* newHeapEnum);
     void ClearHeapEnum();
 
-    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) override;
+    Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId);
+
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) override;
 
 #ifdef ENABLE_BASIC_TELEMETRY
     Js::LanguageStats* GetLanguageStats()
@@ -482,7 +484,7 @@ private:
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyMap * m_pendingJITProperties;
+    PropertyList * m_pendingJITProperties;
     PropertyList  * m_reclaimedJITProperties;
 public:
 
@@ -491,7 +493,7 @@ public:
         return m_reclaimedJITProperties;
     }
 
-    PropertyMap * GetPendingJITProperties() const
+    PropertyList * GetPendingJITProperties() const
     {
         return m_pendingJITProperties;
     }
@@ -1215,11 +1217,6 @@ public:
 
     virtual intptr_t GetDisableImplicitFlagsAddr() const override;
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
-
-    virtual intptr_t GetDebuggingFlagsAddr() const override;
-    virtual intptr_t GetDebugStepTypeAddr() const override;
-    virtual intptr_t GetDebugFrameAddressAddr() const override;
-    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
     ptrdiff_t GetChakraBaseAddressDifference() const;
     ptrdiff_t GetCRTBaseAddressDifference() const;

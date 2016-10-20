@@ -10055,59 +10055,6 @@ Case0:
     }
 #endif
 
-    template <typename Fn>
-    void JavascriptArray::ForEachOwnArrayIndexOfObject(RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, Fn fn)
-    {
-        Assert(DynamicObject::IsAnyArray(obj) || JavascriptOperators::IsObject(obj));
-
-        JavascriptArray* arr = nullptr;
-        if (DynamicObject::IsAnyArray(obj))
-        {
-            arr = JavascriptArray::FromAnyArray(obj);
-        }
-        else if (DynamicType::Is(obj->GetTypeId()))
-        {
-            DynamicObject* dynobj = DynamicObject::FromVar(obj);
-            arr = dynobj->GetObjectArray();
-        }
-
-        if (arr != nullptr)
-        {
-            if (JavascriptArray::Is(arr))
-            {
-                ArrayElementEnumerator e(arr, startIndex, limitIndex);
-
-                while(e.MoveNext<Var>())
-                {
-                    fn(e.GetIndex(), e.GetItem<Var>());
-                }
-            }
-            else
-            {
-                ScriptContext* scriptContext = obj->GetScriptContext();
-
-                Assert(ES5Array::Is(arr));
-
-                ES5Array* es5Array = ES5Array::FromVar(arr);
-                ES5ArrayIndexEnumerator<true> e(es5Array);
-
-                while (e.MoveNext())
-                {
-                    uint32 index = e.GetIndex();
-
-                    if (index < startIndex) continue;
-                    else if (index >= limitIndex) break;
-
-                    Var value = nullptr;
-                    if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
-                    {
-                        fn(index, value);
-                    }
-                }
-            }
-        }
-    }
-
     template <typename T, typename Fn>
     void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn)
     {
@@ -10166,7 +10113,7 @@ Case0:
                         if (destArray == nullptr || !destArray->DirectGetItemAt(n, &oldValue))
                         {
                             Var value = nullptr;
-                            if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
+                            if (JavascriptOperators::GetOwnItem(obj, index, &value, scriptContext))
                             {
                                 fn(index, value);
                             }

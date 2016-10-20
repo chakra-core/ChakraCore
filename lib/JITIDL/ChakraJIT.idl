@@ -68,6 +68,17 @@ interface IChakraJIT
         [in] CHAKRA_PTR threadContextInfoAddress,
         [in] CHAKRA_PTR address);
 
+    HRESULT NewInterpreterThunkBlock(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] boolean asmJsThunk,
+        [out] InterpreterThunkInfoIDL * thunkInfo);
+
+    HRESULT DecommitInterpreterBufferManager(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] boolean asmJsManager);
+
     HRESULT IsNativeAddr(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,
@@ -85,4 +96,12 @@ interface IChakraJIT
         [in] CodeGenWorkItemIDL * workItemData,
         [out] JITOutputIDL * jitData);
 
+#if DBG
+    HRESULT IsInterpreterThunkAddr(
+        [in] handle_t binding,
+        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] CHAKRA_PTR address,
+        [in] boolean asmjsThunk,
+        [out] boolean * result);
+#endif
 }

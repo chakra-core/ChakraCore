@@ -2909,7 +2909,12 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                             Output::Print(_u(","));
                         }
                         const JITObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
-                        Output::Print(_u("%s(%u)"), func->GetThreadContextInfo()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+                        {
+                            Output::Print(_u("%s"), func->GetInProcThreadContext()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        }
+                        Output::Print(_u("(%u)"), propertyOpId);
+                        
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
                             Output::Print(_u("~"));

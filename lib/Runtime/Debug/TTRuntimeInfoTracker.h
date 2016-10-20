@@ -30,8 +30,8 @@ namespace TTD
         Js::ScriptContext* m_ctx;
 
         //Keep track of roots (and local roots as needed)
-        ObjectPinSet* m_ttdRootSet;
-        ObjectPinSet* m_ttdLocalRootSet;
+        RecyclerRootPtr<ObjectPinSet> m_ttdRootSet;
+        RecyclerRootPtr<ObjectPinSet> m_ttdLocalRootSet;
         JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
 
         //List of pending async modifications to array buffers
@@ -43,14 +43,14 @@ namespace TTD
         JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
 
         //need to add back pin set for functionBody to make sure they don't get collected on us
-        TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
+        RecyclerRootPtr<TTD::FunctionBodyPinSet> m_ttdPinnedRootFunctionSet;
         JsUtil::BaseDictionary<Js::FunctionBody*, Js::FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
 
     public:
         //
         //TODO: this results in a memory leak for programs with weak collections -- we should fix this
         //
-        ObjectPinSet* TTDWeakReferencePinSet;
+        RecyclerRootPtr<ObjectPinSet> TTDWeakReferencePinSet;
 
         ScriptContextTTD(Js::ScriptContext* ctx);
         ~ScriptContextTTD();
