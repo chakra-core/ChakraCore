@@ -925,7 +925,7 @@ namespace Js
 
     bool AsmJsFunctionInfo::Init(AsmJsFunc* func)
     {
-        func->CommitToFunctionInfo(this);
+        func->CommitToFunctionInfo(this, func->GetFuncBody());
 
         Recycler* recycler = func->GetFuncBody()->GetScriptContext()->GetRecycler();
         mArgCount = func->GetArgCount();

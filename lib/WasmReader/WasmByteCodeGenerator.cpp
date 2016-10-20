@@ -351,11 +351,10 @@ WasmBytecodeGenerator::GenerateFunction()
 #endif
 
     Js::AsmJsFunctionInfo * info = GetFunctionBody()->GetAsmJsFunctionInfo();
-    mTypedRegisterAllocator.CommitToFunctionInfo(info);
     mTypedRegisterAllocator.CommitToFunctionBody(GetFunctionBody());
+    mTypedRegisterAllocator.CommitToFunctionInfo(info, GetFunctionBody());
 
     GetFunctionBody()->CheckAndSetOutParamMaxDepth(m_maxArgOutDepth);
-    GetFunctionBody()->CheckAndSetVarCount(mTypedRegisterAllocator.GetTotalJsVarCount());
 }
 
 void

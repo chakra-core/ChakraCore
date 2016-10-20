@@ -796,9 +796,8 @@ namespace Js
         void UpdateMaxArgOutDepth(int outParamsCount);
         inline int GetArgOutDepth() const{ return mArgOutDepth; }
         inline int GetMaxArgOutDepth() const{ return mMaxArgOutDepth; }
-        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) {mTypedRegisterAllocator.CommitToFunctionInfo(funcInfo);}
+        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, FunctionBody* body) {mTypedRegisterAllocator.CommitToFunctionInfo(funcInfo, body);}
         void CommitToFunctionBody(FunctionBody* body) { mTypedRegisterAllocator.CommitToFunctionBody(body); }
-        uint32 GetTotalJsVarCount() { return mTypedRegisterAllocator.GetTotalJsVarCount(); }
     };
 
     struct MathBuiltin

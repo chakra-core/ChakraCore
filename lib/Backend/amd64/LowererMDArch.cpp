@@ -573,11 +573,13 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
         {
             callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
         }
         else
+#endif
         {
             IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
             GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());

@@ -10,11 +10,15 @@
 namespace WAsmJs
 {
 
-    void TraceAsmJsArgsIn(int n, ...)
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    void TraceAsmJsArgsIn(Js::Var function, int n, ...)
     {
+        Assert(Js::AsmJsScriptFunction::Is(function));
+        Js::AsmJsScriptFunction* asmFunction = (Js::AsmJsScriptFunction*)function;
         va_list argptr;
         va_start(argptr, n);
-        Output::Print(_u("Executing function ("));
+
+        Output::Print(_u("Executing function %s("), asmFunction->GetFunctionBody()->GetDisplayName());
         for (int i = 0; i < n ; i++)
         {
             IRType type = (IRType)va_arg(argptr, int32);
@@ -40,6 +44,7 @@ namespace WAsmJs
         }
         Output::Print(_u("){\n"));
     }
+#endif
 
     uint32 GetTypeByteSize(Types type)
     {
@@ -162,15 +167,20 @@ namespace WAsmJs
         return total;
     }
 
-    void TypedRegisterAllocator::CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const
+    uint32 TypedRegisterAllocator::GetTotalJsVarConstCount() const
+    {
+        return UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, GetTotalJsVarCount(true));
+    }
+
+    void TypedRegisterAllocator::CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, Js::FunctionBody* body) const
     {
         uint32 offset = Js::AsmJsFunctionMemory::RequiredVarConstants * sizeof(Js::Var);
         WAsmJs::TypedConstSourcesInfo constSourcesInfo = GetConstSourceInfos();
 
 #if DBG_DUMP
-        if (PHASE_TRACE1(Js::AsmjsInterpreterStackPhase))
+        if (PHASE_TRACE(Js::AsmjsInterpreterStackPhase, body))
         {
-            Output::Print(_u("ASMFunctionInfo Stack Data\n"));
+            Output::Print(_u("ASMFunctionInfo Stack Data for %s\n"), body->GetDisplayName());
             Output::Print(_u("==========================\n"));
             Output::Print(_u("RequiredVarConstants:%d\n"), Js::AsmJsFunctionMemory::RequiredVarConstants);
         }
@@ -180,52 +190,68 @@ namespace WAsmJs
         {
             Types type = (Types)i;
 
-            TypedSlotInfo* slotInfo = funcInfo->GetTypedSlotInfo(type);
+            TypedSlotInfo& slotInfo = *funcInfo->GetTypedSlotInfo(type);
             // Check if we don't want to commit this type
             if (!IsTypeExcluded(type))
             {
                 RegisterSpace* registerSpace = GetRegisterSpace(type);
-                slotInfo->isValidType = true;
-                slotInfo->constCount = registerSpace->GetConstCount();
-                slotInfo->varCount = registerSpace->GetVarCount();
-                slotInfo->tmpCount = registerSpace->GetTmpCount();
-                slotInfo->constSrcByteOffset = constSourcesInfo.srcByteOffsets[i];
+                slotInfo.isValidType = true;
+                slotInfo.constCount = registerSpace->GetConstCount();
+                slotInfo.varCount = registerSpace->GetVarCount();
+                slotInfo.tmpCount = registerSpace->GetTmpCount();
+                slotInfo.constSrcByteOffset = constSourcesInfo.srcByteOffsets[i];
 
                 offset = Math::AlignOverflowCheck(offset, GetTypeByteSize(type));
-                slotInfo->byteOffset = offset;
-
-#if DBG_DUMP
-                if (PHASE_TRACE1(Js::AsmjsInterpreterStackPhase))
-                {
-                    char16 buf[16];
-                    RegisterSpace::GetTypeDebugName(type, buf, 16);
-                    Output::Print(_u("%s Offset:%d  ConstCount:%d  VarCount:%d  TmpCount:%d\n"),
-                                  buf,
-                                  slotInfo->byteOffset,
-                                  slotInfo->constCount,
-                                  slotInfo->varCount,
-                                  slotInfo->tmpCount);
-                }
-#endif
+                slotInfo.byteOffset = offset;
 
                 // Update offset for next type
                 uint32 totalTypeCount = 0;
-                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo->constCount);
-                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo->varCount);
-                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo->tmpCount);
+                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo.constCount);
+                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo.varCount);
+                totalTypeCount = UInt32Math::Add(totalTypeCount, slotInfo.tmpCount);
 
                 offset = UInt32Math::Add(offset, UInt32Math::Mul(totalTypeCount, GetTypeByteSize(type)));
+#if DBG_DUMP
+                if (PHASE_TRACE(Js::AsmjsInterpreterStackPhase, body))
+                {
+                    char16 buf[16];
+                    RegisterSpace::GetTypeDebugName(type, buf, 16);
+                    Output::Print(_u("%s Offset:%d  ConstCount:%d  VarCount:%d  TmpCount:%d = %d * %d = 0x%x bytes\n"),
+                                  buf,
+                                  slotInfo.byteOffset,
+                                  slotInfo.constCount,
+                                  slotInfo.varCount,
+                                  slotInfo.tmpCount,
+                                  totalTypeCount,
+                                  GetTypeByteSize(type),
+                                  totalTypeCount * GetTypeByteSize(type));
+                }
+#endif
             }
             else
             {
-                memset(slotInfo, 0, sizeof(TypedSlotInfo));
-                slotInfo->isValidType = false;
+                memset(&slotInfo, 0, sizeof(TypedSlotInfo));
+                slotInfo.isValidType = false;
             }
         }
+
+        // These bytes offset already calculated the alignment, used them to determine how many Js::Var we need to do the allocation
+        uint32 stackByteSize = offset;
+        uint32 jsVarNeededForConsts = GetTotalJsVarConstCount();
+        Assert(stackByteSize >= jsVarNeededForConsts * sizeof(Js::Var));
+        // The vars need to compensate the possible alignment done, so instead of counting how many vars we have
+        // We substract the number of const from the total size needed
+        uint32 jsVarNeededForVars = ConvertOffset<byte, Js::Var>(stackByteSize) - jsVarNeededForConsts;
+        Assert((jsVarNeededForConsts + jsVarNeededForVars) * sizeof(Js::Var) >= stackByteSize);
+        body->CheckAndSetVarCount(jsVarNeededForVars);
+
 #if DBG_DUMP
-        if (PHASE_TRACE1(Js::AsmjsInterpreterStackPhase))
+        if (PHASE_TRACE(Js::AsmjsInterpreterStackPhase, body))
         {
-            Output::Print(_u("\n"));
+            Output::Print(_u("Total memory required: (%d consts + %d vars) * sizeof(Js::Var) >= 0x%x bytes\n"),
+                          jsVarNeededForConsts,
+                          jsVarNeededForVars,
+                          stackByteSize);
         }
 #endif
     }
@@ -233,7 +259,7 @@ namespace WAsmJs
     void TypedRegisterAllocator::CommitToFunctionBody(Js::FunctionBody* body)
     {
         // this value is the number of Var slots needed to allocate all the const
-        const uint32 nbConst = UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, GetTotalJsVarCount(true));
+        const uint32 nbConst = GetTotalJsVarConstCount();
         body->CheckAndSetConstantCount(nbConst);
     }
 

@@ -14,7 +14,9 @@ namespace WAsmJs
     static const double INT_SLOTS_SPACE = (sizeof(int) / (double)sizeof(Js::Var)); // 1 in x86 and 0.5 in x64
     static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Js::Var)); // 4 in x86 and 2 in x64
 
-    void TraceAsmJsArgsIn(int n, ...);
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    void TraceAsmJsArgsIn(Js::Var function, int n, ...);
+#endif
 
     typedef Js::RegSlot RegSlot;
 
@@ -271,9 +273,7 @@ namespace WAsmJs
     public:
         TypedRegisterAllocator(ArenaAllocator* allocator, AllocateRegisterSpaceFunc allocateFunc, uint32 excludedMask = 0);
 
-        uint32 GetJsVarCount(Types type, bool constOnly /*= false*/) const;
-        uint32 GetTotalJsVarCount(bool constOnly = false) const;
-        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo) const;
+        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, Js::FunctionBody* body) const;
         void CommitToFunctionBody(Js::FunctionBody* body);
         TypedConstSourcesInfo GetConstSourceInfos() const;
 
@@ -286,6 +286,9 @@ namespace WAsmJs
 
         RegisterSpace* GetRegisterSpace(Types type) const;
     private:
+        uint32 GetJsVarCount(Types type, bool constOnly /*= false*/) const;
+        uint32 GetTotalJsVarCount(bool constOnly = false) const;
+        uint32 GetTotalJsVarConstCount() const;
         bool IsValidType(Types type) const;
     };
 };

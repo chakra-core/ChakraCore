@@ -129,10 +129,12 @@ IRBuilderAsmJs::Build()
         BuildImplicitArgIns();
     }
 
-    if (PHASE_TRACE(Js::AsmjsFunctionEntryPhase, m_func))
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    if (!this->IsLoopBody() && PHASE_TRACE(Js::AsmjsFunctionEntryPhase, m_func))
     {
         BuildArgInTracing();
     }
+#endif
 
     if (m_statementReader.AtStatementBoundary(&m_jnReader))
     {
@@ -364,7 +366,7 @@ IR::RegOpnd *
 IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
     Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
-    WAsmJs::TypedSlotInfo info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
+    const WAsmJs::TypedSlotInfo& info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
     int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.constSrcByteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
     Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount && info.isValidType);
@@ -913,6 +915,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
     }
 }
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 void
 IRBuilderAsmJs::BuildArgInTracing()
 {
@@ -942,7 +945,6 @@ IRBuilderAsmJs::BuildArgInTracing()
 
     m_argStack->Push(instr);
 
-
     auto PushArg = [&](IRType type, ValueType valueType, IR::Opnd* srcOpnd) {
         StackSym* symDst = StackSym::NewArgSlotSym(argOutSlot++, m_func, type);
         symDst->m_allocated = true;
@@ -954,6 +956,15 @@ IRBuilderAsmJs::BuildArgInTracing()
         m_argStack->Push(instr);
         argSize += max(TySize[type], MachPtr);
     };
+
+    // Move the function object as an argument
+    {
+        StackSym* stackSym = StackSym::New(m_func);
+        IR::RegOpnd* stackOpnd = IR::RegOpnd::New(stackSym, TyVar, m_func);
+        AddInstr(IR::Instr::New(Js::OpCode::LdFuncObj, stackOpnd, m_func), Js::Constants::NoByteCodeOffset);
+
+        PushArg(TyVar, ValueType::GetObject(ObjectType::Object), stackOpnd);
+    }
     PushArg(TyInt32, ValueType::GetInt(false), IR::IntConstOpnd::New(nArgs, TyInt32, m_func));
 
     for (Js::ArgSlot i = 0; i < nArgs; ++i)
@@ -1006,6 +1017,7 @@ IRBuilderAsmJs::BuildArgInTracing()
     BuildAsmCall(Js::OpCodeAsmJs::AsmJsEntryTracing, Js::Constants::NoByteCodeOffset, nArgs * 2 + 1, 0, 0, 0);
 #endif
 }
+#endif
 
 void
 IRBuilderAsmJs::InsertLabels()

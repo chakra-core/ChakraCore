@@ -884,6 +884,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     const uint32 argSlots = argCount + (stackAlignment / 4) + 1;
     m_func->m_argSlotsForFunctionsCalled = max(m_func->m_argSlotsForFunctionsCalled, argSlots);
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
     {
         callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
@@ -896,6 +897,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
         callInstr->InsertAfter(fixStack);
         return fixStack;
     }
+#endif
 
     IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
 

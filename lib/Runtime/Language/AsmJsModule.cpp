@@ -84,10 +84,8 @@ namespace Js
             }
             asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
-            uint32 varCount = func->GetTotalJsVarCount();
 
             functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
-            functionBody->CheckAndSetVarCount(varCount);
             // should be set in EmitOneFunction
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
