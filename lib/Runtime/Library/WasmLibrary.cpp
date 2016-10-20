@@ -370,34 +370,21 @@ namespace Js
             {
             case Wasm::WasmTypes::I32:
             {
-                int val;
-                if (TaggedInt::Is(prop))
-                {
-                    val = TaggedInt::ToInt32(prop);
-                }
-                else
-                {
 
-                    bool isInt32;
-                    bool isInt = JavascriptNumber::TryGetInt32OrUInt32Value(JavascriptNumber::GetValue(prop), &val, &isInt32);
-                    if (!isInt)
-                    {
-                        throw Wasm::WasmCompilationException(_u("Import global %s.%s (%d) must be i32"), global->importVar->modName, global->importVar->fnName, i);
-                    }
-                }
+                int val = JavascriptConversion::ToInt32(prop, ctx);
                 global->cnst.i32 = val; //resolve global to const
                 SetGlobalValue(moduleEnv, offset, val);
                 break;
             }
             case Wasm::WasmTypes::F32:
             {
-                float val = (float)JavascriptNumber::GetValue(prop);
+                float val = (float) JavascriptConversion::ToNumber(prop, ctx);
                 global->cnst.f32 = val;
                 SetGlobalValue(moduleEnv, offset, val);
             }
             case Wasm::WasmTypes::F64:
             {
-                double val = JavascriptNumber::GetValue(prop);
+                double val = JavascriptConversion::ToNumber(prop, ctx);
                 global->cnst.f64 = val;
                 SetGlobalValue(moduleEnv, offset, val);
                 break;
