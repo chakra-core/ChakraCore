@@ -889,7 +889,7 @@ namespace Js
 
     // We are overloading the value types to store whether it is a mod by power of 2.
     // TaggedInt:
-    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
+    void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
     {
         Assert(profileId < body->GetProfiledDivOrRemCount());
         // allow one op of the modulus to be optimized - anyway

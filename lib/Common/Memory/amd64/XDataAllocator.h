@@ -7,11 +7,6 @@ CompileAssert(false)
 #endif
 #pragma once
 
-#ifndef _WIN32
-extern "C" void __register_frame(const void* ehframe);
-extern "C" void __deregister_frame(const void* ehframe);
-#endif
-
 namespace Memory
 {
 #ifdef _WIN32

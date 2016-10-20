@@ -72,7 +72,7 @@ NESTED_ENTRY _ZN19NativeCodeGenerator22CheckAsmJsCodeGenThunkEPN2Js16RecyclableO
         movaps xmmword ptr [rsp + 20h], xmm2
         movaps xmmword ptr [rsp + 30h], xmm3
 
-        call _ZN19NativeCodeGenerator17CheckAsmJsCodeGenEPN2Js14ScriptFunctionE
+        call C_FUNC(_ZN19NativeCodeGenerator17CheckAsmJsCodeGenEPN2Js14ScriptFunctionE)
 
         // restore potential floating point arguments from stack
         movaps xmm0, xmmword ptr [rsp + 00h]
