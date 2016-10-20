@@ -85,7 +85,7 @@ namespace Wasm
         Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmBinaryReader* GetReader() const;
 
         Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo* m_sourceInfo;
@@ -169,7 +169,7 @@ namespace Wasm
         bool IsUnreachable() const { return this->isUnreachable; }
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmBinaryReader* GetReader() const;
 
         ArenaAllocator m_alloc;
 

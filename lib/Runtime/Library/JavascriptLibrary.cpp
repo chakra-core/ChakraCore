@@ -2714,8 +2714,8 @@ namespace Js
     {
         typeHandler->Convert(webAssemblyObject, mode, 6);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
-        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WasmLibrary::EntryInfo::Compile, 2);
-        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WasmLibrary::EntryInfo::Validate, 2);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 2);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 2);
 
         Js::RuntimeFunction * moduleConstructor = library->CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeWebAssemblyModuleObject>::GetDefaultInstance());

@@ -302,8 +302,8 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 // Wasm entry points
 #ifdef ENABLE_WASM
 BUILTIN(WasmLibrary, instantiateModule, instantiateModule, FunctionInfo::ErrorOnNew)
-BUILTIN(WasmLibrary, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
-BUILTIN(WasmLibrary, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 #endif

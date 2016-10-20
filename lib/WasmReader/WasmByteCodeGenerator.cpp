@@ -126,6 +126,12 @@ WasmModuleGenerator::GenerateModule()
     return m_module;
 }
 
+WasmBinaryReader*
+WasmModuleGenerator::GetReader() const
+{
+    return m_module->GetReader();
+}
+
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
@@ -1503,6 +1509,12 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     }
 
     this->isUnreachable = isUnreachable;
+}
+
+WasmBinaryReader*
+WasmBytecodeGenerator::GetReader() const
+{
+    return m_module->GetReader();
 }
 
 void

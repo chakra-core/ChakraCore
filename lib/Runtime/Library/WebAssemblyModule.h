@@ -53,8 +53,13 @@ public:
         ScriptContext* scriptContext,
         const byte* buffer,
         const uint lengthBytes,
-        bool validateOnly = false,
         Var bufferSrc = nullptr);
+
+    static bool ValidateModule(
+        ScriptContext* scriptContext,
+        const byte* buffer,
+        const uint lengthBytes,
+        Var bufferSrc);
 
 private:
     struct Memory

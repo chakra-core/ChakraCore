@@ -4,11 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Wasm
-{
-    class WasmModule;
-};
-
 namespace Js
 {
     class WasmLibrary
@@ -27,14 +22,10 @@ namespace Js
         static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
         static const unsigned int experimentalVersion;
 
-        static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryValidate(RecyclableObject* function, CallInfo callInfo, ...);
-
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);
         static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
-    private:
 #endif
     };
 }

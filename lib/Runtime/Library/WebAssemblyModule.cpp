@@ -98,7 +98,7 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
         byteLength = arrayBuffer->GetByteLength();
     }
 
-    return CreateModule(scriptContext, buffer, byteLength, false, bufferSrc);
+    return CreateModule(scriptContext, buffer, byteLength, bufferSrc);
 }
 
 /* static */
@@ -107,13 +107,12 @@ WebAssemblyModule::CreateModule(
     ScriptContext* scriptContext,
     const byte* buffer,
     const uint lengthBytes,
-    bool validateOnly,
     Var bufferSrc)
 {
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
     Unused(wasmPhase);
 
-    WebAssemblyModule * WebAssemblyModule = nullptr;
+    WebAssemblyModule * webAssemblyModule = nullptr;
     Wasm::WasmReaderInfo * readerInfo = nullptr;
     Js::FunctionBody * currentBody = nullptr;
     try
@@ -124,16 +123,16 @@ WebAssemblyModule::CreateModule(
 
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
 
-        WebAssemblyModule = bytecodeGen.GenerateModule();
+        webAssemblyModule = bytecodeGen.GenerateModule();
 
-        for (uint i = 0; i < WebAssemblyModule->GetWasmFunctionCount(); ++i)
+        for (uint i = 0; i < webAssemblyModule->GetWasmFunctionCount(); ++i)
         {
-            Js::FunctionBody * body = WebAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
-            if (PHASE_ON(WasmDeferredPhase, body))
+            currentBody = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
+            if (PHASE_ON(WasmDeferredPhase, currentBody))
             {
                 continue;
             }
-            readerInfo = body->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
+            readerInfo = currentBody->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
 
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
         }
@@ -163,7 +162,47 @@ WebAssemblyModule::CreateModule(
         throw newEx;
     }
 
-    return WebAssemblyModule;
+    return webAssemblyModule;
+}
+
+/* static */
+bool
+WebAssemblyModule::ValidateModule(
+    ScriptContext* scriptContext,
+    const byte* buffer,
+    const uint lengthBytes,
+    Var bufferSrc)
+{
+    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
+    Unused(wasmPhase);
+
+    try
+    {
+        Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
+        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
+
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
+
+        WebAssemblyModule * webAssemblyModule = bytecodeGen.GenerateModule();
+
+        for (uint i = 0; i < webAssemblyModule->GetWasmFunctionCount(); ++i)
+        {
+            Js::FunctionBody * body = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
+            Wasm::WasmReaderInfo * readerInfo = body->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
+
+            Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
+        }
+    }
+    catch (Wasm::WasmCompilationException& ex)
+    {
+        char16* originalMessage = ex.ReleaseErrorMessage();
+        SysFreeString(originalMessage);
+
+        return false;
+    }
+
+    return true;
 }
 
 uint32
