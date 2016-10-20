@@ -66,7 +66,7 @@ for ($i = 0; $i -lt $scenarios.Length; $i = $i + 1) {
 
     for ($j = 0; $j -lt $items.Length; $j = $j + 1) {
         $testFile = $items[$j]
-        Write-Host "$binary -ensureclosejitserver- $testFile"
-        iex "$binary -ensureclosejitserver- $testFile"
+        Write-Host "$binary -oopjit- $testFile"
+        iex "$binary -oopjit- $testFile"
     }
 }
