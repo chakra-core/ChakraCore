@@ -9,7 +9,7 @@
 #endif
 
 
-ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo)
+ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo) : threadContextInfo(threadContextInfo)
 {
     threadContextInfo->AddRef();
 }
