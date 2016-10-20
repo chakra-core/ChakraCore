@@ -8590,7 +8590,7 @@ namespace Js
             {
                 auto next = &jitTransferData->typeGuardTransferData.entries;
                 while (*next)
-                {   
+                {
                     auto current = (*next);
                     *next = (*next)->next;
                     midl_user_free(current);
@@ -8599,8 +8599,8 @@ namespace Js
 
             if (jitTransferData->ctorCacheTransferData.entries != nullptr)
             {
-                CtorCacheTransferEntryIDL ** entries = this->jitTransferData->ctorCacheTransferData.entries;
-                for (uint i = 0; i < this->jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
+                CtorCacheTransferEntryIDL ** entries = jitTransferData->ctorCacheTransferData.entries;
+                for (uint i = 0; i < jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
                 {
                     midl_user_free(entries[i]);
                 }
