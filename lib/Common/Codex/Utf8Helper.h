@@ -14,9 +14,7 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT WideStringToNarrow(
-        LPCWSTR sourceString, size_t sourceCount,
-        LPSTR* destStringPtr, size_t* destCount)
+    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount)
     {
         size_t cchSourceString = sourceCount;
 
@@ -54,9 +52,7 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT NarrowStringToWide(
-        LPCSTR sourceString, size_t sourceCount,
-        LPWSTR* destStringPtr, size_t* destCount)
+    HRESULT NarrowStringToWide(_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount)
     {
         size_t cbSourceString = sourceCount;
         charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
@@ -93,21 +89,21 @@ namespace utf8
         static void free(void* ptr, size_t count) { ::free(ptr); }
     };
 
-    inline HRESULT WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
+    inline HRESULT WideStringToNarrowDynamic(_In_ LPCWSTR sourceString, _Out_ LPSTR* destStringPtr)
     {
         size_t unused;
         return WideStringToNarrow<malloc_allocator>(
             sourceString, wcslen(sourceString), destStringPtr, &unused);
     }
 
-    inline HRESULT NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr)
+    inline HRESULT NarrowStringToWideDynamic(_In_ LPCSTR sourceString, _Out_ LPWSTR* destStringPtr)
     {
         size_t unused;
         return NarrowStringToWide<malloc_allocator>(
             sourceString, strlen(sourceString), destStringPtr, &unused);
     }
 
-    inline HRESULT NarrowStringToWideDynamicGetLength(LPCSTR sourceString, LPWSTR* destStringPtr, size_t* destLength)
+    inline HRESULT NarrowStringToWideDynamicGetLength(_In_ LPCSTR sourceString, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destLength)
     {
         return NarrowStringToWide<malloc_allocator>(
             sourceString, strlen(sourceString), destStringPtr, destLength);
