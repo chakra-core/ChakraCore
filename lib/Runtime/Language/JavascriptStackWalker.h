@@ -348,7 +348,7 @@ namespace Js
         Js::JavascriptFunction * UpdateFrame(bool includeInlineFrames);
         bool CheckJavascriptFrame(bool includeInlineFrames);
 
-        JavascriptFunction *JavascriptStackWalker::GetCurrentFunctionFromPhysicalFrame() const;
+        JavascriptFunction *GetCurrentFunctionFromPhysicalFrame() const;
      };
 
     class AutoPushReturnAddressForStackWalker

@@ -22,7 +22,7 @@ byte ttUri[MAX_PATH * sizeof(wchar_t)];
 size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
-LPWSTR connectionUuidString = NULL;
+LPCWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
 extern "C"

@@ -1658,11 +1658,11 @@ private:
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
-    void                    GlobOpt::CaptureValuesFromScratch(
+    void                    CaptureValuesFromScratch(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
-    void                    GlobOpt::CaptureValuesIncremental(
+    void                    CaptureValuesIncremental(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);

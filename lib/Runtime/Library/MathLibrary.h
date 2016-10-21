@@ -152,7 +152,7 @@ namespace Js {
         static const double MIN_SAFE_INTEGER;
 
     private:
-        static Var Math::FloorDouble(double d, ScriptContext *scriptContext);
+        static Var FloorDouble(double d, ScriptContext *scriptContext);
     };
 
 } // namespace Js

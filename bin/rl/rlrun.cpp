@@ -24,14 +24,14 @@
 //   4962 "Profile-guided optimizations disabled because profile data became inconsistent"
 //   4963 "'%s' : no profile data found; different compiler options were used in instrumented build"
 
-static char *PogoForceErrors = "-we4951 -we4952 -we4953 -we4961 -we4962 -we4963";
+static const char *PogoForceErrors = "-we4951 -we4952 -we4953 -we4961 -we4962 -we4963";
 
 //
 // Global variables set before worker threads start, and only accessed
 // (not set) by the worker threads.
 //
 // sets of options to iterate over
-char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
+const char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
 
 // use a big global array as scratch pad for passing the child process env vars
 #define MAX_ENV_LEN 10000
@@ -314,10 +314,10 @@ int
     DoOneExternalTest(
     CDirectory* pDir,
     TestVariant *pTestVariant,
-    char *optFlags,
-    char *inCCFlags,
-    char *inLinkFlags,
-    char *testCmd,
+    const char *optFlags,
+    const char *inCCFlags,
+    const char *inLinkFlags,
+    const char *testCmd,
     ExternalTestKind kind,
     BOOL fSyncVariationWhenFinished,
     BOOL fCleanBefore,
@@ -336,7 +336,7 @@ int
     char nogpfFlags[BUFFER_SIZE];
     char optReportBuf[BUFFER_SIZE];
     char nonZeroReturnBuf[BUFFER_SIZE];
-    char *reason = NULL;
+    const char *reason = NULL;
     time_t start_variation;
     UINT elapsed_variation;
     time_t start_build_variation;
@@ -501,7 +501,7 @@ int
             }
         }
 
-        char* cmd = JCBinary;
+        const char* cmd = JCBinary;
         if (kind != TK_JSCRIPT && kind != TK_HTML)
         {
             cmd = pTestVariant->testInfo.data[TIK_COMMAND];
@@ -671,7 +671,7 @@ int
     DWORD millisecTimeout
     )
 {
-    char *ccFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
+    const char *ccFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
     void *envFlags = GetEnvFlags(pTestVariant);
     return DoOneExternalTest(pDir, pTestVariant, pTestVariant->optFlags, ccFlags, NULL,
         testCmd, kind, TRUE, TRUE, TRUE, fSuppressNoGPF, envFlags, millisecTimeout);
@@ -687,8 +687,8 @@ int
     DWORD millisecTimeout
     )
 {
-    static char *pgc = "*.pgc";
-    static char *pgd = POGO_PGD;
+    static const char *pgc = "*.pgc";
+    static const char *pgd = POGO_PGD;
     char pgdFull[MAX_PATH];
     char ccFlags[BUFFER_SIZE];
     char linkFlags[BUFFER_SIZE];
@@ -698,8 +698,8 @@ int
 
     sprintf_s(pgdFull, "%s\\%s", pDir->GetDirectoryPath(), pgd);
 
-    char * inCCFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
-    char * optFlags = pTestVariant->optFlags;
+    const char * inCCFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
+    const char * optFlags = pTestVariant->optFlags;
 
     DeleteFileIfFound(pgdFull);
     DeleteMultipleFiles(pDir, pgc);
@@ -767,9 +767,9 @@ BOOL
     CDirectory *pDir,
     Test * pTest,
     TestVariant * pTestVariant,
-    char *optFlags,
-    char *inCCFlags,
-    char *inLinkFlags,
+    const char *optFlags,
+    const char *inCCFlags,
+    const char *inLinkFlags,
     BOOL fSyncVariationWhenFinished,
     BOOL fCleanAfter,
     BOOL fLinkOnly,    // relink only
@@ -1212,8 +1212,8 @@ int
     DWORD millisecTimeout
     )
 {
-    static char *pgc = "*.pgc";
-    static char *pgd = POGO_PGD;
+    static const char *pgc = "*.pgc";
+    static const char *pgd = POGO_PGD;
     char pgdFull[MAX_PATH];
     char ccFlags[BUFFER_SIZE];
     char linkFlags[BUFFER_SIZE];
@@ -1221,8 +1221,8 @@ int
 
     sprintf_s(pgdFull, "%s\\%s", pDir->GetDirectoryPath(), pgd);
 
-    char * inCCFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
-    char * optFlags = pTestVariant->optFlags;
+    const char * inCCFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
+    const char * optFlags = pTestVariant->optFlags;
 
     DeleteFileIfFound(pgdFull);
     DeleteMultipleFiles(pDir, pgc);
@@ -1288,7 +1288,7 @@ int
     char *p = NULL;
     char full[MAX_PATH];
     DWORD millisecTimeout = DEFAULT_TEST_TIMEOUT;
-    char *strTimeout = pTestVariant->testInfo.data[TIK_TIMEOUT];
+    const char *strTimeout = pTestVariant->testInfo.data[TIK_TIMEOUT];
 
     if (strTimeout) {
         char *end;

@@ -56,7 +56,7 @@ namespace Js
     {
     public:
         static bool IsDigit(int ch);
-        static BOOL NumberUtilities::FHexDigit(char16 ch, int *pw);
+        static BOOL FHexDigit(char16 ch, int *pw);
         static uint32 MulLu(uint32 lu1, uint32 lu2, uint32 *pluHi);
         static int AddLu(uint32 *plu1, uint32 lu2);
 

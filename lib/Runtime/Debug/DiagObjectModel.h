@@ -576,12 +576,12 @@ namespace Js
         // Just populate the indexes only.
         bool fOnlyOwnProperties;
 
-        uint32 RecyclableArrayWalker::GetItemCount(Js::JavascriptArray* arrayObj);
+        uint32 GetItemCount(Js::JavascriptArray* arrayObj);
 
         // ES5Array will extend this.
         virtual uint32 GetNextDescriptor(uint32 currentDescriptor) { return Js::JavascriptArray::InvalidIndex; }
 
-        LPCWSTR RecyclableArrayWalker::GetIndexName(uint32 index, StringBuilder<ArenaAllocator>* stringBuilder);
+        LPCWSTR GetIndexName(uint32 index, StringBuilder<ArenaAllocator>* stringBuilder);
 
         Js::JavascriptArray* GetArrayObject();
 

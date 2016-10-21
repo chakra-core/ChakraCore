@@ -799,7 +799,7 @@ public:
     void                            CreateBranchTargetsAndSetDefaultTarget(int dictionarySize, Kind kind, uint defaultTargetOffset);
     void                            ChangeLabelRef(LabelInstr * oldTarget, LabelInstr * newTarget);
     bool                            ReplaceTarget(IR::LabelInstr * oldLabelInstr, IR::LabelInstr * newLabelInstr);
-    void                            MultiBranchInstr::FixMultiBrDefaultTarget(uint32 targetOffset);
+    void                            FixMultiBrDefaultTarget(uint32 targetOffset);
     void                            ClearTarget();
     BranchDictionaryWrapper *       GetBranchDictionary();
     BranchJumpTable *               GetBranchJumpTable();

@@ -99,6 +99,6 @@ namespace JSON
         Js::JavascriptString* gap;
         uint indent;
         Js::JavascriptString* propertySeparator;     // colon or colon+space
-        Js::Var StringifySession::StrHelper(Js::JavascriptString* key, Js::Var value, Js::Var holder);
+        Js::Var StrHelper(Js::JavascriptString* key, Js::Var value, Js::Var holder);
     };
 } // namespace JSON

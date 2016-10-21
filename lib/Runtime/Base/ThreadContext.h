@@ -1359,7 +1359,7 @@ public:
     }
 
 #if ENABLE_PROFILE_INFO
-    void ThreadContext::EnsureSourceProfileManagersByUrlMap();
+    void EnsureSourceProfileManagersByUrlMap();
     Js::SourceDynamicProfileManager* GetSourceDynamicProfileManager(_In_z_ const WCHAR* url, _In_ uint hash, _Inout_ bool* addref);
     uint ReleaseSourceDynamicProfileManagers(const WCHAR* url);
 #endif

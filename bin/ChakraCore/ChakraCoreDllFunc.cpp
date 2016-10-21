@@ -79,7 +79,7 @@ static BOOL AttachProcess(HANDLE hmod)
     // This is unnecessary on Linux since there aren't other flavors of
     // Chakra binaries that can be loaded into the process
 #ifdef _WIN32
-    char16 *engine = szChakraCoreLock;
+    const char16 *engine = szChakraCoreLock;
     if (::FindAtom(szChakraLock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded chakra.dll");

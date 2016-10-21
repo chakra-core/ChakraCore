@@ -71,12 +71,12 @@ private:
     static const BYTE ThunkAddressOffset;
     static const BYTE FunctionBodyOffset;
     static const BYTE DynamicThunkAddressOffset;
-    static const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset;
-    static const BYTE InterpreterThunkEmitter::ThunkSizeOffset;
-    static const BYTE InterpreterThunkEmitter::ErrorOffset;
+    static const BYTE CallBlockStartAddrOffset;
+    static const BYTE ThunkSizeOffset;
+    static const BYTE ErrorOffset;
 #if defined(_M_ARM)
-    static const BYTE InterpreterThunkEmitter::CallBlockStartAddressInstrOffset;
-    static const BYTE InterpreterThunkEmitter::CallThunkSizeInstrOffset;
+    static const BYTE CallBlockStartAddressInstrOffset;
+    static const BYTE CallThunkSizeInstrOffset;
 #endif
     static const BYTE InterpreterThunk[];
 

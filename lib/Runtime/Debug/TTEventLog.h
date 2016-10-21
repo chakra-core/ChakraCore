@@ -511,8 +511,8 @@ namespace TTD
 
         //Load and restore all the breakpoints in the manager before and after we create new script contexts
         void LoadBPListForContextRecreate();
-        void EventLog::UnLoadBPListAfterMoveForContextRecreate();
-        const JsUtil::List<TTDebuggerSourceLocation, HeapAllocator>& EventLog::GetRestoreBPListAfterContextRecreate();
+        void UnLoadBPListAfterMoveForContextRecreate();
+        const JsUtil::List<TTDebuggerSourceLocation, HeapAllocator>& GetRestoreBPListAfterContextRecreate();
 #endif
 
         //Update the loop count information
