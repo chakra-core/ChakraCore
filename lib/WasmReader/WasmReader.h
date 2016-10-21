@@ -58,6 +58,7 @@ namespace Wasm
     typedef WasmTypes::WasmType Local;
 }
 
+#include "WasmReaderBase.h"
 #include "WasmSignature.h"
 #include "WasmDataSegment.h"
 #include "WasmFunctionInfo.h"
@@ -66,6 +67,7 @@ namespace Wasm
 #include "WasmSection.h"
 
 #include "WasmBinaryReader.h"
+#include "WasmCustomReader.h"
 #include "WasmByteCodeGenerator.h"
 
 // TODO (michhol): cleanup includes

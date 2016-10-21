@@ -249,7 +249,13 @@ WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
     uint32 entries = LEB128(len);
-    if (entries != m_module->GetWasmFunctionCount())
+    uint32 moduleFuncCount = m_module->GetWasmFunctionCount();
+    if (entries != moduleFuncCount &&
+        (entries > moduleFuncCount ||
+            // We might have added some custom functions at the end, check that entries really points
+            // to the last functions defined in the module
+            (entries > 0 && m_module->GetWasmFunctionInfo(entries - 1)->GetCustomReader()) ||
+            !m_module->GetWasmFunctionInfo(entries)->GetCustomReader()))
     {
         ThrowDecodingError(_u("Function signatures and function bodies count mismatch"));
     }
@@ -646,15 +652,15 @@ void WasmBinaryReader::ReadExportTable()
         {
         case ImportKinds::Function:
         {
-            FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
-            if (type == FunctionIndexTypes::Invalid)
+            uint32 normIndex = 0;
+            FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index, &normIndex);
+            if (type != FunctionIndexTypes::Import && type != FunctionIndexTypes::Function)
             {
                 ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
             }
             m_module->SetFunctionExport(iExport, index, exportName, nameLength);
 
 #if DBG_DUMP
-            uint32 normIndex = m_module->NormalizeFunctionIndex(index);
             if (type == FunctionIndexTypes::Import)
             {
                 WasmImport* import = m_module->GetFunctionImport(normIndex);
@@ -757,7 +763,34 @@ WasmBinaryReader::ReadElementSection()
             }
             if (funcType == FunctionIndexTypes::Import)
             {
-                ThrowDecodingError(_u("Import functions in the table NYI"));
+                uint32 internalThunkId = m_module->GetWasmFunctionCount();
+                WasmSignature* importSig = m_module->GetFunctionSignature(elem);
+                WasmFunctionInfo* internalThunk = Anew(m_alloc, WasmFunctionInfo, m_alloc, importSig, internalThunkId);
+                WasmCustomReader* customReader = Anew(m_alloc, WasmCustomReader, m_alloc);
+
+                for (uint32 iParam = 0; iParam < importSig->GetParamCount(); ++iParam)
+                {
+                    WasmNode getLocalNode;
+                    getLocalNode.op = wbGetLocal;
+                    getLocalNode.var.num = iParam;
+                    customReader->AddNode(getLocalNode);
+                }
+                WasmNode callNode;
+                callNode.op = wbCall;
+                callNode.call.funcType = FunctionIndexTypes::Import;
+                callNode.call.num = elem;
+                customReader->AddNode(callNode);
+
+                internalThunk->SetCustomReader(customReader);
+                internalThunk->m_readerInfo.index = i;
+                internalThunk->m_readerInfo.size = importSig->GetParamCount() * 6 + 10; // bytecode size estimate, doesn't need to be accurate
+                internalThunk->m_readerInfo.startOffset = 0;
+
+                m_module->AddWasmFunctionInfo(internalThunk);
+                elem = internalThunkId + m_module->GetImportCount();
+
+                DebugOnly(uint32 normIndex);
+                Assert(m_module->GetFunctionIndexType(elem, &normIndex) == FunctionIndexTypes::InternalFunction && normIndex == internalThunkId);
             }
             m_module->SetTableValue(elem, iElem);
         }

@@ -6,6 +6,7 @@ add_library (Chakra.WasmReader OBJECT
     WasmSection.cpp
     WasmSignature.cpp
     WasmBinaryReader.cpp
+    WasmCustomReader.cpp
     WasmByteCodeGenerator.cpp
     )
 
