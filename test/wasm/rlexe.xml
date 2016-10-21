@@ -56,6 +56,12 @@
 </test>
 <test>
     <default>
+       <files>buffer.js</files>
+       <compile-flags>-on:Wasm -on:wasmdeferred -CollectGarbage</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
        <files>unreachable.js</files>
        <compile-flags>-on:Wasm</compile-flags>
     </default>

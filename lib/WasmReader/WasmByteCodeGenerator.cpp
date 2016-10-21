@@ -68,13 +68,12 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 typedef bool(*SectionProcessFunc)(WasmModuleGenerator*);
 typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 
-WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc) :
+WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength) :
     m_sourceInfo(sourceInfo),
     m_scriptContext(scriptContext),
-    m_recycler(scriptContext->GetRecycler()),
-    m_bufferSrc(bufferSrc)
+    m_recycler(scriptContext->GetRecycler())
 {
-    m_module = RecyclerNewFinalizedLeaf(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
+    m_module = RecyclerNewFinalized(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
@@ -196,8 +195,6 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
-    // We need to keep a reference on the source of the binary buffer otherwise the recycler might collect it
-    readerInfo->m_bufferSrc = m_bufferSrc;
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
