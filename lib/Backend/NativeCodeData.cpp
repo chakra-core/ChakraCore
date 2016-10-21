@@ -161,7 +161,9 @@ NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void*
     {
         if (entry->addrOffset == offset)
         {
-            Assert(entry->targetTotalOffset == targetChunk->offset);
+            // The following assertions can be false positive in case a data field happen to 
+            // have value fall into NativeCodeData memory range
+            AssertMsg(entry->targetTotalOffset == targetChunk->offset, "Missing fixup");
             return;
         }
         entry = entry->next;
@@ -207,7 +209,20 @@ NativeCodeData::Allocator::Alloc(size_t requestSize)
     char * data = nullptr;
     Assert(!finalized);
     requestSize = Math::Align(requestSize, sizeof(void*));
+
+#if DBG
+    // Always zero out the data for chk build to reduce the chance of false
+    // positive while verifying missing fixup entries
+    // Allocation without zeroing out, and with bool field in the structure
+    // will increase the chance of false positive because of reusing memory
+    // without zeroing, and the bool field is set to false, makes the garbage 
+    // memory not changed, and the garbage memory might be just pointing to the 
+    // same range of NativeCodeData memory, the checking tool will report false 
+    // poisitive, see NativeCodeData::VerifyExistFixupEntry for more
+    DataChunk * newChunk = HeapNewStructPlusZ(requestSize, DataChunk);
+#else
     DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
+#endif
 
 #if DBG
     newChunk->dataType = nullptr;
@@ -252,7 +267,10 @@ char *
 NativeCodeData::Allocator::AllocZero(size_t requestSize)
 {
     char * data = Alloc(requestSize);
+#if !DBG
+    // Allocated with HeapNewStructPlusZ for chk build
     memset(data, 0, requestSize);
+#endif
     return data;
 }
 

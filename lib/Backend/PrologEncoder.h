@@ -119,17 +119,23 @@ private:
     };
 #pragma pack(pop)
 
-    PData            *pdata;
-    ArenaAllocator   *alloc;
+    static const unsigned __int8   MaxRequiredUnwindCodeNodeCount = 34;
+    static const size_t MaxPDataSize = sizeof(PData) + (sizeof(UNWIND_CODE) * MaxRequiredUnwindCodeNodeCount);
+
+    union
+    {
+        PData         pdata;
+        BYTE          pdataBuffer[MaxPDataSize];
+    };
     unsigned __int8   currentUnwindCodeNodeIndex;
     unsigned __int8   requiredUnwindCodeNodeCount;
     unsigned __int8   currentInstrOffset;
 
+
+
 public:
-    PrologEncoder(ArenaAllocator *alloc)
-        : alloc(alloc),
-          pdata(nullptr),
-          requiredUnwindCodeNodeCount(0),
+    PrologEncoder()
+        : requiredUnwindCodeNodeCount(0),
           currentUnwindCodeNodeIndex(0),
           currentInstrOffset(0)
     {
@@ -145,7 +151,6 @@ public:
     // Pre-Win8 PDATA registration.
     //
     DWORD SizeOfPData();
-    void SetPDataPtr(void *pdata);
     BYTE *Finalize(BYTE *functionStart,
                         DWORD codeSize,
                         BYTE *pdataBuffer);
@@ -170,9 +175,13 @@ private:
 
 class PrologEncoder
 {
+public:
+    static const int SMALL_EHFRAME_SIZE = 0x40;
+    static const int JIT_EHFRAME_SIZE = 0x80;
+
 private:
-    ArenaAllocator* alloc;
-    EhFrame* ehFrame;
+    EhFrame ehFrame;
+    BYTE buffer[JIT_EHFRAME_SIZE];
 
     size_t cfiInstrOffset;      // last cfi emit instr offset
     size_t currentInstrOffset;  // current instr offset
@@ -180,8 +189,8 @@ private:
     unsigned cfaWordOffset;
 
 public:
-    PrologEncoder(ArenaAllocator *alloc)
-        : alloc(alloc), ehFrame(nullptr),
+    PrologEncoder()
+        :ehFrame(buffer, JIT_EHFRAME_SIZE),
           cfiInstrOffset(0), currentInstrOffset(0), cfaWordOffset(1)
     {}
 
@@ -197,7 +206,7 @@ public:
     void Begin(size_t prologStartOffset);
     void End();
     DWORD SizeOfUnwindInfo() { return SizeOfPData(); }
-    BYTE *GetUnwindInfo() { return ehFrame->Buffer(); }
+    BYTE *GetUnwindInfo() { return ehFrame.Buffer(); }
     void FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize);
 };
 

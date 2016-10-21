@@ -222,32 +222,18 @@ const BYTE InterpreterThunkEmitter::Call[] = {
 
 #endif
 
-const BYTE InterpreterThunkEmitter::PageCount = 1;
-const uint InterpreterThunkEmitter::BlockSize = AutoSystemInfo::PageSize * InterpreterThunkEmitter::PageCount;
 const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
-    emitBufferManager(nullptr),
+    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     scriptContext(context),
     allocator(allocator),
     thunkCount(0),
     thunkBuffer(nullptr),
     isAsmInterpreterThunk(isAsmInterpreterThunk)
 {
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
-    {
-        emitBufferManager = HeapNew(EmitBufferManager<>, allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess());
-    }
-}
-
-InterpreterThunkEmitter::~InterpreterThunkEmitter()
-{
-    if (emitBufferManager != nullptr)
-    {
-        HeapDelete(emitBufferManager);
-    }
 }
 
 //
@@ -309,12 +295,12 @@ void InterpreterThunkEmitter::NewThunkBlock()
     Assert(this->thunkCount == 0);
     BYTE* buffer;
 
-    EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(BlockSize, &buffer);
+    EmitBufferAllocation * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
     if (allocation == nullptr) 
     {
         Js::Throw::OutOfMemory();
     }
-    if (!emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+    if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
     {
         Js::Throw::OutOfMemory();
     }
@@ -325,7 +311,6 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
 
     FillBuffer(
-        this->allocator,
         this->scriptContext->GetThreadContext(),
         this->isAsmInterpreterThunk,
         (intptr_t)buffer,
@@ -338,7 +323,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
         &this->thunkCount
     );
 
-    if (!emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
+    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
     {
         Js::Throw::OutOfMemory();
     }
@@ -369,7 +354,13 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     );
     JITManager::HandleServerCallResult(hr);
 
+
     this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+
+    if (!CONFIG_FLAG(OOPCFGRegistration))
+    {
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(this->thunkBuffer);
+    }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
     auto block = this->thunkBlocks.PrependNode(allocator, this->thunkBuffer);
@@ -387,7 +378,6 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
 /* static */
 void InterpreterThunkEmitter::FillBuffer(
-    _In_ ArenaAllocator * arena,
     _In_ ThreadContextInfo * threadContext,
     _In_ bool asmJsThunk,
     _In_ intptr_t finalAddr,
@@ -401,7 +391,7 @@ void InterpreterThunkEmitter::FillBuffer(
     )
 {
 #ifdef _M_X64
-    PrologEncoder prologEncoder(arena);
+    PrologEncoder prologEncoder;
     prologEncoder.EncodeSmallProlog(PrologSize, StackAllocSize);
     DWORD pdataSize = prologEncoder.SizeOfPData();
 #elif defined(_M_ARM32_OR_ARM64)
@@ -722,13 +712,14 @@ InterpreterThunkEmitter::IsInHeap(void* address)
             return false;
         }
         boolean result;
-        JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        JITManager::HandleServerCallResult(hr);
         return result != FALSE;
     }
     else
 #endif
     {
-        return emitBufferManager->IsInHeap(address);
+        return emitBufferManager.IsInHeap(address);
     }
 }
 #endif
@@ -760,7 +751,7 @@ void InterpreterThunkEmitter::Close()
     else
 #endif
     {
-        emitBufferManager->Decommit();
+        emitBufferManager.Decommit();
     }
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;

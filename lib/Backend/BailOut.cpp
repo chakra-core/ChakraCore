@@ -2091,7 +2091,15 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnTaggedValue:
-                rejitReason = RejitReason::FailedTagCheck;
+                if (profileInfo->IsTagCheckDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableTagCheck();
+                    rejitReason = RejitReason::FailedTagCheck;
+                }
                 break;
 
             case IR::BailOutFailedTypeCheck:
@@ -2531,6 +2539,8 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnTaggedValue:
+                profileInfo->DisableTagCheck();
+                executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::FailedTagCheck;
                 break;
 

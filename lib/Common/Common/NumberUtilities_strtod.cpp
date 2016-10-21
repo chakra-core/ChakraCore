@@ -2068,25 +2068,23 @@ static int FormatDigitsFixed(byte *pbSrc, byte *pbLim, int wExp10, int nFraction
     return n;
 }
 
-__success(return <= cchDst)
+_Success_(return <= cchDst)
+// The return value is not the number of elements set in pchDst in the 'failure' case.
+// We need to suppress 6101 as it expects us to return 0 in that case.
+#pragma prefast(suppress:6101)
 static int FormatDigitsExponential(
-                            byte *  pbSrc,
-                            byte *  pbLim,
-                            int     wExp10,
-                            int     nFractionDigits,
-                            __out_ecount_part(cchDst,return) char16 * pchDst,
-                            int     cchDst
-                            )
+    _In_reads_bytes_(pbLim - pbSrc) byte *   pbSrc,
+    _In_                            byte *   pbLim,
+    _In_range_(0, 1000)             int      wExp10,
+                                    int      nFractionDigits,
+    _Out_writes_to_(cchDst, return) char16 * pchDst,
+                                    int      cchDst)
 {
     AnalysisAssert(pbLim > pbSrc);
     Assert(pbLim - pbSrc <= kcbMaxRgb);
     AssertArrMem(pbSrc, pbLim - pbSrc);
     AssertArrMem(pchDst, cchDst);
-    AnalysisAssert(wExp10 < 1000);
-
-    __analysis_assume(pbLim > pbSrc);
-    __analysis_assume(pbLim - pbSrc <= kcbMaxRgb);
-    __analysis_assume(wExp10 < 1000);
+    Assert(wExp10 < 1000);
 
     int n = 1; // first digit
 
@@ -2158,7 +2156,6 @@ static int FormatDigitsExponential(
     *pchDst++ = 'e';
     if (--wExp10 < 0)
     {
-#pragma prefast(suppress:26014, "We have calculate the check the buffer size above already")
         *pchDst++ = '-';
         wExp10 = -wExp10;
     }

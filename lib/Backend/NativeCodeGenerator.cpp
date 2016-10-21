@@ -1088,6 +1088,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 #endif
 
+    if (!CONFIG_FLAG(OOPCFGRegistration))
+    {
+        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+    }
+
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
     workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -3194,7 +3199,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         return;
     }
 
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
         ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
@@ -3665,6 +3670,6 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        Js::Throw::FatalInternalError();
+        RpcFailure_fatal_error(hr);
     }
 }
