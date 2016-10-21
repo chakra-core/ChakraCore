@@ -1917,6 +1917,7 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat64);
     srcOpnd->SetValueType(ValueType::Float);
     IR::RegOpnd * dstOpnd = nullptr;
+    Js::OpCode op = Js::OpCode::Conv_Prim;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Conv_DTI:
@@ -1925,12 +1926,20 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     case Js::OpCodeAsmJs::Conv_DTU:
         dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
         break;
+    case Js::OpCodeAsmJs::Conv_Check_DTI:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        op = Js::OpCode::Conv_Prim_Check;
+        break;
+    case Js::OpCodeAsmJs::Conv_Check_DTU:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
+        op = Js::OpCode::Conv_Prim_Check;
+        break;
     default:
         Assume(UNREACHED);
     }
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, m_func);
+    IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 }
 
@@ -1954,6 +1963,14 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     case Js::OpCodeAsmJs::Reinterpret_FTI:
         dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         op = Js::OpCode::Reinterpret_Prim;
+        break;
+    case Js::OpCodeAsmJs::Conv_Check_FTI:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        op = Js::OpCode::Conv_Prim_Check;
+        break;
+    case Js::OpCodeAsmJs::Conv_Check_FTU:
+        op = Js::OpCode::Conv_Prim_Check;
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
         break;
     default:
         Assume(UNREACHED);

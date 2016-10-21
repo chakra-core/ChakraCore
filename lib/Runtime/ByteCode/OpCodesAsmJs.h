@@ -270,6 +270,11 @@ MACRO_WMS       ( Fround_Db                  , Float1Double1   , None           
 MACRO_WMS       ( Fround_Int                 , Float1Int1      , None            )
 MACRO_WMS       ( Fround_Long                , Float1Long1     , None            )
 
+MACRO_EXTEND_WMS( Conv_Check_DTI             , Int1Double1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTI             , Int1Float1      , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTU             , Int1Double1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTU             , Int1Float1      , None            )
+
 MACRO_EXTEND_WMS( Copysign_Db                , Double3         , None            )
 MACRO_EXTEND_WMS( Copysign_Flt               , Float3          , None            )
 MACRO_EXTEND_WMS( Trunc_Db                   , Double2         , None            )

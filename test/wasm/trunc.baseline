@@ -1,0 +1,22 @@
+0
+-2
+-1
+Overflow Exception
+Overflow Exception
+-1
+0
+-2147483647
+-2147483648
+Overflow Exception
+0
+2147483647
+Overflow Exception
+0
+-256
+Overflow Exception
+0
+2147483520
+Overflow Exception
+0
+-2147483520
+Overflow Exception

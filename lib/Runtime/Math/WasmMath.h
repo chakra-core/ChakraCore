@@ -24,6 +24,7 @@ public:
     template<typename T> static T Clz(T value);
     template<typename T> static T Rol(T aLeft, T aRight);
     template<typename T> static T Ror(T aLeft, T aRight);
+    template <typename T, T MIN, T MAX> static bool IsInValidRange (double aLeft);
 };
 
 } //namespace Wasm

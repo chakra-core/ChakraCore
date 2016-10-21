@@ -105,6 +105,7 @@ public:
             void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
             void            GeneratePopCnt(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateThrowUnreachable(IR::Instr * instr) { Assert(UNREACHED); }
+            void            GenerateTruncWithCheck(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);
