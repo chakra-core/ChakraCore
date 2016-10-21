@@ -1,4 +1,1 @@
-block.wast:139: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function break-bare[10]: Operator Unreachable NYI
-block.wast:142: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function break-inner[13]: Invalid input type
-block.wast:148: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function drop-break-value-heterogeneous[18]: Operator I64Const NYI
-16/19 tests passed.
+14/14 tests passed.

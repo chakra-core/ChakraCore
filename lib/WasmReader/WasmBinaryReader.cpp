@@ -134,7 +134,10 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadDataSegments();
         break;
     case bSectIndirectFunctionTable:
-        ReadIndirectFunctionTable();
+        ReadTableSection();
+        break;
+    case bSectElement:
+        ReadElementSection();
         break;
     case bSectNames:
         ReadNamesSection();
@@ -150,28 +153,40 @@ WasmBinaryReader::ProcessCurrentSection()
 SectionHeader
 WasmBinaryReader::ReadSectionHeader()
 {
-    UINT len = 0;
-    UINT32 sectionSize;
-    UINT32 idSize;
-
     SectionHeader header;
     header.start = m_pc;
+    header.code = bSectInvalid;
 
-    idSize = LEB128(len);
-    const char *sectionName = (char*)(m_pc);
-    m_pc += idSize;
+    UINT len = 0;
+    UINT32 sectionId = LEB128(len);
 
-    sectionSize = LEB128(len);
+    UINT32 sectionSize = LEB128(len);
     header.end = m_pc + sectionSize;
     CheckBytesLeft(sectionSize);
 
-    for (int i = 0; i < bSectLimit ; i++)
+    const char *sectionName = nullptr;
+    UINT32 nameLength = 0;
+
+    if (sectionId > 0)
     {
-        if (!memcmp(SectionInfo::All[i].id, sectionName, idSize))
+        SectionCode sectCode = (SectionCode)(sectionId - 1);
+
+        if (sectCode >= bSectNames) // ">=" since "Name" isn't considered to be a known section
         {
-            header.code = (SectionCode)i;
-            break;
+            ThrowDecodingError(_u("Invalid known section opcode %d"), sectCode);
         }
+
+        sectionName = SectionInfo::All[sectCode].id;
+        header.code = sectCode;
+        nameLength = static_cast<UINT32>(strlen(sectionName)); //sectionName (SectionInfo.id) is null-terminated
+    }
+    else
+    {
+        nameLength = LEB128(len);
+        CheckBytesLeft(nameLength);
+        sectionName = (char*)(m_pc);
+        m_pc += nameLength; //skip section name for now
+        header.code = bSectUser;
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -179,7 +194,7 @@ WasmBinaryReader::ReadSectionHeader()
     {
         char16* wstr = nullptr;
         size_t unused;
-        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, idSize, &wstr, &unused);
+        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, nameLength, &wstr, &unused);
         TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), wstr, sectionSize, sectionSize);
         free(wstr);
     }
@@ -234,14 +249,14 @@ WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
     uint32 entries = LEB128(len);
-    if (entries != m_module->GetFunctionCount())
+    if (entries != m_module->GetWasmFunctionCount())
     {
         ThrowDecodingError(_u("Function signatures and function bodies count mismatch"));
     }
 
     for (uint32 i = 0; i < entries; ++i)
     {
-        WasmFunctionInfo* funcInfo = m_module->GetFunctionInfo(i);
+        WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(i);
 
         const uint32 funcSize = LEB128(len);
         funcInfo->m_readerInfo.index = i;
@@ -273,11 +288,7 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
     uint32 entryCount = LEB128(len);
     m_funcState.count += len;
 
-    WasmFunctionInfo* funcInfo = m_module->GetFunctionInfo(readerInfo.index);
-    if (!funcInfo)
-    {
-        ThrowDecodingError(_u("Invalid function index %u"), readerInfo.index);
-    }
+    WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(readerInfo.index);
 
     // locals
     for (uint32 j = 0; j < entryCount; j++)
@@ -312,24 +323,31 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 WasmOp
 WasmBinaryReader::ReadExpr()
 {
+    WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
+    ++m_funcState.count;
+
     if (EndOfFunc())
     {
         // end of AST
-        return wbFuncEnd;
+        if (op != wbEnd)
+        {
+            ThrowDecodingError(_u("missing function end opcode"));
+        }
+        return op;
     }
 
-    WasmOp op = (WasmOp)*m_pc++;
-    ++m_funcState.count;
     switch (op)
     {
     case wbBlock:
     case wbLoop:
+    case wbIf:
+        BlockNode();
+        break;
+    case wbElse:
+        // no node attributes
         break;
     case wbCall:
         CallNode();
-        break;
-    case wbCallImport:
-        CallImportNode();
         break;
     case wbCallIndirect:
         CallIndirectNode();
@@ -342,8 +360,6 @@ WasmBinaryReader::ReadExpr()
         BrTableNode();
         break;
     case wbReturn:
-        m_currentNode.ret.arity = ReadConst<UINT8>();
-        ++m_funcState.count;
         break;
     case wbI32Const:
         ConstNode<WasmTypes::I32>();
@@ -362,10 +378,6 @@ WasmBinaryReader::ReadExpr()
     case wbTeeLocal:
         VarNode();
         break;
-    case wbIf:
-    case wbElse:
-        // no node attributes
-        break;
     case wbDrop:
         break;
     case wbEnd:
@@ -374,11 +386,11 @@ WasmBinaryReader::ReadExpr()
         break;
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
-    m_currentNode.op = MemNode(op); \
+        MemNode(); \
     break;
 #include "WasmBinaryOpCodes.h"
     default:
-        m_currentNode.op = op;
+        break;
     }
 
 #if DBG_DUMP
@@ -408,31 +420,15 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
-    if (funcNum >= m_module->GetFunctionCount())
+    FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(funcNum);
+    if (funcType == FunctionIndexTypes::Invalid)
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
-    m_currentNode.call.num = funcNum;
-}
-
-void
-WasmBinaryReader::CallImportNode()
-{
-    UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
-
-    UINT32 funcNum = LEB128(length);
-    m_funcState.count += length;
-    if (funcNum >= m_module->GetImportCount())
-    {
-        ThrowDecodingError(_u("Function is out of bound"));
-    }
+    m_currentNode.call.funcType = funcType;
     m_currentNode.call.num = funcNum;
 }
 
@@ -440,8 +436,6 @@ void
 WasmBinaryReader::CallIndirectNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = LEB128(length);
-    m_funcState.count += length;
 
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
@@ -450,6 +444,18 @@ WasmBinaryReader::CallIndirectNode()
         ThrowDecodingError(_u("Function is out of bound"));
     }
     m_currentNode.call.num = funcNum;
+    m_currentNode.call.funcType = FunctionIndexTypes::Function;
+}
+
+void WasmBinaryReader::BlockNode()
+{
+    uint8 sig = ReadConst<uint8>();
+    m_funcState.count++;
+    if (sig >= WasmTypes::Limit)
+    {
+        ThrowDecodingError(_u("Invalid block signature type"));
+    }
+    m_currentNode.block.sig = (WasmTypes::WasmType)sig;
 }
 
 // control flow
@@ -457,47 +463,29 @@ void
 WasmBinaryReader::BrNode()
 {
     UINT len = 0;
-    m_currentNode.br.arity = ReadConst<uint8>();
-    m_funcState.count++;
-
-    if (m_currentNode.br.arity > 1)
-    {
-        ThrowDecodingError(_u("NYI: br yielding more than 1 value"));
-    }
-
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
-
-    m_currentNode.br.hasSubExpr = m_currentNode.br.arity == 1;
 }
 
 void
 WasmBinaryReader::BrTableNode()
 {
     UINT len = 0;
-    m_currentNode.brTable.arity = LEB128(len);
-    m_funcState.count += len;
-
-    if (m_currentNode.brTable.arity > 1)
-    {
-        ThrowDecodingError(_u("NYI: br_table yielding more than 1 value"));
-    }
-
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
     m_currentNode.brTable.targetTable = AnewArray(m_alloc, UINT32, m_currentNode.brTable.numTargets);
 
     for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
-        m_currentNode.brTable.targetTable[i] = ReadConst<uint32>();
-        m_funcState.count += sizeof(uint32);
+        m_currentNode.brTable.targetTable[i] = LEB128(len);
+        m_funcState.count += len;
     }
-    m_currentNode.brTable.defaultTarget = ReadConst<uint32>();
-    m_funcState.count += sizeof(uint32);
+    m_currentNode.brTable.defaultTarget = LEB128(len);
+    m_funcState.count += len;
 }
 
-WasmOp
-WasmBinaryReader::MemNode(WasmOp op)
+void
+WasmBinaryReader::MemNode()
 {
     uint len = 0;
 
@@ -506,8 +494,6 @@ WasmBinaryReader::MemNode(WasmOp op)
 
     m_currentNode.mem.offset = LEB128(len);
     m_funcState.count += len;
-
-    return op;
 }
 
 // Locals/Globals
@@ -562,10 +548,23 @@ void
 WasmBinaryReader::ReadMemorySection()
 {
     UINT length = 0;
-    UINT32 minPage = LEB128(length);
-    UINT32 maxPage = LEB128(length);
-    bool exported = ReadConst<UINT8>() != FALSE;
-    m_module->InitializeMemory(minPage, maxPage, exported);
+    UINT32 count = LEB128(length);
+    if (count > 1)
+    {
+        ThrowDecodingError(_u("Maximum of 1 memory allowed"));
+    }
+
+    if (count == 1)
+    {
+        uint32 flags = LEB128(length);
+        uint32 minPage = LEB128(length);
+        uint32 maxPage = minPage;
+        if (flags & 0x1)
+        {
+            maxPage = LEB128(length);
+        }
+        m_module->InitializeMemory(minPage, maxPage);
+    }
 }
 
 void
@@ -614,7 +613,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
 {
     UINT len = 0;
     uint32 nFunctions = LEB128(len);
-    m_module->AllocateFunctions(nFunctions);
+    m_module->AllocateWasmFunctions(nFunctions);
 
     for (uint32 iFunc = 0; iFunc < nFunctions; iFunc++)
     {
@@ -626,7 +625,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
 
         WasmSignature* sig = m_module->GetSignature(sigIndex);
         WasmFunctionInfo* newFunction = Anew(m_alloc, WasmFunctionInfo, m_alloc, sig, iFunc);
-        m_module->SetFunctionInfo(newFunction, iFunc);
+        m_module->SetWasmFunctionInfo(newFunction, iFunc);
     }
 }
 
@@ -638,35 +637,131 @@ void WasmBinaryReader::ReadExportTable()
 
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
-        uint32 funcIndex = LEB128(length);
-        if (funcIndex >= m_module->GetFunctionCount())
-        {
-            ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, funcIndex);
-        }
         uint32 nameLength;
         char16* exportName = ReadInlineName(length, nameLength);
-        TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, funcIndex, exportName);
-        m_module->SetFunctionExport(iExport, funcIndex, exportName, nameLength);
+
+        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        uint32 index = LEB128(length);
+        switch (kind)
+        {
+        case ImportKinds::Function:
+        {
+            FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
+            if (type == FunctionIndexTypes::Invalid)
+            {
+                ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
+            }
+            m_module->SetFunctionExport(iExport, index, exportName, nameLength);
+
+#if DBG_DUMP
+            uint32 normIndex = m_module->NormalizeFunctionIndex(index);
+            if (type == FunctionIndexTypes::Import)
+            {
+                WasmImport* import = m_module->GetFunctionImport(normIndex);
+                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, normIndex, exportName);
+            }
+            else
+            {
+                TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, normIndex, exportName);
+            }
+#endif
+            break;
+        }
+        case ImportKinds::Memory:
+        {
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Invalid memory index %s"), index);
+            }
+            m_module->SetMemoryIsExported();
+            break;
+        }
+        case ImportKinds::Table:
+            ThrowDecodingError(_u("Exported Kind Table, NYI"));
+        case ImportKinds::Global:
+            ThrowDecodingError(_u("Exported Kind Global, NYI"));
+        default:
+            ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
+            break;
+        }
+
     }
 }
 
-void WasmBinaryReader::ReadIndirectFunctionTable()
+void WasmBinaryReader::ReadTableSection()
 {
     uint32 length;
     uint32 entries = LEB128(length);
-    TRACE_WASM_DECODER(_u("Indirect table: %u entries = ["), entries);
-    m_module->AllocateIndirectFunctions(entries);
-    for (uint32 i = 0; i < entries; i++)
+    if (entries > 1)
     {
-        uint32 functionIndex = LEB128(length);
-        if (functionIndex >= m_module->GetFunctionCount())
-        {
-            ThrowDecodingError(_u("Indirect function index %u is out of bound (max %u)"), functionIndex, m_module->GetFunctionCount());
-        }
-        TRACE_WASM_DECODER(_u("%u, "), functionIndex);
-        m_module->SetIndirectFunction(functionIndex, i);
+        ThrowDecodingError(_u("Maximum of one table allowed"));
     }
-    TRACE_WASM_DECODER(_u("]"), entries);
+
+    if (entries > 0)
+    {
+        uint8 elementType = ReadConst<uint8>();
+        if (elementType != ElementTypes::anyfunc)
+        {
+            ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
+        }
+        uint32 flags = LEB128(length);
+        uint32 initialLength = LEB128(length);
+        if (flags & 0x1)
+        {
+            uint32 maximumLength = LEB128(length);
+
+            // Allocate maximum length for now until resizing supported
+            initialLength = maximumLength;
+        }
+        m_module->AllocateTable(initialLength);
+        m_module->CalculateEquivalentSignatures();
+        TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
+    }
+}
+
+void
+WasmBinaryReader::ReadElementSection()
+{
+    uint32 length = 0;
+    uint32 count = LEB128(length);
+
+    for (uint32 i = 0; i < count; ++i)
+    {
+        uint32 index = LEB128(length);
+        if (index != 0)
+        {
+            ThrowDecodingError(_u("Invalid table index %d"), index);
+        }
+
+        WasmNode initExpr = ReadInitExpr();
+        if (initExpr.op != wbI32Const)
+        {
+            ThrowDecodingError(_u("Only int32.const supported for element offset"));
+        }
+
+        uint32 offset = initExpr.cnst.i32;
+        uint32 numElem = LEB128(length);
+        uint32 end = UInt32Math::Add(offset, numElem);
+        if (end > m_module->GetTableSize())
+        {
+            ThrowDecodingError(_u("Out of bounds element in Table[%d][%d], max index: %d"), index, end - 1 , m_module->GetTableSize() - 1);
+        }
+
+        for (uint32 iElem = offset; iElem < end; ++iElem)
+        {
+            uint32 elem = LEB128(length);
+            FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(elem);
+            if (funcType == FunctionIndexTypes::Invalid)
+            {
+                ThrowDecodingError(_u("Invalid function index %d"), elem);
+            }
+            if (funcType == FunctionIndexTypes::Import)
+            {
+                ThrowDecodingError(_u("Import functions in the table NYI"));
+            }
+            m_module->SetTableValue(elem, iElem);
+        }
+    }
 }
 
 void
@@ -681,8 +776,18 @@ WasmBinaryReader::ReadDataSegments()
 
     for (uint32 i = 0; i < entries; ++i)
     {
+        UINT32 index = LEB128(len);
+        if (index != 0)
+        {
+            ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
+        }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
-        UINT32 offset = LEB128(len);
+        WasmNode initExpr = ReadInitExpr();
+        if (initExpr.op != wbI32Const)
+        {
+            ThrowDecodingError(_u("Only i32.const supported for data segment offset"));
+        }
+        UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, offset, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
@@ -700,7 +805,7 @@ WasmBinaryReader::ReadNamesSection()
     for (UINT i = 0; i < numEntries; ++i)
     {
         UINT fnNameLen = 0;
-        WasmFunctionInfo* funsig = m_module->GetFunctionInfo(i);
+        WasmFunctionInfo* funsig = m_module->GetWasmFunctionInfo(i);
         funsig->SetName(ReadInlineName(len, fnNameLen), fnNameLen);
         UINT numLocals = LEB128(len);
         if (numLocals != funsig->GetLocalCount())
@@ -751,18 +856,34 @@ WasmBinaryReader::ReadImportEntries()
     }
     for (uint32 i = 0; i < entries; ++i)
     {
-        uint32 sigId = LEB128(len);
         uint32 modNameLen = 0, fnNameLen = 0;
-
-        if (sigId >= m_module->GetSignatureCount())
-        {
-            ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
-        }
-
         char16* modName = ReadInlineName(len, modNameLen);
         char16* fnName = ReadInlineName(len, fnNameLen);
-        TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\""), i, modName, fnName);
-        m_module->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
+
+        ImportKinds::ImportKind kind = (ImportKinds::ImportKind)ReadConst<int8>();
+        TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\", kind: %d"), i, modName, fnName, kind);
+        switch (kind)
+        {
+        case ImportKinds::Function:
+        {
+            uint32 sigId = LEB128(len);
+            if (sigId >= m_module->GetSignatureCount())
+            {
+                ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
+            }
+            m_module->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
+            break;
+        }
+        case ImportKinds::Table:
+            ThrowDecodingError(_u("Imported Kind Table, NYI"));
+        case ImportKinds::Memory:
+            ThrowDecodingError(_u("Imported Kind Memory, NYI"));
+        case ImportKinds::Global:
+            ThrowDecodingError(_u("Imported Kind Global, NYI"));
+        default:
+            ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
+            break;
+        }
     }
 }
 
@@ -834,6 +955,32 @@ WasmBinaryReader::SLEB128(UINT &length)
 
     TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 value = %d, length = %u"), result, length);
     return result;
+}
+
+WasmNode
+WasmBinaryReader::ReadInitExpr()
+{
+    m_funcState.count = 0;
+    m_funcState.size = 123456; // some aribtrary big value
+    ReadExpr();
+    WasmNode node = m_currentNode;
+    switch (node.op)
+    {
+    case wbI32Const:
+    case wbF32Const:
+    case wbI64Const:
+    case wbF64Const:
+    //case wbGetGlobal:
+        break;
+    default:
+        ThrowDecodingError(_u("Invalid initexpr opcode"));
+    }
+
+    if (ReadExpr() != wbEnd)
+    {
+        ThrowDecodingError(_u("Missing end opcode after init expr"));
+    }
+    return node;
 }
 
 template <typename T>

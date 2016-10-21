@@ -1,25 +1,44 @@
 ;; Test `br_table` operator
 
 (module
-  (func "type-i32" (block (i32.ctz (br_table 0 0 (i32.const 0)))))
-  (func "type-i64" (block (i64.ctz (br_table 0 0 (i32.const 0)))))
-  (func "type-f32" (block (f32.neg (br_table 0 0 (i32.const 0)))))
-  (func "type-f64" (block (f64.neg (br_table 0 0 (i32.const 0)))))
+  ;; Auxiliary definition
+  (func $dummy)
 
-  (func "type-i32-value" (result i32) (block (i32.ctz (br_table 0 0 (i32.const 1) (i32.const 0)))))
-  (func "type-i64-value" (result i64) (block (i64.ctz (br_table 0 0 (i64.const 2) (i32.const 0)))))
-  (func "type-f32-value" (result f32) (block (f32.neg (br_table 0 0 (f32.const 3) (i32.const 0)))))
-  (func "type-f64-value" (result f64) (block (f64.neg (br_table 0 0 (f64.const 4) (i32.const 0)))))
+  (func (export "type-i32")
+    (block (drop (i32.ctz (br_table 0 0 (i32.const 0)))))
+  )
+  (func (export "type-i64")
+    (block (drop (i64.ctz (br_table 0 0 (i32.const 0)))))
+  )
+  (func (export "type-f32")
+    (block (drop (f32.neg (br_table 0 0 (i32.const 0)))))
+  )
+  (func (export "type-f64")
+    (block (drop (f64.neg (br_table 0 0 (i32.const 0)))))
+  )
 
-  (func "empty" (param i32) (result i32)
+  (func (export "type-i32-value") (result i32)
+    (block i32 (i32.ctz (br_table 0 0 (i32.const 1) (i32.const 0))))
+  )
+  (func (export "type-i64-value") (result i64)
+    (block i64 (i64.ctz (br_table 0 0 (i64.const 2) (i32.const 0))))
+  )
+  (func (export "type-f32-value") (result f32)
+    (block f32 (f32.neg (br_table 0 0 (f32.const 3) (i32.const 0))))
+  )
+  (func (export "type-f64-value") (result f64)
+    (block f64 (f64.neg (br_table 0 0 (f64.const 4) (i32.const 0))))
+  )
+
+  (func (export "empty") (param i32) (result i32)
     (block (br_table 0 (get_local 0)) (return (i32.const 21)))
     (i32.const 22)
   )
-  (func "empty-value" (param i32) (result i32)
-    (block (br_table 0 (i32.const 33) (get_local 0)) (i32.const 31))
+  (func (export "empty-value") (param i32) (result i32)
+    (block i32 (br_table 0 (i32.const 33) (get_local 0)) (i32.const 31))
   )
 
-  (func "singleton" (param i32) (result i32)
+  (func (export "singleton") (param i32) (result i32)
     (block
       (block
         (br_table 1 0 (get_local 0))
@@ -30,17 +49,19 @@
     (i32.const 22)
   )
 
-  (func "singleton-value" (param i32) (result i32)
-    (block
-      (block
-        (br_table 0 1 (i32.const 33) (get_local 0))
-        (return (i32.const 31))
+  (func (export "singleton-value") (param i32) (result i32)
+    (block i32
+      (drop
+        (block i32
+          (br_table 0 1 (i32.const 33) (get_local 0))
+          (return (i32.const 31))
+        )
       )
       (i32.const 32)
     )
   )
 
-  (func "multiple" (param i32) (result i32)
+  (func (export "multiple") (param i32) (result i32)
     (block
       (block
         (block
@@ -60,13 +81,13 @@
     (i32.const 104)
   )
 
-  (func "multiple-value" (param i32) (result i32)
+  (func (export "multiple-value") (param i32) (result i32)
     (local i32)
-    (set_local 1 (block
-      (set_local 1 (block
-        (set_local 1 (block
-          (set_local 1 (block
-            (set_local 1 (block
+    (set_local 1 (block i32
+      (set_local 1 (block i32
+        (set_local 1 (block i32
+          (set_local 1 (block i32
+            (set_local 1 (block i32
               (br_table 3 2 1 0 4 (i32.const 200) (get_local 0))
               (return (i32.add (get_local 1) (i32.const 99)))
             ))
@@ -81,7 +102,7 @@
     (i32.add (get_local 1) (i32.const 14))
   )
 
-  (func "large" (param i32) (result i32)
+  (func (export "large") (param i32) (result i32)
     (block
       (block
         (br_table
@@ -818,181 +839,275 @@
     (return (i32.const 1))
   )
 
-  (func "as-block-first"
-    (block (br_table 0 0 0 (i32.const 0)) (i32.const 2))
+  (func (export "as-block-first")
+    (block (br_table 0 0 0 (i32.const 0)) (call $dummy))
   )
-  (func "as-block-mid"
-    (block (i32.const 1) (br_table 0 0 0 (i32.const 0)) (i32.const 2))
+  (func (export "as-block-mid")
+    (block (call $dummy) (br_table 0 0 0 (i32.const 0)) (call $dummy))
   )
-  (func "as-block-last"
-    (block (nop) (i32.const 1) (br_table 0 0 0 (i32.const 0)))
+  (func (export "as-block-last")
+    (block (nop) (call $dummy) (br_table 0 0 0 (i32.const 0)))
   )
-  (func "as-block-value" (result i32)
-    (block (nop) (i32.const 1) (br_table 0 0 0 (i32.const 2) (i32.const 0)))
-  )
-
-  (func "as-loop-first" (result i32)
-    (loop (br_table 1 0 (i32.const 3) (i32.const 0)) (i32.const 1))
-  )
-  (func "as-loop-mid" (result i32)
-    (loop (i32.const 1) (br_table 1 0 1 (i32.const 4) (i32.const -1)) (i32.const 2))
-  )
-  (func "as-loop-last" (result i32)
-    (loop (nop) (i32.const 1) (br_table 0 1 0 (i32.const 5) (i32.const 1)))
+  (func (export "as-block-value") (result i32)
+    (block i32 (nop) (call $dummy) (br_table 0 0 0 (i32.const 2) (i32.const 0)))
   )
 
-  (func "as-br-value" (result i32)
-    (block (br 0 (br 0 (i32.const 9))))
+  (func (export "as-loop-first") (result i32)
+    (loop i32 (br_table 1 1 (i32.const 3) (i32.const 0)) (i32.const 1))
+  )
+  (func (export "as-loop-mid") (result i32)
+    (loop i32
+      (call $dummy)
+      (br_table 1 1 1 (i32.const 4) (i32.const -1))
+      (i32.const 2)
+    )
+  )
+  (func (export "as-loop-last") (result i32)
+    (loop i32 (nop) (call $dummy) (br_table 1 1 1 (i32.const 5) (i32.const 1)))
   )
 
-  (func "as-br_if-cond"
+  (func (export "as-br-value") (result i32)
+    (block i32 (br 0 (br 0 (i32.const 9))))
+  )
+
+  (func (export "as-br_if-cond")
     (block (br_if 0 (br_table 0 0 0 (i32.const 1))))
   )
-  (func "as-br_if-value" (result i32)
-    (block (br_if 0 (br_table 0 (i32.const 8) (i32.const 0)) (i32.const 1)) (i32.const 7))
+  (func (export "as-br_if-value") (result i32)
+    (block i32
+      (br_if 0 (br_table 0 (i32.const 8) (i32.const 0)) (i32.const 1))
+      (i32.const 7)
+    )
   )
-  (func "as-br_if-value-cond" (result i32)
-    (block (br_if 0 (i32.const 6) (br_table 0 0 (i32.const 9) (i32.const 0))) (i32.const 7))
+  (func (export "as-br_if-value-cond") (result i32)
+    (block i32
+      (drop (br_if 0 (i32.const 6) (br_table 0 0 (i32.const 9) (i32.const 0))))
+      (i32.const 7)
+    )
   )
 
-  (func "as-br_table-index"
+  (func (export "as-br_table-index")
     (block (br_table 0 0 0 (br_table 0 (i32.const 1))))
   )
-  (func "as-br_table-value" (result i32)
-    (block (br_table 0 0 0 (br_table 0 (i32.const 10) (i32.const 0)) (i32.const 1)) (i32.const 7))
+  (func (export "as-br_table-value") (result i32)
+    (block i32
+      (br_table 0 0 0 (br_table 0 (i32.const 10) (i32.const 0)) (i32.const 1))
+      (i32.const 7)
+    )
   )
-  (func "as-br_table-value-index" (result i32)
-    (block (br_table 0 0 (i32.const 6) (br_table 0 (i32.const 11) (i32.const 1))) (i32.const 7))
-  )
-
-  (func "as-return-value" (result i64)
-    (block (return (br_table 0 (i64.const 7) (i32.const 0))))
-  )
-
-  (func "as-if-cond" (result i32)
-    (block (if (br_table 0 (i32.const 2) (i32.const 0)) (i32.const 0) (i32.const 1)))
-  )
-  (func "as-if-then" (param i32 i32) (result i32)
-    (block (if (get_local 0) (br_table 1 (i32.const 3) (i32.const 0)) (get_local 1)))
-  )
-  (func "as-if-else" (param i32 i32) (result i32)
-    (block (if (get_local 0) (get_local 1) (br_table 1 0 (i32.const 4) (i32.const 0))))
+  (func (export "as-br_table-value-index") (result i32)
+    (block i32
+      (br_table 0 0 (i32.const 6) (br_table 0 (i32.const 11) (i32.const 1)))
+      (i32.const 7)
+    )
   )
 
-  (func "as-select-first" (param i32 i32) (result i32)
-    (block (select (br_table 0 (i32.const 5) (i32.const 0)) (get_local 0) (get_local 1)))
+  (func (export "as-return-value") (result i64)
+    (block i64 (return (br_table 0 (i64.const 7) (i32.const 0))))
   )
-  (func "as-select-second" (param i32 i32) (result i32)
-    (block (select (get_local 0) (br_table 0 (i32.const 6) (i32.const 1)) (get_local 1)))
+
+  (func (export "as-if-cond") (result i32)
+    (block i32
+      (if i32
+        (br_table 0 (i32.const 2) (i32.const 0))
+        (i32.const 0)
+        (i32.const 1)
+      )
+    )
   )
-  (func "as-select-cond" (result i32)
-    (block (select (i32.const 0) (i32.const 1) (br_table 0 (i32.const 7) (i32.const 1))))
+  (func (export "as-if-then") (param i32 i32) (result i32)
+    (block i32
+      (if i32
+        (get_local 0)
+        (br_table 1 (i32.const 3) (i32.const 0))
+        (get_local 1)
+      )
+    )
+  )
+  (func (export "as-if-else") (param i32 i32) (result i32)
+    (block i32
+      (if i32
+        (get_local 0)
+        (get_local 1)
+        (br_table 1 0 (i32.const 4) (i32.const 0))
+      )
+    )
+  )
+
+  (func (export "as-select-first") (param i32 i32) (result i32)
+    (block i32
+      (select
+        (br_table 0 (i32.const 5) (i32.const 0)) (get_local 0) (get_local 1)
+      )
+    )
+  )
+  (func (export "as-select-second") (param i32 i32) (result i32)
+    (block i32
+      (select
+        (get_local 0) (br_table 0 (i32.const 6) (i32.const 1)) (get_local 1)
+      )
+    )
+  )
+  (func (export "as-select-cond") (result i32)
+    (block i32
+      (select
+        (i32.const 0) (i32.const 1) (br_table 0 (i32.const 7) (i32.const 1))
+      )
+    )
   )
 
   (func $f (param i32 i32 i32) (result i32) (i32.const -1))
-  (func "as-call-first" (result i32)
-    (block (call $f (br_table 0 (i32.const 12) (i32.const 1)) (i32.const 2) (i32.const 3)))
+  (func (export "as-call-first") (result i32)
+    (block i32
+      (call $f
+        (br_table 0 (i32.const 12) (i32.const 1)) (i32.const 2) (i32.const 3)
+      )
+    )
   )
-  (func "as-call-mid" (result i32)
-    (block (call $f (i32.const 1) (br_table 0 (i32.const 13) (i32.const 1)) (i32.const 3)))
+  (func (export "as-call-mid") (result i32)
+    (block i32
+      (call $f
+        (i32.const 1) (br_table 0 (i32.const 13) (i32.const 1)) (i32.const 3)
+      )
+    )
   )
-  (func "as-call-last" (result i32)
-    (block (call $f (i32.const 1) (i32.const 2) (br_table 0 (i32.const 14) (i32.const 1))))
-  )
-
-  (import "spectest" "print" (param i32 i32 i32))
-  (func "as-call_import-first"
-    (block (call_import 0 (br_table 0 (i32.const 1)) (i32.const 2) (i32.const 3)))
-  )
-  (func "as-call_import-mid"
-    (block (call_import 0 (i32.const 1) (br_table 0 (i32.const 1)) (i32.const 3)))
-  )
-  (func "as-call_import-last"
-    (block (call_import 0 (i32.const 1) (i32.const 2) (br_table 0 (i32.const 1))))
+  (func (export "as-call-last") (result i32)
+    (block i32
+      (call $f
+        (i32.const 1) (i32.const 2) (br_table 0 (i32.const 14) (i32.const 1))
+      )
+    )
   )
 
   (type $sig (func (param i32 i32 i32) (result i32)))
-  (table $f)
-  (func "as-call_indirect-func" (result i32)
-    (block (call_indirect $sig (br_table 0 (i32.const 20) (i32.const 1)) (i32.const 1) (i32.const 2) (i32.const 3)))
+  (table anyfunc (elem $f))
+  (func (export "as-call_indirect-first") (result i32)
+    (block i32
+      (call_indirect $sig
+        (br_table 0 (i32.const 20) (i32.const 1)) (i32.const 1) (i32.const 2)
+        (i32.const 3)
+      )
+    )
   )
-  (func "as-call_indirect-first" (result i32)
-    (block (call_indirect $sig (i32.const 0) (br_table 0 (i32.const 21) (i32.const 1)) (i32.const 2) (i32.const 3)))
+  (func (export "as-call_indirect-mid") (result i32)
+    (block i32
+      (call_indirect $sig
+        (i32.const 0) (br_table 0 (i32.const 21) (i32.const 1)) (i32.const 2)
+        (i32.const 3)
+      )
+    )
   )
-  (func "as-call_indirect-mid" (result i32)
-    (block (call_indirect $sig (i32.const 0) (i32.const 1) (br_table 0 (i32.const 22) (i32.const 1)) (i32.const 3)))
+  (func (export "as-call_indirect-last") (result i32)
+    (block i32
+      (call_indirect $sig
+        (i32.const 0) (i32.const 1) (br_table 0 (i32.const 22) (i32.const 1))
+        (i32.const 3)
+      )
+    )
   )
-  (func "as-call_indirect-last" (result i32)
-    (block (call_indirect $sig (i32.const 0) (i32.const 1) (i32.const 2) (br_table 0 (i32.const 23) (i32.const 1))))
+  (func (export "as-call_indirect-func") (result i32)
+    (block i32
+      (call_indirect $sig
+        (i32.const 0) (i32.const 1) (i32.const 2)
+        (br_table 0 (i32.const 23) (i32.const 1))
+      )
+    )
   )
 
-  (func "as-set_local-value" (result i32) (local f32)
-    (block (set_local 0 (br_table 0 (i32.const 17) (i32.const 1))) (i32.const -1))
+  (func (export "as-set_local-value") (result i32)
+    (local f32)
+    (block i32
+      (set_local 0 (br_table 0 (i32.const 17) (i32.const 1)))
+      (i32.const -1)
+    )
   )
 
   (memory 1)
-  (func "as-load-address" (result f32)
-    (block (f32.load (br_table 0 (f32.const 1.7) (i32.const 1))))
+  (func (export "as-load-address") (result f32)
+    (block f32 (f32.load (br_table 0 (f32.const 1.7) (i32.const 1))))
   )
-  (func "as-loadN-address" (result i64)
-    (block (i64.load8_s (br_table 0 (i64.const 30) (i32.const 1))))
-  )
-
-  (func "as-store-address" (result i32)
-    (block (f64.store (br_table 0 (i32.const 30) (i32.const 1)) (f64.const 7)) (i32.const -1))
-  )
-  (func "as-store-value" (result i32)
-    (block (i64.store (i32.const 2) (br_table 0 (i32.const 31) (i32.const 1))) (i32.const -1))
+  (func (export "as-loadN-address") (result i64)
+    (block i64 (i64.load8_s (br_table 0 (i64.const 30) (i32.const 1))))
   )
 
-  (func "as-storeN-address" (result i32)
-    (block (i32.store8 (br_table 0 (i32.const 32) (i32.const 0)) (i32.const 7)) (i32.const -1))
-  )
-  (func "as-storeN-value" (result i32)
-    (block (i64.store16 (i32.const 2) (br_table 0 (i32.const 33) (i32.const 0))) (i32.const -1))
-  )
-
-  (func "as-unary-operand" (result f32)
-    (block (f32.neg (br_table 0 (f32.const 3.4) (i32.const 0))))
-  )
-
-  (func "as-binary-left" (result i32)
-    (block (i32.add (br_table 0 0 (i32.const 3) (i32.const 0)) (i32.const 10)))
-  )
-  (func "as-binary-right" (result i64)
-    (block (i64.sub (i64.const 10) (br_table 0 (i64.const 45) (i32.const 0))))
-  )
-
-  (func "as-test-operand" (result i32)
-    (block (i32.eqz (br_table 0 (i32.const 44) (i32.const 0))))
-  )
-
-  (func "as-compare-left" (result i32)
-    (block (f64.le (br_table 0 0 (i32.const 43) (i32.const 0)) (f64.const 10)))
-  )
-  (func "as-compare-right" (result i32)
-    (block (f32.ne (f32.const 10) (br_table 0 (i32.const 42) (i32.const 0))))
-  )
-
-  (func "as-convert-operand" (result i32)
-    (block (i32.wrap/i64 (br_table 0 (i32.const 41) (i32.const 0))))
-  )
-
-  (func "as-grow_memory-size" (result i32)
-    (block (grow_memory (br_table 0 (i32.const 40) (i32.const 0))))
-  )
-
-  (func "nested-block-value" (param i32) (result i32)
-    (block
+  (func (export "as-store-address") (result i32)
+    (block i32
+      (f64.store (br_table 0 (i32.const 30) (i32.const 1)) (f64.const 7))
       (i32.const -1)
+    )
+  )
+  (func (export "as-store-value") (result i32)
+    (block i32
+      (i64.store (i32.const 2) (br_table 0 (i32.const 31) (i32.const 1)))
+      (i32.const -1)
+     )
+  )
+
+  (func (export "as-storeN-address") (result i32)
+    (block i32
+      (i32.store8 (br_table 0 (i32.const 32) (i32.const 0)) (i32.const 7))
+      (i32.const -1)
+    )
+  )
+  (func (export "as-storeN-value") (result i32)
+    (block i32
+      (i64.store16 (i32.const 2) (br_table 0 (i32.const 33) (i32.const 0)))
+      (i32.const -1)
+    )
+  )
+
+  (func (export "as-unary-operand") (result f32)
+    (block f32 (f32.neg (br_table 0 (f32.const 3.4) (i32.const 0))))
+  )
+
+  (func (export "as-binary-left") (result i32)
+    (block i32
+      (i32.add (br_table 0 0 (i32.const 3) (i32.const 0)) (i32.const 10))
+    )
+  )
+  (func (export "as-binary-right") (result i64)
+    (block i64
+      (i64.sub (i64.const 10) (br_table 0 (i64.const 45) (i32.const 0)))
+    )
+  )
+
+  (func (export "as-test-operand") (result i32)
+    (block i32 (i32.eqz (br_table 0 (i32.const 44) (i32.const 0))))
+  )
+
+  (func (export "as-compare-left") (result i32)
+    (block i32
+      (f64.le (br_table 0 0 (i32.const 43) (i32.const 0)) (f64.const 10))
+    )
+  )
+  (func (export "as-compare-right") (result i32)
+    (block i32
+      (f32.ne (f32.const 10) (br_table 0 (i32.const 42) (i32.const 0)))
+    )
+  )
+
+  (func (export "as-convert-operand") (result i32)
+    (block i32 (i32.wrap/i64 (br_table 0 (i32.const 41) (i32.const 0))))
+  )
+
+  (func (export "as-grow_memory-size") (result i32)
+    (block i32 (grow_memory (br_table 0 (i32.const 40) (i32.const 0))))
+  )
+
+  (func (export "nested-block-value") (param i32) (result i32)
+    (block i32
+      (drop (i32.const -1))
       (i32.add
         (i32.const 1)
-        (block
+        (block i32
           (i32.add
             (i32.const 2)
-            (block
-              (i32.const 4)
-              (i32.add (i32.const 8) (br_table 0 1 2 (i32.const 16) (get_local 0)))
+            (block i32
+              (drop (i32.const 4))
+              (i32.add
+                (i32.const 8)
+                (br_table 0 1 2 (i32.const 16) (get_local 0))
+              )
             )
           )
         )
@@ -1000,15 +1115,17 @@
     )
   )
 
-  (func "nested-br-value" (param i32) (result i32)
-    (block
+  (func (export "nested-br-value") (param i32) (result i32)
+    (block i32
       (i32.add
         (i32.const 1)
-        (block
-          (i32.const 2)
-          (block
-            (i32.const 4)
-            (br 0 (br_table 2 1 0 (i32.const 8) (get_local 0)))
+        (block i32
+          (drop (i32.const 2))
+          (drop
+            (block i32
+              (drop (i32.const 4))
+              (br 0 (br_table 2 1 0 (i32.const 8) (get_local 0)))
+            )
           )
           (i32.const 16)
         )
@@ -1016,15 +1133,18 @@
     )
   )
 
-  (func "nested-br_if-value" (param i32) (result i32)
-    (block
+  (func (export "nested-br_if-value") (param i32) (result i32)
+    (block i32
       (i32.add
         (i32.const 1)
-        (block
-          (i32.const 2)
-          (block
-            (i32.const 4)
-            (br_if 0 (br_table 0 1 2 (i32.const 8) (get_local 0)) (i32.const 1))
+        (block i32
+          (drop (i32.const 2))
+          (drop
+            (block i32
+              (drop (i32.const 4))
+              (br_if 0 (br_table 0 1 2 (i32.const 8) (get_local 0)) (i32.const 1))
+              (i32.const 32)
+            )
           )
           (i32.const 16)
         )
@@ -1032,28 +1152,31 @@
     )
   )
 
-  (func "nested-br_if-value-cond" (param i32) (result i32)
-    (block
+  (func (export "nested-br_if-value-cond") (param i32) (result i32)
+    (block i32
       (i32.add
         (i32.const 1)
-        (block
-          (i32.const 2)
-          (br_if 0 (i32.const 4) (br_table 0 1 0 (i32.const 8) (get_local 0)))
+        (block i32
+          (drop (i32.const 2))
+          (drop (br_if 0 (i32.const 4) (br_table 0 1 0 (i32.const 8) (get_local 0))))
           (i32.const 16)
         )
       )
     )
   )
 
-  (func "nested-br_table-value" (param i32) (result i32)
-    (block
+  (func (export "nested-br_table-value") (param i32) (result i32)
+    (block i32
       (i32.add
         (i32.const 1)
-        (block
-          (i32.const 2)
-          (block
-            (i32.const 4)
-            (br_table 0 (br_table 0 1 2 (i32.const 8) (get_local 0)) (i32.const 1))
+        (block i32
+          (drop (i32.const 2))
+          (drop
+            (block i32
+              (drop (i32.const 4))
+              (br_table 0 (br_table 0 1 2 (i32.const 8) (get_local 0)) (i32.const 1))
+              (i32.const 32)
+            )
           )
           (i32.const 16)
         )
@@ -1061,12 +1184,12 @@
     )
   )
 
-  (func "nested-br_table-value-index" (param i32) (result i32)
-    (block
+  (func (export "nested-br_table-value-index") (param i32) (result i32)
+    (block i32
       (i32.add
         (i32.const 1)
-        (block
-          (i32.const 2)
+        (block i32
+          (drop (i32.const 2))
           (br_table 0 (i32.const 4) (br_table 0 1 0 (i32.const 8) (get_local 0)))
           (i32.const 16)
         )
@@ -1181,14 +1304,10 @@
 (assert_return (invoke "as-call-mid") (i32.const 13))
 (assert_return (invoke "as-call-last") (i32.const 14))
 
-(assert_return (invoke "as-call_import-first"))
-(assert_return (invoke "as-call_import-mid"))
-(assert_return (invoke "as-call_import-last"))
-
-(assert_return (invoke "as-call_indirect-func") (i32.const 20))
-(assert_return (invoke "as-call_indirect-first") (i32.const 21))
-(assert_return (invoke "as-call_indirect-mid") (i32.const 22))
-(assert_return (invoke "as-call_indirect-last") (i32.const 23))
+(assert_return (invoke "as-call_indirect-first") (i32.const 20))
+(assert_return (invoke "as-call_indirect-mid") (i32.const 21))
+(assert_return (invoke "as-call_indirect-last") (i32.const 22))
+(assert_return (invoke "as-call_indirect-func") (i32.const 23))
 
 (assert_return (invoke "as-set_local-value") (i32.const 17))
 
@@ -1262,9 +1381,25 @@
   ))
   "type mismatch"
 )
+
+(; TODO(stack): soft failure
+(assert_invalid
+  (module (func $type-arg-poly-vs-empty
+    (block (br_table 0 (unreachable) (i32.const 1)))
+  ))
+  "type mismatch"
+)
+;)
+
+(assert_invalid
+  (module (func $type-arg-void-vs-num (result i32)
+    (block i32 (br_table 0 (nop) (i32.const 1)) (i32.const 1))
+  ))
+  "type mismatch"
+)
 (assert_invalid
   (module (func $type-arg-num-vs-num (result i32)
-    (block (br_table 0 0 0 (i64.const 1) (i32.const 1)) (i32.const 1))
+    (block i32 (br_table 0 0 0 (i64.const 1) (i32.const 1)) (i32.const 1))
   ))
   "type mismatch"
 )
@@ -1283,13 +1418,13 @@
 )
 (assert_invalid
   (module (func $type-arg-index-void-vs-i32 (result i32)
-    (block (br_table 0 0 (i32.const 0) (nop)) (i32.const 1))
+    (block i32 (br_table 0 0 (i32.const 0) (nop)) (i32.const 1))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-arg-index-num-vs-i32 (result i32)
-    (block (br_table 0 0 (i32.const 0) (i64.const 0)) (i32.const 1))
+    (block i32 (br_table 0 0 (i32.const 0) (i64.const 0)) (i32.const 1))
   ))
   "type mismatch"
 )
@@ -1308,7 +1443,7 @@
 )
 (assert_invalid
   (module (func $large-label
-    (block (br_table 0 0x100000001 0 (i32.const 1)))
+    (block (br_table 0 0x10000001 0 (i32.const 1)))
   ))
   "unknown label"
 )
@@ -1327,7 +1462,7 @@
 )
 (assert_invalid
   (module (func $large-label-default
-    (block (br_table 0 0 0x100000001 (i32.const 1)))
+    (block (br_table 0 0 0x10000001 (i32.const 1)))
   ))
   "unknown label"
 )

@@ -7707,6 +7707,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
     }
 
+    void InterpreterStackFrame::OP_Unreachable()
+    {
+        JavascriptError::ThrowUnreachable(scriptContext);
+    }
+
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {

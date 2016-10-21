@@ -550,17 +550,17 @@ namespace Js
         switch (op)
         {
         case OpCodeAsmJs::LdArr:
-            Output::Print(_u("%c%d = %s[I%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
+            Output::Print(_u(" %c%d = %s[I%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
         case OpCodeAsmJs::LdArrWasm:
-            Output::Print(_u("%c%d = %s[I%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
+            Output::Print(_u(" %c%d = %s[I%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
         case OpCodeAsmJs::LdArrConst:
-            Output::Print(_u("%c%d = %s[%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
+            Output::Print(_u(" %c%d = %s[%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
         case OpCodeAsmJs::StArr:
-            Output::Print(_u("%s[I%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
+            Output::Print(_u(" %s[I%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
         case OpCodeAsmJs::StArrWasm:
-            Output::Print(_u("%s[I%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
+            Output::Print(_u(" %s[I%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
         case OpCodeAsmJs::StArrConst:
-            Output::Print(_u("%s[%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
+            Output::Print(_u(" %s[%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
         default:
             Assert(false);
             __assume(false);

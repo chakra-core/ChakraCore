@@ -122,6 +122,14 @@
 #define PROCESS_D2toD1Mem(name, func) PROCESS_D2toD1Mem_COMMON(name, func,)
 #define PROCESS_F2toF1Mem(name, func) PROCESS_F2toF1Mem_COMMON(name, func,)
 
+#define PROCESS_EMPTYASMJS(name, func) \
+    case OpCodeAsmJs::name: \
+    { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Empty, ); \
+        func(); \
+        break; \
+    }
+
 #define PROCESS_I1toI1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \

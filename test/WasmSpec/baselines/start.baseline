@@ -1,7 +1,5 @@
-$invoke_1 = undefined
-$invoke_3 = undefined
-$invoke_1 = undefined
-$invoke_3 = undefined
-1
-2
+$action_1 = undefined
+$action_3 = undefined
+$action_1 = undefined
+$action_3 = undefined
 6/6 tests passed.

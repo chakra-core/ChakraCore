@@ -11,7 +11,7 @@
 1701077858
 1717920867
 122
-$invoke_0 = undefined
+$action_0 = undefined
 0
 0
 0
@@ -25,8 +25,8 @@ $invoke_0 = undefined
 0
 0
 0
-$invoke_1 = undefined
-address.wast:30: $assert_trap_2 failed, runtime trap NYI
-address.wast:31: $assert_trap_3 failed, runtime trap NYI
-address.wast:32: $assert_trap_4 failed, runtime trap NYI
+$action_1 = undefined
+address.wast:32: $assert_trap_2 failed, runtime trap NYI
+address.wast:33: $assert_trap_3 failed, runtime trap NYI
+address.wast:34: $assert_trap_4 failed, runtime trap NYI
 0/3 tests passed.

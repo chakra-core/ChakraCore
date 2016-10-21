@@ -5,57 +5,52 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "set_local.wast",
-      "line": 99
+      "line": 68
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "set_local.wast",
-      "line": 100
+      "line": 69
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "set_local.wast",
-      "line": 101
+      "line": 70
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "set_local.wast",
-      "line": 102
+      "line": 71
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "set_local.wast",
-      "line": 104
+      "line": 73
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "set_local.wast",
-      "line": 105
+      "line": 74
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "set_local.wast",
-      "line": 106
+      "line": 75
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "set_local.wast",
-      "line": 107
+      "line": 76
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "set_local.wast",
-      "line": 110
+      "line": 79
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "set_local.wast",
-      "line": 116
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_10",
-      "file": "set_local.wast",
-      "line": 123
+      "line": 85
     }]
   }]
 }

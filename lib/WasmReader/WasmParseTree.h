@@ -17,10 +17,38 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
-            Limit,
-            Unreachable
+            Limit
         };
         bool IsLocalType(WasmTypes::WasmType type);
+    }
+
+    namespace ImportKinds
+    {
+        enum ImportKind
+        {
+            Function = 0,
+            Table = 1,
+            Memory = 2,
+            Global = 3
+        };
+    }
+
+    namespace ElementTypes
+    {
+        enum Type
+        {
+            anyfunc = 0x20
+        };
+    }
+
+    namespace FunctionIndexTypes
+    {
+        enum Type
+        {
+            Invalid = -1,
+            Function,
+            Import
+        };
     }
 
     struct WasmOpCodeSignatures
@@ -33,7 +61,6 @@ namespace Wasm
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpCodes.h"
-        wbFuncEnd,
         wbLimit
     };
 
@@ -66,27 +93,24 @@ namespace Wasm
     struct WasmBrNode
     {
         uint32 depth;
-        uint32 arity;
-        bool hasSubExpr;
     };
 
     struct WasmBrTableNode
     {
-        uint32 arity;
         uint32 numTargets;
         uint32* targetTable;
         uint32 defaultTarget;
     };
 
-    struct WasmReturnNode
-    {
-        uint32 arity;
-    };
-
     struct WasmCallNode
     {
         uint32 num; // function id
-        uint32 arity;
+        FunctionIndexTypes::Type funcType;
+    };
+
+    struct WasmBlock
+    {
+        WasmTypes::WasmType sig;
     };
 
     struct WasmNode
@@ -94,13 +118,13 @@ namespace Wasm
         WasmOp op;
         union
         {
-            WasmVarNode var;
-            WasmConstLitNode cnst;
+            WasmBlock block;
             WasmBrNode br;
             WasmBrTableNode brTable;
-            WasmMemOpNode mem;
-            WasmReturnNode ret;
             WasmCallNode call;
+            WasmConstLitNode cnst;
+            WasmMemOpNode mem;
+            WasmVarNode var;
         };
     };
 
@@ -119,5 +143,4 @@ namespace Wasm
         uint32 fnNameLen;
         char16* fnName;
     };
-
 }

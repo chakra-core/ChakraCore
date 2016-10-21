@@ -16,6 +16,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_functionsInfo(nullptr),
     m_funcCount(0),
     m_importCount(0),
+    m_equivalentSignatureMap(nullptr),
     m_indirectfuncs(nullptr),
     m_indirectFuncCount(0),
     m_exports(nullptr),
@@ -33,8 +34,64 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_reader->InitializeReader();
 }
 
+uint32
+WasmModule::GetMaxFunctionIndex() const
+{
+    return UInt32Math::Add(GetImportCount(), GetWasmFunctionCount());
+}
+
+Wasm::WasmSignature*
+WasmModule::GetFunctionSignature(uint32 funcIndex) const
+{
+    FunctionIndexTypes::Type funcType = GetFunctionIndexType(funcIndex);
+    if (funcType == FunctionIndexTypes::Invalid)
+    {
+        throw WasmCompilationException(_u("Function index out of range"));
+    }
+
+    funcIndex = NormalizeFunctionIndex(funcIndex);
+    switch (funcType)
+    {
+    case FunctionIndexTypes::Import:
+        return GetSignature(GetFunctionImport(funcIndex)->sigId);
+    case FunctionIndexTypes::Function:
+        return GetWasmFunctionInfo(funcIndex)->GetSignature();
+    default:
+        throw WasmCompilationException(_u("Unknown function index type"));
+    }
+}
+
+FunctionIndexTypes::Type
+WasmModule::GetFunctionIndexType(uint32 funcIndex) const
+{
+    if (funcIndex >= GetMaxFunctionIndex())
+    {
+        return FunctionIndexTypes::Invalid;
+    }
+    if (funcIndex < GetImportCount())
+    {
+        return FunctionIndexTypes::Import;
+    }
+    return FunctionIndexTypes::Function;
+}
+
+uint32
+WasmModule::NormalizeFunctionIndex(uint32 funcIndex) const
+{
+    switch (GetFunctionIndexType(funcIndex))
+    {
+    case FunctionIndexTypes::Import:
+        return funcIndex;
+    case FunctionIndexTypes::Function:
+        Assert(funcIndex >= GetImportCount());
+        return funcIndex - GetImportCount();
+    default:
+        throw WasmCompilationException(_u("Failed function index normalization: function index out of range"));
+    }
+}
+
 void
-WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
+WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 {
     if (m_memory.minSize != 0)
     {
@@ -49,7 +106,6 @@ WasmModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
     CompileAssert(Memory::PAGE_SIZE < INT_MAX);
     m_memory.minSize = (uint64)minPage * Memory::PAGE_SIZE;
     m_memory.maxSize = (uint64)maxPage * Memory::PAGE_SIZE;
-    m_memory.exported = exported;
 }
 
 const WasmModule::Memory *
@@ -71,7 +127,7 @@ WasmModule::GetSignature(uint32 index) const
 {
     if (index >= GetSignatureCount())
     {
-        return nullptr;
+        throw WasmCompilationException(_u("Invalid signature index %u"), index);
     }
 
     return m_signatures[index];
@@ -84,44 +140,91 @@ WasmModule::GetSignatureCount() const
 }
 
 void
-WasmModule::AllocateIndirectFunctions(uint32 entries)
+WasmModule::CalculateEquivalentSignatures()
 {
-    m_indirectFuncCount = entries;
-    m_indirectfuncs = AnewArray(&m_alloc, uint32, entries);
+    Assert(m_equivalentSignatureMap == nullptr);
+    uint32 sigCount = GetSignatureCount();
+    m_equivalentSignatureMap = AnewArray(&m_alloc, uint32, sigCount);
+    memset(m_equivalentSignatureMap, -1, sigCount * sizeof(uint32));
+
+    const auto IsEquivalentSignatureSet = [this](uint32 sigId)
+    {
+        return m_equivalentSignatureMap[sigId] != (uint32)-1;
+    };
+
+    for (uint32 iSig = 0; iSig < sigCount; iSig++)
+    {
+        if (!IsEquivalentSignatureSet(iSig))
+        {
+            m_equivalentSignatureMap[iSig] = iSig;
+            WasmSignature* sig = GetSignature(iSig);
+            // todo:: Find a better way than O(n^2) algo here
+            for (uint32 iSig2 = iSig + 1; iSig2 < sigCount; iSig2++)
+            {
+                if (!IsEquivalentSignatureSet(iSig2) && sig->IsEquivalent(GetSignature(iSig2)))
+                {
+                    m_equivalentSignatureMap[iSig2] = iSig;
+                }
+            }
+        }
+    }
+}
+
+uint32
+WasmModule::GetEquivalentSignatureId(uint32 sigId) const
+{
+    if (m_equivalentSignatureMap && sigId < GetSignatureCount())
+    {
+        return m_equivalentSignatureMap[sigId];
+    }
+    Assert(UNREACHED);
+    return sigId;
 }
 
 void
-WasmModule::SetIndirectFunction(uint32 funcIndex, uint32 indirTableIndex)
+WasmModule::AllocateTable(uint32 entries)
 {
-    if (indirTableIndex < GetIndirectFunctionCount())
+    m_indirectFuncCount = entries;
+    m_indirectfuncs = AnewArray(&m_alloc, uint32, entries);
+    for (uint32 i = 0; i < entries ; i++)
     {
-        m_indirectfuncs[indirTableIndex] = funcIndex;
+        // Initialize with invalid index
+        m_indirectfuncs[i] = Js::Constants::UninitializedValue;
+    }
+}
+
+void
+WasmModule::SetTableValue(uint32 funcIndex, uint32 tableIndex)
+{
+    if (tableIndex < GetTableSize())
+    {
+        m_indirectfuncs[tableIndex] = funcIndex;
     }
 }
 
 uint32
-WasmModule::GetIndirectFunctionIndex(uint32 indirTableIndex) const
+WasmModule::GetTableValue(uint32 tableIndex) const
 {
-    if (indirTableIndex >= GetIndirectFunctionCount())
+    if (tableIndex >= GetTableSize())
     {
         return Js::Constants::InvalidSourceIndex;
     }
-    return m_indirectfuncs[indirTableIndex];
+    return m_indirectfuncs[tableIndex];
 }
 
 uint32
-WasmModule::GetIndirectFunctionCount() const
+WasmModule::GetTableSize() const
 {
     return m_indirectFuncCount;
 }
 
 uint32
-WasmModule::GetFunctionCount() const
+WasmModule::GetWasmFunctionCount() const
 {
     return m_funcCount;
 }
 
-void WasmModule::AllocateFunctions(uint32 count)
+void WasmModule::AllocateWasmFunctions(uint32 count)
 {
     m_funcCount = count;
     if (count > 0)
@@ -131,7 +234,7 @@ void WasmModule::AllocateFunctions(uint32 count)
 }
 
 bool
-WasmModule::SetFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index)
+WasmModule::SetWasmFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index)
 {
     if (index < m_funcCount)
     {
@@ -143,12 +246,13 @@ WasmModule::SetFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index)
 }
 
 WasmFunctionInfo*
-WasmModule::GetFunctionInfo(uint index) const
+WasmModule::GetWasmFunctionInfo(uint index) const
 {
     if (index >= m_funcCount)
     {
-        return nullptr;
+        throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
+
     return m_functionsInfo[index];
 }
 
@@ -196,7 +300,7 @@ WasmModule::GetFunctionImport(uint32 i) const
 {
     if (i >= m_importCount)
     {
-        return nullptr;
+        throw WasmCompilationException(_u("Import function index out of range"));
     }
     return &m_imports[i];
 }
@@ -257,7 +361,7 @@ uint32 WasmModule::GetModuleEnvironmentSize() const
 {
     // 1 for the heap
     uint32 size = 1;
-    size = UInt32Math::Add(size, GetFunctionCount());
+    size = UInt32Math::Add(size, GetWasmFunctionCount());
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     size = UInt32Math::Add(size, GetSignatureCount());
     size = UInt32Math::Add(size, GetImportCount());
