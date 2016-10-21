@@ -120,7 +120,13 @@ function main() {
           return resolve();
         }
         const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
-        fs.writeFile(testPath, `;;AUTO-GENERATED do not modify\n${content}`, err => {
+        const copyrightHeader =
+`;;-------------------------------------------------------------------------------------------------------
+;; Copyright (C) Microsoft. All rights reserved.
+;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+;;-------------------------------------------------------------------------------------------------------
+`;
+        fs.writeFile(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`, err => {
           if (err) {
             return reject(err);
           }
