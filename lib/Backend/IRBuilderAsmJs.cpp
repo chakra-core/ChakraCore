@@ -6,8 +6,6 @@
 #include "Backend.h"
 #ifdef ASMJS_PLAT
 #include "ByteCode/OpCodeUtilAsmJs.h"
-#include "ByteCodeDumper.h"
-#include "AsmJsByteCodeDumper.h"
 
 void
 IRBuilderAsmJs::Build()
