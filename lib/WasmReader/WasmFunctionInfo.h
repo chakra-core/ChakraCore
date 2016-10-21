@@ -41,6 +41,7 @@ namespace Wasm
 
         FunctionBodyReaderInfo m_readerInfo;
     private:
+
         ArenaAllocator* m_alloc;
         typedef JsUtil::GrowingArray<Local, ArenaAllocator> WasmTypeArray;
         WasmTypeArray m_locals;

@@ -75,17 +75,7 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
         buffer = arrayBuffer->GetBuffer();
         byteLength = arrayBuffer->GetByteLength();
     }
-
-    CompileScriptException se;
-    HRESULT hr = se.ei.scode;
-    if (FAILED(hr))
-    {
-        if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
-        {
-            Js::Throw::OutOfMemory();
-        }
-        return scriptContext->GetLibrary()->GetFalse();
-    }
+    Assert(UNREACHED); // unimplemented
 
     return scriptContext->GetLibrary()->GetTrue();
 }

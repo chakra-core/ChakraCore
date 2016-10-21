@@ -127,83 +127,27 @@ namespace Js
         return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
-    Var JavascriptError::NewEvalErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateEvalError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
+#define NEW_ERROR(name) \
+    Var JavascriptError::New##name##Instance(RecyclableObject* function, CallInfo callInfo, ...) \
+    { \
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault); \
+        ARGUMENTS(args, callInfo); \
+        ScriptContext* scriptContext = function->GetScriptContext(); \
+        JavascriptError* pError = scriptContext->GetLibrary()->Create##name(); \
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0]; \
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined(); \
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message); \
     }
+    NEW_ERROR(EvalError);
+    NEW_ERROR(RangeError);
+    NEW_ERROR(ReferenceError);
+    NEW_ERROR(SyntaxError);
+    NEW_ERROR(TypeError);
+    NEW_ERROR(URIError);
+    NEW_ERROR(WebAssemblyCompileError);
+    NEW_ERROR(WebAssemblyRuntimeError);
 
-    Var JavascriptError::NewRangeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateRangeError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
-
-    Var JavascriptError::NewReferenceErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateReferenceError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
-
-    Var JavascriptError::NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateSyntaxError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
-
-    Var JavascriptError::NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateTypeError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
-
-    Var JavascriptError::NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateURIError();
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
+#undef NEW_ERROR
 
 #ifdef ENABLE_PROJECTION
     Var JavascriptError::NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -355,6 +299,8 @@ namespace Js
     THROW_ERROR_IMPL(ThrowSyntaxError, CreateSyntaxError, GetSyntaxErrorType, kjstSyntaxError)
     THROW_ERROR_IMPL(ThrowTypeError, CreateTypeError, GetTypeErrorType, kjstTypeError)
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
+    THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
+    THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
 #undef THROW_ERROR_IMPL
 
     void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowError(scriptContext, WASMERR_Unreachable); }

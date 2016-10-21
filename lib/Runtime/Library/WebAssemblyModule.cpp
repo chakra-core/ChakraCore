@@ -31,7 +31,6 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
     globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
     m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
-    m_reader->InitializeReader();
 }
 
 /* static */
@@ -139,7 +138,6 @@ WebAssemblyModule::CreateModule(
     }
     catch (Wasm::WasmCompilationException& ex)
     {
-        // TODO: should throw WebAssembly.CompileError on failure
         Wasm::WasmCompilationException newEx = ex;
         if (currentBody != nullptr)
         {
@@ -158,8 +156,10 @@ WebAssemblyModule::CreateModule(
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
             SysFreeString(originalMessage);
         }
-
-        throw newEx;
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        JavascriptError *pError = library->CreateWebAssemblyCompileError();
+        JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
+        JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 
     return webAssemblyModule;

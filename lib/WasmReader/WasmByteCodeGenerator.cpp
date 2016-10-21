@@ -74,7 +74,7 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
     m_recycler(scriptContext->GetRecycler()),
     m_bufferSrc(bufferSrc)
 {
-    m_module = RecyclerNewFinalizedLeaf(m_recycler, Js::WebAssemblyModule, scriptContext, binaryBuffer, binaryBufferLength, scriptContext->GetLibrary()->GetWebAssemblyModuleType());
+    m_module = RecyclerNewFinalized(m_recycler, Js::WebAssemblyModule, scriptContext, binaryBuffer, binaryBufferLength, scriptContext->GetLibrary()->GetWebAssemblyModuleType());
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
@@ -83,6 +83,8 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
 Js::WebAssemblyModule*
 WasmModuleGenerator::GenerateModule()
 {
+    m_module->GetReader()->InitializeReader();
+
     BVStatic<bSectLimit + 1> visitedSections;
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))

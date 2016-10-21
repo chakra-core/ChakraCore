@@ -266,6 +266,10 @@ namespace Js
             regexPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeRegexPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
+            errorPrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
         else
         {
@@ -274,68 +278,35 @@ namespace Js
             tempDynamicType = DynamicType::New(scriptContext, TypeIds_Date, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeDatePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
             datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue, tempDynamicType);
-        }
 
-        if(scriptContext->GetConfig()->IsES6PrototypeChain())
-        {
-            errorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            evalErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeEvalErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            rangeErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeRangeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            referenceErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeReferenceErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            syntaxErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSyntaxErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            typeErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeTypeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-
-            uriErrorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeURIErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-        }
-        else
-        {
             tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
             errorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeEvalErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            evalErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeRangeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            rangeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeReferenceErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            referenceErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSyntaxErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            syntaxErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeTypeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            typeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
-
-            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeURIErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
-            uriErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
         }
+
+#define INIT_ERROR_PROTO(field, initFunc) \
+        if (scriptContext->GetConfig()->IsES6PrototypeChain()) \
+        { \
+            field = DynamicObject::New(recycler, \
+                DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr, \
+                DeferredTypeHandler<initFunc, DefaultDeferredTypeFilter, true>::GetDefaultInstance())); \
+        } \
+        else \
+        { \
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr, \
+                DeferredTypeHandler<initFunc, DefaultDeferredTypeFilter, true>::GetDefaultInstance()); \
+            field = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE); \
+        }
+
+        INIT_ERROR_PROTO(evalErrorPrototype, InitializeEvalErrorPrototype);
+        INIT_ERROR_PROTO(rangeErrorPrototype, InitializeRangeErrorPrototype);
+        INIT_ERROR_PROTO(referenceErrorPrototype, InitializeReferenceErrorPrototype);
+        INIT_ERROR_PROTO(syntaxErrorPrototype, InitializeSyntaxErrorPrototype);
+        INIT_ERROR_PROTO(typeErrorPrototype, InitializeTypeErrorPrototype);
+        INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
+        INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
+        INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
+#undef INIT_ERROR_PROTO
 
         tempDynamicType = DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
             DeferredTypeHandler<InitializeFunctionPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
@@ -420,77 +391,54 @@ namespace Js
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
 
-        activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        nativeIntArrayType = DynamicType::New(scriptContext, TypeIds_NativeIntArray, arrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-#if ENABLE_COPYONACCESS_ARRAY
-        copyOnAccessNativeIntArrayType = DynamicType::New(scriptContext, TypeIds_CopyOnAccessNativeIntArray, arrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-#endif
-        nativeFloatArrayType = DynamicType::New(scriptContext, TypeIds_NativeFloatArray, arrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+#define INIT_SIMPLE_TYPE(field, typeId, prototype) \
+        field = DynamicType::New(scriptContext, typeId, prototype, nullptr, \
+            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true)
 
-        arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        INIT_SIMPLE_TYPE(activationObjectType, TypeIds_ActivationObject, nullValue);
+        INIT_SIMPLE_TYPE(arrayType, TypeIds_Array, arrayPrototype);
+        INIT_SIMPLE_TYPE(nativeIntArrayType, TypeIds_NativeIntArray, arrayPrototype);
+        INIT_SIMPLE_TYPE(nativeFloatArrayType, TypeIds_NativeFloatArray, arrayPrototype);
+        INIT_SIMPLE_TYPE(arrayBufferType, TypeIds_ArrayBuffer, arrayBufferPrototype);
+
+#if ENABLE_COPYONACCESS_ARRAY
+        INIT_SIMPLE_TYPE(copyOnAccessNativeIntArrayType, TypeIds_CopyOnAccessNativeIntArray, arrayPrototype);
+#endif
 
         if (scriptContext->GetConfig()->IsESSharedArrayBufferEnabled())
         {
-            sharedArrayBufferType = DynamicType::New(scriptContext, TypeIds_SharedArrayBuffer, sharedArrayBufferPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+            INIT_SIMPLE_TYPE(sharedArrayBufferType, TypeIds_SharedArrayBuffer, sharedArrayBufferPrototype);
         }
         else
         {
             sharedArrayBufferType = nullptr;
         }
 
-        dataViewType = DynamicType::New(scriptContext, TypeIds_DataView, dataViewPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+        INIT_SIMPLE_TYPE(dataViewType, TypeIds_DataView, dataViewPrototype);
+        INIT_SIMPLE_TYPE(int8ArrayType, TypeIds_Int8Array, Int8ArrayPrototype);
+        INIT_SIMPLE_TYPE(uint8ArrayType, TypeIds_Uint8Array, Uint8ArrayPrototype);
+        INIT_SIMPLE_TYPE(uint8ClampedArrayType, TypeIds_Uint8ClampedArray, Uint8ClampedArrayPrototype);
+        INIT_SIMPLE_TYPE(int16ArrayType, TypeIds_Int16Array, Int16ArrayPrototype);
+        INIT_SIMPLE_TYPE(uint16ArrayType, TypeIds_Uint16Array, Uint16ArrayPrototype);
+        INIT_SIMPLE_TYPE(int32ArrayType, TypeIds_Int32Array, Int32ArrayPrototype);
+        INIT_SIMPLE_TYPE(uint32ArrayType, TypeIds_Uint32Array, Uint32ArrayPrototype);
+        INIT_SIMPLE_TYPE(float32ArrayType, TypeIds_Float32Array, Float32ArrayPrototype);
+        INIT_SIMPLE_TYPE(float64ArrayType, TypeIds_Float64Array, Float64ArrayPrototype);
+        INIT_SIMPLE_TYPE(int64ArrayType, TypeIds_Int64Array, Int64ArrayPrototype);
+        INIT_SIMPLE_TYPE(uint64ArrayType, TypeIds_Uint64Array, Uint64ArrayPrototype);
+        INIT_SIMPLE_TYPE(boolArrayType, TypeIds_BoolArray, BoolArrayPrototype);
+        INIT_SIMPLE_TYPE(charArrayType, TypeIds_CharArray, CharArrayPrototype);
+        INIT_SIMPLE_TYPE(errorType, TypeIds_Error, errorPrototype);
+        INIT_SIMPLE_TYPE(evalErrorType, TypeIds_Error, evalErrorPrototype);
+        INIT_SIMPLE_TYPE(rangeErrorType, TypeIds_Error, rangeErrorPrototype);
+        INIT_SIMPLE_TYPE(referenceErrorType, TypeIds_Error, referenceErrorPrototype);
+        INIT_SIMPLE_TYPE(syntaxErrorType, TypeIds_Error, syntaxErrorPrototype);
+        INIT_SIMPLE_TYPE(typeErrorType, TypeIds_Error, typeErrorPrototype);
+        INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
+        INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
+        INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
 
-        int8ArrayType = DynamicType::New(scriptContext, TypeIds_Int8Array, Int8ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-
-        uint8ArrayType = DynamicType::New(scriptContext, TypeIds_Uint8Array, Uint8ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        uint8ClampedArrayType = DynamicType::New(scriptContext, TypeIds_Uint8ClampedArray, Uint8ClampedArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        int16ArrayType = DynamicType::New(scriptContext, TypeIds_Int16Array, Int16ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        uint16ArrayType = DynamicType::New(scriptContext, TypeIds_Uint16Array, Uint16ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        int32ArrayType = DynamicType::New(scriptContext, TypeIds_Int32Array, Int32ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        uint32ArrayType = DynamicType::New(scriptContext, TypeIds_Uint32Array, Uint32ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        float32ArrayType = DynamicType::New(scriptContext, TypeIds_Float32Array, Float32ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        float64ArrayType = DynamicType::New(scriptContext, TypeIds_Float64Array, Float64ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        int64ArrayType = DynamicType::New(scriptContext, TypeIds_Int64Array, Int64ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        uint64ArrayType = DynamicType::New(scriptContext, TypeIds_Uint64Array, Uint64ArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        boolArrayType = DynamicType::New(scriptContext, TypeIds_BoolArray, BoolArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        charArrayType = DynamicType::New(scriptContext, TypeIds_CharArray, CharArrayPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-
-        errorType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        evalErrorType = DynamicType::New(scriptContext, TypeIds_Error, evalErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        rangeErrorType = DynamicType::New(scriptContext, TypeIds_Error, rangeErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        referenceErrorType = DynamicType::New(scriptContext, TypeIds_Error, referenceErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        syntaxErrorType = DynamicType::New(scriptContext, TypeIds_Error, syntaxErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        typeErrorType = DynamicType::New(scriptContext, TypeIds_Error, typeErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        uriErrorType = DynamicType::New(scriptContext, TypeIds_Error, uriErrorPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+#undef INIT_SIMPLE_TYPE
 
         withType    = nullptr;
         proxyType   = nullptr;
@@ -811,31 +759,30 @@ namespace Js
         {
         case kjstError:
             return GetErrorType();
-            break;
 
         case kjstEvalError:
             return GetEvalErrorType();
-            break;
 
         case kjstRangeError:
             return GetRangeErrorType();
-            break;
 
         case kjstReferenceError:
             return GetReferenceErrorType();
-            break;
 
         case kjstSyntaxError:
             return GetSyntaxErrorType();
-            break;
 
         case kjstTypeError:
             return GetTypeErrorType();
-            break;
 
         case kjstURIError:
             return GetURIErrorType();
-            break;
+
+        case kjstWebAssemblyCompileError:
+            return GetWebAssemblyCompileErrorType();
+
+        case kjstWebAssemblyRuntimeError:
+            return GetWebAssemblyRuntimeErrorType();
         }
 
         return nullptr;
@@ -1528,6 +1475,14 @@ namespace Js
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                     DeferredTypeHandler<InitializeWebAssemblyObject>::GetDefaultInstance()));
             AddMember(globalObject, PropertyIds::WebAssembly, webAssemblyObject);
+
+            webAssemblyCompileErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewWebAssemblyCompileErrorInstance,
+                DeferredTypeHandler<InitializeWebAssemblyCompileErrorConstructor>::GetDefaultInstance(),
+                nativeErrorPrototype);
+
+            webAssemblyRuntimeErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewWebAssemblyRuntimeErrorInstance,
+                DeferredTypeHandler<InitializeWebAssemblyRuntimeErrorConstructor>::GetDefaultInstance(),
+                nativeErrorPrototype);
         }
 #endif
     }
@@ -2057,7 +2012,7 @@ namespace Js
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
     }
 
-#define INIT_ERROR_CONSTRUCTOR(error) \
+#define INIT_ERROR(error) \
     void JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
@@ -2072,15 +2027,6 @@ namespace Js
         } \
         constructor->SetHasNoEnumerableProperties(true); \
     } \
-
-    INIT_ERROR_CONSTRUCTOR(EvalError);
-    INIT_ERROR_CONSTRUCTOR(RangeError);
-    INIT_ERROR_CONSTRUCTOR(ReferenceError);
-    INIT_ERROR_CONSTRUCTOR(SyntaxError);
-    INIT_ERROR_CONSTRUCTOR(TypeError);
-    INIT_ERROR_CONSTRUCTOR(URIError);
-
-#define INIT_ERROR_PROTOTYPE(error) \
     void JavascriptLibrary::Initialize##error##Prototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(prototype, mode, 4); \
@@ -2092,14 +2038,18 @@ namespace Js
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes); \
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0); \
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties); \
-    } \
+    }
 
-    INIT_ERROR_PROTOTYPE(EvalError);
-    INIT_ERROR_PROTOTYPE(RangeError);
-    INIT_ERROR_PROTOTYPE(ReferenceError);
-    INIT_ERROR_PROTOTYPE(SyntaxError);
-    INIT_ERROR_PROTOTYPE(TypeError);
-    INIT_ERROR_PROTOTYPE(URIError);
+    INIT_ERROR(EvalError);
+    INIT_ERROR(RangeError);
+    INIT_ERROR(ReferenceError);
+    INIT_ERROR(SyntaxError);
+    INIT_ERROR(TypeError);
+    INIT_ERROR(URIError);
+    INIT_ERROR(WebAssemblyCompileError);
+    INIT_ERROR(WebAssemblyRuntimeError);
+
+#undef INIT_ERROR
 
     void JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2724,6 +2674,10 @@ namespace Js
         Js::RuntimeFunction * instanceConstructor = library->CreateBuiltinConstructor(&WebAssemblyInstance::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeWebAssemblyInstanceObject>::GetDefaultInstance());
         library->AddFunction(webAssemblyObject, PropertyIds::Instance, instanceConstructor);
+
+        library->AddFunction(webAssemblyObject, PropertyIds::CompileError, library->webAssemblyCompileErrorConstructor);
+        library->AddFunction(webAssemblyObject, PropertyIds::RuntimeError, library->webAssemblyRuntimeErrorConstructor);
+
     }
 #endif
 
@@ -5981,6 +5935,12 @@ namespace Js
         case kjstURIError:
             baseErrorType = uriErrorType;
             break;
+        case kjstWebAssemblyCompileError:
+            baseErrorType = webAssemblyCompileErrorType;
+            break;
+        case kjstWebAssemblyRuntimeError:
+            baseErrorType = webAssemblyRuntimeErrorType;
+            break;
         }
 
         JavascriptError *pError = RecyclerNew(recycler, JavascriptError, baseErrorType, TRUE);
@@ -5988,53 +5948,25 @@ namespace Js
         return pError;
     }
 
-    JavascriptError* JavascriptLibrary::CreateEvalError()
-    {
-        AssertMsg(evalErrorType, "Where's evalErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, evalErrorType);
-        JavascriptError::SetErrorType(pError, kjstEvalError);
-        return pError;
+#define CREATE_ERROR(name, field, id) \
+    JavascriptError* JavascriptLibrary::Create##name() \
+    { \
+        AssertMsg(field, "Where's field?"); \
+        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, field); \
+        JavascriptError::SetErrorType(pError, id); \
+        return pError; \
     }
 
-    JavascriptError* JavascriptLibrary::CreateRangeError()
-    {
-        AssertMsg(rangeErrorType, "Where's rangeErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, rangeErrorType);
-        JavascriptError::SetErrorType(pError, kjstRangeError);
-        return pError;
-    }
+    CREATE_ERROR(EvalError, evalErrorType, kjstEvalError);
+    CREATE_ERROR(RangeError, rangeErrorType, kjstRangeError);
+    CREATE_ERROR(ReferenceError, referenceErrorType, kjstReferenceError);
+    CREATE_ERROR(SyntaxError, syntaxErrorType, kjstSyntaxError);
+    CREATE_ERROR(TypeError, typeErrorType, kjstTypeError);
+    CREATE_ERROR(URIError, uriErrorType, kjstURIError);
+    CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
+    CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
 
-    JavascriptError* JavascriptLibrary::CreateReferenceError()
-    {
-        AssertMsg(referenceErrorType, "Where's referenceErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, referenceErrorType);
-        JavascriptError::SetErrorType(pError, kjstReferenceError);
-        return pError;
-    }
-
-    JavascriptError* JavascriptLibrary::CreateSyntaxError()
-    {
-        AssertMsg(syntaxErrorType, "Where's syntaxErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, syntaxErrorType);
-        JavascriptError::SetErrorType(pError, kjstSyntaxError);
-        return pError;
-    }
-
-    JavascriptError* JavascriptLibrary::CreateTypeError()
-    {
-        AssertMsg(typeErrorType, "Where's typeErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, typeErrorType);
-        JavascriptError::SetErrorType(pError, kjstTypeError);
-        return pError;
-    }
-
-    JavascriptError* JavascriptLibrary::CreateURIError()
-    {
-        AssertMsg(uriErrorType, "Where's uriErrorType?");
-        JavascriptError *pError = RecyclerNew(this->GetRecycler(), JavascriptError, uriErrorType);
-        JavascriptError::SetErrorType(pError, kjstURIError);
-        return pError;
-    }
+#undef CREATE_ERROR
 
     JavascriptError* JavascriptLibrary::CreateStackOverflowError()
     {

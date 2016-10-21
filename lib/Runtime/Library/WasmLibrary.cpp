@@ -69,7 +69,8 @@ namespace Js
         Assert(asmFunction);
         ScriptContext * scriptContext = asmFunction->GetScriptContext();
         Assert(scriptContext);
-        JavascriptExceptionOperators::Throw(asmFunction->GetLazyError(), scriptContext);
+        auto error = asmFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetLazyError();
+        JavascriptExceptionOperators::Throw(error, scriptContext);
     }
 
 #if _M_IX86
@@ -156,8 +157,6 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
     }
     catch (Wasm::WasmCompilationException& ex)
     {
-        // TODO: should be WebAssembly.CompileError
-        // TODO: make common method for creating this message
         char16* originalMessage = ex.ReleaseErrorMessage();
         intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
         intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
@@ -171,7 +170,14 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             originalMessage
         );
         SysFreeString(originalMessage);
-        throw newEx;
+        char16* msg = newEx.ReleaseErrorMessage();
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        JavascriptError *pError = library->CreateWebAssemblyCompileError();
+        JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, msg, scriptContext);
+
+        func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
+        entypointInfo->jsMethod = WasmLazyTrapCallback;
+        info->SetLazyError(pError);
     }
     if (internalCall)
     {
