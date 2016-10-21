@@ -21,6 +21,7 @@
     <compile-flags>-on:wasm</compile-flags>
   </default>
 </test>
+<!--
 <test>
     <default>
        <files>f32.js</files>
@@ -28,6 +29,7 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+-->
 <test>
     <default>
        <files>dropteelocal.js</files>
