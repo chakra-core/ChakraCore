@@ -17,6 +17,8 @@ public:
     template<typename T> static T Nearest(T aLeft);
     static int Rol(int aLeft, int aRight);
     static int Ror(int aLeft, int aRight);
+    template <typename T, T MIN, T MAX> static bool IsInValidRange (double aLeft);
+
 };
 
 } //namespace Wasm
