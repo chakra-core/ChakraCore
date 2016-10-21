@@ -523,8 +523,11 @@ namespace Js
             *ppSourceInfo = nullptr;
             Wasm::WasmModule * wasmModule = nullptr;
 
-            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)script, lengthBytes);
+            byte* buffer = RecyclerNewArray(scriptContext->GetRecycler(), byte, lengthBytes);
+            js_memcpy_s(buffer, lengthBytes, (byte*)script, lengthBytes);
+
+            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
+            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)buffer, lengthBytes);
             wasmModule = bytecodeGen->GenerateModule();
 
             Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, wasmModule->GetModuleEnvironmentSize());

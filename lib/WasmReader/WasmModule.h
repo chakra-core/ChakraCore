@@ -99,6 +99,8 @@ namespace Wasm
         JsUtil::List<WasmGlobal*, ArenaAllocator> globals;
 
     private:
+        // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
+        byte* m_binaryBuffer;
         WasmSignature** m_signatures;
         uint32* m_indirectfuncs;
         WasmFunctionInfo** m_functionsInfo;

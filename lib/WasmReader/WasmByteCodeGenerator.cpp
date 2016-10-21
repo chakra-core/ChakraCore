@@ -84,7 +84,7 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::U
     m_scriptContext(scriptContext),
     m_recycler(scriptContext->GetRecycler())
 {
-    m_module = RecyclerNewFinalizedLeaf(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
+    m_module = RecyclerNewFinalized(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
