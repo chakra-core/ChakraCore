@@ -1863,7 +1863,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(UNREACHED);
             }
             break;
-
+        case Js::OpCode::Conv_Prim_Check:
+            GenerateTruncWithCheck(instr);
+            break;
         case Js::OpCode::Conv_Prim:
             if (instr->GetDst()->IsFloat())
             {
@@ -17893,6 +17895,13 @@ Lowerer::GenerateCtz(IR::Instr* instr)
 void Lowerer::GenerateThrowUnreachable(IR::Instr* instr)
 {
     m_lowererMD.GenerateThrowUnreachable(instr);
+}
+
+void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
+{
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32());
+    Assert(instr->GetSrc1()->IsFloat());
+    m_lowererMD.GenerateTruncWithCheck(instr);
 }
 
 void
