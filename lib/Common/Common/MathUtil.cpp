@@ -4,12 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 
-bool
-Math::FitsInDWord(size_t value)
-{
-    return ((size_t)(signed int)(value & 0xFFFFFFFF) == value);
-}
-
 uint32
 Math::NextPowerOf2(uint32 n)
 {

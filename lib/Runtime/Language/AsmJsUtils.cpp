@@ -222,7 +222,7 @@ namespace Js
         for (ArgSlot i = 0; i < info->GetArgCount(); i++)
         {
 
-            if (info->GetArgType(i).isInt())
+            if (info->GetArgType(i).isInt() || info->GetArgType(i).isInt64())
             {
                 int32 intVal;
                 if (i < actualArgCount)
@@ -360,6 +360,10 @@ namespace Js
                 *(AsmJsSIMDValue*)argDst = simdVal;
                 argDst = argDst + sizeof(AsmJsSIMDValue);
             }
+            else
+            {
+                Assert(UNREACHED);
+            }
             ++origArgs;
         }
         // for convenience, lets take the opportunity to return the asm.js entrypoint address
@@ -378,6 +382,7 @@ namespace Js
         case AsmJsRetType::Void:
             returnValue = JavascriptOperators::OP_LdUndef(func->GetScriptContext());
             break;
+        case AsmJsRetType::Int64:
         case AsmJsRetType::Signed:{
             returnValue = JavascriptNumber::ToVar(intRetVal, func->GetScriptContext());
             break;
@@ -516,6 +521,19 @@ namespace Js
                     }
                     *(int32*)dst = intVal;
                     dst += sizeof(int32);
+                }
+                else if (info->GetArgType(i).isInt64())
+                {
+                    if (i < argInCount)
+                    {
+                        intVal = JavascriptMath::ToInt32(args.Values[i + 1], scriptContext);
+                    }
+                    else
+                    {
+                        intVal = 0;
+                    }
+                    *(int64*)dst = (int64)intVal;
+                    dst += sizeof(int64);
                 }
                 else if (info->GetArgType(i).isFloat())
                 {
@@ -657,6 +675,7 @@ namespace Js
             }
             returnValue = JavascriptOperators::OP_LdUndef(func->GetScriptContext());
             break;
+        case AsmJsRetType::Int64:
         case AsmJsRetType::Signed:{
             int32 ival = 0;
             __asm

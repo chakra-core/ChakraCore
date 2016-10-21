@@ -555,7 +555,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     // Machine dependent lowering
     //
 
-    if (callInstr->m_opcode != Js::OpCode::AsmJsCallI)
+    if (callInstr->m_opcode != Js::OpCode::AsmJsCallI && callInstr->m_opcode != Js::OpCode::AsmJsEntryTracing)
     {
         // Push argCount
         IR::IntConstOpnd *argCountOpnd = Lowerer::MakeCallInfoConst(callFlags, argCount, m_func);
@@ -573,8 +573,17 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
-        IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
-        GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
+        {
+            callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
+        }
+        else
+#endif
+        {
+            IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
+            GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
+        }
     }
 
     return argSlots;
@@ -1265,6 +1274,11 @@ LowererMDArch::LowerStartCall(IR::Instr * startCallInstr)
     return startCallInstr;
 }
 
+IR::Instr *
+LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
+{
+    return LoadHelperArgument(instrInsert, opndArg);
+}
 
 ///----------------------------------------------------------------------------
 ///
@@ -1682,6 +1696,10 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
                 this->MovArgFromReg2Stack(entryInstr, i == 0 ? RegRDX : i == 1 ? RegR8 : RegR9, offset, TyInt32);
                 offset++;
                 break;
+            case Js::AsmJsVarType::Int64:
+                this->MovArgFromReg2Stack(entryInstr, i == 0 ? RegRDX : i == 1 ? RegR8 : RegR9, offset, TyInt64);
+                offset++;
+                break;
             case Js::AsmJsVarType::Float:
                 // registers we need are contiguous, so calculate it from XMM1
                 this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TyFloat32);
@@ -2034,6 +2052,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
         case Js::AsmJsRetType::Float64x2:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128D2), TySimd128D2, this->m_func);
             break;
+        case Js::AsmJsRetType::Int64:
         case Js::AsmJsRetType::Signed:
         case Js::AsmJsRetType::Void:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);
@@ -2068,6 +2087,13 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
 {
     // epilogue is almost identical on x64, except for return register
     return LowerExitInstr(exitInstr);
+}
+
+IR::Instr *
+LowererMDArch::LowerInt64Assign(IR::Instr * instr)
+{
+    this->lowererMD->ChangeToAssign(instr);
+    return instr;
 }
 
 void
@@ -2105,20 +2131,28 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     IR::Instr *newInstr = nullptr;
     IR::RegOpnd *regEDX;
 
-    if (dst && !dst->IsUInt32())
+    bool legalize = false;
+    bool isInt64Instr = instr->AreAllOpndInt64();
+    if (!isInt64Instr)
     {
-        dst->SetType(TyInt32);
+        if (dst && !dst->IsUInt32())
+        {
+            dst->SetType(TyInt32);
+        }
+        if (!src1->IsUInt32())
+        {
+            src1->SetType(TyInt32);
+        }
+        if (src2 && !src2->IsUInt32())
+        {
+            src2->SetType(TyInt32);
+        }
     }
-    if (!src1->IsUInt32())
+    else
     {
-        src1->SetType(TyInt32);
-    }
-    if (src2 && !src2->IsUInt32())
-    {
-        src2->SetType(TyInt32);
+        legalize = true;
     }
 
-    bool legalize = false;
     switch (instr->m_opcode)
     {
     case Js::OpCode::Neg_I4:
@@ -2149,40 +2183,42 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     case Js::OpCode::Rem_I4:
         instr->SinkDst(Js::OpCode::MOV, RegRDX);
 idiv_common:
-        if (instr->GetSrc1()->GetType() == TyUint32)
         {
-            Assert(instr->GetSrc2()->GetType() == TyUint32);
-            instr->m_opcode = Js::OpCode::DIV;
-        }
-        else
-        {
-            instr->m_opcode = Js::OpCode::IDIV;
-        }
-        instr->HoistSrc1(Js::OpCode::MOV, RegRAX);
-
-        regEDX = IR::RegOpnd::New(TyInt32, instr->m_func);
-        regEDX->SetReg(RegRDX);
-        if (instr->GetSrc1()->GetType() == TyUint32)
-        {
-            // we need to ensure that register allocator doesn't muck about with rdx
-            instr->HoistSrc2(Js::OpCode::MOV, RegRCX);
-
-            newInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEDX, IR::IntConstOpnd::New(0, TyInt32, instr->m_func), instr->m_func);
-            instr->InsertBefore(newInstr);
-            LowererMD::ChangeToAssign(newInstr);
-            // NOP ensures that the EDX = Ld_I4 0 doesn't get deadstored, will be removed in peeps
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::NOP, regEDX, regEDX, instr->m_func));
-        }
-        else
-        {
-            if (instr->GetSrc2()->IsImmediateOpnd())
+            bool isUnsigned = instr->GetSrc1()->IsUnsigned();
+            if (isUnsigned)
             {
-                instr->HoistSrc2(Js::OpCode::MOV);
+                Assert(instr->GetSrc2()->IsUnsigned());
+                instr->m_opcode = Js::OpCode::DIV;
             }
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, regEDX, instr->m_func));
-        }
-        return;
+            else
+            {
+                instr->m_opcode = Js::OpCode::IDIV;
+            }
+            instr->HoistSrc1(Js::OpCode::MOV, RegRAX);
 
+            regEDX = IR::RegOpnd::New(src1->GetType(), instr->m_func);
+            regEDX->SetReg(RegRDX);
+            if (isUnsigned)
+            {
+                // we need to ensure that register allocator doesn't muck about with rdx
+                instr->HoistSrc2(Js::OpCode::MOV, RegRCX);
+
+                newInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEDX, IR::IntConstOpnd::New(0, src1->GetType(), instr->m_func), instr->m_func);
+                instr->InsertBefore(newInstr);
+                LowererMD::ChangeToAssign(newInstr);
+                // NOP ensures that the EDX = Ld_I4 0 doesn't get deadstored, will be removed in peeps
+                instr->InsertBefore(IR::Instr::New(Js::OpCode::NOP, regEDX, regEDX, instr->m_func));
+            }
+            else
+            {
+                if (instr->GetSrc2()->IsImmediateOpnd())
+                {
+                    instr->HoistSrc2(Js::OpCode::MOV);
+                }
+                instr->InsertBefore(IR::Instr::New(isInt64Instr ? Js::OpCode::CQO : Js::OpCode::CDQ, regEDX, instr->m_func));
+            }
+            return;
+        }
     case Js::OpCode::Or_I4:
         instr->m_opcode = Js::OpCode::OR;
         break;

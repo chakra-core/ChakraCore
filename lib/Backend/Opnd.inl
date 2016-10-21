@@ -179,6 +179,34 @@ Opnd::AsIntConstOpnd()
 
 ///----------------------------------------------------------------------------
 ///
+/// Opnd::IsInt64ConstOpnd
+///
+///----------------------------------------------------------------------------
+
+inline bool
+Opnd::IsInt64ConstOpnd() const
+{
+    return GetKind() == OpndKindInt64Const;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::AsInt64ConstOpnd
+///
+///     Use this opnd as an Int64ConstOpnd.
+///
+///----------------------------------------------------------------------------
+
+inline Int64ConstOpnd *
+Opnd::AsInt64ConstOpnd()
+{
+    AssertMsg(this->IsInt64ConstOpnd(), "Bad call to AsInt64ConstOpnd()");
+    return reinterpret_cast<Int64ConstOpnd *>(this);
+}
+
+
+///----------------------------------------------------------------------------
+///
 /// Opnd::IsFloatConstOpnd
 ///
 ///----------------------------------------------------------------------------
@@ -354,7 +382,7 @@ Opnd::AsLabelOpnd()
 inline bool
 Opnd::IsImmediateOpnd() const
 {
-    return this->IsIntConstOpnd() || this->IsAddrOpnd() || this->IsHelperCallOpnd();
+    return this->IsIntConstOpnd() || this->IsInt64ConstOpnd() || this->IsAddrOpnd() || this->IsHelperCallOpnd();
 }
 
 

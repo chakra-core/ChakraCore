@@ -1004,7 +1004,10 @@ Peeps::PeepRedundant(IR::Instr *instr)
         do
         {
             instr = instr->GetPrevRealInstrOrLabel();
-            if (instr->m_opcode == Js::OpCode::IMUL)
+            if (
+                instr->m_opcode == Js::OpCode::IMUL ||
+                (instr->m_opcode == Js::OpCode::CALL && this->func->GetJITFunctionBody()->IsWasmFunction())
+            )
             {
                 found = true;
                 break;

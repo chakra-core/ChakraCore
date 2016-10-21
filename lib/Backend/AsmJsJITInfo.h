@@ -11,24 +11,20 @@ class AsmJsJITInfo
 public:
     AsmJsJITInfo(AsmJsDataIDL * data);
 
-    int GetIntConstCount() const;
-    int GetDoubleConstCount() const;
-    int GetFloatConstCount() const;
-    int GetSimdConstCount() const;
-    int GetIntTmpCount() const;
-    int GetDoubleTmpCount() const;
-    int GetFloatTmpCount() const;
-    int GetSimdTmpCount() const;
-    int GetIntVarCount() const;
-    int GetDoubleVarCount() const;
-    int GetFloatVarCount() const;
-    int GetSimdVarCount() const;
-    int GetIntByteOffset() const;
-    int GetDoubleByteOffset() const;
-    int GetFloatByteOffset() const;
-    int GetSimdByteOffset() const;
-    int GetTotalSizeInBytes() const;
+    WAsmJs::TypedSlotInfo GetTypedSlotInfo(WAsmJs::Types type) const;
+#define TYPED_SLOT_INFO_GETTER(name, type) \
+    int Get##name##ByteOffset() const   { return m_data.typedSlotInfos[WAsmJs::##type].byteOffset; }\
+    int Get##name##ConstCount() const   { return m_data.typedSlotInfos[WAsmJs::##type].constCount; }\
+    int Get##name##TmpCount() const     { return m_data.typedSlotInfos[WAsmJs::##type].tmpCount; }\
+    int Get##name##VarCount() const     { return m_data.typedSlotInfos[WAsmJs::##type].varCount; }
 
+    TYPED_SLOT_INFO_GETTER(Double, FLOAT64);
+    TYPED_SLOT_INFO_GETTER(Float, FLOAT32);
+    TYPED_SLOT_INFO_GETTER(Int, INT32);
+    TYPED_SLOT_INFO_GETTER(Int64, INT64);
+    TYPED_SLOT_INFO_GETTER(Simd, SIMD);
+
+    int GetTotalSizeInBytes() const;
     Js::ArgSlot GetArgCount() const;
     Js::ArgSlot GetArgByteSize() const;
     Js::AsmJsRetType::Which GetRetType() const;

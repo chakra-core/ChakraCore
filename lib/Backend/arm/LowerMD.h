@@ -103,7 +103,7 @@ public:
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);
             void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
-            void            GeneratePopCnt32(IR::Instr * instr) { Assert(UNREACHED); }
+            void            GeneratePopCnt(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateThrowUnreachable(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
@@ -144,6 +144,7 @@ public:
      static void            EmitPtrInstr(IR::Instr *instr);
             void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false);
             bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed);
+            IR::Instr *     LowerInt64Assign(IR::Instr * instr) { Assert(UNREACHED); return nullptr; }
 
      static void            LowerInt4NegWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel);
      static void            LowerInt4AddWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel);

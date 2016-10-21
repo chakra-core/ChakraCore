@@ -472,7 +472,7 @@ namespace Js
                 return m.Fail(ctorExpr, _u("invalid 'new' import"));
             }
             type = buffFunc->Cast<AsmJsTypedArrayFunction>()->GetViewType();
-            if (type == ArrayBufferView::TYPE_INVALID)
+            if (type == ArrayBufferView::TYPE_COUNT)
             {
                 return m.Fail(ctorExpr, _u("could not match typed array name"));
             }

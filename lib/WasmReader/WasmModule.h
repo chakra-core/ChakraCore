@@ -74,14 +74,10 @@ namespace Wasm
 
         uint32 GetModuleEnvironmentSize() const;
 
-        uint GetHeapOffset() const { return heapOffset; }
-        void SetHeapOffset(uint val) { heapOffset = val; }
-        uint GetFuncOffset() const { return funcOffset; }
-        void SetFuncOffset(uint val) { funcOffset = val; }
-        uint GetImportFuncOffset() const { return importFuncOffset; }
-        void SetImportFuncOffset(uint val) { importFuncOffset = val; }
-        uint GetTableEnvironmentOffset() const { return indirFuncTableOffset; }
-        void SetTableEnvironmentOffset(uint val) { indirFuncTableOffset = val; }
+        uint GetHeapOffset() const { return 0; }
+        uint GetImportFuncOffset() const { return GetHeapOffset() + 1; }
+        uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
+        uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
 
         WasmBinaryReader* GetReader() const { return m_reader; }
 
@@ -109,11 +105,5 @@ namespace Wasm
         uint32 m_startFuncIndex;
 
         ArenaAllocator m_alloc;
-
-        // Describes the module's Environment
-        uint heapOffset;
-        uint funcOffset;
-        uint importFuncOffset;
-        uint indirFuncTableOffset;
     };
 } // namespace Wasm

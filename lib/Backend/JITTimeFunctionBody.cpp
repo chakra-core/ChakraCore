@@ -252,22 +252,19 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     {
         jitBody->asmJsData = Anew(arena, AsmJsDataIDL);
         Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfoWithLock();
-        jitBody->asmJsData->intConstCount = asmFuncInfo->GetIntConstCount();
-        jitBody->asmJsData->doubleConstCount = asmFuncInfo->GetDoubleConstCount();
-        jitBody->asmJsData->floatConstCount = asmFuncInfo->GetFloatConstCount();
-        jitBody->asmJsData->simdConstCount = asmFuncInfo->GetSimdConstCount();
-        jitBody->asmJsData->intTmpCount = asmFuncInfo->GetIntTmpCount();
-        jitBody->asmJsData->doubleTmpCount = asmFuncInfo->GetDoubleTmpCount();
-        jitBody->asmJsData->floatTmpCount = asmFuncInfo->GetFloatTmpCount();
-        jitBody->asmJsData->simdTmpCount = asmFuncInfo->GetSimdTmpCount();
-        jitBody->asmJsData->intVarCount = asmFuncInfo->GetIntVarCount();
-        jitBody->asmJsData->doubleVarCount = asmFuncInfo->GetDoubleVarCount();
-        jitBody->asmJsData->floatVarCount = asmFuncInfo->GetFloatVarCount();
-        jitBody->asmJsData->simdVarCount = asmFuncInfo->GetSimdVarCount();
-        jitBody->asmJsData->intByteOffset = asmFuncInfo->GetIntByteOffset();
-        jitBody->asmJsData->doubleByteOffset = asmFuncInfo->GetDoubleByteOffset();
-        jitBody->asmJsData->floatByteOffset = asmFuncInfo->GetFloatByteOffset();
-        jitBody->asmJsData->simdByteOffset = asmFuncInfo->GetSimdByteOffset();
+        // 5 is hard coded in JITTypes.h
+        CompileAssert(WAsmJs::LIMIT == 5);
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
+        {
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            const auto typedInfo = asmFuncInfo->GetTypedSlotInfo(type);
+            jitBody->asmJsData->typedSlotInfos[i].byteOffset = typedInfo->byteOffset;
+            jitBody->asmJsData->typedSlotInfos[i].constCount = typedInfo->constCount;
+            jitBody->asmJsData->typedSlotInfos[i].constSrcByteOffset = typedInfo->constSrcByteOffset;
+            jitBody->asmJsData->typedSlotInfos[i].isValidType = typedInfo->isValidType;
+            jitBody->asmJsData->typedSlotInfos[i].tmpCount = typedInfo->tmpCount;
+            jitBody->asmJsData->typedSlotInfos[i].varCount = typedInfo->varCount;
+        }
         jitBody->asmJsData->argCount = asmFuncInfo->GetArgCount();
         jitBody->asmJsData->argTypeArray = (byte*)asmFuncInfo->GetArgTypeArray();
         jitBody->asmJsData->argByteSize = asmFuncInfo->GetArgByteSize();

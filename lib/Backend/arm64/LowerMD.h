@@ -97,7 +97,7 @@ public:
 
               void            GenerateClz(IR::Instr * instr) { __debugbreak(); }
               void            GenerateCtz(IR::Instr * instr) { __debugbreak(); }
-              void            GeneratePopCnt32(IR::Instr * instr) { __debugbreak(); }
+              void            GeneratePopCnt(IR::Instr * instr) { __debugbreak(); }
               void            GenerateThrowUnreachable(IR::Instr * instr) { __debugbreak(); }
               void            GenerateFastDivByPow2(IR::Instr *instr) { __debugbreak(); }
               bool            GenerateFastAdd(IR::Instr * instrAdd) { __debugbreak(); return 0; }
@@ -142,6 +142,7 @@ public:
        static void            EmitPtrInstr(IR::Instr *instr) { __debugbreak(); }
               void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false) { __debugbreak(); }
               bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed) { __debugbreak(); return 0; }
+              IR::Instr *     LowerInt64Assign(IR::Instr * instr) { __debugbreak(); return nullptr; }
 
        static void            LowerInt4NegWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) { __debugbreak(); }
        static void            LowerInt4AddWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) { __debugbreak(); }

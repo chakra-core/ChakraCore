@@ -12,100 +12,24 @@ AsmJsJITInfo::AsmJsJITInfo(AsmJsDataIDL * data) :
     CompileAssert(sizeof(AsmJsJITInfo) == sizeof(AsmJsDataIDL));
 }
 
-int
-AsmJsJITInfo::GetIntConstCount() const
+WAsmJs::TypedSlotInfo
+AsmJsJITInfo::GetTypedSlotInfo(WAsmJs::Types type) const
 {
-    return m_data.intConstCount;
-}
-
-int
-AsmJsJITInfo::GetDoubleConstCount() const
-{
-    return m_data.doubleConstCount;
-}
-
-int
-AsmJsJITInfo::GetFloatConstCount() const
-{
-    return m_data.floatConstCount;
-}
-
-int
-AsmJsJITInfo::GetSimdConstCount() const
-{
-    return m_data.simdConstCount;
-}
-
-int
-AsmJsJITInfo::GetIntTmpCount() const
-{
-    return m_data.intTmpCount;
-}
-
-int
-AsmJsJITInfo::GetDoubleTmpCount() const
-{
-    return m_data.doubleTmpCount;
-}
-
-int
-AsmJsJITInfo::GetFloatTmpCount() const
-{
-    return m_data.floatTmpCount;
-}
-
-int
-AsmJsJITInfo::GetSimdTmpCount() const
-{
-    return m_data.simdTmpCount;
-}
-
-int
-AsmJsJITInfo::GetIntVarCount() const
-{
-    return m_data.intVarCount;
-}
-
-int
-AsmJsJITInfo::GetDoubleVarCount() const
-{
-    return m_data.doubleVarCount;
-}
-
-int
-AsmJsJITInfo::GetFloatVarCount() const
-{
-    return m_data.floatVarCount;
-}
-
-int
-AsmJsJITInfo::GetSimdVarCount() const
-{
-    return m_data.simdVarCount;
-}
-
-int
-AsmJsJITInfo::GetIntByteOffset() const
-{
-    return m_data.intByteOffset;
-}
-
-int
-AsmJsJITInfo::GetDoubleByteOffset() const
-{
-    return m_data.doubleByteOffset;
-}
-
-int
-AsmJsJITInfo::GetFloatByteOffset() const
-{
-    return m_data.floatByteOffset;
-}
-
-int
-AsmJsJITInfo::GetSimdByteOffset() const
-{
-    return m_data.simdByteOffset;
+    WAsmJs::TypedSlotInfo info;
+    if (type < WAsmJs::LIMIT)
+    {
+        info.byteOffset = m_data.typedSlotInfos[type].byteOffset;
+        info.constCount = m_data.typedSlotInfos[type].constCount;
+        info.constSrcByteOffset = m_data.typedSlotInfos[type].constSrcByteOffset;
+        info.isValidType = !!m_data.typedSlotInfos[type].isValidType;
+        info.tmpCount = m_data.typedSlotInfos[type].tmpCount;
+        info.varCount = m_data.typedSlotInfos[type].varCount;
+    }
+    else
+    {
+        info.isValidType = false;
+    }
+    return info;
 }
 
 int

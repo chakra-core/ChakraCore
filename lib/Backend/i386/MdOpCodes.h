@@ -17,6 +17,7 @@
 //      /          /         /                   /         /          /              dope                   leadin
 //     /          /         /                   /         /          /              /                       /
 MACRO(ADD,      Reg2,       None,           R000,   f(BINOP),   o(ADD),     DOPEQ|DSETCC|DCOMMOP,       OLB_NONE)
+MACRO(ADC,      Reg2,       None,           R010,   f(BINOP),   o(ADC),     DOPEQ|DSETCC|DCOMMOP,       OLB_NONE)
 
 MACRO(ADDPD,    Reg2,       None,           RNON,   f(MODRM),   o(ADDPD),   DNO16|DOPEQ|D66|DCOMMOP,    OLB_NONE)
 MACRO(ADDPS,    Reg2,       None,           RNON,   f(MODRM),   o(ADDPS),   DNO16|DOPEQ|DZEROF|DCOMMOP, OLB_NONE)
