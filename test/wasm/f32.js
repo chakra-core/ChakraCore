@@ -15,4 +15,12 @@ print(a.max(1/0, 11.01)); // Infinity
 print(a.max(11.01, 0/0)); // NaN
 print(a.max(0/0, 11.01)); // NaN
 print(a.max(NaN, -NaN)); // NaN
+print("Reinterpret tests");
+print(a.reinterpret_f2i(0))
+print(a.reinterpret_f2i(-1)) //NaN
+print(a.reinterpret_f2i(-1082130432));
+print(a.reinterpret_f2i(-1081800544));
+print(a.reinterpret_f2i(2139095040)); //Inf
+print(a.reinterpret_f2i(-8388608)); //-Inf
+print(a.reinterpret_f2i(-8388607)); //NaN
 
