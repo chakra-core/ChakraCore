@@ -182,6 +182,7 @@ namespace Js
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
         void OP_Unreachable();
+        template < typename T, T MIN, T MAX> int OP_TruncWithCheck(double val);
 
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
