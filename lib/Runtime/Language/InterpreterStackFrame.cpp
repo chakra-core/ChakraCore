@@ -2167,7 +2167,7 @@ namespace Js
         }
         case Js::AsmJsRetType::Int64:
         {
-            entryPoint = (AsmJsInterpreterInt64EP)Js::InterpreterStackFrame::AsmJsInterpreter < int64 > ;
+            entryPoint = (void*)(AsmJsInterpreterInt64EP)Js::InterpreterStackFrame::AsmJsInterpreter < int64 > ;
             break;
         }
         case Js::AsmJsRetType::Int32x4:

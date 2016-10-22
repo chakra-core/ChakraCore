@@ -123,8 +123,7 @@ namespace Js
 
         for (auto it = intMap.GetIterator(); it.IsValid(); it.MoveNext())
         {
-            JsUtil::BaseDictionary<T, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
-            *typedTable = entry.Key();
+            *typedTable = it.Current().Key();
             typedTable++;
         }
     }

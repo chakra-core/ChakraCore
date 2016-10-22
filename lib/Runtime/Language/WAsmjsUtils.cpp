@@ -10,6 +10,12 @@
 namespace WAsmJs
 {
 
+template<> Types RegisterSpace::GetRegisterSpaceType<int32>(){return WAsmJs::INT32;}
+template<> Types RegisterSpace::GetRegisterSpaceType<int64>(){return WAsmJs::INT64;}
+template<> Types RegisterSpace::GetRegisterSpaceType<float>(){return WAsmJs::FLOAT32;}
+template<> Types RegisterSpace::GetRegisterSpaceType<double>(){return WAsmJs::FLOAT64;}
+template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     void TraceAsmJsArgsIn(Js::Var function, int n, ...)
     {
@@ -33,8 +39,11 @@ namespace WAsmJs
                 Output::Print(_u("%lld, "), va_arg(argptr, int64));
                 break;
             case TyFloat32:
-                Output::Print(_u("%.2f, "), va_arg(argptr, float));
+            {
+                int v = va_arg(argptr, int);
+                Output::Print(_u("%.2f, "), *(float*)v);
                 break;
+            }
             case TyFloat64:
                 Output::Print(_u("%.2f, "), va_arg(argptr, double));
                 break;

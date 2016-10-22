@@ -14,6 +14,11 @@
 #include "ByteCode/AsmJsByteCodeWriter.h"
 #include "Language/AsmJsByteCodeGenerator.h"
 
+#if DBG_DUMP
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
+#endif
+
 namespace Js
 {
 

@@ -234,12 +234,7 @@ namespace WAsmJs
             return false;
         }
 
-        template<typename T> static Types GetRegisterSpaceType(){return WAsmJs::LIMIT;}
-        template<> static Types GetRegisterSpaceType<int32>(){return WAsmJs::INT32;}
-        template<> static Types GetRegisterSpaceType<int64>(){return WAsmJs::INT64;}
-        template<> static Types GetRegisterSpaceType<float>(){return WAsmJs::FLOAT32;}
-        template<> static Types GetRegisterSpaceType<double>(){return WAsmJs::FLOAT64;}
-        template<> static Types GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
+        template<typename T> static Types GetRegisterSpaceType();
 #if DBG_DUMP
         // Used for debugging
         Types mType;
