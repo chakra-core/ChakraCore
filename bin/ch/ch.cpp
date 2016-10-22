@@ -537,6 +537,9 @@ HRESULT ExecuteTest(const char* fileName)
 #ifdef DEBUG
         ChakraRTInterface::SetCheckOpHelpersFlag(true);
 #endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        ChakraRTInterface::SetOOPCFGRegistrationFlag(false);
+#endif
 
         if (!WScriptJsrt::Initialize())
         {
@@ -829,7 +832,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     {
 #ifdef _WIN32
 #if ENABLE_NATIVE_CODEGEN
-        if (HostConfigFlags::flags.EnableOutOfProcJIT)
+        if (HostConfigFlags::flags.OOPJIT)
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);

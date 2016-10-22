@@ -275,11 +275,9 @@ ENTRY(Map)
 ENTRY(Math)
 
 // Wasm
-#ifdef ENABLE_WASM
 ENTRY(Wasm)
 ENTRY(instantiateModule)
 ENTRY(experimentalVersion)
-#endif
 // End Wasm
 
 // SIMD_JS

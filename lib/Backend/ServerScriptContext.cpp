@@ -8,9 +8,19 @@
 #include "JITServer/JITServer.h"
 #endif
 
+
+ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo) : threadContextInfo(threadContextInfo)
+{
+    threadContextInfo->AddRef();
+}
+ServerScriptContext::ThreadContextHolder::~ThreadContextHolder()
+{
+    threadContextInfo->Release();
+}
+
 ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo) :
     m_contextData(*contextData),
-    threadContextInfo(threadContextInfo),
+    threadContextHolder(threadContextInfo),
     m_isPRNGSeeded(false),
     m_interpreterThunkBufferManager(nullptr),
     m_asmJsInterpreterThunkBufferManager(nullptr),
@@ -31,8 +41,8 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     }
 #endif
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
-    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), threadContextInfo->GetProcessHandle());
+    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
+    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
 #endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }

@@ -125,6 +125,8 @@ namespace Wasm
         void EmitBrTable();
         EmitInfo EmitDrop();
         EmitInfo EmitGetLocal();
+        EmitInfo EmitGetGlobal();
+        EmitInfo EmitSetGlobal();
         EmitInfo EmitSetLocal(bool tee);
         void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();

@@ -134,6 +134,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsStackArgOptDisabled() ? Flags_disableStackArgOpt : 0;
     data->flags |= profileInfo->IsLoopImplicitCallInfoDisabled() ? Flags_disableLoopImplicitCallInfo : 0;
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
+    data->flags |= profileInfo->IsTagCheckDisabled() ? Flags_disableTagCheck : 0;
 }
 
 void
@@ -497,6 +498,12 @@ bool
 JITTimeProfileInfo::IsNoProfileBailoutsDisabled() const
 {
     return TestFlag(Flags_disableNoProfileBailouts);
+}
+
+bool
+JITTimeProfileInfo::IsTagCheckDisabled() const
+{
+    return TestFlag(Flags_disableTagCheck);
 }
 
 bool

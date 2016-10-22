@@ -254,6 +254,8 @@ GlobOpt::GlobOpt(Func * func)
     doPowIntIntTypeSpec(
         doAggressiveIntTypeSpec &&
         (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsPowIntIntTypeSpecDisabled())),
+    doTagChecks(
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTagCheckDisabled())),
     isAsmJSFunc(func->GetJITFunctionBody()->IsAsmJsMode())
 {
 }
@@ -5235,7 +5237,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 bool
 GlobOpt::OptTagChecks(IR::Instr *instr)
 {
-    if (PHASE_OFF(Js::OptTagChecksPhase, this->func))
+    if (PHASE_OFF(Js::OptTagChecksPhase, this->func) || !this->DoTagChecks())
     {
         return false;
     }
@@ -19949,6 +19951,12 @@ bool
 GlobOpt::DoPowIntIntTypeSpec() const
 {
     return doPowIntIntTypeSpec;
+}
+
+bool
+GlobOpt::DoTagChecks() const
+{
+    return doTagChecks;
 }
 
 bool

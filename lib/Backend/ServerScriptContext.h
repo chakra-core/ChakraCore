@@ -7,6 +7,15 @@
 
 class ServerScriptContext : public ScriptContextInfo
 {
+private:
+    struct ThreadContextHolder
+    {
+        ServerThreadContext* threadContextInfo;
+        ThreadContextHolder(ServerThreadContext* threadContextInfo);
+        ~ThreadContextHolder();
+    };
+    ThreadContextHolder threadContextHolder;
+
 public:
     ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo);
     ~ServerScriptContext();
@@ -69,7 +78,7 @@ public:
     EmitBufferManager<> * GetEmitBufferManager(bool asmJsManager);
     void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
-    ServerThreadContext* GetThreadContext() { return threadContextInfo; }
+    ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
     ArenaAllocator * GetSourceCodeArena();
     void Close();
@@ -89,7 +98,6 @@ private:
     ScriptContextDataIDL m_contextData;
     intptr_t m_globalThisAddr;
 
-    ServerThreadContext* threadContextInfo;
     uint m_refCount;
 
     bool m_isPRNGSeeded;

@@ -135,7 +135,7 @@
 #define PROCESS_EMPTYASMJS(name, func) \
     case OpCodeAsmJs::name: \
     { \
-        PROCESS_READ_LAYOUT(name, Empty, ); \
+        PROCESS_READ_LAYOUT_ASMJS(name, Empty, ); \
         func(); \
         break; \
     }

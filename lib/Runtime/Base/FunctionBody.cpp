@@ -8110,8 +8110,6 @@ namespace Js
                 }
                 guard->SetCache(&cache[i]);
             }
-
-            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
         }
 
         // OOP JIT
@@ -8158,10 +8156,7 @@ namespace Js
                         }
                     }
                 }
-
-                auto current = (*next);
                 *next = (*next)->next;
-                midl_user_free(current);
             }
         }
 
@@ -8247,22 +8242,20 @@ namespace Js
                 {
                     for (uint j = 0; j < entries[i]->cacheCount; ++j)
                     {
-                            Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
-                            // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
-                            // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
-                            if (isValid)
-                            {
-                                threadContext->RegisterConstructorCache(propertyId, cache);
-                            }
-                            else
-                            {
-                                cache->InvalidateAsGuard();
-                            }
+                        Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
+                        // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                        // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
+                        if (isValid)
+                        {
+                            threadContext->RegisterConstructorCache(propertyId, cache);
+                        }
+                        else
+                        {
+                            cache->InvalidateAsGuard();
+                        }
                     }
                 }
-                midl_user_free(entries[i]);
             }
-            midl_user_free(entries);
         }
 
         if (this->jitTransferData->ctorCacheGuardsByPropertyId != nullptr)
@@ -8586,6 +8579,32 @@ namespace Js
             {
                 HeapDelete(jitTransferData->jitTransferRawData);
                 jitTransferData->jitTransferRawData = nullptr;
+            }
+
+            if (jitTransferData->equivalentTypeGuardOffsets)
+            {
+                midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+            }
+
+            if (jitTransferData->typeGuardTransferData.entries != nullptr)
+            {
+                auto next = &jitTransferData->typeGuardTransferData.entries;
+                while (*next)
+                {
+                    auto current = (*next);
+                    *next = (*next)->next;
+                    midl_user_free(current);
+                }
+            }
+
+            if (jitTransferData->ctorCacheTransferData.entries != nullptr)
+            {
+                CtorCacheTransferEntryIDL ** entries = jitTransferData->ctorCacheTransferData.entries;
+                for (uint i = 0; i < jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
+                {
+                    midl_user_free(entries[i]);
+                }
+                midl_user_free(entries);
             }
 
             jitTransferData = nullptr;

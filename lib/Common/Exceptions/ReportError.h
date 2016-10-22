@@ -22,7 +22,8 @@ enum ErrorReason
     Fatal_Recycler_MemoryCorruption = 14,
     Fatal_Debugger_AttachDetach_Failure = 15,
     Fatal_EntryExitRecordCorruption = 16,
-    Fatal_UnexpectedExceptionHandling = 17
+    Fatal_UnexpectedExceptionHandling = 17,
+    Fatal_RpcFailure = 18
 };
 
 extern "C" void ReportFatalException(
@@ -65,6 +66,7 @@ void LargeHeapBlock_Metadata_Corrupted(
 
 void FromDOM_NoScriptScope_fatal_error();
 void Debugger_AttachDetach_fatal_error(HRESULT hr);
+void RpcFailure_fatal_error(HRESULT hr);
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

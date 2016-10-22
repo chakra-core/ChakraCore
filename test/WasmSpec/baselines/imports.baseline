@@ -1,5 +1,5 @@
 Unexpected Error while compiling imports.0.wasm
-Error: Compiling wasm failed: Exported Kind Global, NYI
+Error: Compiling wasm failed: Exported Kind Table, NYI
 Unexpected Error while compiling imports.1.wasm
 Error: Compiling wasm failed: Import functions in the table NYI
 Unexpected Error while compiling imports.2.wasm
@@ -15,11 +15,11 @@ Error: Compiling wasm failed: Import module test is invalid
 Unexpected Error while compiling imports.7.wasm
 Error: Compiling wasm failed: Import module test is invalid
 Unexpected Error while compiling imports.8.wasm
-Error: Compiling wasm failed: Imported Kind Global, NYI
+Error: Compiling wasm failed: I64 Globals, NYI
 Unexpected Error while compiling imports.9.wasm
-Error: Compiling wasm failed: Imported Kind Global, NYI
+Error: Compiling wasm failed: Import module test is invalid
 Unexpected Error while compiling imports.10.wasm
-Error: Compiling wasm failed: Imported Kind Global, NYI
+Error: Compiling wasm failed: Import module test is invalid
 Unexpected Error while compiling imports.11.wasm
 Error: Compiling wasm failed: Imported Kind Table, NYI
 Unexpected Error while compiling imports.12.wasm

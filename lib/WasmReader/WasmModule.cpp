@@ -24,7 +24,9 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_datasegCount(0),
     m_signatures(nullptr),
     m_signaturesCount(0),
-    m_startFuncIndex(Js::Constants::UninitializedValue)
+    m_startFuncIndex(Js::Constants::UninitializedValue),
+    globalCounts {0, 0, 0, 0, 0}, //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
+    globals (&m_alloc)
 {
     m_reader = Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
     m_reader->InitializeReader();
@@ -258,11 +260,12 @@ void WasmModule::AllocateFunctionExports(uint32 entries)
     m_exportCount = entries;
 }
 
-void WasmModule::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength)
+void WasmModule::SetExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength, ExternalKinds::ExternalKind kind)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;
     m_exports[iExport].name = exportName;
+    m_exports[iExport].kind = kind;
 }
 
 Wasm::WasmExport* WasmModule::GetFunctionExport(uint32 iExport) const
@@ -282,13 +285,28 @@ WasmModule::AllocateFunctionImports(uint32 entries)
 }
 
 void
-WasmModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen)
+WasmModule::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ExternalKinds::ExternalKind kind)
 {
     m_imports[i].sigId = sigId;
     m_imports[i].modNameLen = modNameLen;
     m_imports[i].modName = modName;
     m_imports[i].fnNameLen = fnNameLen;
     m_imports[i].fnName = fnName;
+}
+
+void
+WasmModule::AddGlobalImport(char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ExternalKinds::ExternalKind kind, WasmGlobal* importedGlobal)
+{
+    WasmImport* wi = Anew(&m_alloc, WasmImport);
+    wi->sigId = 0;
+    wi->fnName = fnName;
+    wi->fnNameLen = fnNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+
+    importedGlobal->importVar = wi;
+    importedGlobal->SetReferenceType(WasmGlobal::ImportedReference);
+    globals.Add(importedGlobal);
 }
 
 Wasm::WasmImport*
@@ -355,12 +373,14 @@ void WasmModule::SetSignatureCount(uint32 count)
 
 uint32 WasmModule::GetModuleEnvironmentSize() const
 {
+    static const uint DOUBLE_SIZE_IN_INTS = sizeof(double) / sizeof(int);
     // 1 for the heap
     uint32 size = 1;
     size = UInt32Math::Add(size, GetWasmFunctionCount());
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     size = UInt32Math::Add(size, GetSignatureCount());
     size = UInt32Math::Add(size, GetImportCount());
+    size = UInt32Math::Add(size, globals.Count() * DOUBLE_SIZE_IN_INTS); //a tad bit overestimating
     return size;
 }
 
@@ -376,6 +396,28 @@ void WasmModule::Dispose(bool isShutdown)
 
 void WasmModule::Mark(Recycler * recycler)
 {
+}
+
+uint WasmModule::GetOffsetForGlobal(WasmGlobal* global)
+{
+    static const uint slotSizesInInts[] =
+    {   sizeof(Js::Var)/sizeof(int), //Var
+        1, //I32
+        2, //I64
+        1, //F32
+        2  //F64
+    };
+
+    double sizeInInts = GetGlobalOffset() * slotSizesInInts[0];
+    WasmTypes::WasmType type = global->GetType();
+
+    for (uint i = 1; i < (uint)type; i++)
+    {
+        sizeInInts += globalCounts[i] * slotSizesInInts[i];
+    }
+
+    sizeInInts += global->GetOffset() * slotSizesInInts[type];
+    return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);
 }
 
 } // namespace Wasm
