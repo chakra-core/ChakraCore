@@ -126,7 +126,7 @@ namespace Js
             {
                 Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
                 Assert(segment != nullptr);
-                const uint32 offset = segment->getDestAddr();
+                const uint32 offset = segment->getDestAddr(wasmModule);
                 const uint32 size = segment->getSourceSize();
                 if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
                 {
@@ -214,7 +214,7 @@ namespace Js
             funcObj->SetEnvironment(frameDisplay);
             localModuleFunctions[i] = funcObj;
 
-            if (PHASE_ON(WasmDeferredPhase, funcObj->GetFunctionBody()))
+            if (!PHASE_OFF(WasmDeferredPhase, funcObj->GetFunctionBody()))
             {
                 funcObj->GetDynamicType()->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
                 entypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
@@ -252,17 +252,86 @@ namespace Js
             {
                 PropertyRecord const * propertyRecord = nullptr;
                 ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
-                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
-                if (!funcObj)
+
+                Var obj = ctx->GetLibrary()->GetUndefined();
+                switch (funcExport->kind)
                 {
-                    funcObj = ctx->GetLibrary()->GetUndefined();
+                case Wasm::ExternalKinds::Function:
+
+                    obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
+                    break;
+                case Wasm::ExternalKinds::Global:
+                    Wasm::WasmGlobal* global = wasmModule->globals.Item(funcExport->funcIndex);
+                    Assert(global->GetReferenceType() == Wasm::WasmGlobal::Const); //every global has to be resolved by this point
+
+                    if (global->GetMutability())
+                    {
+                        throw Wasm::WasmCompilationException(_u("global %d is mutable. Exporting mutable globals isn't supported"), iExport);
+                    }
+
+                    switch (global->GetType())
+                    {
+                    case Wasm::WasmTypes::I32:
+                        obj = JavascriptNumber::ToVar(global->cnst.i32, ctx);
+                        break;
+                    case Wasm::WasmTypes::F32:
+                        obj = JavascriptNumber::New((double)global->cnst.f32, ctx);
+                        break;
+                    case Wasm::WasmTypes::F64:
+                        obj = JavascriptNumber::New(global->cnst.f64, ctx);
+                        break;
+                    case Wasm::WasmTypes::I64:
+                    default:
+                        Assert(UNREACHED);
+                        break;
+                    }
                 }
-                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
+                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), obj, ctx);
             }
         }
     }
 
-    void WasmLibrary::WasmLoadImports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var ffi)
+    static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
+    {
+        PropertyRecord const * modPropertyRecord = nullptr;
+        char16* modName = wi->modName;
+        uint32 modNameLen = wi->modNameLen;
+        ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
+        Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
+
+
+
+        char16* name = wi->fnName;
+        uint32 nameLen = wi->fnNameLen;
+        Var prop = nullptr;
+        if (nameLen > 0)
+        {
+            PropertyRecord const * propertyRecord = nullptr;
+            ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+
+            if (!JavascriptObject::Is(modProp))
+            {
+                throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+            }
+            prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
+        }
+        else
+        {
+            // Use only first level if name is missing
+            prop = modProp;
+        }
+
+        return prop;
+    }
+
+    template <typename T>
+    void static SetGlobalValue(Var moduleEnv, uint offset, T val)
+    {
+        T* slot = (T*)moduleEnv + offset;
+        *slot = val;
+    }
+
+    void WasmLibrary::WasmLoadImports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi)
     {
         const uint32 importCount = wasmModule->GetImportCount();
         if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
@@ -271,37 +340,111 @@ namespace Js
         }
         for (uint32 i = 0; i < importCount; ++i)
         {
-            PropertyRecord const * modPropertyRecord = nullptr;
-            PropertyRecord const * propertyRecord = nullptr;
-
-            char16* modName = wasmModule->GetFunctionImport(i)->modName;
-            uint32 modNameLen = wasmModule->GetFunctionImport(i)->modNameLen;
-            ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
-            Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
-
-            char16* name = wasmModule->GetFunctionImport(i)->fnName;
-            uint32 nameLen = wasmModule->GetFunctionImport(i)->fnNameLen;
-            Var prop = nullptr;
-            if (nameLen > 0)
+            Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
+            if (!JavascriptFunction::Is(prop))
             {
-                ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+                throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), wasmModule->GetFunctionImport(i)->modName, wasmModule->GetFunctionImport(i)->fnName);
+            }
+            importFunctions[i] = prop;
+        }
+    }
 
-                if (!JavascriptObject::Is(modProp))
-                {
-                    throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
-                }
-                prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
+    void WasmLibrary::WasmLoadGlobals(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi)
+    {
+        uint i = 0;
+        uint count = (uint) wasmModule->globals.Count();
+        while (i < count && wasmModule->globals.Item(i)->GetReferenceType() == Wasm::WasmGlobal::ImportedReference)
+        {
+            Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
+            Var prop = GetImportVariable(global->importVar, ctx, ffi);
+
+            uint offset = wasmModule->GetOffsetForGlobal(global);
+            global->SetReferenceType(Wasm::WasmGlobal::Const);
+
+            if (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop))
+            {
+                throw Wasm::WasmCompilationException(_u("Import global %s.%s (%d) isn't a valid javascript number"), global->importVar->modName, global->importVar->fnName, i);
+            }
+
+            switch (global->GetType())
+            {
+            case Wasm::WasmTypes::I32:
+            {
+
+                int val = JavascriptConversion::ToInt32(prop, ctx);
+                global->cnst.i32 = val; //resolve global to const
+                SetGlobalValue(moduleEnv, offset, val);
+                break;
+            }
+            case Wasm::WasmTypes::F32:
+            {
+                float val = (float) JavascriptConversion::ToNumber(prop, ctx);
+                global->cnst.f32 = val;
+                SetGlobalValue(moduleEnv, offset, val);
+            }
+            case Wasm::WasmTypes::F64:
+            {
+                double val = JavascriptConversion::ToNumber(prop, ctx);
+                global->cnst.f64 = val;
+                SetGlobalValue(moduleEnv, offset, val);
+                break;
+            }
+            case Wasm::WasmTypes::I64:
+            default:
+                Assert(UNREACHED);
+                break;
+
+            }
+            i++;
+        }
+
+
+        for (; i < count; i++)
+        {
+            Wasm::WasmGlobal* global = wasmModule->globals.Item(i);
+
+            uint offset = wasmModule->GetOffsetForGlobal(global);
+            Wasm::WasmGlobal* sourceGlobal = nullptr;
+            if (global->GetReferenceType() == Wasm::WasmGlobal::Const)
+            {
+                sourceGlobal = global;
             }
             else
             {
-                // Use only first level if name is missing
-                prop = modProp;
+                sourceGlobal = wasmModule->globals.Item(global->var.num);
+                Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
+                if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
+                {
+                    throw Wasm::WasmCompilationException(_u("Global %d is initialized with global %d "
+                        "which is not a const. Forward references aren't supported!"), i, global->var.num);
+                }
+                global->SetReferenceType(Wasm::WasmGlobal::Const); //resolve global to const
+                global->cnst = sourceGlobal->cnst;
+
+                Assert(sourceGlobal->GetReferenceType() == Wasm::WasmGlobal::Const);
+                if (sourceGlobal->GetType() != global->GetType())
+                {
+                    throw Wasm::WasmCompilationException(_u("Type mismatch between %d and %d"), i, global->var.num);
+                }
             }
-            if (!JavascriptFunction::Is(prop))
+
+            switch (sourceGlobal->GetType())
             {
-                throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
+            case Wasm::WasmTypes::I32:
+                SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.i32);
+                break;
+            case Wasm::WasmTypes::F32:
+                SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f32);
+                break;
+            case Wasm::WasmTypes::F64:
+                SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f64);
+                break;
+            case Wasm::WasmTypes::I64:
+            default:
+                Assert(UNREACHED);
+                break;
             }
-            importFunctions[i] = prop;
+
         }
     }
 
@@ -389,13 +532,15 @@ namespace Js
             exportObj = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
             Var* localModuleFunctions = moduleEnvironmentPtr + wasmModule->GetFuncOffset();
 
+            WasmLoadGlobals(wasmModule, scriptContext, moduleEnvironmentPtr, ffi);
             WasmLoadDataSegs(wasmModule, heap, scriptContext);
 
             bool hasAnyLazyTraps = false;
             WasmLoadFunctions(wasmModule, scriptContext, moduleEnvironmentPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
-            
+
             Var* importFunctions = moduleEnvironmentPtr + wasmModule->GetImportFuncOffset();
-            WasmLoadImports(wasmModule, scriptContext, importFunctions, ffi);
+            WasmLoadImports(wasmModule, scriptContext, importFunctions, moduleEnvironmentPtr, ffi);
+
 
             Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
             WasmBuildObject(wasmModule, scriptContext, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions, importFunctions);
