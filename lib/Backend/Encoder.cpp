@@ -33,7 +33,7 @@ Encoder::Encode()
     m_offsetBuffer = AnewArray(m_tempAlloc, uint, instrCount);
 #endif
 
-    m_pragmaInstrToRecordMap    = Anew(m_tempAlloc, PragmaInstrList, m_tempAlloc);
+    m_pragmaInstrToRecordMap = Anew(m_tempAlloc, PragmaInstrList, m_tempAlloc);
     if (DoTrackAllStatementBoundary())
     {
         // Create a new list, if we are tracking all statement boundaries.
@@ -48,7 +48,7 @@ Encoder::Encode()
 
 #if defined(_M_IX86) || defined(_M_X64)
     // for BR shortening
-    m_inlineeFrameRecords       = Anew(m_tempAlloc, InlineeFrameRecords, m_tempAlloc);
+    m_inlineeFrameRecords = Anew(m_tempAlloc, InlineeFrameRecords, m_tempAlloc);
 #endif
 
     m_pc = m_encodeBuffer;
@@ -72,7 +72,7 @@ Encoder::Encode()
         Fatal();
     }
 
-    uint bufferCRC = initialCRCSeed;  
+    uint bufferCRC = initialCRCSeed;
 
     FOREACH_INSTR_IN_FUNC(instr, m_func)
     {
@@ -89,7 +89,7 @@ Encoder::Encode()
 #endif
             if (instr->IsPragmaInstr())
             {
-                switch(instr->m_opcode)
+                switch (instr->m_opcode)
                 {
 #ifdef _M_X64
                 case Js::OpCode::PrologStart:
@@ -143,9 +143,9 @@ Encoder::Encode()
                     multiBranchInstr->MapMultiBrTargetByAddress([=](void ** offset) -> void
                     {
 #if defined(_M_ARM32_OR_ARM64)
-                        encoderMD->AddLabelReloc((byte*) offset);
+                        encoderMD->AddLabelReloc((byte*)offset);
 #else
-                        encoderMD->AppendRelocEntry(RelocTypeLabelUse, (void*) (offset), *(IR::LabelInstr**)(offset));
+                        encoderMD->AppendRelocEntry(RelocTypeLabelUse, (void*)(offset), *(IR::LabelInstr**)(offset));
                         *((size_t*)offset) = 0;
 #endif
                     });
@@ -223,7 +223,7 @@ Encoder::Encode()
 #if defined(_M_IX86) || defined(_M_X64)
             // for BR shortening.
             if (instr->isInlineeEntryInstr)
-                m_encoderMD.AppendRelocEntry(RelocType::RelocTypeInlineeEntryOffset, (void*) (m_pc - MachPtr));
+                m_encoderMD.AppendRelocEntry(RelocType::RelocTypeInlineeEntryOffset, (void*)(m_pc - MachPtr));
 #endif
             if (isCallInstr)
             {
@@ -240,7 +240,7 @@ Encoder::Encode()
             Fatal();
         }
     } NEXT_INSTR_IN_FUNC;
-    
+
     ptrdiff_t codeSize = m_pc - m_encodeBuffer + totalJmpTableSizeInBytes;
 
     BOOL isSuccessBrShortAndLoopAlign = false;
@@ -371,7 +371,10 @@ Encoder::Encode()
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
 
-    m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_func->GetJITOutput()->GetCodeAddress());
+    if (CONFIG_FLAG(OOPCFGRegistration))
+    {
+        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_func->GetJITOutput()->GetCodeAddress());
+    }
 
     const bool isSimpleJit = m_func->IsSimpleJit();
 

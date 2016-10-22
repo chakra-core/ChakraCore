@@ -361,11 +361,6 @@ namespace CorUnix
                 DWORD *pdwSuspendCount
             );
 
-#if !HAVE_MACH_EXCEPTIONS
-            static 
-            VOID InitializeSignalSets();
-#endif // !HAVE_MACH_EXCEPTIONS
-
             VOID InitializeSuspensionLock();
 
             void SetBlockingPipe(

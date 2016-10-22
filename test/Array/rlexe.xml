@@ -158,7 +158,7 @@
   <test>
     <default>
       <files>bug612012.js</files>
-      <compile-flags>-maxinterpretcount:1 -loopinterpretcount:1 -force:fieldhoist -ForceArrayBTree</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -loopinterpretcount:1 -force:fieldhoist -ForceArrayBTree -oopjit-</compile-flags>
       <tags>exclude_ship,exclude_serialized</tags>
     </default>
   </test>

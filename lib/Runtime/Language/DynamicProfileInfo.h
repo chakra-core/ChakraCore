@@ -511,6 +511,7 @@ namespace Js
             bool disablePowIntIntTypeSpec : 1;
             bool disableLoopImplicitCallInfo : 1;
             bool disableStackArgOpt : 1;
+            bool disableTagCheck : 1;
         } bits;
 
         uint32 m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
@@ -802,6 +803,8 @@ namespace Js
         void DisableObjTypeSpecInJitLoopBody() { this->bits.disableObjTypeSpec_jitLoopBody = true; }
         bool IsPowIntIntTypeSpecDisabled() const { return bits.disablePowIntIntTypeSpec; }
         void DisablePowIntIntTypeSpec() { this->bits.disablePowIntIntTypeSpec = true; }
+        bool IsTagCheckDisabled() const { return bits.disableTagCheck; }
+        void DisableTagCheck() { this->bits.disableTagCheck = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }

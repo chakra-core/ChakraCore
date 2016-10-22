@@ -1265,6 +1265,7 @@ private:
 
     bool                    doPowIntIntTypeSpec : 1;
     bool                    isAsmJSFunc : 1;
+    bool                    doTagChecks : 1;
     OpndList *              noImplicitCallUsesToInsert;
 
     ValueSetByValueNumber * valuesCreatedForClone;
@@ -1648,6 +1649,7 @@ private:
     bool                    DoBoundCheckHoist() const;
     bool                    DoLoopCountBasedBoundCheckHoist() const;
     bool                    DoPowIntIntTypeSpec() const;
+    bool                    DoTagChecks() const;
 
 private:
     // GlobOptBailout.cpp
