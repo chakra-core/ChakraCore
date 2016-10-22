@@ -16,7 +16,7 @@ class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes
     typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
-    using typename Base::MediumFinalizableBlockType;
+    using Base::MediumFinalizableBlockType;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
 
