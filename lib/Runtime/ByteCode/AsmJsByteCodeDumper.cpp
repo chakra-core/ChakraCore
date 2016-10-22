@@ -409,6 +409,9 @@ namespace Js
         case OpCodeAsmJs::StSlot_Int:
             Output::Print(_u(" R%d[%d] = I%d"), data->Instance, data->SlotIndex, data->Value);
             break;
+        case OpCodeAsmJs::StSlot_Long:
+            Output::Print(_u(" R%d[%d] = L%d"), data->Instance, data->SlotIndex, data->Value);
+            break;
         case OpCodeAsmJs::StSlot_Flt:
             Output::Print(_u(" R%d[%d] = F%d"), data->Instance, data->SlotIndex, data->Value);
             break;
@@ -417,6 +420,9 @@ namespace Js
             break;
         case OpCodeAsmJs::LdSlot_Int:
             Output::Print(_u(" I%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
+            break;
+        case OpCodeAsmJs::LdSlot_Long:
+            Output::Print(_u(" L%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::LdSlot_Flt:
             Output::Print(_u(" F%d = R%d[%d]"), data->Value, data->Instance, data->SlotIndex);

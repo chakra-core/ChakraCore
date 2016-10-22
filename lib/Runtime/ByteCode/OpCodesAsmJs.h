@@ -105,9 +105,11 @@ MACRO_WMS       ( LdSlotArr                  , ElementSlot     , None           
 MACRO_WMS       ( LdSlot                     , ElementSlot     , None            ) // Loads a Var from an array of Var
 MACRO_WMS       ( LdSlot_Db                  , ElementSlot     , None            ) // Loads a double from the Module
 MACRO_WMS       ( LdSlot_Int                 , ElementSlot     , None            ) // Loads an Int from the Module
+MACRO_WMS       ( LdSlot_Long                , ElementSlot     , None            ) // Loads an Int64 from the Module
 MACRO_WMS       ( LdSlot_Flt                 , ElementSlot     , None            ) // Loads a Float from the Module
 MACRO_WMS       ( StSlot_Db                  , ElementSlot     , None            ) // Sets a double in the Module
 MACRO_WMS       ( StSlot_Int                 , ElementSlot     , None            ) // Sets an Int in the Module
+MACRO_WMS       ( StSlot_Long                , ElementSlot     , None            ) // Sets an Int64 in the Module
 MACRO_WMS       ( StSlot_Flt                 , ElementSlot     , None            ) // Sets an Int in the Module
 MACRO_WMS       ( LdArr_Func                 , ElementSlot     , None            ) // opcode to load func from function tables
 

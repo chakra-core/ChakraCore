@@ -480,7 +480,6 @@ Js::RegSlot
 IRBuilderAsmJs::GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type)
 {
     const auto typedInfo = m_asmFuncInfo->GetTypedSlotInfo(type);
-    Assert(typedInfo.constCount >= 0);
     Js::RegSlot reg;
     if (srcReg < typedInfo.constCount)
     {
@@ -1242,6 +1241,14 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32
         irType = TyInt32;
         valueType = ValueType::GetInt(false);
         isStore = newOpcode == Js::OpCodeAsmJs::StSlot_Int;
+        goto ProcessGenericSlot;
+
+    case Js::OpCodeAsmJs::StSlot_Long:
+    case Js::OpCodeAsmJs::LdSlot_Long:
+        type = WAsmJs::INT64;
+        irType = TyInt64;
+        valueType = ValueType::GetInt(false);
+        isStore = newOpcode == Js::OpCodeAsmJs::StSlot_Long;
         goto ProcessGenericSlot;
 
     case Js::OpCodeAsmJs::StSlot_Flt:

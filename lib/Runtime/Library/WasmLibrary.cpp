@@ -393,6 +393,7 @@ namespace Js
                 break;
             }
             case Wasm::WasmTypes::I64:
+                Js::JavascriptError::ThrowTypeError(ctx, VBSERR_TypeMismatch);
             default:
                 Assert(UNREACHED);
                 break;
@@ -436,15 +437,16 @@ namespace Js
             case Wasm::WasmTypes::I32:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.i32);
                 break;
+            case Wasm::WasmTypes::I64:
+                SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.i64);
+                break;
             case Wasm::WasmTypes::F32:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f32);
                 break;
             case Wasm::WasmTypes::F64:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f64);
                 break;
-            case Wasm::WasmTypes::I64:
             default:
-                Assert(UNREACHED);
                 break;
             }
 

@@ -569,14 +569,16 @@ WasmBytecodeGenerator::EmitGetGlobal()
 
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
+    CompileAssert(WasmTypes::I32 == 1);
+    CompileAssert(WasmTypes::I64 == 2);
+    CompileAssert(WasmTypes::F32 == 3);
+    CompileAssert(WasmTypes::F64 == 4);
     static const Js::OpCodeAsmJs globalOpcodes[] = {
         Js::OpCodeAsmJs::LdSlot_Int,
-        Js::OpCodeAsmJs::LdUndef, //no i64 yet
+        Js::OpCodeAsmJs::LdSlot_Long,
         Js::OpCodeAsmJs::LdSlot_Flt,
         Js::OpCodeAsmJs::LdSlot_Db
     };
-
-    Assert(globalOpcodes[type - 1] != Js::OpCodeAsmJs::LdUndef);
 
     WasmRegisterSpace * regSpace = GetRegisterSpace(type);
     Js::RegSlot tmpReg = regSpace->AcquireTmpRegister();
@@ -602,9 +604,13 @@ WasmBytecodeGenerator::EmitSetGlobal()
         throw WasmCompilationException(_u("TypeError in setglobal for %u"), globalIndex);
     }
 
+    CompileAssert(WasmTypes::I32 == 1);
+    CompileAssert(WasmTypes::I64 == 2);
+    CompileAssert(WasmTypes::F32 == 3);
+    CompileAssert(WasmTypes::F64 == 4);
     static const Js::OpCodeAsmJs globalOpcodes[] = {
         Js::OpCodeAsmJs::StSlot_Int,
-        Js::OpCodeAsmJs::LdUndef, //no i64 yet
+        Js::OpCodeAsmJs::StSlot_Long,
         Js::OpCodeAsmJs::StSlot_Flt,
         Js::OpCodeAsmJs::StSlot_Db
     };
