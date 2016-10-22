@@ -80,7 +80,9 @@ namespace JsUtil
         typedef TValue ValueType;
         typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorType AllocatorType;
         typedef SizePolicy CurrentSizePolicy;
-        typedef Entry<TKey, TValue> EntryType;
+        typedef Entry<
+                    WB_ITEM_TYPE(TKey, TAllocator),
+                    WB_ITEM_TYPE(TValue, TAllocator)> EntryType;
 
         template<class TDictionary> class EntryIterator;
         template<class TDictionary> class BucketEntryIterator;
@@ -370,7 +372,8 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetReference(const TLookup& key, TValue** value) const
         {
-            return TryGetReference(key, const_cast<const TValue **>(value));
+            int i;
+            return TryGetReference(key, value, &i);
         }
 
         template <typename TLookup>
@@ -389,7 +392,14 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetReference(const TLookup& key, TValue** value, int* index) const
         {
-            return TryGetReference(key, const_cast<const TValue **>(value), index);
+            int i = FindEntryWithKey(key);
+            if (i >= 0)
+            {
+                *value = &entries[i].Value();
+                *index = i;
+                return true;
+            }
+            return false;
         }
 
         const TValue& GetValueAt(const int index) const
@@ -1385,7 +1395,7 @@ namespace JsUtil
     class BaseHashSet : protected BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock>
     {
         typedef BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock> Base;
-        typedef Entry<TKey, TElement> EntryType;
+        typedef typename Base::EntryType EntryType;
         typedef typename Base::AllocatorType AllocatorType;
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 

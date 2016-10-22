@@ -77,6 +77,27 @@ template <class T,
           class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T*>::Policy>
 struct WriteBarrierPtrTraits { typedef typename _WriteBarrierPtrPolicy<T, Policy>::Ptr Ptr; };
 
+// Choose WriteBarrierPtr type if Allocator is recycler type and element type T
+// is a pointer type, otherwise use type T unchanged.
+//
+// Used to wrap array item type when write barrier is needed (wraps pointer
+// item type with WriteBarrierPtr).
+//
+template <class T, class Policy>
+struct _ArrayItemTypeTraits
+{
+    typedef T Type;
+};
+template <class T>
+struct _ArrayItemTypeTraits<T*, _write_barrier_policy>
+{
+    typedef WriteBarrierPtr<T> Type;
+};
+template <class T,
+          class Allocator,
+          class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T>::Policy>
+struct WriteBarrierArrayItemTraits { typedef typename _ArrayItemTypeTraits<T, Policy>::Type Type; };
+
 // ArrayWriteBarrier behavior
 //
 template <class Policy>
@@ -163,9 +184,9 @@ public:
 
     // Getters
     T * operator->() const { return this->value; }
-    operator T*() const { return this->value; }
+    operator T* const & () const { return this->value; }
 
-    T const** operator&() const { return &value; }
+    T* const * operator&() const { return &value; }
     T** operator&() { return &value; }
 
     // Setters
@@ -216,21 +237,24 @@ public:
 
     // Getters
     T * operator->() const { return ptr; }
-    operator T*() const { return ptr; }
+    operator T* const & () const { return ptr; }
 
-    T const** AddressOf() const { return &ptr; }
+    T* const * AddressOf() const { return &ptr; }
     T** AddressOf() { return &ptr; }
 
-    T const** operator&() const
+    // Taking immutable address is ok
+    //
+    T* const * operator&() const
     {
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
         return &ptr;
     }
-    T** operator&()
-    {
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
-        return &ptr;
-    }
+    // Taking mutable address is not allowed
+    //
+    // T** operator&()
+    // {
+    //     static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
+    //     return &ptr;
+    // }
 
     // Setters
     WriteBarrierPtr& operator=(T * ptr)

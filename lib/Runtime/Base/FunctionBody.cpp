@@ -1731,7 +1731,7 @@ namespace Js
                 !this->GetSourceContextInfo()->IsDynamic() &&
                 this->m_scriptContext->DoUndeferGlobalFunctions())
             {
-                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](JsUtil::SimpleDictionaryEntry<Js::LocalFunctionId, Js::ParseableFunctionInfo*> func)
+                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](const Utf8SourceInfo::DeferredFunctionsDictionary::EntryType& func)
                 {
                     Js::ParseableFunctionInfo *nextFunc = func.Value();
                     JavascriptExceptionObject* pExceptionObject = nullptr;

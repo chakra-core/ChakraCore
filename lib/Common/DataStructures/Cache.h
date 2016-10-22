@@ -184,7 +184,7 @@ namespace JsUtil
             return cacheStore->TryGetValue(key, value);
         }
 
-        bool TryGetReference(const TKey& key, TValue** value, int* index)
+        bool TryGetReference(const TKey& key, const TValue** value, int* index)
         {
             return cacheStore->TryGetReference(key, value, index);
         }

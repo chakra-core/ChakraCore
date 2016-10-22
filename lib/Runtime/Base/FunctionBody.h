@@ -2642,7 +2642,7 @@ namespace Js
         bool IsSimpleJitOriginalEntryPoint() const;
 
 #if DYNAMIC_INTERPRETER_THUNK
-        static BYTE GetOffsetOfDynamicInterpreterThunk() { return offsetof(FunctionBody, m_dynamicInterpreterThunk); }
+        static BYTE GetOffsetOfDynamicInterpreterThunk() { return static_cast<BYTE>(offsetof(FunctionBody, m_dynamicInterpreterThunk)); }
         void* GetDynamicInterpreterEntryPoint() const
         {
             return m_dynamicInterpreterThunk;

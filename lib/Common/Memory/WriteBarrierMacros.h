@@ -29,12 +29,14 @@
 #define SAVE_WRITE_BARRIER_MACROS() \
     PushMacro("Field") \
     PushMacro("PointerNoBarrier") \
-    PushMacro("Pointer")
+    PushMacro("Pointer") \
+    PushMacro("WB_ITEM_TYPE")
 
 #define RESTORE_WRITE_BARRIER_MACROS() \
     PopMacro("Field") \
     PopMacro("PointerNoBarrier") \
-    PopMacro("Pointer")
+    PopMacro("Pointer") \
+    PopMacro("WB_ITEM_TYPE")
 
 #endif
 
@@ -43,6 +45,7 @@ SAVE_WRITE_BARRIER_MACROS()
 #undef Field
 #undef PointerNoBarrier
 #undef Pointer
+#undef WB_ITEM_TYPE
 #endif
 
 // TODO: Turn off these annotations on Win32
@@ -51,10 +54,12 @@ SAVE_WRITE_BARRIER_MACROS()
 #define Field(type) NoWriteBarrierField<type>
 #define PointerNoBarrier(type) NoWriteBarrierPtr<type>
 #define Pointer(type, ...) typename WriteBarrierPtrTraits<type, ##__VA_ARGS__>::Ptr
+#define WB_ITEM_TYPE(type, ...) typename WriteBarrierArrayItemTraits<type, ##__VA_ARGS__>::Type
 #else
 #define Field(type) type
 #define PointerNoBarrier(type) type*
 #define Pointer(type, ...) type*
+#define WB_ITEM_TYPE(type, ...) type
 #endif
 
 #undef FORCE_USE_WRITE_BARRIER
