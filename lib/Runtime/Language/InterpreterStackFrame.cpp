@@ -922,6 +922,13 @@
 #define PROCESS_IP_TARG_Medium(name, func) PROCESS_IP_TARG_IMPL(name, func, Js::MediumLayout)
 #define PROCESS_IP_TARG_Small(name, func) PROCESS_IP_TARG_IMPL(name, func, Js::SmallLayout)
 
+#if ENABLE_TTD
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformRecordOrReplayAction())
+#else
+#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformDebuggerAction())
+#endif
+#endif
 
 namespace Js
 {
@@ -1130,16 +1137,37 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true>;
+                //right now we disallow stmt tracking fot TTD if JIT is enabled
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true, false>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true, false>;
             }
             else
 #endif
             {
+#if ENABLE_TTD
+                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
+                {
 #if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false>;
+                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, true>;
 #endif
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false>;
+
+                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, true>;
+                }
+                else
+                {
+#if ENABLE_PROFILE_INFO
+                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
+#endif
+
+                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
+                }
+#else
+#if ENABLE_PROFILE_INFO
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
+#endif
+
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
+#endif
             }
         }
         else
@@ -1147,16 +1175,37 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true>;
+                //right now we disallow stmt tracking fot TTD if JIT is enabled
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true, false>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true, false>; 
             }
             else
 #endif
             {
+#if ENABLE_TTD
+                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
+                {
 #if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false>;
+                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, true>;
 #endif
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false>;
+
+                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, true>;
+                }
+                else
+                {
+#if ENABLE_PROFILE_INFO
+                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
+#endif
+
+                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
+                }
+#else
+#if ENABLE_PROFILE_INFO
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
+#endif
+
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
+#endif
             }
         }
 
@@ -1945,9 +1994,9 @@ namespace Js
         // - Mark that the function is current executing and may not be modified.
         //
 
-#if ENABLE_TTD_STACK_STMTS
+#if ENABLE_TTD
         TTD::TTDExceptionFramePopper exceptionFramePopper;
-        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+        if(SHOULD_DO_TTD_STACK_STMT_OP(functionScriptContext))
         {
             bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
@@ -1983,8 +2032,8 @@ namespace Js
 
         executeFunction->EndExecution();
 
-#if ENABLE_TTD_STACK_STMTS
-        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+#if ENABLE_TTD
+        if(SHOULD_DO_TTD_STACK_STMT_OP(functionScriptContext))
         {
             exceptionFramePopper.PopInfo();
             threadContext->TTDLog->PopCallEvent(function, aReturn);
@@ -2306,7 +2355,18 @@ namespace Js
             JavascriptExceptionObject *exception = nullptr;
             try
             {
+#if ENABLE_TTD
+                if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+                {
+                    return this->ProcessWithDebugging_PreviousStmtTracking();
+                }
+                else
+                {
+                    return this->ProcessWithDebugging();
+                }
+#else
                 return this->ProcessWithDebugging();
+#endif
             }
             catch (const Js::JavascriptException& err)
             {
@@ -2358,11 +2418,8 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_STACK_STMTS && TTD_DEBUGGING_PERFORMANCE_WORK_AROUNDS
-        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
-        {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-        }
+#if ENABLE_TTD
+        AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
 #endif
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
@@ -2386,13 +2443,40 @@ namespace Js
 
     void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
     {
-#if DBG_DUMP && defined(ASMJS_PLAT)
-        if (PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
+#if DBG_DUMP && defined(ASMJS_PLAT) 
+        if(PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
         {
             Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
         }
 #endif
     }
+
+#if ENABLE_TTD
+    template<typename OpCodeType, Js::OpCode(ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+    OpCodeType InterpreterStackFrame::ReadOp_WPreviousStmtTracking(const byte *& ip)
+    {
+#if DBG || DBG_DUMP
+        //
+        // For debugging byte-code, store the current offset before the instruction is read:
+        // - We convert this to "void *" to encourage the debugger to always display in hex,
+        //   which matches the displayed offsets used by ByteCodeDumper.
+        //
+        this->DEBUG_currentByteOffset = (void *)m_reader.GetCurrentOffset();
+#endif
+
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+        }
+
+        OpCodeType op = (OpCodeType)ReadOpFunc(ip);
+
+#if DBG_DUMP
+        TracingFunc(this, op);
+#endif
+        return op;
+    }
+#endif
 
     _NOINLINE
     Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)
@@ -3195,6 +3279,14 @@ namespace Js
 #include "InterpreterLoop.inl"
 #undef INTERPRETERLOOPNAME
 
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+#define PROVIDE_INTERPRETER_STMTS
+#define INTERPRETERLOOPNAME ProcessUnprofiled_PreviousStmtTracking
+#include "InterpreterLoop.inl"
+#undef INTERPRETERLOOPNAME
+#undef PROVIDE_INTERPRETER_STMTS
+#endif
+
 #ifdef ASMJS_PLAT
 #define INTERPRETERLOOPNAME ProcessAsmJs
 #define INTERPRETER_ASMJS
@@ -3218,6 +3310,22 @@ namespace Js
 #endif
 #undef PROVIDE_DEBUGGING
 #undef INTERPRETERLOOPNAME
+
+#if ENABLE_TTD
+#define PROVIDE_INTERPRETER_STMTS
+#define INTERPRETERLOOPNAME ProcessWithDebugging_PreviousStmtTracking
+#define PROVIDE_DEBUGGING
+#if ENABLE_PROFILE_INFO
+#define PROVIDE_INTERPRETERPROFILE
+#endif
+#include "InterpreterLoop.inl"
+#if ENABLE_PROFILE_INFO
+#undef PROVIDE_INTERPRETERPROFILE
+#endif
+#undef PROVIDE_DEBUGGING
+#undef INTERPRETERLOOPNAME
+#undef PROVIDE_INTERPRETER_STMTS
+#endif
 
     Var InterpreterStackFrame::Process()
     {
@@ -3326,6 +3434,10 @@ namespace Js
             functionBody->GetInterpreterExecutionMode(!!(GetFlags() & InterpreterStackFrameFlags_FromBailOut));
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
         {
+#if ENABLE_TTD
+            AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We should have pinned into Interpreter mode in this case!!!");
+#endif
+
             isAutoProfiling = false;
             return ProcessProfiled();
         }
@@ -3339,7 +3451,20 @@ namespace Js
         while(true)
         {
             Assert(!switchProfileMode);
+
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+            if(this->scriptContext->ShouldPerformRecordOrReplayAction())
+            {
+                result = ProcessUnprofiled_PreviousStmtTracking();
+            }
+            else
+            {
+                result = ProcessUnprofiled();
+            }
+#else
             result = ProcessUnprofiled();
+#endif
+
             Assert(!(switchProfileMode && result));
             if(switchProfileMode)
             {
@@ -3385,7 +3510,18 @@ namespace Js
         }
         return result;
 #else
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+        if(this->scriptContext->ShouldPerformRecordOrReplayAction())
+        {
+            return ProcessUnprofiled_PreviousStmtTracking();
+        }
+        else
+        {
+            return ProcessUnprofiled();
+        }
+#else
         return ProcessUnprofiled();
+#endif
 #endif
     }
 
@@ -5275,11 +5411,7 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary *lib = scriptContext->GetLibrary();
 
-#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
-            if(JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
-#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count))
-#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
@@ -5723,7 +5855,7 @@ namespace Js
         return m_reader.GetIP();
     }
 
-    template<bool InterruptProbe, bool JITLoopBody>
+    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
     void InterpreterStackFrame::ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         Assert(Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionBody()));
@@ -5733,13 +5865,13 @@ namespace Js
             this->DoInterruptProbe();
         }
 
-#if ENABLE_TTD_STACK_STMTS
-        //
-        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
-        //
-        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+#if ENABLE_TTD
+        if(TrackStmts)
         {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            }
         }
 #endif
 
@@ -5797,7 +5929,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
 #endif
 
-    template<bool InterruptProbe, bool JITLoopBody>
+    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
     void InterpreterStackFrame::LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         if (InterruptProbe)
@@ -5805,13 +5937,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->DoInterruptProbe();
         }
 
-#if ENABLE_TTD_STACK_STMTS
-        //
-        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
-        //
-        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+#if ENABLE_TTD
+        if(TrackStmts)
         {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            }
         }
 #endif
 
@@ -6509,7 +6641,19 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             if (this->IsInDebugMode())
             {
+#if ENABLE_TTD
+                if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+                {
+                    this->ProcessWithDebugging_PreviousStmtTracking();
+                }
+                else
+                {
+                    this->ProcessWithDebugging();
+                }
+#else
                 this->ProcessWithDebugging();
+#endif
+
                 this->TrySetRetOffset();
             }
             else
@@ -6581,9 +6725,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::ProcessCatch()
     {
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
         //Clear any previous Exception Info
-        if(this->scriptContext->ShouldPerformDebugAction())
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
             this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrames();
         }
@@ -6645,7 +6789,19 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 if (this->IsInDebugMode())
                 {
+#if ENABLE_TTD
+                    if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+                    {
+                        this->ProcessWithDebugging_PreviousStmtTracking();
+                    }
+                    else
+                    {
+                        this->ProcessWithDebugging();
+                    }
+#else
                     this->ProcessWithDebugging();
+#endif
+
                     this->TrySetRetOffset();
                 }
                 else
@@ -6815,7 +6971,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             if (this->IsInDebugMode())
             {
+#if ENABLE_TTD
+                if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
+                {
+                    result = this->ProcessWithDebugging_PreviousStmtTracking();
+                }
+                else
+                {
+                    result = this->ProcessWithDebugging();
+                }
+#else
                 result = this->ProcessWithDebugging();
+#endif
             }
             else
             {
@@ -7534,7 +7701,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
 
 #if ENABLE_VALUE_TRACE
-        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        if(this->function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
         {
             this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
@@ -7636,7 +7803,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
 
 #if ENABLE_VALUE_TRACE
-        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        if(this->function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
         {
             this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }
@@ -7666,7 +7833,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
 
 #if ENABLE_VALUE_TRACE
-        if(this->function->GetScriptContext()->ShouldPerformRecordAction() | this->function->GetScriptContext()->ShouldPerformDebugAction())
+        if(this->function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
         {
             this->function->GetScriptContext()->GetThreadContext()->TTDLog->GetTraceLogger()->WriteTraceValue(value);
         }

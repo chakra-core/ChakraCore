@@ -250,7 +250,7 @@ namespace TTD
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
-        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
     };
 
     //A implements the writer for verbose text formatted output
@@ -304,7 +304,7 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
-        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //A implements the writer for a compact binary formatted output
@@ -350,7 +350,7 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
-        virtual void WriteInlineCode(char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -578,7 +578,7 @@ namespace TTD
             return this->ReadNakedWellKnownToken(alloc);
         }
 
-        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) = 0;
+        virtual void ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator = false) = 0;
     };
 
     //////////////////
@@ -649,7 +649,7 @@ namespace TTD
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
 
-        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) override;
+        virtual void ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator = false) override;
     };
 
     //A serialization class that reads a compact binary format
@@ -691,7 +691,7 @@ namespace TTD
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
 
-        virtual void ReadInlineCode(char16* code, uint32 length, bool readSeparator = false) override;
+        virtual void ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator = false) override;
     };
 
     //////////////////

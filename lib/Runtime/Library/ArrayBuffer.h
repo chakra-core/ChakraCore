@@ -18,6 +18,10 @@ namespace Js
 
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
+#if ENABLE_TTD
+        virtual void MarshalCrossSite_TTDInflate() = 0;
+#endif
+
         ArrayBufferBase(DynamicType *type) : DynamicObject(type) { }
 
         virtual bool IsArrayBuffer() = 0;

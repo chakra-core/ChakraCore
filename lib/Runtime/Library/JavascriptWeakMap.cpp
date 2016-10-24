@@ -249,7 +249,7 @@ namespace Js
         //TODO: This makes the map decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
         //      We want to improve this.
         //
-        if(scriptContext->ShouldPerformWeakRefPinAction())
+        if(scriptContext->IsTTDRecordOrReplayModeEnabled())
         {
             scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
         }

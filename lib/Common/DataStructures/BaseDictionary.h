@@ -225,6 +225,13 @@ namespace JsUtil
             return entries[i].Value();
         }
 
+        const TValue Item(const TKey& key) const
+        {
+            int i = FindEntry(key);
+            Assert(i >= 0);
+            return entries[i].Value();
+        }
+
         int Add(const TKey& key, const TValue& value)
         {
             return Insert<Insert_Add>(key, value);

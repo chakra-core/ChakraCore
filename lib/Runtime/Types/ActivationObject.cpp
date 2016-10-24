@@ -299,12 +299,12 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ActivationObjectEx::GetSnapTag_TTD() const
     {
-        return TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx;
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void ActivationObjectEx::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx>(objData, nullptr);
+        AssertMsg(false, "Not implemented yet!!!");
     }
 #endif
 };

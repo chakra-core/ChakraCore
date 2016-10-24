@@ -18,7 +18,7 @@ JsInitializeModuleRecord(
 
     Js::SourceTextModuleRecord* childModuleRecord = nullptr;
 
-    JsErrorCode errorCode = ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    JsErrorCode errorCode = ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         childModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
         if (referencingModule == nullptr)
         {
@@ -69,7 +69,7 @@ JsParseModuleSource(
         return JsErrorModuleParsed;
     }
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsErrorCode errorCode = GlobalAPIWrapper([&]() -> JsErrorCode {
+    JsErrorCode errorCode = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
         if (sourceContextInfo == nullptr)
         {

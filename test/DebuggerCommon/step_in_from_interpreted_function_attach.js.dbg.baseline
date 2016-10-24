@@ -23,13 +23,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

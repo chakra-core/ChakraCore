@@ -141,11 +141,18 @@ namespace Js
 #endif
 #if ENABLE_TTD
         , TTDHostCallbackFunctor()
-        , TTDMode(TTD::TTDMode::Invalid)
         , ScriptContextLogTag(TTD_INVALID_LOG_PTR_ID)
-        , TTDRootNestingCount(0)
         , TTDWellKnownInfo(nullptr)
         , TTDContextInfo(nullptr)
+        , TTDSnapshotOrInflateInProgress(false)
+        , TTDRecordOrReplayModeEnabled(false)
+        , TTDRecordModeEnabled(false)
+        , TTDReplayModeEnabled(false)
+        , TTDShouldPerformRecordOrReplayAction(false)
+        , TTDShouldPerformRecordAction(false)
+        , TTDShouldPerformReplayAction(false)
+        , TTDShouldPerformDebuggerAction(false)
+        , TTDShouldSuppressGetterInvocationForDebuggerEvaluation(false)
 #endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
@@ -2363,38 +2370,15 @@ if (!sourceList)
     {
         AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
         this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
-        bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
-        BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
+        BEGIN_ENTER_SCRIPT(this, true, true, true)
         {
             this->TTDWellKnownInfo->GatherKnownObjectToPathMap(this);
         }
-        END_JS_RUNTIME_CALL(this);
+        END_ENTER_SCRIPT
     }
-
-    void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
-    {
-        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
-        this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetUndefined()), this->GetLibrary()->GetUndefined());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetNull()), this->GetLibrary()->GetNull());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
-
-#if ENABLE_TTD_STACK_STMTS
-        this->ForceNoNative();
-#endif
-    }
-
-    void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
-    {
-        this->ForceNoNative();
-    }
-
 #endif
 
 #ifdef PROFILE_EXEC

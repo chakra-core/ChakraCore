@@ -1235,8 +1235,11 @@ namespace Js
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
+#if ENABLE_TTD
+        if(scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
+        }
 #endif
 
 #ifdef IR_VIEWER
@@ -4672,17 +4675,17 @@ namespace Js
         if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
-            if(this->scriptContext->ShouldPerformDebugAction())
+            if(this->scriptContext->ShouldPerformReplayAction())
             {
-                scriptContext->TTDRootNestingCount++;
+                scriptContext->GetThreadContext()->TTDRootNestingCount++;
 
                 this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
 
-                scriptContext->TTDRootNestingCount--;
+                scriptContext->GetThreadContext()->TTDRootNestingCount--;
             }
             else if(this->scriptContext->ShouldPerformRecordAction())
             {
-                this->scriptContext->TTDRootNestingCount++;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount++;
                 TTD::NSLogEvents::EventLogEntry* evt = this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent(taskVar);
 
                 BEGIN_LEAVE_SCRIPT(this->scriptContext);
@@ -4700,7 +4703,7 @@ namespace Js
                 END_LEAVE_SCRIPT(this->scriptContext);
 
                 this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent_Complete(evt);
-                this->scriptContext->TTDRootNestingCount--;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount--;
             }
             else
             {
@@ -4737,7 +4740,7 @@ namespace Js
         else
         {
 #if ENABLE_TTD
-            if(this->scriptContext->ShouldPerformRecordAction() | this->scriptContext->ShouldPerformDebugAction())
+            if(this->scriptContext->ShouldPerformRecordOrReplayAction())
             {
                 //
                 //TODO: need to implement support for this path
@@ -5021,7 +5024,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::JavascriptString* fname)
     {
-        return this->CreateExternalFunction(nullptr, fname, nullptr, 0, 0);
+        return this->CreateStdCallExternalFunction(&JavascriptExternalFunction::TTDReplayDummyExternalMethod, fname, nullptr);
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args)
@@ -6572,7 +6575,11 @@ namespace Js
                     && length <= (uint32)CONFIG_FLAG(MaxCopyOnAccessArrayLength)  // -maxcopyonaccessarraylength:<number>
                     && length >= (uint32)CONFIG_FLAG(MinCopyOnAccessArrayLength)  // -mincopyonaccessarraylength:<number>
                     )
-                );
+                )
+#if ENABLE_TTD
+            && !lib->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
+#endif
+            ;
     }
 
     bool JavascriptLibrary::IsCachedCopyOnAccessArrayCallSite(const JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo)
