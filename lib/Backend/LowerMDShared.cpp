@@ -6069,7 +6069,7 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* dst = instr->GetDst();
 
-    IR::Opnd * twoTo31Float = MaterializeConstFromBits(X86_TWO_31_F4.m128_value.m128_i32[0], TyFloat32, instr);
+    IR::Opnd * twoTo31Float = MaterializeConstFromBits(_mm_extract_epi32(X86_TWO_31_F4.m128i_value, 0), TyFloat32, instr);
 
     IR::Opnd* tmpReg = src1->IsFloat64() ?
         TruncLower31BitsDb(instr, src1, dst, twoTo31Float) : //deals with the lower 31 bits
