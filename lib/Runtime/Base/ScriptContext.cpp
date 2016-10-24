@@ -1044,6 +1044,12 @@ namespace Js
     {
         Assert(!this->IsClosed());
 
+        // For each active function, collect call counts, update inactive counts, and redefer if appropriate.
+        // In the redeferral case, we require 2 passes over the set of FunctionBody's.
+        // This is because a function inlined in a non-redeferred function cannot itself be redeferred.
+        // So we first need to close over the set of non-redeferrable functions, then go back and redefer
+        // the eligible candidates.
+
         auto fn = [&](FunctionBody *functionBody) {
             bool exec = functionBody->InterpretedSinceCallCountCollection();
             functionBody->CollectInterpretedCounts();
@@ -1066,14 +1072,31 @@ namespace Js
             if (pActiveFuncs)
             {
                 Assert(this->GetThreadContext()->DoRedeferFunctionBodies());
-                if (functionBody->GetFunctionInfo()->GetFunctionProxy() == functionBody && functionBody->CanBeDeferred() && !pActiveFuncs->Test(functionBody->GetFunctionNumber()) && functionBody->GetByteCode() != nullptr && functionBody->GetCanDefer())
+                bool doRedefer = functionBody->DoRedeferFunction(inactiveThreshold);
+                if (!doRedefer)
                 {
-                    functionBody->RedeferFunction(inactiveThreshold);
+                    functionBody->UpdateActiveFunctionSet(pActiveFuncs);
                 }
             }
         };
 
         this->MapFunction(fn);
+
+        if (!pActiveFuncs)
+        {
+            return;
+        }
+
+        auto fnRedefer = [&](FunctionBody * functionBody) {
+            Assert(pActiveFuncs);
+            if (!functionBody->IsActiveFunction(pActiveFuncs))
+            {
+                Assert(functionBody->DoRedeferFunction(inactiveThreshold));
+                functionBody->RedeferFunction();
+            }
+        };
+
+        this->MapFunction(fnRedefer);
     }
 
     bool ScriptContext::DoUndeferGlobalFunctions() const

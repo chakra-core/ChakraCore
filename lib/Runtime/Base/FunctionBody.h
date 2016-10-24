@@ -17,6 +17,8 @@ class DynamicProfileMutatorImpl;
 #endif
 #define MAX_FUNCTION_BODY_DEBUG_STRING_SIZE 42 //11*3+8+1
 
+typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
+
 namespace Js
 {
 #pragma region Class Forward Declarations
@@ -2557,8 +2559,11 @@ namespace Js
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
 
-        void RedeferFunction(uint inactiveThreshold);
-        void UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const;
+        bool DoRedeferFunction(uint inactiveThreshold) const;
+        void RedeferFunction();
+        bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
+        bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
+        void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs) const;
         uint GetInactiveCount() const { return inactiveCount; }
         void SetInactiveCount(uint count) { inactiveCount = count; }
         void IncrInactiveCount(uint increment);
@@ -2576,7 +2581,7 @@ namespace Js
         void SetFormalsPropIdArray(PropertyIdArray * propIdArray);
         PropertyIdArray* GetFormalsPropIdArray(bool checkForNull = true);
         Var GetFormalsPropIdArrayOrNullObj();
-        ByteBlock* GetByteCode();
+        ByteBlock* GetByteCode() const;
         ByteBlock* GetOriginalByteCode(); // Returns original bytecode without probes (such as BPs).
         Js::ByteCodeCache * GetByteCodeCache() const { return this->byteCodeCache; }
         void SetByteCodeCache(Js::ByteCodeCache *byteCodeCache)

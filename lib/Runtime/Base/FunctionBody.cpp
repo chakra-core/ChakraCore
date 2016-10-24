@@ -568,9 +568,19 @@ namespace Js
         this->inactiveCount = UInt32Math::Add(this->inactiveCount, increment);
     }
 
-    void FunctionBody::UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const
+    bool FunctionBody::IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const
     {
-        if (pActiveFuncs->TestAndSet(this->GetFunctionNumber()))
+        return pActiveFuncs->Test(this->GetFunctionNumber());
+    }
+
+    bool FunctionBody::TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const
+    {
+        return pActiveFuncs->TestAndSet(this->GetFunctionNumber());
+    }
+
+    void FunctionBody::UpdateActiveFunctionSet(ActiveFunctionSet *pActiveFuncs) const
+    {
+        if (this->TestAndUpdateActiveFunctions(pActiveFuncs))
         {
             return;
         }
@@ -588,10 +598,17 @@ namespace Js
         }
     }
 
-    void FunctionBody::RedeferFunction(uint inactiveThreshold)
+    bool FunctionBody::DoRedeferFunction(uint inactiveThreshold) const
     {
         bool isJitCandidate = false;
-        Assert(this->CanBeDeferred());
+
+        if (!(this->GetFunctionInfo()->GetFunctionProxy() == this &&
+              this->CanBeDeferred() &&
+              this->GetByteCode() &&
+              this->GetCanDefer()))
+        {
+            return false;
+        }
 
         if (!PHASE_FORCE(Js::RedeferralPhase, this) && !PHASE_STRESS(Js::RedeferralPhase, this))
         {
@@ -600,7 +617,7 @@ namespace Js
             inactiveCount = UInt32Math::Mul(this->GetInactiveCount(), this->GetCompileCount(), fn);
             if (inactiveCount < inactiveThreshold)
             {
-                return;
+                return false;
             }
         }
 
@@ -614,8 +631,15 @@ namespace Js
         });
         if (isJitCandidate)
         {
-            return;
+            return false;
         }
+
+        return true;
+    }
+
+    void FunctionBody::RedeferFunction()
+    {
+        Assert(this->CanBeDeferred());
 
         PHASE_PRINT_TRACE(Js::RedeferralPhase, this, L"Redeferring function %d.%d: %s\n", 
                           GetSourceContextId(), GetLocalFunctionId(),
@@ -681,7 +705,7 @@ namespace Js
     }
 
     ByteBlock*
-    FunctionBody::GetByteCode()
+    FunctionBody::GetByteCode() const
     {
         return this->byteCodeBlock;
     }
