@@ -219,12 +219,11 @@ EXDEF2_WMS( F1toF1Mem        , Trunc_Flt        , Wasm::WasmMath::Trunc<float>  
 EXDEF2_WMS( F1toF1Mem        , Nearest_Flt      , Wasm::WasmMath::Nearest<float>                     )
 EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
 EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
-#define COMMA ,
-EXDEF2_WMS( D1toI1Scr        , Conv_Check_DTI   , OP_TruncWithCheck<int COMMA INT_MIN COMMA INT_MAX>           )
-EXDEF2_WMS( F1toI1Scr        , Conv_Check_FTI   , OP_TruncWithCheck<int COMMA INT_MIN COMMA INT_MAX>           )
-EXDEF2_WMS( D1toI1Scr        , Conv_Check_DTU   , OP_TruncWithCheck<uint COMMA 0 COMMA UINT_MAX>         )
-EXDEF2_WMS( F1toI1Scr        , Conv_Check_FTU   , OP_TruncWithCheck<uint COMMA 0 COMMA UINT_MAX>         )
-#undef COMMA 
+EXDEF2_WMS( I1toI1Mem        , PopCnt_Int       , ::Math::PopCnt32                                   )
+EXDEF2_WMS( D1toI1Scr        , Conv_Check_DTI   , (OP_TruncWithCheck<int,INT_MIN,INT_MAX>)           )
+EXDEF2_WMS( F1toI1Scr        , Conv_Check_FTI   , (OP_TruncWithCheck<int,INT_MIN,INT_MAX>)           )
+EXDEF2_WMS( D1toI1Scr        , Conv_Check_DTU   , (OP_TruncWithCheck<uint,0,UINT_MAX>)         )
+EXDEF2_WMS( F1toI1Scr        , Conv_Check_FTU   , (OP_TruncWithCheck<uint,0,UINT_MAX>)         )
 EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
 EXDEF2    ( EMPTYASMJS       , Unreachable_Void , OP_Unreachable                                     )
 
