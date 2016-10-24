@@ -5877,7 +5877,7 @@ void LowererMD::GenerateTruncChecks(IR::Instr* instr)
     IR::RegOpnd* limitReg = MaterializeDoubleConstFromInt(min, instr);
 
     GenerateCheck(Js::OpCode::COMISD, src64, limitReg, Js::OpCode::JB, throwLabel, instr); // < min
-    IR::Opnd * twoTo31Float = MaterializeConstFromBits(X86_TWO_31_F4.m128_value.m128_i32[0], TyFloat32, instr);
+    IR::Opnd * twoTo31Float = MaterializeConstFromBits(_mm_extract_epi32(X86_TWO_31_F4.m128i_value, 0), TyFloat32, instr);
 
     if (instr->GetDst()->IsUInt32())
     {
@@ -5960,7 +5960,7 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
         TruncLower31BitsFlt(instr, src1, dst, twoTo31Float); //tmpReg is either f32(2^31) or f32(0) if a src >= 2^31
 
     instr->InsertBefore(IR::Instr::New(Js::OpCode::PSLLW, tmpReg, tmpReg, IR::IntConstOpnd::New(1, TyInt8, m_func), m_func));
-    IR::Opnd * twoTo31Int = MaterializeConstFromBits(X86_TWO_31_I4.m128_value.m128_i32[0], TyFloat32, instr);
+    IR::Opnd * twoTo31Int = MaterializeConstFromBits(_mm_extract_epi32(X86_TWO_31_I4.m128i_value, 0), TyFloat32, instr);
     instr->InsertBefore(IR::Instr::New(Js::OpCode::ANDPS, twoTo31Int, twoTo31Int, tmpReg, m_func));
     IR::Opnd * highBit = IR::RegOpnd::New(TyInt32, m_func);
     instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, highBit, twoTo31Int, m_func));
