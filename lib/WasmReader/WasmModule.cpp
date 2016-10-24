@@ -380,7 +380,7 @@ uint32 WasmModule::GetModuleEnvironmentSize() const
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     size = UInt32Math::Add(size, GetSignatureCount());
     size = UInt32Math::Add(size, GetImportCount());
-    size = UInt32Math::Add(size, globals.Count() * DOUBLE_SIZE_IN_INTS); //a tad bit overestimating
+    size = UInt32Math::Add(size, WAsmJs::ConvertToJsVarOffset<byte>(GetGlobalsByteSize()));
     return size;
 }
 
@@ -400,24 +400,41 @@ void WasmModule::Mark(Recycler * recycler)
 
 uint WasmModule::GetOffsetForGlobal(WasmGlobal* global)
 {
-    static const uint slotSizesInInts[] =
-    {   sizeof(Js::Var)/sizeof(int), //Var
-        1, //I32
-        2, //I64
-        1, //F32
-        2  //F64
-    };
-
-    double sizeInInts = GetGlobalOffset() * slotSizesInInts[0];
     WasmTypes::WasmType type = global->GetType();
+    if (type >= WasmTypes::Limit)
+    {
+        throw WasmCompilationException(_u("Invalid Global type"));
+    }
+
+    uint32 offset = WAsmJs::ConvertFromJsVarOffset<byte>(GetGlobalOffset());
 
     for (uint i = 1; i < (uint)type; i++)
     {
-        sizeInInts += globalCounts[i] * slotSizesInInts[i];
+        offset = AddGlobalByteSizeToOffset((WasmTypes::WasmType)i, offset);
     }
 
-    sizeInInts += global->GetOffset() * slotSizesInInts[type];
-    return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);
+    uint32 typeSize = WasmTypes::GetTypeByteSize(type);
+    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(global->GetOffset(), typeSize);
+    offset = UInt32Math::Add(offset, sizeUsed);
+    return WAsmJs::ConvertOffset(offset, sizeof(byte), typeSize);
+}
+
+uint WasmModule::AddGlobalByteSizeToOffset(WasmTypes::WasmType type, uint32 offset) const
+{
+    uint32 typeSize = WasmTypes::GetTypeByteSize(type);
+    offset = Math::AlignOverflowCheck(offset, typeSize);
+    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(globalCounts[type], typeSize);
+    return UInt32Math::Add(offset, sizeUsed);
+}
+
+uint WasmModule::GetGlobalsByteSize() const
+{
+    uint32 size = 0;
+    for (WasmTypes::WasmType type = (WasmTypes::WasmType)(WasmTypes::Void + 1); type < WasmTypes::Limit; type = (WasmTypes::WasmType)(type + 1))
+    {
+        size = AddGlobalByteSizeToOffset(type, size);
+    }
+    return size;
 }
 
 } // namespace Wasm

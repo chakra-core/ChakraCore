@@ -20,6 +20,7 @@ namespace Wasm
             Limit
         };
         bool IsLocalType(WasmTypes::WasmType type);
+        uint32 GetTypeByteSize(WasmType type);
     }
 
     namespace ExternalKinds

@@ -81,7 +81,10 @@ namespace Wasm
         uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
         uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
         uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + GetSignatureCount();  }
+
         uint GetOffsetForGlobal(WasmGlobal* global);
+        uint AddGlobalByteSizeToOffset(WasmTypes::WasmType type, uint32 offset) const;
+        uint GetGlobalsByteSize() const;
 
         WasmBinaryReader* GetReader() const { return m_reader; }
 

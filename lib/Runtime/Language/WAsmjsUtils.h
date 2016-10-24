@@ -20,24 +20,14 @@ namespace WAsmJs
 
     typedef Js::RegSlot RegSlot;
 
+    uint32 ConvertOffset(uint32 ptr, uint32 fromSize, uint32 toSize);
     template<typename ToType> uint32 ConvertOffset(uint32 ptr, uint32 fromSize)
     {
-        if (fromSize == sizeof(ToType))
-        {
-            return ptr;
-        }
-        uint64 tmp = ptr * fromSize;
-        tmp = Math::Align<uint64>(tmp, sizeof(ToType));
-        tmp /= sizeof(ToType);
-        if (tmp > (uint64)UINT32_MAX)
-        {
-            Math::DefaultOverflowPolicy();
-        }
-        return (uint32)tmp;
+        return ConvertOffset(ptr, fromSize, sizeof(ToType));
     }
     template<typename FromType, typename ToType> uint32 ConvertOffset(uint32 ptr)
     {
-        return ConvertOffset<ToType>(ptr, sizeof(FromType));
+        return ConvertOffset(ptr, sizeof(FromType), sizeof(ToType));
     }
     template<typename T> uint32 ConvertToJsVarOffset(uint32 ptr)
     {

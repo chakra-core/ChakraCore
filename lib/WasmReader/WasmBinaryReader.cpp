@@ -21,6 +21,20 @@ bool IsLocalType(WasmTypes::WasmType type)
     return (uint)(type - 1) < (WasmTypes::Limit - 1);
 }
 
+uint32 GetTypeByteSize(WasmType type)
+{
+    switch (type)
+    {
+    case Void: return sizeof(Js::Var);
+    case I32: return sizeof(int32);
+    case I64: return sizeof(int64);
+    case F32: return sizeof(float);
+    case F64: return sizeof(double);
+    default:
+        Js::Throw::InternalError();
+    }
+}
+
 } // namespace WasmTypes
 
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :

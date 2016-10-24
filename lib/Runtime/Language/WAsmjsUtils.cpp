@@ -55,6 +55,22 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
     }
 #endif
 
+    uint32 ConvertOffset(uint32 ptr, uint32 fromSize, uint32 toSize)
+    {
+        if (fromSize == toSize)
+        {
+            return ptr;
+        }
+        uint64 tmp = ptr * fromSize;
+        tmp = Math::Align<uint64>(tmp, toSize);
+        tmp /= toSize;
+        if (tmp > (uint64)UINT32_MAX)
+        {
+            Math::DefaultOverflowPolicy();
+        }
+        return (uint32)tmp;
+    }
+
     uint32 GetTypeByteSize(Types type)
     {
         // Since this needs to be done manually for each type, this assert will make sure to not forget to update this if a new type is added
