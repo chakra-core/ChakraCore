@@ -7,5 +7,5 @@ br.wast:342: $assert_return_44 unexpectedly threw: Error: Compiling wasm failed:
 br.wast:344: $assert_return_46 unexpectedly threw: Error: Compiling wasm failed: function as-storeN-value[44] at offset 12/16: Operator I64StoreMem16 NYI
 br.wast:349: $assert_return_49 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_49[108] at offset 3/7: I64 return type NYI
 br.wast:356: $assert_return_53 unexpectedly threw: Error: Compiling wasm failed: function as-convert-operand[51] at offset 8/10: Operator I32ConvertI64 NYI
-br.wast:358: $assert_return_54 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[52] at offset 8/10: Operator GrowMemory NYI
+br.wast:358: $assert_return_54 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[52] at offset 9/11: Operator GrowMemory NYI
 51/61 tests passed.
