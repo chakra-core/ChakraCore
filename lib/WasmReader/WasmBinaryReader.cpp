@@ -462,6 +462,9 @@ WasmBinaryReader::CallIndirectNode()
     UINT length = 0;
 
     UINT32 funcNum = LEB128(length);
+    // Reserved value currently unused
+    ReadConst<uint8>();
+
     m_funcState.count += length;
     if (funcNum >= m_module->GetSignatureCount())
     {
