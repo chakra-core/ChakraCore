@@ -8269,6 +8269,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             BYTE* buffer = arr->GetBuffer();
             *(ArrayType*)(buffer + index) = (ArrayType)GetRegRaw<RegType>(regSlot);
+            return;
         }
     }
 #endif
