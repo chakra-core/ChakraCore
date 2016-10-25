@@ -29,9 +29,10 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     heapOffset(0),
     funcOffset(0),
     importFuncOffset(0),
-    globalCounts {0, 0, 0, 0, 0}, //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     globals (&m_alloc)
 {
+    //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
+    memset(globalCounts, 0, sizeof( uint ) * WasmTypes::Limit);
     m_reader = Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
     m_reader->InitializeReader();
 }
