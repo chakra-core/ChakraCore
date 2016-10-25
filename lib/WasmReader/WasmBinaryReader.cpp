@@ -417,6 +417,11 @@ WasmBinaryReader::ReadExpr()
         break;
     case wbNop:
         break;
+    case wbCurrentMemory:
+    case wbGrowMemory:
+        // Reserved value currently unused
+        ReadConst<uint8>();
+        break;
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         MemNode(); \
