@@ -3169,7 +3169,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
             Js::ParseableFunctionInfo::NestedArray * parentNestedArray = parentFunc->GetNestedArray();
             Js::ParseableFunctionInfo* reuseNestedFunc = nullptr;
-            if (parentNestedArray)
+            if (parentNestedArray && byteCodeGenerator->GetScriptContext()->IsScriptContextInNonDebugMode())
             {
                 Assert(*pIndex < parentNestedArray->nestedCount);
                 Js::FunctionInfo * info = parentNestedArray->functionInfoArray[*pIndex];

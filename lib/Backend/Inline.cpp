@@ -524,7 +524,9 @@ uint Inline::FillInlineesDataArray(
         }
 
         intptr_t inlineeFunctionInfoAddr = inlineeJitTimeData->GetFunctionInfoAddr();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeJitTimeData))
+#ifdef DBG
+        if (inlineeJitTimeData->HasBody() && !PHASE_OFF(Js::PolymorphicInlinePhase, inlineeJitTimeData))
+#endif
         {
             const FunctionJITTimeInfo* rightInlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeFunctionInfoAddr);
 
@@ -571,28 +573,31 @@ void Inline::FillInlineesDataArrayUsingFixedMethods(
     JITTimeFunctionBody* inlineeFuncBody = nullptr;
     while (inlineeJitTimeData)
     {
-        inlineeFuncBody = inlineeJitTimeData->GetBody();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeJitTimeData) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeJitTimeData))
+        if (inlineeJitTimeData->HasBody())
         {
-            const FunctionJITTimeInfo * jitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeJitTimeData->GetFunctionInfoAddr());
-            if (jitTimeData)
+             inlineeFuncBody = inlineeJitTimeData->GetBody();
+            if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeJitTimeData) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeJitTimeData))
             {
-                for (uint16 i = 0; i < cachedFixedInlineeCount; i++)
+                const FunctionJITTimeInfo * jitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeJitTimeData->GetFunctionInfoAddr());
+                if (jitTimeData)
                 {
-                    if (inlineeJitTimeData->GetFunctionInfoAddr() == fixedFieldInfoArray[i].GetFuncInfoAddr())
+                    for (uint16 i = 0; i < cachedFixedInlineeCount; i++)
                     {
-                        inlineesDataArray[i] = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeJitTimeData->GetFunctionInfoAddr());
-                        break;
+                        if (inlineeJitTimeData->GetFunctionInfoAddr() == fixedFieldInfoArray[i].GetFuncInfoAddr())
+                        {
+                            inlineesDataArray[i] = inlineeJitTimeData->GetJitTimeDataFromFunctionInfoAddr(inlineeJitTimeData->GetFunctionInfoAddr());
+                            break;
+                        }
                     }
                 }
-            }
-            else
-            {
+                else
+                {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-                POLYMORPHIC_INLINE_TESTTRACE(_u("INLINING (Polymorphic): Missing jit time data skipped inlinee\tInlinee: %s (%s)\n"),
-                            inlineeFuncBody->GetDisplayName(), inlineeJitTimeData->GetDebugNumberSet(debugStringBuffer));
+                    POLYMORPHIC_INLINE_TESTTRACE(_u("INLINING (Polymorphic): Missing jit time data skipped inlinee\tInlinee: %s (%s)\n"),
+                                inlineeFuncBody->GetDisplayName(), inlineeJitTimeData->GetDebugNumberSet(debugStringBuffer));
+                }
             }
         }
         inlineeJitTimeData = inlineeJitTimeData->GetNext();

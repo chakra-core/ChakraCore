@@ -1044,6 +1044,11 @@ namespace Js
     {
         Assert(!this->IsClosed());
 
+        if (!this->IsScriptContextInNonDebugMode())
+        {
+            return;
+        }
+
         // For each active function, collect call counts, update inactive counts, and redefer if appropriate.
         // In the redeferral case, we require 2 passes over the set of FunctionBody's.
         // This is because a function inlined in a non-redeferred function cannot itself be redeferred.

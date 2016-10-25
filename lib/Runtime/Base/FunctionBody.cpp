@@ -570,12 +570,12 @@ namespace Js
 
     bool FunctionBody::IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const
     {
-        return pActiveFuncs->Test(this->GetFunctionNumber());
+        return !!pActiveFuncs->Test(this->GetFunctionNumber());
     }
 
     bool FunctionBody::TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const
     {
-        return pActiveFuncs->TestAndSet(this->GetFunctionNumber());
+        return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
     void FunctionBody::UpdateActiveFunctionSet(ActiveFunctionSet *pActiveFuncs) const
