@@ -268,6 +268,12 @@ LowererMD::LowerAsmJsCallE(IR::Instr * callInstr)
 }
 
 IR::Instr *
+LowererMD::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+{
+    return this->lowererMDArch.LowerWasmMemOp(instr, addrOpnd);
+}
+
+IR::Instr *
 LowererMD::LowerAsmJsLdElemHelper(IR::Instr * callInstr)
 {
     return this->lowererMDArch.LowerAsmJsLdElemHelper(callInstr);
@@ -7897,6 +7903,18 @@ void
 LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     this->lowererMDArch.EmitUIntToFloat(dst, src, instrInsert);
+}
+
+void
+LowererMD::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitIntToLong(dst, src, instrInsert);
+}
+
+void
+LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitUIntToLong(dst, src, instrInsert);
 }
 
 void

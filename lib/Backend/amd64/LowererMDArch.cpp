@@ -1117,6 +1117,30 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     return ret;
 }
 
+IR::Instr *
+LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+{
+    Assert(instr->GetSrc2());
+
+    IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
+    IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
+    IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
+
+    // Find array buffer length
+    IR::RegOpnd * indexOpnd = addrOpnd->AsIndirOpnd()->GetIndexOpnd();
+    IR::Opnd *arrayLenOpnd = instr->GetSrc2();
+
+    // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
+    IR::Opnd *cmpOpnd = IR::RegOpnd::New(TyUint64, m_func);
+    Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize(), TyUint64, m_func), helperLabel);
+    lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
+
+    // MGTODO : call RuntimeError once implemented
+    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
+    return doneLabel;
+}
+
 IR::Instr*
 LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= false*/, bool checkEndOffset /*= false*/)
 {
@@ -2539,6 +2563,36 @@ LowererMDArch::EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
         Assert(dst->IsFloat32());
         instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SS, dst, src, this->m_func));
     }
+}
+
+void
+LowererMDArch::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt64());
+    Assert(src->IsInt32());
+
+    if (src->IsIntConstOpnd())
+    {
+        Lowerer::InsertMove(dst, src, instrInsert);
+        return;
+    }
+    Assert(src->IsRegOpnd());
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOVSXD, dst, src, this->m_func));
+}
+
+void
+LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt64());
+    Assert(src->IsUInt32());
+
+    if (src->IsIntConstOpnd())
+    {
+        Lowerer::InsertMove(dst, src, instrInsert);
+        return;
+    }
+    Assert(src->IsRegOpnd());
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, src, this->m_func));
 }
 
 void

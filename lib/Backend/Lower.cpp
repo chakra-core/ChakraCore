@@ -1559,6 +1559,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = LowerStArrViewElem(instr);
             break;
 
+        case Js::OpCode::LdArrViewElemWasm:
+            instrPrev = LowerLdArrViewElemWasm(instr);
+            break;
+
         case Js::OpCode::Memset:
         case Js::OpCode::Memcopy:
         {
@@ -1912,6 +1916,21 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     Assert(instr->GetDst()->IsFloat64());
                     Assert(instr->GetSrc1()->IsFloat32());
                     m_lowererMD.EmitFloat32ToFloat64(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+            }
+            else if (instr->GetDst()->IsInt64())
+            {
+                if (instr->GetSrc1()->IsInt32())
+                {
+                    m_lowererMD.EmitIntToLong(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+                else if (instr->GetSrc1()->IsUInt32())
+                {
+                    m_lowererMD.EmitUIntToLong(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+                else
+                {
+                    Assert(0);
                 }
             }
             else
@@ -8871,6 +8890,44 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 }
 
 IR::Instr *
+Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
+{
+#ifdef ASMJS_PLAT
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::LdArrViewElemWasm);
+
+    IR::Instr * instrPrev = instr->m_prev;
+
+    IR::Opnd * dst = instr->GetDst();
+    IR::Opnd * src1 = instr->GetSrc1();
+
+    IR::Instr * done;
+
+    Assert(!dst->IsFloat32() || src1->IsFloat32());
+    Assert(!dst->IsFloat64() || src1->IsFloat64());
+    done = m_lowererMD.LowerWasmMemOp(instr, src1);
+
+    if (dst->IsInt64())
+    {
+        IR::Instr* movInt64 = IR::Instr::New(Js::OpCode::Ld_I4, dst, src1, m_func);
+        done->InsertBefore(movInt64);
+        m_lowererMD.LowerInt64Assign(movInt64);
+    }
+    else
+    {
+        InsertMove(dst, src1, done);
+    }
+
+    instr->Remove();
+    return instrPrev;
+#else
+    Assert(UNREACHED);
+    return instr;
+#endif
+}
+
+IR::Instr *
 Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
 {
     IR::Opnd * dst = instr->UnlinkDst();
@@ -9045,7 +9102,12 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(!dst->IsInt64() || src1->IsInt64());
 
     IR::Instr * done;
-    if (indexOpnd || m_func->GetJITFunctionBody()->GetAsmJsInfo()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
+
+    if (m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        done = m_lowererMD.LowerWasmMemOp(instr, dst);
+    }
+    else if (indexOpnd || m_func->GetJITFunctionBody()->GetAsmJsInfo()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -9055,7 +9117,6 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
         // $store:
         // MOV dst([arrayBuffer + indexOpnd]), src1
         // $done:
-
         done = m_lowererMD.LowerAsmJsStElemHelper(instr);
     }
     else
