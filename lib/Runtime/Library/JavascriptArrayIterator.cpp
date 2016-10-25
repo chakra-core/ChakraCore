@@ -58,17 +58,25 @@ namespace Js
         }
 
         int64 length;
-        bool bArray = false;
         JavascriptArray* pArr = nullptr;
-
-        if (DynamicObject::IsAnyArray(iterable) && !JavascriptArray::FromAnyArray(iterable)->IsCrossSiteObject())
+        TypedArrayBase *typedArrayBase = nullptr;
+        if (JavascriptArray::Is(iterable) && !JavascriptArray::FromVar(iterable)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
-            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(iterable);
+            Assert(!JavascriptCopyOnAccessNativeIntArray::Is(iterable));
 #endif
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();
-            bArray = true;
+        }
+        else if (TypedArrayBase::Is(iterable))
+        {
+            typedArrayBase = TypedArrayBase::FromVar(iterable);
+            if (typedArrayBase->IsDetachedBuffer())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+            }
+
+            length = typedArrayBase->GetLength();
         }
         else
         {
@@ -93,26 +101,15 @@ namespace Js
         }
 
         Var value;
-        if (index <= UINT_MAX)
+        if (pArr != nullptr)
         {
-            if (bArray)
-            {
-                if (JavascriptArray::Is(pArr))
-                {
-                    value = pArr->DirectGetItem((uint32)index);
-                }
-                else
-                {
-                    if (!JavascriptOperators::GetOwnItem(pArr, (uint32) index, &value, scriptContext))
-                    {
-                        value = library->GetUndefined();
-                    }
-                }
-            }
-            else
-            {
-                value = JavascriptOperators::OP_GetElementI_UInt32(iterable, (uint32)index, scriptContext);
-            }
+            Assert(index <= UINT_MAX);
+            value = pArr->DirectGetItem((uint32)index);
+        }
+        else if (typedArrayBase != nullptr)
+        {
+            Assert(index <= UINT_MAX);
+            value = typedArrayBase->DirectGetItem((uint32)index);
         }
         else
         {
