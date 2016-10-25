@@ -30,6 +30,12 @@
 </test>
 <test>
     <default>
+       <files>math.js</files>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
        <files>dropteelocal.js</files>
        <baseline>dropteelocal.baseline</baseline>
        <compile-flags>-on:Wasm</compile-flags>

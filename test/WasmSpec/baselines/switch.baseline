@@ -1,8 +1,8 @@
-switch.wast:130: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:131: $assert_return_10 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:132: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:133: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:134: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:135: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
-switch.wast:136: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32ConvertI64 NYI
+switch.wast:130: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:131: $assert_return_10 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:132: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:133: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:134: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:135: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
+switch.wast:136: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function expr[1] at offset 31/76: Operator I32Wrap_I64 NYI
 19/26 tests passed.
