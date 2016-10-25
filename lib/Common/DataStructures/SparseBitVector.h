@@ -80,7 +80,7 @@ struct BVSparseNode
 #endif
 };
 
-#if defined(_M_X64)
+#if defined(_M_ARM64) || defined(_M_X64)
 CompileAssert(sizeof(BVSparseNode) == 24); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
 #else
 CompileAssert(sizeof(BVSparseNode) == 16);
