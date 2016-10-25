@@ -8208,6 +8208,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             BYTE* buffer = arr->GetBuffer();
             *(T2*)(buffer + index) = (T2)GetRegRaw<T2>(value);
+            return;
+        }
+        if (this->m_functionBody->IsWasmFunction())
+        {
+            //MGTODO : Change this to throw WebAssembly.RuntimeError once implemented
+            Js::Throw::FatalInternalError();
         }
     }
 #endif
@@ -8241,8 +8247,21 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
-        T2 val = index < (arr->GetByteLength()) ? *(T2*)(buffer + index) : GetArrayViewOverflowVal<T2>();
-        SetRegRaw<T2>(value, val);
+
+        if (index < (arr->GetByteLength()))
+        {
+            T2 val = *(T2*)(buffer + index);
+            SetRegRaw<T2>(value, val);
+            return;
+        }
+        if (!this->m_functionBody->IsWasmFunction())
+        {
+            T2 val = GetArrayViewOverflowVal<T2>();
+            SetRegRaw<T2>(value, val);
+            return;
+        }
+        //MGTODO : Change this to throw WebAssembly.RuntimeError once implemented
+        Js::Throw::FatalInternalError();
     }
 #endif
 
