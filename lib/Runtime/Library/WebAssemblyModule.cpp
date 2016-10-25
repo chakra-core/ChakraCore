@@ -127,7 +127,7 @@ WebAssemblyModule::CreateModule(
         for (uint i = 0; i < webAssemblyModule->GetWasmFunctionCount(); ++i)
         {
             currentBody = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
-            if (PHASE_ON(WasmDeferredPhase, currentBody))
+            if (!PHASE_OFF(WasmDeferredPhase, currentBody))
             {
                 continue;
             }
