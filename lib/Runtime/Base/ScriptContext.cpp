@@ -4722,7 +4722,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
 #if ENABLE_PROFILE_INFO
     template<template<typename> class BarrierT>
-    void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo)
+    void ScriptContext::AddDynamicProfileInfo(
+        FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo)
     {
         Assert(functionBody->GetScriptContext() == this);
         Assert(functionBody->HasValidSourceInfo());
@@ -4777,7 +4778,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Assert(dynamicProfileInfo != nullptr);
     }
     template void  ScriptContext::AddDynamicProfileInfo<WriteBarrierPtr>(FunctionBody *, WriteBarrierPtr<DynamicProfileInfo>&);
-    template void  ScriptContext::AddDynamicProfileInfo<NoWriteBarrierPtr>(FunctionBody *, NoWriteBarrierPtr<DynamicProfileInfo>&);
 #endif
 
     CharClassifier const * ScriptContext::GetCharClassifier(void) const

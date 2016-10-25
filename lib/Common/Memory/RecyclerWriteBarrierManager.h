@@ -123,7 +123,7 @@ class RecyclerWriteBarrierManager
 {
 public:
     static void WriteBarrier(void * address);
-    static void WriteBarrier(void * address, size_t ptrCount);
+    static void WriteBarrier(void * address, size_t bytes);
 
     // For JIT
     static uintptr_t GetCardTableIndex(void * address);

@@ -142,7 +142,7 @@ namespace Js
     inline void* AuxPtrs<T, FieldsEnum>::Get(FieldsEnum e)
     {
         uint8 u = (uint8)e;
-        return offsets[u] == (uint8)FieldsEnum::Invalid ? nullptr : ptrs[offsets[u]];
+        return offsets[u] == (uint8)FieldsEnum::Invalid ? nullptr : (void*)ptrs[offsets[u]];
     }
     template<class T, typename FieldsEnum>
     inline bool AuxPtrs<T, FieldsEnum>::Set(FieldsEnum e, void* p)

@@ -57,7 +57,7 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     ULONG_PTR stackEnd = 0;
     ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
 #endif
-    
+
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
     return OnSegmentAlloc((char*) stackEnd, numPages);
@@ -283,11 +283,11 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
 
 
 void
-RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t ptrCount)
+RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
     uintptr_t startIndex = GetCardTableIndex(address);
-    char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + sizeof(void *) * ptrCount), s_WriteBarrierPageSize);
+    char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
     uintptr_t endIndex = GetCardTableIndex(endAddress);
     Assert(startIndex <= endIndex);
     memset(cardTable + startIndex, 1, endIndex - startIndex);
@@ -297,7 +297,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t ptrCount)
     uint bitMask = 0xFFFFFFFF << bitShift;
     uint cardIndex = ((uint)address) / s_BytesPerCard);
 
-    char * endAddress = (char *)Math::Align((INT_PTR)((char *)address + sizeof(void *) * ptrCount), s_BytesPerCardBit);
+    char * endAddress = (char *)Math::Align((INT_PTR)((char *)address + bytes), s_BytesPerCardBit);
     char * alignedAddress = (char *)Math::Align((INT_PTR)address, s_WriteBarrierPageSize);
     if (alignedAddress > endAddress)
     {

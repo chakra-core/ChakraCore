@@ -6,12 +6,135 @@
 
 namespace Memory
 {
+class Recycler;
+class RecyclerNonLeafAllocator;
+
+// Dummy tag classes to mark yes/no write barrier policy
+//
+struct _write_barrier_policy {};
+struct _no_write_barrier_policy {};
+
+// Type write barrier policy
+//
+// By default following potentially contains GC pointers and use write barrier policy:
+//      pointer, WriteBarrierPtr, _write_barrier_policy
+//
+template <class T>
+struct TypeWriteBarrierPolicy { typedef _no_write_barrier_policy Policy; };
+template <class T>
+struct TypeWriteBarrierPolicy<T*> { typedef _write_barrier_policy Policy; };
+template <class T>
+struct TypeWriteBarrierPolicy<WriteBarrierPtr<T>> { typedef _write_barrier_policy Policy; };
+template <>
+struct TypeWriteBarrierPolicy<_write_barrier_policy> { typedef _write_barrier_policy Policy; };
+
+// AllocatorType write barrier policy
+//
+// Recycler allocator type => _write_barrier_policy
+// Note that Recycler allocator type consists of multiple allocators:
+//      Recycler, RecyclerNonLeafAllocator, RecyclerLeafAllocator
+//
+template <class AllocatorType>
+struct _AllocatorTypeWriteBarrierPolicy { typedef _no_write_barrier_policy Policy; };
+template <>
+struct _AllocatorTypeWriteBarrierPolicy<Recycler> { typedef _write_barrier_policy Policy; };
+
+template <class Policy1, class Policy2>
+struct _AndWriteBarrierPolicy { typedef _no_write_barrier_policy Policy; };
+template <>
+struct _AndWriteBarrierPolicy<_write_barrier_policy, _write_barrier_policy>
+{
+    typedef _write_barrier_policy Policy;
+};
+
+// Combine Allocator + Data => write barrier policy
+// Specialize RecyclerNonLeafAllocator
+//
+template <class Allocator, class T>
+struct AllocatorWriteBarrierPolicy
+{
+    typedef typename AllocatorInfo<Allocator, void>::AllocatorType AllocatorType;
+    typedef typename _AndWriteBarrierPolicy<
+        typename _AllocatorTypeWriteBarrierPolicy<AllocatorType>::Policy,
+        typename TypeWriteBarrierPolicy<T>::Policy>::Policy Policy;
+};
+template <class T>
+struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, T> { typedef _write_barrier_policy Policy; };
+template <>
+struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, int> { typedef _no_write_barrier_policy Policy; };
+
+// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Policy
+//
+template <class T, class Policy>
+struct _WriteBarrierPtrPolicy { typedef NoWriteBarrierPtr<T> Ptr; };
+template <class T>
+struct _WriteBarrierPtrPolicy<T, _write_barrier_policy> { typedef WriteBarrierPtr<T> Ptr; };
+
+// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Allocator and T* type
+//
+template <class T,
+          class Allocator = Recycler,
+          class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T*>::Policy>
+struct WriteBarrierPtrTraits { typedef typename _WriteBarrierPtrPolicy<T, Policy>::Ptr Ptr; };
+
+// ArrayWriteBarrier behavior
+//
+template <class Policy>
+struct _ArrayWriteBarrier
+{
+    template <class T>
+    static void WriteBarrier(T * address, size_t count) {}
+};
+
+#ifdef RECYCLER_WRITE_BARRIER
+template <>
+struct _ArrayWriteBarrier<_write_barrier_policy>
+{
+    template <class T>
+    static void WriteBarrier(T * address, size_t count)
+    {
+        RecyclerWriteBarrierManager::WriteBarrier(address, sizeof(T) * count);
+    }
+};
+#endif
+
+// Trigger write barrier on changing array content if Allocator and element type
+// determines write barrier is needed. Ignore otherwise.
+//
+template <class T, class Allocator = Recycler, class PolicyType = T>
+void WriteBarrier(T * address, size_t count)
+{
+    typedef typename AllocatorWriteBarrierPolicy<Allocator, PolicyType>::Policy Policy;
+    return _ArrayWriteBarrier<Policy>::WriteBarrier(address, count);
+}
+
+// Copy array content. Triggers write barrier on the dst array content if if
+// Allocator and element type determines write barrier is needed.
+//
+template <class Allocator, class T, class PolicyType = T>
+void CopyArray(T* dst, size_t dstCount, const T* src, size_t srcCount)
+{
+    js_memcpy_s(dst, sizeof(T) * dstCount, src, sizeof(T) * srcCount);
+    WriteBarrier<T, Allocator, PolicyType>(dst, dstCount);
+}
+template <class Allocator, class T, class PolicyType = T>
+void CopyArray(NoWriteBarrierPtr<T>& dst, size_t dstCount, const NoWriteBarrierPtr<T>& src, size_t srcCount)
+{
+    return CopyArray<Allocator, T, PolicyType>((T*)dst, dstCount, (const T*)src, srcCount);
+}
+template <class Allocator, class T, class PolicyType = T>
+void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount, const WriteBarrierPtr<T>& src, size_t srcCount)
+{
+    return CopyArray<Allocator, T, PolicyType>((T*)dst, dstCount, (const T*)src, srcCount);
+}
+
+
 template <typename T>
 class NoWriteBarrierField
 {
 public:
     NoWriteBarrierField() {}
-    NoWriteBarrierField(T const& value) : value(value) {}
+    explicit NoWriteBarrierField(T const& value) : value(value) {}
 
     // Getters
     operator T const&() const { return value; }
@@ -136,23 +259,17 @@ public:
     static void MoveArray(WriteBarrierPtr * dst, WriteBarrierPtr * src, size_t count)
     {
         memmove((void *)dst, src, sizeof(WriteBarrierPtr) * count);
-#ifdef RECYCLER_WRITE_BARRIER
-        RecyclerWriteBarrierManager::WriteBarrier(dst, count);
-#endif
+        WriteBarrier(dst, count);
     }
     static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, T const* src, size_t srcCount)
     {
         js_memcpy_s((void *)dst, sizeof(WriteBarrierPtr) * dstCount, src, sizeof(T *) * srcCount);
-#ifdef RECYCLER_WRITE_BARRIER
-        RecyclerWriteBarrierManager::WriteBarrier(dst, dstCount);
-#endif
+        WriteBarrier(dst, dstCount);
     }
     static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, WriteBarrierPtr const* src, size_t srcCount)
     {
         js_memcpy_s((void *)dst, sizeof(WriteBarrierPtr) * dstCount, src, sizeof(WriteBarrierPtr) * srcCount);
-#ifdef RECYCLER_WRITE_BARRIER
-        RecyclerWriteBarrierManager::WriteBarrier(dst, dstCount);
-#endif
+        WriteBarrier(dst, dstCount);
     }
     static void ClearArray(WriteBarrierPtr * dst, size_t count)
     {
@@ -162,7 +279,7 @@ public:
 private:
     T * ptr;
 };
-}
+}  // namespace Memory
 
 
 template<class T> inline
