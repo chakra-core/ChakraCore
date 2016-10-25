@@ -7,6 +7,19 @@
 #ifdef ENABLE_WASM
 namespace Wasm
 {
+    // Language Types binary encoding with varint7
+    namespace LanguageTypes
+    { 
+        const int8 i32 = 0x80 - 0x1;
+        const int8 i64 = 0x80 - 0x2;
+        const int8 f32 = 0x80 - 0x3;
+        const int8 f64 = 0x80 - 0x4;
+        const int8 anyfunc = 0x80 - 0x10;
+        const int8 func = 0x80 - 0x20;
+        const int8 emptyBlock = 0x80 - 0x40;
+        WasmTypes::WasmType ToWasmType(int8);
+    }
+
     struct SectionHeader
     {
         SectionCode code;
@@ -14,7 +27,7 @@ namespace Wasm
         byte* end;
     };
 
-    static const unsigned int experimentalVersion = 0xc;
+    static const unsigned int experimentalVersion = 0xd;
 
     class WasmBinaryReader
     {
