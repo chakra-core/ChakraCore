@@ -160,6 +160,23 @@
     }
 #define PROCESS_L1toL1Mem(name, func) PROCESS_L1toL1Mem_COMMON(name, func,)
 
+#define PROCESS_I1toL1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Long1Int1, suffix); \
+        SetRegRawInt64(playout->L0, \
+                func(GetRegRawInt(playout->I1))); \
+        break; \
+                                                                }
+
+#define PROCESS_U1toL1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Long1Int1, suffix); \
+        SetRegRawInt64(playout->L0, \
+                func((unsigned int)GetRegRawInt(playout->I1))); \
+        break; \
+                                                                }
 
 #define PROCESS_D1toD1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \

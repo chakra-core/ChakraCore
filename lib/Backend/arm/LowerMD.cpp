@@ -8843,6 +8843,18 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
 }
 
 void
+LowererMD::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(UNREACHED);
+}
+
+void
+LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(UNREACHED);
+}
+
+void
 LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone)
 {
     // CMP intOpnd, 0x80000000     -- Check for overflow

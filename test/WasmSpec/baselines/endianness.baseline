@@ -22,20 +22,8 @@ endianness.wast:178: $assert_return_36 unexpectedly threw: WebAssemblyCompileErr
 endianness.wast:179: $assert_return_37 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_37[60] at offset 13/25: Operator I64ReinterpretF64 NYI
 endianness.wast:180: $assert_return_38 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_38[61] at offset 13/25: Operator I64ReinterpretF64 NYI
 endianness.wast:181: $assert_return_39 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_39[62] at offset 13/25: Operator I64ReinterpretF64 NYI
-endianness.wast:194: $assert_return_48 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store16[18] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:195: $assert_return_49 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store16[18] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:196: $assert_return_50 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store16[18] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:197: $assert_return_51 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store16[18] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:199: $assert_return_52 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store32[19] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:200: $assert_return_53 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store32[19] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:201: $assert_return_54 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store32[19] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:202: $assert_return_55 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64_store32[19] at offset 13/14: Operator I64ExtendU_I32 NYI
-endianness.wast:204: $assert_return_56 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function wasm-function[5] at offset 6/19: Operator I64ExtendU_I32 NYI
-endianness.wast:205: $assert_return_57 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function wasm-function[5] at offset 6/19: Operator I64ExtendU_I32 NYI
-endianness.wast:206: $assert_return_58 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function wasm-function[5] at offset 6/19: Operator I64ExtendU_I32 NYI
-endianness.wast:207: $assert_return_59 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function wasm-function[5] at offset 6/19: Operator I64ExtendU_I32 NYI
 endianness.wast:214: $assert_return_64 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_64[87] at offset 13/25: Operator I64ReinterpretF64 NYI
 endianness.wast:215: $assert_return_65 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_65[88] at offset 13/25: Operator I64ReinterpretF64 NYI
 endianness.wast:216: $assert_return_66 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_66[89] at offset 13/25: Operator I64ReinterpretF64 NYI
 endianness.wast:217: $assert_return_67 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_67[90] at offset 13/25: Operator I64ReinterpretF64 NYI
-28/68 tests passed.
+40/68 tests passed.

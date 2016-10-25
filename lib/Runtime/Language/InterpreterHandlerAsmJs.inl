@@ -71,6 +71,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( U1toD1Mem        , Conv_UTD     , (double)                                           ) // convert unsigned int to double
   DEF2_WMS( U1toF1Mem        , Conv_UTF     , (float)                                            ) // convert unsigned int to float
   DEF2_WMS( F1toD1Mem        , Conv_FTD     , (double)                                           ) // convert unsigned float to double
+  DEF2_WMS( I1toL1Mem        , Conv_ITL     , (int64)                                            ) // extend signed int to int64
+  DEF2_WMS( U1toL1Mem        , Conv_UTL     , (int64)                                            ) // extend unsigned int to int64
   DEF2_WMS( I1toI1Mem        , Ld_Int       , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Ld_Long      , (int64)                                            )
   DEF2_WMS( D1toD1Mem        , Ld_Db        , (double)                                           )

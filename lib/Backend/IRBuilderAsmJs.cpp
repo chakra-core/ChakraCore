@@ -1426,7 +1426,8 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
 {
     IRType type = TyInt32;
     bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::LdArrConst;
-    Js::OpCode op = isLd ? Js::OpCode::LdArrViewElem : Js::OpCode::StArrViewElem;
+    Js::OpCode op = isLd ? (this->m_func->GetJITFunctionBody()->IsWasmFunction() ?
+        Js::OpCode::LdArrViewElemWasm : Js::OpCode::LdArrViewElem) : Js::OpCode::StArrViewElem;
     ValueType arrayType;
     WAsmJs::Types valueRegType = WAsmJs::INT32;
 
@@ -1494,7 +1495,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     IR::IndirOpnd * indirOpnd = nullptr;
 
     // Get the index
-    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::StArrWasm)
+    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr)
     {
         uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
         Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
@@ -1509,6 +1510,13 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         {
             maskedOpnd = BuildSrcOpnd(indexRegSlot, TyInt32);
         }
+        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, type, m_func);
+        indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
+    }
+    else if (newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::StArrWasm)
+    {
+        Js::RegSlot indexRegSlot = GetRegSlotFromInt64Reg(slotIndex);
+        IR::RegOpnd * maskedOpnd = BuildSrcOpnd(indexRegSlot, TyUint64);
         indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, type, m_func);
         indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
     }
@@ -1552,6 +1560,11 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
 
 #if _M_IX86 || !_WIN32
     instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
+#else
+    if (this->m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
+    }
 #endif
     AddInstr(instr, offset);
 }
@@ -3108,11 +3121,11 @@ IRBuilderAsmJs::BuildLong1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Reg
     IR::RegOpnd * srcOpnd = nullptr;
     switch (newOpcode)
     {
-    case Js::OpCodeAsmJs::Conv_ITD:
+    case Js::OpCodeAsmJs::Conv_ITL:
         srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt32);
         break;
 
-    case Js::OpCodeAsmJs::Conv_UTD:
+    case Js::OpCodeAsmJs::Conv_UTL:
         srcOpnd = BuildSrcOpnd(srcRegSlot, TyUint32);
         break;
 
