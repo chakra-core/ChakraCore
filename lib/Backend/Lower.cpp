@@ -1863,10 +1863,17 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(UNREACHED);
             }
             break;
-        case Js::OpCode::Conv_Prim_Check:
-            GenerateTruncWithCheck(instr);
-            break;
         case Js::OpCode::Conv_Prim:
+        {
+            
+            IR::RegOpnd* src1 = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
+            if (src1 && src1->m_sym->IsSingleDef() && src1->m_sym->GetInstrDef()->m_opcode == Js::OpCode::OverflowCheck)
+            {
+                src1->m_sym->GetInstrDef()->m_opcode = Js::OpCode::MOV;
+                GenerateTruncWithCheck(instr);
+                break;
+            }
+
             if (instr->GetDst()->IsFloat())
             {
                 if (instr->GetSrc1()->IsIntConstOpnd())
@@ -1897,7 +1904,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             instr->Remove();
             break;
-
+        }
         case Js::OpCode::FunctionExit:
             LowerFunctionExit(instr);
             // The rest of Epilog generation happens after reg allocation
