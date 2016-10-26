@@ -17,6 +17,9 @@ namespace Js
         TUnloadCallback scriptUnloadCallback;
         JsSourceContext sourceContext;
 
+#ifndef NTBUILD
+        JsValueRef mappedScriptValue;
+#endif
         utf8char_t const * mappedSource;
         size_t mappedSourceByteLength;
         size_t mappedAllocLength;
@@ -45,6 +48,9 @@ namespace Js
             scriptLoadCallback(scriptLoadCallback),
             scriptUnloadCallback(scriptUnloadCallback),
             sourceContext(sourceContext),
+#ifndef NTBUILD
+            mappedScriptValue(nullptr),
+#endif
             mappedSourceByteLength(0),
             mappedSource(nullptr)
         {

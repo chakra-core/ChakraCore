@@ -30,7 +30,16 @@ int main()
     JsValueRef result;
     unsigned currentSourceContext = 0;
 
+    // do not cast from wchar_t.
+    // unix wchar_t 4 bytes
     const char* script = "(()=>{return \'SUCCESS\';})()";
+    size_t length = strlen(script);
+    uint16_t *script16 = (uint16_t*) malloc((length + 1) * sizeof(uint16_t));
+    for(int i = 0; i < length; i++)
+    {
+        *(script16 + i) = (uint16_t)*(script + i);
+    }
+    script16[length] = uint16_t(0);
 
     // Create a runtime.
     JsCreateRuntime(JsRuntimeAttributeNone, nullptr, &runtime);
@@ -45,10 +54,13 @@ int main()
     FAIL_CHECK(JsCreateStringUtf8((const uint8_t*)"sample", strlen("sample"), &fname));
 
     JsValueRef scriptSource;
-    FAIL_CHECK(JsCreateExternalArrayBuffer((void*)script, (unsigned int)strlen(script),
-        nullptr, nullptr, &scriptSource));
+    FAIL_CHECK(JsCreateStringUtf16(script16, length * sizeof(uint16_t), &scriptSource));
+    // now we don't need our own copy
+    free(script16);
+
     // Run the script.
-    FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname, JsParseScriptAttributeNone, &result));
+    FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname,
+        JsParseScriptAttributeArrayBufferIsUtf16Encoded, &result));
 
     // Convert your script result to String in JavaScript; redundant if your script returns a String
     JsValueRef resultJSString;

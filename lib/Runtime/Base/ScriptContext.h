@@ -81,7 +81,8 @@ enum LoadScriptFlag
     LoadScriptFlag_Module = 0x10,                       // input script is module code.
     LoadScriptFlag_isFunction = 0x20,                   // input script is in a function scope, not global code.
     LoadScriptFlag_Utf8Source = 0x40,                   // input buffer is utf8 encoded.
-    LoadScriptFlag_LibraryCode = 0x80                   // for debugger, indicating 'not my code'
+    LoadScriptFlag_LibraryCode = 0x80,                  // for debugger, indicating 'not my code'
+    LoadScriptFlag_ExternalArrayBuffer = 0x100          // for ExternalArrayBuffer
 };
 
 class HostScriptContext
@@ -920,7 +921,7 @@ private:
                 InitializeRemoteScriptContext();
             }
 #endif
-            return m_remoteScriptContextAddr; 
+            return m_remoteScriptContextAddr;
         }
 
         char16 const * GetUrl() const { return url; }
@@ -1279,10 +1280,17 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo,
-            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, uint* sourceIndex);
-        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo,
-            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag);
+        ParseNodePtr ParseScript(Parser* parser, const byte* script,
+            size_t cb, SRCINFO const * pSrcInfo,
+            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
+            const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag,
+            uint* sourceIndex, Js::Var scriptSource = nullptr);
+
+        JavascriptFunction* LoadScript(const byte* script, size_t cb,
+            SRCINFO const * pSrcInfo,
+            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
+            const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag,
+            Js::Var scriptSource = nullptr);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 
@@ -1778,7 +1786,7 @@ private:
 
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
- 
+
         virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
         Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
