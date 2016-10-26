@@ -101,9 +101,15 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
         buffer = arrayBuffer->GetBuffer();
         byteLength = arrayBuffer->GetByteLength();
     }
-    Assert(UNREACHED); // unimplemented
 
-    return scriptContext->GetLibrary()->GetTrue();
+    if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength))
+    {
+        return scriptContext->GetLibrary()->GetTrue();
+    }
+    else
+    {
+        return scriptContext->GetLibrary()->GetFalse();
+    }
 }
 
 

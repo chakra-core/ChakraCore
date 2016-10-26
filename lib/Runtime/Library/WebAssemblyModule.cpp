@@ -191,6 +191,7 @@ WebAssemblyModule::ValidateModule(
             Js::FunctionBody * body = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
             Wasm::WasmReaderInfo * readerInfo = body->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
 
+            // TODO: avoid actually generating bytecode here
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
         }
     }
