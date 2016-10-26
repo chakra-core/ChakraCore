@@ -302,12 +302,6 @@ ThreadContextInfo::GetX86FourLanesMaskAddr(uint8 minorityLane) const
 }
 
 intptr_t
-ThreadContextInfo::GetDoubleIntMaxAddr() const
-{
-    return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_INT_MAX);
-}
-
-intptr_t
 ThreadContextInfo::GetDoubleIntMinAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_INT_MIN);

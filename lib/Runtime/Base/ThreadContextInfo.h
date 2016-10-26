@@ -34,7 +34,6 @@ public:
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
     intptr_t GetFloatZeroAddr() const;
-    intptr_t GetDoubleIntMaxAddr() const;
     intptr_t GetDoubleIntMinAddr() const;
     intptr_t GetDoubleTwoTo31Addr() const;
 
