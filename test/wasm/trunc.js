@@ -13,6 +13,11 @@ const blob = WScript.LoadBinaryFile('trunc.wasm');
 const moduleBytesView = new Uint8Array(blob);
 var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
 
+print(trap(a.i32_trunc_u_f64,Number.NaN));
+print(trap(a.i32_trunc_s_f64,Number.NaN));
+print(trap(a.i32_trunc_u_f32,Number.NaN));
+print(trap(a.i32_trunc_s_f32,Number.NaN));
+
 print(trap(a.i32_trunc_u_f64,0.0));
 print(trap(a.i32_trunc_u_f64,4294967294));
 print(trap(a.i32_trunc_u_f64,4294967295.0));

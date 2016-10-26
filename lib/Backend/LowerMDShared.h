@@ -174,12 +174,10 @@ public:
             void            GenerateCtz(IR::Instr * instr);
             void            GeneratePopCnt32(IR::Instr * instr);
             void            GenerateThrowUnreachable(IR::Instr * instr);
-            void            GenerateTruncChecks(IR::Instr * instr);
-            IR::Opnd*       TruncLower31BitsFlt(IR::Instr* instr, IR::Opnd* src1, IR::Opnd* dst, IR::Opnd* twoTo31Float);
-            IR::Opnd*       TruncLower31BitsDb(IR::Instr* instr, IR::Opnd* src1, IR::Opnd* dst, IR::Opnd* twoTo31Float);
+            IR::Opnd*       GenerateTruncChecks(IR::Instr * instr);
             void            GenerateTruncWithCheck(IR::Instr * instr);
             void            GenerateCheck(Js::OpCode cmpOpCode, IR::Opnd* left, IR::Opnd* right, Js::OpCode jmpOpCode, IR::LabelInstr* label, IR::Instr* instr);
-            IR::RegOpnd*    MaterializeDoubleConstFromInt(int intConst, IR::Instr* instr);
+            IR::RegOpnd*    MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr);
             IR::RegOpnd*    MaterializeConstFromBits(int intConst, IRType type, IR::Instr* instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             bool            GenerateLdThisCheck(IR::Instr * instr);
