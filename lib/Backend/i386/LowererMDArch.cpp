@@ -1944,14 +1944,15 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
         {
             if (!isLoadFromWordMem)
             {
+                // Normal case, assign source's high bits to dst's high bits
                 IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, m_func);
                 lowererMD->ChangeToAssign(highLoadInstr);
                 instr->InsertBefore(highLoadInstr);
             }
             else
             {
-                src1Pair.high->Free(m_func);
                 // Do not load from memory if we wanted less than 8 bytes
+                src1Pair.high->Free(m_func);
                 if (IRType_IsUnsignedInt(src1->GetType()))
                 {
                     // If this is an unsigned assign from memory, we can simply set the high bits to 0
@@ -1961,7 +1962,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
                 }
                 else
                 {
-                    // If this is a signed assign from memory, we need to extend the sign66
+                    // If this is a signed assign from memory, we need to extend the sign
                     IR::Instr* highExtendInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, dstPair.low, m_func);
                     lowererMD->ChangeToAssign(highExtendInstr);
                     instr->InsertBefore(highExtendInstr);
