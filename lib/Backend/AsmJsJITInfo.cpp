@@ -21,13 +21,8 @@ AsmJsJITInfo::GetTypedSlotInfo(WAsmJs::Types type) const
         info.byteOffset = m_data.typedSlotInfos[type].byteOffset;
         info.constCount = m_data.typedSlotInfos[type].constCount;
         info.constSrcByteOffset = m_data.typedSlotInfos[type].constSrcByteOffset;
-        info.isValidType = !!m_data.typedSlotInfos[type].isValidType;
         info.tmpCount = m_data.typedSlotInfos[type].tmpCount;
         info.varCount = m_data.typedSlotInfos[type].varCount;
-    }
-    else
-    {
-        info.isValidType = false;
     }
     return info;
 }

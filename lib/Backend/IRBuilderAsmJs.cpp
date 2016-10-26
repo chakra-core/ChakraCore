@@ -367,7 +367,7 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
     const WAsmJs::TypedSlotInfo& info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
     int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.constSrcByteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
-    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount && info.isValidType);
+    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount);
     const int32 value = intConstTable[srcReg];
     IR::IntConstOpnd *opnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
 
@@ -732,7 +732,7 @@ IRBuilderAsmJs::BuildConstantLoads()
     {
         WAsmJs::Types type = (WAsmJs::Types)i;
         WAsmJs::TypedSlotInfo info = m_asmFuncInfo->GetTypedSlotInfo(type);
-        if (!info.isValidType)
+        if (info.constCount == 0)
         {
             continue;
         }

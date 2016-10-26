@@ -261,7 +261,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             jitBody->asmJsData->typedSlotInfos[i].byteOffset = typedInfo->byteOffset;
             jitBody->asmJsData->typedSlotInfos[i].constCount = typedInfo->constCount;
             jitBody->asmJsData->typedSlotInfos[i].constSrcByteOffset = typedInfo->constSrcByteOffset;
-            jitBody->asmJsData->typedSlotInfos[i].isValidType = typedInfo->isValidType;
             jitBody->asmJsData->typedSlotInfos[i].tmpCount = typedInfo->tmpCount;
             jitBody->asmJsData->typedSlotInfos[i].varCount = typedInfo->varCount;
         }

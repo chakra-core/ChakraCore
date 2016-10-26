@@ -891,21 +891,19 @@ namespace Js
         ByteCodeToTJMap* mbyteCodeTJMap;
         BYTE* mTJBeginAddress;
         WAsmJs::TypedSlotInfo* GetTypedSlotInfo(WAsmJs::Types type);
-#define TYPED_SLOT_INFO_GETTER_SETTER(name, type) \
+
+#define TYPED_SLOT_INFO_GETTER(name, type) \
         int Get##name##ByteOffset() const   { return mTypedSlotInfos[WAsmJs::##type].byteOffset; }\
         int Get##name##ConstCount() const   { return mTypedSlotInfos[WAsmJs::##type].constCount; }\
         int Get##name##TmpCount() const     { return mTypedSlotInfos[WAsmJs::##type].tmpCount; }\
-        int Get##name##VarCount() const     { return mTypedSlotInfos[WAsmJs::##type].varCount; }\
-        void Set##name##ByteOffset(int val) { mTypedSlotInfos[WAsmJs::##type].byteOffset = val; }\
-        void Set##name##ConstCount(int val) { mTypedSlotInfos[WAsmJs::##type].constCount = val; }\
-        void Set##name##TmpCount(int val)   { mTypedSlotInfos[WAsmJs::##type].tmpCount = val; }\
-        void Set##name##VarCount(int val)   { mTypedSlotInfos[WAsmJs::##type].varCount = val; }
+        int Get##name##VarCount() const     { return mTypedSlotInfos[WAsmJs::##type].varCount; }
 
-        TYPED_SLOT_INFO_GETTER_SETTER(Double, FLOAT64);
-        TYPED_SLOT_INFO_GETTER_SETTER(Float, FLOAT32);
-        TYPED_SLOT_INFO_GETTER_SETTER(Int, INT32);
-        TYPED_SLOT_INFO_GETTER_SETTER(Int64, INT64);
-        TYPED_SLOT_INFO_GETTER_SETTER(Simd, SIMD);
+        TYPED_SLOT_INFO_GETTER(Double, FLOAT64);
+        TYPED_SLOT_INFO_GETTER(Float, FLOAT32);
+        TYPED_SLOT_INFO_GETTER(Int, INT32);
+        TYPED_SLOT_INFO_GETTER(Int64, INT64);
+        TYPED_SLOT_INFO_GETTER(Simd, SIMD);
+#undef TYPED_SLOT_INFO_GETTER
 
         inline ArgSlot GetArgCount() const{ return mArgCount; }
         inline void SetArgCount(ArgSlot val) { mArgCount = val; }

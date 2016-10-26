@@ -2948,10 +2948,6 @@ namespace Js
         {
             WAsmJs::Types type = (WAsmJs::Types)i;
             auto typeInfo = info->GetTypedSlotInfo(type);
-            if (!typeInfo->isValidType)
-            {
-                continue;
-            }
 
             byte* destination = slotsStart + typeInfo->byteOffset;
             switch (type)
@@ -2961,7 +2957,8 @@ namespace Js
             case WAsmJs::FLOAT32: m_localFloatSlots  = (float*)destination; break;
             case WAsmJs::FLOAT64: m_localDoubleSlots = (double*)destination; break;
             case WAsmJs::SIMD:    m_localSimdSlots   = (AsmJsSIMDValue*)destination; break;
-            default: 
+            default:
+                CompileAssert(WAsmJs::SIMD == WAsmJs::LastType);
                 Assert(false);
                 break;
             }

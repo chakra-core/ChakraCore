@@ -220,7 +220,6 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
             if (!IsTypeExcluded(type))
             {
                 RegisterSpace* registerSpace = GetRegisterSpace(type);
-                slotInfo.isValidType = true;
                 slotInfo.constCount = registerSpace->GetConstCount();
                 slotInfo.varCount = registerSpace->GetVarCount();
                 slotInfo.tmpCount = registerSpace->GetTmpCount();
@@ -252,11 +251,6 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
                                   totalTypeCount * GetTypeByteSize(type));
                 }
 #endif
-            }
-            else
-            {
-                memset(&slotInfo, 0, sizeof(TypedSlotInfo));
-                slotInfo.isValidType = false;
             }
         }
 
