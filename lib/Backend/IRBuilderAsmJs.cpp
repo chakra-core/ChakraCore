@@ -2028,7 +2028,7 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
         dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         op = Js::OpCode::Reinterpret_Prim;
         break;
-    
+
     case Js::OpCodeAsmJs::Conv_Check_FTI:
     case Js::OpCodeAsmJs::Conv_Check_FTU:
     {

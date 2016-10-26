@@ -5852,7 +5852,7 @@ IR::RegOpnd* LowererMD::MaterializeConstFromBits(int bits, IRType type, IR::Inst
 //    Am I missing something?
 //    */
 //
-//    
+//
 //
 //    IR::Opnd * src64 = nullptr;
 //    if (src1->IsFloat32())
@@ -5941,13 +5941,13 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
 
     IR::Opnd* adjSrc = src1;
 
-    IR::Opnd* twoTo31FP = src1->IsFloat32() ? 
-        MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr) : 
+    IR::Opnd* twoTo31FP = src1->IsFloat32() ?
+        MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr) :
         MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
 
     if (dst->IsUnsigned())
     {
-        adjSrc = src1->IsFloat32() ? 
+        adjSrc = src1->IsFloat32() ?
             Subtract2To31Flt(src1, twoTo31FP, instr) :
             Subtract2To31Db(src1, twoTo31FP, instr);
     }
@@ -5969,8 +5969,8 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     }
     else
     {
-        IR::Opnd* intMinFP = src1->IsFloat32() ? 
-            MaterializeConstFromBits(NEG_TWO_31_FLOAT, TyFloat32, instr) : 
+        IR::Opnd* intMinFP = src1->IsFloat32() ?
+            MaterializeConstFromBits(NEG_TWO_31_FLOAT, TyFloat32, instr) :
             MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleIntMinAddr(), instr);
         m_lowerer->InsertCompareBranch(src1, intMinFP, Js::OpCode::BrEq_A, done, instr);
     }
