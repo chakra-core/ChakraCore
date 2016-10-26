@@ -22,7 +22,7 @@ const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::IMUL2;
 
 static const int TWO_31_FLOAT = 0x4f000000;
 //static const int TWO_31_INT = 0x80000000;
-static const int NEG_TWO_31_FLOAT = 0xcf000000;
+static const int FLOAT_INT_MIN = 0xcf000000;
 //
 // Static utility fn()
 //
@@ -5858,30 +5858,29 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     Assert(AutoSystemInfo::Data.SSE2Available());
 
     IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * overflow = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::LabelInstr * trap = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* dst = instr->GetDst();
 
     IR::Opnd* adjSrc = src1;
-
-    IR::Opnd* twoTo31FP = src1->IsFloat32() ?
-        MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr) :
-        MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
-
     if (dst->IsUnsigned())
     {
-        adjSrc = src1->IsFloat32() ?
-            Subtract2To31Flt(src1, twoTo31FP, instr) :
-            Subtract2To31Db(src1, twoTo31FP, instr);
+        if (src1->IsFloat32())
+        {
+            IR::Opnd* twoTo31FP = MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr);
+            adjSrc = Subtract2To31Flt(src1, twoTo31FP, instr);
+        }
+        else
+        {
+            IR::Opnd* twoTo31FP = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
+            adjSrc = Subtract2To31Db(src1, twoTo31FP, instr);
+        }
     }
+
     instr->InsertBefore(IR::Instr::New(src1->IsFloat32() ? Js::OpCode::CVTTSS2SI : Js::OpCode::CVTTSD2SI, dst, adjSrc, m_func));
 
     IR::Opnd* intMin = IR::IntConstOpnd::New(INT_MIN, TyInt32, m_func);
-    m_lowerer->InsertCompareBranch(dst, intMin, Js::OpCode::BrEq_A, overflow, instr);
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, done, this->m_func));
-    instr->InsertBefore(overflow);
-
+    m_lowerer->InsertCompareBranch(dst, intMin, Js::OpCode::BrNeq_A, done, instr);
 
     if (dst->IsUnsigned())
     {
@@ -5894,7 +5893,7 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     else
     {
         IR::Opnd* intMinFP = src1->IsFloat32() ?
-            MaterializeConstFromBits(NEG_TWO_31_FLOAT, TyFloat32, instr) :
+            MaterializeConstFromBits(FLOAT_INT_MIN, TyFloat32, instr) :
             MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleIntMinAddr(), instr);
         m_lowerer->InsertCompareBranch(src1, intMinFP, Js::OpCode::BrEq_A, done, instr);
     }
