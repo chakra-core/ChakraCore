@@ -21,7 +21,6 @@ const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::CALL;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::IMUL2;
 
 static const int TWO_31_FLOAT = 0x4f000000;
-//static const int TWO_31_INT = 0x80000000;
 static const int FLOAT_INT_MIN = 0xcf000000;
 //
 // Static utility fn()
@@ -6001,9 +6000,9 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     if (dst->IsUnsigned())
     {
         IR::Opnd* zeroReg = IR::RegOpnd::New(src1->GetType(), m_func);
-        IR::Instr* xor = IR::Instr::New(Js::OpCode::XORPS, zeroReg, src1, src1, m_func);
-        instr->InsertBefore(xor); //0
-        Legalize(xor);
+        IR::Instr* _xor = IR::Instr::New(Js::OpCode::XORPS, zeroReg, src1, src1, m_func);
+        instr->InsertBefore(_xor);
+        Legalize(_xor);
         m_lowerer->InsertCompareBranch(src1, zeroReg, Js::OpCode::BrEq_A, done, instr);
     }
     else
