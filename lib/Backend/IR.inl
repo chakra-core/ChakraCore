@@ -533,8 +533,16 @@ MultiBranchInstr::AddtoDictionary(uint32 offset, TBranchKey key, void* remoteVar
 {
     Assert(this->m_kind == StrDictionary);
     Assert(key);
-    auto dict = this->GetBranchDictionary();
-    dict->AddEntry(offset, key, remoteVar);
+    if (this->m_func->IsOOPJIT())
+    {
+        auto dict = this->GetBranchDictionaryOOP();
+        dict->AddEntry(offset, key, remoteVar);
+    }
+    else
+    {
+        auto dict = this->GetBranchDictionary();
+        dict->AddEntry(offset, key, remoteVar);
+    }
 }
 
 inline void
@@ -557,26 +565,34 @@ MultiBranchInstr::CreateBranchTargetsAndSetDefaultTarget(int size, Kind kind, ui
 {
     AssertMsg(size != 0, "The dictionary/jumpTable size should not be zero");
 
-    NativeCodeData::Allocator * allocator = this->m_func->GetNativeCodeDataAllocator();
     m_kind = kind;
     switch (kind)
     {
     case IntJumpTable:
     case SingleCharStrJumpTable:
-        {
-            JitArenaAllocator * jitAllocator = this->m_func->GetTopFunc()->m_alloc;
-            BranchJumpTableWrapper * branchTargets = BranchJumpTableWrapper::New(jitAllocator, size);
-            branchTargets->defaultTarget = (void *)defaultTargetOffset;
-            this->m_branchTargets = branchTargets;
-            break;
-        }
+    {
+        JitArenaAllocator * jitAllocator = this->m_func->GetTopFunc()->m_alloc;
+        BranchJumpTableWrapper * branchTargets = BranchJumpTableWrapper::New(jitAllocator, size);
+        branchTargets->defaultTarget = (void *)defaultTargetOffset;
+        this->m_branchTargets = branchTargets;
+        break;
+    }
     case StrDictionary:
+    {
+        if (m_func->IsOOPJIT())
         {
-            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(allocator, size, m_func->IsOOPJIT() ? m_func->m_alloc : nullptr);
+            BranchDictionaryWrapperOOP * branchTargets = BranchDictionaryWrapperOOP::New(m_func, size, m_func->m_alloc);
             branchTargets->defaultTarget = (void *)defaultTargetOffset;
             this->m_branchTargets = branchTargets;
-            break;
         }
+        else
+        {
+            BranchDictionaryWrapper * branchTargets = BranchDictionaryWrapper::New(m_func, size);
+            branchTargets->defaultTarget = (void *)defaultTargetOffset;
+            this->m_branchTargets = branchTargets;
+        }
+        break;
+    }
     default:
         Assert(false);
     };
@@ -588,6 +604,11 @@ MultiBranchInstr::GetBranchDictionary()
     return reinterpret_cast<MultiBranchInstr::BranchDictionaryWrapper *>(m_branchTargets);
 }
 
+inline MultiBranchInstr::BranchDictionaryWrapperOOP *
+MultiBranchInstr::GetBranchDictionaryOOP()
+{
+    return reinterpret_cast<MultiBranchInstr::BranchDictionaryWrapperOOP *>(m_branchTargets);
+}
 inline MultiBranchInstr::BranchJumpTable *
 MultiBranchInstr::GetBranchJumpTable()
 {

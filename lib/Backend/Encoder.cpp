@@ -273,7 +273,7 @@ Encoder::Encode()
     {
         if (m_func->IsOOPJIT())
         {
-            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
+            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func, Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
             for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
             {
                 IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
@@ -358,7 +358,7 @@ Encoder::Encode()
     if (m_func->IsOOPJIT())
     {
         size_t allocSize = XDataAllocator::GetAllocSize(alloc->allocation->xdata.pdataCount, alloc->allocation->xdata.xdataSize);
-        BYTE * xprocXdata = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), BYTE, allocSize);
+        BYTE * xprocXdata = NativeCodeDataNewArrayNoFixup(m_func, BYTE, allocSize);
         memcpy_s(xprocXdata, allocSize, alloc->allocation->xdata.address, allocSize);
         m_func->GetJITOutput()->RecordXData(xprocXdata);
     }
@@ -387,7 +387,7 @@ Encoder::Encode()
         }
         else // OOP JIT
         {
-            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
+            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func, NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
 
             this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
             {

@@ -767,7 +767,9 @@ private:
 
 private:
     typedef JITJavascriptString* TBranchKey;
-    typedef Js::BranchDictionaryWrapper<TBranchKey> BranchDictionaryWrapper;
+    typedef Js::BranchDictionaryWrapper<TBranchKey, Js::OOPJITBranchDictAllocator> BranchDictionaryWrapperOOP;
+    typedef BranchDictionaryWrapperOOP::BranchDictionary BranchDictionaryOOP;
+    typedef Js::BranchDictionaryWrapper<TBranchKey, NativeCodeDataNoFixup::Allocator> BranchDictionaryWrapper;
     typedef BranchDictionaryWrapper::BranchDictionary BranchDictionary;
     typedef BranchJumpTableWrapper BranchJumpTable;
 
@@ -802,6 +804,7 @@ public:
     void                            MultiBranchInstr::FixMultiBrDefaultTarget(uint32 targetOffset);
     void                            ClearTarget();
     BranchDictionaryWrapper *       GetBranchDictionary();
+    BranchDictionaryWrapperOOP*     GetBranchDictionaryOOP();
     BranchJumpTable *               GetBranchJumpTable();
 
 

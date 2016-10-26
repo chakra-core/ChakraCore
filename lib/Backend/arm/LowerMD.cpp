@@ -8999,7 +8999,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     {
         return LowererMD::LoadFloatZero(opndDst, instrInsert);
     }
-    void * pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, value);
+    void * pValue = NativeCodeDataNewNoFixup(instrInsert->m_func, DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, value);
     IR::Opnd * opnd;
     if (instrInsert->m_func->IsOOPJIT())
     {

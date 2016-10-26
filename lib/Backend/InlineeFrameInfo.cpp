@@ -76,7 +76,6 @@ bool BailoutConstantValue::IsEqual(const BailoutConstantValue & bailoutConstValu
     return false;
 }
 
-
 void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
 {
     uint constantCount = 0;
@@ -100,7 +99,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
     // update the record
     if (!this->record)
     {
-        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBodyAddr, this);
+        this->record = InlineeFrameRecord::New(func, (uint)arguments->Count(), constantCount, functionBodyAddr, this);
     }
 
     uint i = 0;
@@ -156,6 +155,15 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
         this->record->constants[constantIndex] = function.constValue.ToVar(func);
         this->record->functionOffset = constantIndex;
     }
+}
+
+InlineeFrameRecord* InlineeFrameRecord::New(Func* func, uint argCount, uint constantCount, intptr_t functionBodyAddr, InlineeFrameInfo* frameInfo)
+{
+    InlineeFrameRecord* record = NativeCodeDataNewZ(func, InlineeFrameRecord, argCount, (Js::FunctionBody*)functionBodyAddr, frameInfo);
+    record->argOffsets = reinterpret_cast<int*>(NativeCodeDataNewArrayNoFixup(func, IntType<DataDesc_InlineeFrameRecord_ArgOffsets>, argCount));
+    record->constants = reinterpret_cast<Js::Var*>(NativeCodeDataNewArrayNoFixup(func, VarType<DataDesc_InlineeFrameRecord_Constants>, constantCount));
+    DebugOnly(record->constantCount = constantCount);
+    return record;
 }
 
 void InlineeFrameRecord::PopulateParent(Func* func)

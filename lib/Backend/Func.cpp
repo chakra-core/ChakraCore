@@ -1372,7 +1372,7 @@ Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
     if (!this->singleTypeGuards->TryGetValue(typeAddr, &guard))
     {
         // Property guards are allocated by NativeCodeData::Allocator so that their lifetime extends as long as the EntryPointInfo is alive.
-        guard = NativeCodeDataNewNoFixup(GetNativeCodeDataAllocator(), Js::JitTypePropertyGuard, typeAddr, this->indexedPropertyGuardCount++);
+        guard = NativeCodeDataNewNoFixup(this, Js::JitTypePropertyGuard, typeAddr, this->indexedPropertyGuardCount++);
         this->singleTypeGuards->Add(typeAddr, guard);
     }
     else
@@ -1397,7 +1397,7 @@ Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
 {
     EnsureEquivalentTypeGuards();
 
-    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNewNoFixup(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNewNoFixup(this, Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.
@@ -1408,7 +1408,7 @@ Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
     }
     else
     {
-        cache = NativeCodeDataNewZNoFixup(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+        cache = TransferDataNewZ(GetTransferDataAllocator(), Js::EquivalentTypeCache);
     }
     guard->SetCache(cache);
 

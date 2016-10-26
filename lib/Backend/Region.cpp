@@ -24,11 +24,11 @@ Region::AllocateEHBailoutData(Func * func, IR::Instr * tryInstr)
 {
     if (this->GetType() == RegionTypeRoot)
     {
-        this->ehBailoutData = NativeCodeDataNew(func->GetNativeCodeDataAllocator(), Js::EHBailoutData, -1 /*nestingDepth*/, 0 /*catchOffset*/, nullptr /*parent*/);
+        this->ehBailoutData = NativeCodeDataNew(func, Js::EHBailoutData, -1 /*nestingDepth*/, 0 /*catchOffset*/, nullptr /*parent*/);
     }
     else
     {
-        this->ehBailoutData = NativeCodeDataNew(func->GetNativeCodeDataAllocator(), Js::EHBailoutData, this->GetParent()->ehBailoutData->nestingDepth + 1, 0, this->GetParent()->ehBailoutData);
+        this->ehBailoutData = NativeCodeDataNew(func, Js::EHBailoutData, this->GetParent()->ehBailoutData->nestingDepth + 1, 0, this->GetParent()->ehBailoutData);
         if (this->GetType() == RegionTypeTry)
         {
             Assert(tryInstr);

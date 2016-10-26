@@ -5,65 +5,65 @@
 namespace Js
 {
 #if ENABLE_NATIVE_CODEGEN
-    template <typename T>
+    class OOPJITBranchDictAllocator :public NativeCodeData::Allocator
+    {
+    public:
+        char * Alloc(size_t requestedBytes)
+        {
+            char* dataBlock = __super::Alloc(requestedBytes);
+#if DBG
+            NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+            chunk->dataType = "BranchDictionary::Bucket";
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(_u("NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+            }
+#endif
+            return dataBlock;
+        }
+
+        char * AllocZero(size_t requestedBytes)
+        {
+            char* dataBlock = __super::AllocZero(requestedBytes);
+#if DBG
+            NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+            chunk->dataType = "BranchDictionary::Entries";
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(_u("NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+            }
+#endif
+            return dataBlock;
+        }
+    };
+
+
+    template <typename T, class DictAllocT>
     class BranchDictionaryWrapper
     {
     public:
-        class DictAllocator :public NativeCodeData::Allocator
-        {
-        public:
-            char * Alloc(size_t requestedBytes)
-            {
-                char* dataBlock = __super::Alloc(requestedBytes);
-#if DBG
-                NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-                chunk->dataType = "BranchDictionary::Bucket";
-                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-                {
-                    Output::Print(_u("NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
-                }
-#endif
-                return dataBlock;
-            }
-
-            char * AllocZero(size_t requestedBytes)
-            {
-                char* dataBlock = __super::AllocZero(requestedBytes);
-#if DBG
-                NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-                chunk->dataType = "BranchDictionary::Entries";
-                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
-                {
-                    Output::Print(_u("NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
-                }
-#endif
-                return dataBlock;
-            }
-        };
 
         template <class TKey, class TValue>
         class SimpleDictionaryEntryWithFixUp : public JsUtil::SimpleDictionaryEntry<TKey, TValue>
         {
         public:
-            __declspec(noinline)
             void FixupWithRemoteKey(void* remoteKey)
             {
                 this->key = (TKey)remoteKey;
             }
         };
 
-        typedef JsUtil::BaseDictionary<T, void*, DictAllocator, PowerOf2SizePolicy, DefaultComparer, SimpleDictionaryEntryWithFixUp> BranchBaseDictionary;
+        typedef JsUtil::BaseDictionary<T, void*, DictAllocT, PowerOf2SizePolicy, DefaultComparer, SimpleDictionaryEntryWithFixUp> BranchBaseDictionary;
 
         class BranchDictionary :public BranchBaseDictionary
         {
         public:
-            BranchDictionary(DictAllocator* allocator, uint dictionarySize)
+            BranchDictionary(DictAllocT* allocator, uint dictionarySize)
                 : BranchBaseDictionary(allocator, dictionarySize)
             {
             }
-            __declspec(noinline)
             void Fixup(NativeCodeData::DataChunk* chunkList, void** remoteKeys)
             {
                 for (int i = 0; i < this->Count(); i++)
@@ -75,17 +75,17 @@ namespace Js
             }
         };
 
-        BranchDictionaryWrapper(NativeCodeData::Allocator * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc) :
-            defaultTarget(nullptr), dictionary((DictAllocator*)allocator, dictionarySize)
+        BranchDictionaryWrapper(DictAllocT * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc) :
+            defaultTarget(nullptr), dictionary((DictAllocT*)allocator, dictionarySize)
         {
-            if (remoteKeyAlloc)
-            {
-                remoteKeys = AnewArrayZ(remoteKeyAlloc, void*, dictionarySize);
-            }
-            else
-            {
-                remoteKeys = nullptr;
-            }
+            Assert(remoteKeyAlloc);
+            remoteKeys = AnewArrayZ(remoteKeyAlloc, void*, dictionarySize);
+        }
+
+        BranchDictionaryWrapper(DictAllocT * allocator, uint dictionarySize) :
+            defaultTarget(nullptr), dictionary((DictAllocT*)allocator, dictionarySize), remoteKeys(nullptr)
+        {
+
         }
 
         BranchDictionary dictionary;
@@ -97,9 +97,15 @@ namespace Js
             return remoteKeys != nullptr;
         }
 
-        static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc)
+        static BranchDictionaryWrapper* New(Func* func, uint dictionarySize, ArenaAllocator* remoteKeyAlloc)
         {
-            return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize, remoteKeyAlloc);
+            Assert(func->IsOOPJIT());
+            return NativeCodeDataNew(func, BranchDictionaryWrapper, (OOPJITBranchDictAllocator*)func->GetNativeCodeDataAllocator(), dictionarySize, remoteKeyAlloc);
+        }
+        static BranchDictionaryWrapper* New(Func* func, uint dictionarySize)
+        {
+            Assert(!func->IsOOPJIT());
+            return NativeCodeDataNew(func, BranchDictionaryWrapper, func->GetNativeCodeDataNoFixupAllocator(), dictionarySize);
         }
 
         void AddEntry(uint32 offset, T key, void* remoteVar)
@@ -123,7 +129,8 @@ namespace Js
     class JavascriptNativeOperators
     {
     public:
-        static void * Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<Js::JavascriptString*>* stringDictionary, uintptr_t funcStart, uintptr_t funcEnd);
+        static void * Op_SwitchStringLookUp_OOP(JavascriptString* str, Js::BranchDictionaryWrapper<Js::JavascriptString*, OOPJITBranchDictAllocator>* stringDictionary, uintptr_t funcStart, uintptr_t funcEnd);
+        static void * Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<Js::JavascriptString*, NativeCodeDataNoFixup::Allocator>* stringDictionary, uintptr_t funcStart, uintptr_t funcEnd);
     };
 #endif
 };
