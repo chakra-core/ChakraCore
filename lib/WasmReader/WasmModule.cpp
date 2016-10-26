@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -22,6 +22,8 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_exports(nullptr),
     m_exportCount(0),
     m_datasegCount(0),
+    m_elementsegCount(0),
+    m_elementsegs(nullptr),
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
@@ -181,23 +183,27 @@ WasmModule::GetEquivalentSignatureId(uint32 sigId) const
 }
 
 void
-WasmModule::AllocateTable(uint32 entries)
+WasmModule::SetTableSize(uint32 entries)
 {
     m_indirectFuncCount = entries;
-    m_indirectfuncs = AnewArray(&m_alloc, uint32, entries);
-    for (uint32 i = 0; i < entries ; i++)
+}
+
+void
+WasmModule::SetTableValues(WasmElementSegment* seg, uint32 index)
+{
+    if (index < m_elementsegCount)
     {
-        // Initialize with invalid index
-        m_indirectfuncs[i] = Js::Constants::UninitializedValue;
+        SetElementSeg(seg, index);
     }
 }
 
 void
-WasmModule::SetTableValue(uint32 funcIndex, uint32 tableIndex)
+WasmModule::ResolveTableElementOffsets()
 {
-    if (tableIndex < GetTableSize())
+    for (uint i = 0; i < GetElementSegCount(); ++i)
     {
-        m_indirectfuncs[tableIndex] = funcIndex;
+        WasmElementSegment* eSeg = GetElementSeg(i);
+        eSeg->ResolveOffsets(*this);
     }
 }
 
@@ -208,7 +214,18 @@ WasmModule::GetTableValue(uint32 tableIndex) const
     {
         return Js::Constants::InvalidSourceIndex;
     }
-    return m_indirectfuncs[tableIndex];
+    uint32 value = Js::Constants::UninitializedValue;
+
+    for (uint32 i = 0; i < GetElementSegCount(); ++i)
+    {
+        WasmElementSegment* eSeg = GetElementSeg(i);
+        value = eSeg->GetElement(tableIndex);
+        if (value != Js::Constants::UninitializedValue)
+        {
+            return value;
+        }
+    }
+    return value;
 }
 
 uint32
@@ -320,6 +337,35 @@ WasmModule::GetFunctionImport(uint32 i) const
     return &m_imports[i];
 }
 
+uint
+WasmModule::GetOffsetFromInit(const WasmNode& initExpr) const
+{
+    if (initExpr.op != wbI32Const && initExpr.op != wbGetGlobal)
+    {
+        throw WasmCompilationException(_u("Invalid init_expr for element offset"));
+    }
+    uint offset = 0;
+    if (initExpr.op == wbI32Const)
+    {
+        offset = initExpr.cnst.i32;
+    }
+    else if (initExpr.op == wbGetGlobal)
+    {
+        if (initExpr.var.num >= (uint)this->globals.Count())
+        {
+            throw WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
+        }
+        WasmGlobal* global = this->globals.Item(initExpr.var.num);
+
+        if (global->GetReferenceType() != WasmGlobal::Const || global->GetType() != WasmTypes::I32)
+        {
+            throw WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
+        }
+        offset = global->cnst.i32;
+    }
+    return offset;
+}
+
 void
 WasmModule::AllocateDataSegs(uint32 count)
 {
@@ -347,6 +393,31 @@ WasmModule::GetDataSeg(uint32 index) const
         return nullptr;
     }
     return m_datasegs[index];
+}
+
+void
+WasmModule::AllocateElementSegs(uint32 count)
+{
+    Assert(count != 0);
+    m_elementsegCount = count;
+    m_elementsegs = AnewArrayZ(&m_alloc, WasmElementSegment*, count);
+}
+
+void
+WasmModule::SetElementSeg(WasmElementSegment* seg, uint32 index)
+{
+    Assert(index < m_elementsegCount);
+    m_elementsegs[index] = seg;
+}
+
+WasmElementSegment*
+WasmModule::GetElementSeg(uint32 index) const
+{
+    if (index >= m_elementsegCount)
+    {
+        throw WasmCompilationException(_u("Invalid index for Element segment"));
+    }
+    return m_elementsegs[index];
 }
 
 void

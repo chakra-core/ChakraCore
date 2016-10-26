@@ -455,6 +455,9 @@ namespace Js
 
     void WasmLibrary::WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions)
     {
+        //  Globals can be imported, thus the offset must be resolved at at the last possible moment before instantiating the table.
+        wasmModule->ResolveTableElementOffsets();
+
         for (uint i = 0; i < wasmModule->GetTableSize(); ++i)
         {
             uint funcIndex = wasmModule->GetTableValue(i);

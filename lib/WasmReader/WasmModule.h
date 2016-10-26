@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -44,8 +44,8 @@ namespace Wasm
         void CalculateEquivalentSignatures();
         uint32 GetEquivalentSignatureId(uint32 sigId) const;
 
-        void AllocateTable(uint32 entries);
-        void SetTableValue(uint32 funcIndex, uint32 indirectIndex);
+        void SetTableSize(uint32 entries);
+        void SetTableValues(WasmElementSegment* seg, uint32 index);
         uint32 GetTableValue(uint32 indirTableIndex) const;
         uint32 GetTableSize() const;
 
@@ -66,10 +66,18 @@ namespace Wasm
         WasmImport* GetFunctionImport(uint32 i) const;
         void AddGlobalImport(char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen, ExternalKinds::ExternalKind kind, WasmGlobal* importedGlobal);
 
+        uint GetOffsetFromInit(const WasmNode& initexpr) const;
+
         void AllocateDataSegs(uint32 count);
         bool AddDataSeg(WasmDataSegment* seg, uint32 index);
         WasmDataSegment* GetDataSeg(uint32 index) const;
         uint32 GetDataSegCount() const { return m_datasegCount; }
+
+        void AllocateElementSegs(uint32 count);
+        void SetElementSeg(WasmElementSegment* seg, uint32 index);
+        void ResolveTableElementOffsets();
+        WasmElementSegment* GetElementSeg(uint32 index) const;
+        uint32 GetElementSegCount() const { return m_elementsegCount; }
 
         void SetStartFunction(uint32 i);
         uint32 GetStartFunction() const;
@@ -98,6 +106,7 @@ namespace Wasm
     private:
         WasmSignature** m_signatures;
         uint32* m_indirectfuncs;
+        WasmElementSegment** m_elementsegs;
         WasmFunctionInfo** m_functionsInfo;
         WasmExport* m_exports;
         WasmImport* m_imports;
@@ -111,6 +120,7 @@ namespace Wasm
         uint m_exportCount;
         uint32 m_importCount;
         uint32 m_datasegCount;
+        uint32 m_elementsegCount;
 
         uint32 m_startFuncIndex;
 
