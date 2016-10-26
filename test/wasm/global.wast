@@ -9,7 +9,7 @@
   (global $z (export "z") f64 (f64.const 777))
   (global $b (mut f64) (f64.const 1001))
   (global $c (export "c") f64 (f64.const 9.5))
-  (global $d (export "d") f64 (get_global $b))
+  (global $d (export "d") f64 (get_global $c))
   (global $e (export "e") i32 (get_global $x))
   (global $f (export "f") i32 (i32.const 18))
 
@@ -22,9 +22,9 @@
   (func (export "get-d") (result f64) (get_global $d))
   (func (export "get-e") (result i32) (get_global $e))
   (func (export "get-f") (result i32) (get_global $f))
-  
-  (func (export "set-y") (param f32)  (set_global 2 (get_local 0)))  
-  (func (export "set-b") (param f64) (set_global 4 (get_local 0)))  
+
+  (func (export "set-y") (param f32)  (set_global 2 (get_local 0)))
+  (func (export "set-b") (param f64) (set_global 4 (get_local 0)))
 )
 
 

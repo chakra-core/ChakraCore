@@ -1056,7 +1056,7 @@ WasmNode
 WasmBinaryReader::ReadInitExpr()
 {
     m_funcState.count = 0;
-    m_funcState.size = 123456; // some aribtrary big value
+    m_funcState.size = 123456; // some arbitrary big value
     ReadExpr();
     WasmNode node = m_currentNode;
     switch (node.op)
@@ -1065,8 +1065,21 @@ WasmBinaryReader::ReadInitExpr()
     case wbF32Const:
     case wbI64Const:
     case wbF64Const:
-    case wbGetGlobal:
         break;
+    case wbGetGlobal:
+    {
+        uint32 globalIndex = node.var.num;
+        if (globalIndex >= (uint32)m_module->globals.Count())
+        {
+            ThrowDecodingError(_u("Global %u out of bounds"), globalIndex);
+        }
+        WasmGlobal* global = m_module->globals.Item(globalIndex);
+        if (global->GetMutability())
+        {
+            ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));
+        }
+        break;
+    }
     default:
         ThrowDecodingError(_u("Invalid initexpr opcode"));
     }

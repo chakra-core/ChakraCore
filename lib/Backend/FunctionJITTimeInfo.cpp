@@ -40,6 +40,12 @@ FunctionJITTimeInfo::BuildJITTimeData(
     if (codeGenData->GetFunctionInfo()->HasBody())
     {
         Assert(isInlinee == !!runtimeData);
+        const Js::FunctionCodeGenRuntimeData * targetRuntimeData = nullptr;
+        if (runtimeData)
+        {
+            // may be polymorphic, so seek the runtime data matching our JIT time data
+            targetRuntimeData = runtimeData->GetForTarget(codeGenData->GetFunctionInfo()->GetFunctionBody());
+        }
         Js::FunctionBody * functionBody = codeGenData->GetFunctionBody();
         if (functionBody->HasDynamicProfileInfo())
         {
@@ -79,25 +85,21 @@ FunctionJITTimeInfo::BuildJITTimeData(
                     const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = nullptr;
                     if (inlineeJITData->GetFunctionInfo()->HasBody())
                     {
-                        Js::FunctionBody * inlinee = inlineeJITData->GetFunctionInfo()->GetFunctionBody();
-                        inlineeRuntimeData = isInlinee ? runtimeData->GetInlineeForTargetInlinee(i, inlinee) : functionBody->GetInlineeCodeGenRuntimeDataForTargetInlinee(i, inlinee);
+                        inlineeRuntimeData = isInlinee ? targetRuntimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
                     }
                     jitData->inlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
                     BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true, isForegroundJIT);
                 }
             }
         }
-        // TODO: OOP JIT, cleanup these checks
         jitData->profiledRuntimeData = AnewStructZ(alloc, FunctionJITRuntimeIDL);
-        if (isInlinee && runtimeData->ClonedInlineCaches()->HasInlineCaches())
+        if (isInlinee && targetRuntimeData->ClonedInlineCaches()->HasInlineCaches())
         {
-            // REVIEW: OOP JIT is this safe to be doing in background?
             jitData->profiledRuntimeData->clonedCacheCount = jitData->bodyData->inlineCacheCount;
             jitData->profiledRuntimeData->clonedInlineCaches = AnewArray(alloc, intptr_t, jitData->profiledRuntimeData->clonedCacheCount);
             for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
             {
-                // REVIEW: OOP JIT, what to do with WriteBarrierPtr?
-                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)runtimeData->ClonedInlineCaches()->GetInlineCache(j);
+                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)targetRuntimeData->ClonedInlineCaches()->GetInlineCache(j);
             }
         }
         if (jitData->bodyData->inlineCacheCount > 0)
@@ -115,7 +117,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
             for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
             {
                 const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetLdFldInlinee(i);
-                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? runtimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
+                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? targetRuntimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
                 if (inlineeJITData != nullptr)
                 {
                     jitData->ldFldInlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
@@ -138,12 +140,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
             // only inlinee should be polymorphic
             Assert(isInlinee);
             jitData->next = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-            const Js::FunctionCodeGenRuntimeData * nextRuntimeData = nullptr;
-            if (nextJITData->GetFunctionInfo()->HasBody())
-            {
-                nextRuntimeData = runtimeData->GetNextForTarget(nextJITData->GetFunctionInfo()->GetFunctionBody());
-            }
-            BuildJITTimeData(alloc, nextJITData, nextRuntimeData, jitData->next, true, isForegroundJIT);
+            BuildJITTimeData(alloc, nextJITData, runtimeData, jitData->next, true, isForegroundJIT);
         }
     }
 }

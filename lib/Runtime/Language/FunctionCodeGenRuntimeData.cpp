@@ -27,14 +27,16 @@ namespace Js
         return &clonedInlineCaches;
     }
 
-    FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::GetNextForTarget(FunctionBody *targetFuncBody) const
+    const FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::GetForTarget(FunctionBody *targetFuncBody) const
     {
-        FunctionCodeGenRuntimeData * next = this->next;
-        if (next->GetFunctionBody() != targetFuncBody)
+        const FunctionCodeGenRuntimeData * target = this;
+        while (target && target->GetFunctionBody() != targetFuncBody)
         {
-            next = next->next;
+            target = target->next;
         }
-        return next;
+        // we should always find the info
+        Assert(target);
+        return target;
     }
 
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetInlinee(const ProfileId profiledCallSiteId) const

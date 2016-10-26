@@ -419,8 +419,8 @@ namespace Js
                 Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
                 if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
                 {
-                    throw Wasm::WasmCompilationException(_u("Global %d is initialized with global %d "
-                        "which is not a const. Forward references aren't supported!"), i, global->var.num);
+                    throw Wasm::WasmCompilationException(_u("Global %d is initialized with global %d ")
+                        _u("which is not a const. Forward references aren't supported!"), i, global->var.num);
                 }
                 global->SetReferenceType(Wasm::WasmGlobal::Const); //resolve global to const
                 global->cnst = sourceGlobal->cnst;

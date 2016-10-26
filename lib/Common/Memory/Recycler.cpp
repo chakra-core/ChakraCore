@@ -242,7 +242,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #ifdef HEAP_ENUMERATION_VALIDATION
     ,pfPostHeapEnumScanCallback(nullptr)
 #endif
+#ifdef NTBUILD
     , telemetryBlock(&localTelemetryBlock)
+#endif
 #ifdef ENABLE_JS_ETW
     ,bulkFreeMemoryWrittenCount(0)
 #endif
@@ -321,7 +323,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     this->inDetachProcess = false;
 #endif
 
+#ifdef NTBUILD
     memset(&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
+#endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     // recycler requires at least Recycler::PrimaryMarkStackReservedPageCount to function properly for the main mark context
@@ -3426,8 +3430,10 @@ Recycler::Collect()
 
     {
         RECORD_TIMESTAMP(initialCollectionStartTime);
+#ifdef NTBUILD
         this->telemetryBlock->initialCollectionStartProcessUsedBytes = PageAllocator::GetProcessUsedBytes();
         this->telemetryBlock->exhaustiveRepeatedCount = 0;
+#endif
 
         return DoCollectWrapped(finalFlags);
     }
@@ -3554,7 +3560,9 @@ Recycler::DoCollect(CollectionFlags flags)
     {
         INC_TIMESTAMP_FIELD(exhaustiveRepeatedCount);
         RECORD_TIMESTAMP(currentCollectionStartTime);
+#ifdef NTBUILD
         this->telemetryBlock->currentCollectionStartProcessUsedBytes = PageAllocator::GetProcessUsedBytes();
+#endif
 
 #if ENABLE_CONCURRENT_GC
         // DisposeObject may call script again and start another GC, so we may still be in concurrent GC state
@@ -6910,7 +6918,7 @@ Recycler::FillCheckPad(void * address, size_t size, size_t alignedAllocSize, boo
     }
 }
 
-void 
+void
 Recycler::FillPadNoCheck(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized)
 {
     // Ignore the first word
@@ -8187,4 +8195,3 @@ RecyclerHeapObjectInfo::GetSize() const
 }
 
 template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, false>(size_t);
-
