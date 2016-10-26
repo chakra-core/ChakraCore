@@ -458,7 +458,7 @@ namespace Js
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
 #if ENABLE_NATIVE_CODEGEN
-            NativeCodeData* jitTransferRawData;
+            NativeCodeDataNoFixup* jitTransferRawData;
 #endif
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
             TypeGuardTransferData typeGuardTransferData;
@@ -476,7 +476,7 @@ namespace Js
                 falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0){}
 
 #if ENABLE_NATIVE_CODEGEN
-            void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
+            void SetRawData(NativeCodeDataNoFixup* rawData) { jitTransferRawData = rawData; }
 #endif
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
@@ -516,7 +516,7 @@ namespace Js
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
 #if ENABLE_NATIVE_CODEGEN
-        NativeCodeData * inProcJITNaticeCodedata;
+        NativeCodeDataNoFixup * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
         union
         {
@@ -589,7 +589,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
-        void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
+        void SetInProcJITNativeCodeData(NativeCodeDataNoFixup* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
         void SetNumberChunks(CodeGenNumberChunk* chunks)
         {
             Assert(numberPageSegments == nullptr);

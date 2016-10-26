@@ -4,17 +4,32 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#define NativeCodeDataNew(alloc, T, ...) AllocatorNew(NativeCodeData::AllocatorT<T>, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewZ(alloc, T, ...) AllocatorNewZ(NativeCodeData::AllocatorT<T>, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewArray(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, alloc, T, count)
-#define NativeCodeDataNewArrayZ(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, alloc, T, count)
-#define NativeCodeDataNewPlusZ(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorT<T>, alloc, size, T, __VA_ARGS__)
+#define NativeCodeDataNew(func, T, ...) \
+    func->IsOOPJIT() ? \
+        AllocatorNew(NativeCodeData::AllocatorT<T>, func->GetNativeCodeDataAllocator(), T, __VA_ARGS__) \
+        : AllocatorNew(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, __VA_ARGS__)
+#define NativeCodeDataNewZ(func, T, ...) \
+    func->IsOOPJIT() ? \
+        AllocatorNewZ(NativeCodeData::AllocatorT<T>, func->GetNativeCodeDataAllocator(), T, __VA_ARGS__) \
+        : AllocatorNewZ(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, __VA_ARGS__)
+#define NativeCodeDataNewArrayZ(func, T, count) \
+    func->IsOOPJIT() ? \
+        AllocatorNewArrayZ(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, func->GetNativeCodeDataAllocator(), T, count) \
+        : AllocatorNewArrayZ(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, count)
+#define NativeCodeDataNewNoFixup(func, T, ...) \
+    func->IsOOPJIT() ? \
+        AllocatorNew(NativeCodeData::AllocatorNoFixup<T>, func->GetNativeCodeDataAllocator(), T, __VA_ARGS__) \
+        : AllocatorNew(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, __VA_ARGS__)
+#define NativeCodeDataNewArrayNoFixup(func, T, count) \
+    func->IsOOPJIT() ? \
+        AllocatorNewArray(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, func->GetNativeCodeDataAllocator(), T, count) \
+        : AllocatorNewArray(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, count)
+#define NativeCodeDataNewArrayZNoFixup(func, T, count) \
+    func->IsOOPJIT() ? \
+        AllocatorNewArrayZ(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, func->GetNativeCodeDataAllocator(), T, count) \
+        : AllocatorNewArrayZ(NativeCodeDataNoFixup::Allocator, func->GetNativeCodeDataNoFixupAllocator(), T, count)
 
-#define NativeCodeDataNewNoFixup(alloc, T, ...) AllocatorNew(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewZNoFixup(alloc, T, ...) AllocatorNewZ(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewArrayNoFixup(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
-#define NativeCodeDataNewArrayZNoFixup(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
-#define NativeCodeDataNewPlusZNoFixup(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorNoFixup<T>, alloc, size, T, __VA_ARGS__)
+#define TransferDataNewZ(alloc, T, ...) AllocatorNewZ(NativeCodeDataNoFixup::Allocator, alloc, T, __VA_ARGS__)
 
 #define FixupNativeDataPointer(field, chunkList) NativeCodeData::AddFixupEntry(this->field, &this->field, this, chunkList)
 
@@ -44,6 +59,7 @@ public:
 
     static DataChunk* GetDataChunk(void* data)
     {
+        Assert(JITManager::GetJITManager()->IsJITServer());
         return (NativeCodeData::DataChunk*)((char*)data - offsetof(NativeCodeData::DataChunk, data));
     }
 
@@ -51,6 +67,7 @@ public:
 
     static unsigned int GetDataTotalOffset(void* data)
     {
+        Assert(JITManager::GetJITManager()->IsJITServer());
         return GetDataChunk(data)->offset;
     }
 
@@ -270,3 +287,54 @@ inline void NativeCodeData::Array<GlobalBailOutRecordDataTable *>::Fixup(NativeC
 {
     NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
 }
+
+
+class NativeCodeDataNoFixup
+{
+
+private:
+    struct DataChunk
+    {
+        DataChunk * next;
+        char data[0];
+    };
+    NativeCodeDataNoFixup(DataChunk * chunkList);
+    DataChunk * chunkList;
+
+#ifdef PERF_COUNTERS
+    size_t size;
+#endif
+    static void DeleteChunkList(DataChunk * chunkList);
+public:
+    class Allocator
+    {
+    public:
+        static const bool FakeZeroLengthArray = false;
+
+        Allocator();
+        ~Allocator();
+
+        char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
+        char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
+        char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes) { return Alloc(requestedBytes); }
+        NativeCodeDataNoFixup * Finalize();
+        void Free(void * buffer, size_t byteSize);
+
+#ifdef TRACK_ALLOC
+        // Doesn't support tracking information, dummy implementation
+        Allocator * TrackAllocInfo(TrackAllocData const& data) { return this; }
+        void ClearTrackAllocInfo(TrackAllocData* data = NULL) {}
+#endif
+    private:
+        DataChunk * chunkList;
+#if DBG
+        bool finalized;
+#endif
+#ifdef PERF_COUNTERS
+        size_t size;
+#endif
+    };
+
+    ~NativeCodeDataNoFixup();
+
+};

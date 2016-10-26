@@ -195,7 +195,7 @@ SetProfilerFromNativeCodeGen(NativeCodeGenerator * toNativeCodeGen, NativeCodeGe
 }
 #endif
 
-void DeleteNativeCodeData(NativeCodeData * data)
+void DeleteNativeCodeData(NativeCodeDataNoFixup * data)
 {
     delete data;
 }

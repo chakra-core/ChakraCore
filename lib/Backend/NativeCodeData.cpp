@@ -206,8 +206,10 @@ NativeCodeData::Allocator::~Allocator()
 char *
 NativeCodeData::Allocator::Alloc(size_t requestSize)
 {
-    char * data = nullptr;
+    Assert(JITManager::GetJITManager()->IsJITServer());
     Assert(!finalized);
+
+    char * data = nullptr;    
     requestSize = Math::Align(requestSize, sizeof(void*));
 
 #if DBG
@@ -301,5 +303,109 @@ NativeCodeData::Allocator::Finalize()
 //////////////////////////////////////////////////////////////////////////
 void
 NativeCodeData::Allocator::Free(void * buffer, size_t byteSize)
+{
+}
+
+
+
+///
+NativeCodeDataNoFixup::NativeCodeDataNoFixup(DataChunk * chunkList) : chunkList(chunkList)
+{
+#ifdef PERF_COUNTERS
+    this->size = 0;
+#endif
+}
+
+NativeCodeDataNoFixup::~NativeCodeDataNoFixup()
+{
+    NativeCodeDataNoFixup::DeleteChunkList(this->chunkList);
+    PERF_COUNTER_SUB(Code, DynamicNativeCodeDataSize, this->size);
+    PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
+}
+
+void
+NativeCodeDataNoFixup::DeleteChunkList(DataChunk * chunkList)
+{
+    DataChunk * next = chunkList;
+    while (next != nullptr)
+    {
+        DataChunk * current = next;
+        next = next->next;
+        delete current;
+    }
+}
+
+NativeCodeDataNoFixup::Allocator::Allocator() : chunkList(nullptr)
+{
+#if DBG
+    this->finalized = false;
+#endif
+#ifdef PERF_COUNTERS
+    this->size = 0;
+#endif
+}
+
+NativeCodeDataNoFixup::Allocator::~Allocator()
+{
+    Assert(!finalized || this->chunkList == nullptr);
+    NativeCodeDataNoFixup::DeleteChunkList(this->chunkList);
+    PERF_COUNTER_SUB(Code, DynamicNativeCodeDataSize, this->size);
+    PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
+}
+
+char *
+NativeCodeDataNoFixup::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW  size_t requestSize)
+{
+    char * data = nullptr;
+    Assert(!finalized);
+    DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
+    newChunk->next = this->chunkList;
+    this->chunkList = newChunk;
+    data = newChunk->data;
+
+#ifdef PERF_COUNTERS
+    this->size += requestSize;
+    PERF_COUNTER_ADD(Code, DynamicNativeCodeDataSize, requestSize);
+#endif
+
+    PERF_COUNTER_ADD(Code, TotalNativeCodeDataSize, requestSize);
+    return data;
+}
+
+char *
+NativeCodeDataNoFixup::Allocator::AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
+{
+    char * data = Alloc(requestSize);
+    memset(data, 0, requestSize);
+    return data;
+}
+
+NativeCodeDataNoFixup *
+NativeCodeDataNoFixup::Allocator::Finalize()
+{
+    NativeCodeDataNoFixup * data = nullptr;
+    if (this->chunkList != nullptr)
+    {
+        data = HeapNew(NativeCodeDataNoFixup, this->chunkList);
+        this->chunkList = nullptr;
+#ifdef PERF_COUNTERS
+        data->size = this->size;
+        this->size = 0;
+#endif
+    }
+#if DBG
+    this->finalized = true;
+#endif
+    return data;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//NativeCodeDataNoFixup::Allocator::Free
+//This function should not be called at all because the life time is active during the run time
+//This function is added to enable Dictionary(has calls to Free() Method - which will never be called as it will be
+//allocated as a NativeAllocator to be allocated with NativeAllocator)
+//////////////////////////////////////////////////////////////////////////
+void
+NativeCodeDataNoFixup::Allocator::Free(void * buffer, size_t byteSize)
 {
 }

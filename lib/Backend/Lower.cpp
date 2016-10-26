@@ -7559,7 +7559,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
 
     cache->record.propertyCount = propIdCount;
     // Js::EquivalentPropertyEntry does not contain pointer, no need to fixup
-    cache->record.properties = NativeCodeDataNewArrayNoFixup(this->m_func->GetNativeCodeDataAllocator(), Js::EquivalentPropertyEntry, propIdCount);
+    cache->record.properties = NativeCodeDataNewArrayNoFixup(this->m_func, Js::EquivalentPropertyEntry, propIdCount);
 
     memcpy(cache->record.properties, properties, propIdCount * sizeof(Js::EquivalentPropertyEntry));
 
@@ -9317,10 +9317,10 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
     m_lowererMD.LoadHelperArgument(instr, startFuncOpnd);
 
     //Load the address of the dictionary pair- Js::StringDictionaryWrapper
-    auto dictionary = instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary();
 
     if (this->m_func->IsOOPJIT())
     {
+        auto dictionary = instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionaryOOP();
         auto dictionaryOffset = NativeCodeData::GetDataTotalOffset(dictionary);
         auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
 
@@ -9337,6 +9337,7 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
     }
     else
     {
+        auto dictionary = instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary();
         IR::AddrOpnd* nativestringDictionaryOpnd = IR::AddrOpnd::New(dictionary, IR::AddrOpndKindDynamicMisc, this->m_func);
         m_lowererMD.LoadHelperArgument(instr, nativestringDictionaryOpnd);
     }
@@ -12928,8 +12929,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             trueOffset = bailOutInfo->bailOutOffset;
         }
 
-        bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
-            BranchBailOutRecord, trueOffset, falseOffset, branchInstr->GetByteCodeReg(), instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+        bailOutRecord = NativeCodeDataNewZ(this->m_func, BranchBailOutRecord, trueOffset, falseOffset, branchInstr->GetByteCodeReg(), instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
 
         helperMethod = IR::HelperSaveAllRegistersAndBranchBailOut;
 #ifdef _M_IX86
@@ -12946,13 +12946,11 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     {
         if (bailOutInstr->GetBailOutKind() == IR::BailOutShared)
         {
-            bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
-                SharedBailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+            bailOutRecord = NativeCodeDataNewZ(this->m_func, SharedBailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
         }
         else
         {
-            bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
-                BailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+            bailOutRecord = NativeCodeDataNewZ(this->m_func, BailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
         }
 
         helperMethod = IR::HelperSaveAllRegistersAndBailOut;
@@ -22696,7 +22694,8 @@ void Lowerer::GenerateSwitchStringLookup(IR::Instr * instr)
     charcount_t minLength = UINT_MAX;
     charcount_t maxLength = 0;
     BVUnit32 bvLength;
-    instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->dictionary.Map([&](JITJavascriptString * str, void *)
+
+    auto handler= [&](JITJavascriptString * str, void *)
     {
         charcount_t len = str->GetLength();
         minLength = min(minLength, str->GetLength());
@@ -22705,12 +22704,23 @@ void Lowerer::GenerateSwitchStringLookup(IR::Instr * instr)
         {
             bvLength.Set(len);
         }
-    });
+    };
+
+    if (this->m_func->IsOOPJIT())
+    {
+        instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionaryOOP()->dictionary.Map(handler);
+    }
+    else
+    {
+        instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->dictionary.Map(handler);
+    }
 
     Func * func = instr->m_func;
     IR::RegOpnd * strLengthOpnd = IR::RegOpnd::New(TyUint32, func);
     InsertMove(strLengthOpnd, IR::IndirOpnd::New(instr->GetSrc1()->AsRegOpnd(), Js::JavascriptString::GetOffsetOfcharLength(), TyUint32, func), instr);
-    IR::LabelInstr * defaultLabelInstr = (IR::LabelInstr *)instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->defaultTarget;
+    IR::LabelInstr * defaultLabelInstr = (IR::LabelInstr *)(this->m_func->IsOOPJIT()?
+        instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionaryOOP()->defaultTarget
+        : instr->AsBranchInstr()->AsMultiBrInstr()->GetBranchDictionary()->defaultTarget);
     if (minLength == maxLength)
     {
         // Generate single length filter
@@ -22730,7 +22740,7 @@ void Lowerer::GenerateSwitchStringLookup(IR::Instr * instr)
     {
         // CONSIDER: Generate range filter
     }
-    this->LowerMultiBr(instr, IR::HelperOp_SwitchStringLookUp);
+    this->LowerMultiBr(instr, func->IsOOPJIT() ? IR::HelperOp_SwitchStringLookUp_OOP : IR::HelperOp_SwitchStringLookUp);
 }
 
 IR::Instr *

@@ -125,10 +125,9 @@ LinearScan::RegAlloc()
 
     this->Init();
 
-    NativeCodeData::Allocator * nativeAllocator = this->func->GetNativeCodeDataAllocator();
     if (func->hasBailout)
     {
-        this->globalBailOutRecordTables = NativeCodeDataNewArrayZ(nativeAllocator, GlobalBailOutRecordDataTable *,  func->m_inlineeId + 1);
+        this->globalBailOutRecordTables = NativeCodeDataNewArrayZ(this->func, GlobalBailOutRecordDataTable *,  func->m_inlineeId + 1);
         this->lastUpdatedRowIndices = JitAnewArrayZ(this->tempAlloc, uint *, func->m_inlineeId + 1);
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
@@ -262,7 +261,7 @@ LinearScan::RegAlloc()
         {
             if (globalBailOutRecordTables[i] != nullptr)
             {
-                globalBailOutRecordTables[i]->Finalize(nativeAllocator, &tempAlloc);
+                globalBailOutRecordTables[i]->Finalize(this->func, &tempAlloc);
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
                 if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
                 {
@@ -1302,12 +1301,11 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
     Func *topFunc = func->GetTopFunc();
     bool isTopFunc = (func == topFunc);
     uint32 inlineeID = isTopFunc ? 0 : func->m_inlineeId;
-    NativeCodeData::Allocator * allocator = this->func->GetNativeCodeDataAllocator();
 
     GlobalBailOutRecordDataTable *globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID];
     if (globalBailOutRecordDataTable == nullptr)
     {
-        globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(allocator, GlobalBailOutRecordDataTable);
+        globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(func, GlobalBailOutRecordDataTable);
         globalBailOutRecordDataTable->length = globalBailOutRecordDataTable->size = 0;
         globalBailOutRecordDataTable->isInlinedFunction = !isTopFunc;
         globalBailOutRecordDataTable->hasNonSimpleParams = func->GetHasNonSimpleParams();
@@ -1365,7 +1363,6 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     bailOutInfo->bailOutRecord->m_bailOutRecordId = m_bailOutRecordCount++;
     bailOutInfo->bailOutRecord->globalBailOutRecordTable = EnsureGlobalBailOutRecordTable(bailOutFunc);
 
-    NativeCodeData::Allocator * allocator = this->func->GetNativeCodeDataAllocator();
 
 #if DBG_DUMP
     if(PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -1383,7 +1380,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     {
         Assert(funcIndex > 0);
         Assert(bailOutOffset != Js::Constants::NoByteCodeOffset);
-        BailOutRecord * bailOutRecord = NativeCodeDataNewZ(allocator, BailOutRecord, bailOutOffset, (uint)-1, IR::BailOutInvalid, currentFunc);
+        BailOutRecord * bailOutRecord = NativeCodeDataNewZ(this->func, BailOutRecord, bailOutOffset, (uint)-1, IR::BailOutInvalid, currentFunc);
         bailOutRecord->m_bailOutRecordId = m_bailOutRecordCount++;
         bailOutRecord->globalBailOutRecordTable = EnsureGlobalBailOutRecordTable(currentFunc);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1680,26 +1677,27 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     {
         Assert(startCallCount != 0);
         uint argOutSlot = 0;
-        uint * startCallOutParamCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
+        uint * startCallOutParamCounts = reinterpret_cast<uint*>(NativeCodeDataNewArrayNoFixup(this->func, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount));
 #ifdef _M_IX86
-        uint * startCallArgRestoreAdjustCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
+        uint * startCallArgRestoreAdjustCounts = reinterpret_cast<uint*>(NativeCodeDataNewArrayNoFixup(this->func, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount));
 #endif
-        NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)allocator;
-        BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)this->func->GetNativeCodeDataAllocator();
+        NativeCodeDataNoFixup::Allocator* allocator = this->func->GetNativeCodeDataNoFixupAllocator();
+        BVFixed * argOutFloat64Syms = this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutLosslessInt32Syms = this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
         // SIMD_JS
-        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
-        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128F4Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128I4Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128I8Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128I16Syms =    this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U4Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U8Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U16Syms =    this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B4Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B8Syms =     this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B16Syms =    this->func->IsOOPJIT() ? BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT) : BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
 
-        int* outParamOffsets = bailOutInfo->outParamOffsets = (int*)NativeCodeDataNewArrayZNoFixup(allocator, IntType<DataDesc_BailoutInfo_CotalOutParamCount>, bailOutInfo->totalOutParamCount);
+        int* outParamOffsets = bailOutInfo->outParamOffsets = reinterpret_cast<int*>(NativeCodeDataNewArrayZNoFixup(this->func, IntType<DataDesc_BailoutInfo_CotalOutParamCount>, bailOutInfo->totalOutParamCount));
 #ifdef _M_IX86
         int currentStackOffset = 0;
         bailOutInfo->outParamFrameAdjustArgSlot = JitAnew(this->func->m_alloc, BVSparse<JitArenaAllocator>, this->func->m_alloc);
@@ -1743,7 +1741,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             BailOutRecord * currentBailOutRecord = currentFuncBailOutData.bailOutRecord;
             if (currentBailOutRecord->argOutOffsetInfo == nullptr)
             {
-                currentBailOutRecord->argOutOffsetInfo = NativeCodeDataNew(allocator, BailOutRecord::ArgOutOffsetInfo);
+                currentBailOutRecord->argOutOffsetInfo = NativeCodeDataNew(this->func, BailOutRecord::ArgOutOffsetInfo);
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = nullptr;
                 // SIMD_JS
@@ -2101,7 +2099,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     linearScanMD.GenerateBailOut(instr, state.registerSaveSyms, _countof(state.registerSaveSyms));
 
     // generate the constant table
-    Js::Var * constants = NativeCodeDataNewArrayNoFixup(allocator, Js::Var, state.constantList.Count());
+    Js::Var * constants = NativeCodeDataNewArrayNoFixup(this->func, Js::Var, state.constantList.Count());
     uint constantCount = state.constantList.Count();
     while (!state.constantList.Empty())
     {
@@ -2180,14 +2178,13 @@ LinearScan::FillStackLiteralBailOutRecord(IR::Instr * instr, BailOutInfo * bailO
         });
 
         // Allocate the data
-        NativeCodeData::Allocator * allocator = this->func->GetNativeCodeDataAllocator();
         for (uint i = 0; i < funcCount; i++)
         {
             uint stackLiteralBailOutRecordCount = funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecordCount;
             if (stackLiteralBailOutRecordCount)
             {
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecord =
-                    NativeCodeDataNewArrayNoFixup(allocator, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
+                    NativeCodeDataNewArrayNoFixup(this->func, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
                 // reset the count so we can track how much we have filled below
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecordCount = 0;
             }

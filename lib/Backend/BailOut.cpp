@@ -2816,9 +2816,9 @@ void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody)
 }
 #endif
 
-void GlobalBailOutRecordDataTable::Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc)
+void GlobalBailOutRecordDataTable::Finalize(Func* func, JitArenaAllocator *tempAlloc)
 {
-    GlobalBailOutRecordDataRow *newRows = NativeCodeDataNewArrayZNoFixup(allocator, GlobalBailOutRecordDataRow, length);
+    GlobalBailOutRecordDataRow *newRows = NativeCodeDataNewArrayZNoFixup(func, GlobalBailOutRecordDataRow, length);
     memcpy(newRows, globalBailOutRecordDataRows, sizeof(GlobalBailOutRecordDataRow) * length);
     JitAdeleteArray(tempAlloc, length, globalBailOutRecordDataRows);
     globalBailOutRecordDataRows = newRows;

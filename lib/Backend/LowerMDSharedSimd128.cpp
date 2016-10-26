@@ -376,7 +376,7 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
 
     // MOVUPS dst, [const]
     
-    void *pValue = NativeCodeDataNewNoFixup(this->m_func->GetNativeCodeDataAllocator(), SIMDType<DataDesc_LowererMD_Simd128LoadConst>, value);
+    void *pValue = NativeCodeDataNewNoFixup(this->m_func, SIMDType<DataDesc_LowererMD_Simd128LoadConst>, value);
     IR::Opnd * simdRef;
     if (!m_func->IsOOPJIT())
     {

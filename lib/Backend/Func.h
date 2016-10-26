@@ -120,7 +120,11 @@ public:
     {
         return &this->GetTopFunc()->nativeCodeDataAllocator;
     }
-    NativeCodeData::Allocator *GetTransferDataAllocator()
+    NativeCodeDataNoFixup::Allocator *GetNativeCodeDataNoFixupAllocator()
+    {
+        return &this->GetTopFunc()->nativeCodeDataNoFixupAllocator;
+    }
+    NativeCodeDataNoFixup::Allocator *GetTransferDataAllocator()
     {
         return &this->GetTopFunc()->transferDataAllocator;
     }
@@ -974,8 +978,11 @@ private:
     bool                hasNonSimpleParams;
     Cloner *            m_cloner;
     InstrMap *          m_cloneMap;
-    NativeCodeData::Allocator       nativeCodeDataAllocator;
-    NativeCodeData::Allocator       transferDataAllocator;
+
+    NativeCodeData::Allocator               nativeCodeDataAllocator;
+    NativeCodeDataNoFixup::Allocator        nativeCodeDataNoFixupAllocator;
+
+    NativeCodeDataNoFixup::Allocator       transferDataAllocator;
 #if !FLOATVAR
     CodeGenNumberAllocator *        numberAllocator;
 #endif

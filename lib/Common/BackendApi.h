@@ -97,7 +97,7 @@ void ProfilePrintNativeCodeGen(NativeCodeGenerator * nativeCodeGen);
 void SetProfilerFromNativeCodeGen(NativeCodeGenerator * toNativeCodeGen, NativeCodeGenerator * fromNativeCodeGen);
 #endif
 
-void DeleteNativeCodeData(NativeCodeData * data);
+void DeleteNativeCodeData(NativeCodeDataNoFixup * data);
 #else
 inline BOOL IsIntermediateCodeGenThunk(Js::JavascriptMethod codeAddress) { return false; }
 inline BOOL IsAsmJsCodeGenThunk(Js::JavascriptMethod codeAddress) { return false; }
