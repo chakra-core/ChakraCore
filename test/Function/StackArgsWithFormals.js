@@ -280,6 +280,17 @@ function test18()
 test18();
 verify([2, 6], "TEST18");
 
+function test19(a, b)
+{
+    'use strict';
+    b++;
+    actuals.push(arguments[0] + b);
+}
+
+test19(1, 2);
+test19(3, 4);
+verify([4, 8], "TEST 19");
+
 if(hasAllPassed)
 {
     print("PASSED");
