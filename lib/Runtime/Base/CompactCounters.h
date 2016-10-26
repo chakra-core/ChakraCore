@@ -37,7 +37,7 @@ namespace Js
         mutable Field(bool) bgThreadCallStarted;
         Field(bool) isCleaningUp;
 #endif
-        Pointer(Fields) fields;
+        Field(Fields*) fields;
 
         CompactCounters() { }
         CompactCounters(T* host)

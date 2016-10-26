@@ -28,7 +28,7 @@ namespace Js
         static const uint8 MaxCount;
         Field(uint8) count;                 // always saving maxCount
         Field(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
-        Pointer(void) ptr[_MaxCount];       // save instantiated pointer address
+        Field(void*) ptr[_MaxCount];        // save instantiated pointer address
         AuxPtrsFix();
         AuxPtrsFix(AuxPtrsFix<FieldsEnum, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32
         void* Get(FieldsEnum e);
@@ -53,7 +53,7 @@ namespace Js
         Field(uint8) count;                                      // save instantiated pointers count
         Field(uint8) capacity;                                   // save number of pointers can be hold in current instance of AuxPtrs
         Field(uint8) offsets[static_cast<int>(FieldsEnum::Max)]; // save position of each instantiated pointers, if not instantiate, it's invalid
-        Pointer(void) ptrs[1];                                   // instantiated pointer addresses
+        Field(void*) ptrs[1];                                    // instantiated pointer addresses
         AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);               // called when promoting from AuxPtrs32 to AuxPtrs
         AuxPtrs(uint8 capacity, AuxPtrs* ptr);                   // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
         void* Get(FieldsEnum e);

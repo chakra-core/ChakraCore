@@ -63,19 +63,17 @@ struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, T> { typedef _write
 template <>
 struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, int> { typedef _no_write_barrier_policy Policy; };
 
-// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Policy
+// Choose write barrier Field type: T unchanged, or WriteBarrierPtr based on Policy.
 //
 template <class T, class Policy>
-struct _WriteBarrierPtrPolicy { typedef NoWriteBarrierPtr<T> Ptr; };
+struct _WriteBarrierFieldType { typedef T Type; };
 template <class T>
-struct _WriteBarrierPtrPolicy<T, _write_barrier_policy> { typedef WriteBarrierPtr<T> Ptr; };
+struct _WriteBarrierFieldType<T*, _write_barrier_policy> { typedef WriteBarrierPtr<T> Type; };
 
-// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Allocator and T* type
-//
 template <class T,
           class Allocator = Recycler,
-          class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T*>::Policy>
-struct WriteBarrierPtrTraits { typedef typename _WriteBarrierPtrPolicy<T, Policy>::Ptr Ptr; };
+          class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T>::Policy>
+struct WriteBarrierFieldTypeTraits { typedef typename _WriteBarrierFieldType<T, Policy>::Type Type; };
 
 // ArrayWriteBarrier behavior
 //
@@ -163,9 +161,9 @@ public:
 
     // Getters
     T * operator->() const { return this->value; }
-    operator T*() const { return this->value; }
+    operator T* const & () const { return this->value; }
 
-    T const** operator&() const { return &value; }
+    T* const * operator&() const { return &value; }
     T** operator&() { return &value; }
 
     // Setters
@@ -216,21 +214,24 @@ public:
 
     // Getters
     T * operator->() const { return ptr; }
-    operator T*() const { return ptr; }
+    operator T* const & () const { return ptr; }
 
-    T const** AddressOf() const { return &ptr; }
+    T* const * AddressOf() const { return &ptr; }
     T** AddressOf() { return &ptr; }
 
-    T const** operator&() const
+    // Taking immutable address is ok
+    //
+    T* const * operator&() const
     {
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
         return &ptr;
     }
-    T** operator&()
-    {
-        static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
-        return &ptr;
-    }
+    // Taking mutable address is not allowed
+    //
+    // T** operator&()
+    // {
+    //     static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
+    //     return &ptr;
+    // }
 
     // Setters
     WriteBarrierPtr& operator=(T * ptr)
