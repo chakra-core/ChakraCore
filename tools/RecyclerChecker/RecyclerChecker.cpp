@@ -14,11 +14,16 @@
 using namespace clang;
 using namespace std;
 
+template <size_t N>
+bool StartsWith(const string& s, const char (&prefix)[N])
+{
+    return s.compare(0, string::npos, prefix, N - 1) == 0;
+}
 
 namespace
 {
-
 class MainVisitor;
+
 class CheckAllocationsInFunctionVisitor :
         public RecursiveASTVisitor<CheckAllocationsInFunctionVisitor>
 {
@@ -80,8 +85,9 @@ public:
             else
             {
                 auto fieldTypeName = qualType.getAsString();
-                if (fieldTypeName.find("WriteBarrierPtr") == 0)  // starts with
+                if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits"))
                 {
+                    // Note this only indicates the class is write-barrier annotated
                     hasBarrieredField = true;
                 }
                 else if (type->isCompoundType())

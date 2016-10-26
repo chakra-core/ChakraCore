@@ -63,40 +63,17 @@ struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, T> { typedef _write
 template <>
 struct AllocatorWriteBarrierPolicy<RecyclerNonLeafAllocator, int> { typedef _no_write_barrier_policy Policy; };
 
-// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Policy
+// Choose write barrier Field type: T unchanged, or WriteBarrierPtr based on Policy.
 //
 template <class T, class Policy>
-struct _WriteBarrierPtrPolicy { typedef NoWriteBarrierPtr<T> Ptr; };
+struct _WriteBarrierFieldType { typedef T Type; };
 template <class T>
-struct _WriteBarrierPtrPolicy<T, _write_barrier_policy> { typedef WriteBarrierPtr<T> Ptr; };
+struct _WriteBarrierFieldType<T*, _write_barrier_policy> { typedef WriteBarrierPtr<T> Type; };
 
-// Choose WriteBarrierPtr or NoWriteBarrierPtr based on Allocator and T* type
-//
 template <class T,
           class Allocator = Recycler,
-          class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T*>::Policy>
-struct WriteBarrierPtrTraits { typedef typename _WriteBarrierPtrPolicy<T, Policy>::Ptr Ptr; };
-
-// Choose WriteBarrierPtr type if Allocator is recycler type and element type T
-// is a pointer type, otherwise use type T unchanged.
-//
-// Used to wrap array item type when write barrier is needed (wraps pointer
-// item type with WriteBarrierPtr).
-//
-template <class T, class Policy>
-struct _ArrayItemTypeTraits
-{
-    typedef T Type;
-};
-template <class T>
-struct _ArrayItemTypeTraits<T*, _write_barrier_policy>
-{
-    typedef WriteBarrierPtr<T> Type;
-};
-template <class T,
-          class Allocator,
           class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T>::Policy>
-struct WriteBarrierArrayItemTraits { typedef typename _ArrayItemTypeTraits<T, Policy>::Type Type; };
+struct WriteBarrierFieldTypeTraits { typedef typename _WriteBarrierFieldType<T, Policy>::Type Type; };
 
 // ArrayWriteBarrier behavior
 //

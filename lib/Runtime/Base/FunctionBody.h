@@ -1351,7 +1351,7 @@ namespace Js
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
         friend AuxPtrsT;
-        Pointer(AuxPtrsT) auxPtrs;
+        Field(AuxPtrsT*) auxPtrs;
         void* GetAuxPtr(AuxPointerType e) const;
         void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
@@ -1451,17 +1451,17 @@ namespace Js
 
     protected:
         // Static method(s)
-        static void SetDisplayName(const char16* srcName, Pointer(const char16)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
+        static void SetDisplayName(const char16* srcName, Field(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool SetDisplayName(const char16* srcName, const char16** destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool IsConstantFunctionName(const char16* srcName);
 
     protected:
-        PointerNoBarrier(ScriptContext)  m_scriptContext;   // Memory context for this function body
-        Pointer(Utf8SourceInfo) m_utf8SourceInfo;
+        FieldNoBarrier(ScriptContext*) m_scriptContext;   // Memory context for this function body
+        Field(Utf8SourceInfo*) m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
-        PointerNoBarrier(FunctionProxyPtr) m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
-        Pointer(ScriptFunctionType) deferredPrototypeType;
-        Pointer(ProxyEntryPointInfo) m_defaultEntryPointInfo; // The default entry point info for the function proxy
+        FieldNoBarrier(FunctionProxyPtr*) m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
+        Field(ScriptFunctionType*) deferredPrototypeType;
+        Field(ProxyEntryPointInfo*) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
         Field(uint) m_functionNumber;  // Per thread global function number
 
@@ -1771,7 +1771,7 @@ namespace Js
         Field(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
         Field(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
 #if DYNAMIC_INTERPRETER_THUNK
-        PointerNoBarrier(void) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
+        FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
 #endif
         Field(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
 
@@ -1783,10 +1783,10 @@ namespace Js
 
         ULONG m_lineNumber;
         ULONG m_columnNumber;
-        Pointer(const char16) m_displayName;  // Optional name
+        Field(const char16*) m_displayName;  // Optional name
         uint m_displayNameLength;
-        Pointer(PropertyRecordList) m_boundPropertyRecords;
-        Pointer(NestedArray) nestedArray;
+        Field(PropertyRecordList*) m_boundPropertyRecords;
+        Field(NestedArray*) nestedArray;
 
     public:
 #if DBG
@@ -1988,16 +1988,16 @@ namespace Js
                 friend class ByteCodeBufferBuilder;
 
             public:
-                PointerNoBarrier(SmallSpanSequence) pSpanSequence;
+                FieldNoBarrier(SmallSpanSequence*) pSpanSequence;
 
                 RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
                 RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                Pointer(ScopeObjectChain) pScopeObjectChain;
-                Pointer(ByteBlock) m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
+                Field(ScopeObjectChain*) pScopeObjectChain;
+                Field(ByteBlock*) m_probeBackingBlock;  // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
                 int32 m_probeCount;             // The number of installed probes (such as breakpoints).
 
                 // List of bytecode offset for the Branch bytecode.
-                Pointer(AuxStatementData) m_auxStatementData;
+                Field(AuxStatementData*) m_auxStatementData;
 
                 SourceInfo():
                     frameDisplayRegister(0),
@@ -2012,18 +2012,18 @@ namespace Js
             };
 
     private:
-        Pointer(ByteBlock) byteCodeBlock;               // Function byte-code for script functions
-        Pointer(FunctionEntryPointList) entryPoints;
-        Pointer(Var) m_constTable;
-        Pointer(void*) inlineCaches;
+        Field(ByteBlock*) byteCodeBlock;                // Function byte-code for script functions
+        Field(FunctionEntryPointList*) entryPoints;
+        Field(Var*) m_constTable;
+        Field(void**) inlineCaches;
         InlineCachePointerArray<PolymorphicInlineCache> polymorphicInlineCaches; // Contains the latest polymorphic inline caches
-        Pointer(PropertyId) cacheIdToPropertyIdMap;
+        Field(PropertyId*) cacheIdToPropertyIdMap;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-            Pointer(byte) m_inlineCacheTypes;
+            Field(byte*) m_inlineCacheTypes;
 #endif
     public:
         PropertyId * GetCacheIdToPropertyIdMap()
@@ -2149,7 +2149,7 @@ namespace Js
 #ifdef IR_VIEWER
         // whether IR Dump is enabled for this function (used by parseIR)
         bool m_isIRDumpEnabled : 1;
-        Pointer(Js::DynamicObject) m_irDumpBaseObject;
+        Field(Js::DynamicObject*) m_irDumpBaseObject;
 #endif /* IR_VIEWER */
 
         Field(uint8) bailOnMisingProfileCount;
@@ -2181,14 +2181,14 @@ namespace Js
         // copied in FunctionBody::Clone
         //
 
-        PointerNoBarrier(Js::ByteCodeCache) byteCodeCache;  // Not GC allocated so naked pointer
+        FieldNoBarrier(Js::ByteCodeCache*) byteCodeCache;   // Not GC allocated so naked pointer
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         static bool shareInlineCaches;
 #endif
-        Pointer(FunctionEntryPointInfo) defaultFunctionEntryPointInfo;
+        Field(FunctionEntryPointInfo*) defaultFunctionEntryPointInfo;
 
 #if ENABLE_PROFILE_INFO
-        Pointer(DynamicProfileInfo) dynamicProfileInfo;
+        Field(DynamicProfileInfo*) dynamicProfileInfo;
 #endif
 
 

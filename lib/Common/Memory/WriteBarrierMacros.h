@@ -28,38 +28,30 @@
 
 #define SAVE_WRITE_BARRIER_MACROS() \
     PushMacro("Field") \
-    PushMacro("PointerNoBarrier") \
-    PushMacro("Pointer") \
-    PushMacro("WB_ITEM_TYPE")
+    PushMacro("FieldNoBarrier")
 
 #define RESTORE_WRITE_BARRIER_MACROS() \
     PopMacro("Field") \
-    PopMacro("PointerNoBarrier") \
-    PopMacro("Pointer") \
-    PopMacro("WB_ITEM_TYPE")
+    PopMacro("FieldNoBarrier")
 
 #endif
 
 #ifdef FORCE_USE_WRITE_BARRIER
 SAVE_WRITE_BARRIER_MACROS()
 #undef Field
-#undef PointerNoBarrier
-#undef Pointer
-#undef WB_ITEM_TYPE
+#undef FieldNoBarrier
 #endif
 
 // TODO: Turn off these annotations on Win32
 #if defined(__clang__) || defined(FORCE_USE_WRITE_BARRIER)
 // Various macros for defining field attributes
-#define Field(type) NoWriteBarrierField<type>
-#define PointerNoBarrier(type) NoWriteBarrierPtr<type>
-#define Pointer(type, ...) typename WriteBarrierPtrTraits<type, ##__VA_ARGS__>::Ptr
-#define WB_ITEM_TYPE(type, ...) typename WriteBarrierArrayItemTraits<type, ##__VA_ARGS__>::Type
+#define Field(type, ...) \
+    typename WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type
+#define FieldNoBarrier(type) \
+    typename WriteBarrierFieldTypeTraits<type, _no_write_barrier_policy, _no_write_barrier_policy>::Type
 #else
-#define Field(type) type
-#define PointerNoBarrier(type) type*
-#define Pointer(type, ...) type*
-#define WB_ITEM_TYPE(type, ...) type
+#define Field(type, ...) type
+#define FieldNoBarrier(type) type
 #endif
 
 #undef FORCE_USE_WRITE_BARRIER

@@ -81,8 +81,8 @@ namespace JsUtil
         typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorType AllocatorType;
         typedef SizePolicy CurrentSizePolicy;
         typedef Entry<
-                    WB_ITEM_TYPE(TKey, TAllocator),
-                    WB_ITEM_TYPE(TValue, TAllocator)> EntryType;
+                    Field(TKey, TAllocator),
+                    Field(TValue, TAllocator)> EntryType;
 
         template<class TDictionary> class EntryIterator;
         template<class TDictionary> class BucketEntryIterator;
@@ -92,9 +92,9 @@ namespace JsUtil
         friend class Js::RemoteDictionary<BaseDictionary>;
         template <typename ValueOrKey> struct ComparerType { typedef Comparer<ValueOrKey> Type; }; // Used by diagnostics to access Comparer type
 
-        Pointer(int, TAllocator) buckets;
-        Pointer(EntryType, TAllocator) entries;
-        PointerNoBarrier(AllocatorType) alloc;
+        Field(int*, TAllocator) buckets;
+        Field(EntryType*, TAllocator) entries;
+        FieldNoBarrier(AllocatorType*) alloc;
         Field(int) size;
         Field(uint) bucketCount;
         Field(int) count;
@@ -102,7 +102,7 @@ namespace JsUtil
         Field(int) freeCount;
 
 #if PROFILE_DICTIONARY
-        PointerNoBarrier(DictionaryStats) stats;
+        FieldNoBarrier(DictionaryStats*) stats;
 #endif
         enum InsertOperations
         {
@@ -1569,7 +1569,7 @@ namespace JsUtil
     class SynchronizedDictionary: protected BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>
     {
     private:
-        PointerNoBarrier(SyncObject) syncObj;
+        FieldNoBarrier(SyncObject*) syncObj;
 
         typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry> Base;
     public:
