@@ -1917,7 +1917,6 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat64);
     srcOpnd->SetValueType(ValueType::Float);
     IR::RegOpnd * dstOpnd = nullptr;
-    Js::OpCode op = Js::OpCode::Conv_Prim;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Conv_DTI:
@@ -1927,19 +1926,20 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
         dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
         break;
     case Js::OpCodeAsmJs::Conv_Check_DTI:
-        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-        op = Js::OpCode::Conv_Prim_Check;
-        break;
     case Js::OpCodeAsmJs::Conv_Check_DTU:
-        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
-        op = Js::OpCode::Conv_Prim_Check;
+    {
+        IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyFloat64, m_func);
+        tmpDst->SetValueType(ValueType::Float);
+        AddInstr(IR::Instr::New(Js::OpCode::OverflowCheck, tmpDst, srcOpnd, m_func), offset);
+        dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_DTI ? TyInt32 : TyUint32);
+        srcOpnd = tmpDst;
         break;
+    }
     default:
         Assume(UNREACHED);
     }
     dstOpnd->SetValueType(ValueType::GetInt(false));
-
-    IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 }
 
@@ -1964,19 +1964,22 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
         dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         op = Js::OpCode::Reinterpret_Prim;
         break;
+    
     case Js::OpCodeAsmJs::Conv_Check_FTI:
-        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-        op = Js::OpCode::Conv_Prim_Check;
-        break;
     case Js::OpCodeAsmJs::Conv_Check_FTU:
-        op = Js::OpCode::Conv_Prim_Check;
-        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
+    {
+        IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyFloat32, m_func);
+        tmpDst->SetValueType(ValueType::Float);
+        AddInstr(IR::Instr::New(Js::OpCode::OverflowCheck, tmpDst, srcOpnd, m_func), offset);
+        dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_FTI ? TyInt32 : TyUint32);
+        srcOpnd = tmpDst;
+        op = Js::OpCode::Conv_Prim;
         break;
+    }
     default:
         Assume(UNREACHED);
     }
     dstOpnd->SetValueType(ValueType::GetInt(false));
-
     IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 }
