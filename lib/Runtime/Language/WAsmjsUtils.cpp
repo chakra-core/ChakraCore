@@ -169,32 +169,24 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         }
     }
 
-    uint32 TypedRegisterAllocator::GetJsVarCount(Types type, bool constOnly /*= false*/) const
+    uint32 TypedRegisterAllocator::GetTotalJsVarConstCount() const
     {
-        if (!IsTypeExcluded(type))
-        {
-            RegisterSpace* registerSpace = GetRegisterSpace(type);
-            uint32 typeSize = GetTypeByteSize(type);
-            uint32 count = constOnly ? registerSpace->GetConstCount() : registerSpace->GetTotalVarCount();
-            return ConvertOffset<Js::Var>(count, typeSize);
-        }
-        return 0;
-    }
-
-    uint32 TypedRegisterAllocator::GetTotalJsVarCount(bool constOnly /* = false*/) const
-    {
-        uint32 total = 0;
+        uint32 totalBytes = 0;
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
             Types type = (Types)i;
-            total = UInt32Math::Add(total, GetJsVarCount(type, constOnly));
+            if (!IsTypeExcluded(type))
+            {
+                RegisterSpace* registerSpace = GetRegisterSpace(type);
+                uint32 typeSize = GetTypeByteSize(type);
+                totalBytes = Math::AlignOverflowCheck(totalBytes, typeSize);
+                uint32 count = registerSpace->GetConstCount();
+                uint32 typeConstBytes = UInt32Math::Mul(count, typeSize);
+                totalBytes = UInt32Math::Add(totalBytes, typeConstBytes);
+            }
         }
-        return total;
-    }
-
-    uint32 TypedRegisterAllocator::GetTotalJsVarConstCount() const
-    {
-        return UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, GetTotalJsVarCount(true));
+        uint32 totalVars = ConvertToJsVarOffset<byte>(totalBytes);
+        return UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, totalVars);
     }
 
     void TypedRegisterAllocator::CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, Js::FunctionBody* body) const
@@ -260,7 +252,7 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         Assert(stackByteSize >= jsVarNeededForConsts * sizeof(Js::Var));
         // The vars need to compensate the possible alignment done, so instead of counting how many vars we have
         // We substract the number of const from the total size needed
-        uint32 jsVarNeededForVars = ConvertOffset<byte, Js::Var>(stackByteSize) - jsVarNeededForConsts;
+        uint32 jsVarNeededForVars = ConvertToJsVarOffset<byte>(stackByteSize) - jsVarNeededForConsts;
         Assert((jsVarNeededForConsts + jsVarNeededForVars) * sizeof(Js::Var) >= stackByteSize);
         body->CheckAndSetVarCount(jsVarNeededForVars);
 

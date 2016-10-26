@@ -271,8 +271,6 @@ namespace WAsmJs
 
         RegisterSpace* GetRegisterSpace(Types type) const;
     private:
-        uint32 GetJsVarCount(Types type, bool constOnly /*= false*/) const;
-        uint32 GetTotalJsVarCount(bool constOnly = false) const;
         uint32 GetTotalJsVarConstCount() const;
         bool IsValidType(Types type) const;
     };
