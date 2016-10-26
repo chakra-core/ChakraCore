@@ -45,7 +45,6 @@ namespace Js
     const double NumberConstants::POSITIVE_INFINITY= *(double*)(&NumberConstants::k_PosInf );
     const double NumberConstants::NEG_ZERO= *(double*)(&NumberConstants::k_NegZero );
     const double NumberConstants::ONE_POINT_ZERO = *(double*)(&NumberConstants::k_OnePointZero);
-    const double NumberConstants::DOUBLE_INT_MAX = (double)(INT_MAX);
     const double NumberConstants::DOUBLE_INT_MIN = (double)(INT_MIN);
     const double NumberConstants::DOUBLE_TWO_TO_31 = (double) 0x80000000;
 

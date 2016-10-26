@@ -42,8 +42,6 @@ namespace Js
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
         static const double     ONE_POINT_ZERO;
-
-        static const double     DOUBLE_INT_MAX;
         static const double     DOUBLE_INT_MIN;
         static const double     DOUBLE_TWO_TO_31;
 
