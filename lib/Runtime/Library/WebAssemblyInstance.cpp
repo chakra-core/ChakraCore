@@ -177,7 +177,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* heap
             const uint32 size = segment->getSourceSize();
             if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
             {
-                throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
+                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
             }
 
             if (size > 0)
@@ -227,7 +227,7 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
 
                 if (global->GetMutability())
                 {
-                    throw Wasm::WasmCompilationException(_u("global %d is mutable. Exporting mutable globals isn't supported"), iExport);
+                    JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_MutableGlobal);
                 }
 
                 switch (global->GetType())
@@ -272,7 +272,7 @@ static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
 
         if (!JavascriptObject::Is(modProp))
         {
-            throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
         prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
     }
@@ -297,14 +297,14 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
     {
-        throw Wasm::WasmCompilationException(_u("Import object is invalid"));
+        JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
     for (uint32 i = 0; i < importCount; ++i)
     {
         Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
         if (!JavascriptFunction::Is(prop))
         {
-            throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), wasmModule->GetFunctionImport(i)->modName, wasmModule->GetFunctionImport(i)->fnName);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
         importFunctions[i] = prop;
     }
@@ -324,7 +324,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
 
         if (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop))
         {
-            throw Wasm::WasmCompilationException(_u("Import global %s.%s (%d) isn't a valid javascript number"), global->importVar->modName, global->importVar->fnName, i);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
 
         switch (global->GetType())
@@ -377,8 +377,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
             if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
             {
-                throw Wasm::WasmCompilationException(_u("Global %d is initialized with global %d "
-                    "which is not a const. Forward references aren't supported!"), i, global->var.num);
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidGlobalRef);
             }
             global->SetReferenceType(Wasm::WasmGlobal::Const); //resolve global to const
             global->cnst = sourceGlobal->cnst;
@@ -386,7 +385,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             Assert(sourceGlobal->GetReferenceType() == Wasm::WasmGlobal::Const);
             if (sourceGlobal->GetType() != global->GetType())
             {
-                throw Wasm::WasmCompilationException(_u("Type mismatch between %d and %d"), i, global->var.num);
+                JavascriptError::ThrowTypeError(ctx, VBSERR_TypeMismatch);
             }
         }
 
@@ -424,6 +423,7 @@ void WebAssemblyInstance::LoadIndirectFunctionTables(WebAssemblyModule * wasmMod
         }
 
         uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
+        sigId = wasmModule->GetEquivalentSignatureId(sigId);
         if (!indirectFunctionTables[sigId])
         {
             // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
