@@ -288,6 +288,7 @@ ENTRY(Table)
 ENTRY(CompileError)
 ENTRY(RuntimeError)
 ENTRY(validate)
+ENTRY(grow)
 // End Wasm
 
 // SIMD_JS

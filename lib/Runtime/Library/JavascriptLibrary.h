@@ -266,6 +266,7 @@ namespace Js
 
         DynamicType * webAssemblyModuleType;
         DynamicType * webAssemblyInstanceType;
+        DynamicType * webAssemblyMemoryType;
 
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
@@ -423,6 +424,13 @@ namespace Js
         RuntimeFunction* webAssemblyCompileErrorConstructor;
         DynamicObject* webAssemblyRuntimeErrorPrototype;
         RuntimeFunction* webAssemblyRuntimeErrorConstructor;
+
+        DynamicObject* webAssemblyMemoryPrototype;
+        RuntimeFunction* webAssemblyMemoryConstructor;
+        DynamicObject* webAssemblyModulePrototype;
+        RuntimeFunction* webAssemblyModuleConstructor;
+        DynamicObject* webAssemblyInstancePrototype;
+        RuntimeFunction* webAssemblyInstanceConstructor;
 
         int regexConstructorSlotIndex;
         int regexExecSlotIndex;
@@ -743,6 +751,7 @@ namespace Js
 
         DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
+        DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
@@ -1204,6 +1213,9 @@ namespace Js
         STANDARD_INIT(AsyncFunction);
         STANDARD_INIT(WebAssemblyCompileError);
         STANDARD_INIT(WebAssemblyRuntimeError);
+        STANDARD_INIT(WebAssemblyMemory);
+        STANDARD_INIT(WebAssemblyModule);
+        STANDARD_INIT(WebAssemblyInstance);
 
 #undef STANDARD_INIT
 
@@ -1218,8 +1230,6 @@ namespace Js
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #ifdef ENABLE_WASM
-        static void __cdecl InitializeWebAssemblyModuleObject(DynamicObject* moduleObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeWebAssemblyInstanceObject(DynamicObject* instanceObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeWebAssemblyObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif

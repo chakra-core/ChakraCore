@@ -2558,7 +2558,20 @@ namespace Js
     void AsmJsModuleInfo::EnsureHeapAttached(ScriptFunction * func)
     {
         FrameDisplay* frame = func->GetEnvironment();
-        ArrayBuffer* moduleArrayBuffer = *(ArrayBuffer**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+        ArrayBuffer* moduleArrayBuffer = nullptr;
+        if (func->GetFunctionBody()->IsWasmFunction())
+        {
+            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            if (wasmMem != nullptr)
+            {
+                moduleArrayBuffer = wasmMem->GetBuffer();
+            }
+        }
+        else
+        {
+            moduleArrayBuffer = *(ArrayBuffer**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+        }
+
         if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
         {
             Throw::OutOfMemory();

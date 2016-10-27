@@ -2097,6 +2097,7 @@ LABEL1:
         BYTE* buffer = nullptr;
         if (isAsmJs)
         {
+            Assert(!funcBody->IsWasmFunction());
             // some extra checks for asm.js because we have slightly more information that we can validate
             Js::EntryPointInfo* entryPointInfo = (Js::EntryPointInfo*)funcBody->GetDefaultEntryPointInfo();
             uintptr_t moduleMemory = entryPointInfo->GetModuleAddress();

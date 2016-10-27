@@ -224,7 +224,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
-    if (m_module->GetMemory()->minSize > 0)
+    if (m_module->GetMemory() != nullptr)
     {
         info->SetUsesHeapBuffer(true);
     }
@@ -521,7 +521,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
         // todo:: check for imported memory
-        if (m_module->GetMemory()->minSize > 0)
+        if (m_module->GetMemory() != nullptr)
         {
             m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         }
@@ -1133,7 +1133,7 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
     // todo:: check for imported memory
-    if (m_module->GetMemory()->minSize == 0)
+    if (m_module->GetMemory() == nullptr)
     {
         // todo:: make that an out of bounds trap
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);

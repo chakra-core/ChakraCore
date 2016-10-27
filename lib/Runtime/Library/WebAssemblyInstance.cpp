@@ -87,12 +87,12 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
 {
     ScriptContext * scriptContext = module->GetScriptContext();
     Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, module->GetModuleEnvironmentSize());
-    Var* heap = moduleEnvironmentPtr + module->GetHeapOffset();
+    Var* memory = moduleEnvironmentPtr + module->GetHeapOffset();
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
 
     LoadGlobals(module, scriptContext, moduleEnvironmentPtr, importObject);
-    LoadDataSegs(module, heap, scriptContext);
+    LoadDataSegs(module, memory, scriptContext);
 
     LoadFunctions(module, scriptContext, moduleEnvironmentPtr, localModuleFunctions);
 
@@ -100,7 +100,7 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     LoadImports(module, scriptContext, importFunctions, moduleEnvironmentPtr, importObject);
 
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
-    BuildObject(module, scriptContext, exportsNamespace, heap, newInstance, localModuleFunctions, importFunctions);
+    BuildObject(module, scriptContext, exportsNamespace, memory, newInstance, localModuleFunctions, importFunctions);
 
     Var** indirectFunctionTables = (Var**)(moduleEnvironmentPtr + module->GetTableEnvironmentOffset());
     LoadIndirectFunctionTables(module, scriptContext, indirectFunctionTables, localModuleFunctions, importFunctions);
@@ -157,49 +157,43 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
     }
 }
 
-void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* heap, ScriptContext* ctx)
+void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memory, ScriptContext* ctx)
 {
-    if (wasmModule->GetMemory()->minSize != 0)
+    *memory = wasmModule->GetMemory();
+
+    if (wasmModule->GetMemory() != nullptr)
     {
-        const uint64 maxSize = wasmModule->GetMemory()->maxSize;
-        if (maxSize > ArrayBuffer::MaxArrayBufferLength)
+        ArrayBuffer * buffer = wasmModule->GetMemory()->GetBuffer();
+        if (buffer->IsDetached())
         {
-            Js::Throw::OutOfMemory();
+            JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);
         }
-        // TODO: create new type array buffer that is non detachable
-        *heap = JavascriptArrayBuffer::Create((uint32)maxSize, ctx->GetLibrary()->GetArrayBufferType());
-        BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
         for (uint32 iSeg = 0; iSeg < wasmModule->GetDataSegCount(); ++iSeg)
         {
             Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
             Assert(segment != nullptr);
             const uint32 offset = segment->getDestAddr(wasmModule);
             const uint32 size = segment->getSourceSize();
-            if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
+            if (UInt32Math::Add(offset, size) > buffer->GetByteLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
             }
 
             if (size > 0)
             {
-                js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
+                js_memcpy_s(buffer->GetBuffer() + offset, (uint32)buffer->GetByteLength() - offset, segment->getData(), size);
             }
         }
-
-    }
-    else
-    {
-        *heap = nullptr;
     }
 }
 
-void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
+void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
 {
-    if (wasmModule->GetMemory()->minSize != 0 && wasmModule->GetMemory()->exported)
+    if (wasmModule->GetMemory() != nullptr && wasmModule->IsMemoryExported())
     {
         PropertyRecord const * propertyRecord = nullptr;
         ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
-        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, ctx);
+        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *memory, ctx);
     }
 
     PropertyRecord const * exportsPropertyRecord = nullptr;

@@ -308,6 +308,9 @@ BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 #endif
 
 // SIMDFloat32x4Lib entry points

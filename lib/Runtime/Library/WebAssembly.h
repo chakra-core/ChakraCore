@@ -11,6 +11,9 @@ class WebAssembly
 {
 #ifdef ENABLE_WASM
 public:
+    // WebAssembly spec internal definition for page size
+    static const uint PageSize = 64 * 1024;
+
     class EntryInfo
     {
     public:
@@ -19,6 +22,8 @@ public:
     };
     static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
     static Var EntryValidate(RecyclableObject* function, CallInfo callInfo, ...);
+
+    static uint32 ToNonWrappingUint32(Var val, ScriptContext * ctx);
 #endif
 };
 

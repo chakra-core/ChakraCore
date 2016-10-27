@@ -710,7 +710,7 @@ void WasmBinaryReader::ReadExportTable()
             {
                 ThrowDecodingError(_u("Invalid memory index %s"), index);
             }
-            m_module->SetMemoryIsExported();
+            m_module->SetMemoryExported();
             break;
         }
         case ExternalKinds::Global:

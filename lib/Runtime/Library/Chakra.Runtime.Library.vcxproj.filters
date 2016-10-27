@@ -17,7 +17,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)IteratorObjectEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptEnumeratorIterator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGenerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGeneratorFunction.cpp" />
@@ -116,6 +115,7 @@
     <ClCompile Include="WebAssemblyModule.cpp" />
     <ClCompile Include="WebAssemblyInstance.cpp" />
     <ClCompile Include="WebAssembly.cpp" />
+    <ClCompile Include="WebAssemblyMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -144,7 +144,6 @@
     <ClInclude Include="JavascriptArrayIterator.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
-    <ClInclude Include="JavascriptEnumeratorIterator.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />
     <ClInclude Include="JavascriptGenerator.h" />
     <ClInclude Include="JavascriptGeneratorFunction.h" />
@@ -248,6 +247,7 @@
     <ClInclude Include="WebAssemblyModule.h" />
     <ClInclude Include="WebAssemblyInstance.h" />
     <ClInclude Include="WebAssembly.h" />
+    <ClInclude Include="WebAssemblyMemory.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

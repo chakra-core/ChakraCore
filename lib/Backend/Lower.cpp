@@ -23237,8 +23237,8 @@ Lowerer::LowerLdAsmJsEnv(IR::Instr * instr)
     Assert(!instr->GetSrc1());
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(functionObjOpnd->AsRegOpnd(), Js::AsmJsScriptFunction::GetOffsetOfModuleMemory(), TyMachPtr, m_func);
     instr->SetSrc1(indirOpnd);
-
     LowererMD::ChangeToAssign(instr);
+
     return instrPrev;
 }
 

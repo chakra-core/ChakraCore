@@ -13,7 +13,7 @@ namespace Js
 {
 WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type) :
     DynamicObject(type),
-    m_memory(),
+    m_memory(nullptr),
     m_alloc(_u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_functionsInfo(nullptr),
     m_funcCount(0),
@@ -25,7 +25,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_datasegCount(0),
     m_signatures(nullptr),
     m_signaturesCount(0),
-    m_startFuncIndex(Js::Constants::UninitializedValue)
+    m_startFuncIndex(Js::Constants::UninitializedValue),
+    isMemExported(false)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
@@ -265,7 +266,7 @@ WebAssemblyModule::NormalizeFunctionIndex(uint32 funcIndex) const
 void
 WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 {
-    if (m_memory.minSize != 0)
+    if (m_memory != nullptr)
     {
         throw Wasm::WasmCompilationException(_u("Memory already allocated"));
     }
@@ -275,15 +276,13 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
         throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
     }
 
-    CompileAssert(Memory::PAGE_SIZE < INT_MAX);
-    m_memory.minSize = (uint64)minPage * Memory::PAGE_SIZE;
-    m_memory.maxSize = (uint64)maxPage * Memory::PAGE_SIZE;
+    m_memory = WebAssemblyMemory::CreateMemoryObject(minPage, maxPage, GetScriptContext());
 }
 
-const WebAssemblyModule::Memory *
+WebAssemblyMemory *
 WebAssemblyModule::GetMemory() const
 {
-    return &m_memory;
+    return m_memory;
 }
 
 void

@@ -156,9 +156,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
-    <ClCompile Include="WebAssembly.cpp" />
-    <ClCompile Include="WebAssemblyInstance.cpp" />
-    <ClCompile Include="WebAssemblyModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssembly.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyInstance.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -289,6 +290,7 @@
     <ClInclude Include="WasmLibrary.h" />
     <ClInclude Include="WebAssembly.h" />
     <ClInclude Include="WebAssemblyInstance.h" />
+    <ClInclude Include="WebAssemblyMemory.h" />
     <ClInclude Include="WebAssemblyModule.h" />
   </ItemGroup>
   <ItemGroup>

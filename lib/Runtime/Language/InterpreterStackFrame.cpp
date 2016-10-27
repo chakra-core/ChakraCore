@@ -2976,7 +2976,23 @@ namespace Js
         // Load module environment
         FrameDisplay* frame = this->function->GetEnvironment();
         m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = frame->GetItem(0);
-        m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+
+        if (func->GetFunctionBody()->IsWasmFunction())
+        {
+            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            Var * val = nullptr;
+            if (wasmMem != nullptr)
+            {
+                val = (Var*)((BYTE*)wasmMem + WebAssemblyMemory::GetOffsetOfArrayBuffer());
+            }
+            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
+        }
+        else
+        {
+            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+        }
+
+
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter
         m_localSlots[AsmJsFunctionMemory::ScriptContextBufferRegister] = functionBody->GetScriptContext();
 

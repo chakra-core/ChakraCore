@@ -244,6 +244,8 @@ namespace Js
         DynamicObject* typeErrorPrototype;
         DynamicObject* uriErrorPrototype;
 
+        DynamicObject* webAssemblyMemoryPrototype;
+
         //SIMD Prototypes
         DynamicObject* simdBool8x16Prototype;
         DynamicObject* simdBool16x8Prototype;

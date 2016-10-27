@@ -61,18 +61,6 @@ public:
         const uint lengthBytes,
         Var bufferSrc);
 
-private:
-    struct Memory
-    {
-        Memory() : minSize(0), maxSize(0), exported(false)
-        {
-        }
-        uint64 minSize;
-        uint64 maxSize;
-        bool exported;
-        static const uint64 PAGE_SIZE = 64 * 1024;
-    } m_memory;
-
 public:
     WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type);
 
@@ -84,8 +72,9 @@ public:
     uint32 NormalizeFunctionIndex(uint32 funcIndex) const;
 
     void InitializeMemory(uint32 minSize, uint32 maxSize);
-    void SetMemoryIsExported() { m_memory.exported = true; }
-    const Memory* GetMemory() const;
+    void SetMemoryExported() { isMemExported = true; }
+    bool IsMemoryExported() const { return isMemExported; }
+    WebAssemblyMemory * GetMemory() const;
 
     void SetSignature(uint32 index, Wasm::WasmSignature * signature);
     Wasm::WasmSignature* GetSignature(uint32 index) const;
@@ -147,7 +136,7 @@ public:
     WasmGlobalsList * globals;
 
 private:
-
+    WebAssemblyMemory * m_memory;
     Wasm::WasmSignature** m_signatures;
     uint32* m_indirectfuncs;
     Wasm::WasmFunctionInfo** m_functionsInfo;
@@ -167,6 +156,8 @@ private:
     uint32 m_startFuncIndex;
 
     ArenaAllocator m_alloc;
+
+    bool isMemExported;
 };
 
 } // namespace Js

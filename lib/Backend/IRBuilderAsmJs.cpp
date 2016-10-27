@@ -654,11 +654,19 @@ void
 IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 {
 
-    // ArrayBuffer
+    // ArrayBuffer (or WebAssembly.Memory in Wasm)
     IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
     IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
+
+    if(m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        // ArrayBuffer
+        srcOpnd = IR::IndirOpnd::New(dstOpnd, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, m_func);
+        instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+        AddInstr(instr, offset);
+    }
 
     // ArrayBuffer buffer
     dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
