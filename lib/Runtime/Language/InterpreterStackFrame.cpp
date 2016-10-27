@@ -1696,7 +1696,6 @@ namespace Js
     {
 #if DYNAMIC_INTERPRETER_THUNK
         Assert(function);
-
         Js::FunctionBody *functionBody = function->GetFunctionBody();
         JavascriptMethod entrypoint = functionBody->EnsureDynamicInterpreterThunk(function->GetFunctionEntryPointInfo());
         Assert(!IsDelayDynamicInterpreterThunk(functionBody->GetDirectEntryPoint(function->GetEntryPointInfo())));

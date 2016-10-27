@@ -435,7 +435,7 @@ static void inject_activation_handler(int code, siginfo_t *siginfo, void *contex
                 &winContext, 
                 CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT);
 
-            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext)))
+            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext), true))
             {
                 g_activationFunction(&winContext);
             }

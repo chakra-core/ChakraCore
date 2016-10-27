@@ -12,6 +12,10 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
+#ifndef _WIN32
+#include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
+#endif
+
 XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
     freeList(nullptr),
     start(address),
@@ -155,7 +159,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
-    __register_frame(xdataInfo->address);
+    __REGISTER_FRAME(xdataInfo->address);
 #endif
 }
 
@@ -176,6 +180,6 @@ void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
-    __deregister_frame(xdataInfo->address);
+    __DEREGISTER_FRAME(xdataInfo->address);
 #endif
 }
