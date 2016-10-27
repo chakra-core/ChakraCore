@@ -1,0 +1,21 @@
+{
+  "modules": [{
+    "filename": "break-drop.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "break-drop.wast",
+      "line": 7
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "break-drop.wast",
+      "line": 8
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "break-drop.wast",
+      "line": 9
+    }]
+  }]
+}

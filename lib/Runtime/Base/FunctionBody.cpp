@@ -851,7 +851,7 @@ namespace Js
         entryPointInfo->entryPointIndex = this->entryPoints->Add(recycler->CreateWeakReferenceHandle(entryPointInfo));
     }
 
-
+#if DBG
     BOOL FunctionBody::IsInterpreterThunk() const
     {
         bool isInterpreterThunk = this->originalEntryPoint == DefaultEntryThunk;
@@ -869,6 +869,7 @@ namespace Js
         return FALSE;
 #endif
     }
+#endif
 
     FunctionEntryPointInfo * FunctionBody::TryGetEntryPointInfo(int index) const
     {
@@ -1951,7 +1952,7 @@ namespace Js
         return returnFunctionBody;
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     FunctionBody* ParseableFunctionInfo::ParseAsmJs(Parser * ps, __out CompileScriptException * se, __out ParseNodePtr * parseTree)
     {
         Assert(IsDeferredParseFunction());
@@ -2313,6 +2314,35 @@ namespace Js
                     Output::Flush();
                 }
             }
+        }
+#endif
+    }
+
+    void ParseableFunctionInfo::SetSourceInfo(uint sourceIndex)
+    {
+        // TODO (michhol): how do we want to handle wasm source?
+        if (!m_utf8SourceHasBeenSet)
+        {
+            this->m_sourceIndex = sourceIndex;
+            this->m_cchStartOffset = 0;
+            this->m_cchLength = 0;
+            this->m_lineNumber = 0;
+            this->m_columnNumber = 0;
+
+            this->m_cbStartOffset = 0;
+            this->m_cbLength = 0;
+
+            this->m_utf8SourceHasBeenSet = true;
+
+            if (this->IsFunctionBody())
+            {
+                this->GetFunctionBody()->FinishSourceInfo();
+            }
+        }
+#if DBG
+        else
+        {
+            AssertMsg(this->m_sourceIndex == sourceIndex, "Mismatched source index");
         }
 #endif
     }
@@ -2867,7 +2897,9 @@ namespace Js
         return
             !this->m_isFromNativeCodeModule &&
             !this->m_isAsmJsFunction &&
+#ifdef ASMJS_PLAT
             !this->GetAsmJsModuleInfo() &&
+#endif
             !this->HasExecutionDynamicProfileInfo() &&
             DynamicProfileInfo::IsEnabled(this);
     }
@@ -3174,6 +3206,7 @@ namespace Js
         {
             entryPointInfo->jsMethod = directEntryPoint;
         }
+#ifdef ASMJS_PLAT
         if (isAsmJs)
         {
             // release the old entrypointinfo if available
@@ -3184,6 +3217,7 @@ namespace Js
                 oldEntryPointInfo = nullptr;
             }
         }
+#endif
         this->CaptureDynamicProfileState(entryPointInfo);
 
         if(entryPointInfo->GetJitMode() == ExecutionMode::SimpleJit)
@@ -3794,6 +3828,12 @@ namespace Js
 
     void FunctionBody::PrintStatementSourceLine(uint statementIndex)
     {
+        if (m_isWasmFunction)
+        {
+            // currently no source view support for wasm
+            return;
+        }
+
         const uint startOffset = GetStatementStartOffset(statementIndex);
 
         // startOffset should only be 0 if statementIndex is 0, otherwise it is EOF and we should skip printing anything
@@ -4308,7 +4348,7 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         if (m_isAsmJsFunction && m_dynamicInterpreterThunk)
         {
-            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk(this->m_dynamicInterpreterThunk, true);
+            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, true);
             this->m_dynamicInterpreterThunk = nullptr;
         }
 #endif
@@ -5631,7 +5671,7 @@ namespace Js
         this->SetLiteralRegexs(RecyclerNewArrayZ(m_scriptContext->GetRecycler(), UnifiedRegex::RegexPattern *, literalRegexCount));
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
         Assert( !this->GetAsmJsFunctionInfo() );
@@ -6775,12 +6815,14 @@ namespace Js
     bool FunctionBody::DoInterpreterProfile() const
     {
 #if ENABLE_PROFILE_INFO
+#ifdef ASMJS_PLAT
         // Switch off profiling is asmJsFunction
         if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
         {
             return false;
         }
         else
+#endif
         {
             return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
         }
@@ -6792,12 +6834,14 @@ namespace Js
     bool FunctionBody::DoInterpreterProfileWithLock() const
     {
 #if ENABLE_PROFILE_INFO
+#ifdef ASMJS_PLAT
         // Switch off profiling is asmJsFunction
         if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfoWithLock())
         {
             return false;
         }
         else
+#endif
         {
             return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
         }
@@ -7329,11 +7373,11 @@ namespace Js
             {
                 if (m_isAsmJsFunction)
                 {
-                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk(this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
                 }
                 else
                 {
-                    m_scriptContext->ReleaseDynamicInterpreterThunk(this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
                 }
             }
         }
@@ -8066,8 +8110,6 @@ namespace Js
                 }
                 guard->SetCache(&cache[i]);
             }
-
-            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
         }
 
         // OOP JIT
@@ -8114,10 +8156,7 @@ namespace Js
                         }
                     }
                 }
-
-                auto current = (*next);
                 *next = (*next)->next;
-                midl_user_free(current);
             }
         }
 
@@ -8203,22 +8242,20 @@ namespace Js
                 {
                     for (uint j = 0; j < entries[i]->cacheCount; ++j)
                     {
-                            Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
-                            // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
-                            // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
-                            if (isValid)
-                            {
-                                threadContext->RegisterConstructorCache(propertyId, cache);
-                            }
-                            else
-                            {
-                                cache->InvalidateAsGuard();
-                            }
+                        Js::ConstructorCache* cache = (Js::ConstructorCache*)(entries[i]->caches[j]);
+                        // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
+                        // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
+                        if (isValid)
+                        {
+                            threadContext->RegisterConstructorCache(propertyId, cache);
+                        }
+                        else
+                        {
+                            cache->InvalidateAsGuard();
+                        }
                     }
                 }
-                midl_user_free(entries[i]);
             }
-            midl_user_free(entries);
         }
 
         if (this->jitTransferData->ctorCacheGuardsByPropertyId != nullptr)
@@ -8542,6 +8579,32 @@ namespace Js
             {
                 HeapDelete(jitTransferData->jitTransferRawData);
                 jitTransferData->jitTransferRawData = nullptr;
+            }
+
+            if (jitTransferData->equivalentTypeGuardOffsets)
+            {
+                midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+            }
+
+            if (jitTransferData->typeGuardTransferData.entries != nullptr)
+            {
+                auto next = &jitTransferData->typeGuardTransferData.entries;
+                while (*next)
+                {
+                    auto current = (*next);
+                    *next = (*next)->next;
+                    midl_user_free(current);
+                }
+            }
+
+            if (jitTransferData->ctorCacheTransferData.entries != nullptr)
+            {
+                CtorCacheTransferEntryIDL ** entries = jitTransferData->ctorCacheTransferData.entries;
+                for (uint i = 0; i < jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
+                {
+                    midl_user_free(entries[i]);
+                }
+                midl_user_free(entries);
             }
 
             jitTransferData = nullptr;
@@ -8897,7 +8960,7 @@ namespace Js
     {
     }
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
     void FunctionEntryPointInfo::SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo)
     {
         Assert(this->GetIsAsmJSFunction());
@@ -9000,7 +9063,7 @@ namespace Js
             }
 
             FunctionBody* functionBody = this->functionProxy->GetFunctionBody();
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
             if (this->GetIsTJMode())
             {
                 // release LoopHeaders here if the entrypointInfo is TJ
@@ -9292,7 +9355,7 @@ namespace Js
 
     void LoopEntryPointInfo::OnCleanup(bool isShutdown)
     {
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
         if (this->IsCodeGenDone() && !this->GetIsTJMode())
 #else
         if (this->IsCodeGenDone())

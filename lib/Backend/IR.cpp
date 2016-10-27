@@ -123,8 +123,8 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
             IR::Instr* loadInstr = IR::Instr::NewConstantLoad(dataValueDstOpnd, (intptr_t)fixedValue, valType, instr->m_func);
 
             OUTPUT_VERBOSE_TRACE(Js::UseFixedDataPropsPhase,
-                _u("FixedFields: Replacing the source (fixed Data prop) with property id %s with 0x%x .\n"),
-                propSymOpnd->GetPropertySym()->GetName(), fixedValue);
+                _u("FixedFields: Replacing the source (fixed Data prop) with property id %u with 0x%x .\n"),
+                propSymOpnd->GetPropertyId(), fixedValue);
 
             instr->InsertAfter(loadInstr);
             propSymOpnd->SetUsesFixedValue(true);
@@ -3882,11 +3882,13 @@ Instr::DumpTestTrace()
         switch (propertySym->m_fieldKind)
         {
         case PropertyKindData:
+            if (!JITManager::GetJITManager()->IsOOPJITEnabled())
             {
-                Js::PropertyRecord const* fieldName = propertySym->GetFunc()->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId);
+                Js::PropertyRecord const* fieldName = propertySym->GetFunc()->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
                 Output::Print(_u("field: %s "), fieldName->GetBuffer());
                 break;
             }
+            // else fall through
         case PropertyKindSlots:
             Output::Print(_u("field: [%d] "), propertySym->m_propertyId);
             break;

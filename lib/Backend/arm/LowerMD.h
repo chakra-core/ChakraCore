@@ -102,6 +102,9 @@ public:
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);
+            void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
+            void            GeneratePopCnt32(IR::Instr * instr) { Assert(UNREACHED); }
+            void            GenerateThrowUnreachable(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);
@@ -191,6 +194,7 @@ public:
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { Assert(UNREACHED); return nullptr; } // only used for asm.js right now
             IR::Instr *         LowerToFloat(IR::Instr *instr);
+            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr) { Assert(UNREACHED); return nullptr; }
      static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN = false);
             void                ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert);
             void                CheckOverflowOnFloatToInt32(IR::Instr* instr, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone);

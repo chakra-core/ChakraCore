@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -75,8 +75,8 @@ time. The system time is expressed in Coordinated Universal Time
 
 Parameters
 
-lpSystemTime 
-       [out] Pointer to a SYSTEMTIME structure to receive the current system date and time. 
+lpSystemTime
+       [out] Pointer to a SYSTEMTIME structure to receive the current system date and time.
 
 Return Values
 
@@ -101,10 +101,10 @@ GetSystemTime(
 
     tt = time(NULL);
 
-    /* We can't get millisecond resolution from time(), so we get it from 
+    /* We can't get millisecond resolution from time(), so we get it from
        gettimeofday() */
     timeofday_retval = gettimeofday(&timeval,NULL);
-    
+
 #if HAVE_GMTIME_R
     utPtr = &ut;
     if (gmtime_r(&tt, utPtr) == NULL)
@@ -134,20 +134,20 @@ GetSystemTime(
     {
         int old_seconds;
         int new_seconds;
-    
+
         lpSystemTime->wMilliseconds = timeval.tv_usec/tccMillieSecondsToMicroSeconds;
-    
+
         old_seconds = utPtr->tm_sec;
         new_seconds = timeval.tv_sec%60;
-   
-        /* just in case we reached the next second in the interval between 
+
+        /* just in case we reached the next second in the interval between
            time() and gettimeofday() */
         if( old_seconds!=new_seconds )
         {
             TRACE("crossed seconds boundary; setting milliseconds to 999\n");
             lpSystemTime->wMilliseconds = 999;
-        }  
-    }                        
+        }
+    }
 EXIT:
     LOGEXIT("GetSystemTime returns void\n");
     PERF_EXIT(GetSystemTime);
@@ -164,7 +164,7 @@ use the GetSystemTimeAdjustment function.
 
 Parameters
 
-This function has no parameters. 
+This function has no parameters.
 
 Return Values
 
@@ -212,7 +212,7 @@ QueryPerformanceCounter(
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
+        lpPerformanceCount->QuadPart =
             (LONGLONG)ts.tv_sec * (LONGLONG)tccSecondsToNanoSeconds + (LONGLONG)ts.tv_nsec;
     }
 #elif HAVE_MACH_ABSOLUTE_TIME
@@ -233,22 +233,22 @@ QueryPerformanceCounter(
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
+        lpPerformanceCount->QuadPart =
             (LONGLONG)tb.tb_high * (LONGLONG)tccSecondsToNanoSeconds + (LONGLONG)tb.tb_low;
     }
 #else
     {
-        struct timeval tv;    
+        struct timeval tv;
         if (gettimeofday(&tv, NULL) == -1)
         {
             ASSERT("gettimeofday() failed; errno is %d (%s)\n", errno, strerror(errno));
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
-            (LONGLONG)tv.tv_sec * (LONGLONG)tccSecondsToMicroSeconds + (LONGLONG)tv.tv_usec;    
+        lpPerformanceCount->QuadPart =
+            (LONGLONG)tv.tv_sec * (LONGLONG)tccSecondsToMicroSeconds + (LONGLONG)tv.tv_usec;
     }
-#endif // HAVE_CLOCK_MONOTONIC 
+#endif // HAVE_CLOCK_MONOTONIC
     while (false);
 
     LOGEXIT("QueryPerformanceCounter\n");
@@ -280,7 +280,7 @@ QueryPerformanceFrequency(
     }
 #else
     lpFrequency->QuadPart = (LONGLONG)tccSecondsToMicroSeconds;
-#endif // HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC 
+#endif // HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC
     LOGEXIT("QueryPerformanceFrequency\n");
     PERF_EXIT(QueryPerformanceFrequency);
     return retval;
@@ -324,24 +324,14 @@ EXIT:
     return retval;
 }
 
-/*++
-Function:
-  GetTickCount64
-
-Returns a 64-bit tick count with a millisecond resolution. It tries its best
-to return monotonically increasing counts and avoid being affected by changes
-to the system clock (either due to drift or due to explicit changes to system
-time).
---*/
-PALAPI
-ULONGLONG
-GetTickCount64()
+static ULONGLONG
+GetTickCount64Fallback()
 {
     ULONGLONG retval = 0;
 
 #if HAVE_CLOCK_MONOTONIC_COARSE || HAVE_CLOCK_MONOTONIC
     {
-        clockid_t clockType = 
+        clockid_t clockType =
 #if HAVE_CLOCK_MONOTONIC_COARSE
             CLOCK_MONOTONIC_COARSE; // good enough resolution, fastest speed
 #else
@@ -382,7 +372,7 @@ GetTickCount64()
     }
 #else
     {
-        struct timeval tv;    
+        struct timeval tv;
         if (gettimeofday(&tv, NULL) == -1)
         {
             ASSERT("gettimeofday() failed; errno is %d (%s)\n", errno, strerror(errno));
@@ -390,8 +380,71 @@ GetTickCount64()
         }
         retval = (tv.tv_sec * tccSecondsToMillieSeconds) + (tv.tv_usec / tccMillieSecondsToMicroSeconds);
     }
-#endif // HAVE_CLOCK_MONOTONIC 
-EXIT:    
+#endif // HAVE_CLOCK_MONOTONIC
+EXIT:
     return retval;
 }
 
+#if defined(_X86_) || defined(__AMD64__) || defined(__x86_64__)
+inline ULONGLONG rdtsc()
+{
+    ULONGLONG H, L;
+    __asm volatile ("rdtsc":"=a"(L), "=d"(H));
+#ifdef _X86_
+    return L;
+#else
+    return (H << 32) | L;
+#endif
+}
+
+static double CPUFreq()
+{
+    struct timeval tstart, tend;
+    ULONGLONG start, end;
+
+    struct timezone tzone;
+    memset(&tzone, 0, sizeof(tzone));
+
+    start = rdtsc();
+    gettimeofday(&tstart, &tzone);
+
+    usleep(1000); // 1ms
+
+    end = rdtsc();
+    gettimeofday(&tend, &tzone);
+
+    ULONGLONG usec = ((tend.tv_sec - tstart.tv_sec)*1e6)
+                + (tend.tv_usec - tstart.tv_usec);
+
+    if (!usec) return 0;
+    return (end - start) / usec;
+}
+
+static ULONGLONG cpu_speed = CPUFreq() * 1e3; // 1000 * 1e6 => ns to ms
+typedef ULONGLONG (*GetTickCount64FallbackCB)(void);
+inline ULONGLONG FastTickCount()
+{
+  return rdtsc() / cpu_speed;
+}
+static GetTickCount64FallbackCB getTickCount64FallbackCB = cpu_speed ? FastTickCount : GetTickCount64Fallback;
+#endif
+
+/*++
+Function:
+  GetTickCount64
+
+Returns a 64-bit tick count with a millisecond resolution. It tries its best
+to return monotonically increasing counts and avoid being affected by changes
+to the system clock (either due to drift or due to explicit changes to system
+time).
+--*/
+PALAPI
+ULONGLONG
+GetTickCount64()
+{
+#if defined(_X86_) || defined(__AMD64__) || defined(__x86_64__)
+    return getTickCount64FallbackCB();
+#else
+    return GetTickCount64Fallback();
+#endif
+}

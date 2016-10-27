@@ -30,6 +30,7 @@
         $(MSBuildThisFileDirectory)..\Runtime\Base;
         $(MSBuildThisFileDirectory)..\Runtime\Debug;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\WasmReader;
         $(MSBuildThisFileDirectory)..\Backend;
         $(IntDir);
         %(AdditionalIncludeDirectories)

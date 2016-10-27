@@ -364,6 +364,9 @@ private:
     void            GenerateFastInlineStringSplitMatch(IR::Instr * instr);
     void            GenerateFastInlineMathImul(IR::Instr* instr);
     void            GenerateFastInlineMathClz32(IR::Instr* instr);
+    void            GenerateCtz(IR::Instr* instr);
+    void            GeneratePopCnt32(IR::Instr* instr);
+    void            GenerateThrowUnreachable(IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
     void            GenerateFastInlineRegExpExec(IR::Instr * instr);
     bool            GenerateFastPush(IR::Opnd *baseOpndParam, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel, IR::LabelInstr * bailOutLabelHelper, bool returnLength = false);
@@ -391,6 +394,7 @@ private:
     void            LowerBailOnNotString(IR::Instr *instr);
     IR::Instr *     LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper = false);
     IR::Instr *     LowerBailOnException(IR::Instr* instr);
+    IR::Instr *     LowerReinterpretPrimitive(IR::Instr* instr);
 
     void            LowerOneBailOutKind(IR::Instr *const instr, const IR::BailOutKind bailOutKindToLower, const bool isInHelperBlock, const bool preserveBailOutKindInInstr = false);
 
@@ -489,14 +493,21 @@ private:
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>
-    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool containMissingValues = false);
+    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor = false);
+    template <typename ArrayType>
+    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * sizeOpnd, Js::ArrayCallSiteInfo * arrayInfo);
 
     void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone);
+
+    template <typename ArrayType>
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, IR::LabelInstr* helperLabel, IR::LabelInstr* labelDone, IR::Opnd* lengthOpnd, uint32 offsetOfCallSiteIndex, uint32 offsetOfWeakFuncRef);
     void            GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length);
+     
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, uint32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInitNull(IR::RegOpnd * opnd, int32 offset, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, IR::Opnd * value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+    void            GenerateMemInit(IR::RegOpnd * opnd, IR::RegOpnd * offset, IR::Opnd * value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateRecyclerMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr);
     void            GenerateRecyclerMemInit(IR::RegOpnd * opnd, int32 offset, uint32 value, IR::Instr * insertBeforeInstr);
     void            GenerateRecyclerMemInitNull(IR::RegOpnd * opnd, int32 offset, IR::Instr * insertBeforeInstr);
@@ -532,7 +543,6 @@ private:
 
     IR::AddrOpnd *  CreateFunctionBodyOpnd(Func *const func) const;
     IR::AddrOpnd *  CreateFunctionBodyOpnd(Js::FunctionBody *const functionBody) const;
-
 
     bool            GenerateRecyclerOrMarkTempAlloc(IR::Instr * instr, IR::RegOpnd * dstOpnd, IR::JnHelperMethod allocHelper, size_t allocSize, IR::SymOpnd ** tempObjectSymOpnd);
     IR::SymOpnd *   GenerateMarkTempAlloc(IR::RegOpnd *const dstOpnd, const size_t allocSize, IR::Instr *const insertBeforeInstr);

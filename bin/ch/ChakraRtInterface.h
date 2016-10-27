@@ -39,6 +39,8 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtCreateArrayBufferPtr)(unsigned int byteLength, JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayBufferStoragePtr)(JsValueRef instance, BYTE **buffer, unsigned int *bufferLength);
     typedef JsErrorCode (WINAPI *JsrtCreateErrorPtr)(JsValueRef message, JsValueRef *error);
     typedef JsErrorCode (WINAPI *JsrtHasExceptionPtr)(bool *hasException);
     typedef JsErrorCode (WINAPI *JsrtSetExceptionPtr)(JsValueRef exception);
@@ -132,6 +134,8 @@ struct JsAPIHooks
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtCreateArrayPtr pfJsrtCreateArray;
+    JsrtCreateArrayBufferPtr pfJsrtCreateArrayBuffer;
+    JsrtGetArrayBufferStoragePtr pfJsrtGetArrayBufferStorage;
     JsrtCreateErrorPtr pfJsrtCreateError;
     JsrtHasExceptionPtr pfJsrtHasException;
     JsrtSetExceptionPtr pfJsrtSetException;
@@ -244,6 +248,9 @@ public:
 #ifdef DEBUG
     static HRESULT SetCheckOpHelpersFlag(bool flag) { return CHECKED_CALL(SetCheckOpHelpersFlag, flag); }
 #endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT SetOOPCFGRegistrationFlag(bool flag) { return CHECKED_CALL(SetOOPCFGRegistrationFlag, flag); }
+#endif
 
     static HRESULT GetCrashOnExceptionFlag(bool * flag)
     {
@@ -308,6 +315,8 @@ public:
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return HOOK_JS_API(DoubleToNumber(doubleValue, value)); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return HOOK_JS_API(GetExternalData(object, data)); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return HOOK_JS_API(CreateArray(length, result)); }
+    static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArrayBuffer(byteLength, result); }
+    static JsErrorCode WINAPI JsGetArrayBufferStorage(JsValueRef instance, BYTE **buffer, unsigned int *bufferLength) { return m_jsApiHooks.pfJsrtGetArrayBufferStorage(instance, buffer, bufferLength); }
     static JsErrorCode WINAPI JsCreateError(JsValueRef message, JsValueRef *error) { return HOOK_JS_API(CreateError(message, error)); }
     static JsErrorCode WINAPI JsHasException(bool *hasException) { return HOOK_JS_API(HasException(hasException)); }
     static JsErrorCode WINAPI JsSetException(JsValueRef exception) { return HOOK_JS_API(SetException(exception)); }

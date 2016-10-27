@@ -272,8 +272,8 @@ RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s
 
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_AsmJsCompileError, 5148, "%s: Compiling asm.js failed.", "Compiling asm.js failed.", kjstError, 0)
-
 RT_ERROR_MSG(JSERR_ImmutablePrototypeSlot, 5149, "%s: Can't set the prototype of this object.", "Can't set the prototype of this object.", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_WasmCompileError, 5150, "Compiling wasm failed: %s", "Compiling wasm failed.", kjstError, 0)
 
 /* Error messages for misbehaved Async Operations for use in Promise.js */
 RT_ERROR_MSG(ASYNCERR_NoErrorInErrorState, 5200, "", "Status is 'error', but getResults did not return an error", kjstError, 0)
@@ -363,3 +363,4 @@ RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of ran
 RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_Unreachable, 5667, "", "Unreachable Code", kjstError, 0)

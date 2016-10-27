@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -812,6 +812,8 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Detach", DetachCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "DumpFunctionPosition", DumpFunctionPositionCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RequestAsyncBreak", RequestAsyncBreakCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadBinaryFile", LoadBinaryFileCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadTextFile", LoadTextFileCallback));
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
@@ -878,6 +880,9 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "print", EchoCallback));
 
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "read", LoadTextFileCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readbuffer", LoadBinaryFileCallback));
+
     JsValueRef console;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, "log", EchoCallback));
@@ -888,6 +893,100 @@ bool WScriptJsrt::Initialize()
 
 Error:
     return hr == S_OK;
+}
+
+JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+    }
+    else
+    {
+        const char *fileContent;
+        AutoString fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            UINT lengthBytes = 0;
+            hr = Helpers::LoadScriptFromFile(*fileName, fileContent, &lengthBytes);
+
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, _u("Couldn't load file.\n"));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+            }
+            else
+            {
+                JsValueRef stringObject;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToStringUtf8(fileContent, lengthBytes, &stringObject));
+                return stringObject;
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+    }
+    else
+    {
+        const char *fileContent;
+        AutoString fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointerUtf8Copy(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            UINT lengthBytes = 0;
+
+            hr = Helpers::LoadBinaryFile(*fileName, fileContent, lengthBytes);
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, _u("Couldn't load file.\n"));
+            }
+            else
+            {
+                JsValueRef arrayBuffer;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer));
+                BYTE* buffer;
+                unsigned int bufferLength;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+                if (bufferLength < lengthBytes)
+                {
+                    fwprintf(stderr, _u("Array buffer size is insufficient to store the binary file.\n"));
+                }
+                else
+                {
+                    if (memcpy_s(buffer, bufferLength, (BYTE*)fileContent, lengthBytes) == 0)
+                    {
+                        returnValue = arrayBuffer;
+                    }
+                }
+            }
+        }
+    }
+
+Error:
+    return returnValue;
 }
 
 bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)

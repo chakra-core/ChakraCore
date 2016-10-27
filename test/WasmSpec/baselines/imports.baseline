@@ -1,0 +1,73 @@
+Unexpected Error while compiling imports.0.wasm
+Error: Compiling wasm failed: Exported Kind Table, NYI
+Unexpected Error while compiling imports.1.wasm
+Error: Compiling wasm failed: Import functions in the table NYI
+Unexpected Error while compiling imports.2.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.3.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.4.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.5.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.6.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.7.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.8.wasm
+Error: Compiling wasm failed: I64 Globals, NYI
+Unexpected Error while compiling imports.9.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.10.wasm
+Error: Compiling wasm failed: Import module test is invalid
+Unexpected Error while compiling imports.11.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.12.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.13.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.14.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.15.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.16.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.17.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.18.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.19.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.20.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.21.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.22.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.23.wasm
+Error: Compiling wasm failed: Imported Kind Table, NYI
+Unexpected Error while compiling imports.24.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.25.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.26.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.27.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.28.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.29.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.30.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.31.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.32.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.33.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.34.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+Unexpected Error while compiling imports.35.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+0/0 tests passed.

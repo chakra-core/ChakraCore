@@ -14,11 +14,49 @@ namespace Js
     static const char EmptySegmentData[sizeof(SparseArraySegmentBase)] = {0};
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
+    // col0 : allocation bucket
+    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col2 : allocation size for elements in given bucket.
+    // col1 and col2 is calculated at runtime
+    uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        { 3, 0, 0 },    // allocate space for 3 elements for array of length 0,1,2,3
+        { 5, 0, 0 },    // allocate space for 5 elements for array of length 4,5
+        { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
+    };
 #if defined(_M_X64_OR_ARM64)
     const Var JavascriptArray::MissingItem = (Var)0x8000000280000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {2, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {4, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
 #else
     const Var JavascriptArray::MissingItem = (Var)0x80000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 3, 0, 0 },
+        { 7, 0, 0 },
+        { 8, 0, 0 },
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 4, 0, 0 },
+        { 8, 0, 0 },
+    };
 #endif
+
     const int32 JavascriptNativeIntArray::MissingItem = 0x80000002;
     static const uint64 FloatMissingItemPattern = 0x8000000280000002ull;
     const double JavascriptNativeFloatArray::MissingItem = *(double*)&FloatMissingItemPattern;
@@ -3763,13 +3801,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
-        if (!JavascriptOperators::HasItem(obj, index))
+        if (checkHasItem && !JavascriptOperators::HasItem(obj, index))
         {
             return FALSE;
         }
@@ -3777,7 +3815,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3785,7 +3823,7 @@ namespace Js
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
         PropertyRecord const * propertyRecord;
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
-        if (!JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
+        if (checkHasItem && !JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
         {
             return FALSE;
         }
@@ -3795,14 +3833,14 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptArray>>::HasVirtualTable(pArr));
         return pArr->JavascriptArray::DirectGetItemAtFull(index, element);
     }
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3810,7 +3848,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::HasVirtualTable(pArr));
@@ -3818,7 +3856,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3826,7 +3864,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::HasVirtualTable(pArr));
@@ -3834,7 +3872,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3842,13 +3880,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // We need to do explicit check for items since length value may not actually match the actual TypedArray length.
         // User could add a length property to a TypedArray instance which lies and returns a different value from the underlying length.
         // Since this method can be called via Array.prototype.indexOf with .apply or .call passing a TypedArray as this parameter
         // we don't know whether or not length == typedArrayBase->GetLength().
-        if (!typedArrayBase->HasItem(index))
+        if (checkHasItem && !typedArrayBase->HasItem(index))
         {
             return false;
         }
@@ -3858,13 +3896,12 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
         Throw::InternalError();
     }
-
 
     template <bool includesAlgorithm, typename T, typename P>
     Var JavascriptArray::TemplatedIndexOfHelper(T * pArr, Var search, P fromIndex, P toIndex, ScriptContext * scriptContext)
@@ -3879,7 +3916,7 @@ namespace Js
         //Consider: enumerating instead of walking all indices
         for (P i = fromIndex; i < toIndex; i++)
         {
-            if (!TemplatedGetItem(pArr, i, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext, !includesAlgorithm))
             {
                 if (doUndefinedSearch)
                 {
@@ -4300,7 +4337,8 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    if (TemplatedGetItem(arr, i, &item, scriptContext))
+
+                    if (TryTemplatedGetItem(arr, i, &item, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(item, scriptContext));
                     }
@@ -4318,19 +4356,23 @@ CaseDefault:
 
                 JavascriptString *res = nullptr;
                 Var item;
+
                 if (TemplatedGetItem(arr, 0u, &item, scriptContext))
                 {
                     res = JavascriptArray::JoinToString(item, scriptContext);
                 }
-                if (TemplatedGetItem(arr, 1u, &item, scriptContext))
+
+                if (TryTemplatedGetItem(arr, 1u, &item, scriptContext))
                 {
                     JavascriptString *const itemString = JavascriptArray::JoinToString(item, scriptContext);
                     return res ? ConcatString::New(res, itemString) : itemString;
                 }
+
                 if(res)
                 {
                     return res;
                 }
+
                 goto Case0;
             }
 
@@ -4566,7 +4608,7 @@ Case0:
         {
             uint32 index = end - i;
 
-            if (!TemplatedGetItem(pArr, index, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, index, &element, scriptContext))
             {
                 continue;
             }
@@ -9032,7 +9074,7 @@ Case0:
                         JavascriptNumber::ToVar(k, scriptContext),
                         obj);
 
-                    if (newArr)
+                    if (newArr && isBuiltinArrayCtor)
                     {
                         newArr->SetItem(k, mappedValue, PropertyOperation_None);
                     }
@@ -10013,59 +10055,6 @@ Case0:
     }
 #endif
 
-    template <typename Fn>
-    void JavascriptArray::ForEachOwnArrayIndexOfObject(RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, Fn fn)
-    {
-        Assert(DynamicObject::IsAnyArray(obj) || JavascriptOperators::IsObject(obj));
-
-        JavascriptArray* arr = nullptr;
-        if (DynamicObject::IsAnyArray(obj))
-        {
-            arr = JavascriptArray::FromAnyArray(obj);
-        }
-        else if (DynamicType::Is(obj->GetTypeId()))
-        {
-            DynamicObject* dynobj = DynamicObject::FromVar(obj);
-            arr = dynobj->GetObjectArray();
-        }
-
-        if (arr != nullptr)
-        {
-            if (JavascriptArray::Is(arr))
-            {
-                ArrayElementEnumerator e(arr, startIndex, limitIndex);
-
-                while(e.MoveNext<Var>())
-                {
-                    fn(e.GetIndex(), e.GetItem<Var>());
-                }
-            }
-            else
-            {
-                ScriptContext* scriptContext = obj->GetScriptContext();
-
-                Assert(ES5Array::Is(arr));
-
-                ES5Array* es5Array = ES5Array::FromVar(arr);
-                ES5ArrayIndexEnumerator<true> e(es5Array);
-
-                while (e.MoveNext())
-                {
-                    uint32 index = e.GetIndex();
-
-                    if (index < startIndex) continue;
-                    else if (index >= limitIndex) break;
-
-                    Var value = nullptr;
-                    if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
-                    {
-                        fn(index, value);
-                    }
-                }
-            }
-        }
-    }
-
     template <typename T, typename Fn>
     void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn)
     {
@@ -10124,7 +10113,7 @@ Case0:
                         if (destArray == nullptr || !destArray->DirectGetItemAt(n, &oldValue))
                         {
                             Var value = nullptr;
-                            if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
+                            if (JavascriptOperators::GetOwnItem(obj, index, &value, scriptContext))
                             {
                                 fn(index, value);
                             }

@@ -7,8 +7,8 @@
 int
 DefaultComparer<CaseNode *>::Compare(CaseNode* caseNode1, CaseNode* caseNode2)
 {
-    int caseVal1 = caseNode1->GetSrc2IntConst();
-    int caseVal2 = caseNode2->GetSrc2IntConst();
+    int caseVal1 = caseNode1->GetUpperBoundIntConst();
+    int caseVal2 = caseNode2->GetUpperBoundIntConst();
     uint32 caseOffset1 = caseNode1->GetOffset();
     uint32 caseOffset2 = caseNode2->GetOffset();
 
@@ -24,16 +24,16 @@ DefaultComparer<CaseNode *>::Compare(CaseNode* caseNode1, CaseNode* caseNode2)
 bool
 DefaultComparer<CaseNode *>::Equals(CaseNode * caseNode1, CaseNode* caseNode2)
 {
-    if(caseNode1->IsSrc2IntConst() && caseNode2->IsSrc2IntConst())
+    if(caseNode1->IsUpperBoundIntConst() && caseNode2->IsUpperBoundIntConst())
     {
-        int caseVal1 = caseNode1->GetSrc2IntConst();
-        int caseVal2 = caseNode2->GetSrc2IntConst();
+        int caseVal1 = caseNode1->GetUpperBoundIntConst();
+        int caseVal2 = caseNode2->GetUpperBoundIntConst();
         return caseVal1 == caseVal2;
     }
-    else if(caseNode1->IsSrc2StrConst() && caseNode2->IsSrc2StrConst())
+    else if(caseNode1->IsUpperBoundStrConst() && caseNode2->IsUpperBoundStrConst())
     {
-        JITJavascriptString * caseVal1 = caseNode1->GetSrc2StringConst();
-        JITJavascriptString * caseVal2 = caseNode2->GetSrc2StringConst();
+        JITJavascriptString * caseVal1 = caseNode1->GetUpperBoundStrConst();
+        JITJavascriptString * caseVal2 = caseNode2->GetUpperBoundStrConst();
         return JITJavascriptString::Equals(caseVal1, caseVal2);
     }
     else
@@ -46,5 +46,5 @@ DefaultComparer<CaseNode *>::Equals(CaseNode * caseNode1, CaseNode* caseNode2)
 uint
 DefaultComparer<CaseNode *>::GetHashCode(CaseNode* caseNode)
 {
-    return (uint)caseNode->GetSrc2IntConst();
+    return (uint)caseNode->GetUpperBoundIntConst();
 }

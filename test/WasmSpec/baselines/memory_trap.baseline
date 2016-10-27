@@ -1,0 +1,12 @@
+memory_trap.wast:23: $assert_trap_2 failed, runtime trap NYI
+memory_trap.wast:24: $assert_trap_3 failed, runtime trap NYI
+memory_trap.wast:25: $assert_trap_4 failed, runtime trap NYI
+memory_trap.wast:26: $assert_trap_5 failed, runtime trap NYI
+memory_trap.wast:27: $assert_trap_6 failed, runtime trap NYI
+memory_trap.wast:28: $assert_trap_7 failed, runtime trap NYI
+memory_trap.wast:29: $assert_trap_8 failed, runtime trap NYI
+memory_trap.wast:30: $assert_trap_9 failed, runtime trap NYI
+memory_trap.wast:31: $assert_trap_10 failed, runtime trap NYI
+memory_trap.wast:32: $assert_trap_11 failed, runtime trap NYI
+memory_trap.wast:33: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function grow_memory[3] at offset 4/5: Operator GrowMemory NYI
+2/13 tests passed.

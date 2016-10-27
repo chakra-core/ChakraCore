@@ -34,6 +34,7 @@
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\WasmReader;
         $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -179,6 +180,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Opnd.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PageAllocatorPool.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PDataManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Peeps.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PreLowerPeeps.cpp" />
@@ -402,6 +404,7 @@
     <ClInclude Include="LinearScanMDShared.h" />
     <ClInclude Include="LowerMDShared.h" />
     <ClInclude Include="NativeCodeData.h" />
+    <ClInclude Include="PageAllocatorPool.h" />
     <ClInclude Include="PDataManager.h" />
     <ClInclude Include="PrologEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
@@ -453,6 +456,11 @@
     <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
       <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CRC.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

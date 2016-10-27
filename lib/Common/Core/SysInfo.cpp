@@ -246,6 +246,13 @@ AutoSystemInfo::SSE4_1Available() const
 }
 
 BOOL
+AutoSystemInfo::SSE4_2Available() const
+{
+    Assert(initialized);
+    return VirtualSseAvailable(4) && (CPUInfo[2] & (0x1 << 20));
+}
+
+BOOL
 AutoSystemInfo::PopCntAvailable() const
 {
     Assert(initialized);
@@ -260,6 +267,16 @@ AutoSystemInfo::LZCntAvailable() const
     get_cpuid(CPUInfo, 0x80000001);
 
     return VirtualSseAvailable(4) && (CPUInfo[2] & (1 << 5));
+}
+
+BOOL
+AutoSystemInfo::TZCntAvailable() const
+{
+    Assert(initialized);
+    int CPUInfo[4];
+    get_cpuid(CPUInfo, 7);
+
+    return VirtualSseAvailable(4) && (CPUInfo[1] & (1 << 3));
 }
 
 bool

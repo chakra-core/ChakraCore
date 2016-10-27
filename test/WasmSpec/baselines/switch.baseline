@@ -1,0 +1,8 @@
+switch.wast:130: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_9[13] at offset 3/9: Operator I64Const NYI
+switch.wast:131: $assert_return_10 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_10[14] at offset 3/9: Operator I64Const NYI
+switch.wast:132: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_11[15] at offset 3/9: Operator I64Const NYI
+switch.wast:133: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_12[16] at offset 3/9: Operator I64Const NYI
+switch.wast:134: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_13[17] at offset 3/10: Operator I64Const NYI
+switch.wast:135: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_14[18] at offset 3/9: Operator I64Const NYI
+switch.wast:136: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[19] at offset 3/10: Operator I64Const NYI
+19/26 tests passed.

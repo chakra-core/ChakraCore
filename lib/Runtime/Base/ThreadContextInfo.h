@@ -17,6 +17,7 @@ public:
 
     intptr_t GetAbsDoubleCstAddr() const;
     intptr_t GetAbsFloatCstAddr() const;
+    intptr_t GetSgnBitCst() const;
     intptr_t GetMaskNegFloatAddr() const;
     intptr_t GetMaskNegDoubleAddr() const;
     intptr_t GetDoubleOnePointZeroAddr() const;
@@ -29,6 +30,7 @@ public:
     intptr_t GetFloatTwoToFractionAddr() const;
     intptr_t GetDoubleNegTwoToFractionAddr() const;
     intptr_t GetDoubleNaNAddr() const;
+    intptr_t GetFloatNaNAddr() const;
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
     intptr_t GetFloatZeroAddr() const;
@@ -90,12 +92,7 @@ public:
     virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif
 
-    virtual intptr_t GetDebuggingFlagsAddr() const = 0;
-    virtual intptr_t GetDebugStepTypeAddr() const = 0;
-    virtual intptr_t GetDebugFrameAddressAddr() const = 0;
-    virtual intptr_t GetDebugScriptIdWhenSetAddr() const = 0;
-
-    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) = 0;
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
 
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
 

@@ -1,0 +1,3 @@
+Unexpected Error while compiling import-after-func.fail.0.wasm
+Error: Compiling wasm failed: Imported Kind Memory, NYI
+0/0 tests passed.

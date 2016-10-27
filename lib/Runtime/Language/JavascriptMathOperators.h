@@ -6,4 +6,5 @@
 
 #include "JavascriptMath.h"
 #include "AsmJsMath.h"
+#include "WasmMath.h"
 

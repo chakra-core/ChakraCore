@@ -55,10 +55,8 @@ public:
 
     static JITJavascriptString * FromVar(Js::Var var)
     {
-#ifdef HAS_CONSTEXPR
-        CompileAssert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
-        CompileAssert(offsetof(JITJavascriptString, m_charLength) == Js::JavascriptString::GetOffsetOfcharLength());
-#endif
+        Assert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
+        Assert(offsetof(JITJavascriptString, m_charLength) == Js::JavascriptString::GetOffsetOfcharLength());
         Assert(Is(var));
 
         return reinterpret_cast<JITJavascriptString*>(var);

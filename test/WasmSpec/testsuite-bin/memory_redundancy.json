@@ -1,0 +1,31 @@
+{
+  "modules": [{
+    "filename": "memory_redundancy.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "memory_redundancy.wast",
+      "line": 39
+    }, {
+      "type": "action",
+      "name": "$action_1",
+      "file": "memory_redundancy.wast",
+      "line": 40
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "memory_redundancy.wast",
+      "line": 41
+    }, {
+      "type": "action",
+      "name": "$action_3",
+      "file": "memory_redundancy.wast",
+      "line": 42
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "memory_redundancy.wast",
+      "line": 43
+    }]
+  }]
+}

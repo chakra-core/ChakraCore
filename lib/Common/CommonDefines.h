@@ -170,9 +170,6 @@
 #define DYNAMIC_INTERPRETER_THUNK 0
 #define DISABLE_DYNAMIC_PROFILE_DEFER_PARSE
 #define ENABLE_COPYONACCESS_ARRAY 0
-
-// Used to temporarily disable ASMjs related code to get nonative compiling
-#define TEMP_DISABLE_ASMJS
 #else
 // By default, enable the JIT
 #define ENABLE_NATIVE_CODEGEN 1
@@ -584,10 +581,13 @@
 #endif
 #endif
 
-#if defined(_M_IX86) || defined(_M_X64)
-#ifndef TEMP_DISABLE_ASMJS
+#if (defined(_M_IX86) || defined(_M_X64)) && !defined(DISABLE_JIT)
 #define ASMJS_PLAT
 #endif
+
+#if defined(ASMJS_PLAT) && defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
+// Enable WebAssembly only in debug and test build for the time being
+#define ENABLE_WASM
 #endif
 
 #if _M_IX86

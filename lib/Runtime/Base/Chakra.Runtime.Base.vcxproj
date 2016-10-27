@@ -26,6 +26,7 @@
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
+        $(MSBuildThisFileDirectory)..\..\WasmReader;
         $(ChakraJITIDLIntDir);
         $(MSBuildThisFileDirectory)..\..\JITClient;
         %(AdditionalIncludeDirectories)

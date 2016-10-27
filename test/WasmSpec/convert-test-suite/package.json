@@ -1,0 +1,17 @@
+{
+  "name": "convert-test-suite",
+  "version": "1.0.0",
+  "description": "Convert official WebAssembly Test suite to run with ch.exe",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Ferris",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^0.30.0",
+    "js-beautify": "^1.6.3",
+    "string-argv": "0.0.2",
+    "yargs": "^4.7.1"
+  }
+}

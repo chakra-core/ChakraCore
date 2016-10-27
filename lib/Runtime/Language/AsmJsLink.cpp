@@ -6,7 +6,7 @@
 #include "RuntimeLanguagePch.h"
 #include "Library/BoundFunction.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js{
     bool ASMLink::CheckArrayBuffer(ScriptContext* scriptContext, Var bufferView, const AsmJsModuleInfo * info)
     {

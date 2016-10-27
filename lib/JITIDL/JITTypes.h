@@ -283,10 +283,6 @@ typedef struct ThreadContextDataIDL
     CHAKRA_PTR bailOutRegisterSaveSpaceAddr;
     CHAKRA_PTR disableImplicitFlagsAddr;
     CHAKRA_PTR implicitCallFlagsAddr;
-    CHAKRA_PTR debuggingFlagsAddr;
-    CHAKRA_PTR debugStepTypeAddr;
-    CHAKRA_PTR debugFrameAddressAddr;
-    CHAKRA_PTR debugScriptIdWhenSetAddr;
     CHAKRA_PTR stringReplaceNameAddr;
     CHAKRA_PTR stringMatchNameAddr;
     CHAKRA_PTR simdTempAreaBaseAddr;
@@ -328,6 +324,10 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR numberAllocatorAddr;
     CHAKRA_PTR recyclerAddr;
     CHAKRA_PTR builtinFunctionsBaseAddr;
+    CHAKRA_PTR debuggingFlagsAddr;
+    CHAKRA_PTR debugStepTypeAddr;
+    CHAKRA_PTR debugFrameAddressAddr;
+    CHAKRA_PTR debugScriptIdWhenSetAddr;
 } ScriptContextDataIDL;
 
 typedef struct SmallSpanSequenceIDL
@@ -390,19 +390,6 @@ typedef struct AsmJsDataIDL
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;
 
-typedef struct PropertyRecordIDL
-{
-    CHAKRA_PTR vTable;
-    int pid;
-    unsigned int hash;
-    boolean isNumeric;
-    boolean isBound;
-    boolean isSymbol;
-    IDL_PAD1(0)
-    unsigned int byteCount;
-    IDL_DEF([size_is(byteCount + sizeof(wchar_t) + (isNumeric ? sizeof(unsigned int) : 0))]) byte buffer[IDL_DEF(*)];
-} PropertyRecordIDL;
-
 typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
@@ -463,6 +450,7 @@ typedef struct FunctionBodyDataIDL
     boolean doBackendArgumentsOptimization;
     boolean isLibraryCode;
     boolean isAsmJsMode;
+    boolean isWasmFunction;
     boolean hasImplicitArgIns;
     boolean isStrictMode;
     boolean isEval;
@@ -804,7 +792,16 @@ typedef struct JITOutputIDL
 typedef struct UpdatedPropertysIDL
 {
     unsigned int reclaimedPropertyCount;
-    unsigned int newRecordCount;
+    unsigned int newPropertyCount;
     [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
-    [size_is(newRecordCount)] PropertyRecordIDL ** newRecordArray;
+    [size_is(newPropertyCount)] int * newPropertyIdArray;
 } UpdatedPropertysIDL;
+
+typedef struct InterpreterThunkInfoIDL
+{
+    unsigned int thunkCount;
+    X64_PAD4(0)
+    CHAKRA_PTR pdataTableStart;
+    CHAKRA_PTR epilogEndAddr;
+    CHAKRA_PTR thunkBlockAddr;
+} InterpreterThunkInfoIDL;

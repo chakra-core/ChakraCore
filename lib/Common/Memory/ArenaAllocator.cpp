@@ -166,7 +166,6 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
 RealAllocInlined(size_t nbytes)
 {
     Assert(nbytes != 0);
-    Assert((nbytes & (ObjectAlignment - 1)) == 0);
 
 #ifdef ARENA_MEMORY_VERIFY
     if (Js::Configuration::Global.flags.ArenaUseHeapAlloc)

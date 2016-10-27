@@ -211,15 +211,13 @@ NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::Entr
 bool
 NativeCodeGenerator::DoBackEnd(Js::FunctionBody *fn)
 {
-    if (PHASE_OFF(Js::BackEndPhase, fn))
-    {
-        return false;
-    }
-    if (fn->IsAsmJSModule() || fn->IsGeneratorAndJitIsDisabled())
-    {
-        return false;
-    }
-    return true;
+    return (
+        !PHASE_OFF(Js::BackEndPhase, fn)
+        && !fn->IsGeneratorAndJitIsDisabled()
+#ifdef ASMJS_PLAT
+        && !fn->IsAsmJSModule()
+#endif
+    );
 }
 
 void
@@ -535,6 +533,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         entryPointInfo = fn->GetDefaultFunctionEntryPointInfo();
         Assert(fn->IsInterpreterThunk() || fn->IsSimpleJitOriginalEntryPoint());
     }
+    bool doPreJit = IS_PREJIT_ON();
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmjsMode())
     {
@@ -557,6 +556,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
             Output::Print(_u("New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n"), fn->GetDisplayName());
+        doPreJit |= CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0 || CONFIG_ISENABLED(Js::ForceNativeFlag);
     }
     else
 #endif
@@ -574,7 +574,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     entryPointInfo->SetCodeGenPending(workitem);
     InterlockedIncrement(&pendingCodeGenWorkItems);
 
-    if(!IS_PREJIT_ON())
+    if(!doPreJit)
     {
         workItems.LinkToEnd(workitem);
         return true;
@@ -633,11 +633,16 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
     // function is currently being interpreted. If it is being interpreted,
     // We'd still like to jit the loop body.
     // We reset the interpretCount to 0 in case we switch back to the interpreter
-    if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders() && (!fn->GetIsAsmJsFunction() || !(loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode())))
+    if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders()
+#ifdef ASMJS_PLAT
+        && (!fn->GetIsAsmJsFunction() || !(loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode()))
+#endif
+    )
     {
         loopHeader->ResetInterpreterCount();
         return;
     }
+#ifdef ASMJS_PLAT
     if (fn->GetIsAsmJsFunction())
     {
         Js::FunctionEntryPointInfo* functionEntryPointInfo = (Js::FunctionEntryPointInfo*) fn->GetDefaultEntryPointInfo();
@@ -645,6 +650,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
         loopEntryPointInfo->SetIsAsmJSFunction(true);
         loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
+#endif
     JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint, loopHeader);
     if (!workitem)
     {
@@ -884,6 +890,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #if !FLOATVAR
     workItem->GetJITData()->xProcNumberPageSegment = scriptContext->GetThreadContext()->GetXProcNumberPageSegmentManager()->GetFreeSegment(&alloc);
 #endif
+    workItem->GetJITData()->globalThisAddr = (intptr_t)workItem->RecyclableData()->JitTimeData()->GetGlobalThisObject();
 
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
@@ -904,7 +911,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
-        workItem->GetJITData()->globalThisAddr = (intptr_t)scriptContext->GetLibrary()->GetGlobalObject()->ToThis();
 #if !FLOATVAR
         CodeGenNumberAllocator* pNumberAllocator = nullptr;
 
@@ -1081,6 +1087,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         epInfo->SetXDataInfo(xdataInfo);
     }
 #endif
+
+    if (!CONFIG_FLAG(OOPCFGRegistration))
+    {
+        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+    }
 
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
@@ -1572,7 +1583,11 @@ NativeCodeGenerator::CheckCodeGenDone(
     // PrioritizeJob will return false
     Assert(entryPointInfo->IsCodeGenDone() || entryPointInfo->IsCleanedUp() || entryPointInfo->IsPendingCleanup());
 
-    if (!functionBody->GetHasBailoutInstrInJittedCode() && functionBody->GetHasAllocatedLoopHeaders() && (!functionBody->GetIsAsmJsFunction() || !(((Js::FunctionEntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->GetIsTJMode())))
+    if (!functionBody->GetHasBailoutInstrInJittedCode() && functionBody->GetHasAllocatedLoopHeaders()
+#ifdef ASMJS_PLAT
+        && (!functionBody->GetIsAsmJsFunction() || !(((Js::FunctionEntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->GetIsTJMode()))
+#endif
+    )
     {
         if (functionBody->GetCanReleaseLoopHeaders())
         {
@@ -1750,7 +1765,11 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
         JsLoopBodyCodeGen* loopBodyCodeGenWorkItem = (JsLoopBodyCodeGen*)codeGenWork;
         Js::FunctionBody* fn = loopBodyCodeGenWorkItem->GetFunctionBody();
 
-        if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders() && (!fn->GetIsAsmJsFunction() || !(loopBodyCodeGenWorkItem->loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode())))
+        if (fn->GetNativeEntryPointUsed() && fn->GetCanReleaseLoopHeaders()
+#ifdef ASMJS_PLAT
+            && (!fn->GetIsAsmJsFunction() || !(loopBodyCodeGenWorkItem->loopHeader->GetCurrentEntryPointInfo()->GetIsTJMode()))
+#endif
+        )
         {
             loopBodyCodeGenWorkItem->loopHeader->ResetInterpreterCount();
             return false;
@@ -1843,7 +1862,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
 
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
-    Assert(IS_PREJIT_ON());
+    Assert(IS_PREJIT_ON() || functionBody->GetIsAsmjsMode());
     Assert(functionBody->DoSimpleJit() || !PHASE_OFF(Js::FullJitPhase, functionBody));
 
     // Prefer full JIT for prejitting unless it's off or simple JIT is forced
@@ -2007,20 +2026,17 @@ NativeCodeGenerator::UpdateJITState()
         }
 
         // update all property records on server that have been changed since last jit
-        ThreadContext::PropertyMap * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
-        PropertyRecordIDL ** newPropArray = nullptr;
+        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
+        int * newPropArray = nullptr;
         uint newCount = 0;
         if (pendingProps->Count() > 0)
         {
             newCount = (uint)pendingProps->Count();
-            newPropArray = HeapNewArray(PropertyRecordIDL*, newCount);
+            newPropArray = HeapNewArray(int, newCount);
             uint index = 0;
-            auto iter = pendingProps->GetIteratorWithRemovalSupport();
-            while (iter.IsValid())
+            while (!pendingProps->Empty())
             {
-                newPropArray[index++] = (PropertyRecordIDL*)iter.CurrentValue();
-                iter.RemoveCurrent();
-                iter.MoveNext();
+                newPropArray[index++] = (int)pendingProps->Pop();
             }
             Assert(index == newCount);
         }
@@ -2045,8 +2061,8 @@ NativeCodeGenerator::UpdateJITState()
             UpdatedPropertysIDL props = {0};
             props.reclaimedPropertyCount = reclaimedCount;
             props.reclaimedPropertyIdArray = reclaimedPropArray;
-            props.newRecordCount = newCount;
-            props.newRecordArray = newPropArray;
+            props.newPropertyCount = newCount;
+            props.newPropertyIdArray = newPropArray;
 
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
 
@@ -3183,7 +3199,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         return;
     }
 
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
         ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
@@ -3654,6 +3670,6 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        Js::Throw::FatalInternalError();
+        RpcFailure_fatal_error(hr);
     }
 }

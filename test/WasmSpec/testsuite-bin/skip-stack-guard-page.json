@@ -1,0 +1,56 @@
+{
+  "modules": [{
+    "filename": "skip-stack-guard-page.0.wasm",
+    "commands": [{
+      "type": "assert_trap",
+      "name": "$assert_trap_0",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2275
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_1",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2276
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_2",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2277
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_3",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2278
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_4",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2279
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_5",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2280
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_6",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2281
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_7",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2282
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_8",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2283
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_9",
+      "file": "skip-stack-guard-page.wast",
+      "line": 2284
+    }]
+  }]
+}

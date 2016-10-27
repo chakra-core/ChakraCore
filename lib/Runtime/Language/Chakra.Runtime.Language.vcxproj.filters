@@ -73,6 +73,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8OperationX86X64.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Operation.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
@@ -146,6 +147,7 @@
     <ClInclude Include="SimdBool32x4Operation.h" />
     <ClInclude Include="SimdBool16x8Operation.h" />
     <ClInclude Include="SimdBool8x16Operation.h" />
+    <ClInclude Include="WAsmjsUtils.h" />
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />

@@ -1053,31 +1053,42 @@ void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHand
     CompileAssert(sizeof(char16) == 2);
     char16 pattern = 0xDEFE;
 
-    const bool isLocalProc = processHandle == GetCurrentProcess();
-    BYTE * writeBuffer;
-
-    if (isLocalProc)
+    if (processHandle == GetCurrentProcess())
     {
-        writeBuffer = buffer;
+        BYTE * writeBuffer = buffer;
+        wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
+        if (byteCount % 2)
+        {
+            // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.
+            *(writeBuffer + byteCount - 1) = 0;  // Fill last remaining byte.
+        }
     }
     else
     {
-        writeBuffer = HeapNewArray(BYTE, byteCount);
-    }
-    wmemset((char16 *)writeBuffer, pattern, byteCount / 2);
-    if (byteCount % 2)
-    {
-        // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.
-        *(writeBuffer + byteCount - 1) = 0;  // Fill last remaining byte.
-    }
+        const size_t bufferSize = 0x1000;
+        byte localBuffer[bufferSize];
+        wmemset((char16 *)localBuffer, pattern, (bufferSize < byteCount ? bufferSize : byteCount) / 2);
 
-    if (!isLocalProc)
-    {
-        if (!WriteProcessMemory(processHandle, buffer, writeBuffer, byteCount, NULL))
+        for (size_t i = 0; i < byteCount / bufferSize; i++)
         {
-            MemoryOperationLastError::RecordLastErrorAndThrow();
+            if (!WriteProcessMemory(processHandle, buffer, localBuffer, bufferSize, NULL))
+            {
+                MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
+            }
+            buffer += bufferSize;
         }
-        HeapDeleteArray(byteCount, writeBuffer);
+
+        if (byteCount % bufferSize > 0)
+        {
+            if (byteCount % 2 != 0)
+            {
+                localBuffer[(byteCount - 1) % bufferSize] = 0;
+            }
+            if (!WriteProcessMemory(processHandle, buffer, localBuffer, byteCount % bufferSize, NULL))
+            {
+                MemoryOperationLastError::CheckProcessAndThrowFatalError(processHandle);
+            }
+        }
     }
 
 #elif defined(_M_ARM64)

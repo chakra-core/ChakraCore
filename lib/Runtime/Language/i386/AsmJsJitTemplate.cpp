@@ -1391,12 +1391,15 @@ namespace Js
             return size;
         }
 
-        int BrEq::ApplyTemplate(TemplateContext context, BYTE*& buffer, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge)
+        int BrEq::ApplyTemplate(TemplateContext context, BYTE*& buffer, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge, bool isSrc2Const /*= false*/)
         {
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
             leftOffset -= templateData->GetBaseOffSet();
-            rightOffset -= templateData->GetBaseOffSet();
+            if (!isSrc2Const) 
+            {
+                rightOffset -= templateData->GetBaseOffSet();
+            }
             if (isBackEdge)
             {
                 RegNum regInc = templateData->GetReg<int>(0);
@@ -1404,9 +1407,9 @@ namespace Js
                 size += INC::EncodeInstruction<int>(buffer, InstrParamsAddr(regInc, context->GetFunctionBody()->GetAsmJsTotalLoopCountOffset()));
                 templateData->InvalidateReg(regInc);
             }
-            RegNum reg1, reg2;
+            RegNum reg1, reg2 = RegEAX;
             const int reg1Found = templateData->FindRegWithStackOffset<int>( reg1, leftOffset );
-            const int reg2Found = templateData->FindRegWithStackOffset<int>( reg2, rightOffset );
+            const int reg2Found = isSrc2Const || templateData->FindRegWithStackOffset<int>( reg2, rightOffset );
             switch( reg1Found & (reg2Found<<1) )
             {
             case 0:
@@ -1419,10 +1422,21 @@ namespace Js
                 size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg1, RegEBP, rightOffset ) );
                 break;
             case 2:
-                size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg2, RegEBP, leftOffset ) );
+                if (isSrc2Const) 
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsAddrImm<int32>(RegEBP, leftOffset, rightOffset));
+                }
+                else 
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegAddr(reg2, RegEBP, leftOffset));
+                }
                 break;
             case 3:
-                if( reg1 == reg2 )
+                if (isSrc2Const)
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegImm<int32>(reg1, rightOffset));
+                }
+                else if( reg1 == reg2 )
                 {
                     templateData->InvalidateAllReg();
                     *relocAddr = buffer;
@@ -1915,7 +1929,7 @@ namespace Js
             return size;
         }
 
-        int ShrU_Int::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
+        int Shr_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
         {
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;

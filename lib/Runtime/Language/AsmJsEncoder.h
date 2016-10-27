@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
     class AsmJsEncoder
@@ -70,6 +70,7 @@ namespace Js
         template <class T> void OP_LdUndef( const unaligned T* playout );
         template <class T> void OP_Br( const unaligned T* playout );
         template <class T> void OP_BrEq( const unaligned T* playout );
+        template <class T> void OP_BrEqConst( const unaligned T* playout );
         template <class T> void OP_BrTrue( const unaligned T* playout );
         template <class T> void OP_Empty( const unaligned T* playout );
         template <class T> void Op_LdSlot_Db( const unaligned T* playout );

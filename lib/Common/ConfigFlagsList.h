@@ -31,6 +31,15 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
+    PHASE(Wasm)
+        PHASE(WasmBytecode)
+            PHASE(WasmParser)
+            PHASE(WasmReader)
+            PHASE(WasmSection)
+            PHASE(WasmLEB128)
+            PHASE(WasmFunctionBody)
+        PHASE(WasmLazyTrap)
+        PHASE(WasmDeferred)
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
@@ -571,7 +580,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+
+#ifdef COMPILE_DISABLE_ESSharedArrayBuffer
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
+#else
+#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
+#endif
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
 // ES6 DEFAULT BEHAVIOR
@@ -647,6 +661,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
+#define DEFAULT_CONFIG_OOPCFGRegistration (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -786,7 +801,7 @@ PHASE(All)
 // Release flags with parent and acronym
 #ifndef FLAGPRA
 #define FLAGPRA(Type, ParentName, Name, Acronym, String, Default) \
-        FLAGPR(Type, ParentName, Name, String, Default) \
+        FLAG_REGOVR_EXP(Type, Name, String, Default, ParentName, FALSE) \
         FLAGNR(Type, Acronym, String, Default)
 #endif
 
@@ -1018,6 +1033,10 @@ FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose tra
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 
 FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+
+#ifndef COMPILE_DISABLE_ESSharedArrayBuffer
+    #define COMPILE_DISABLE_ESSharedArrayBuffer 0
+#endif
 FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable SharedArrayBuffer"                       , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
@@ -1193,6 +1212,7 @@ FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline cach
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
+FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
@@ -1470,6 +1490,8 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
     FLAGNR(Number, SimulatePolyCacheWithOneTypeForInlineCacheIndex, "Use with SimulatePolyCacheWithOneTypeForFunction to simulate creating a polymorphic inline cache containing only one type due to a collision, for testing ObjTypeSpec", -1)
 #endif
 
+FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
+FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
 

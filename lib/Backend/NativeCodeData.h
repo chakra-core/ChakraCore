@@ -42,8 +42,15 @@ public:
         char data[0];
     };
 
+    struct DataChunkNoFixup
+    {
+        DataChunkNoFixup * next;
+        char data[0];
+    };
+
     static DataChunk* GetDataChunk(void* data)
     {
+        Assert(JITManager::GetJITManager()->IsJITServer());
         return (NativeCodeData::DataChunk*)((char*)data - offsetof(NativeCodeData::DataChunk, data));
     }
 
@@ -51,11 +58,16 @@ public:
 
     static unsigned int GetDataTotalOffset(void* data)
     {
+        Assert(JITManager::GetJITManager()->IsJITServer());
         return GetDataChunk(data)->offset;
     }
 
     NativeCodeData(DataChunk * chunkList);
-    DataChunk * chunkList;
+    union
+    {
+        DataChunk * chunkList;
+        DataChunkNoFixup * noFixupChunkList;
+    };
 
 #ifdef PERF_COUNTERS
     size_t size;
@@ -66,7 +78,8 @@ public:
     static void AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList);
     static void AddFixupEntry(void* targetAddr, void* targetStartAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList);
     static void AddFixupEntryForPointerArray(void* startAddress, DataChunk * chunkList);
-    static void DeleteChunkList(DataChunk * chunkList);
+    template<class DataChunkT>
+    static void DeleteChunkList(DataChunkT * chunkList);
 public:
     class Allocator
     {
@@ -83,8 +96,12 @@ public:
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
 
-        DataChunk * chunkList;
-        DataChunk * lastChunkList;
+        union
+        {
+            DataChunk * chunkList;
+            DataChunkNoFixup* noFixupChunkList;
+        };
+        DataChunk * lastChunkList; // used to maintain the allocation order in the list
         unsigned int totalSize;
         unsigned int allocCount;
 
@@ -93,8 +110,9 @@ public:
         Allocator * TrackAllocInfo(TrackAllocData const& data) { return this; }
         void ClearTrackAllocInfo(TrackAllocData* data = NULL) {}
 #endif
+    protected:
+        bool isOOPJIT;
     private:
-
 #if DBG
         bool finalized;
 #endif
@@ -125,12 +143,15 @@ public:
         {
             char* dataBlock = __super::Alloc(requestedBytes);
 #if DBG
-            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-            chunk->dataType = typeid(T).name();
-            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            if (JITManager::GetJITManager()->IsJITServer())
             {
-                Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+                chunk->dataType = typeid(T).name();
+                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                {
+                    Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                }
             }
 #endif
 
@@ -141,12 +162,15 @@ public:
             char* dataBlock = __super::AllocZero(requestedBytes);
 
 #if DBG
-            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-            chunk->dataType = typeid(T).name();
-            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            if (JITManager::GetJITManager()->IsJITServer())
             {
-                Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+                chunk->dataType = typeid(T).name();
+                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                {
+                    Output::Print(_u("NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                }
             }
 #endif
 
@@ -161,22 +185,21 @@ public:
     template<typename T>
     class AllocatorT : public Allocator
     {
-#if DBG
-        __declspec(noinline) // compiler inline this function even in chk build... maybe because it's in .h file?
-#endif
         char* AddFixup(char* dataBlock)
         {
-            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-            chunk->fixupFunc = &Fixup;
-#if DBG
-            chunk->dataType = typeid(T).name();
-            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            if (isOOPJIT)
             {
-                Output::Print(_u("NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
-            }
+                DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+                chunk->fixupFunc = &Fixup;
+#if DBG
+                chunk->dataType = typeid(T).name();
+                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                {
+                    Output::Print(_u("NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                }
 #endif
-
+            }
             return dataBlock;
         }
 

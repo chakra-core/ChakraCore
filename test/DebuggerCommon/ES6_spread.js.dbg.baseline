@@ -2,6 +2,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "foo": "function <large string>",
@@ -24,6 +26,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "bar": "function <large string>",
       "foo": "function <large string>",

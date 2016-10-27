@@ -82,6 +82,7 @@ HELPERCALL(Op_TypeofElem_UInt32, Js::JavascriptOperators::TypeofElem_UInt32, 0)
 HELPERCALL(Op_TypeofElem_Int32, Js::JavascriptOperators::TypeofElem_Int32, 0)
 HELPERCALL(Op_TypeofPropertyScoped, Js::JavascriptOperators::OP_TypeofPropertyScoped, 0)
 HELPERCALL(Op_Rem_Double, Js::NumberUtilities::Modulus, 0)
+HELPERCALL(Throw_Unreachable, Js::JavascriptError::ThrowUnreachable, AttrCanThrow)
 
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Increment, Js::JavascriptMath::Increment, Js::SSE2::JavascriptMath::Increment, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Decrement, Js::JavascriptMath::Decrement, Js::SSE2::JavascriptMath::Decrement, AttrCanThrow)
@@ -95,7 +96,6 @@ HELPERCALL_FULL_OR_INPLACE_MATH(Op_Modulus, Js::JavascriptMath::Modulus, Js::SSE
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Multiply, Js::JavascriptMath::Multiply, Js::SSE2::JavascriptMath::Multiply, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Subtract, Js::JavascriptMath::Subtract, Js::SSE2::JavascriptMath::Subtract, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Exponentiation, Js::JavascriptMath::Exponentiation, Js::SSE2::JavascriptMath::Exponentiation, AttrCanThrow)
-
 
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_And, Js::JavascriptMath::And, Js::SSE2::JavascriptMath::And, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Or, Js::JavascriptMath::Or, Js::SSE2::JavascriptMath::Or, AttrCanThrow)
@@ -510,7 +510,6 @@ HELPERCALL(DirectMath_PowDoubleInt, (double(*)(double, int32))Js::JavascriptNumb
 HELPERCALL(DirectMath_Pow, (double(*)(double, double))Js::JavascriptNumber::DirectPow, 0)
 HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::JavascriptMath::Random, (double(*)(Js::ScriptContext*))Js::SSE2::JavascriptMath::Random, 0)
 
-
 //
 // Putting dllimport function ptr in JnHelperMethodAddresses will cause the table to be allocated in read-write memory
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
@@ -523,6 +522,13 @@ HELPERCALL(DirectMath_FloorDb, nullptr, 0)
 HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
 HELPERCALL(DirectMath_CeilDb, nullptr, 0)
 HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
+
+HELPERCALL(DirectMath_TruncDb, (double(*)(double)) Wasm::WasmMath::Trunc<double>, 0)
+HELPERCALL(DirectMath_TruncFlt, (float(*)(float)) Wasm::WasmMath::Trunc<float>, 0)
+HELPERCALL(DirectMath_NearestDb, (double(*)(double)) Wasm::WasmMath::Nearest<double>, 0)
+HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<float>, 0)
+
+HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
