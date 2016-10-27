@@ -59,8 +59,8 @@ typedef  BVUnit64 SparseBVUnit;
 
 struct BVSparseNode
 {
-    BVIndex         startIndex;
     BVSparseNode *  next;
+    BVIndex         startIndex;
     SparseBVUnit    data;
 
     BVSparseNode(BVIndex beginIndex, BVSparseNode * nextNode);

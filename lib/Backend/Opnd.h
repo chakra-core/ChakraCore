@@ -126,6 +126,7 @@ protected:
     {
 #if DBG
         isFakeDst = false;
+        isDeleted = false;
 #endif
         m_kind = (OpndKind)0;
     }
@@ -139,6 +140,7 @@ protected:
     {
 #if DBG
         isFakeDst = false;
+        isDeleted = false;
 #endif
         m_kind = oldOpnd.m_kind;
     }
@@ -288,11 +290,22 @@ protected:
     bool                isPropertySymOpnd : 1;
 public:
 #if DBG
-    bool                isFakeDst:1;
+    bool                isFakeDst : 1;
 #endif
     OpndKind            m_kind;
 
+#ifdef DBG
+public:
+    bool                isDeleted;
+#endif
 };
+
+// We will set isDeleted bit on a freed Opnd, this should not overlap with the next field of BVSparseNode
+// because BVSparseNode* are used to maintain freelist of memory of BVSparseNode size
+#if DBG
+CompileAssert(offsetof(Opnd, isDeleted) > offsetof(BVSparseNode, next) + sizeof(BVSparseNode*) ||
+              offsetof(Opnd, isDeleted) < offsetof(BVSparseNode, next) + sizeof(BVSparseNode*));
+#endif
 
 ///---------------------------------------------------------------------------
 ///

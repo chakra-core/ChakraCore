@@ -176,49 +176,67 @@ void Opnd::Free(Func *func)
     {
     case OpndKindIntConst:
         //NOTE: use to be Sealed do not do sub class checks like in CloneUse
-        return static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindInt64Const:
         return static_cast<Int64ConstOpnd*>(this)->FreeInternal(func);
 
     case OpndKindSimd128Const:
-        return static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindFloatConst:
-        return static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindHelperCall:
-        return static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindSym:
-        return static_cast<SymOpnd*>(this)->FreeInternal(func);
+        static_cast<SymOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindReg:
         if ((*static_cast<RegOpnd*>(this)).IsArrayRegOpnd())
         {
-            return static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            break;
         }
-        return static_cast<RegOpnd*>(this)->FreeInternal(func);
+        static_cast<RegOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindAddr:
-        return static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindIndir:
-        return static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindMemRef:
-        return static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindLabel:
-        return static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindRegBV:
-        return static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        break;
     default:
         Assert(UNREACHED);
         __assume(UNREACHED);
 
     };
+#if DBG
+    if (func->m_alloc->HasDelayFreeList())
+    {
+        this->isDeleted = true;
+    }
+#endif
 }
 
 /*
