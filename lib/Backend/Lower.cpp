@@ -1890,16 +1890,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(UNREACHED);
             }
             break;
+        case Js::OpCode::OverflowCheck:
+            instr->m_opcode = Js::OpCode::MOV;
+            break;
         case Js::OpCode::Conv_Prim:
         {
 
             IR::RegOpnd* src1 = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
             if (src1 && src1->m_sym->IsSingleDef() && src1->m_sym->GetInstrDef()->m_opcode == Js::OpCode::OverflowCheck)
             {
-                //TODO : overflow checks shouldn't be CSE'ed because of side effects.
-                //DbCheck if it's safe to remove mov?
-                src1->m_sym->GetInstrDef()->m_opcode = Js::OpCode::MOV;
-
                 GenerateTruncWithCheck(instr);
                 break;
             }
