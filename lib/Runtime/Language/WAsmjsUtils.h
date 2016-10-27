@@ -236,6 +236,7 @@ namespace WAsmJs
     struct TypedConstSourcesInfo
     {
         uint32 srcByteOffsets[WAsmJs::LIMIT];
+        uint32 bytesUsed;
     };
 
     struct TypedSlotInfo
@@ -271,7 +272,6 @@ namespace WAsmJs
 
         RegisterSpace* GetRegisterSpace(Types type) const;
     private:
-        uint32 GetTotalJsVarConstCount() const;
         bool IsValidType(Types type) const;
     };
 };

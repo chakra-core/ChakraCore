@@ -1470,45 +1470,42 @@ public:
         size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
-        uint32 intConstCount = function->GetAsmJsFunctionInfo()->GetIntConstCount();
-        uint32 floatConstCount = function->GetAsmJsFunctionInfo()->GetFloatConstCount();
-        uint32 doubleConstCount = function->GetAsmJsFunctionInfo()->GetDoubleConstCount();
         Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
-        // Todo:: Write the constant table by looping through WAsmJs::Types
-        CompileAssert(WAsmJs::INT32 == 0);
-        int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < intConstCount; ++reg)
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            PrependConstantInt32(builder, _u("Integer Constant Value"), intConstTable[reg]);
-        }
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            WAsmJs::TypedSlotInfo* typedInfo = function->GetAsmJsFunctionInfo()->GetTypedSlotInfo(type);
+            uint32 constCount = typedInfo->constCount;
+            if (constCount > FunctionBody::FirstRegSlot)
+            {
+                uint32 typeSize = WAsmJs::GetTypeByteSize(type);
+                byte* byteTable = ((byte*)constTable) + typedInfo->constSrcByteOffset;
+                byteTable += typeSize * FunctionBody::FirstRegSlot;
+                for (uint32 reg = FunctionBody::FirstRegSlot; reg < constCount; ++reg)
+                {
+                    switch (type)
+                    {
+                    case WAsmJs::INT32:   PrependConstantInt32(builder, _u("Integer Constant Value"), *(int*)byteTable); break;
+                    case WAsmJs::FLOAT32: PrependFloat(builder, _u("Float Constant Value"), *(float*)byteTable); break;
+                    case WAsmJs::FLOAT64: PrependDouble(builder, _u("Double Constant Value"), *(double*)byteTable); break;
+                    case WAsmJs::SIMD:    PrependSIMDValue(builder, _u("SIMD Constant Value"), *(AsmJsSIMDValue*)byteTable); break;
+                    CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
+                    default:
+                        Assert(UNREACHED);
+                        Js::Throw::FatalInternalError();
+                        break;
+                    }
+                    byteTable += typeSize;
+                }
 
-        CompileAssert(WAsmJs::INT64 == 1);
-        Assert(function->GetAsmJsFunctionInfo()->GetInt64ConstCount() == 0);
-
-        float * floatConstTable = reinterpret_cast<float *>(intConstTable + intConstCount);
-
-        CompileAssert(WAsmJs::FLOAT32 == 2);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < floatConstCount; ++reg)
-        {
-            PrependFloat(builder, _u("Float Constant Value"), floatConstTable[reg]);
-        }
-
-        double * doubleConstTable = reinterpret_cast<double *>(floatConstTable + floatConstCount);
-
-        CompileAssert(WAsmJs::FLOAT64 == 3);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < doubleConstCount; ++reg)
-        {
-            PrependDouble(builder, _u("Double Constant Value"), doubleConstTable[reg]);
-        }
-
-        uint32 simdConstCount = function->GetAsmJsFunctionInfo()->GetSimdConstCount();
-        AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
-
-        CompileAssert(WAsmJs::SIMD == 4);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < simdConstCount; ++reg)
-        {
-            PrependSIMDValue(builder, _u("SIMD Constant Value"), simdConstTable[reg]);
+                if (byteTable > tableEnd)
+                {
+                    Assert(UNREACHED);
+                    Js::Throw::FatalInternalError();
+                }
+            }
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -1825,7 +1822,7 @@ public:
         size += PrependByte(builder, _u("UsesHeapBuffer"), funcInfo->UsesHeapBuffer());
         for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
         {
-            char16* clue = nullptr;
+            const char16* clue = nullptr;
             switch (i)
             {
             case WAsmJs::INT32:   clue = _u("Int32TypedSlots"); break;
@@ -2811,45 +2808,46 @@ public:
 
         function->CreateConstantTable();
 
-        uint32 intConstCount = function->GetAsmJsFunctionInfo()->GetIntConstCount();
-        uint32 floatConstCount = function->GetAsmJsFunctionInfo()->GetFloatConstCount();
-        uint32 doubleConstCount = function->GetAsmJsFunctionInfo()->GetDoubleConstCount();
         Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
-        // Todo:: Read the constant table by looping through WAsmJs::Types
-        CompileAssert(WAsmJs::INT32 == 0);
-        int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < intConstCount; ++reg)
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            current = ReadConstantSizedInt32(current, &intConstTable[reg]);
-        }
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            WAsmJs::TypedSlotInfo* typedInfo = function->GetAsmJsFunctionInfo()->GetTypedSlotInfo(type);
+            uint32 constCount = typedInfo->constCount;
+            if (constCount > FunctionBody::FirstRegSlot)
+            {
+                uint32 typeSize = WAsmJs::GetTypeByteSize(type);
+                byte* byteTable = ((byte*)constTable) + typedInfo->constSrcByteOffset;
+                byteTable += typeSize * FunctionBody::FirstRegSlot;
 
-        CompileAssert(WAsmJs::INT64 == 1);
-        Assert(function->GetAsmJsFunctionInfo()->GetInt64ConstCount() == 0);
+                size_t remainingBytes = (raw + totalSize) - current;
+                for (uint32 reg = FunctionBody::FirstRegSlot; reg < constCount; ++reg)
+                {
+                    switch (type)
+                    {
+                    case WAsmJs::INT32:   ReadConstantSizedInt32(current, remainingBytes, (int*)byteTable); break;
+                    case WAsmJs::FLOAT32: ReadFloat(current, remainingBytes, (float*)byteTable); break;
+                    case WAsmJs::FLOAT64: ReadDouble(current, remainingBytes, (double*)byteTable); break;
+                    case WAsmJs::SIMD:    ReadSIMDValue(current, remainingBytes, (AsmJsSIMDValue*)byteTable); break;
+                        CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
+                    default:
+                        Assert(UNREACHED);
+                        Js::Throw::FatalInternalError();
+                        break;
+                    }
+                    current += typeSize;
+                    byteTable += typeSize;
+                    remainingBytes -= typeSize;
+                }
 
-        float * floatConstTable = reinterpret_cast<float *>(intConstTable + intConstCount);
-
-        CompileAssert(WAsmJs::FLOAT32 == 2);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < floatConstCount; ++reg)
-        {
-            current = ReadFloat(current, &floatConstTable[reg]);
-        }
-
-        CompileAssert(WAsmJs::FLOAT64 == 3);
-        double * doubleConstTable = reinterpret_cast<double *>(floatConstTable + floatConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < doubleConstCount; ++reg)
-        {
-            current = ReadDouble(current, &doubleConstTable[reg]);
-        }
-
-        uint32 simdConstCount = function->GetAsmJsFunctionInfo()->GetSimdConstCount();
-        AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
-
-        CompileAssert(WAsmJs::SIMD == 4);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < simdConstCount; ++reg)
-        {
-            current = ReadSIMDValue(current, &simdConstTable[reg]);
+                if (byteTable > tableEnd)
+                {
+                    Assert(UNREACHED);
+                    Js::Throw::FatalInternalError();
+                }
+            }
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS

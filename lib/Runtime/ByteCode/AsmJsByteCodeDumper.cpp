@@ -227,11 +227,11 @@ namespace Js
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
             WAsmJs::Types type = (WAsmJs::Types)i;
-            uint offset = constSrcInfos.srcByteOffsets[i];
-            if (offset > 0)
+            uint constCount = func->GetTypedRegisterAllocator().GetRegisterSpace(type)->GetConstCount();
+            if (constCount > 0)
             {
+                uint offset = constSrcInfos.srcByteOffsets[i];
                 byte* tableOffseted = table + offset;
-                uint constCount = func->GetTypedRegisterAllocator().GetRegisterSpace(type)->GetConstCount();
                 switch (type)
                 {
                 case WAsmJs::INT32:   PrintTypedConstants<int>(tableOffseted, type, constCount, [](int v) {Output::Print(_u("%d"), v);}); break;

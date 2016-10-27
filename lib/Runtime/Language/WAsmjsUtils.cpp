@@ -169,26 +169,6 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         }
     }
 
-    uint32 TypedRegisterAllocator::GetTotalJsVarConstCount() const
-    {
-        uint32 totalBytes = 0;
-        for (int i = 0; i < WAsmJs::LIMIT; ++i)
-        {
-            Types type = (Types)i;
-            if (!IsTypeExcluded(type))
-            {
-                RegisterSpace* registerSpace = GetRegisterSpace(type);
-                uint32 typeSize = GetTypeByteSize(type);
-                totalBytes = Math::AlignOverflowCheck(totalBytes, typeSize);
-                uint32 count = registerSpace->GetConstCount();
-                uint32 typeConstBytes = UInt32Math::Mul(count, typeSize);
-                totalBytes = UInt32Math::Add(totalBytes, typeConstBytes);
-            }
-        }
-        uint32 totalVars = ConvertToJsVarOffset<byte>(totalBytes);
-        return UInt32Math::Add(Js::AsmJsFunctionMemory::RequiredVarConstants, totalVars);
-    }
-
     void TypedRegisterAllocator::CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, Js::FunctionBody* body) const
     {
         uint32 offset = Js::AsmJsFunctionMemory::RequiredVarConstants * sizeof(Js::Var);
@@ -248,20 +228,27 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
 
         // These bytes offset already calculated the alignment, used them to determine how many Js::Var we need to do the allocation
         uint32 stackByteSize = offset;
-        uint32 jsVarNeededForConsts = GetTotalJsVarConstCount();
-        Assert(stackByteSize >= jsVarNeededForConsts * sizeof(Js::Var));
-        // The vars need to compensate the possible alignment done, so instead of counting how many vars we have
-        // We substract the number of const from the total size needed
-        uint32 jsVarNeededForVars = ConvertToJsVarOffset<byte>(stackByteSize) - jsVarNeededForConsts;
-        Assert((jsVarNeededForConsts + jsVarNeededForVars) * sizeof(Js::Var) >= stackByteSize);
+        uint32 bytesUsedForConst = constSourcesInfo.bytesUsed;
+        uint32 jsVarUsedForConstsTable = ConvertToJsVarOffset<byte>(bytesUsedForConst);
+        uint32 totalVarsNeeded = ConvertToJsVarOffset<byte>(stackByteSize);
+
+        uint32 jsVarNeededForVars = totalVarsNeeded - jsVarUsedForConstsTable;
+        if (totalVarsNeeded < jsVarUsedForConstsTable)
+        {
+            // If for some reason we allocated more space in the const table than what we need, just don't allocate anymore vars
+            jsVarNeededForVars = 0;
+        }
+
+        Assert((jsVarUsedForConstsTable + jsVarNeededForVars) >= totalVarsNeeded);
         body->CheckAndSetVarCount(jsVarNeededForVars);
 
 #if DBG_DUMP
         if (PHASE_TRACE(Js::AsmjsInterpreterStackPhase, body))
         {
-            Output::Print(_u("Total memory required: (%d consts + %d vars) * sizeof(Js::Var) >= 0x%x bytes\n"),
-                          jsVarNeededForConsts,
+            Output::Print(_u("Total memory required: (%u consts + %u vars) * sizeof(Js::Var) >= %u * sizeof(Js::Var) = 0x%x bytes\n"),
+                          jsVarUsedForConstsTable,
                           jsVarNeededForVars,
+                          totalVarsNeeded,
                           stackByteSize);
         }
 #endif
@@ -270,7 +257,9 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
     void TypedRegisterAllocator::CommitToFunctionBody(Js::FunctionBody* body)
     {
         // this value is the number of Var slots needed to allocate all the const
-        const uint32 nbConst = GetTotalJsVarConstCount();
+        uint32 bytesUsedForConst = GetConstSourceInfos().bytesUsed;
+        // Add the registers not included in the const table
+        uint32 nbConst = ConvertToJsVarOffset<byte>(bytesUsedForConst) + Js::FunctionBody::FirstRegSlot;
         body->CheckAndSetConstantCount(nbConst);
     }
 
@@ -285,14 +274,18 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
             if (!IsTypeExcluded(type))
             {
                 infos.srcByteOffsets[i] = offset;
-                uint32 typeBytesUsage = ConvertOffset<byte>(GetRegisterSpace(type)->GetConstCount(), GetTypeByteSize(type));
+                uint32 typeSize = GetTypeByteSize(type);
+                uint32 constCount = GetRegisterSpace(type)->GetConstCount();
+                uint32 typeBytesUsage = ConvertOffset<byte>(constCount, typeSize);
+                offset = Math::AlignOverflowCheck(offset, typeSize);
                 offset = UInt32Math::Add(offset, typeBytesUsage);
             }
             else
             {
-                infos.srcByteOffsets[i] = 0;
+                infos.srcByteOffsets[i] = (uint32)Js::Constants::InvalidOffset;
             }
         }
+        infos.bytesUsed = offset;
         return infos;
     }
 

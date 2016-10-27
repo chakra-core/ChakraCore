@@ -112,7 +112,7 @@ namespace Js
         return pnodeBlock->sxBlock.scope != nullptr && ( !( pnodeBlock->grfpn & fpnSyntheticNode ) );
     }
 
-    template<typename T> void AsmJSByteCodeGenerator::SetConstsToTable(byte* byteTable, T zeroValue)
+    template<typename T> byte* AsmJSByteCodeGenerator::SetConstsToTable(byte* byteTable, T zeroValue)
     {
         T* typedTable = (T*)byteTable;
         // Return Register
@@ -126,6 +126,7 @@ namespace Js
             *typedTable = it.Current().Key();
             typedTable++;
         }
+        return (byte*)typedTable;
     }
 
     // copy all constants from reg spaces to function body.
@@ -134,6 +135,7 @@ namespace Js
         FunctionBody *funcBody = mFunction->GetFuncBody();
         funcBody->CreateConstantTable();
         Var* table = funcBody->GetConstTable();
+        byte* tableEnd = (byte*)(table + funcBody->GetConstantCount());
 
         WAsmJs::TypedConstSourcesInfo constSourcesInfo = mFunction->GetTypedRegisterAllocator().GetConstSourceInfos();
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
@@ -141,23 +143,28 @@ namespace Js
             WAsmJs::Types type = (WAsmJs::Types)i;
             uint32 srcByteOffset = constSourcesInfo.srcByteOffsets[i];
             byte* byteTable = ((byte*)table) + srcByteOffset;
-            if (srcByteOffset > 0)
+            if (srcByteOffset != Js::Constants::InvalidOffset)
             {
                 switch (type)
                 {
-                case WAsmJs::INT32: SetConstsToTable<int>(byteTable, 0); break;
-                case WAsmJs::FLOAT32: SetConstsToTable<float>(byteTable, 0); break;
-                case WAsmJs::FLOAT64: SetConstsToTable<double>(byteTable, 0); break;
+                case WAsmJs::INT32: byteTable = SetConstsToTable<int>(byteTable, 0); break;
+                case WAsmJs::FLOAT32: byteTable = SetConstsToTable<float>(byteTable, 0); break;
+                case WAsmJs::FLOAT64: byteTable = SetConstsToTable<double>(byteTable, 0); break;
                 case WAsmJs::SIMD:
                 {
                     AsmJsSIMDValue zeroValue;
                     zeroValue.f64[0] = 0; zeroValue.f64[1] = 0;
-                    SetConstsToTable<AsmJsSIMDValue>(byteTable, zeroValue);
+                    byteTable = SetConstsToTable<AsmJsSIMDValue>(byteTable, zeroValue);
                     break;
                 }
                 default:
                     Assert(false);
                     break;
+                }
+                if (byteTable > tableEnd)
+                {
+                    Assert(UNREACHED);
+                    Js::Throw::FatalInternalError();
                 }
             }
         }

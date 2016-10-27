@@ -555,7 +555,7 @@ namespace Js
         // Constructor
         AsmJsRegisterSpace( ArenaAllocator* allocator ) :
             // reserves 1 location for return
-            WAsmJs::RegisterSpace(1),
+            WAsmJs::RegisterSpace(Js::FunctionBody::FirstRegSlot),
             mConstMap( allocator )
         {
         }

@@ -2966,8 +2966,9 @@ namespace Js
             // Make sure slots are aligned for this type
             Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
             byte* source = constTable + typeInfo->constSrcByteOffset;
-            if (destination != source)
+            if (typeInfo->constCount > 0 && source != destination)
             {
+                Assert(typeInfo->constSrcByteOffset != Js::Constants::InvalidOffset);
                 uint constByteSize = typeInfo->constCount * WAsmJs::GetTypeByteSize(type);
                 memcpy_s(destination, constByteSize, source, constByteSize);
             }
