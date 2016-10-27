@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -42,6 +42,8 @@ namespace Js
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
         static const double     ONE_POINT_ZERO;
+        static const double     DOUBLE_INT_MIN;
+        static const double     DOUBLE_TWO_TO_31;
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];
