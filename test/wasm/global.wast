@@ -13,6 +13,13 @@
   (global $e (export "e") i32 (get_global $x))
   (global $f (export "f") i32 (i32.const 18))
 
+  ;;BugFix: Global offsets
+  (type (func))
+  (table 10 anyfunc)
+  (elem (i32.const 1)  $g1)
+  (func $g1 (result i32) (i32.const 15))
+  ;;BugFix check end
+  
   (func (export "get-a") (result i32) (get_global $a))
   (func (export "get-x") (result i32) (get_global $x))
   (func (export "get-y") (result f32) (get_global $y))
