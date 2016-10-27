@@ -137,12 +137,8 @@ namespace Wasm
         EmitInfo EmitBrIf();
 
         EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
-
-        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
-        EmitInfo EmitBinExpr();
-
-        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
-        EmitInfo EmitUnaryExpr();
+        EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
 
         template<WasmTypes::WasmType type>
         EmitInfo EmitConst();
