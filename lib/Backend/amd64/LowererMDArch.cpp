@@ -1177,6 +1177,28 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
         Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, loadLabel);
         done = doneLabel;
     }
+    else if (instr->m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
+        IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
+        IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
+
+        // Find array buffer length
+        IR::RegOpnd * baseOpnd = src1->AsIndirOpnd()->GetBaseOpnd();
+        Assert(baseOpnd->m_sym->IsSingleDef());
+        IR::Instr *defInstr = baseOpnd->m_sym->m_instrDef;
+        IR::RegOpnd *arrayBuffer = defInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
+        IR::Opnd *srcOpnd = IR::IndirOpnd::New(arrayBuffer, Js::ArrayBuffer::GetByteLengthOffset(), TyMachReg, m_func);
+        IR::RegOpnd *arrayLenOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+
+        // Compare index and array buffer length, and generate RuntimeError if greater
+        Lowerer::InsertMove(arrayLenOpnd, srcOpnd, helperLabel);
+        lowererMD->m_lowerer->InsertCompareBranch(indexOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        // MGTODO : call RuntimeError once implemented
+        lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
+        done = doneLabel;
+    }
     else
     {
         Assert(!instr->GetSrc2());
@@ -1240,6 +1262,28 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
         }
 
         Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, storeLabel);
+        done = doneLabel;
+    }
+    else if (instr->m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
+        IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
+        IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
+
+          // Find array buffer length
+        IR::RegOpnd * baseOpnd = dst->AsIndirOpnd()->GetBaseOpnd();
+        Assert(baseOpnd->m_sym->IsSingleDef());
+        IR::Instr *defInstr = baseOpnd->m_sym->m_instrDef;
+        IR::RegOpnd *arrayBuffer = defInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
+        IR::Opnd *srcOpnd = IR::IndirOpnd::New(arrayBuffer, Js::ArrayBuffer::GetByteLengthOffset(), TyMachReg, m_func);
+        IR::RegOpnd *arrayLenOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+
+        // Compare index and array buffer length, and generate RuntimeError if greater
+        Lowerer::InsertMove(arrayLenOpnd, srcOpnd, helperLabel);
+        lowererMD->m_lowerer->InsertCompareBranch(indexOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        // MGTODO : call RuntimeError once implemented
+        lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+        Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
         done = doneLabel;
     }
     else
