@@ -338,9 +338,11 @@ WasmBytecodeGenerator::GenerateFunction()
         m_writer.MarkAsmJsLabel(exitLabel);
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Ret);
         m_writer.End();
+        GetReader()->FunctionEnd();
     }
     catch (...)
     {
+        GetReader()->FunctionEnd();
         m_writer.Reset();
         throw;
     }
