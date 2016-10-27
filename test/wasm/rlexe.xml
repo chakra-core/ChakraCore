@@ -67,4 +67,11 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>array.js</files>
+       <baseline>array.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>

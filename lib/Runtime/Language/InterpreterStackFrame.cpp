@@ -8342,6 +8342,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        if (index >= arr->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+        }
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
@@ -8363,6 +8368,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        if (index >= arr->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+        }
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
