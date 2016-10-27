@@ -8210,11 +8210,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             *(T2*)(buffer + index) = (T2)GetRegRaw<T2>(value);
             return;
         }
-        if (this->m_functionBody->IsWasmFunction())
-        {
-            //MGTODO : Change this to throw WebAssembly.RuntimeError once implemented
-            Js::Throw::FatalInternalError();
-        }
     }
 #endif
 
@@ -8247,21 +8242,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
-
-        if (index < (arr->GetByteLength()))
-        {
-            T2 val = *(T2*)(buffer + index);
-            SetRegRaw<T2>(value, val);
-            return;
-        }
-        if (!this->m_functionBody->IsWasmFunction())
-        {
-            T2 val = GetArrayViewOverflowVal<T2>();
-            SetRegRaw<T2>(value, val);
-            return;
-        }
-        //MGTODO : Change this to throw WebAssembly.RuntimeError once implemented
-        Js::Throw::FatalInternalError();
+        T2 val = index < (arr->GetByteLength()) ? *(T2*)(buffer + index) : GetArrayViewOverflowVal<T2>();
+        SetRegRaw<T2>(value, val);
     }
 #endif
 
@@ -8297,6 +8279,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < 8);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        if (index >= arr->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+        }
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
@@ -8318,6 +8305,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Assert(playout->ViewType < 8);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        if (index >= arr->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+        }
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
