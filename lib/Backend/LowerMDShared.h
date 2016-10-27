@@ -104,6 +104,7 @@ public:
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
             IR::Instr *     LowerLdSuper(IR::Instr *instr, IR::JnHelperMethod helperOpCode);
             IR::Instr *     LowerNewScObject(IR::Instr *newObjInstr);
+            IR::Instr *     LowerWasmMemOp(IR::Instr *instr, IR::Opnd *addrOpnd);
             void            ForceDstToReg(IR::Instr *instr);
 
 public:

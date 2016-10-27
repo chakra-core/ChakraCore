@@ -8838,7 +8838,9 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 
         Assert(!dst->IsFloat32() || src1->IsFloat32());
         Assert(!dst->IsFloat64() || src1->IsFloat64());
-        done = m_lowererMD.LowerAsmJsLdElemHelper(instr);
+        done = instr->m_func->GetJITFunctionBody()->IsWasmFunction() ?
+               m_lowererMD.LowerWasmMemOp(instr, src1) :
+               m_lowererMD.LowerAsmJsLdElemHelper(instr);
     }
     else
     {
@@ -9055,8 +9057,9 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
         // $store:
         // MOV dst([arrayBuffer + indexOpnd]), src1
         // $done:
-
-        done = m_lowererMD.LowerAsmJsStElemHelper(instr);
+        done = instr->m_func->GetJITFunctionBody()->IsWasmFunction() ?
+                 m_lowererMD.LowerWasmMemOp(instr, dst) :
+                 m_lowererMD.LowerAsmJsStElemHelper(instr);
     }
     else
     {
