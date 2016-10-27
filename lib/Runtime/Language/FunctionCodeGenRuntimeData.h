@@ -36,7 +36,7 @@ namespace Js
     public:
         FunctionBody *GetFunctionBody() const;
         FunctionCodeGenRuntimeData *GetNext() const { return next; };
-        FunctionCodeGenRuntimeData *GetNextForTarget(FunctionBody *targetFuncBody) const;
+        const FunctionCodeGenRuntimeData *GetForTarget(FunctionBody *targetFuncBody) const;
         const InlineCachePointerArray<InlineCache> *ClonedInlineCaches() const;
         InlineCachePointerArray<InlineCache> *ClonedInlineCaches();
 

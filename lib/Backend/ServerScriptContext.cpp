@@ -4,11 +4,27 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#if ENABLE_OOP_NATIVE_CODEGEN
+#include "JITServer/JITServer.h"
+#endif
+
+
+ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo) : threadContextInfo(threadContextInfo)
+{
+    threadContextInfo->AddRef();
+}
+ServerScriptContext::ThreadContextHolder::~ThreadContextHolder()
+{
+    threadContextInfo->Release();
+}
 
 ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, ServerThreadContext* threadContextInfo) :
     m_contextData(*contextData),
-    threadContextInfo(threadContextInfo),
+    threadContextHolder(threadContextInfo),
     m_isPRNGSeeded(false),
+    m_interpreterThunkBufferManager(nullptr),
+    m_asmJsInterpreterThunkBufferManager(nullptr),
+    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -24,11 +40,35 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
         m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
     }
 #endif
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
+    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
+#endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 
 ServerScriptContext::~ServerScriptContext()
 {
+    HeapDelete(m_domFastPathHelperMap);
+    m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
+    {
+        HeapDelete(record);
+    });
+
+#ifdef PROFILE_EXEC
+    if (m_codeGenProfiler)
+    {
+        HeapDelete(m_codeGenProfiler);
+    }
+#endif
+    if (m_asmJsInterpreterThunkBufferManager)
+    {
+        HeapDelete(m_asmJsInterpreterThunkBufferManager);
+    }
+    if (m_interpreterThunkBufferManager)
+    {
+        HeapDelete(m_interpreterThunkBufferManager);
+    }
 }
 
 intptr_t
@@ -178,8 +218,6 @@ ServerScriptContext::GetGlobalObjectThisAddr() const
 void
 ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
 {
-    // this should stay constant once context initialization is complete
-    Assert(!m_globalThisAddr || m_globalThisAddr == globalThis);
     m_globalThisAddr = globalThis;
 }
 
@@ -244,6 +282,30 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+intptr_t
+ServerScriptContext::GetDebuggingFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debuggingFlagsAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugStepTypeAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugStepTypeAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugFrameAddressAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugFrameAddressAddr);
+}
+
+intptr_t
+ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
+{
+    return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
+}
+
 bool
 ServerScriptContext::IsClosed() const
 {
@@ -254,6 +316,35 @@ void
 ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
     m_domFastPathHelperMap->Add(funcInfoAddr, helper);
+}
+
+ArenaAllocator *
+ServerScriptContext::GetSourceCodeArena()
+{
+    return &m_sourceCodeArena;
+}
+
+void
+ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
+{
+    EmitBufferManager<> * manager = GetEmitBufferManager(asmJsManager);
+    if (manager != nullptr)
+    {
+        manager->Decommit();
+    }
+}
+
+EmitBufferManager<> *
+ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
+{
+    if (asmJsManager)
+    {
+        return m_asmJsInterpreterThunkBufferManager;
+    }
+    else
+    {
+        return m_interpreterThunkBufferManager;
+    }
 }
 
 IR::JnHelperMethod
@@ -274,8 +365,9 @@ ServerScriptContext::Close()
 {
     Assert(!IsClosed());
     m_isClosed = true;
+    
 #ifdef STACK_BACK_TRACE
-    closingStack = StackBackTrace::Capture(&NoThrowHeapAllocator::Instance);
+    ServerContextManager::RecordCloseContext(this);
 #endif
 }
 
@@ -291,23 +383,9 @@ ServerScriptContext::Release()
     InterlockedExchangeSubtract(&m_refCount, 1u);
     if (m_isClosed && m_refCount == 0)
     {
-        HeapDelete(m_domFastPathHelperMap);
-        m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
-        {
-            HeapDelete(record);
-        });
-
-#ifdef PROFILE_EXEC
-        if (m_codeGenProfiler)
-        {
-            HeapDelete(m_codeGenProfiler);
-        }
-#endif
-
-        // OOP JIT TODO: fix leak in chk build after the issue that script context closed prematurely is identified
-#ifndef STACK_BACK_TRACE
-        HeapDelete(this);
-#endif
+        // Not freeing here, we'll expect explicit ServerCleanupScriptContext() call to do the free
+        // otherwise after free, the CodeGen call can still get same scriptContext if there's another 
+        // ServerInitializeScriptContext call
     }
 }
 

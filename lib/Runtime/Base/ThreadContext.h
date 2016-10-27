@@ -204,11 +204,13 @@ public:
 #endif
 #endif
 
+#ifdef NTBUILD
 struct ThreadContextWatsonTelemetryBlock
 {
     FILETIME lastScriptStartTime;
     FILETIME lastScriptEndTime;
 };
+#endif
 
 class NativeLibraryEntryRecord
 {
@@ -385,7 +387,9 @@ public:
     void SetHeapEnum(IActiveScriptProfilerHeapEnum* newHeapEnum);
     void ClearHeapEnum();
 
-    virtual Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId) override;
+    Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId);
+
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) override;
 
 #ifdef ENABLE_BASIC_TELEMETRY
     Js::LanguageStats* GetLanguageStats()
@@ -482,7 +486,7 @@ private:
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyMap * m_pendingJITProperties;
+    PropertyList * m_pendingJITProperties;
     PropertyList  * m_reclaimedJITProperties;
 public:
 
@@ -491,7 +495,7 @@ public:
         return m_reclaimedJITProperties;
     }
 
-    PropertyMap * GetPendingJITProperties() const
+    PropertyList * GetPendingJITProperties() const
     {
         return m_pendingJITProperties;
     }
@@ -781,8 +785,10 @@ private:
     typedef JsUtil::BaseDictionary<Js::DynamicType const *, void *, HeapAllocator, PowerOf2SizePolicy> DynamicObjectEnumeratorCacheMap;
     DynamicObjectEnumeratorCacheMap dynamicObjectEnumeratorCacheMap;
 
+#ifdef NTBUILD
     ThreadContextWatsonTelemetryBlock localTelemetryBlock;
     ThreadContextWatsonTelemetryBlock * telemetryBlock;
+#endif
 
     NativeLibraryEntryRecord nativeLibraryEntry;
 
@@ -983,15 +989,15 @@ public:
     void ShutdownThreads()
     {
 #if ENABLE_NATIVE_CODEGEN
+        if (jobProcessor)
+        {
+            jobProcessor->Close();
+        }
+
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
         {
             JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
             m_remoteThreadContextInfo = 0;
-        }
-
-        if (jobProcessor)
-        {
-            jobProcessor->Close();
         }
 #endif
 #if ENABLE_CONCURRENT_GC
@@ -1001,8 +1007,6 @@ public:
         }
 #endif
     }
-
-
 
     DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
@@ -1014,7 +1018,9 @@ public:
     ThreadConfiguration const * GetConfig() const { return &configuration; }
 
 public:
+#ifdef NTBUILD
     void SetTelemetryBlock(ThreadContextWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
+#endif
 
     static ThreadContext* GetContextForCurrentThread();
 
@@ -1215,11 +1221,6 @@ public:
 
     virtual intptr_t GetDisableImplicitFlagsAddr() const override;
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
-
-    virtual intptr_t GetDebuggingFlagsAddr() const override;
-    virtual intptr_t GetDebugStepTypeAddr() const override;
-    virtual intptr_t GetDebugFrameAddressAddr() const override;
-    virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
     ptrdiff_t GetChakraBaseAddressDifference() const;
     ptrdiff_t GetCRTBaseAddressDifference() const;

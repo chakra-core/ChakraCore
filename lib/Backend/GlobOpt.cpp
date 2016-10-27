@@ -254,6 +254,8 @@ GlobOpt::GlobOpt(Func * func)
     doPowIntIntTypeSpec(
         doAggressiveIntTypeSpec &&
         (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsPowIntIntTypeSpecDisabled())),
+    doTagChecks(
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTagCheckDisabled())),
     isAsmJSFunc(func->GetJITFunctionBody()->IsAsmJsMode())
 {
 }
@@ -936,9 +938,10 @@ GlobOpt::TryTailDup(IR::BranchInstr *tailBranch)
             {
                 branchEntry->InsertBefore(instr->Copy());
             }
-            branchEntry->ReplaceTarget(mergeLabel, tailBranch->GetTarget());
 
             instr = branchEntry;
+            branchEntry->ReplaceTarget(mergeLabel, tailBranch->GetTarget());
+
             while(!instr->IsLabelInstr())
             {
                 instr = instr->m_prev;
@@ -5234,7 +5237,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 bool
 GlobOpt::OptTagChecks(IR::Instr *instr)
 {
-    if (PHASE_OFF(Js::OptTagChecksPhase, this->func))
+    if (PHASE_OFF(Js::OptTagChecksPhase, this->func) || !this->DoTagChecks())
     {
         return false;
     }
@@ -9528,6 +9531,20 @@ GlobOpt::OptConstFoldUnary(
             value = 32;
         }
         instr->ClearBailOutInfo();
+        break;
+
+    case Js::OpCode::Ctz:
+        Assert(func->GetJITFunctionBody()->IsWasmFunction());
+        Assert(!instr->HasBailOutInfo());
+        DWORD ctz;
+        if (_BitScanForward(&ctz, intConstantValue))
+        {
+            value = ctz;
+        }
+        else
+        {
+            value = 32;
+        }
         break;
 
     case Js::OpCode::InlineMathFloor:
@@ -19937,6 +19954,12 @@ GlobOpt::DoPowIntIntTypeSpec() const
 }
 
 bool
+GlobOpt::DoTagChecks() const
+{
+    return doTagChecks;
+}
+
+bool
 GlobOpt::TrackArgumentsObject()
 {
     if (PHASE_OFF(Js::StackArgOptPhase, this->func))
@@ -21035,7 +21058,7 @@ GlobOpt::GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opn
                     const Js::PropertyId propertyId = propertySymOpnd->m_sym->AsPropertySym()->m_propertyId;
 
                     // We don't need to track numeric properties init
-                    if (!this->func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->IsNumeric())
+                    if (!this->func->GetThreadContextInfo()->IsNumericProperty(propertyId))
                     {
                         DebugOnly(bool found = false);
                         globOptData.stackLiteralInitFldDataMap->RemoveIf(stackSym,

@@ -37,7 +37,7 @@ JITManager::JITManager() :
 
 JITManager::~JITManager()
 {
-    if(m_targetHandle)
+    if (m_targetHandle)
     {
         CleanupProcess();
     }
@@ -255,17 +255,20 @@ HRESULT
 JITManager::CleanupProcess()
 {
     Assert(JITManager::IsOOPJITEnabled());
+    Assert(m_targetHandle != nullptr);
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
         hr = ClientCleanupProcess(m_rpcBindingHandle, (intptr_t)m_targetHandle);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
     RpcEndExcept;
+
+    m_targetHandle = nullptr;
 
     return hr;
 }
@@ -273,18 +276,25 @@ JITManager::CleanupProcess()
 HRESULT
 JITManager::Shutdown()
 {
+    // this is special case of shutdown called when runtime process is a parent of the server process
+    // used for console host type scenarios
     HRESULT hr = S_OK;
     Assert(IsOOPJITEnabled());
+    Assert(m_rpcBindingHandle != nullptr);
+
+    CleanupProcess();
 
     RpcTryExcept
     {
         ClientShutdown(m_rpcBindingHandle);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
     RpcEndExcept;
+
+    m_rpcBindingHandle = nullptr;
 
     return hr;
 }
@@ -302,7 +312,7 @@ JITManager::InitializeThreadContext(
     {
         hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -322,7 +332,7 @@ JITManager::CleanupThreadContext(
     {
         hr = ClientCleanupThreadContext(m_rpcBindingHandle, threadContextInfoAddress);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -344,7 +354,7 @@ JITManager::AddDOMFastPathHelper(
     {
         hr = ClientAddDOMFastPathHelper(m_rpcBindingHandle, scriptContextInfoAddress, funcInfoAddr, helper);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -363,7 +373,7 @@ JITManager::SetIsPRNGSeeded(
     {
         hr = ClientSetIsPRNGSeeded(m_rpcBindingHandle, scriptContextInfoAddress, value);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -371,6 +381,49 @@ JITManager::SetIsPRNGSeeded(
 
     return hr;
 
+}
+
+HRESULT
+JITManager::DecommitInterpreterBufferManager(
+    __in intptr_t scriptContextInfoAddress,
+    __in boolean asmJsThunk)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientDecommitInterpreterBufferManager(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk);
+    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
+JITManager::NewInterpreterThunkBlock(
+    __in intptr_t scriptContextInfoAddress,
+    __in boolean asmJsThunk,
+    __out InterpreterThunkInfoIDL * thunkInfo)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk, thunkInfo);
+    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
 }
 
 HRESULT 
@@ -386,7 +439,7 @@ JITManager::AddModuleRecordInfo(
     {
         hr = ClientAddModuleRecordInfo(m_rpcBindingHandle, scriptContextInfoAddress, moduleId, localExportSlotsAddr);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -409,7 +462,7 @@ JITManager::SetWellKnownHostTypeId(
     {
         hr = ClientSetWellKnownHostTypeId(m_rpcBindingHandle, threadContextRoot, typeId);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -431,7 +484,7 @@ JITManager::UpdatePropertyRecordMap(
     {
         hr = ClientUpdatePropertyRecordMap(m_rpcBindingHandle, threadContextInfoAddress, updatedProps);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -453,7 +506,7 @@ JITManager::InitializeScriptContext(
     {
         hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, threadContextInfoAddress, scriptContextInfoAddress);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -473,7 +526,7 @@ JITManager::CleanupScriptContext(
     {
         hr = ClientCleanupScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -493,7 +546,7 @@ JITManager::CloseScriptContext(
     {
         hr = ClientCloseScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -514,6 +567,30 @@ JITManager::FreeAllocation(
     {
         hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, address);
     }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+#if DBG
+HRESULT
+JITManager::IsInterpreterThunkAddr(
+    __in intptr_t scriptContextInfoAddress,
+    __in intptr_t address,
+    __in boolean asmjsThunk,
+    __out boolean * result)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientIsInterpreterThunkAddr(m_rpcBindingHandle, scriptContextInfoAddress, address, asmjsThunk, result);
+    }
         RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
@@ -522,6 +599,7 @@ JITManager::FreeAllocation(
 
     return hr;
 }
+#endif
 
 HRESULT
 JITManager::IsNativeAddr(
@@ -536,7 +614,7 @@ JITManager::IsNativeAddr(
     {
         hr = ClientIsNativeAddr(m_rpcBindingHandle, threadContextInfoAddress, address, result);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }
@@ -558,7 +636,7 @@ JITManager::RemoteCodeGenCall(
     {
         hr = ClientRemoteCodeGen(m_rpcBindingHandle, scriptContextInfoAddress, workItemData, jitData);
     }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         hr = HRESULT_FROM_WIN32(RpcExceptionCode());
     }

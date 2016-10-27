@@ -117,6 +117,8 @@ namespace Js
 
         void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
         Var * GetModuleMemory() const { return m_moduleMemory; }
+        Js::JavascriptError * GetLazyError() const { return m_lazyError; }
+        void SetLazyError(Js::JavascriptError * val) { m_lazyError = val; }
 
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
     protected:
@@ -126,6 +128,7 @@ namespace Js
 
     private:
         Var * m_moduleMemory;
+        JavascriptError * m_lazyError;
     };
 
     class ScriptFunctionWithInlineCache : public ScriptFunction

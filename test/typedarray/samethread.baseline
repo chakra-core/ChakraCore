@@ -21003,6 +21003,8 @@ undefined
 Start same thread different engine test on file dataview.js
 property of global: print
 
+property of global: read
+property of global: readbuffer
 property of global: printDataView
 exception is -2146823281Unable to get property 'toString' of undefined or null reference
 property of global: GetResult
@@ -21934,6 +21936,8 @@ undefined
 Start same thread different engine test on file int8array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '5' of undefined or null reference
 property of global: test1
@@ -23019,6 +23023,8 @@ undefined
 Start same thread different engine test on file uint8array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -23986,6 +23992,8 @@ undefined
 Start same thread different engine test on file int16array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -24925,6 +24933,8 @@ undefined
 Start same thread different engine test on file uint16array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -25850,6 +25860,8 @@ byteLength = 28
 Start same thread different engine test on file int32array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -26728,6 +26740,8 @@ undefined
 Start same thread different engine test on file uint32array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -27604,6 +27618,8 @@ undefined
 Start same thread different engine test on file float32array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1
@@ -28446,6 +28462,8 @@ undefined
 Start same thread different engine test on file float64array.js
 property of global: print
 undefined
+property of global: read
+property of global: readbuffer
 property of global: oneTest
 exception is -2146823281Unable to set property '1' of undefined or null reference
 property of global: test1

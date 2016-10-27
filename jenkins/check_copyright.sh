@@ -26,6 +26,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.txt$' |
     grep -v -E '\.baseline$' |
     grep -v -E '\.sln$' |
+    grep -v -E '\.wasm$' |
     grep -v -E '\.vcxproj$' |
     grep -v -E '\.filters$' |
     grep -v -E '\.targets$' |
@@ -33,11 +34,14 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
     grep -v -E '\.cmake$' |
+    grep -v -E '\.json$' |
+    grep -v -E 'test/WasmSpec/testsuite/.*$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
     grep -v -E 'bin/External/.*$' |
     grep -v -E 'bin/NativeTests/Scripts/splay.js$' |
     grep -v -E 'pal/.*' |
     grep -v -E 'libChakraCoreLib.version|ch.version' |
+    grep -v -E 'lib/Backend/CRC.h' |
     xargs -I % sh -c "echo 'Check Copyright > Checking %'; python jenkins/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"
 
 rm -f $ERRFILETEMP

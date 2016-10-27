@@ -1,0 +1,3 @@
+Unexpected Error while compiling import-after-memory.fail.0.wasm
+Error: Compiling wasm failed: Import global . (0) isn't a valid javascript number
+0/0 tests passed.

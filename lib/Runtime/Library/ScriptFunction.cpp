@@ -626,11 +626,11 @@ namespace Js
 #endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
+        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr), m_lazyError(nullptr)
     {}
 
     AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleMemory(nullptr)
+        ScriptFunction(type), m_moduleMemory(nullptr), m_lazyError(nullptr)
     {}
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :

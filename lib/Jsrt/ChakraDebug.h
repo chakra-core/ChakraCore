@@ -551,7 +551,7 @@ typedef __int64 int64_t;
     /// <summary>
     ///     Evaluates an expression on given frame.
     /// </summary>
-    /// <param name="expression">Expression to evaluate.</param>
+    /// <param name="expression">A null-terminated expression to evaluate.</param>
     /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the expression.</param>
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
@@ -587,7 +587,7 @@ typedef __int64 int64_t;
     /// </remarks>
     CHAKRA_API
         JsDiagEvaluate(
-            _In_ const wchar_t *expression,
+            _In_z_ const wchar_t *expression,
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
 
@@ -596,7 +596,7 @@ typedef __int64 int64_t;
     /// <summary>
     ///     Evaluates an expression on given frame.
     /// </summary>
-    /// <param name="expression">Expression to evaluate.</param>
+    /// <param name="expression">A null-terminated expression to evaluate.</param>
     /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the expression.</param>
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
@@ -631,7 +631,7 @@ typedef __int64 int64_t;
     ///     The current runtime should be in debug state. This API can only be called when runtime is at a break.
     /// </remarks>
     CHAKRA_API JsDiagEvaluateUtf8(
-        _In_ const char *expression,
+        _In_z_ const char *expression,
         _In_ unsigned int stackFrameIndex,
         _Out_ JsValueRef *evalResult);
 

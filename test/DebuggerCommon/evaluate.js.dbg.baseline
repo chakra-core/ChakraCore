@@ -108,6 +108,8 @@
     "evaluate": {
       "  this  ": {
         "telemetryLog": "function function telemetryLog() { [native code] }",
+        "read": "function read",
+        "readbuffer": "function readbuffer",
         "console": "Object {...}",
         "not_used": "number 0"
       }
@@ -162,6 +164,8 @@
     "evaluate": {
       "  this  ": {
         "telemetryLog": "function function telemetryLog() { [native code] }",
+        "read": "function read",
+        "readbuffer": "function readbuffer",
         "console": "Object {...}",
         "not_used": "number 0"
       }

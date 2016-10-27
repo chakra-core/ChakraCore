@@ -3,6 +3,8 @@ undefined
 undefined
 WScript
 print
+read
+readbuffer
 console
 f
 a

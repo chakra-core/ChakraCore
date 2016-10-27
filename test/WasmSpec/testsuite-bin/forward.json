@@ -1,0 +1,26 @@
+{
+  "modules": [{
+    "filename": "forward.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "forward.wast",
+      "line": 17
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "forward.wast",
+      "line": 18
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "forward.wast",
+      "line": 19
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_3",
+      "file": "forward.wast",
+      "line": 20
+    }]
+  }]
+}

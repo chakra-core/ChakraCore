@@ -8,7 +8,7 @@
 // It allows for configurable copies of the loop that do extra work without
 // impacting the mainline performance. (for example the debug loop can simply
 // check a bit without concern for impacting the nondebug mode.)
-#if defined(INTERPRETER_ASMJS) && !defined(TEMP_DISABLE_ASMJS)
+#if defined(INTERPRETER_ASMJS)
 #define INTERPRETER_OPCODE OpCodeAsmJs
 #define TRACING_FUNC &InterpreterStackFrame::TraceAsmJsOpCode
 #else

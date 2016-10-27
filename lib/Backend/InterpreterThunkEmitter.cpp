@@ -222,16 +222,13 @@ const BYTE InterpreterThunkEmitter::Call[] = {
 
 #endif
 
-const BYTE InterpreterThunkEmitter::PageCount = 1;
-const uint InterpreterThunkEmitter::BlockSize = AutoSystemInfo::PageSize * InterpreterThunkEmitter::PageCount;
 const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
-InterpreterThunkEmitter::InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
-    // TODO: michhol oop JIT move interpreter thunk emitter out of process
+InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
     emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
-    allocation(nullptr),
+    scriptContext(context),
     allocator(allocator),
     thunkCount(0),
     thunkBuffer(nullptr),
@@ -287,27 +284,18 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
 
 void InterpreterThunkEmitter::NewThunkBlock()
 {
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        NewOOPJITThunkBlock();
+        return;
+    }
+#endif
+
     Assert(this->thunkCount == 0);
     BYTE* buffer;
-    BYTE* currentBuffer;
-    DWORD bufferSize = BlockSize;
-    DWORD thunkCount = 0;
 
-    void * interpreterThunk = nullptr;
-
-    // the static interpreter thunk invoked by the dynamic emitted thunk
-#ifdef ASMJS_PLAT
-    if (isAsmInterpreterThunk)
-    {
-        interpreterThunk = (void*)Js::InterpreterStackFrame::InterpreterAsmThunk;
-    }
-    else
-#endif
-    {
-        interpreterThunk = (void*)Js::InterpreterStackFrame::InterpreterThunk;
-    }
-
-    allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);
+    EmitBufferAllocation * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
     if (allocation == nullptr) 
     {
         Js::Throw::OutOfMemory();
@@ -317,10 +305,93 @@ void InterpreterThunkEmitter::NewThunkBlock()
         Js::Throw::OutOfMemory();
     }
 
-    currentBuffer = buffer;
+#if PDATA_ENABLED
+    PRUNTIME_FUNCTION pdataStart;
+    intptr_t epilogEnd;
+#endif
 
+    FillBuffer(
+        this->scriptContext->GetThreadContext(),
+        this->isAsmInterpreterThunk,
+        (intptr_t)buffer,
+        BlockSize,
+        buffer,
+#if PDATA_ENABLED
+        &pdataStart,
+        &epilogEnd,
+#endif
+        &this->thunkCount
+    );
+
+    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    // Call to set VALID flag for CFG check
+    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(buffer);
+
+    // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
+    auto block = this->thunkBlocks.PrependNode(allocator, buffer);
+#if PDATA_ENABLED
+    void* pdataTable;
+    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)pdataStart, (ULONG_PTR)buffer, (ULONG_PTR)epilogEnd, &pdataTable);
+    block->SetPdata(pdataTable);
+#else
+    Unused(block);
+#endif
+    this->thunkBuffer = buffer;
+}
+
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+void InterpreterThunkEmitter::NewOOPJITThunkBlock()
+{
+    InterpreterThunkInfoIDL thunkInfo;
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(
+        this->scriptContext->GetRemoteScriptAddr(),
+        this->isAsmInterpreterThunk,
+        &thunkInfo
+    );
+    JITManager::HandleServerCallResult(hr);
+
+
+    this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+
+    if (!CONFIG_FLAG(OOPCFGRegistration))
+    {
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(this->thunkBuffer);
+    }
+
+    // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
+    auto block = this->thunkBlocks.PrependNode(allocator, this->thunkBuffer);
+#if PDATA_ENABLED
+    void* pdataTable;
+    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkInfo.pdataTableStart, (ULONG_PTR)this->thunkBuffer, (ULONG_PTR)thunkInfo.epilogEndAddr, &pdataTable);
+    block->SetPdata(pdataTable);
+#else
+    Unused(block);
+#endif
+
+    this->thunkCount = thunkInfo.thunkCount;
+}
+#endif
+
+/* static */
+void InterpreterThunkEmitter::FillBuffer(
+    _In_ ThreadContextInfo * threadContext,
+    _In_ bool asmJsThunk,
+    _In_ intptr_t finalAddr,
+    _In_ size_t bufferSize,
+    _Out_writes_bytes_all_(bufferSize) BYTE* buffer,
+#if PDATA_ENABLED
+    _Out_ PRUNTIME_FUNCTION * pdataTableStart,
+    _Out_ intptr_t * epilogEndAddr,
+#endif
+    _Out_ DWORD * thunkCount
+    )
+{
 #ifdef _M_X64
-    PrologEncoder prologEncoder(allocator);
+    PrologEncoder prologEncoder;
     prologEncoder.EncodeSmallProlog(PrologSize, StackAllocSize);
     DWORD pdataSize = prologEncoder.SizeOfPData();
 #elif defined(_M_ARM32_OR_ARM64)
@@ -328,23 +399,43 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #else
     DWORD pdataSize = 0;
 #endif
-    DWORD bytesRemaining = bufferSize;
+    DWORD bytesRemaining = BlockSize;
     DWORD bytesWritten = 0;
     DWORD epilogSize = sizeof(Epilog);
+    DWORD thunks = 0;
+
+    intptr_t interpreterThunk;
+
+    // the static interpreter thunk invoked by the dynamic emitted thunk
+#ifdef ASMJS_PLAT
+    if (asmJsThunk)
+    {
+        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
+    }
+    else
+#endif
+    {
+        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
+    }
+
+    BYTE * currentBuffer = buffer;
+    // Ensure there is space for PDATA at the end
+    BYTE* pdataStart = currentBuffer + (BlockSize - Math::Align(pdataSize, EMIT_BUFFER_ALIGNMENT));
+    BYTE* epilogStart = pdataStart - Math::Align(epilogSize, EMIT_BUFFER_ALIGNMENT);
 
     // Ensure there is space for PDATA at the end
-    BYTE* pdataStart = currentBuffer + (bufferSize - Math::Align(pdataSize, EMIT_BUFFER_ALIGNMENT));
-    BYTE* epilogStart = pdataStart - Math::Align(epilogSize, EMIT_BUFFER_ALIGNMENT);
+    intptr_t finalPdataStart = finalAddr + (BlockSize - Math::Align(pdataSize, EMIT_BUFFER_ALIGNMENT));
+    intptr_t finalEpilogStart = finalPdataStart - Math::Align(epilogSize, EMIT_BUFFER_ALIGNMENT);
 
     // Copy the thunk buffer and modify it.
     js_memcpy_s(currentBuffer, bytesRemaining, InterpreterThunk, HeaderSize);
-    EncodeInterpreterThunk(currentBuffer, buffer, HeaderSize, epilogStart, epilogSize, interpreterThunk);
+    EncodeInterpreterThunk(currentBuffer, finalAddr, HeaderSize, finalEpilogStart, epilogSize, interpreterThunk);
     currentBuffer += HeaderSize;
     bytesRemaining -= HeaderSize;
 
     // Copy call buffer
     DWORD callSize = sizeof(Call);
-    while(currentBuffer < epilogStart - callSize)
+    while (currentBuffer < epilogStart - callSize)
     {
         js_memcpy_s(currentBuffer, bytesRemaining, Call, callSize);
 #if _M_ARM
@@ -367,7 +458,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
         currentBuffer += callSize;
         bytesRemaining -= callSize;
-        thunkCount++;
+        thunks++;
     }
 
     // Fill any gap till start of epilog
@@ -394,30 +485,20 @@ void InterpreterThunkEmitter::NewThunkBlock()
     GeneratePdata(buffer, functionSize, &pdata);
     bytesWritten = CopyWithAlignment(pdataStart, bytesRemaining, (const BYTE*)&pdata, pdataSize, EMIT_BUFFER_ALIGNMENT);
 #endif
-    void* pdataTable;
-    PDataManager::RegisterPdata((PRUNTIME_FUNCTION) pdataStart, (ULONG_PTR) buffer, (ULONG_PTR) epilogEnd, &pdataTable);
+    *pdataTableStart = (PRUNTIME_FUNCTION)finalPdataStart;
+    *epilogEndAddr = finalEpilogStart;
 #endif
-    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, bufferSize))
-    {
-        Js::Throw::OutOfMemory();
-    }
-
-    // Call to set VALID flag for CFG check
-    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(buffer);
-
-    // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
-    ThunkBlock* block = this->thunkBlocks.PrependNode(allocator, buffer);
-    UNREFERENCED_PARAMETER(block);
-#if PDATA_ENABLED
-    block->SetPdata(pdataTable);
-#endif
-    this->thunkCount = thunkCount;
-    this->thunkBuffer = buffer;
+    *thunkCount = thunks;
 }
 
-
 #if _M_ARM
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(
+    __in_bcount(thunkSize) BYTE* thunkBuffer,
+    __in const intptr_t thunkBufferStartAddress,
+    __in const DWORD thunkSize,
+    __in const intptr_t epilogStart,
+    __in const DWORD epilogSize,
+    __in const intptr_t interpreterThunk)
 {
     _Analysis_assume_(thunkSize == HeaderSize);
     // Encode MOVW
@@ -482,7 +563,13 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
 }
 
 #elif _M_ARM64
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(
+    __in_bcount(thunkSize) BYTE* thunkBuffer,
+    __in const intptr_t thunkBufferStartAddress,
+    __in const DWORD thunkSize,
+    __in const intptr_t epilogStart,
+    __in const DWORD epilogSize,
+    __in const intptr_t interpreterThunk)
 {
     int addrOffset = ThunkAddressOffset;
 
@@ -556,7 +643,13 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
     function->FrameSize = 5;                    // the number of bytes of stack that is allocated for this function divided by 16
 }
 #else
-void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE* thunkBuffer, __in_bcount(thunkSize) BYTE* thunkBufferStartAddress, __in const DWORD thunkSize, __in_bcount(epilogSize) BYTE* epilogStart, __in const DWORD epilogSize, __in void * const interpreterThunk)
+void InterpreterThunkEmitter::EncodeInterpreterThunk(
+    __in_bcount(thunkSize) BYTE* thunkBuffer,
+    __in const intptr_t thunkBufferStartAddress,
+    __in const DWORD thunkSize,
+    __in const intptr_t epilogStart,
+    __in const DWORD epilogSize,
+    __in const intptr_t interpreterThunk)
 {
     _Analysis_assume_(thunkSize == HeaderSize);
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);
@@ -579,7 +672,6 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
 #elif defined(_M_ARM64)
     Assert(count % 4 == 0);
 #endif
-    // TODO: michhol OOP JIT. after mving OOP, change to runtime process handle
     CustomHeap::FillDebugBreak(dest, count, GetCurrentProcess());
     return count;
 }
@@ -607,6 +699,31 @@ DWORD InterpreterThunkEmitter::CopyWithAlignment(
     return srcSize;
 }
 
+#if DBG
+bool
+InterpreterThunkEmitter::IsInHeap(void* address)
+{
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        if (!remoteScript)
+        {
+            return false;
+        }
+        boolean result;
+        HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        JITManager::HandleServerCallResult(hr);
+        return result != FALSE;
+    }
+    else
+#endif
+    {
+        return emitBufferManager.IsInHeap(address);
+    }
+}
+#endif
+
 // We only decommit at close because there might still be some
 // code running here.
 // The destructor of emitBufferManager will cause the eventual release.
@@ -622,7 +739,20 @@ void InterpreterThunkEmitter::Close()
 #endif
     this->thunkBlocks.Clear(allocator);
     this->freeListedThunkBlocks.Clear(allocator);
-    emitBufferManager.Decommit();
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        if (remoteScript)
+        {
+            JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
+        }
+    }
+    else
+#endif
+    {
+        emitBufferManager.Decommit();
+    }
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;
 }

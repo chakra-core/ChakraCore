@@ -7,11 +7,27 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}"
     },
     "locals": {
       "a": "number 100",
       "b": "number 200",
+      "read": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string read",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "readbuffer": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readbuffer",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "console": {
         "#__proto__": "Object {...}",
         "log": "function log"

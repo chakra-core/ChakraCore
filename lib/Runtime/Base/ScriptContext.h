@@ -910,10 +910,10 @@ private:
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
-        intptr_t GetRemoteScriptAddr()
+        intptr_t GetRemoteScriptAddr(bool allowInitialize = true)
         {
 #if ENABLE_OOP_NATIVE_CODEGEN
-            if (!m_remoteScriptContextAddr)
+            if (!m_remoteScriptContextAddr && allowInitialize)
             {
                 InitializeRemoteScriptContext();
             }
@@ -1656,9 +1656,11 @@ private:
 #if DYNAMIC_INTERPRETER_THUNK
         JavascriptMethod GetNextDynamicAsmJsInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         JavascriptMethod GetNextDynamicInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
+#if DBG
         BOOL IsDynamicInterpreterThunk(JavascriptMethod address);
-        void ReleaseDynamicInterpreterThunk(void* address, bool addtoFreeList);
-        void ReleaseDynamicAsmJsInterpreterThunk(void* address, bool addtoFreeList);
+#endif
+        void ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList);
+        void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
 #endif
 
         static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -1758,6 +1760,11 @@ private:
         virtual bool IsSIMDEnabled() const override;
         virtual bool IsPRNGSeeded() const override;
         virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
+
+        virtual intptr_t GetDebuggingFlagsAddr() const override;
+        virtual intptr_t GetDebugStepTypeAddr() const override;
+        virtual intptr_t GetDebugFrameAddressAddr() const override;
+        virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
 #if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
@@ -1876,7 +1883,39 @@ private:
 
         return functionBody;
     }
+
+    class AutoProfilingPhase
+    {
+    public:
+        AutoProfilingPhase(ScriptContext* scriptcontext, Js::Phase phase) : scriptcontext(scriptcontext), phase(phase), isPhaseComplete(false)
+        {
+    #ifdef PROFILE_EXEC
+            scriptcontext->ProfileBegin(phase);
+    #endif
+        }
+
+        ~AutoProfilingPhase()
+        {
+            if(!this->isPhaseComplete)
+            {
+                EndProfile();
+            }
+        }
+
+        void EndProfile()
+        {
+            this->isPhaseComplete = true;
+#ifdef PROFILE_EXEC
+            scriptcontext->ProfileEnd(phase);
+#endif
+        }
+    private:
+        ScriptContext* scriptcontext;
+        Js::Phase phase;
+        bool isPhaseComplete;
+    };
 }
+
 
 #define BEGIN_TEMP_ALLOCATOR(allocator, scriptContext, name) \
     Js::TempArenaAllocatorObject *temp##allocator = scriptContext->GetTemporaryAllocator(name); \

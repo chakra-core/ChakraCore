@@ -274,6 +274,12 @@ ENTRY(map)
 ENTRY(Map)
 ENTRY(Math)
 
+// Wasm
+ENTRY(Wasm)
+ENTRY(instantiateModule)
+ENTRY(experimentalVersion)
+// End Wasm
+
 // SIMD_JS
 ENTRY(SIMD)
 

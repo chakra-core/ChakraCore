@@ -45,10 +45,10 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isStrEmpty = false;
     stackSym->m_allocated = false;
     stackSym->m_isTypeSpec = false;
-	stackSym->m_isArgSlotSym = false;
-	stackSym->m_isArgSlotRegSym = false;
-	stackSym->m_isParamSym = false;
-	stackSym->m_isImplicitParamSym = false;
+    stackSym->m_isArgSlotSym = false;
+    stackSym->m_isArgSlotRegSym = false;
+    stackSym->m_isParamSym = false;
+    stackSym->m_isImplicitParamSym = false;
     stackSym->m_isBailOutReferenced = false;
     stackSym->m_isArgCaptured = false;
     stackSym->m_requiresBailOnNotNumber = false;
@@ -115,20 +115,20 @@ StackSym::New(IRType type, Func *func)
 StackSym *
 StackSym::NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func)
 {
-	return func->m_symTable->GetImplicitParam(paramSlotNum);
+    return func->m_symTable->GetImplicitParam(paramSlotNum);
 }
 
 StackSym *
 StackSym::NewParamSlotSym(Js::ArgSlot paramSlotNum, Func * func)
 {
-	return NewParamSlotSym(paramSlotNum, func, TyVar);
+    return NewParamSlotSym(paramSlotNum, func, TyVar);
 }
 
 StackSym *
 StackSym::NewParamSlotSym(Js::ArgSlot paramSlotNum, Func * func, IRType type)
 {
     StackSym * stackSym = StackSym::New(type, func);
-	stackSym->m_isParamSym = true;
+    stackSym->m_isParamSym = true;
     stackSym->m_slotNum = paramSlotNum;
     return stackSym;
 }
@@ -460,10 +460,10 @@ StackSym::CloneDef(Func *func)
         newSym->m_isConst = m_isConst;
         newSym->m_isIntConst = m_isIntConst;
         newSym->m_isTaggableIntConst = m_isTaggableIntConst;
-		newSym->m_isArgSlotSym = m_isArgSlotSym;
-		newSym->m_isArgSlotRegSym = m_isArgSlotRegSym;
-		newSym->m_isParamSym = m_isParamSym;
-		newSym->m_isImplicitParamSym = m_isImplicitParamSym;
+        newSym->m_isArgSlotSym = m_isArgSlotSym;
+        newSym->m_isArgSlotRegSym = m_isArgSlotRegSym;
+        newSym->m_isParamSym = m_isParamSym;
+        newSym->m_isImplicitParamSym = m_isImplicitParamSym;
         newSym->m_isArgCaptured = m_isArgCaptured;
         newSym->m_isBailOutReferenced = m_isBailOutReferenced;
         newSym->m_slotNum = m_slotNum;
@@ -975,17 +975,6 @@ PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdI
 
     return PropertySym::New(stackSymID, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func);
 }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-const char16* PropertySym::GetName() const
-{
-    if (this->m_fieldKind == PropertyKindData)
-    {
-        return m_func->GetThreadContextInfo()->GetPropertyRecord(this->m_propertyId)->GetBuffer();
-    }
-    Assert(false);
-    return _u("");
-}
-#endif
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 
 ///----------------------------------------------------------------------------
@@ -1069,7 +1058,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
                         {
                             uint index = stackSym->GetByteCodeRegSlot() - stackSym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
                             Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
-                            Output::Print(_u("(%s)"), stackSym->GetByteCodeFunc()->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer());
+                            Output::Print(_u("(%s)"), stackSym->GetByteCodeFunc()->GetInProcThreadContext()->GetPropertyRecord(propertyId)->GetBuffer());
                         }
                     }
                 }
@@ -1111,12 +1100,17 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
         switch (propertySym->m_fieldKind)
         {
         case PropertyKindData:
-        {
             propertySym->m_stackSym->Dump(flags, valueType);
-            Js::PropertyRecord const* fieldName = propertySym->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId);
-            Output::Print(_u("->%s"), fieldName->GetBuffer());
+            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            {
+                Output::Print(_u("->#%d"), propertySym->m_propertyId);
+            }
+            else
+            {
+                Js::PropertyRecord const* fieldName = propertySym->m_func->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
+                Output::Print(_u("->%s"), fieldName->GetBuffer());
+            }
             break;
-        }
         case PropertyKindSlots:
         case PropertyKindSlotArray:
             propertySym->m_stackSym->Dump(flags, valueType);

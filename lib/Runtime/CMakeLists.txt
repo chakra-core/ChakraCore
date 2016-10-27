@@ -6,6 +6,7 @@ include_directories(
     ../Common
     ../Backend
     ../Parser
+    ../WasmReader
     ByteCode
     PlatformAgnostic
     Math

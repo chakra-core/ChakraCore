@@ -7,6 +7,7 @@
 
 class AsmJsJITInfo
 {
+#ifdef ASMJS_PLAT
 public:
     AsmJsJITInfo(AsmJsDataIDL * data);
 
@@ -40,4 +41,5 @@ public:
 
 private:
     AsmJsDataIDL m_data;
+#endif
 };

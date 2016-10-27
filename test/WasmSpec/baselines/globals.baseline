@@ -1,0 +1,3 @@
+Unexpected Error while compiling globals.0.wasm
+Error: Compiling wasm failed: i64 globals NYI
+0/0 tests passed.

@@ -32,6 +32,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
@@ -50,6 +52,8 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
@@ -79,6 +83,8 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"

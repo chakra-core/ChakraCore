@@ -1,0 +1,11 @@
+skip-stack-guard-page.wast:2275: $assert_trap_0 failed, runtime trap NYI
+skip-stack-guard-page.wast:2276: $assert_trap_1 failed, runtime trap NYI
+skip-stack-guard-page.wast:2277: $assert_trap_2 failed, runtime trap NYI
+skip-stack-guard-page.wast:2278: $assert_trap_3 failed, runtime trap NYI
+skip-stack-guard-page.wast:2279: $assert_trap_4 failed, runtime trap NYI
+skip-stack-guard-page.wast:2280: $assert_trap_5 failed, runtime trap NYI
+skip-stack-guard-page.wast:2281: $assert_trap_6 failed, runtime trap NYI
+skip-stack-guard-page.wast:2282: $assert_trap_7 failed, runtime trap NYI
+skip-stack-guard-page.wast:2283: $assert_trap_8 failed, runtime trap NYI
+skip-stack-guard-page.wast:2284: $assert_trap_9 failed, runtime trap NYI
+0/10 tests passed.

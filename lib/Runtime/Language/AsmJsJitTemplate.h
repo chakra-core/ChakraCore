@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
 
@@ -51,7 +51,7 @@ namespace Js
         CreateTemplate( FunctionExit );
         CreateTemplate( Br, BYTE** relocAddr, bool isBackEdge);
         CreateTemplate( BrTrue, int offset, BYTE** relocAddr, bool isBackEdge);
-        CreateTemplate( BrEq, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge);
+        CreateTemplate( BrEq, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge, bool isSrc2Const = false);
         CreateTemplate( Label );
         CreateTemplate( LdUndef, int targetOffset );
         CreateTemplate( LdSlot, int targetOffset, int arrOffset, int slotIndex );
@@ -76,7 +76,7 @@ namespace Js
         CreateTemplate( Xor_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Shl_Int , int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Shr_Int , int targetOffset, int leftOffset, int rightOffset );
-        CreateTemplate( ShrU_Int, int targetOffset, int leftOffset, int rightOffset );
+        CreateTemplate( Shr_UInt, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Add_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Sub_Int, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Mul_Int, int targetOffset, int leftOffset, int rightOffset );

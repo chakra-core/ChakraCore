@@ -4,11 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(_M_ARM64) || defined(_M_X64)
-typedef  BVUnit32 SparseBVUnit;
-#else
 typedef  BVUnit64 SparseBVUnit;
-#endif
 
 #define FOREACH_BITSET_IN_SPARSEBV(index, bv) \
 { \
@@ -64,15 +60,8 @@ typedef  BVUnit64 SparseBVUnit;
 struct BVSparseNode
 {
     BVIndex         startIndex;
-#if defined(_M_ARM64) || defined(_M_X64)
-    //64-bit: the order is changed to make sure it fits in 16 bytes
-    SparseBVUnit    data;
-    BVSparseNode *  next;
-#else //_M_IX86 and _M_ARM32
     BVSparseNode *  next;
     SparseBVUnit    data;
-#endif
-
 
     BVSparseNode(BVIndex beginIndex, BVSparseNode * nextNode);
 
@@ -91,7 +80,11 @@ struct BVSparseNode
 #endif
 };
 
-CompileAssert(sizeof(BVSparseNode) == 16); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
+#if defined(_M_ARM64) || defined(_M_X64)
+CompileAssert(sizeof(BVSparseNode) == 24); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
+#else
+CompileAssert(sizeof(BVSparseNode) == 16);
+#endif
 
 template <class TAllocator>
 class BVSparse

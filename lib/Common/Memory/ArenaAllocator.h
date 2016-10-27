@@ -458,7 +458,6 @@ public:
         // Fast path
         if (sizeof(BVSparseNode) == requestedBytes)
         {
-            AssertMsg(Math::Align(requestedBytes, ArenaAllocatorBase::ObjectAlignment) == requestedBytes, "Assert for Perf, T should always be aligned");
             // Fast path for BVSparseNode allocation
             if (bvFreeList)
             {
