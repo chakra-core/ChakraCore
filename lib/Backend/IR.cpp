@@ -1994,6 +1994,7 @@ Instr::SetDst(Opnd * newDst)
             stackSym->m_instrDef    = nullptr;
             stackSym->m_isConst     = false;
             stackSym->m_isIntConst  = false;
+            stackSym->m_isInt64Const= false;
             stackSym->m_isTaggableIntConst  = false;
             stackSym->m_isNotInt    = false;
             stackSym->m_isStrConst  = false;
@@ -3276,6 +3277,14 @@ bool Instr::HasAnySideEffects() const
     return false;
 }
 
+bool Instr::AreAllOpndInt64() const
+{
+    bool isDstInt64 = !m_dst || IRType_IsInt64(m_dst->GetType());
+    bool isSrc1Int64 = !m_src1 || IRType_IsInt64(m_src1->GetType());
+    bool isSrc2Int64 = !m_src2 || IRType_IsInt64(m_src2->GetType());
+    return isDstInt64 && isSrc1Int64 && isSrc2Int64;
+}
+
 JITTimeFixedField* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
@@ -3609,6 +3618,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
 
     switch (this->m_opcode)
     {
+    case Js::OpCode::Add_I4:
     case Js::OpCode::Add_A:
         if (IntConstMath::Add(src1Const, src2Const, &value))
         {
@@ -3616,6 +3626,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::Sub_I4:
     case Js::OpCode::Sub_A:
         if (IntConstMath::Sub(src1Const, src2Const, &value))
         {
@@ -3623,6 +3634,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::Mul_I4:
     case Js::OpCode::Mul_A:
         if (IntConstMath::Mul(src1Const, src2Const, &value))
         {
@@ -3636,6 +3648,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::Div_I4:
     case Js::OpCode::Div_A:
         if (src2Const == 0)
         {
@@ -3659,6 +3672,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::Rem_I4:
     case Js::OpCode::Rem_A:
 
         if (src2Const == 0)
@@ -3678,16 +3692,19 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::Shl_I4:
     case Js::OpCode::Shl_A:
         // We don't care about overflow here
         IntConstMath::Shl(src1Const, src2Const & 0x1F, &value);
         break;
 
+    case Js::OpCode::Shr_I4:
     case Js::OpCode::Shr_A:
         // We don't care about overflow here, and there shouldn't be any
         IntConstMath::Shr(src1Const, src2Const & 0x1F, &value);
         break;
 
+    case Js::OpCode::ShrU_I4:
     case Js::OpCode::ShrU_A:
         // We don't care about overflow here, and there shouldn't be any
         IntConstMath::ShrU(src1Const, src2Const & 0x1F, &value);
@@ -3699,16 +3716,19 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         }
         break;
 
+    case Js::OpCode::And_I4:
     case Js::OpCode::And_A:
         // We don't care about overflow here, and there shouldn't be any
         IntConstMath::And(src1Const, src2Const, &value);
         break;
 
+    case Js::OpCode::Or_I4:
     case Js::OpCode::Or_A:
         // We don't care about overflow here, and there shouldn't be any
         IntConstMath::Or(src1Const, src2Const, &value);
         break;
 
+    case Js::OpCode::Xor_I4:
     case Js::OpCode::Xor_A:
         // We don't care about overflow here, and there shouldn't be any
         IntConstMath::Xor(src1Const, src2Const, &value);
@@ -3737,6 +3757,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
 
     switch (this->m_opcode)
     {
+    case Js::OpCode::Neg_I4:
     case Js::OpCode::Neg_A:
         if (src1Const == 0)
         {
@@ -3750,6 +3771,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         }
         break;
 
+    case Js::OpCode::Not_I4:
     case Js::OpCode::Not_A:
         IntConstMath::Not(src1Const, &value);
         break;
@@ -3765,6 +3787,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
 
     case Js::OpCode::Conv_Num:
     case Js::OpCode::LdC_A_I4:
+    case Js::OpCode::Ld_I4:
         value = src1Const;
         break;
 
@@ -3794,7 +3817,12 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         }
         break;
 
-    case Js::OpCode::InlineMathClz32:
+    case Js::OpCode::Ctz:
+        Assert(this->GetSrc1()->GetSize() <= 4);
+        value = Wasm::WasmMath::Ctz((int)src1Const);
+        this->ClearBailOutInfo();
+
+    case Js::OpCode::InlineMathClz:
         DWORD clz;
         DWORD src1Const32;
         src1Const32 = (DWORD)src1Const;

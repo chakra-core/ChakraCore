@@ -1470,37 +1470,42 @@ public:
         size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
-        uint32 intConstCount = function->GetAsmJsFunctionInfo()->GetIntConstCount();
-        uint32 floatConstCount = function->GetAsmJsFunctionInfo()->GetFloatConstCount();
-        uint32 doubleConstCount = function->GetAsmJsFunctionInfo()->GetDoubleConstCount();
         Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
-        int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < intConstCount; ++reg)
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            PrependConstantInt32(builder, _u("Integer Constant Value"), intConstTable[reg]);
-        }
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            WAsmJs::TypedSlotInfo* typedInfo = function->GetAsmJsFunctionInfo()->GetTypedSlotInfo(type);
+            uint32 constCount = typedInfo->constCount;
+            if (constCount > FunctionBody::FirstRegSlot)
+            {
+                uint32 typeSize = WAsmJs::GetTypeByteSize(type);
+                byte* byteTable = ((byte*)constTable) + typedInfo->constSrcByteOffset;
+                byteTable += typeSize * FunctionBody::FirstRegSlot;
+                for (uint32 reg = FunctionBody::FirstRegSlot; reg < constCount; ++reg)
+                {
+                    switch (type)
+                    {
+                    case WAsmJs::INT32:   PrependConstantInt32(builder, _u("Integer Constant Value"), *(int*)byteTable); break;
+                    case WAsmJs::FLOAT32: PrependFloat(builder, _u("Float Constant Value"), *(float*)byteTable); break;
+                    case WAsmJs::FLOAT64: PrependDouble(builder, _u("Double Constant Value"), *(double*)byteTable); break;
+                    case WAsmJs::SIMD:    PrependSIMDValue(builder, _u("SIMD Constant Value"), *(AsmJsSIMDValue*)byteTable); break;
+                    CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
+                    default:
+                        Assert(UNREACHED);
+                        Js::Throw::FatalInternalError();
+                        break;
+                    }
+                    byteTable += typeSize;
+                }
 
-        float * floatConstTable = reinterpret_cast<float *>(intConstTable + intConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < floatConstCount; ++reg)
-        {
-            PrependFloat(builder, _u("Float Constant Value"), floatConstTable[reg]);
-        }
-
-        double * doubleConstTable = reinterpret_cast<double *>(floatConstTable + floatConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < doubleConstCount; ++reg)
-        {
-            PrependDouble(builder, _u("Double Constant Value"), doubleConstTable[reg]);
-        }
-
-        uint32 simdConstCount = function->GetAsmJsFunctionInfo()->GetSimdConstCount();
-        AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < simdConstCount; ++reg)
-        {
-            PrependSIMDValue(builder, _u("SIMD Constant Value"), simdConstTable[reg]);
+                if (byteTable > tableEnd)
+                {
+                    Assert(UNREACHED);
+                    Js::Throw::FatalInternalError();
+                }
+            }
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -1808,29 +1813,30 @@ public:
         PrependInt32(builder, _u("Start Asm.js Function Info"), magicStartOfAsmJsFuncInfo);
 #endif
         size += PrependInt32(builder, _u("ReturnType"), funcInfo->GetReturnType().which());
-        size += PrependInt32(builder, _u("IntConstCount"), funcInfo->GetIntConstCount());
-        size += PrependInt32(builder, _u("DoubleConstCount"), funcInfo->GetDoubleConstCount());
-        size += PrependInt32(builder, _u("FloatConstCount"), funcInfo->GetFloatConstCount());
         size += PrependInt16(builder, _u("ArgCount"), funcInfo->GetArgCount());
         size += PrependInt16(builder, _u("ArgSize"), funcInfo->GetArgByteSize());
-        size += PrependInt32(builder, _u("IntVarCount"), funcInfo->GetIntVarCount());
-        size += PrependInt32(builder, _u("DoubleVarCount"), funcInfo->GetDoubleVarCount());
-        size += PrependInt32(builder, _u("FloatVarCount"), funcInfo->GetFloatVarCount());
-        size += PrependInt32(builder, _u("IntTmpCount"), funcInfo->GetIntTmpCount());
-        size += PrependInt32(builder, _u("DoubleTmpCount"), funcInfo->GetDoubleTmpCount());
-        size += PrependInt32(builder, _u("FloatTmpCount"), funcInfo->GetFloatTmpCount());
         size += PrependInt16(builder, _u("ArgSizeArrayLength"), funcInfo->GetArgSizeArrayLength());
         size += PrependUInt32Array(builder, funcInfo->GetArgSizeArrayLength(), funcInfo->GetArgsSizesArray());
         size += PrependByteArray(builder, funcInfo->GetArgCount(), (byte*)funcInfo->GetArgTypeArray());
-        size += PrependInt32(builder, _u("IntByteOffset"), funcInfo->GetIntByteOffset());
-        size += PrependInt32(builder, _u("DoubleByteOffset"), funcInfo->GetDoubleByteOffset());
-        size += PrependInt32(builder, _u("FloatByteOffset"), funcInfo->GetFloatByteOffset());
         size += PrependByte(builder, _u("IsHeapBufferConst"), funcInfo->IsHeapBufferConst());
         size += PrependByte(builder, _u("UsesHeapBuffer"), funcInfo->UsesHeapBuffer());
-        size += PrependInt32(builder, _u("SIMDConstCount"), funcInfo->GetSimdConstCount());
-        size += PrependInt32(builder, _u("SIMDVarCount"), funcInfo->GetSimdVarCount());
-        size += PrependInt32(builder, _u("SIMDTmpCount"), funcInfo->GetSimdTmpCount());
-        size += PrependInt32(builder, _u("SIMDByteOffset"), funcInfo->GetSimdByteOffset());
+        for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
+        {
+            const char16* clue = nullptr;
+            switch (i)
+            {
+            case WAsmJs::INT32:   clue = _u("Int32TypedSlots"); break;
+            case WAsmJs::INT64:   clue = _u("Int64TypedSlots"); break;
+            case WAsmJs::FLOAT32: clue = _u("Float32TypedSlots"); break;
+            case WAsmJs::FLOAT64: clue = _u("Float64TypedSlots"); break;
+            case WAsmJs::SIMD:    clue = _u("SimdTypedSlots"); break;
+            default:
+                CompileAssert(WAsmJs::SIMD == WAsmJs::LastType);
+                Assert(false);
+                break;
+            }
+            size += PrependStruct<WAsmJs::TypedSlotInfo>(builder, clue, funcInfo->GetTypedSlotInfo((WAsmJs::Types)i));
+        }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("End Asm.js Function Info"), magicEndOfAsmJsFuncInfo);
@@ -2430,6 +2436,13 @@ public:
         return buffer + sizeof(int);
     }
 
+    template <typename TStructType>
+    const byte * ReadStruct(const byte * buffer, serialization_alignment TStructType ** value)
+    {
+        *value = (serialization_alignment TStructType*)buffer;
+        return buffer + sizeof(serialization_alignment TStructType);
+    }
+
     const byte * ReadOffsetAsPointer(const byte * buffer, byte const ** value)
     {
         int offset;
@@ -2795,37 +2808,46 @@ public:
 
         function->CreateConstantTable();
 
-        uint32 intConstCount = function->GetAsmJsFunctionInfo()->GetIntConstCount();
-        uint32 floatConstCount = function->GetAsmJsFunctionInfo()->GetFloatConstCount();
-        uint32 doubleConstCount = function->GetAsmJsFunctionInfo()->GetDoubleConstCount();
         Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
-        int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < intConstCount; ++reg)
+        for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
-            current = ReadConstantSizedInt32(current, &intConstTable[reg]);
-        }
+            WAsmJs::Types type = (WAsmJs::Types)i;
+            WAsmJs::TypedSlotInfo* typedInfo = function->GetAsmJsFunctionInfo()->GetTypedSlotInfo(type);
+            uint32 constCount = typedInfo->constCount;
+            if (constCount > FunctionBody::FirstRegSlot)
+            {
+                uint32 typeSize = WAsmJs::GetTypeByteSize(type);
+                byte* byteTable = ((byte*)constTable) + typedInfo->constSrcByteOffset;
+                byteTable += typeSize * FunctionBody::FirstRegSlot;
 
-        float * floatConstTable = reinterpret_cast<float *>(intConstTable + intConstCount);
+                size_t remainingBytes = (raw + totalSize) - current;
+                for (uint32 reg = FunctionBody::FirstRegSlot; reg < constCount; ++reg)
+                {
+                    switch (type)
+                    {
+                    case WAsmJs::INT32:   ReadConstantSizedInt32(current, remainingBytes, (int*)byteTable); break;
+                    case WAsmJs::FLOAT32: ReadFloat(current, remainingBytes, (float*)byteTable); break;
+                    case WAsmJs::FLOAT64: ReadDouble(current, remainingBytes, (double*)byteTable); break;
+                    case WAsmJs::SIMD:    ReadSIMDValue(current, remainingBytes, (AsmJsSIMDValue*)byteTable); break;
+                        CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
+                    default:
+                        Assert(UNREACHED);
+                        Js::Throw::FatalInternalError();
+                        break;
+                    }
+                    current += typeSize;
+                    byteTable += typeSize;
+                    remainingBytes -= typeSize;
+                }
 
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < floatConstCount; ++reg)
-        {
-            current = ReadFloat(current, &floatConstTable[reg]);
-        }
-
-        double * doubleConstTable = reinterpret_cast<double *>(floatConstTable + floatConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < doubleConstCount; ++reg)
-        {
-            current = ReadDouble(current, &doubleConstTable[reg]);
-        }
-
-        uint32 simdConstCount = function->GetAsmJsFunctionInfo()->GetSimdConstCount();
-        AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
-
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < simdConstCount; ++reg)
-        {
-            current = ReadSIMDValue(current, &simdConstTable[reg]);
+                if (byteTable > tableEnd)
+                {
+                    Assert(UNREACHED);
+                    Js::Throw::FatalInternalError();
+                }
+            }
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3243,14 +3265,6 @@ public:
         current = ReadInt32(current, &retVal);
         funcInfo->SetReturnType(AsmJsRetType((AsmJsRetType::Which)retVal));
 
-        int count;
-        current = ReadInt32(current, &count);
-        funcInfo->SetIntConstCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetDoubleConstCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetFloatConstCount(count);
-
         ArgSlot argCount;
         current = ReadUInt16(current, &argCount);
         funcInfo->SetArgCount(argCount);
@@ -3258,20 +3272,6 @@ public:
         ArgSlot argByteSize;
         current = ReadUInt16(current, &argByteSize);
         funcInfo->SetArgByteSize(argByteSize);
-
-        current = ReadInt32(current, &count);
-        funcInfo->SetIntVarCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetDoubleVarCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetFloatVarCount(count);
-
-        current = ReadInt32(current, &count);
-        funcInfo->SetIntTmpCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetDoubleTmpCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetFloatTmpCount(count);
 
         ArgSlot argSizeArrayLength;
         current = ReadUInt16(current, &argSizeArrayLength);
@@ -3295,27 +3295,19 @@ public:
             }
         }
 
-        current = ReadInt32(current, &count);
-        funcInfo->SetIntByteOffset(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetDoubleByteOffset(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetFloatByteOffset(count);
-
         bool boolVal;
         current = ReadBool(current, &boolVal);
         funcInfo->SetIsHeapBufferConst(boolVal);
         current = ReadBool(current, &boolVal);
         funcInfo->SetUsesHeapBuffer(boolVal);
 
-        current = ReadInt32(current, &count);
-        funcInfo->SetSimdConstCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetSimdVarCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetSimdTmpCount(count);
-        current = ReadInt32(current, &count);
-        funcInfo->SetSimdByteOffset(count);
+        for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
+        {
+            serialization_alignment WAsmJs::TypedSlotInfo* info;
+            current = ReadStruct<WAsmJs::TypedSlotInfo>(current, &info);
+            WAsmJs::TypedSlotInfo* typedInfo = funcInfo->GetTypedSlotInfo((WAsmJs::Types)i);
+            *typedInfo = *info;
+        }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
@@ -3391,9 +3383,9 @@ public:
 
         for (int i = 0; i < count; i++)
         {
-            serialization_alignment AsmJsModuleInfo::ModuleVar * modVar = (serialization_alignment AsmJsModuleInfo::ModuleVar*)current;
+            serialization_alignment AsmJsModuleInfo::ModuleVar * modVar;
+            current = ReadStruct<AsmJsModuleInfo::ModuleVar>(current, &modVar);
             moduleInfo->SetVar(i, *modVar);
-            current = current + sizeof(serialization_alignment AsmJsModuleInfo::ModuleVar);
         }
 
         current = ReadInt32(current, &count);

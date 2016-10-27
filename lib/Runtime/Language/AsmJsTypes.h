@@ -67,7 +67,33 @@ namespace Js
             TYPE_UINT32,
             TYPE_FLOAT32,
             TYPE_FLOAT64,
-            TYPE_INVALID
+            TYPE_INT64,
+            TYPE_INT8_TO_INT64,
+            TYPE_UINT8_TO_INT64,
+            TYPE_INT16_TO_INT64,
+            TYPE_UINT16_TO_INT64,
+            TYPE_INT32_TO_INT64,
+            TYPE_UINT32_TO_INT64,
+            TYPE_COUNT
+        };
+
+        const uint32 ViewMask[] =
+        {
+            (uint32)~0 //TYPE_INT8
+            , (uint32)~0 //TYPE_UINT8
+            , (uint32)~1 //TYPE_INT16
+            , (uint32)~1 //TYPE_UINT16
+            , (uint32)~3 //TYPE_INT32
+            , (uint32)~3 //TYPE_UINT32
+            , (uint32)~3 //TYPE_FLOAT32
+            , (uint32)~7 //TYPE_FLOAT64
+            , (uint32)~7 //TYPE_INT64
+            , (uint32)~0 //TYPE_INT8_TO_INT64
+            , (uint32)~0 //TYPE_UINT8_TO_UINT64
+            , (uint32)~1 //TYPE_INT16_TO_INT64
+            , (uint32)~1 //TYPE_UINT16_TO_UINT64
+            , (uint32)~3 //TYPE_INT32_TO_INT64
+            , (uint32)~3 //TYPE_UINT32_TO_UINT64
         };
 
     } /* namespace ArrayBufferView */
@@ -94,6 +120,7 @@ namespace Js
         enum Which
         {
             Int,
+            Int64,
             Double,
             Float,
             MaybeDouble,
@@ -170,6 +197,7 @@ namespace Js
         {
             Void = AsmJsType::Void,
             Signed = AsmJsType::Signed,
+            Int64 = AsmJsType::Int64,
             Double = AsmJsType::Double,
             Float = AsmJsType::Float,
             Fixnum = AsmJsType::Fixnum,
@@ -230,6 +258,7 @@ namespace Js
         enum Which : byte
         {
             Int = AsmJsType::Int,
+            Int64 = AsmJsType::Int64,
             Double = AsmJsType::Double,
             Float = AsmJsType::Float,
             Int32x4 = AsmJsType::Int32x4,
@@ -257,6 +286,7 @@ namespace Js
         AsmJSCoercion toCoercion() const;
         static AsmJsVarType FromCheckedType( AsmJsType type );
         inline bool isInt()const {return which_ == Int; }
+        inline bool isInt64()const {return which_ == Int64; }
         inline bool isDouble()const {return which_ == Double; }
         inline bool isFloat()const {return which_ == Float; }
         inline bool isInt32x4()const    { return which_ == Int32x4; }
@@ -525,7 +555,7 @@ namespace Js
         // Constructor
         AsmJsRegisterSpace( ArenaAllocator* allocator ) :
             // reserves 1 location for return
-            WAsmJs::RegisterSpace(1),
+            WAsmJs::RegisterSpace(Js::FunctionBody::FirstRegSlot),
             mConstMap( allocator )
         {
         }
@@ -706,12 +736,9 @@ namespace Js
         VarNameMap      mVarMap;
         ParseNode*      mBodyNode;
         ParseNode*      mFncNode;
-        AsmJsRegisterSpace<int> mIntRegisterSpace;
-        AsmJsRegisterSpace<float> mFloatRegisterSpace;
-        AsmJsRegisterSpace<double> mDoubleRegisterSpace;
+        WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
         typedef JsUtil::List<AsmJsVarBase*, ArenaAllocator> SIMDVarsList;
-        AsmJsRegisterSpace<AsmJsSIMDValue> mSimdRegisterSpace;
-        SIMDVarsList                 mSimdVarsList;
+        SIMDVarsList    mSimdVarsList;
 
         FuncInfo*       mFuncInfo;
         FunctionBody*   mFuncBody;
@@ -721,7 +748,7 @@ namespace Js
         bool            mDeferred;
         bool            mDefined : 1; // true when compiled completely without any errors
     public:
-        AsmJsFunc( PropertyName name, ParseNode* pnodeFnc, ArenaAllocator* allocator );
+        AsmJsFunc( PropertyName name, ParseNode* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext );
 
         unsigned GetCompileTime() const { return mCompileTime; }
         void AccumulateCompileTime(unsigned ms) { mCompileTime += ms; }
@@ -741,12 +768,10 @@ namespace Js
         inline bool IsDefined()const { return mDefined; }
         inline void SetDeferred() { mDeferred = true; }
         inline bool IsDeferred()const { return mDeferred; }
-        template<typename T> inline AsmJsRegisterSpace<T>& GetRegisterSpace() {return *(AsmJsRegisterSpace<T>*)&mIntRegisterSpace;}
-        template<> inline AsmJsRegisterSpace<int>& GetRegisterSpace(){return mIntRegisterSpace;}
-        template<> inline AsmJsRegisterSpace<double>& GetRegisterSpace(){return mDoubleRegisterSpace;}
-        template<> inline AsmJsRegisterSpace<float>& GetRegisterSpace(){ return mFloatRegisterSpace; }
-
-        template<> inline AsmJsRegisterSpace<AsmJsSIMDValue>& GetRegisterSpace() { return mSimdRegisterSpace; }
+        template<typename T> inline AsmJsRegisterSpace<T>& GetRegisterSpace() {
+            return *(AsmJsRegisterSpace<T>*)mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::RegisterSpace::GetRegisterSpaceType<T>());
+        }
+        const WAsmJs::TypedRegisterAllocator& GetTypedRegisterAllocator() const { return mTypedRegisterAllocator; }
         inline SIMDVarsList& GetSimdVarsList()    { return mSimdVarsList;  }
 
         /// Wrapper for RegisterSpace methods
@@ -771,7 +796,8 @@ namespace Js
         void UpdateMaxArgOutDepth(int outParamsCount);
         inline int GetArgOutDepth() const{ return mArgOutDepth; }
         inline int GetMaxArgOutDepth() const{ return mMaxArgOutDepth; }
-
+        void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, FunctionBody* body) {mTypedRegisterAllocator.CommitToFunctionInfo(funcInfo, body);}
+        void CommitToFunctionBody(FunctionBody* body) { mTypedRegisterAllocator.CommitToFunctionBody(body); }
     };
 
     struct MathBuiltin
@@ -835,44 +861,24 @@ namespace Js
 
     class AsmJsFunctionInfo
     {
-        int mIntConstCount, mDoubleConstCount, mFloatConstCount;
+        WAsmJs::TypedSlotInfo mTypedSlotInfos[WAsmJs::LIMIT];
         ArgSlot mArgCount;
-        int mIntVarCount, mDoubleVarCount, mFloatVarCount, mIntTmpCount, mDoubleTmpCount, mFloatTmpCount;
         AsmJsVarType::Which * mArgType;
         ArgSlot mArgSizesLength;
         uint * mArgSizes;
         ArgSlot mArgByteSize;
-        // offset in Byte from the beginning of the stack aka R0
-        int mIntByteOffset, mDoubleByteOffset, mFloatByteOffset;
         AsmJsRetType mReturnType;
 
         bool mIsHeapBufferConst;
         bool mUsesHeapBuffer;
-        int mSimdConstCount, mSimdVarCount, mSimdTmpCount, mSimdByteOffset;
 
         FunctionBody* asmJsModuleFunctionBody;
         Wasm::WasmReaderInfo* mWasmReaderInfo;
     public:
         AsmJsFunctionInfo() : mArgCount(0),
-                              mIntConstCount(0),
-                              mFloatConstCount(0),
-                              mDoubleConstCount(0),
-                              mIntVarCount(0),
-                              mDoubleVarCount(0),
-                              mFloatVarCount(0),
-                              mIntTmpCount(0),
-                              mDoubleTmpCount(0),
-                              mFloatTmpCount(0),
                               mArgSizesLength(0),
-                              mIntByteOffset(0),
-                              mDoubleByteOffset(0),
-                              mFloatByteOffset(0),
                               mReturnType(AsmJsRetType::Void),
                               mArgByteSize(0),
-                              mSimdConstCount(0),
-                              mSimdVarCount(0),
-                              mSimdTmpCount(0),
-                              mSimdByteOffset(0),
                               asmJsModuleFunctionBody(nullptr),
                               mTJBeginAddress(nullptr),
                               mUsesHeapBuffer(false),
@@ -884,36 +890,27 @@ namespace Js
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
         ByteCodeToTJMap* mbyteCodeTJMap;
         BYTE* mTJBeginAddress;
-        inline int GetDoubleConstCount() const{ return mDoubleConstCount; }
-        inline void SetDoubleConstCount(int val) { mDoubleConstCount = val; }
-        inline int GetFloatConstCount() const{ return mFloatConstCount; }
-        inline void SetFloatConstCount(int val) { mFloatConstCount = val; }
-        inline int GetIntConstCount() const{return mIntConstCount;}
-        inline void SetIntConstCount(int val) { mIntConstCount = val; }
-        inline int GetIntVarCount()const { return mIntVarCount; }
-        inline void SetIntVarCount(int val) { mIntVarCount = val; }
-        inline int GetFloatVarCount()const { return mFloatVarCount; }
-        inline void SetFloatVarCount(int val) { mFloatVarCount = val; }
-        inline int GetDoubleVarCount()const { return mDoubleVarCount; }
-        inline void SetDoubleVarCount(int val) { mDoubleVarCount = val; }
-        inline int GetIntTmpCount()const { return mIntTmpCount; }
-        inline void SetIntTmpCount(int val) { mIntTmpCount = val; }
-        inline int GetFloatTmpCount()const { return mFloatTmpCount; }
-        inline void SetFloatTmpCount(int val) { mFloatTmpCount = val; }
-        inline int GetDoubleTmpCount()const { return mDoubleTmpCount; }
-        inline void SetDoubleTmpCount(int val) { mDoubleTmpCount = val; }
+        WAsmJs::TypedSlotInfo* GetTypedSlotInfo(WAsmJs::Types type);
+
+#define TYPED_SLOT_INFO_GETTER(name, type) \
+        int Get##name##ByteOffset() const   { return mTypedSlotInfos[WAsmJs::##type].byteOffset; }\
+        int Get##name##ConstCount() const   { return mTypedSlotInfos[WAsmJs::##type].constCount; }\
+        int Get##name##TmpCount() const     { return mTypedSlotInfos[WAsmJs::##type].tmpCount; }\
+        int Get##name##VarCount() const     { return mTypedSlotInfos[WAsmJs::##type].varCount; }
+
+        TYPED_SLOT_INFO_GETTER(Double, FLOAT64);
+        TYPED_SLOT_INFO_GETTER(Float, FLOAT32);
+        TYPED_SLOT_INFO_GETTER(Int, INT32);
+        TYPED_SLOT_INFO_GETTER(Int64, INT64);
+        TYPED_SLOT_INFO_GETTER(Simd, SIMD);
+#undef TYPED_SLOT_INFO_GETTER
+
         inline ArgSlot GetArgCount() const{ return mArgCount; }
         inline void SetArgCount(ArgSlot val) { mArgCount = val; }
         inline AsmJsRetType GetReturnType() const{return mReturnType;}
         inline void SetReturnType(AsmJsRetType val) { mReturnType = val; }
         inline ArgSlot GetArgByteSize() const{return mArgByteSize;}
         inline void SetArgByteSize(ArgSlot val) { mArgByteSize = val; }
-        inline int GetDoubleByteOffset() const{ return mDoubleByteOffset; }
-        inline void SetDoubleByteOffset(int val) { mDoubleByteOffset = val; }
-        inline int GetFloatByteOffset() const{ return mFloatByteOffset; }
-        inline void SetFloatByteOffset(int val) { mFloatByteOffset = val; }
-        inline int GetIntByteOffset() const{ return mIntByteOffset; }
-        inline void SetIntByteOffset(int val) { mIntByteOffset = val; }
 
         inline void SetIsHeapBufferConst(bool val) { mIsHeapBufferConst = val; }
         inline bool IsHeapBufferConst() const{ return mIsHeapBufferConst; }
@@ -921,14 +918,6 @@ namespace Js
         inline void SetUsesHeapBuffer(bool val) { mUsesHeapBuffer = val; }
         inline bool UsesHeapBuffer() const{ return mUsesHeapBuffer; }
 
-        inline int GetSimdConstCount() const { return mSimdConstCount;  }
-        inline void SetSimdConstCount(int val) { mSimdConstCount = val; }
-        inline int GetSimdVarCount() const { return mSimdVarCount; }
-        inline void SetSimdVarCount(int val) { mSimdVarCount = val; }
-        inline int GetSimdTmpCount() const { return mSimdTmpCount; }
-        inline void SetSimdTmpCount(int val) { mSimdTmpCount = val; }
-        inline int GetSimdByteOffset() const { return mSimdByteOffset; }
-        inline void SetSimdByteOffset(int val) { mSimdByteOffset = val; }
         inline int GetSimdAllCount() const { return GetSimdConstCount() + GetSimdVarCount() + GetSimdTmpCount(); }
 
         int GetTotalSizeinBytes()const;

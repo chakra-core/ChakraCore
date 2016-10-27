@@ -14,6 +14,11 @@
 #include "ByteCode/AsmJsByteCodeWriter.h"
 #include "Language/AsmJsByteCodeGenerator.h"
 
+#if DBG_DUMP
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
+#endif
+
 namespace Js
 {
 
@@ -72,13 +77,11 @@ namespace Js
             AsmJsFunc* func = mFunctionArray.Item(i);
             FunctionBody* functionBody = func->GetFuncBody();
             AsmJsFunctionInfo* asmInfo = functionBody->AllocateAsmJsFunctionInfo();
+
             if (i == 0 && mUsesChangeHeap)
             {
                 continue;
             }
-            const auto& intRegisterSpace = func->GetRegisterSpace<int>();
-            const auto& doubleRegisterSpace = func->GetRegisterSpace<double>();
-            const auto& floatRegisterSpace = func->GetRegisterSpace<float>();
 
             if (!asmInfo->Init(func))
             {
@@ -86,25 +89,19 @@ namespace Js
             }
             asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
-            int varCount = 0;
-            varCount += (int)((intRegisterSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE) + 0.5);
-            varCount += (int)(floatRegisterSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
-            varCount += doubleRegisterSpace.GetTotalVarCount() * WAsmJs::DOUBLE_SLOTS_SPACE;
-
-            if (IsSimdjsEnabled())
-            {
-                const auto& simdRegisterSpace = func->GetRegisterSpace<AsmJsSIMDValue>();
-                varCount += (int)((simdRegisterSpace.GetTotalVarCount() + 1) * WAsmJs::SIMD_SLOTS_SPACE); /* + 1 to make room for possible alignment of SIMD values*/
-                // Aligned SIMD values.
-                Assert(asmInfo->GetSimdByteOffset() % sizeof(AsmJsSIMDValue) == 0);
-            }
 
             functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
-            functionBody->CheckAndSetVarCount(varCount);
             // should be set in EmitOneFunction
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
             ((EntryPointInfo*)functionBody->GetDefaultEntryPointInfo())->SetIsAsmJSFunction(true);
+
+#if DBG_DUMP && defined(ASMJS_PLAT)
+            if(PHASE_DUMP(ByteCodePhase, functionBody))
+            {
+                AsmJsByteCodeDumper::Dump(functionBody, nullptr, func);
+            }
+#endif
 #if _M_IX86
             if (PHASE_ON1(AsmJsJITTemplatePhase) && !Configuration::Global.flags.NoNative)
             {
@@ -1084,7 +1081,7 @@ namespace Js
     {
         PropertyName name = ParserWrapper::FunctionName( pnodeFnc );
         GetByteCodeGenerator()->AssignPropertyId(name);
-        AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator );
+        AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator, mCx->scriptContext );
         if( func )
         {
             if( DefineIdentifier( name, func ) )
@@ -1435,7 +1432,7 @@ namespace Js
         arrayFunctions[AsmJSTypedArrayBuiltin_Uint32Array ] = ArrayFunc(PropertyIds::Uint32Array,  Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Uint32Array,  ArrayBufferView::TYPE_UINT32));
         arrayFunctions[AsmJSTypedArrayBuiltin_Float32Array] = ArrayFunc(PropertyIds::Float32Array, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Float32Array, ArrayBufferView::TYPE_FLOAT32));
         arrayFunctions[AsmJSTypedArrayBuiltin_Float64Array] = ArrayFunc(PropertyIds::Float64Array, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Float64Array, ArrayBufferView::TYPE_FLOAT64));
-        arrayFunctions[AsmJSTypedArrayBuiltin_byteLength  ] = ArrayFunc(PropertyIds::byteLength,   Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_byteLength,   ArrayBufferView::TYPE_INVALID));
+        arrayFunctions[AsmJSTypedArrayBuiltin_byteLength  ] = ArrayFunc(PropertyIds::byteLength,   Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_byteLength,   ArrayBufferView::TYPE_COUNT));
 
         for (int i = 0; i < AsmJSTypedArrayBuiltin_COUNT; i++)
         {

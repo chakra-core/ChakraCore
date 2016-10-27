@@ -1,3 +1,4 @@
-Unexpected Error while compiling globals.0.wasm
-Error: Compiling wasm failed: i64 globals NYI
-0/0 tests passed.
+globals.wast:35: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_5[17] at offset 4/16: Operator I64ReinterpretF64 NYI
+globals.wast:37: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[19] at offset 4/16: Operator I64ReinterpretF64 NYI
+globals.wast:47: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[27] at offset 4/16: Operator I64ReinterpretF64 NYI
+13/16 tests passed.

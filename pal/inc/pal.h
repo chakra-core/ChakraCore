@@ -366,6 +366,18 @@ PAL_IsDebuggerPresent();
 #define LONG_MAX      2147483647L
 #define ULONG_MAX     0xffffffffUL
 
+#define LONGLONG_MIN    (-9223372036854775807i64 - 1)
+#define LONG64_MIN      (-9223372036854775807i64 - 1)
+#define INT64_MIN       (-9223372036854775807i64 - 1)
+#define LONGLONG_MAX    9223372036854775807i64
+#define LONG64_MAX      9223372036854775807i64
+#define INT64_MAX       9223372036854775807i64
+#define ULONGLONG_MAX   0xffffffffffffffffui64
+#define DWORDLONG_MAX   0xffffffffffffffffui64
+#define ULONG64_MAX     0xffffffffffffffffui64
+#define DWORD64_MAX     0xffffffffffffffffui64
+#define UINT64_MAX      0xffffffffffffffffui64
+
 #define FLT_MAX 3.402823466e+38F
 #define DBL_MAX 1.7976931348623157e+308
 
@@ -5795,7 +5807,7 @@ InterlockedAnd8(
 EXTERN_C
 PALIMPORT
 inline
-short 
+short
 PALAPI
 InterlockedAnd16(
     IN OUT short volatile *Destination,
@@ -6592,6 +6604,24 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
 
 /*++
 Function:
+_rotl64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
+{
+    unsigned long long retval = 0;
+
+    shift &= 0x3f;
+    retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
 _rotr
 
 See MSDN doc.
@@ -6605,6 +6635,24 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
 
     shift &= 0x1f;
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
+_rotr64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
+{
+    unsigned long long retval;
+
+    shift &= 0x3f;
+    retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
 

@@ -370,22 +370,15 @@ typedef struct AsmJsDataIDL
     unsigned short argCount;
     IDL_PAD2(0)
     int retType;
-    int intConstCount;
-    int doubleConstCount;
-    int floatConstCount;
-    int simdConstCount;
-    int intTmpCount;
-    int doubleTmpCount;
-    int floatTmpCount;
-    int simdTmpCount;
-    int intVarCount;
-    int doubleVarCount;
-    int floatVarCount;
-    int simdVarCount;
-    int intByteOffset;
-    int doubleByteOffset;
-    int floatByteOffset;
-    int simdByteOffset;
+    struct TypedSlotInfo
+    {
+        unsigned int constCount;
+        unsigned int varCount;
+        unsigned int tmpCount;
+        unsigned int byteOffset;
+        unsigned int constSrcByteOffset;
+        boolean isValidType;
+    } typedSlotInfos[5];
     int totalSizeInBytes;
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;

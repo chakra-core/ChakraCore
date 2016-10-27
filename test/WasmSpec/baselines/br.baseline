@@ -1,11 +1,4 @@
-br.wast:285: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function type-i64[2] at offset 6/9: Operator I64Ctz NYI
-br.wast:290: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_5[64] at offset 3/7: I64 return type NYI
 br.wast:292: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[66] at offset 4/16: Operator I64ReinterpretF64 NYI
-br.wast:313: $assert_return_22 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_22[81] at offset 3/7: I64 return type NYI
-br.wast:339: $assert_return_42 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_42[101] at offset 3/7: I64 return type NYI
-br.wast:342: $assert_return_44 unexpectedly threw: Error: Compiling wasm failed: function as-store-value[42] at offset 12/16: Operator I64StoreMem NYI
-br.wast:344: $assert_return_46 unexpectedly threw: Error: Compiling wasm failed: function as-storeN-value[44] at offset 12/16: Operator I64StoreMem16 NYI
-br.wast:349: $assert_return_49 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_49[108] at offset 3/7: I64 return type NYI
 br.wast:356: $assert_return_53 unexpectedly threw: Error: Compiling wasm failed: function as-convert-operand[51] at offset 8/10: Operator I32ConvertI64 NYI
 br.wast:358: $assert_return_54 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[52] at offset 8/10: Operator GrowMemory NYI
-51/61 tests passed.
+58/61 tests passed.

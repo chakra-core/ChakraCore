@@ -71,6 +71,7 @@ namespace Js
             exportObject = WasmLibrary::LoadWasmScript(
                 scriptContext,
                 (const char16*)buffer,
+                args[1],
                 nullptr, // source info
                 &se,
                 &utf8SourceInfo,
@@ -154,17 +155,18 @@ namespace Js
 
         Js::FunctionEntryPointInfo * entypointInfo = (Js::FunctionEntryPointInfo*)func->GetEntryPointInfo();
         Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
-        info->SetWasmReaderInfo(nullptr);
         try
         {
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
+            info->SetWasmReaderInfo(nullptr);
             func->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
             entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
             // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || scriptContext->GetConfig()->IsNoNative();
+            if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
             {
-                GenerateFunction(scriptContext->GetNativeCodeGenerator(), func->GetFunctionBody(), func);
+                GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, func);
             }
 #endif
         }
@@ -187,6 +189,7 @@ namespace Js
             {
                 throw newEx;
             }
+            info->SetWasmReaderInfo(nullptr);
             char16* msg = newEx.ReleaseErrorMessage();
             //Output::Print(_u("%s\n"), msg);
             Js::JavascriptLibrary *library = scriptContext->GetLibrary();
@@ -390,6 +393,7 @@ namespace Js
                 break;
             }
             case Wasm::WasmTypes::I64:
+                Js::JavascriptError::ThrowTypeError(ctx, VBSERR_TypeMismatch);
             default:
                 Assert(UNREACHED);
                 break;
@@ -433,15 +437,16 @@ namespace Js
             case Wasm::WasmTypes::I32:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.i32);
                 break;
+            case Wasm::WasmTypes::I64:
+                SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.i64);
+                break;
             case Wasm::WasmTypes::F32:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f32);
                 break;
             case Wasm::WasmTypes::F64:
                 SetGlobalValue(moduleEnv, offset, sourceGlobal->cnst.f64);
                 break;
-            case Wasm::WasmTypes::I64:
             default:
-                Assert(UNREACHED);
                 break;
             }
 
@@ -495,7 +500,8 @@ namespace Js
 
     Var WasmLibrary::LoadWasmScript(
         ScriptContext* scriptContext,
-        const char16* script,
+        const char16* buffer,
+        Js::Var bufferSrc,
         SRCINFO const * pSrcInfo,
         CompileScriptException * pse,
         Utf8SourceInfo** ppSourceInfo,
@@ -523,8 +529,8 @@ namespace Js
             *ppSourceInfo = nullptr;
             Wasm::WasmModule * wasmModule = nullptr;
 
-            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)script, lengthBytes);
+            *ppSourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
+            bytecodeGen = HeapNew(Wasm::WasmModuleGenerator, scriptContext, *ppSourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
             wasmModule = bytecodeGen->GenerateModule();
 
             Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, wasmModule->GetModuleEnvironmentSize());
