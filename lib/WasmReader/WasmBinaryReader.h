@@ -26,6 +26,7 @@ namespace Wasm
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
         void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo);
+        void FunctionEnd();
         bool IsCurrentFunctionCompleted() const;
         WasmOp ReadExpr();
 #if DBG_DUMP
@@ -37,7 +38,7 @@ namespace Wasm
         struct ReaderState
         {
             UINT32 count; // current entry
-            UINT32 size;  // number of entries
+            size_t size;  // number of entries
         };
 
         void BlockNode();
@@ -54,7 +55,7 @@ namespace Wasm
         void ReadMemorySection();
         void ReadSignatures();
         void ReadFunctionsSignatures();
-        bool ReadFunctionHeaders();
+        void ReadFunctionHeaders();
         void ReadExportTable();
         void ReadTableSection();
         void ReadDataSegments();
@@ -88,6 +89,12 @@ namespace Wasm
         ReaderState m_funcState;   // func AST level
 
     private:
+        enum
+        {
+            READER_STATE_UNKNOWN,
+            READER_STATE_FUNCTION,
+            READER_STATE_MODULE
+        } m_readerState;
         WasmModule* m_module;
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;

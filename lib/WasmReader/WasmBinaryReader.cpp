@@ -40,7 +40,8 @@ uint32 GetTypeByteSize(WasmType type)
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
-    m_alloc(alloc)
+    m_alloc(alloc),
+    m_readerState(READER_STATE_UNKNOWN)
 {
     m_start = m_pc = source;
     m_end = source + length;
@@ -53,6 +54,7 @@ WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, by
 void WasmBinaryReader::InitializeReader()
 {
     ValidateModuleHeader();
+    m_readerState = READER_STATE_UNKNOWN;
 #if DBG_DUMP
     if (DO_WASM_TRACE_SECTION)
     {
@@ -121,6 +123,7 @@ WasmBinaryReader::ProcessCurrentSection()
 {
     Assert(m_currentSection.code != bSectInvalid);
     TRACE_WASM_SECTION(_u("Process section %s"), SectionInfo::All[m_currentSection.code].name);
+    m_readerState = READER_STATE_MODULE;
 
     switch (m_currentSection.code)
     {
@@ -137,7 +140,8 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadFunctionsSignatures();
         break;
     case bSectFunctionBodies:
-        return ReadFunctionHeaders();
+        ReadFunctionHeaders();
+        break;
     case bSectExportTable:
         ReadExportTable();
         break;
@@ -161,8 +165,11 @@ WasmBinaryReader::ProcessCurrentSection()
         break;
     default:
         Assert(UNREACHED);
+        m_readerState = READER_STATE_UNKNOWN;
         return false;
     }
+
+    m_readerState = READER_STATE_UNKNOWN;
 
     return m_pc == m_currentSection.end;
 }
@@ -261,7 +268,7 @@ WasmBinaryReader::PrintOps()
 
 #endif
 
-bool
+void
 WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
@@ -284,7 +291,6 @@ WasmBinaryReader::ReadFunctionHeaders()
         byte* end = m_pc + funcSize;
         m_pc = end;
     }
-    return m_pc == m_currentSection.end;
 }
 
 void
@@ -294,6 +300,12 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
     {
         ThrowDecodingError(_u("Function byte offset out of bounds"));
     }
+    if (m_readerState != READER_STATE_UNKNOWN)
+    {
+        ThrowDecodingError(_u("Wasm reader in an invalid state to read function code"));
+    }
+    m_readerState = READER_STATE_FUNCTION;
+
     // Seek to the function start and skip function header (count)
     m_pc = m_start + readerInfo.startOffset;
     m_funcState.size = readerInfo.size;
@@ -330,6 +342,11 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
             break;
         }
     }
+}
+
+void WasmBinaryReader::FunctionEnd()
+{
+    m_readerState = READER_STATE_UNKNOWN;
 }
 
 bool WasmBinaryReader::IsCurrentFunctionCompleted() const
@@ -1055,8 +1072,13 @@ WasmBinaryReader::SLEB128(UINT &length)
 WasmNode
 WasmBinaryReader::ReadInitExpr()
 {
+    if (m_readerState != READER_STATE_MODULE)
+    {
+        ThrowDecodingError(_u("Wasm reader in an invalid state to read init_expr"));
+    }
+
     m_funcState.count = 0;
-    m_funcState.size = 123456; // some arbitrary big value
+    m_funcState.size = m_currentSection.end - m_pc;
     ReadExpr();
     WasmNode node = m_currentNode;
     switch (node.op)
