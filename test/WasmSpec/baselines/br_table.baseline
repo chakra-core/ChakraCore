@@ -1,4 +1,4 @@
 br_table.wast:1209: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[73] at offset 4/16: Operator I64ReinterpretF64 NYI
-br_table.wast:1332: $assert_return_105 unexpectedly threw: Error: Compiling wasm failed: function as-convert-operand[58] at offset 11/13: Operator I32ConvertI64 NYI
-br_table.wast:1334: $assert_return_106 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[59] at offset 11/13: Operator GrowMemory NYI
+br_table.wast:1332: $assert_return_105 unexpectedly threw: Error: Compiling wasm failed: function as-convert-operand[58] at offset 11/13: Operator I32Wrap_I64 NYI
+br_table.wast:1334: $assert_return_106 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-size[59] at offset 12/14: Operator GrowMemory NYI
 140/143 tests passed.

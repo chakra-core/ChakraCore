@@ -37,6 +37,20 @@ uint32 GetTypeByteSize(WasmType type)
 
 } // namespace WasmTypes
 
+WasmTypes::WasmType 
+LanguageTypes::ToWasmType(int8 binType)
+{
+    switch (binType)
+    {
+    case LanguageTypes::i32: return WasmTypes::I32;
+    case LanguageTypes::i64: return WasmTypes::I64;
+    case LanguageTypes::f32: return WasmTypes::F32;
+    case LanguageTypes::f64: return WasmTypes::F64;
+    default:
+        throw WasmCompilationException(_u("Invalid binary type %d"), binType);
+    }
+}
+
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
@@ -403,6 +417,11 @@ WasmBinaryReader::ReadExpr()
         break;
     case wbNop:
         break;
+    case wbCurrentMemory:
+    case wbGrowMemory:
+        // Reserved value currently unused
+        ReadConst<uint8>();
+        break;
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         MemNode(); \
@@ -457,6 +476,9 @@ WasmBinaryReader::CallIndirectNode()
     UINT length = 0;
 
     UINT32 funcNum = LEB128(length);
+    // Reserved value currently unused
+    ReadConst<uint8>();
+
     m_funcState.count += length;
     if (funcNum >= m_module->GetSignatureCount())
     {
@@ -468,13 +490,9 @@ WasmBinaryReader::CallIndirectNode()
 
 void WasmBinaryReader::BlockNode()
 {
-    uint8 sig = ReadConst<uint8>();
+    int8 blockType = ReadConst<int8>();
     m_funcState.count++;
-    if (sig >= WasmTypes::Limit)
-    {
-        ThrowDecodingError(_u("Invalid block signature type"));
-    }
-    m_currentNode.block.sig = (WasmTypes::WasmType)sig;
+    m_currentNode.block.sig = blockType == LanguageTypes::emptyBlock ? WasmTypes::Void : LanguageTypes::ToWasmType(blockType);
 }
 
 // control flow
@@ -598,8 +616,8 @@ WasmBinaryReader::ReadSignatures()
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
         WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
 
-        char form = ReadConst<UINT8>();
-        if (form != 0x40)
+        int8 form = ReadConst<int8>();
+        if (form != LanguageTypes::func)
         {
             ThrowDecodingError(_u("Unexpected type form 0x%X"), form);
         }
@@ -719,8 +737,8 @@ void WasmBinaryReader::ReadTableSection()
 
     if (entries > 0)
     {
-        uint8 elementType = ReadConst<uint8>();
-        if (elementType != ElementTypes::anyfunc)
+        int8 elementType = ReadConst<int8>();
+        if (elementType != LanguageTypes::anyfunc)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
         }
@@ -1105,12 +1123,7 @@ WasmTypes::WasmType
 WasmBinaryReader::ReadWasmType(uint32& length)
 {
     length = 1;
-    WasmTypes::WasmType type = (WasmTypes::WasmType)ReadConst<UINT8>();
-    if (type >= WasmTypes::Limit)
-    {
-        ThrowDecodingError(_u("Invalid type"));
-    }
-    return type;
+    return LanguageTypes::ToWasmType(ReadConst<int8>());
 }
 
 void

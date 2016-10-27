@@ -537,15 +537,15 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         Assert(WasmOpCodeSignatures::n##sig > 0);\
         info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, true); \
         break;
-#define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) \
+#define WASM_BINARY_OPCODE(opname, opcode, sig, asmjsop, nyi) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 3);\
-        info = EmitBinExpr<Js::OpCodeAsmJs::##asmjop, WasmOpCodeSignatures::sig>(); \
+        info = EmitBinExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
-#define WASM_UNARY__OPCODE(opname, opcode, sig, asmjop, nyi) \
+#define WASM_UNARY__OPCODE(opname, opcode, sig, asmjsop, nyi) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 2);\
-        info = EmitUnaryExpr<Js::OpCodeAsmJs::##asmjop, WasmOpCodeSignatures::sig>(); \
+        info = EmitUnaryExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
 #include "WasmBinaryOpCodes.h"
     default:
@@ -1064,9 +1064,8 @@ WasmBytecodeGenerator::EmitDrop()
     return EmitInfo();
 }
 
-template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
 EmitInfo
-WasmBytecodeGenerator::EmitBinExpr()
+WasmBytecodeGenerator::EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
 {
     WasmTypes::WasmType resultType = signature[0];
     WasmTypes::WasmType lhsType = signature[1];
@@ -1094,9 +1093,8 @@ WasmBytecodeGenerator::EmitBinExpr()
     return EmitInfo(resultReg, resultType);
 }
 
-template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
 EmitInfo
-WasmBytecodeGenerator::EmitUnaryExpr()
+WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
 {
     WasmTypes::WasmType resultType = signature[0];
     WasmTypes::WasmType inputType = signature[1];

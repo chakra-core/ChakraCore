@@ -11,13 +11,6 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\binary.baseline</baseline>
-      <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\binary.json -endargs -on:wasmdeferred</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
       <baseline>baselines\block.baseline</baseline>
       <compile-flags>-on:wasm -on:wasmlazytrap -args testsuite-bin\block.json -endargs -on:wasmdeferred</compile-flags>
     </default>
