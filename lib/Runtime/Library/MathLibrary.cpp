@@ -849,13 +849,19 @@ namespace Js
         }
         else
         {
-            if( AutoSystemInfo::Data.SSE2Available() )
+            int32 intY;
+            // range [-8, 8] is from JavascriptNumber::DirectPowDoubleInt
+            if (JavascriptNumber::TryGetInt32Value(y, &intY) && intY >= -8 && intY <= 8)
+            {
+                result = JavascriptNumber::DirectPowDoubleInt(x, intY);
+            }
+            else if( AutoSystemInfo::Data.SSE2Available() )
             {
                 _asm {
                     movsd xmm0, x
-                        movsd xmm1, y
-                        call dword ptr[__libm_sse2_pow]
-                        movsd result, xmm0
+                    movsd xmm1, y
+                    call dword ptr[__libm_sse2_pow]
+                    movsd result, xmm0
                 }
             }
             else
