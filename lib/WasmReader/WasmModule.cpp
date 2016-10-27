@@ -422,7 +422,7 @@ uint WasmModule::GetOffsetForGlobal(WasmGlobal* global)
     }
 
     sizeInInts += global->GetOffset() * slotSizesInInts[type];
-    return (uint)(sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);
+    return (uint)(GetGlobalOffset() + sizeInInts / slotSizesInInts[type] + 0.5 /*no half doubles or longs */);
 }
 
 } // namespace Wasm
