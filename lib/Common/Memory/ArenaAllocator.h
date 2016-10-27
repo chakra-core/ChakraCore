@@ -150,6 +150,9 @@ private:
 #ifdef PROFILE_MEM
     struct ArenaMemoryData * memoryData;
 #endif
+#if DBG
+    bool needsDelayFreeList;
+#endif
 
 public:
     static const size_t ObjectAlignmentBitShift = ObjectAlignmentBitShiftArg;
@@ -228,6 +231,17 @@ public:
 
     char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     void Free(void * buffer, size_t byteSize);
+#if DBG
+    bool HasDelayFreeList() const
+    {
+        return needsDelayFreeList;
+    }
+    void SetNeedsDelayFreeList()
+    {
+        needsDelayFreeList = true;
+    }
+    void MergeDelayFreeList();
+#endif
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
     ArenaAllocatorBase * TrackAllocInfo(TrackAllocData const& data) { return this; }
@@ -292,6 +306,9 @@ public:
     static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
     static void PrepareFreeObject(__out_bcount(size) void * object, _In_ size_t size)
     {
 #ifdef ARENA_MEMORY_VERIFY
@@ -352,6 +369,9 @@ public:
     }
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
+#endif
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
 #endif
     static void Release(void * policy);
 };
@@ -613,6 +633,9 @@ public:
         memset(object, NULL, size);
 #endif
     }
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
 #endif

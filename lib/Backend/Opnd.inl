@@ -17,6 +17,7 @@ namespace IR {
 inline Opnd *
 Opnd::Use(Func *func)
 {
+    AssertMsg(!isDeleted, "Using deleted operand");
     if (!m_inUse)
     {
         m_inUse = true;
