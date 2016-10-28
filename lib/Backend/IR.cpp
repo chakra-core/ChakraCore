@@ -2872,6 +2872,18 @@ Instr::FindRegDef(StackSym *sym)
     return nullptr;
 }
 
+Instr*
+Instr::FindSingleDefInstr(Js::OpCode opCode, Opnd* src)
+{
+    RegOpnd* src1 = src->IsRegOpnd() ? src->AsRegOpnd() : nullptr;
+
+    return  src1 &&
+        src1->m_sym->IsSingleDef() &&
+        src1->m_sym->GetInstrDef()->m_opcode == opCode ?
+        src1->m_sym->GetInstrDef() :
+        nullptr;
+}
+
 void
 Instr::TransferDstAttributesTo(Instr * instr)
 {

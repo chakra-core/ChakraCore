@@ -94,6 +94,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I2toI1Mem        , Mul_Int      , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I2toI1Mem        , Div_Int      , AsmJsMath::Div<int>                                )
   DEF2_WMS( I2toI1Mem        , Rem_Int      , AsmJsMath::Rem<int>                                )
+  DEF2_WMS( I2toI1Mem        , Div_Check_Int , OP_DivOverflow                                    )
+  DEF2_WMS( I2toI1Mem        , Rem_Check_Int , (OP_DivRemCheck<int, &AsmJsMath::Rem<int>>)       )
   DEF2_WMS( I2toI1Mem        , And_Int      , AsmJsMath::And                                     )
   DEF2_WMS( I2toI1Mem        , Or_Int       , AsmJsMath::Or                                      )
   DEF2_WMS( I2toI1Mem        , Xor_Int      , AsmJsMath::Xor                                     )
@@ -127,6 +129,9 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L1toL1Mem        , Clz_Long     , Wasm::WasmMath::Clz<int64>)
   DEF2_WMS( L1toL1Mem        , Ctz_Long     , Wasm::WasmMath::Ctz<int64>)
   DEF2_WMS( L1toL1Mem        , PopCnt_Long  , Wasm::WasmMath::PopCnt<int64>)
+  DEF2_WMS( I2toI1Mem        , Div_Check_UInt , (OP_DivRemCheck<uint32, &AsmJsMath::Div<uint32>>) )
+  DEF2_WMS( I2toI1Mem        , Rem_Check_UInt , (OP_DivRemCheck<uint32, &AsmJsMath::Rem<uint32>>) )
+
 
   DEF2_WMS( D1toD1Mem        , Neg_Db       , AsmJsMath::Neg<double>                             ) // double unary '-'
   DEF2_WMS( D2toD1Mem        , Add_Db       , AsmJsMath::Add<double>                             )
