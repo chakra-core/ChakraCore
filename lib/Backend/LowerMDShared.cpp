@@ -283,9 +283,15 @@ LowererMD::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     IR::Opnd *srcOpnd = IR::IndirOpnd::New(arrayBuffer, Js::ArrayBuffer::GetByteLengthOffset(), TyMachReg, m_func);
     IR::RegOpnd *arrayLenOpnd = IR::RegOpnd::New(TyMachReg, m_func);
 
-    // Compare index and array buffer length, and generate RuntimeError if greater
+    // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
     Lowerer::InsertMove(arrayLenOpnd, srcOpnd, helperLabel);
+    if (addrOpnd->GetSize() > 1)
+    {
+        Lowerer::InsertAdd(true, IR::RegOpnd::New(TyMachReg, m_func), indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize() - 1, TyMachReg, m_func), helperLabel);
+        Lowerer::InsertBranch(Js::OpCode::JO, helperLabel, helperLabel);
+    }
     m_lowerer->InsertCompareBranch(indexOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+
     // MGTODO : call RuntimeError once implemented
     m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
