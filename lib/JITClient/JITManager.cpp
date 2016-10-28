@@ -302,7 +302,7 @@ JITManager::Shutdown()
 HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
-    __out intptr_t * threadContextInfoAddress,
+    __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __out intptr_t * prereservedRegionAddr)
 {
     Assert(IsOOPJITEnabled());
@@ -323,7 +323,7 @@ JITManager::InitializeThreadContext(
 
 HRESULT
 JITManager::CleanupThreadContext(
-    __in intptr_t threadContextInfoAddress)
+    __inout PPTHREADCONTEXT_HANDLE threadContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
 
@@ -343,7 +343,7 @@ JITManager::CleanupThreadContext(
 
 HRESULT
 JITManager::AddDOMFastPathHelper(
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in intptr_t funcInfoAddr,
     __in int helper)
 {
@@ -365,7 +365,7 @@ JITManager::AddDOMFastPathHelper(
 
 HRESULT
 JITManager::SetIsPRNGSeeded(
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in boolean value)
 {
     HRESULT hr = E_FAIL;
@@ -385,7 +385,7 @@ JITManager::SetIsPRNGSeeded(
 
 HRESULT
 JITManager::DecommitInterpreterBufferManager(
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in boolean asmJsThunk)
 {
     Assert(IsOOPJITEnabled());
@@ -406,7 +406,7 @@ JITManager::DecommitInterpreterBufferManager(
 
 HRESULT
 JITManager::NewInterpreterThunkBlock(
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in boolean asmJsThunk,
     __out InterpreterThunkInfoIDL * thunkInfo)
 {
@@ -428,7 +428,7 @@ JITManager::NewInterpreterThunkBlock(
 
 HRESULT 
 JITManager::AddModuleRecordInfo(
-    /* [in] */ intptr_t scriptContextInfoAddress,
+    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ unsigned int moduleId,
     /* [in] */ intptr_t localExportSlotsAddr)
 {
@@ -451,7 +451,7 @@ JITManager::AddModuleRecordInfo(
 
 HRESULT
 JITManager::SetWellKnownHostTypeId(
-    __in  intptr_t threadContextRoot,
+    __in  PTHREADCONTEXT_HANDLE threadContextRoot,
     __in  int typeId)
 {
 
@@ -474,7 +474,7 @@ JITManager::SetWellKnownHostTypeId(
 
 HRESULT
 JITManager::UpdatePropertyRecordMap(
-    __in intptr_t threadContextInfoAddress,
+    __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __in UpdatedPropertysIDL * updatedProps)
 {
     Assert(IsOOPJITEnabled());
@@ -496,8 +496,8 @@ JITManager::UpdatePropertyRecordMap(
 HRESULT
 JITManager::InitializeScriptContext(
     __in ScriptContextDataIDL * data,
-    __in intptr_t threadContextInfoAddress,
-    __out intptr_t * scriptContextInfoAddress)
+    __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
 
@@ -517,7 +517,7 @@ JITManager::InitializeScriptContext(
 
 HRESULT
 JITManager::CleanupScriptContext(
-    __in intptr_t scriptContextInfoAddress)
+    __inout PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
 
@@ -537,7 +537,7 @@ JITManager::CleanupScriptContext(
 
 HRESULT
 JITManager::CloseScriptContext(
-    __in intptr_t scriptContextInfoAddress)
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
 
@@ -557,7 +557,7 @@ JITManager::CloseScriptContext(
 
 HRESULT
 JITManager::FreeAllocation(
-    __in intptr_t threadContextInfoAddress,
+    __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __in intptr_t address)
 {
     Assert(IsOOPJITEnabled());
@@ -579,7 +579,7 @@ JITManager::FreeAllocation(
 #if DBG
 HRESULT
 JITManager::IsInterpreterThunkAddr(
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in intptr_t address,
     __in boolean asmjsThunk,
     __out boolean * result)
@@ -603,7 +603,7 @@ JITManager::IsInterpreterThunkAddr(
 
 HRESULT
 JITManager::IsNativeAddr(
-    __in intptr_t threadContextInfoAddress,
+    __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __in intptr_t address,
     __out boolean * result)
 {
@@ -626,7 +626,7 @@ JITManager::IsNativeAddr(
 HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemIDL *workItemData,
-    __in intptr_t scriptContextInfoAddress,
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __out JITOutputIDL *jitData)
 {
     Assert(IsOOPJITEnabled());

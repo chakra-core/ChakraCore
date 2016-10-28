@@ -16,7 +16,7 @@ interface IChakraJIT
     HRESULT InitializeThreadContext(
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
-        [out] CHAKRA_PTR * threadContextInfoAddress,
+        [out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [out] CHAKRA_PTR * prereservedRegionAddr);
 
     HRESULT CleanupProcess(
@@ -25,81 +25,81 @@ interface IChakraJIT
 
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress);
+        [in, out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
 
     HRESULT UpdatePropertyRecordMap(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [in] UpdatedPropertysIDL * updatedProps);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] CHAKRA_PTR funcInfoAddr,
         [in] int helper);
 
     HRESULT AddModuleRecordInfo(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] unsigned int moduleId,
         [in] CHAKRA_PTR localExportSlotsAddr);
 
     HRESULT SetWellKnownHostTypeId(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [in] int typeId);
 
     HRESULT InitializeScriptContext(
         [in] handle_t binding,
         [in] ScriptContextDataIDL * scriptContextData,
-        [in] CHAKRA_PTR threadContextInfoAddress,
-        [out] CHAKRA_PTR * scriptContextInfoAddress);
+        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        [out] PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT CloseScriptContext(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress);
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT CleanupScriptContext(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress);
+        [in, out] PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT FreeAllocation(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [in] CHAKRA_PTR address);
 
     HRESULT NewInterpreterThunkBlock(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] boolean asmJsThunk,
         [out] InterpreterThunkInfoIDL * thunkInfo);
 
     HRESULT DecommitInterpreterBufferManager(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] boolean asmJsManager);
 
     HRESULT IsNativeAddr(
         [in] handle_t binding,
-        [in] CHAKRA_PTR threadContextInfoAddress,
+        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [in] CHAKRA_PTR address,
         [out] boolean * result);
 
     HRESULT SetIsPRNGSeeded(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] boolean value);
 
     HRESULT RemoteCodeGen(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] CodeGenWorkItemIDL * workItemData,
         [out] JITOutputIDL * jitData);
 
 #if DBG
     HRESULT IsInterpreterThunkAddr(
         [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] CHAKRA_PTR address,
         [in] boolean asmjsThunk,
         [out] boolean * result);
