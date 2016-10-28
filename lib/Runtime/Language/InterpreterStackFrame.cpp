@@ -2976,7 +2976,7 @@ namespace Js
         // Load module environment
         FrameDisplay* frame = this->function->GetEnvironment();
         m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = frame->GetItem(0);
-
+#ifdef ENABLE_WASM
         if (func->GetFunctionBody()->IsWasmFunction())
         {
             WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
@@ -2988,6 +2988,7 @@ namespace Js
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
         }
         else
+#endif
         {
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
         }

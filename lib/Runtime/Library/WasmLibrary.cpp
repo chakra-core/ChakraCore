@@ -41,7 +41,7 @@ namespace Js
         }
         BYTE* buffer;
         uint byteLength;
-		Var bufferSrc = args[1];
+        Var bufferSrc = args[1];
         if (isTypedArray)
         {
             Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(bufferSrc);

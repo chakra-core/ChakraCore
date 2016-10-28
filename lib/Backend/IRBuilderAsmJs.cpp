@@ -659,7 +659,7 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
     IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
-
+#ifdef ENABLE_WASM
     if(m_func->GetJITFunctionBody()->IsWasmFunction())
     {
         // ArrayBuffer
@@ -667,7 +667,7 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         AddInstr(instr, offset);
     }
-
+#endif
     // ArrayBuffer buffer
     dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
     srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetBufferOffset(), TyVar, m_func);
