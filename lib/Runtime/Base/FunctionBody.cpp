@@ -1512,7 +1512,7 @@ namespace Js
 
     ScriptFunctionType * FunctionProxy::EnsureDeferredPrototypeType()
     {
-        Assert(this->GetFunctionProxy() == this);
+        //Assert(this->GetFunctionProxy() == this);
         return deferredPrototypeType != nullptr ?
             static_cast<ScriptFunctionType*>(deferredPrototypeType) : AllocDeferredPrototypeType();
     }

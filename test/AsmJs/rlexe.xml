@@ -170,6 +170,34 @@
       <compile-flags>-forceserialized -testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>relink.js</files>
+      <baseline>relink.nochangeheap.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs -maic:0 -asmjschangeheap-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>relink.js</files>
+      <baseline>relink.nochangeheap.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs -asmjschangeheap-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>relink.js</files>
+      <baseline>relink.nochangeheap.baseline</baseline>
+      <compile-flags>-forceserialized -testtrace:asmjs -simdjs -asmjschangeheap-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>relink.js</files>
+      <baseline>relink.nochangeheap.baseline</baseline>
+      <compile-flags>-forceserialized -testtrace:asmjs -simdjs -maic:0 -asmjschangeheap-</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>WriteArrayView.js</files>
