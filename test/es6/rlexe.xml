@@ -14,6 +14,12 @@
   </test>
   <test>
     <default>
+      <files>lambda2.js</files>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>NumericLiteralTest.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>

@@ -2870,14 +2870,22 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             }
         }
 
-        ref = this->PushPidRef(pid);
+        // don't create PidRefStack if this id is followed by '=>' because id will be
+        // reparsed as parameter for lambda function
+        if (m_token.tk != tkDArrow)
+        {
+            ref = this->PushPidRef(pid);
+        }
 
         if (buildAST)
         {
             pnode = CreateNameNode(pid);
             pnode->ichMin = ichMin;
             pnode->ichLim = ichLim;
-            pnode->sxPid.SetSymRef(ref);
+            if (m_token.tk != tkDArrow)
+            {
+                pnode->sxPid.SetSymRef(ref);
+            }
         }
         else
         {
