@@ -2559,6 +2559,7 @@ namespace Js
     {
         FrameDisplay* frame = func->GetEnvironment();
         ArrayBuffer* moduleArrayBuffer = nullptr;
+#ifdef ENABLE_WASM
         if (func->GetFunctionBody()->IsWasmFunction())
         {
             WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
@@ -2568,6 +2569,7 @@ namespace Js
             }
         }
         else
+#endif
         {
             moduleArrayBuffer = *(ArrayBuffer**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
         }
