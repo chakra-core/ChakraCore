@@ -2521,6 +2521,8 @@ namespace Js
 #endif
             );
 
+        FunctionBody(ParseableFunctionInfo * parseableFunctionInfo);
+
         void SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, JavascriptMethod directEntryPoint);
 #if DYNAMIC_INTERPRETER_THUNK
         void GenerateDynamicInterpreterThunk();
@@ -2555,6 +2557,8 @@ namespace Js
             , bool isDeserializedFunction
 #endif
             );
+
+        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info);
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;

@@ -408,6 +408,25 @@ namespace Js
 #endif
     }
 
+    FunctionBody *
+    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo)
+    {
+        ScriptContext * scriptContext = parseableFunctionInfo->GetScriptContext();
+        uint nestedCount = parseableFunctionInfo->GetNestedCount();
+
+        FunctionBody * functionBody = RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(),
+            FunctionBody,
+            parseableFunctionInfo);
+
+        // Initialize nested function array, update back pointers
+        for (uint i = 0; i < nestedCount; i++)
+        {
+            FunctionInfo * nestedInfo = parseableFunctionInfo->GetNestedFunc(i);
+            functionBody->SetNestedFunc(nestedInfo, i, 0);
+        }
+
+        return functionBody;
+    }
 
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
@@ -544,6 +563,151 @@ namespace Js
         // Sync entryPoints changes to etw rundown lock
         CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
         this->entryPoints = RecyclerNew(this->m_scriptContext->GetRecycler(), FunctionEntryPointList, this->m_scriptContext->GetRecycler(), syncObj);
+
+        this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
+
+        Assert(this->GetDefaultEntryPointInfo()->jsMethod != nullptr);
+
+        InitDisableInlineApply();
+        InitDisableInlineSpread();
+    }
+
+    FunctionBody::FunctionBody(ParseableFunctionInfo * proxy) :
+        ParseableFunctionInfo(proxy),
+        counters(this),
+        m_uScriptId(proxy->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId),
+        cleanedUp(false),
+        sourceInfoCleanedUp(false),
+        profiledLdElemCount(0),
+        profiledStElemCount(0),
+        profiledCallSiteCount(0),
+        profiledArrayCallSiteCount(0),
+        profiledDivOrRemCount(0),
+        profiledSwitchCount(0),
+        profiledReturnTypeCount(0),
+        profiledSlotCount(0),
+        m_isFuncRegistered(false),
+        m_isFuncRegisteredToDiag(false),
+        m_hasBailoutInstrInJittedCode(false),
+        m_depth(0),
+        inlineDepth(0),
+        m_pendingLoopHeaderRelease(false),
+        hasCachedScopePropIds(false),
+        m_argUsedForBranch(0),
+        m_envDepth((uint16)-1),
+        interpretedCount(0),
+        lastInterpretedCount(0),
+        loopInterpreterLimit(CONFIG_FLAG(LoopInterpretCount)),
+        savedPolymorphicCacheState(0),
+        debuggerScopeIndex(0),
+        m_hasFinally(false),
+#if ENABLE_PROFILE_INFO
+        dynamicProfileInfo(nullptr),
+#endif
+        savedInlinerVersion(0),
+#if ENABLE_NATIVE_CODEGEN
+        savedImplicitCallsFlags(ImplicitCall_HasNoInfo),
+#endif
+        hasExecutionDynamicProfileInfo(false),
+        m_hasAllNonLocalReferenced(false),
+        m_hasSetIsObject(false),
+        m_hasFunExprNameReference(false),
+        m_CallsEval(false),
+        m_ChildCallsEval(false),
+        m_hasReferenceableBuiltInArguments(false),
+        m_isParamAndBodyScopeMerged(true),
+        m_firstFunctionObject(true),
+        m_inlineCachesOnFunctionObject(false),
+        m_hasDoneAllNonLocalReferenced(false),
+        m_hasFunctionCompiledSent(false),
+        byteCodeCache(nullptr),
+        m_hasLocalClosureRegister(false),
+        m_hasParamClosureRegister(false),
+        m_hasLocalFrameDisplayRegister(false),
+        m_hasEnvRegister(false),
+        m_hasThisRegisterForEventHandler(false),
+        m_hasFirstInnerScopeRegister(false),
+        m_hasFuncExprScopeRegister(false),
+        m_hasFirstTmpRegister(false),
+        m_tag(TRUE),
+        m_nativeEntryPointUsed(FALSE),
+        bailOnMisingProfileCount(0),
+        bailOnMisingProfileRejitCount(0),
+        byteCodeBlock(nullptr),
+        entryPoints(nullptr),
+        m_constTable(nullptr),
+        inlineCaches(nullptr),
+        cacheIdToPropertyIdMap(nullptr),
+        executionMode(ExecutionMode::Interpreter),
+        interpreterLimit(0),
+        autoProfilingInterpreter0Limit(0),
+        profilingInterpreter0Limit(0),
+        autoProfilingInterpreter1Limit(0),
+        simpleJitLimit(0),
+        profilingInterpreter1Limit(0),
+        fullJitThreshold(0),
+        fullJitRequeueThreshold(0),
+        committedProfiledIterations(0),
+        wasCalledFromLoop(false),
+        hasScopeObject(false),
+        hasNestedLoop(false),
+        recentlyBailedOutOfJittedLoopBody(false),
+        m_isAsmJsScheduledForFullJIT(false),
+        m_asmJsTotalLoopCount(0)
+        //
+        // Even if the function does not require any locals, we must always have "R0" to propagate
+        // a return value.  By enabling this here, we avoid unnecessary conditionals during execution.
+        //
+#ifdef IR_VIEWER
+        ,m_isIRDumpEnabled(false)
+        ,m_irDumpBaseObject(nullptr)
+#endif /* IR_VIEWER */
+        , m_isFromNativeCodeModule(false)
+        , hasHotLoop(false)
+        , m_isPartialDeserializedFunction(false)
+#if DBG
+        , m_isSerialized(false)
+#endif
+#ifdef PERF_COUNTERS
+        , m_isDeserializedFunction(false)
+#endif
+#if DBG
+        , m_DEBUG_executionCount(0)
+        , m_nativeEntryPointIsInterpreterThunk(false)
+        , m_canDoStackNestedFunc(false)
+        , m_inlineCacheTypes(nullptr)
+        , m_iProfileSession(-1)
+        , initializedExecutionModeAndLimits(false)
+#endif
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        , regAllocLoadCount(0)
+        , regAllocStoreCount(0)
+        , callCountStats(0)
+#endif
+    {
+        ScriptContext * scriptContext = proxy->GetScriptContext();
+
+        SetCountField(CounterFields::ConstantCount, 1);
+
+        proxy->UpdateFunctionBodyImpl(this);
+
+        void* validationCookie = nullptr;
+
+#if ENABLE_NATIVE_CODEGEN
+        validationCookie = (void*)scriptContext->GetNativeCodeGenerator();
+#endif
+
+        this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
+            FunctionEntryPointInfo, this, scriptContext->CurrentThunk, scriptContext->GetThreadContext(), validationCookie);
+
+        this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
+        this->m_hasBeenParsed = true;
+
+        Assert(!proxy->GetUtf8SourceInfo() || m_uScriptId == proxy->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId);
+
+        // Sync entryPoints changes to etw rundown lock
+        CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
+        this->entryPoints = RecyclerNew(scriptContext->GetRecycler(), FunctionEntryPointList, scriptContext->GetRecycler(), syncObj);
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
 
@@ -1889,26 +2053,8 @@ namespace Js
         // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
         if (!this->m_hasBeenParsed)
         {
-            funcBody = FunctionBody::NewFromRecycler(
-                this->m_scriptContext,
-                this->m_displayName,
-                this->m_displayNameLength,
-                this->m_displayShortNameOffset,
-                this->GetNestedCount(),
-                this->GetUtf8SourceInfo(),
-                this->m_functionNumber,
-                this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId,
-                this->GetLocalFunctionId(),
-                propertyRecordList,
-                (FunctionInfo::Attributes)(this->GetAttributes() & ~(FunctionInfo::Attributes::DeferredDeserialize | FunctionInfo::Attributes::DeferredParse)),
-                Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
-#ifdef PERF_COUNTERS
-                , false /* is function from deferred deserialized proxy */
-#endif
-                );
+            funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
 
-            this->Copy(funcBody);
-            this->UpdateFunctionBodyImpl(funcBody);
             PERF_COUNTER_DEC(Code, DeferredFunction);
 
             if (!this->GetSourceContextInfo()->IsDynamic())
