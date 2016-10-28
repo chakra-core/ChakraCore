@@ -310,11 +310,17 @@ endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
 
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(DYN_LIB_EXT "dylib")
+else()
+    set(DYN_LIB_EXT "so")
+endif()
+
 ################# Write-barrier check/analyze ##################
 if (WB_CHECK_SH OR WB_ANALYZE_SH)
     add_definitions(
         -Xclang -load
-        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.so
+        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.${DYN_LIB_EXT}
     )
 endif()
 if (WB_CHECK_SH)
@@ -330,6 +336,15 @@ if (WB_ANALYZE_SH)
         -Xclang -analyze
         -Xclang -analyzer-checker=chakra.RecyclerChecker
     )
+endif()
+if (WB_ARGS_SH)
+    foreach(wb_arg IN LISTS WB_ARGS_SH)
+        add_definitions(
+            -Xclang -plugin-arg-check-recycler
+            -Xclang ${wb_arg}
+        )
+    endforeach(wb_arg)
+    unset(WB_ARGS_SH CACHE)  # don't cache
 endif()
 
 include_directories(

@@ -31,26 +31,6 @@ public:
     void checkPostStmt(const CXXNewExpr *newExpr, CheckerContext& ctx) const;
 };
 
-/*
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const PHPNativeType &type) {
-  os << type.getName() << " ";
-  for (int i = 0; i < type.getPointerLevel(); ++i) {
-    os << "*";
-  }
-  return os;
-}
-*/
-
-static raw_ostream &debug_stream() {
-// #ifdef DEBUG_RECYCLER_CHECKER
-  return llvm::outs();
-/*
-#else
-  return llvm::nulls();
-#endif
-*/
-}
-
 static BugType* createRecyclerCheckerError(StringRef name) {
   return new BugType(
       new CheckerBase(),
@@ -150,7 +130,7 @@ void RecyclerChecker::checkPostStmt(const CXXNewExpr* newExpr, CheckerContext& c
 }
 
 static void initRecyclerChecker(CheckerManager &mgr) {
-    RecyclerChecker *checker = mgr.registerChecker<RecyclerChecker>();
+    mgr.registerChecker<RecyclerChecker>();
 }
 
 
