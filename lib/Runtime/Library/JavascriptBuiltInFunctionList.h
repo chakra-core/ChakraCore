@@ -310,6 +310,11 @@ BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefault
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
 #endif
