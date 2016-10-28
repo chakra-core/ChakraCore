@@ -1033,11 +1033,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             break;
-
+        case Js::OpCode::OverflowCheck3:
+            instr->UnlinkSrc2();
+        case Js::OpCode::DivideByZeroCheck:
+            instr->m_opcode = Js::OpCode::MOV;
+            break;
         case Js::OpCode::Div_I4:
             this->LowerDivI4(instr);
             break;
-
         case Js::OpCode::Add_Ptr:
             m_lowererMD.EmitPtrInstr(instr);
             break;
@@ -12934,7 +12937,6 @@ Lowerer::LowerInstrWithBailOnResultCondition(
         case Js::OpCode::Rem_I4:
             m_lowererMD.LowerInt4RemWithBailOut(instr, bailOutKind, bailOutLabel, skipBailOutLabel);
             break;
-
         default:
             Assert(false); // not implemented
             __assume(false);
@@ -22275,18 +22277,43 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
     IR::Opnd * src1 = instr->GetSrc1();
     IR::Opnd * src2 = instr->GetSrc2();
 
-    InsertTestBranch(src2, src2, Js::OpCode::BrEq_A, div0Label, div0Label);
+    bool isWasmFunc = m_func->GetJITFunctionBody()->IsWasmFunction();
 
-    InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
+    IR::Instr* divideByZeroInstr = IR::Instr::FindSingleDefInstr(Js::OpCode::DivideByZeroCheck, instr->GetSrc2());
+
+    if (divideByZeroInstr || !isWasmFunc)
+    {
+        InsertTestBranch(src2, src2, Js::OpCode::BrEq_A, div0Label, div0Label);
+
+        if (divideByZeroInstr)
+        {
+            IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
+            InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
+            GenerateThrow(errReg, divLabel);
+        }
+        else
+        {
+            InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
+        }
     InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
+    }
+
 
     if (instr->GetSrc1()->IsSigned())
     {
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
-        
-        bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue(m_func) != -1);
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
+        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheck3, instr->GetSrc1());
+        bool needsMinOverNeg1Check = true;
+        if (isWasmFunc && instr->m_opcode != Js::OpCode::Rem_I4)
+        {
+            needsMinOverNeg1Check = overflowReg3 != nullptr;
+        }
+        else
+        {
+            needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue(m_func) != -1);
+        }
         if (src1->IsImmediateOpnd())
         {
             if (needsMinOverNeg1Check && src1->GetImmediateValue(m_func) == intMin)
@@ -22312,7 +22339,17 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
             {
                 InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
             }
-            InsertMove(dst, instr->m_opcode == Js::OpCode::Div_I4 ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
+            
+            if (overflowReg3)
+            {
+                IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
+                InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
+                GenerateThrow(errReg, divLabel);
+            }
+            else
+            {
+                InsertMove(dst, instr->m_opcode == Js::OpCode::Div_I4 ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
+            }
             InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
         }
     }
@@ -22334,6 +22371,16 @@ Lowerer::LowerRemI4(IR::Instr * instr)
     {
         m_lowererMD.EmitInt4Instr(instr);
     }
+}
+
+void
+Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const
+{
+    IR::Instr *throwInstr = IR::Instr::New(Js::OpCode::RuntimeTypeError, IR::RegOpnd::New(TyMachReg, m_func), errorCode, m_func);
+    instr->InsertBefore(throwInstr);
+    Lowerer* lw = const_cast<Lowerer*> (this); //LowerUnaryHelperMem unlinks src1 of throwInstr,
+                                               //local and self-contained mutation
+    lw->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
 }
 
 void
