@@ -117,7 +117,7 @@ namespace Js
         bool IsPolymorphicCallSite(const ProfileId profiledCallSiteId) const;
         // This function walks all the chained jittimedata and returns the one which match the functionInfo.
         // This can return null, if the functionInfo doesn't match.
-        const FunctionCodeGenJitTimeData *GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const;
+        const FunctionCodeGenJitTimeData *GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctioInfoy) const;
 
         uint GetGlobalObjTypeSpecFldInfoCount() const { return this->globalObjTypeSpecFldInfoCount; }
         ObjTypeSpecFldInfo** GetGlobalObjTypeSpecFldInfoArray() const {return this->globalObjTypeSpecFldInfoArray; }

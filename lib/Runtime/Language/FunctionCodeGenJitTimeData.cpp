@@ -33,7 +33,8 @@ namespace Js
 
     FunctionBody *FunctionCodeGenJitTimeData::GetFunctionBody() const
     {
-        return this->functionInfo->GetFunctionBody();
+        FunctionProxy *proxy = this->functionInfo->GetFunctionProxy();
+        return proxy && proxy->IsFunctionBody() ? proxy->GetFunctionBody() : nullptr;
     }
 
     Var FunctionCodeGenJitTimeData::GetGlobalThisObject() const

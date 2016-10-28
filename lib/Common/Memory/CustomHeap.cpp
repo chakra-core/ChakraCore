@@ -251,6 +251,10 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         {
             page = AllocNewPage(bucket, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
         }
+        else if (!canAllocInPreReservedHeapPageSegment && isAnyJittedCode)
+        {
+            *isAllJITCodeInPreReservedRegion = false;
+        }
 
         // Out of memory
         if (page == nullptr)

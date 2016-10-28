@@ -4877,7 +4877,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         BOOL isDeferredFnc = IsDeferredFnc();
         AnalysisAssert(isDeferredFnc || pnodeFnc);
         isTopLevelDeferredFunc =
-            (!isDeferredFnc
+            (!fLambda
              && DeferredParse(pnodeFnc->sxFnc.functionId)
              && (!pnodeFnc->sxFnc.IsNested() || CONFIG_FLAG(DeferNested))
             // Don't defer if this is a function expression not contained in a statement or other expression.
@@ -4887,6 +4887,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             // Don't defer a module function wrapper because we need to do export resolution at parse time
              && !fModule
             );
+
+        pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && PnFnc::CanBeRedeferred(pnodeFnc->sxFnc.fncFlags));
+        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc;
 
         if (!fLambda &&
             !isDeferredFnc &&
@@ -6359,6 +6362,11 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->sxFnc.pnodeRest           = nullptr;
     pnodeFnc->sxFnc.deferredStub        = nullptr;
     pnodeFnc->sxFnc.funcInfo            = nullptr;
+
+    // In order to (re-)defer the default constructor, we need to, for instance, track
+    // deferred class expression the way we track function expression, since we lose the part of the source
+    // that tells us which we have.
+    pnodeFnc->sxFnc.canBeDeferred       = false;
 
 #ifdef DBG
     pnodeFnc->sxFnc.deferredParseNextFunctionId = *(this->m_nextFunctionId);
@@ -10307,6 +10315,7 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
                         // i.e. smEnvironment == SM_OnFunctionCode
                         Assert(m_currentNodeFunc != nullptr);
                         m_currentNodeFunc->sxFnc.SetAsmjsMode();
+                        m_currentNodeFunc->sxFnc.SetCanBeDeferred(false);
                         m_InAsmMode = true;
 
                         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(AsmJSFunctionCount, m_scriptContext);
@@ -10561,7 +10570,7 @@ void Parser::InitPids()
     wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
 }
 
-void Parser::RestoreScopeInfo(Js::FunctionBody* functionBody)
+void Parser::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody)
 {
     if (!functionBody)
     {
@@ -10617,7 +10626,7 @@ void Parser::RestoreScopeInfo(Js::FunctionBody* functionBody)
     scopeInfo->GetScopeInfo(this, nullptr, nullptr, scope);
 }
 
-void Parser::FinishScopeInfo(Js::FunctionBody *functionBody)
+void Parser::FinishScopeInfo(Js::ParseableFunctionInfo *functionBody)
 {
     if (!functionBody)
     {
