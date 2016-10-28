@@ -23538,7 +23538,7 @@ Lowerer::GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typ
 }
 
 void
-Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache * forInCache)
+Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, intptr_t forInCache)
 {
     Func * func = this->m_func;
 
@@ -23557,7 +23557,7 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
 
     IR::RegOpnd * typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
     InsertMove(typeOpnd, IR::IndirOpnd::New(objectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, func), instr);
-    InsertCompareBranch(IR::MemRefOpnd::New(&forInCache->type, TyMachPtr, func, IR::AddrOpndKindForInCacheType), typeOpnd, Js::OpCode::BrNeq_A, helperLabel, instr);
+    InsertCompareBranch(IR::MemRefOpnd::New(forInCache + offsetof(Js::ForInCache, type), TyMachPtr, func, IR::AddrOpndKindForInCacheType), typeOpnd, Js::OpCode::BrNeq_A, helperLabel, instr);
     
     // Check forInCacheData->EnumNonEnumerable == false  
     //
@@ -23566,7 +23566,7 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
     //   JNE $helper
 
     IR::RegOpnd * forInCacheDataOpnd = IR::RegOpnd::New(TyMachPtr, func);
-    InsertMove(forInCacheDataOpnd, IR::MemRefOpnd::New(&forInCache->data, TyMachPtr, func, IR::AddrOpndKindForInCacheData), instr);    
+    InsertMove(forInCacheDataOpnd, IR::MemRefOpnd::New(forInCache + offsetof(Js::ForInCache, data), TyMachPtr, func, IR::AddrOpndKindForInCacheData), instr);
     InsertCompareBranch(IR::IndirOpnd::New(forInCacheDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataEnumNonEnumerable(), TyUint8, func),
         IR::IntConstOpnd::New(0, TyUint8, func), Js::OpCode::BrNeq_A, helperLabel, instr);
         
@@ -23671,13 +23671,13 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
 void 
 Lowerer::LowerInitForInEnumerator(IR::Instr * instr)
 {
-    Js::ForInCache * forInCache = nullptr;
+    intptr_t forInCache = 0;
     Func * func = instr->m_func;
     if (instr->IsProfiledInstr())
     {
         uint profileId = instr->AsProfiledInstr()->u.profileId;
         forInCache = instr->m_func->GetJITFunctionBody()->GetForInCache(profileId);
-        Assert(forInCache != nullptr);
+        Assert(forInCache != 0);
 
         if (!func->IsSimpleJit())
         {

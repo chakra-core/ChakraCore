@@ -600,7 +600,7 @@ private:
     IR::RegOpnd *   GenerateForInEnumeratorLoad(IR::Opnd * forInEnumeratorOpnd, IR::Instr * insertBeforeInstr);
     IR::Opnd *      GetForInEnumeratorFieldOpnd(IR::Opnd * forInEnumeratorOpnd, uint fieldOffset, IRType type);
 
-    void            GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache * forInCache);
+    void            GenerateInitForInEnumeratorFastPath(IR::Instr * instr, intptr_t forInCache);
     void            GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typeOpnd, IR::LabelInstr * hasObjectArray, IR::Instr * insertBeforeInstr);
 
     IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
