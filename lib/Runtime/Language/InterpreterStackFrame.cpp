@@ -981,6 +981,25 @@ namespace Js
         &InterpreterStackFrame::OP_LdArr<int32, int64>,
         &InterpreterStackFrame::OP_LdArr<uint32, int64>,
     };
+
+    const int InterpreterStackFrame::TypeToSizeMap[] =
+    {
+        /*int8*/ 1,
+        /*uint8*/ 1,
+        /*int16*/ 2,
+        /*uint16*/ 2,
+        /*int32*/ 4,
+        /*uint32*/ 4,
+        /*float*/ 4,
+        /*double*/ 8,
+        /*int64*/ 8,
+        /*int8*/ 1,
+        /*uint8*/ 1,
+        /*int16*/ 2,
+        /*uint16*/ 2,
+        /*int32*/ 4,
+        /*uint32*/ 4,
+    };
 #endif
 
     Var InterpreterStackFrame::InnerScopeFromRegSlot(RegSlot reg) const
@@ -8265,7 +8284,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::StArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        if (index < (arr->GetByteLength()))
+        if (index < arr->GetByteLength())
         {
             BYTE* buffer = arr->GetBuffer();
             *(ArrayType*)(buffer + index) = (ArrayType)GetRegRaw<RegType>(regSlot);
@@ -8343,7 +8362,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        if (index >= arr->GetByteLength())
+        if (index >= arr->GetByteLength() || index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }
@@ -8369,7 +8388,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        if (index >= arr->GetByteLength())
+        if (index >= arr->GetByteLength() || index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }

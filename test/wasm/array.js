@@ -11,11 +11,11 @@ try {
   print(a["badload"](0));
 }
 catch(e) {
-  print(e.message.includes("index is out of range") ? "PASSED" : "FAILED");
+  print(e.message.includes("out of bounds") ? "PASSED" : "FAILED");
 }
 try {
   a["badstore"](0);
 }
 catch(e) {
-  print(e.message.includes("index is out of range") ? "PASSED" : "FAILED");
+  print(e.message.includes("out of bounds") ? "PASSED" : "FAILED");
 }

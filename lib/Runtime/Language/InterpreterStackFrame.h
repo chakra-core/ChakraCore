@@ -153,6 +153,7 @@ namespace Js
         typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
         static const ArrFunc StArrFunc[15];
         static const ArrFunc LdArrFunc[15];
+        static const int     TypeToSizeMap[15];
 #endif
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
