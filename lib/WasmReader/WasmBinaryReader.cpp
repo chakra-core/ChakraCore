@@ -661,8 +661,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         }
 
         WasmSignature* sig = m_module->GetSignature(sigIndex);
-        WasmFunctionInfo* newFunction = Anew(m_alloc, WasmFunctionInfo, m_alloc, sig, iFunc);
-        m_module->SetWasmFunctionInfo(newFunction, iFunc);
+        m_module->SetWasmFunctionInfo(sig, iFunc);
     }
 }
 

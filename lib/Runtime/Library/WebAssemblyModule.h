@@ -52,14 +52,12 @@ public:
     static WebAssemblyModule * CreateModule(
         ScriptContext* scriptContext,
         const byte* buffer,
-        const uint lengthBytes,
-        Var bufferSrc = nullptr);
+        const uint lengthBytes);
 
     static bool ValidateModule(
         ScriptContext* scriptContext,
         const byte* buffer,
-        const uint lengthBytes,
-        Var bufferSrc);
+        const uint lengthBytes);
 
 public:
     WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type);
@@ -91,7 +89,7 @@ public:
 
     uint GetWasmFunctionCount() const;
     void AllocateWasmFunctions(uint32 count);
-    bool SetWasmFunctionInfo(Wasm::WasmFunctionInfo* funsig, uint32 index);
+    bool SetWasmFunctionInfo(Wasm::WasmSignature* funsig, uint32 index);
     Wasm::WasmFunctionInfo* GetWasmFunctionInfo(uint index) const;
 
     void AllocateFunctionExports(uint32 entries);
@@ -136,6 +134,8 @@ public:
     WasmGlobalsList * globals;
 
 private:
+    // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
+    const byte* m_binaryBuffer;
     WebAssemblyMemory * m_memory;
     Wasm::WasmSignature** m_signatures;
     uint32* m_indirectfuncs;

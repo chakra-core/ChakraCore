@@ -26,7 +26,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
-    isMemExported(false)
+    isMemExported(false),
+    m_binaryBuffer(binaryBuffer)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
@@ -84,21 +85,20 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
 
     BYTE* buffer;
     uint byteLength;
-    Var bufferSrc = args[1];
     if (isTypedArray)
     {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(bufferSrc);
+        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
         buffer = array->GetByteBuffer();
         byteLength = array->GetByteLength();
     }
     else
     {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferSrc);
+        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
         buffer = arrayBuffer->GetBuffer();
         byteLength = arrayBuffer->GetByteLength();
     }
 
-    return CreateModule(scriptContext, buffer, byteLength, bufferSrc);
+    return CreateModule(scriptContext, buffer, byteLength);
 }
 
 /* static */
@@ -106,8 +106,7 @@ WebAssemblyModule *
 WebAssemblyModule::CreateModule(
     ScriptContext* scriptContext,
     const byte* buffer,
-    const uint lengthBytes,
-    Var bufferSrc)
+    const uint lengthBytes)
 {
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
     Unused(wasmPhase);
@@ -121,7 +120,11 @@ WebAssemblyModule::CreateModule(
         SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
         Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
+        // copy buffer so external changes to it don't cause issues when defer parsing
+        byte* newBuffer = RecyclerNewArray(scriptContext->GetRecycler(), byte, lengthBytes);
+        js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
+
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, newBuffer, lengthBytes);
 
         webAssemblyModule = bytecodeGen.GenerateModule();
 
@@ -171,8 +174,7 @@ bool
 WebAssemblyModule::ValidateModule(
     ScriptContext* scriptContext,
     const byte* buffer,
-    const uint lengthBytes,
-    Var bufferSrc)
+    const uint lengthBytes)
 {
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
     Unused(wasmPhase);
@@ -183,7 +185,7 @@ WebAssemblyModule::ValidateModule(
         SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
         Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes, bufferSrc);
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes);
 
         WebAssemblyModule * webAssemblyModule = bytecodeGen.GenerateModule();
 
@@ -400,17 +402,17 @@ void WebAssemblyModule::AllocateWasmFunctions(uint32 count)
     m_funcCount = count;
     if (count > 0)
     {
-        m_functionsInfo = AnewArray(&m_alloc, Wasm::WasmFunctionInfo*, count);
+        m_functionsInfo = RecyclerNewArrayZ(GetRecycler(), Wasm::WasmFunctionInfo*, count);
     }
 }
 
 bool
-WebAssemblyModule::SetWasmFunctionInfo(Wasm::WasmFunctionInfo* funcInfo, uint32 index)
+WebAssemblyModule::SetWasmFunctionInfo(Wasm::WasmSignature* sig, uint32 index)
 {
     if (index < m_funcCount)
     {
-        m_functionsInfo[index] = funcInfo;
-        Assert(funcInfo->GetNumber() == index);
+        // must be recycler memory, since it holds reference to the function body
+        m_functionsInfo[index] = RecyclerNew(GetRecycler(), Wasm::WasmFunctionInfo, &m_alloc, sig, index);
         return true;
     }
     return false;

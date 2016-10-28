@@ -170,8 +170,6 @@ namespace Js
         RuntimeFunction* generatorFunctionConstructor;
         RuntimeFunction* asyncFunctionConstructor;
 
-        RuntimeFunction* webAssemblyModuleConstructor;
-
         JavascriptFunction* defaultAccessorFunction;
         JavascriptFunction* stackTraceAccessorFunction;
         JavascriptFunction* throwTypeErrorRestrictedPropertyAccessorFunction;
@@ -243,8 +241,6 @@ namespace Js
         DynamicObject* syntaxErrorPrototype;
         DynamicObject* typeErrorPrototype;
         DynamicObject* uriErrorPrototype;
-
-        DynamicObject* webAssemblyMemoryPrototype;
 
         //SIMD Prototypes
         DynamicObject* simdBool8x16Prototype;

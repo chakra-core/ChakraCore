@@ -1502,13 +1502,13 @@ namespace Js
                 nativeErrorPrototype);
 
             webAssemblyInstanceConstructor = CreateBuiltinConstructor(&WebAssemblyInstance::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWebAssemblyInstanceConstructor>::GetDefaultInstance());
+                DeferredTypeHandler<InitializeWebAssemblyInstanceConstructor>::GetDefaultInstance(), webAssemblyInstancePrototype);
 
             webAssemblyModuleConstructor = CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWebAssemblyModuleConstructor>::GetDefaultInstance());
+                DeferredTypeHandler<InitializeWebAssemblyModuleConstructor>::GetDefaultInstance(), webAssemblyModulePrototype);
 
             webAssemblyMemoryConstructor = CreateBuiltinConstructor(&WebAssemblyMemory::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWebAssemblyMemoryConstructor>::GetDefaultInstance());
+                DeferredTypeHandler<InitializeWebAssemblyMemoryConstructor>::GetDefaultInstance(), webAssemblyMemoryConstructor);
         }
 #endif
     }
@@ -2766,7 +2766,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(webAssemblyObject, mode, 6);
+        typeHandler->Convert(webAssemblyObject, mode, 7);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 2);
@@ -2777,6 +2777,7 @@ namespace Js
 
         library->AddFunction(webAssemblyObject, PropertyIds::CompileError, library->webAssemblyCompileErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::RuntimeError, library->webAssemblyRuntimeErrorConstructor);
+        library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
 
     }
 #endif

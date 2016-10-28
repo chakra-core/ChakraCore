@@ -89,21 +89,20 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
 
     BYTE* buffer;
     uint byteLength;
-    Var bufferSrc = args[1];
     if (isTypedArray)
     {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(bufferSrc);
+        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
         buffer = array->GetByteBuffer();
         byteLength = array->GetByteLength();
     }
     else
     {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferSrc);
+        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
         buffer = arrayBuffer->GetBuffer();
         byteLength = arrayBuffer->GetByteLength();
     }
 
-    if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength, bufferSrc))
+    if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength))
     {
         return scriptContext->GetLibrary()->GetTrue();
     }
@@ -116,7 +115,7 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
 uint32
 WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
 {
-    double i = JavascriptConversion::ToInteger_Full(val, ctx);
+    double i = JavascriptConversion::ToInteger(val, ctx);
     if (i < 0 || i > (double)UINT32_MAX)
     {
         JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);

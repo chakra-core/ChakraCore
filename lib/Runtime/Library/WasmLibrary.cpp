@@ -41,16 +41,15 @@ namespace Js
         }
         BYTE* buffer;
         uint byteLength;
-        Var bufferSrc = args[1];
         if (isTypedArray)
         {
-            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(bufferSrc);
+            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
             buffer = array->GetByteBuffer();
             byteLength = array->GetByteLength();
         }
         else
         {
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferSrc);
+            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
             buffer = arrayBuffer->GetBuffer();
             byteLength = arrayBuffer->GetByteLength();
         }
@@ -59,7 +58,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[Wasm].instantiateModule(,ffi)"));
         }
-        WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength, bufferSrc);
+        WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
         return WebAssemblyInstance::CreateInstance(module, args[2]);
     }
 
