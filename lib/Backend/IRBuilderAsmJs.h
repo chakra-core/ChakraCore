@@ -146,6 +146,9 @@ private:
     Js::PropertyId          CalculatePropertyOffset(SymID id, IRType type, bool isVar = true);
 
     IR::Instr*              GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType type);
+    IR::RegOpnd*            BuildDivideByZeroCheck(IR::RegOpnd* srcOpnd, uint32 offset);
+    IR::RegOpnd*            BuildOverflowCheckReg3(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset);
+    
     JitArenaAllocator *     m_tempAlloc;
     JitArenaAllocator *     m_funcAlloc;
     Func *                  m_func;

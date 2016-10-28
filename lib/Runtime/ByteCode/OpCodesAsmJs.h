@@ -134,7 +134,9 @@ MACRO_WMS       ( Add_Int                    , Int3            , None           
 MACRO_WMS       ( Sub_Int                    , Int3            , None            ) // int32 Arithmetic '-' (subtract)
 MACRO_WMS       ( Mul_Int                    , Int3            , None            ) // int32 Arithmetic '*'
 MACRO_WMS       ( Div_Int                    , Int3            , None            ) // int32 Arithmetic '/'
+MACRO_WMS       ( Div_Check_Int              , Int3            , None            ) // (checked) int32 Arithmetic '/'
 MACRO_WMS       ( Rem_Int                    , Int3            , None            ) // int32 Arithmetic '%'
+MACRO_WMS       ( Rem_Check_Int              , Int3            , None            ) // (checked) int32 Arithmetic '%'
 MACRO_WMS       ( And_Int                    , Int3            , None            ) // int32 Bitwise '&'
 MACRO_WMS       ( Or_Int                     , Int3            , None            ) // int32 Bitwise '|'
 MACRO_WMS       ( Xor_Int                    , Int3            , None            ) // int32 Bitwise '^'
@@ -148,7 +150,9 @@ MACRO_WMS       ( PopCnt_Int                 , Int2            , None           
 // Unsigned int math
 MACRO_WMS       ( Mul_UInt                   , Int3            , None            ) // uint32 Arithmetic '*'
 MACRO_WMS       ( Div_UInt                   , Int3            , None            ) // uint32 Arithmetic '/'
+MACRO_WMS       ( Div_Check_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '/'
 MACRO_WMS       ( Rem_UInt                   , Int3            , None            ) // uint32 Arithmetic '%'
+MACRO_WMS       ( Rem_Check_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '%'
 
 // Int64 Math
 MACRO_WMS       ( Ld_LongConst               , Long1Const1      , None            ) // Sets an int64 register from a const int64
