@@ -2384,6 +2384,22 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     AddInstr(instr, offset);
 }
 
+IR::RegOpnd* IRBuilderAsmJs::BuildDivideByZeroCheck(IR::RegOpnd* srcOpnd, uint32 offset)
+{
+    IR::RegOpnd* newSrc = IR::RegOpnd::New(StackSym::New(m_func), srcOpnd->GetType(), m_func);
+    newSrc->SetValueType(ValueType::GetInt(false));
+    AddInstr(IR::Instr::New(Js::OpCode::DivideByZeroCheck, newSrc, srcOpnd, m_func), offset);
+    return newSrc;
+}
+
+IR::RegOpnd* IRBuilderAsmJs::BuildOverflowCheckReg3(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset)
+{
+    IR::RegOpnd* newSrc = IR::RegOpnd::New(StackSym::New(m_func), src2Opnd->GetType(), m_func);
+    newSrc->SetValueType(ValueType::GetInt(false));
+    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheck3, newSrc, src1Opnd, src2Opnd, m_func), offset);
+    return newSrc;
+}
+
 void
 IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot)
 {
@@ -2413,14 +2429,29 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::Mul_Int:
         instr = IR::Instr::New(Js::OpCode::Mul_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-
+    case Js::OpCodeAsmJs::Div_Check_UInt:
+        src1Opnd->SetType(TyUint32);
+        src2Opnd->SetType(TyUint32);
+    case Js::OpCodeAsmJs::Div_Check_Int:
+    {
+        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
+        src1Opnd = BuildOverflowCheckReg3(src1Opnd, src2Opnd, offset);
+        instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
+    }
     case Js::OpCodeAsmJs::Div_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
     case Js::OpCodeAsmJs::Div_Int:
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-
+    case Js::OpCodeAsmJs::Rem_Check_UInt:
+        src1Opnd->SetType(TyUint32);
+        src2Opnd->SetType(TyUint32);
+    case Js::OpCodeAsmJs::Rem_Check_Int:
+        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
+        instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
     case Js::OpCodeAsmJs::Rem_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);

@@ -372,3 +372,5 @@ RT_ERROR_MSG(WASMERR_MutableGlobal, 5671, "", "Cannot export mutable global", kj
 RT_ERROR_MSG(WASMERR_InvalidImport, 5672, "", "Import is invalid", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidGlobalRef, 5673, "", "Global initialization does not support forward reference", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_NeedMemoryObject, 5674, "%s is not a WebAssembly.Memory", "WebAssembly.Memory object expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_DivideByZero, 5675,    "",  "Division by zero", kjstError, 0)
+

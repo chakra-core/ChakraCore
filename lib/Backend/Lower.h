@@ -434,7 +434,7 @@ private:
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
-
+    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const;
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
     void            LowerDivI4Common(IR::Instr * const instr);
