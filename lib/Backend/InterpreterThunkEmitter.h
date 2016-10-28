@@ -69,7 +69,8 @@ private:
     /* -------static constants ----------*/
     // Interpreter thunk buffer includes function prolog, setting up of arguments, jumping to the appropriate calling point.
     static const BYTE ThunkAddressOffset;
-    static const BYTE FunctionBodyOffset;
+    static const BYTE FunctionInfoOffset;
+    static const BYTE FunctionProxyOffset;
     static const BYTE DynamicThunkAddressOffset;
     static const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset;
     static const BYTE InterpreterThunkEmitter::ThunkSizeOffset;

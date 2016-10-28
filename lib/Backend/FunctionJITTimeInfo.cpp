@@ -37,7 +37,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
 
     jitData->inlineesBv = (BVFixedIDL*)codeGenData->inlineesBv;
 
-    if (codeGenData->GetFunctionInfo()->HasBody())
+    if (codeGenData->GetFunctionInfo()->HasBody() && codeGenData->GetFunctionInfo()->GetFunctionProxy()->IsFunctionBody())
     {
         Assert(isInlinee == !!runtimeData);
         const Js::FunctionCodeGenRuntimeData * targetRuntimeData = nullptr;
