@@ -1506,6 +1506,9 @@ namespace Js
 
             webAssemblyModuleConstructor = CreateBuiltinConstructor(&WebAssemblyModule::EntryInfo::NewInstance,
                 DeferredTypeHandler<InitializeWebAssemblyModuleConstructor>::GetDefaultInstance());
+
+            webAssemblyMemoryConstructor = CreateBuiltinConstructor(&WebAssemblyMemory::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeWebAssemblyMemoryConstructor>::GetDefaultInstance());
         }
 #endif
     }
@@ -2687,6 +2690,20 @@ namespace Js
         library->AddAccessorsToLibraryObject(prototype, PropertyIds::buffer, &WebAssemblyMemory::EntryInfo::GetterBuffer, nullptr);
 
         prototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeWebAssemblyMemoryConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(constructor, mode, 3);
+        JavascriptLibrary* library = constructor->GetLibrary();
+        ScriptContext* scriptContext = constructor->GetScriptContext();
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyInstancePrototype, PropertyNone);
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyMemory")), PropertyConfigurable);
+        }
+        constructor->SetHasNoEnumerableProperties(true);
     }
 
     void JavascriptLibrary::InitializeWebAssemblyInstancePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
