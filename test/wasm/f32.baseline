@@ -7,3 +7,11 @@ Infinity
 NaN
 NaN
 NaN
+Reinterpret tests
+0
+NaN
+-1
+-1.0393257141113281
+Infinity
+-Infinity
+NaN
