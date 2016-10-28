@@ -158,7 +158,6 @@ Using Debug channels at Run Time
 #include "pal/perftrace.h"
 #include "pal/debug.h"
 #include "pal/thread.hpp"
-#include "pal/tls.hpp"
 
 #ifdef __cplusplus
 extern "C"
