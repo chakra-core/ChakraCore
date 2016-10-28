@@ -683,7 +683,10 @@ Peeps::HoistSameInstructionAboveSplit(IR::BranchInstr *branchInstr, IR::Instr *i
     Assert(instr && targetInstr);
     while (!instr->EndsBasicBlock() && !instr->IsLabelInstr() && instr->IsEqual(targetInstr) &&
         !EncoderMD::UsesConditionCode(instr) && !EncoderMD::SetsConditionCode(instr) &&
-        !this->peepsAgen.DependentInstrs(instrSetCondition, instr))
+        !this->peepsAgen.DependentInstrs(instrSetCondition, instr) &&
+        // cannot hoist InlineeStart from branch targets even for the same inlinee function.
+        // it is used by encoder to generate InlineeFrameRecord for each inlinee
+        instr->m_opcode != Js::OpCode::InlineeStart)
     {
         branchNextInstr = instr->GetNextRealInstrOrLabel();
         targetNextInstr = targetInstr->GetNextRealInstrOrLabel();
