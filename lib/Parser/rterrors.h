@@ -374,3 +374,7 @@ RT_ERROR_MSG(WASMERR_InvalidGlobalRef, 5673, "", "Global initialization does not
 RT_ERROR_MSG(WASMERR_NeedMemoryObject, 5674, "%s is not a WebAssembly.Memory", "WebAssembly.Memory object expected", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 5675, "Invalid WebAssembly type conversion %s to %s", "Invalid WebAssembly type conversion", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_DivideByZero, 5676,    "",  "Division by zero", kjstError, 0)
+RT_ERROR_MSG(WASMERR_ExpectedAnyFunc, 5677, "%s is not AnyFunc", "AnyFunc expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedTableObject, 5678, "%s is not a WebAssembly.Table", "WebAssembly.Table object expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 5679, "Invalid WebAssembly type conversion %s to %s", "Invalid WebAssembly type conversion", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedWebAssemblyFunc, 5680, "%s is not a WebAssembly exported function", "WebAssembly exported function expected", kjstTypeError, 0)
