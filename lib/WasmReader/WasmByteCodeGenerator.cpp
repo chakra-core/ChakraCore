@@ -1125,8 +1125,7 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     // todo:: check for imported memory
     if (m_module->GetMemory()->minSize == 0)
     {
-        // todo:: make that an out of bounds trap
-        m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
+        throw WasmCompilationException(_u("Index is out of bounds"));
     }
 
     EmitInfo rhsInfo;
@@ -1140,6 +1139,12 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     {
         throw WasmCompilationException(_u("Index expression must be of type I32"));
     }
+
+    if (offset >= m_module->GetMemory()->maxSize)
+    {
+        throw WasmCompilationException(_u("Index is out of bounds"));
+    }
+
     if (offset != 0)
     {
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
