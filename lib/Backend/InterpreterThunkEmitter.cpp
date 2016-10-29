@@ -706,7 +706,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
         if (!remoteScript)
         {
             return false;

@@ -21,7 +21,7 @@ PageAllocatorPool::PageAllocatorPool()
 
 PageAllocatorPool::~PageAllocatorPool()
 {
-    RemoveAll();
+    Shutdown();
 }
 
 void PageAllocatorPool::Initialize()
@@ -38,13 +38,13 @@ void PageAllocatorPool::Shutdown()
     if (Instance)
     {
         CloseHandle(Instance->idleCleanupTimer);
+        Instance->RemoveAll();
         HeapDelete(Instance);
         Instance = nullptr;
     }
 }
 void PageAllocatorPool::RemoveAll()
 {
-    AutoCriticalSection autoCS(&cs);
     while (!pageAllocators.Empty())
     {
         HeapDelete(pageAllocators.Pop());
@@ -116,14 +116,13 @@ VOID CALLBACK PageAllocatorPool::IdleCleanupRoutine(
     AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     try
     {
+        AutoCriticalSection autoCS(&cs);
         if (Instance)
         {
             // TODO: OOP JIT, use better stragtegy to do the cleanup, like do not remove all,
             // instead keep couple inactivate page allocator for next calls
             Instance->RemoveAll();
         }
-
-        ServerContextManager::IdleCleanup();
     }
     catch (Js::OutOfMemoryException&)
     {
