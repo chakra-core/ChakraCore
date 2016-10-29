@@ -33,10 +33,6 @@ public:
         __in intptr_t threadContextInfoAddress,
         __in UpdatedPropertysIDL * updatedProps);
 
-    HRESULT DecommitInterpreterBufferManager(
-        __in intptr_t scriptContextInfoAddress,
-        __in boolean asmJsThunk);
-
     HRESULT NewInterpreterThunkBlock(
         __in intptr_t scriptContextInfoAddress,
         __in boolean asmJsThunk,
