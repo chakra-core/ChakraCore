@@ -34,7 +34,7 @@ public:
         __in UpdatedPropertysIDL * updatedProps);
 
     HRESULT NewInterpreterThunkBlock(
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in boolean asmJsThunk,
         __out InterpreterThunkInfoIDL * thunkInfo);
 
