@@ -23,6 +23,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_exportCount(0),
     m_datasegCount(0),
     m_elementsegCount(0),
+    m_elementsegs(nullptr),
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
@@ -192,7 +193,17 @@ WasmModule::SetTableValues(WasmElementSegment* seg, uint32 index)
 {
     if (index < m_elementsegCount)
     {
-        AddElementSeg(seg, index);
+        SetElementSeg(seg, index);
+    }
+}
+
+void
+WasmModule::ResolveTableElementOffsets()
+{
+    for (uint i = 0; i < GetElementSegCount(); ++i)
+    {
+        WasmElementSegment* eSeg = GetElementSeg(i);
+        eSeg->ResolveOffsets(*this);
     }
 }
 
@@ -331,7 +342,7 @@ WasmModule::GetOffsetFromInit(const WasmNode& initExpr) const
 {
     if (initExpr.op != wbI32Const && initExpr.op != wbGetGlobal)
     {
-        throw WasmCompilationException(_u("Only int32.const supported for element offset"));
+        throw WasmCompilationException(_u("Invalid init_expr for element offset"));
     }
     uint offset = 0;
     if (initExpr.op == wbI32Const)
@@ -345,9 +356,8 @@ WasmModule::GetOffsetFromInit(const WasmNode& initExpr) const
             throw WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
         }
         WasmGlobal* global = this->globals.Item(initExpr.var.num);
-        Assert(global->GetReferenceType() == WasmGlobal::Const);
 
-        if (global->GetType() != WasmTypes::I32)
+        if (global->GetReferenceType() != WasmGlobal::Const || global->GetType() != WasmTypes::I32)
         {
             throw WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
         }
@@ -394,7 +404,7 @@ WasmModule::AllocateElementSegs(uint32 count)
 }
 
 void
-WasmModule::AddElementSeg(WasmElementSegment* seg, uint32 index)
+WasmModule::SetElementSeg(WasmElementSegment* seg, uint32 index)
 {
     Assert(index < m_elementsegCount);
     m_elementsegs[index] = seg;
@@ -405,7 +415,7 @@ WasmModule::GetElementSeg(uint32 index) const
 {
     if (index >= m_elementsegCount)
     {
-        return nullptr;
+        throw WasmCompilationException(_u("Invalid index for Element segment"));
     }
     return m_elementsegs[index];
 }

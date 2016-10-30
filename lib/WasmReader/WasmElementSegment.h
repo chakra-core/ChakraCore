@@ -11,17 +11,16 @@ namespace Wasm
     class WasmElementSegment
     {
     public:
-        WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode& initExpr, const UINT32 numElem);
+        WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode initExpr, const UINT32 numElem);
         void AddElement(const UINT32 funcIndex, const WasmModule& module);
         UINT32 GetElement(const UINT32 tableIndex) const;
-        uint32 GetOffset() const { return m_offset; }
-        uint32 GetLimit() const { return m_limit; }
-        uint32 GetNumElements() const { return m_numElem; }
+        UINT32 GetNumElements() const { return m_numElem; }
+        void ResolveOffsets(const WasmModule& module);
 
     private:
         ArenaAllocator* m_alloc;
         UINT32 m_index;
-        const WasmNode* m_offsetExpr;
+        const WasmNode m_offsetExpr;
         UINT32 m_numElem;
         UINT32 m_offset;
         UINT32 m_limit;

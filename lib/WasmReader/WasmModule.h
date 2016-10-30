@@ -74,7 +74,8 @@ namespace Wasm
         uint32 GetDataSegCount() const { return m_datasegCount; }
 
         void AllocateElementSegs(uint32 count);
-        void AddElementSeg(WasmElementSegment* seg, uint32 index);
+        void SetElementSeg(WasmElementSegment* seg, uint32 index);
+        void ResolveTableElementOffsets();
         WasmElementSegment* GetElementSeg(uint32 index) const;
         uint32 GetElementSegCount() const { return m_elementsegCount; }
 

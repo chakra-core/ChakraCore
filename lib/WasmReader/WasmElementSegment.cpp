@@ -9,10 +9,10 @@
 
 namespace Wasm
 {
-    WasmElementSegment::WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode& initExpr, const UINT32 numElem) :
+    WasmElementSegment::WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode initExpr, const UINT32 numElem) :
         m_alloc(alloc),
         m_index(index),
-        m_offsetExpr(&initExpr),
+        m_offsetExpr(initExpr),
         m_numElem(numElem),
         m_offset(0),
         m_limit(0),
@@ -24,15 +24,23 @@ namespace Wasm
     WasmElementSegment::Init(const WasmModule& module)
     {
         Assert(m_numElem > 0);
+        m_elems = AnewArray(m_alloc, UINT32, m_numElem);
+        memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(UINT32));
+    }
+
+    void WasmElementSegment::ResolveOffsets(const WasmModule& module)
+    {
+        if (m_elems == nullptr)
+        {
+            return;
+        }
+        m_offset = module.GetOffsetFromInit(m_offsetExpr); // i32 or global (i32)
+        m_limit = UInt32Math::Add(m_offset, m_numElem);
+
         if (m_limit > module.GetTableSize())
         {
             throw WasmCompilationException(_u("Out of bounds element in Table[%d][%d], max index: %d"), m_index, m_limit - 1, module.GetTableSize() - 1);
         }
-
-        m_offset = module.GetOffsetFromInit(*m_offsetExpr); // i32 or global (i32)
-        m_limit = UInt32Math::Add(m_offset, m_numElem);
-        m_elems = AnewArray(m_alloc, UINT32, m_numElem);
-        memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(UINT32));
     }
 
     void
