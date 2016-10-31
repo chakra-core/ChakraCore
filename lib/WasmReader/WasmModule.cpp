@@ -13,8 +13,7 @@ namespace Wasm
 WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength) :
     m_memory(),
     m_alloc(_u("WasmModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
-    m_functionsInfo(nullptr),
-    m_funcCount(0),
+    m_functionsInfo(&m_alloc),
     m_importCount(0),
     m_equivalentSignatureMap(nullptr),
     m_indirectfuncs(nullptr),
@@ -25,6 +24,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
+    wasmDefinedFuncCount(0),
     globals (&m_alloc)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
@@ -42,51 +42,46 @@ WasmModule::GetMaxFunctionIndex() const
 Wasm::WasmSignature*
 WasmModule::GetFunctionSignature(uint32 funcIndex) const
 {
-    FunctionIndexTypes::Type funcType = GetFunctionIndexType(funcIndex);
+    uint32 normalizedIndex = 0;
+    FunctionIndexTypes::Type funcType = GetFunctionIndexType(funcIndex, &normalizedIndex);
     if (funcType == FunctionIndexTypes::Invalid)
     {
         throw WasmCompilationException(_u("Function index out of range"));
     }
 
-    funcIndex = NormalizeFunctionIndex(funcIndex);
     switch (funcType)
     {
     case FunctionIndexTypes::Import:
-        return GetSignature(GetFunctionImport(funcIndex)->sigId);
+        return GetSignature(GetFunctionImport(normalizedIndex)->sigId);
+    case FunctionIndexTypes::InternalFunction:
     case FunctionIndexTypes::Function:
-        return GetWasmFunctionInfo(funcIndex)->GetSignature();
+        return GetWasmFunctionInfo(normalizedIndex)->GetSignature();
     default:
         throw WasmCompilationException(_u("Unknown function index type"));
     }
 }
 
 FunctionIndexTypes::Type
-WasmModule::GetFunctionIndexType(uint32 funcIndex) const
+WasmModule::GetFunctionIndexType(uint32 funcIndex, uint32* normalizedIndex /*= nullptr*/) const
 {
-    if (funcIndex >= GetMaxFunctionIndex())
+    uint32& index = normalizedIndex ? *normalizedIndex : funcIndex;
+    index = funcIndex;
+
+    if (index >= GetMaxFunctionIndex())
     {
         return FunctionIndexTypes::Invalid;
     }
-    if (funcIndex < GetImportCount())
+    if (index < GetImportCount())
     {
         return FunctionIndexTypes::Import;
     }
-    return FunctionIndexTypes::Function;
-}
+    index -= GetImportCount();
 
-uint32
-WasmModule::NormalizeFunctionIndex(uint32 funcIndex) const
-{
-    switch (GetFunctionIndexType(funcIndex))
+    if (index < wasmDefinedFuncCount)
     {
-    case FunctionIndexTypes::Import:
-        return funcIndex;
-    case FunctionIndexTypes::Function:
-        Assert(funcIndex >= GetImportCount());
-        return funcIndex - GetImportCount();
-    default:
-        throw WasmCompilationException(_u("Failed function index normalization: function index out of range"));
+        return FunctionIndexTypes::Function;
     }
+    return FunctionIndexTypes::InternalFunction;
 }
 
 void
@@ -220,39 +215,48 @@ WasmModule::GetTableSize() const
 uint32
 WasmModule::GetWasmFunctionCount() const
 {
-    return m_funcCount;
+    return (uint32)m_functionsInfo.Count();
 }
 
 void WasmModule::AllocateWasmFunctions(uint32 count)
 {
-    m_funcCount = count;
+    wasmDefinedFuncCount = count;
     if (count > 0)
     {
-        m_functionsInfo = AnewArray(&m_alloc, WasmFunctionInfo*, count);
+        m_functionsInfo.EnsureArray(count);
+        // Make sure we don't have uninitialized memory
+        m_functionsInfo.ClearAndZero();
     }
 }
 
 bool
 WasmModule::SetWasmFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index)
 {
-    if (index < m_funcCount)
+    if (index < wasmDefinedFuncCount)
     {
-        m_functionsInfo[index] = funcInfo;
+        m_functionsInfo.SetItem(index, funcInfo);
         Assert(funcInfo->GetNumber() == index);
         return true;
     }
+    Assert(UNREACHED);
     return false;
+}
+
+void
+WasmModule::AddWasmFunctionInfo(WasmFunctionInfo* funcInfo)
+{
+    m_functionsInfo.Add(funcInfo);
 }
 
 WasmFunctionInfo*
 WasmModule::GetWasmFunctionInfo(uint index) const
 {
-    if (index >= m_funcCount)
+    if (index >= GetWasmFunctionCount())
     {
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    return m_functionsInfo[index];
+    return m_functionsInfo.Item(index);
 }
 
 void WasmModule::AllocateFunctionExports(uint32 entries)
@@ -352,7 +356,7 @@ WasmModule::GetDataSeg(uint32 index) const
 void
 WasmModule::SetStartFunction(uint32 i)
 {
-    if (i >= m_funcCount) {
+    if (i >= GetWasmFunctionCount()) {
         TRACE_WASM_DECODER(_u("Invalid start function index"));
         return;
     }

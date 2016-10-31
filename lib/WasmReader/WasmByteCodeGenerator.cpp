@@ -149,10 +149,11 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
+            uint32 normIndex = 0;
             if (funcExport &&
                 funcExport->nameLength > 0 &&
-                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
+                m_module->GetFunctionIndexType(funcExport->funcIndex, &normIndex) == FunctionIndexTypes::Function &&
+                normIndex == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
                 functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
@@ -908,7 +909,12 @@ WasmBytecodeGenerator::EmitCall()
     case wbCall:
     {
         uint32 offset = isImportCall ? m_module->GetImportFuncOffset() : m_module->GetFuncOffset();
-        uint32 index = UInt32Math::Add(offset, m_module->NormalizeFunctionIndex(funcNum));
+        uint32 normIndex = 0;
+        FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(funcNum, &normIndex);
+        Assert(funcType == FunctionIndexTypes::Import || !isImportCall);
+        Unused(funcType);
+
+        uint32 index = UInt32Math::Add(offset, normIndex);
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index);
         break;
     }
@@ -1501,6 +1507,15 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     }
 
     this->isUnreachable = isUnreachable;
+}
+
+Wasm::WasmReaderBase* WasmBytecodeGenerator::GetReader() const
+{
+    if (m_funcInfo->GetCustomReader())
+    {
+        return m_funcInfo->GetCustomReader();
+    }
+    return m_module->GetReader();
 }
 
 void

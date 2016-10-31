@@ -28,16 +28,15 @@ namespace Wasm
         // The index used by those methods is the function index as describe by the WebAssembly design, ie: imports first then wasm functions
         uint32 GetMaxFunctionIndex() const;
         WasmSignature* GetFunctionSignature(uint32 funcIndex) const;
-        FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex) const;
-        // Returns index in the respective table's type
-        uint32 NormalizeFunctionIndex(uint32 funcIndex) const;
+        // normalizedIndex is the index in the respective table's type
+        FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex, uint32* normalizedIndex = nullptr) const;
 
         void InitializeMemory(uint32 minSize, uint32 maxSize);
         void SetMemoryIsExported() { m_memory.exported = true; }
         const Memory* GetMemory() const;
 
-        void SetSignature(uint32 index, WasmSignature * signature);
-        WasmSignature* GetSignature(uint32 index) const;
+        void SetSignature(uint32 sigId, WasmSignature * signature);
+        WasmSignature* GetSignature(uint32 sigId) const;
         void SetSignatureCount(uint32 count);
         uint32 GetSignatureCount() const;
 
@@ -51,7 +50,8 @@ namespace Wasm
 
         uint GetWasmFunctionCount() const;
         void AllocateWasmFunctions(uint32 count);
-        bool SetWasmFunctionInfo(WasmFunctionInfo* funsig, uint32 index);
+        bool SetWasmFunctionInfo(WasmFunctionInfo* funcInfo, uint32 index);
+        void AddWasmFunctionInfo(WasmFunctionInfo* funcInfo);
         WasmFunctionInfo* GetWasmFunctionInfo(uint index) const;
 
         void AllocateFunctionExports(uint32 entries);
@@ -98,7 +98,7 @@ namespace Wasm
     private:
         WasmSignature** m_signatures;
         uint32* m_indirectfuncs;
-        WasmFunctionInfo** m_functionsInfo;
+        JsUtil::List<WasmFunctionInfo*, ArenaAllocator> m_functionsInfo;
         WasmExport* m_exports;
         WasmImport* m_imports;
         WasmDataSegment** m_datasegs;
@@ -107,7 +107,6 @@ namespace Wasm
 
         uint m_signaturesCount;
         uint m_indirectFuncCount;
-        uint m_funcCount;
         uint m_exportCount;
         uint32 m_importCount;
         uint32 m_datasegCount;
@@ -115,5 +114,6 @@ namespace Wasm
         uint32 m_startFuncIndex;
 
         ArenaAllocator m_alloc;
+        uint wasmDefinedFuncCount;
     };
 } // namespace Wasm
