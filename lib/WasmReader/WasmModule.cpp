@@ -11,6 +11,7 @@ namespace Wasm
 {
 
 WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uint binaryBufferLength) :
+    m_binaryBuffer(binaryBuffer),
     m_memory(),
     m_alloc(_u("WasmModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_functionsInfo(nullptr),
@@ -29,7 +30,7 @@ WasmModule::WasmModule(Js::ScriptContext* scriptContext, byte* binaryBuffer, uin
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(globalCounts, 0, sizeof( uint ) * WasmTypes::Limit);
-    m_reader = Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
+    m_reader = Anew(&m_alloc, WasmBinaryReader, &m_alloc, this, m_binaryBuffer, binaryBufferLength);
     m_reader->InitializeReader();
 }
 

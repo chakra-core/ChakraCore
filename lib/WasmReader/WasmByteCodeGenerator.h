@@ -75,13 +75,12 @@ namespace Wasm
     {
         WasmFunctionInfo* m_funcInfo;
         WasmModule* m_module;
-        Js::Var m_bufferSrc;
     };
 
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc);
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
         WasmModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
@@ -91,7 +90,6 @@ namespace Wasm
         Js::Utf8SourceInfo* m_sourceInfo;
         Js::ScriptContext* m_scriptContext;
         WasmModule* m_module;
-        Js::Var m_bufferSrc;
     };
 
     class WasmBytecodeGenerator

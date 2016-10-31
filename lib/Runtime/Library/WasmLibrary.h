@@ -41,7 +41,6 @@ namespace Js
         static Var LoadWasmScript(
             ScriptContext* scriptContext,
             const char16* script,
-            Js::Var bufferSrc,
             SRCINFO const * pSrcInfo,
             CompileScriptException * pse,
             Utf8SourceInfo** ppSourceInfo,
