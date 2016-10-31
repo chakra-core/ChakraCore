@@ -8697,18 +8697,19 @@ namespace Js
                     // compact the types array by moving non-null types
                     // at the beginning.
                     this->types[nonNullIndex++] = type;
-                    isAnyTypeLive = true;
 #if DBG
                     isGuardValuePresent = this->guard->GetValue() == reinterpret_cast<intptr_t>(type) ? true : isGuardValuePresent;
 #endif
+                    this->types[i] = nullptr;
                 }
             }
         }
+
         if (nonNullIndex > 0)
         {
-            memset((void*)(this->types + nonNullIndex), 0, sizeof(Js::Type*) * (EQUIVALENT_TYPE_CACHE_SIZE - nonNullIndex));
+            isAnyTypeLive = true;
         }
-        else if(guard->IsInvalidatedDuringSweep())
+        else if (guard->IsInvalidatedDuringSweep())
         {
             // just mark this as actual invalidated since there are no types
             // present

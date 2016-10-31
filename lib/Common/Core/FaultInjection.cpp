@@ -137,11 +137,11 @@ namespace Js
         {
             memcpy(&Context, pCtx, sizeof(CONTEXT));
         }
-        RtlZeroMemory(&UnwindHistoryTable, sizeof(UNWIND_HISTORY_TABLE));
+        memset(&UnwindHistoryTable, 0, sizeof(UNWIND_HISTORY_TABLE));
         while (true)
         {
             RuntimeFunction = RtlLookupFunctionEntry(Context.Rip, &ImageBase, &UnwindHistoryTable);
-            RtlZeroMemory(&NvContext, sizeof(KNONVOLATILE_CONTEXT_POINTERS));
+            memset(&NvContext, 0, sizeof(KNONVOLATILE_CONTEXT_POINTERS));
             if (!RuntimeFunction)
             {
                 Context.Rip = (ULONG64)(*(PULONG64)Context.Rsp);
@@ -906,9 +906,9 @@ namespace Js
         {
             RemoveVectoredExceptionHandler(vectoredExceptionHandler);
 
-            // remove the handler from the list second time. 
-            // This code is called inside an exception handler, when the exception handler is called, 
-            // the refcount of the handler in ntdll!LdrpVectorHandlerList is increased, 
+            // remove the handler from the list second time.
+            // This code is called inside an exception handler, when the exception handler is called,
+            // the refcount of the handler in ntdll!LdrpVectorHandlerList is increased,
             // so need to call RemoveVectoredExceptionHandler twice to really remove the handler from the list
             // otherwise the exception from the handler itself will re-enter the handler
             RemoveVectoredExceptionHandler(vectoredExceptionHandler);
@@ -1080,7 +1080,7 @@ namespace Js
         case CountOnly:
             break;
         case DisplayAvailableFaultTypes:
-        case InstallExceptionHandlerOnly:        
+        case InstallExceptionHandlerOnly:
             return false;
         default:
             AssertMsg(false, "Invalid FaultInjection mode");
@@ -1206,7 +1206,7 @@ namespace Js
 
         bool needDump = true;
         uintptr_t ip = (uintptr_t)ep->ExceptionRecord->ExceptionAddress;
-        uintptr_t offset = 0;       
+        uintptr_t offset = 0;
 
         // static to not use local stack space since stack space might be low at this point
         THREAD_LOCAL static char16 modulePath[MAX_PATH + 1];
@@ -1435,7 +1435,7 @@ namespace Js
         if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW) // hard stack overflow
         {
             DebugBreak(); // let the postmortem debugger to create the dump, make sure they are filing bug with same bucket
-        }        
+        }
 
         __try
         {

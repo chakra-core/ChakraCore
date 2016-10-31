@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -36,13 +36,6 @@ Wrapper for including SafeCRT for Mac build of CoreCLR
 #define _SAFECRT_SET_ERRNO 0
 #define _SAFECRT_DEFINE_MBS_FUNCTIONS 0
 #define _SAFECRT_DEFINE_TCS_MACROS 1
-//#define _SAFECRT_INVALID_PARAMETER(message) WARN(message "\n")
-
-#if defined (SAFECRT_IN_PAL)
-
-#define DUMMY_memset void * __cdecl memset(void *, int, size_t);
-
-#endif
 
 // Include the safecrt implementation
 #include "../../palrt/inc/safecrt.h"
