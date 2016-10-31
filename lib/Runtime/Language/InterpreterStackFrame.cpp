@@ -8288,7 +8288,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             BYTE* buffer = arr->GetBuffer();
             *(ArrayType*)(buffer + index) = (ArrayType)GetRegRaw<RegType>(regSlot);
-            return;
         }
     }
 #endif
@@ -8360,13 +8359,32 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        const uint64 index = (uint64)GetRegRawInt64(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        if (index >= arr->GetByteLength() || index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
+        if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }
-        (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
+        BYTE* buffer = arr->GetBuffer();
+        switch (playout->ViewType)
+        {
+        case ArrayBufferView::ViewType::TYPE_INT8: SetRegRaw<int32>(playout->Value, (int32)*(int8*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT8 : SetRegRaw<int32>(playout->Value, (int32)*(uint8*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT16 : SetRegRaw<int32>(playout->Value, (int32)*(int16*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT16 : SetRegRaw<int32>(playout->Value, (int32)*(uint16*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT32 : SetRegRaw<int32>(playout->Value, (int32)*(int32*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT32 : SetRegRaw<int32>(playout->Value, (int32)*(uint32*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_FLOAT32 : SetRegRaw<float>(playout->Value, (float)*(float*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_FLOAT64 : SetRegRaw<double>(playout->Value, (double)*(double*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(int64*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT8_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(int8*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT8_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(uint8*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT16_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(int16*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT16_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(uint16*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_INT32_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(int32*)(buffer + index)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(uint32*)(buffer + index)); return;
+        default:Assert(UNREACHED);
+        }
     }
     template <class T>
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
@@ -8386,13 +8404,32 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        const uint64 index = (uint64)GetRegRawInt64(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        if (index >= arr->GetByteLength() || index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
+        if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+        }        
+        BYTE* buffer = arr->GetBuffer();
+        switch (playout->ViewType)
+        {
+        case ArrayBufferView::ViewType::TYPE_INT8: *(int8*)(buffer + index) = (int8) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT8: *(uint8*)(buffer + index) = (uint8) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT16: *(int16*)(buffer + index) = (int16) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT16: *(uint16*)(buffer + index) = (uint16) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT32: *(int32*)(buffer + index) = (int32) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT32: *(uint32*)(buffer + index) = (uint32) (GetRegRaw<int32>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_FLOAT32: *(float*)(buffer + index) = (float) (GetRegRaw<float>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_FLOAT64: *(double*)(buffer + index) = (double) (GetRegRaw<double>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT64: *(int64*)(buffer + index) = (int64) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT8_TO_INT64: *(int8*)(buffer + index) = (int8) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT8_TO_INT64: *(uint8*)(buffer + index) = (uint8) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT16_TO_INT64: *(int16*)(buffer + index) = (int16) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT16_TO_INT64: *(uint16*)(buffer + index) = (uint16) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_INT32_TO_INT64: *(int32*)(buffer + index) = (int32) (GetRegRaw<int64>(playout->Value)); return;
+        case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64: *(uint32*)(buffer + index) = (uint32) (GetRegRaw<int64>(playout->Value)); return;
+        default:Assert(UNREACHED);
         }
-        (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
     void InterpreterStackFrame::OP_StArrConstIndex(const unaligned T* playout)

@@ -270,34 +270,7 @@ LowererMD::LowerAsmJsCallE(IR::Instr * callInstr)
 IR::Instr *
 LowererMD::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-    IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
-    IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
-    IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
-
-    // Find array buffer length
-    IR::RegOpnd * indexOpnd = addrOpnd->AsIndirOpnd()->GetIndexOpnd();
-    IR::RegOpnd * baseOpnd = addrOpnd->AsIndirOpnd()->GetBaseOpnd();
-    Assert(baseOpnd->m_sym->IsSingleDef());
-    IR::Instr *defInstr = baseOpnd->m_sym->m_instrDef;
-    IR::RegOpnd *arrayBuffer = defInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
-    IR::Opnd *srcOpnd = IR::IndirOpnd::New(arrayBuffer, Js::ArrayBuffer::GetByteLengthOffset(), TyMachReg, m_func);
-    IR::RegOpnd *arrayLenOpnd = IR::RegOpnd::New(TyMachReg, m_func);
-
-    // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
-    Lowerer::InsertMove(arrayLenOpnd, srcOpnd, helperLabel);
-    IR::Opnd *cmpOpnd = indexOpnd;
-    if (addrOpnd->GetSize() > 1)
-    {
-        cmpOpnd = IR::RegOpnd::New(TyMachReg, m_func);
-        Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize() - 1, TyMachReg, m_func), helperLabel);
-        Lowerer::InsertBranch(Js::OpCode::JO, helperLabel, helperLabel);
-    }
-    m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
-
-    // MGTODO : call RuntimeError once implemented
-    m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
-    Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
-    return doneLabel;
+    return this->lowererMDArch.LowerWasmMemOp(instr, addrOpnd);
 }
 
 IR::Instr *
@@ -7930,6 +7903,18 @@ void
 LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     this->lowererMDArch.EmitUIntToFloat(dst, src, instrInsert);
+}
+
+void
+LowererMD::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitIntToLong(dst, src, instrInsert);
+}
+
+void
+LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitUIntToLong(dst, src, instrInsert);
 }
 
 void

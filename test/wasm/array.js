@@ -11,11 +11,26 @@ try {
   print(a["badload"](0));
 }
 catch(e) {
-  print(e.message.includes("out of bounds") ? "PASSED" : "FAILED");
+  print(e.message.includes("out of range") ? "PASSED" : "FAILED");
 }
 try {
   a["badstore"](0);
 }
 catch(e) {
-  print(e.message.includes("out of bounds") ? "PASSED" : "FAILED");
+  print(e.message.includes("out of range") ? "PASSED" : "FAILED");
+}
+a.goodload(65535)
+try {
+a.goodload(65536)
+}
+catch(e) {
+  print(e.message.includes("out of range") ? "PASSED" : "FAILED");
+}
+a.goodstore(0)
+a.goodstore(65535)
+try {
+a.goodstore(65536)
+}
+catch(e) {
+  print(e.message.includes("out of range") ? "PASSED" : "FAILED");
 }

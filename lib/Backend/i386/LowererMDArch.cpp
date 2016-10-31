@@ -960,6 +960,45 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     }
     return retInstr;
 }
+
+IR::Instr *
+LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+{
+    IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
+    IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
+    IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
+
+    // Find array buffer length
+    IR::RegOpnd * indexOpnd = addrOpnd->AsIndirOpnd()->GetIndexOpnd();
+    Int64RegPair indexPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(indexOpnd);
+    IR::Opnd *arrayLenOpnd = instr->GetSrc2();
+
+    // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
+    IR::Opnd *cmpOpnd = indexPair.low;
+    // check high bits are zero
+    lowererMD->m_lowerer->InsertCompareBranch(indexPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), Js::OpCode::BrNeq_A, true, helperLabel, helperLabel);
+    // check low bits is within heapsize
+    lowererMD->m_lowerer->InsertCompareBranch(indexPair.low, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+
+    if (addrOpnd->GetSize() > 1)
+    {
+        cmpOpnd = IR::RegOpnd::New(TyInt32, m_func);
+        // check low bits + size does not overflow
+        Lowerer::InsertAdd(true, cmpOpnd, indexPair.low, IR::IntConstOpnd::New(addrOpnd->GetSize() - 1, TyInt32, m_func), helperLabel);
+        Lowerer::InsertBranch(Js::OpCode::JO, helperLabel, helperLabel);
+        // check low bits + size is within heapsize
+        lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+    }
+
+    // MGTODO : call RuntimeError once implemented
+    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
+
+    addrOpnd->AsIndirOpnd()->SetIndexOpnd(indexPair.low->AsRegOpnd());
+
+    return doneLabel;
+}
+
 IR::Instr*
 LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= false*/, bool checkEndOffset /*= false*/)
 {
@@ -2510,6 +2549,37 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     instr = IR::Instr::New(Js::OpCode::ADDSD, dst, dst, IR::IndirOpnd::New(baseOpnd,
         highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
+}
+
+void
+LowererMDArch::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt64());
+    Assert(src->IsInt32());
+
+    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
+
+    IR::RegOpnd *regEAX = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    regEAX->SetReg(RegEAX);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, regEAX, src, this->m_func));
+
+    IR::RegOpnd *regEDX = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    regEDX->SetReg(RegEDX);
+
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, regEDX, instrInsert->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, regEAX, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, regEDX, this->m_func));
+}
+
+void
+LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt64());
+    Assert(src->IsUInt32());
+
+    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, this->m_func), this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, this->m_func));
 }
 
 bool

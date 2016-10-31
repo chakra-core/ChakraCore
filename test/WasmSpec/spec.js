@@ -94,7 +94,7 @@ function run(inPath, iStart, iEnd) {
             // NYI implemented
             // assertTrap(m, command.name, command.file, command.line);
             failed++;
-            print(`${getCommandStr(command)} failed, runtime trap NYI`);
+            print(`${getCommandStr(command)} failed, runtime trap NYI`)
             break;
         }
       }
