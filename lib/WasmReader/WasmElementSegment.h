@@ -28,5 +28,6 @@ namespace Wasm
         UINT32* m_elems;
 
         void Init(const WasmModule& module);
+        bool IsOffsetResolved() const;
     };
 } // Namespace Wasm

@@ -14,8 +14,8 @@ namespace Wasm
         m_index(index),
         m_offsetExpr(initExpr),
         m_numElem(numElem),
-        m_offset(0),
-        m_limit(0),
+        m_offset(UINT_MAX),
+        m_limit(UINT_MAX),
         m_elemIdx(0),
         m_elems(nullptr)
     {}
@@ -54,9 +54,16 @@ namespace Wasm
         m_elems[m_elemIdx++] = funcIndex;
     }
 
+    inline bool 
+    WasmElementSegment::IsOffsetResolved() const
+    {
+        return (m_offset == UINT_MAX || m_limit != UINT_MAX);
+    }
+
     UINT32
     WasmElementSegment::GetElement(const UINT32 tableIndex) const
     {
+        AssertMsg(IsOffsetResolved(), "Cannot access table elements before resolving their offsets.");
         if (m_offset > tableIndex || tableIndex >= m_limit)
         {
             return Js::Constants::UninitializedValue;
