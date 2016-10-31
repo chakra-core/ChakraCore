@@ -63,16 +63,11 @@ endif()
 target_link_libraries (ChakraCore ${lib_target})
 
 if(NOT CC_XCODE_PROJECT)
-  set(CC_LIB_EXT "so")
   # Post build step to copy the built shared library
   # to BuildLinux (or whatever the CMakeBuildDir is)
-  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(CC_LIB_EXT "dylib")
-  endif()
-
   add_custom_command(TARGET ChakraCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
+    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${DYN_LIB_EXT}"
     ${CHAKRACORE_BINARY_DIR}/
     )
 endif()

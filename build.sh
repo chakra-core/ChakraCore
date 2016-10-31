@@ -53,6 +53,8 @@ PRINT_USAGE() {
     echo "                       Write-barrier check given CPPFILE (git path)"
     echo "      --wb-analyze CPPFILE"
     echo "                       Write-barrier analyze given CPPFILE (git path)"
+    echo "      --wb-args=PLUGIN_ARGS"
+    echo "                       Write-barrier clang plugin args"
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -81,6 +83,7 @@ OS_APT_GET=0
 OS_UNIX=0
 WB_CHECK=
 WB_ANALYZE=
+WB_ARGS=
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -258,6 +261,12 @@ while [[ $# -gt 0 ]]; do
         fi
         ;;
 
+    --wb-args=*)
+        WB_ARGS=$1
+        WB_ARGS=${WB_ARGS:10}
+        WB_ARGS=${WB_ARGS// /;}  # replace space with ; to generate a cmake list
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -349,6 +358,10 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
         WB_FILE=$WB_ANALYZE
     fi
 
+    if [[ $WB_ARGS ]]; then
+        WB_ARGS="-DWB_ARGS_SH=$WB_ARGS"
+    fi
+
     if [[ -f $CHAKRACORE_DIR/$WB_FILE ]]; then
         touch $CHAKRACORE_DIR/$WB_FILE
     else
@@ -360,7 +373,7 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
 
     WB_FILE_CMAKELISTS="$CHAKRACORE_DIR/$WB_FILE_DIR/CMakeLists.txt"
     if [[ -f $WB_FILE_CMAKELISTS ]]; then
-        SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed -r "s/.*\((\S+) .*/\1/")
+        SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed "s/.*(\(.*\) .*/\1/")
     else
         echo "$WB_FILE_CMAKELISTS not found." && exit 1
     fi
@@ -384,7 +397,7 @@ fi
 echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES \
-    $WB_FLAG \
+    $WB_FLAG $WB_ARGS \
     ../..
 
 _RET=$?
