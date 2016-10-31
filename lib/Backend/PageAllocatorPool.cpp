@@ -45,6 +45,7 @@ void PageAllocatorPool::Shutdown()
 }
 void PageAllocatorPool::RemoveAll()
 {
+    Assert(cs.IsLocked());
     while (!pageAllocators.Empty())
     {
         HeapDelete(pageAllocators.Pop());
@@ -113,23 +114,12 @@ VOID CALLBACK PageAllocatorPool::IdleCleanupRoutine(
     _In_     DWORD  dwTimerLowValue,
     _In_     DWORD  dwTimerHighValue)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-    try
+    AutoCriticalSection autoCS(&cs);
+    if (Instance)
     {
-        AutoCriticalSection autoCS(&cs);
-        if (Instance)
-        {
-            // TODO: OOP JIT, use better stragtegy to do the cleanup, like do not remove all,
-            // instead keep couple inactivate page allocator for next calls
-            Instance->RemoveAll();
-        }
-    }
-    catch (Js::OutOfMemoryException&)
-    {
-    }
-    catch (...)
-    {
-        Assert(false);
+        // TODO: OOP JIT, use better stragtegy to do the cleanup, like do not remove all,
+        // instead keep couple inactivate page allocator for next calls
+        Instance->RemoveAll();
     }
 }
 #endif
