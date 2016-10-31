@@ -1136,6 +1136,7 @@ namespace Js
         void InitializePrototypes();
         void InitializeTypes();
         void InitializeGlobal(GlobalObject * globalObject);
+        static void PrecalculateArrayAllocationBuckets();
 
         static void __cdecl InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
