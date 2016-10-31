@@ -147,13 +147,24 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
+#pragma warning(push)  
+#pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
-    /* [out] */ __RPC__out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    /* [out] */ __RPC__deref_out_opt PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
     /* [out] */ __RPC__out intptr_t *prereservedRegionAddr)
 {
+    if (threadContextInfoAddress == nullptr || prereservedRegionAddr == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    *threadContextInfoAddress = nullptr;
+    *prereservedRegionAddr = 0;
+
     ServerThreadContext * contextInfo = nullptr;
     try
     {
@@ -176,10 +187,46 @@ ServerInitializeThreadContext(
 }
 
 HRESULT
+ServerInitializeScriptContext(
+    /* [in] */ handle_t binding,
+    /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
+    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    /* [out] */ __RPC__deref_out_opt PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
+{
+    if (scriptContextInfoAddress == nullptr || threadContextInfoAddress == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    *scriptContextInfoAddress = nullptr;
+    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
+
+    return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
+    {
+        ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData, threadContextInfo);
+        ServerContextManager::RegisterScriptContext(contextInfo);
+        *scriptContextInfoAddress = (PSCRIPTCONTEXT_HANDLE)EncodePointer(contextInfo);
+
+#if !FLOATVAR
+        // TODO: should move this to ServerInitializeThreadContext, also for the fields in IDL
+        XProcNumberPageSegmentImpl::Initialize(contextInfo->IsRecyclerVerifyEnabled(), contextInfo->GetRecyclerVerifyPad());
+#endif
+        return S_OK;
+    });
+}
+#pragma warning(pop) 
+
+HRESULT
 ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
-    /* [in] */ PPTHREADCONTEXT_HANDLE threadContextInfoAddress)
+    /* [in] */ __RPC__deref_inout_opt PPTHREADCONTEXT_HANDLE threadContextInfoAddress)
 {
+    if (threadContextInfoAddress == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(*threadContextInfoAddress);
     if (threadContextInfo == nullptr)
     {
@@ -202,7 +249,7 @@ ServerCleanupThreadContext(
 HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
-    /* [in] */ PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
@@ -232,7 +279,7 @@ ServerUpdatePropertyRecordMap(
 HRESULT
 ServerAddDOMFastPathHelper(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ intptr_t funcInfoAddr,
     /* [in] */ int helper)
 {
@@ -254,7 +301,7 @@ ServerAddDOMFastPathHelper(
 HRESULT
 ServerAddModuleRecordInfo(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ unsigned int moduleId,
     /* [in] */ intptr_t localExportSlotsAddr)
 {
@@ -276,7 +323,7 @@ ServerAddModuleRecordInfo(
 HRESULT
 ServerSetWellKnownHostTypeId(
     /* [in] */ handle_t binding,
-    /* [in] */ PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     /* [in] */ int typeId)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
@@ -295,40 +342,16 @@ ServerSetWellKnownHostTypeId(
 }
 
 HRESULT
-ServerInitializeScriptContext(
+ServerCleanupScriptContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
-    /* [in] */ PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [out] */ __RPC__out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
+    /* [in] */ __RPC__deref_inout_opt PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
-    ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
-
-    *scriptContextInfoAddress = 0;
-    if (threadContextInfo == nullptr)
+    if (scriptContextInfoAddress == nullptr)
     {
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
-    {
-        ServerScriptContext * contextInfo = HeapNew(ServerScriptContext, scriptContextData, threadContextInfo);
-        ServerContextManager::RegisterScriptContext(contextInfo);
-        *scriptContextInfoAddress = (PSCRIPTCONTEXT_HANDLE)EncodePointer(contextInfo);
-
-#if !FLOATVAR
-        // TODO: should move this to ServerInitializeThreadContext, also for the fields in IDL
-        XProcNumberPageSegmentImpl::Initialize(contextInfo->IsRecyclerVerifyEnabled(), contextInfo->GetRecyclerVerifyPad());
-#endif
-        return S_OK;
-    });
-}
-
-HRESULT
-ServerCleanupScriptContext(
-    /* [in] */ handle_t binding,
-    /* [in] */ PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
-{
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer(*scriptContextInfoAddress);
 
     if (scriptContextInfo == nullptr)
@@ -350,7 +373,7 @@ ServerCleanupScriptContext(
 HRESULT
 ServerCloseScriptContext(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
 
@@ -379,14 +402,19 @@ ServerCloseScriptContext(
 HRESULT
 ServerNewInterpreterThunkBlock(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfo,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
     /* [in] */ boolean asmJsThunk,
     /* [out] */ __RPC__out InterpreterThunkInfoIDL * thunkInfo)
-{
-    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer(scriptContextInfo);
+{   
+    if (thunkInfo == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
 
     memset(thunkInfo, 0, sizeof(InterpreterThunkInfoIDL));
 
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer(scriptContextInfo);
     if (scriptContext == nullptr)
     {
         Assert(false);
@@ -457,7 +485,7 @@ ServerNewInterpreterThunkBlock(
 HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
-    /* [in] */ PTHREADCONTEXT_HANDLE threadContextInfo,
+    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfo,
     /* [in] */ intptr_t address)
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
@@ -483,41 +511,52 @@ ServerFreeAllocation(
 HRESULT
 ServerIsInterpreterThunkAddr(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ intptr_t address,
     /* [in] */ boolean asmjsThunk,
     /* [out] */ __RPC__out boolean * result)
 {
     ServerScriptContext * context = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
 
-    if (context == nullptr)
+    if (context == nullptr || result == nullptr)
     {
-        *result = false;
+        Assert(false);
         return RPC_S_INVALID_ARG;
     }
-    EmitBufferManager<> * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
-    if (manager == nullptr)
+    *result = false;
+
+    return ServerCallWrapper(context, [&]()->HRESULT
     {
-        *result = false;
+        EmitBufferManager<> * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+        if (manager == nullptr)
+        {
+            *result = false;
+            return S_OK;
+        }
+
+        *result = manager->IsInHeap((void*)address);
+
         return S_OK;
-    }
-
-    *result = manager->IsInHeap((void*)address);
-
-    return S_OK;
+    });
 }
 #endif
 
 HRESULT
 ServerIsNativeAddr(
     /* [in] */ handle_t binding,
-    /* [in] */ PTHREADCONTEXT_HANDLE threadContextInfo,
+    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfo,
     /* [in] */ intptr_t address,
     /* [out] */ __RPC__out boolean * result)
 {
-    ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
+    if (result == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
 
     *result = false;
+
+    ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
     if (context == nullptr)
     {
         Assert(false);
@@ -548,7 +587,7 @@ ServerIsNativeAddr(
 HRESULT
 ServerSetIsPRNGSeeded(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ boolean value)
 {
     ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
@@ -569,7 +608,7 @@ ServerSetIsPRNGSeeded(
 HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ __RPC__in CodeGenWorkItemIDL *workItemData,
     /* [out] */ __RPC__out JITOutputIDL *jitData)
 {
