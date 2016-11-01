@@ -21,7 +21,8 @@ PageAllocatorPool::PageAllocatorPool()
 
 PageAllocatorPool::~PageAllocatorPool()
 {
-    Shutdown();
+    AutoCriticalSection autoCS(&cs);
+    RemoveAll();
 }
 
 void PageAllocatorPool::Initialize()
@@ -35,12 +36,16 @@ void PageAllocatorPool::Initialize()
 void PageAllocatorPool::Shutdown()
 {
     AutoCriticalSection autoCS(&cs);
+    Assert(Instance);
     if (Instance)
     {
-        CloseHandle(Instance->idleCleanupTimer);
-        Instance->RemoveAll();
-        HeapDelete(Instance);
+        PageAllocatorPool* localInstance = Instance;
         Instance = nullptr;
+        if (localInstance->idleCleanupTimer)
+        {
+            CloseHandle(localInstance->idleCleanupTimer);
+        }
+        HeapDelete(localInstance);
     }
 }
 void PageAllocatorPool::RemoveAll()
