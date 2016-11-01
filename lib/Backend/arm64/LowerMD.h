@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -193,7 +193,7 @@ public:
               IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { __debugbreak(); return 0; }
               IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { __debugbreak(); return 0; }
               IR::Instr *         LowerToFloat(IR::Instr *instr) { __debugbreak(); return 0; }
-              IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr) { __debugbreak(); return 0; }
+              IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr, IR::Opnd& dst, IR::Opnd& src) { __debugbreak(); return 0; }
        static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN = false) { __debugbreak(); return 0; }
               void                ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert) { __debugbreak(); }
               void                CheckOverflowOnFloatToInt32(IR::Instr* instr, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone) { __debugbreak(); }

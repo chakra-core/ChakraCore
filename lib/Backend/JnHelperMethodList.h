@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifndef HELPERCALL
@@ -530,6 +530,9 @@ HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<floa
 
 HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 HELPERCALL(PopCnt64, (int64(*)(int64)) Wasm::WasmMath::PopCnt<int64>, 0)
+
+HELPERCALL(ToSpecial, Js::NumberUtilities::ToSpecial, 0)
+HELPERCALL(ReinterpretBits, Js::NumberUtilities::ReinterpretBits, 0)
 
 #if (defined(ASMJS_PLAT) || defined(ENABLE_WASM)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)

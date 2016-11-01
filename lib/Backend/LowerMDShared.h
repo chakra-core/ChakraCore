@@ -268,7 +268,7 @@ public:
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
             IR::Instr *         LowerToFloat(IR::Instr *instr);
-            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr);
+            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr, IR::Opnd& dst, IR::Opnd& src);
             IR::Instr *         LowerInt64Assign(IR::Instr * instr);
      static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNan = false);
 

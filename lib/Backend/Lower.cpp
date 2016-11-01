@@ -18147,8 +18147,12 @@ Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
     IR::Opnd* dst = instr->GetDst();
 
     Assert(dst->GetSize() == src1->GetSize());
-    Assert((dst->IsFloat32() && src1->IsInt32()) || (dst->IsInt32() && src1->IsFloat32()));
-    return m_lowererMD.LowerReinterpretPrimitive(instr);
+    Assert((dst->IsFloat32() && src1->IsInt32()) ||
+           (dst->IsInt32() && src1->IsFloat32()) ||
+           (dst->IsInt64() && src1->IsFloat64()) ||
+           (dst->IsFloat64() && src1->IsInt64()) );
+
+    return m_lowererMD.LowerReinterpretPrimitive(instr, *dst, *src1);
 }
 
 void

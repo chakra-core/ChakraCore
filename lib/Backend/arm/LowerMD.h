@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -195,7 +195,7 @@ public:
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { Assert(UNREACHED); return nullptr; } // only used for asm.js right now
             IR::Instr *         LowerToFloat(IR::Instr *instr);
-            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr) { Assert(UNREACHED); return nullptr; }
+            IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr, IR::Opnd& dst, IR::Opnd& src) { Assert(UNREACHED); return nullptr; }
      static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN = false);
             void                ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert);
             void                CheckOverflowOnFloatToInt32(IR::Instr* instr, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone);

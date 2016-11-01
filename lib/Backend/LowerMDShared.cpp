@@ -8733,8 +8733,35 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
 }
 
 IR::Instr *
-LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
+LowererMD::LowerReinterpretPrimitive(IR::Instr* instr, IR::Opnd& dst, IR::Opnd& src)
 {
+    if ((dst.IsInt64() && src.IsFloat64()) ||
+        (dst.IsFloat64() && src.IsInt64()))
+    {
+#if _M_AMD64
+        instr->m_opcode = Js::OpCode::MOVQ;
+        Legalize(instr);
+        return instr;
+#elif _M_IX86
+        IR::JnHelperMethod helperMethod;
+        if (dst.IsInt64())
+        {
+            Assert(src.IsFloat64());
+            helperMethod = IR::HelperToSpecial;
+            LoadDoubleHelperArgument(instr, instr->UnlinkSrc1());
+        }
+        else
+        {
+            Assert(src.IsInt64());
+            LoadInt64HelperArgument(instr, instr->UnlinkSrc1());
+            helperMethod = IR::HelperReinterpretBits;
+        }
+        ChangeToHelperCall(instr, helperMethod);
+        return instr;
+#endif
+    }
+
+    // 32bit reinterprets
     instr->m_opcode = Js::OpCode::MOVD;
     Legalize(instr);
     return instr;
