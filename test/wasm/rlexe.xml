@@ -67,11 +67,4 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
-<test>
-    <default>
-       <files>exceptions.js</files>
-       <baseline>exceptions.baseline</baseline>
-       <compile-flags>-on:Wasm</compile-flags>
-    </default>
-</test>
 </regress-exe>
