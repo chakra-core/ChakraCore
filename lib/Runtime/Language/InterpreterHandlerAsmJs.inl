@@ -66,6 +66,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( BR_ASM_Mem       , BrEq_Int     , AsmJsMath::CmpEq<int>                              ) // Jumps to location if both int reg are equal
   DEF2_WMS( I1toF1Mem        , Reinterpret_ITF, NumberUtilities::ReinterpretBits                 ) // reinterpret bits of int to float
   DEF2_WMS( F1toI1Mem        , Reinterpret_FTI, NumberUtilities::ToSpecial                       ) // reinterpret bits of float to int
+  DEF2_WMS( L1toD1Mem        , Reinterpret_LTD, NumberUtilities::ReinterpretBits                 ) // reinterpret bits of long to double
+  DEF2_WMS( D1toL1Mem        , Reinterpret_DTL, NumberUtilities::ToSpecial                       ) // reinterpret bits of double to long
   DEF2_WMS( D1toI1Mem        , Conv_DTI     , JavascriptConversion::ToInt32                      ) // convert double to int
   DEF2_WMS( D1toI1Mem        , Conv_DTU     , JavascriptConversion::ToUInt32                     ) // convert double to unsigned int
   DEF2_WMS( F1toI1Mem        , Conv_FTI     , JavascriptConversion::ToInt32                      ) // convert float to int
