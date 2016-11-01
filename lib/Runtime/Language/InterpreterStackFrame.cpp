@@ -7814,6 +7814,19 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptError::ThrowUnreachable(scriptContext);
     }
 
+    template <typename T, T MIN, T MAX>
+    int InterpreterStackFrame::OP_TruncWithCheck(double val)
+    {
+        //min, max are converted to double
+        //and min <= val <= max is tested
+        if (!Wasm::WasmMath::IsInValidRange<T, MIN, MAX>(val))
+        {
+            JavascriptError::ThrowError(scriptContext, VBSERR_Overflow);
+        }
+
+        return (int) ((T) val);
+    }
+
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {

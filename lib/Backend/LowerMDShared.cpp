@@ -20,6 +20,8 @@ const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::CVTSD2
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::CALL;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::IMUL2;
 
+static const int TWO_31_FLOAT = 0x4f000000;
+static const int FLOAT_INT_MIN = 0xcf000000;
 //
 // Static utility fn()
 //
@@ -5893,6 +5895,98 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         insertInstr->InsertBefore(instr);
     }
     return true;
+}
+
+IR::RegOpnd* LowererMD::MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr)
+{
+    IR::Opnd* constVal = IR::MemRefOpnd::New(constAddr, IRType::TyFloat64, this->m_func);
+    IR::RegOpnd * xmmReg = IR::RegOpnd::New(TyFloat64, m_func);
+    this->m_lowerer->InsertMove(xmmReg, constVal, instr);
+    return xmmReg;
+}
+
+IR::RegOpnd* LowererMD::MaterializeConstFromBits(int bits, IRType type, IR::Instr* instr)
+{
+    IR::Opnd * regBits = IR::RegOpnd::New(TyInt32, m_func);
+    this->m_lowerer->InsertMove(regBits, IR::IntConstOpnd::New(bits, TyInt32, m_func), instr);
+    IR::RegOpnd * regConst = IR::RegOpnd::New(type, m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, regConst, regBits, m_func));
+    return regConst;
+}
+
+IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr)
+{
+    Js::OpCode op = (type == TyFloat32) ? Js::OpCode::SUBSS : Js::OpCode::SUBSD;
+
+    IR::Opnd*  adjSrc = IR::RegOpnd::New(type, m_func);
+    IR::Instr* sub = IR::Instr::New(op, adjSrc, src1, intMinFP, m_func);
+    instr->InsertBefore(sub);
+    Legalize(sub);
+    return adjSrc;
+}
+
+void
+LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
+{
+    Assert(AutoSystemInfo::Data.SSE2Available());
+
+    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * trap = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+
+    IR::Opnd* adjSrc = src1;
+    if (dst->IsUnsigned())
+    {
+        if (src1->IsFloat32())
+        {
+            IR::Opnd* twoTo31FP = MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat32, instr);
+        }
+        else
+        {
+            IR::Opnd* twoTo31FP = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat64, instr);
+        }
+    }
+
+    instr->InsertBefore(IR::Instr::New(src1->IsFloat32() ? Js::OpCode::CVTTSS2SI : Js::OpCode::CVTTSD2SI, dst, adjSrc, m_func));
+
+    IR::Opnd* intMin = IR::IntConstOpnd::New(INT_MIN, TyInt32, m_func);
+    m_lowerer->InsertCompareBranch(dst, intMin, Js::OpCode::BrNeq_A, done, instr);
+
+    if (dst->IsUnsigned())
+    {
+        IR::Opnd* zeroReg = IR::RegOpnd::New(src1->GetType(), m_func);
+        IR::Instr* _xor = IR::Instr::New(Js::OpCode::XORPS, zeroReg, src1, src1, m_func);
+        instr->InsertBefore(_xor);
+        Legalize(_xor);
+        m_lowerer->InsertCompareBranch(src1, zeroReg, Js::OpCode::BrEq_A, done, instr);
+    }
+    else
+    {
+        IR::Opnd* intMinFP = src1->IsFloat32() ?
+            MaterializeConstFromBits(FLOAT_INT_MIN, TyFloat32, instr) :
+            MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleIntMinAddr(), instr);
+        m_lowerer->InsertCompareBranch(src1, intMinFP, Js::OpCode::BrEq_A, done, instr);
+    }
+    instr->InsertBefore(trap);
+    IR::Instr *throwInstr = IR::Instr::New(
+        Js::OpCode::RuntimeTypeError,
+        IR::RegOpnd::New(TyMachReg, m_func),
+        IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func),
+        m_func);
+    instr->InsertBefore(throwInstr);
+    this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+
+    instr->InsertBefore(done);
+    if (dst->IsUnsigned())
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::ADD, dst, dst, intMin, m_func));
+    }
+    instr->UnlinkSrc1();
+    instr->UnlinkDst();
+    instr->Remove();
 }
 
 void
