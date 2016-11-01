@@ -1119,6 +1119,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     {
     case Js::OpCodeAsmJs::Unreachable_Void:
         instr = IR::Instr::New(Js::OpCode::Unreachable_Void, m_func);
+        instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
         AddInstr(instr, offset);
         break;
     case Js::OpCodeAsmJs::Ret:
@@ -2409,7 +2410,7 @@ IR::RegOpnd* IRBuilderAsmJs::BuildOverflowCheckReg3(IR::RegOpnd* src1Opnd, IR::R
 {
     IR::RegOpnd* newSrc = IR::RegOpnd::New(StackSym::New(m_func), src2Opnd->GetType(), m_func);
     newSrc->SetValueType(ValueType::GetInt(false));
-    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheck3, newSrc, src1Opnd, src2Opnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg3, newSrc, src1Opnd, src2Opnd, m_func), offset);
     return newSrc;
 }
 

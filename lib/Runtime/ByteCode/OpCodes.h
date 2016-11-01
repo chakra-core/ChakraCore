@@ -736,7 +736,7 @@ MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect|OpNoFallThrough)
-MACRO_BACKEND_ONLY(     OverflowCheck3,     Reg3,           OpSideEffect)
+MACRO_BACKEND_ONLY(     OverflowCheckReg3,  Reg3,           OpSideEffect)
 MACRO_BACKEND_ONLY(     DivideByZeroCheck,  Reg3,           OpSideEffect)
 
 MACRO_BACKEND_ONLY(     AsmJsEntryTracing, Empty, None)
