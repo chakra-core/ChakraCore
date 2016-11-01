@@ -482,7 +482,7 @@ public:
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
 private:
-    intptr_t m_remoteThreadContextInfo;
+    PTHREADCONTEXT_HANDLE m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
@@ -503,7 +503,7 @@ public:
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
     void EnsureJITThreadContext(bool allowPrereserveAlloc);
 
-    intptr_t GetRemoteThreadContextAddr()
+    PTHREADCONTEXT_HANDLE GetRemoteThreadContextAddr()
     {
         Assert(m_remoteThreadContextInfo);
         return m_remoteThreadContextInfo;
@@ -996,8 +996,11 @@ public:
 
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
         {
-            JITManager::GetJITManager()->CleanupThreadContext(m_remoteThreadContextInfo);
-            m_remoteThreadContextInfo = 0;
+            if (JITManager::GetJITManager()->CleanupThreadContext(&m_remoteThreadContextInfo) == S_OK)
+            {
+                Assert(m_remoteThreadContextInfo == nullptr);
+            }
+            m_remoteThreadContextInfo = nullptr;
         }
 #endif
 #if ENABLE_CONCURRENT_GC

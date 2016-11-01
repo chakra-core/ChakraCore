@@ -55,6 +55,12 @@ typedef unsigned char boolean;
 const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
+typedef IDL_DEF([context_handle]) void * PTHREADCONTEXT_HANDLE;
+typedef IDL_DEF([ref]) PTHREADCONTEXT_HANDLE * PPTHREADCONTEXT_HANDLE;
+
+typedef IDL_DEF([context_handle]) void * PSCRIPTCONTEXT_HANDLE;
+typedef IDL_DEF([ref]) PSCRIPTCONTEXT_HANDLE * PPSCRIPTCONTEXT_HANDLE;
+
 typedef struct TypeHandlerIDL
 {
     boolean isObjectHeaderInlinedTypeHandler;

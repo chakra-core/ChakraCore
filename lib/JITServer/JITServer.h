@@ -17,7 +17,6 @@ public:
     static bool CheckLivenessAndAddref(ServerScriptContext* context);
     static bool CheckLivenessAndAddref(ServerThreadContext* context);
 
-    static void IdleCleanup();
 
 private:
     static JsUtil::BaseHashSet<ServerThreadContext*, HeapAllocator> threadContexts;

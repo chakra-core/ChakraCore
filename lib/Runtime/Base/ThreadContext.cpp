@@ -189,7 +189,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isProfilingUserCode(true),
     loopDepth(0),
     tridentLoadAddress(nullptr),
-    m_remoteThreadContextInfo(0),
+    m_remoteThreadContextInfo(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
     , IsTTRecordRequested(false)
@@ -2242,7 +2242,7 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
     {
         this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId;
 #if ENABLE_NATIVE_CODEGEN
-        if (this->m_remoteThreadContextInfo != 0)
+        if (this->m_remoteThreadContextInfo)
         {
             HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
             JITManager::HandleServerCallResult(hr);
