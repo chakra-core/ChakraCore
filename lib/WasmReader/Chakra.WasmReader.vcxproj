@@ -39,6 +39,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmElementSegment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmFunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -53,6 +54,7 @@
     <ClInclude Include="WasmModule.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmDataSegment.h" />
+    <ClInclude Include="WasmElementSegment.h" />
     <ClInclude Include="WasmFunctionInfo.h" />
     <ClInclude Include="WasmReader.h" />
     <ClInclude Include="WasmReaderPch.h" />
