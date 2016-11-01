@@ -124,7 +124,7 @@
   <test>
     <default>
       <files>lastindexof.js</files>
-      <baseline>lastindexof.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
