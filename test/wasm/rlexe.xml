@@ -102,4 +102,11 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>trunc.js</files>
+       <baseline>trunc.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>
