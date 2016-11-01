@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -74,6 +74,7 @@ namespace Js
         static uint64 ToSpecial(double value);
         static uint32 ToSpecial(float value);
         static float ReinterpretBits(int value);
+        static double ReinterpretBits(int64 value);
 
         // Convert a given UINT16 into its corresponding string.
         // outBufferSize is in WCHAR elements (and used only for ASSERTs)

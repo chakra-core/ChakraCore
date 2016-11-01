@@ -1,5 +1,3 @@
-tee_local.wast:101: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_3[14] at offset 4/16: Operator I64ReinterpretF64 NYI
-tee_local.wast:106: $assert_return_7 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_7[18] at offset 13/25: Operator I64ReinterpretF64 NYI
 tee_local.wast:115: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function write[9] at offset 53/85: Operator F64UConvertI64 NYI
-tee_local.wast:122: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_10[21] at offset 24/36: Operator I64ReinterpretF64 NYI
-7/11 tests passed.
+tee_local.wast:122: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function result[10] at offset 12/79: Operator F64UConvertI64 NYI
+9/11 tests passed.

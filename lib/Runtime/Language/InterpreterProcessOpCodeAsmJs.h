@@ -278,6 +278,27 @@ if (switchProfileMode) \
                                                                 }
 #define PROCESS_F1toI1Mem(name, func) PROCESS_F1toI1Mem_COMMON(name, func,)
 
+#define PROCESS_D1toL1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+       PROCESS_READ_LAYOUT_ASMJS(name, Long1Double1, suffix); \
+       SetRegRawInt64(playout->L0, \
+                func(GetRegRawDouble(playout->D1))); \
+       break; \
+                                                                }
+#define PROCESS_D1toL1Mem(name, func) PROCESS_D1toL1Mem_COMMON(name, func,)
+
+
+#define PROCESS_L1toD1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+       PROCESS_READ_LAYOUT_ASMJS(name, Double1Long1, suffix); \
+       SetRegRawDouble(playout->D0, \
+                func(GetRegRawInt64(playout->L1))); \
+       break; \
+                                                                }
+#define PROCESS_L1toD1Mem(name, func) PROCESS_L1toD1Mem_COMMON(name, func,)
+
 #define PROCESS_I1toD1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
                                                                 { \
