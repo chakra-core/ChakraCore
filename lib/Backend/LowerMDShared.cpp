@@ -5929,13 +5929,6 @@ LowererMD::GenerateCtz(IR::Instr * instr)
 }
 
 void
-LowererMD::GenerateThrowUnreachable(IR::Instr * instr)
-{
-    this->m_lowerer->LoadScriptContext(instr);
-    ChangeToHelperCall(instr, IR::HelperThrow_Unreachable);
-}
-
-void
 LowererMD::GeneratePopCnt(IR::Instr * instr)
 {
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32() || instr->GetSrc1()->IsInt64());

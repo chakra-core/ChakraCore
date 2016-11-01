@@ -1033,7 +1033,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             break;
-        case Js::OpCode::OverflowCheck3:
+        case Js::OpCode::OverflowCheckReg3:
             instr->UnlinkSrc2();
         case Js::OpCode::DivideByZeroCheck:
             instr->m_opcode = Js::OpCode::MOV;
@@ -18042,7 +18042,9 @@ Lowerer::GenerateCtz(IR::Instr* instr)
 
 void Lowerer::GenerateThrowUnreachable(IR::Instr* instr)
 {
-    m_lowererMD.GenerateThrowUnreachable(instr);
+    GenerateThrow(instr->GetSrc1(), instr);
+    instr->UnlinkSrc1();
+    instr->Remove();
 }
 
 void
@@ -22243,7 +22245,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
-        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheck3, instr->GetSrc1());
+        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheckReg3, instr->GetSrc1());
         bool needsMinOverNeg1Check = true;
         if (isWasmFunc && instr->m_opcode != Js::OpCode::Rem_I4)
         {

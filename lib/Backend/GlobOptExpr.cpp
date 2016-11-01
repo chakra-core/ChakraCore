@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -354,6 +354,77 @@ GlobOpt::CSEAddInstr(
             }
         }
     }
+}
+
+
+static void TransformIntoUnreachable(IntConstType errorCode, IR::Instr* instr)
+{
+    instr->m_opcode = Js::OpCode::Unreachable_Void;
+    instr->ReplaceSrc1(IR::IntConstOpnd::New(SCODE_CODE(errorCode), TyInt32, instr->m_func));
+    instr->UnlinkDst();
+}
+
+void
+GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
+{
+    int val = 0;
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::DivideByZeroCheck:
+        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                TransformIntoUnreachable(WASMERR_DivideByZero, instr);
+                InsertByteCodeUses(instr);
+                RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+            }
+        }
+        break;
+    case Js::OpCode::OverflowCheckReg3:
+    {
+        int checksLeft = 2;
+        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val != INT_MIN)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                checksLeft--;
+            }
+
+        }
+        if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val != -1)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                checksLeft--;
+            }
+        }
+
+        if (!checksLeft)
+        {
+            TransformIntoUnreachable(VBSERR_Overflow, instr);
+            instr->UnlinkSrc2();
+            InsertByteCodeUses(instr);
+            RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+        }
+        break;
+    }
+    default:
+        return;
+    }
+
 }
 
 bool
