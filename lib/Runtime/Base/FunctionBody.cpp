@@ -8688,31 +8688,34 @@ namespace Js
             Type *type = this->types[i];
             if (type != nullptr)
             {
-                if (!recycler->IsObjectMarked(type))
-                {
-                    this->types[i] = nullptr;
-                }
-                else
+                this->types[i] = nullptr;
+                if (recycler->IsObjectMarked(type))
                 {
                     // compact the types array by moving non-null types
                     // at the beginning.
                     this->types[nonNullIndex++] = type;
-                    isAnyTypeLive = true;
 #if DBG
                     isGuardValuePresent = this->guard->GetValue() == reinterpret_cast<intptr_t>(type) ? true : isGuardValuePresent;
 #endif
                 }
             }
         }
+
         if (nonNullIndex > 0)
         {
-            memset((void*)(this->types + nonNullIndex), 0, sizeof(Js::Type*) * (EQUIVALENT_TYPE_CACHE_SIZE - nonNullIndex));
+            isAnyTypeLive = true;
         }
-        else if(guard->IsInvalidatedDuringSweep())
+        else
         {
-            // just mark this as actual invalidated since there are no types
-            // present
-            guard->Invalidate();
+#if DBG
+            isGuardValuePresent = true; // never went into loop. (noNullIndex == 0)
+#endif
+            if (guard->IsInvalidatedDuringSweep())
+            {
+                // just mark this as actual invalidated since there are no types
+                // present
+                guard->Invalidate();
+            }
         }
 
         // verify if guard value is valid, it is present in one of the types
