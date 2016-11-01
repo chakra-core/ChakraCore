@@ -2436,8 +2436,8 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
         !srcReg2 ||
         srcReg1->IsTaggedInt() ||
         srcReg2->IsTaggedInt() ||
-        !srcReg1->GetValueType().IsLikelyString() ||
-        !srcReg2->GetValueType().IsLikelyString())
+        (!srcReg1->GetValueType().IsLikelyString() && !srcReg1->GetValueType().HasBeenString()) ||
+        (!srcReg2->GetValueType().IsLikelyString() && !srcReg2->GetValueType().HasBeenString()))
     {
         return false;
     }

@@ -3116,8 +3116,8 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
     // Check that we likely have strings or know we have strings as the arguments
     if (!regSrc1 || !regSrc2 ||
-        !regSrc1->GetValueType().IsLikelyString() ||
-        !regSrc2->GetValueType().IsLikelyString())
+        (!regSrc1->GetValueType().IsLikelyString() && !regSrc1->GetValueType().HasBeenString()) ||
+        (!regSrc2->GetValueType().IsLikelyString() && !regSrc2->GetValueType().HasBeenString()))
     {
         return false;
     }

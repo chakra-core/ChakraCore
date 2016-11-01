@@ -19891,7 +19891,7 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
             }
         }
     }
-    else if (src1->GetValueType().IsLikelyObject() && src2->GetValueType().IsLikelyObject())
+    else if ((src1->GetValueType().IsLikelyObject() || src1->GetValueType().HasBeenObject()) && (src2->GetValueType().IsLikelyObject() || src2->GetValueType().HasBeenObject()))
     {
         //
         // Objects
