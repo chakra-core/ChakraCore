@@ -338,6 +338,17 @@ if (switchProfileMode) \
 
 #define PROCESS_R1toI1Mem(name, func) PROCESS_R1toI1Mem_COMMON(name, func,)
 
+#define PROCESS_R1toL1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Long1Reg1, suffix); \
+        SetRegRawInt64(playout->L0, \
+                func(GetReg(playout->R1),scriptContext)); \
+        break; \
+                                                                }
+
+#define PROCESS_R1toL1Mem(name, func) PROCESS_R1toL1Mem_COMMON(name, func,)
+
 #define PROCESS_D1toR1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
                                 { \

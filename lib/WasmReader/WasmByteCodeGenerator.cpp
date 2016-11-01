@@ -856,11 +856,7 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            if (isImportCall)
-            {
-                throw WasmCompilationException(_u("External calls with float argument NYI"));
-            }
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Flt : Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Db : Js::OpCodeAsmJs::I_ArgOut_Db;
@@ -869,11 +865,7 @@ WasmBytecodeGenerator::EmitCall()
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
         case WasmTypes::I64:
-            if (isImportCall)
-            {
-                throw WasmCompilationException(_u("External calls with int64 argument NYI"));
-            }
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Long;
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);

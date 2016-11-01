@@ -2260,6 +2260,11 @@ namespace Js
         m_outParams[outRegisterID] = JavascriptNumber::ToVar( val, scriptContext );
     }
 
+    void InterpreterStackFrame::OP_SetOutAsmFlt(RegSlot outRegisterID, float val)
+    {
+        OP_SetOutAsmDb(outRegisterID, (double)val);
+    }
+
     inline void InterpreterStackFrame::OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val)
     {
         Assert(m_outParams + outRegisterID < m_outSp);
@@ -2288,6 +2293,15 @@ namespace Js
     {
         Assert(m_outParams + outRegisterID < m_outSp);
         *(AsmJsSIMDValue*)(&(m_outParams[outRegisterID])) = val;
+    }
+
+    template<bool toJs>
+    void InterpreterStackFrame::OP_InvalidWasmTypeConversion(...)
+    {
+        // Right now the only invalid wasm type conversion is with int64
+        char16* fromType = toJs ? _u("int64") : _u("Javascript Variable");
+        char16* toType = toJs ? _u("Javascript Variable") : _u("int64");
+        JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
     }
 
     // This will be called in the beginning of the try_finally.

@@ -30,6 +30,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I1toR1Out        , I_ArgOut_Int , OP_I_SetOutAsmInt                                  ) // set int as internal outparam
   DEF2_WMS( I1toR1Out        , ArgOut_Int   , OP_SetOutAsmInt                                    ) // convert int to var and set it as outparam
   DEF2_WMS( F1toR1Out        , I_ArgOut_Flt , OP_I_SetOutAsmFlt                                  ) // set float as internal outparam
+  DEF2_WMS( F1toR1Out        , ArgOut_Flt   , OP_SetOutAsmFlt                                    ) // convert float to var and set as outparam
   DEF2_WMS( L1toR1Out        , I_ArgOut_Long, OP_I_SetOutAsmLong                                 ) // set int64 as internal outparam
   DEF2_WMS( D1toD1Mem        , I_Conv_VTD   , (double)                                           )
   DEF2_WMS( R1toD1Mem        , Conv_VTD     , JavascriptConversion::ToNumber                     ) // convert var to double
@@ -37,6 +38,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( R1toF1Mem        , Conv_VTF     , JavascriptConversion::ToNumber                     ) // convert var to float
   DEF2_WMS( I1toI1Mem        , I_Conv_VTI   , (int)                                              )
   DEF2_WMS( R1toI1Mem        , Conv_VTI     , JavascriptMath::ToInt32                            ) // convert var to int
+  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , OP_InvalidWasmTypeConversion<true>  , Reg1Long1    ) // convert int64 to Var
+  DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Db    , OP_LdSlotPrimitive           , ElementSlot, double )
