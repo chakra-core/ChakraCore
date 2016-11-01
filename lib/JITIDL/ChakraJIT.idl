@@ -74,11 +74,6 @@ interface IChakraJIT
         [in] boolean asmJsThunk,
         [out] InterpreterThunkInfoIDL * thunkInfo);
 
-    HRESULT DecommitInterpreterBufferManager(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR scriptContextInfoAddress,
-        [in] boolean asmJsManager);
-
     HRESULT IsNativeAddr(
         [in] handle_t binding,
         [in] CHAKRA_PTR threadContextInfoAddress,

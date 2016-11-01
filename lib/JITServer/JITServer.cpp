@@ -354,27 +354,6 @@ ServerCloseScriptContext(
 }
 
 HRESULT
-ServerDecommitInterpreterBufferManager(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t scriptContextInfoAddress,
-    /* [in] */ boolean asmJsManager)
-{
-    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
-
-    if (scriptContext == nullptr)
-    {
-        Assert(false);
-        return RPC_S_INVALID_ARG;
-    }
-
-    return ServerCallWrapper(scriptContext, [&]()->HRESULT
-    {
-        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
-        return S_OK;
-    });
-}
-
-HRESULT
 ServerNewInterpreterThunkBlock(
     /* [in] */ handle_t binding,
     /* [in] */ intptr_t scriptContextInfo,

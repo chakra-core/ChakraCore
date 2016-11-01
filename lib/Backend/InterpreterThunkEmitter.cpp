@@ -740,15 +740,7 @@ void InterpreterThunkEmitter::Close()
     this->thunkBlocks.Clear(allocator);
     this->freeListedThunkBlocks.Clear(allocator);
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
-    {
-        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (remoteScript)
-        {
-            JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
-        }
-    }
-    else
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
 #endif
     {
         emitBufferManager.Decommit();

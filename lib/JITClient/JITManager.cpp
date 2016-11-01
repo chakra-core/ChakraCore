@@ -384,27 +384,6 @@ JITManager::SetIsPRNGSeeded(
 }
 
 HRESULT
-JITManager::DecommitInterpreterBufferManager(
-    __in intptr_t scriptContextInfoAddress,
-    __in boolean asmJsThunk)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientDecommitInterpreterBufferManager(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk);
-    }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-
-HRESULT
 JITManager::NewInterpreterThunkBlock(
     __in intptr_t scriptContextInfoAddress,
     __in boolean asmJsThunk,
