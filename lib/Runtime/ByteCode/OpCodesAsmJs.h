@@ -40,8 +40,10 @@ MACRO           ( Ret                        , Empty           , None           
 // External Function calls
 MACRO           ( StartCall                  , StartCall       , None            ) // Initialize memory for a call
 MACRO_WMS       ( Call                       , AsmCall         , None            ) // Execute call and place return value in register
-MACRO_WMS       ( ArgOut_Db                  , Reg1Double1     , None            ) // convert double to var and place it for function call
 MACRO_WMS       ( ArgOut_Int                 , Reg1Int1        , None            ) // convert int to var and place it for function call
+MACRO_WMS       ( ArgOut_Long                , Reg1Long1       , None            ) // convert int64 to var and place it for function call
+MACRO_WMS       ( ArgOut_Flt                 , Reg1Float1      , None            ) // convert float to var and place it for function call
+MACRO_WMS       ( ArgOut_Db                  , Reg1Double1     , None            ) // convert double to var and place it for function call
 MACRO_WMS       ( Conv_VTI                   , Int1Reg1        , None            ) // convert var to int
 MACRO_WMS       ( Conv_VTL                   , Long1Reg1       , None            ) // convert var to int64
 MACRO_WMS       ( Conv_VTF                   , Float1Reg1      , None            ) // convert var to float

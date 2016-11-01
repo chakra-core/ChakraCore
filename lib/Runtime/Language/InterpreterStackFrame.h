@@ -161,14 +161,16 @@ namespace Js
 
         void ProcessTryFinally(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException = Js::Constants::NoRegister, Js::RegSlot regOffset = Js::Constants::NoRegister, bool hasYield = false);
     public:
-        void OP_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_SetOutAsmInt(RegSlot outRegisterID, int val);
+        void OP_SetOutAsmFlt(RegSlot outRegisterID, float val);
+        void OP_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_I_SetOutAsmInt(RegSlot outRegisterID, int val);
         void OP_I_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val);
         void OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val);
-
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
+        template<bool toJs>
+        void OP_InvalidWasmTypeConversion(...);
 
         void SetOut(ArgSlot outRegisterID, Var bValue);
         void SetOut(ArgSlot_OneByte outRegisterID, Var bValue);

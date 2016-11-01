@@ -1825,6 +1825,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     m_lowererMD.EmitLoadFloatFromNumber(instr->GetDst(), instr->GetSrc1(), instr);
                 }
             }
+            else if (instr->GetDst()->IsInt64())
+            {
+                GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
+                instr->ReplaceSrc1(IR::Int64ConstOpnd::New(0, TyInt64, m_func));
+                m_lowererMD.LowerInt64Assign(instr);
+            }
 #ifdef ENABLE_SIMDJS
             // Support on IA only
 #if defined(_M_IX86) || defined(_M_X64)
@@ -1873,13 +1879,26 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             {
                 m_lowererMD.EmitLoadVar(instr);
             }
-            else if (instr->GetSrc1()->GetType() == TyFloat64)
+            else if (instr->GetSrc1()->IsFloat())
             {
                 Assert(instr->GetSrc1()->IsRegOpnd());
+                IR::RegOpnd* float64Opnd = instr->GetSrc1()->AsRegOpnd();
+                if (float64Opnd->IsFloat32())
+                {
+                    IR::RegOpnd* float64ConvOpnd = IR::RegOpnd::New(TyFloat64, m_func);
+                    m_lowererMD.EmitFloat32ToFloat64(float64ConvOpnd, float64Opnd, instr);
+                    float64Opnd = float64ConvOpnd;
+                }
                 m_lowererMD.SaveDoubleToVar(
                     instr->GetDst()->AsRegOpnd(),
-                    instr->GetSrc1()->AsRegOpnd(), instr, instr);
+                    float64Opnd, instr, instr);
                 instr->Remove();
+            }
+            else if (instr->GetSrc1()->IsInt64())
+            {
+                GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
+                instr->ReplaceSrc1(IR::IntConstOpnd::New(0, TyMachReg, m_func));
+                m_lowererMD.ChangeToAssign(instr);
             }
 #ifdef ENABLE_SIMDJS
 #if defined(_M_IX86) || defined(_M_X64)
