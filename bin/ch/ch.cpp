@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#ifdef _WIN32
+#include <process.h>
+#endif
 
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;

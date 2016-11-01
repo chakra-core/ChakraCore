@@ -44,10 +44,6 @@
 #undef _DEBUG
 #endif
 
-#ifdef _WIN32
-#include <atlbase.h>
-#endif // _WIN32
-
 #ifdef _DEBUG_WAS_DEFINED
 #define _DEBUG
 #undef _DEBUG_WAS_DEFINED
