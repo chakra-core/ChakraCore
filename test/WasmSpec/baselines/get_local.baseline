@@ -1,4 +1,2 @@
-get_local.wast:67: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_3[13] at offset 4/16: Operator I64ReinterpretF64 NYI
-get_local.wast:72: $assert_return_7 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_7[17] at offset 13/25: Operator I64ReinterpretF64 NYI
-get_local.wast:81: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_9[19] at offset 24/36: Operator I64ReinterpretF64 NYI
-7/10 tests passed.
+get_local.wast:81: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function read[9] at offset 32/63: Operator F64UConvertI64 NYI
+9/10 tests passed.
