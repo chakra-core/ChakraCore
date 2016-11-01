@@ -1035,6 +1035,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         case Js::OpCode::OverflowCheckReg3:
             instr->UnlinkSrc2();
+        case Js::OpCode::OverflowCheckReg2:
         case Js::OpCode::DivideByZeroCheck:
             instr->m_opcode = Js::OpCode::MOV;
             break;
@@ -1897,8 +1898,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(UNREACHED);
             }
             break;
-
         case Js::OpCode::Conv_Prim:
+        {
+            if (IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheckReg2, instr->GetSrc1()))
+            {
+                GenerateTruncWithCheck(instr);
+                break;
+            }
+
             if (instr->GetDst()->IsFloat())
             {
                 if (instr->GetSrc1()->IsIntConstOpnd())
@@ -1944,7 +1951,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             instr->Remove();
             break;
-
+        }
         case Js::OpCode::FunctionExit:
             LowerFunctionExit(instr);
             // The rest of Epilog generation happens after reg allocation
@@ -3981,7 +3988,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * arrayLenOpnd, Js::Array
 
     IR::Opnd * arraySizeOpnd = IR::RegOpnd::New(TyUint32, func);
     IR::Opnd * alignedArrayAllocSizeOpnd = IR::RegOpnd::New(TyUint32, func);
-    
+
     IR::LabelInstr * doneCalculatingAllocSize = IR::LabelInstr::New(Js::OpCode::Label, func);
     IR::LabelInstr * skipToNextBucket = nullptr;
     uint8 bucketsCount = ArrayType::AllocationBucketsCount;
@@ -4002,7 +4009,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * arrayLenOpnd, Js::Array
         if (i != (bucketsCount - 1))
         {
             Lowerer::InsertCompare(arrayLenOpnd, IR::IntConstOpnd::New((uint16)ArrayType::allocationBuckets[i][Js::JavascriptArray::AllocationBucketIndex], TyUint32, func), instr);
-            
+
             skipToNextBucket = IR::LabelInstr::New(Js::OpCode::Label, func);
             Lowerer::InsertBranch(Js::OpCode::BrGt_A, skipToNextBucket, instr);
         }
@@ -4160,7 +4167,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     IR::LabelInstr * arrayInitDone = IR::LabelInstr::New(Js::OpCode::Label, func);
 
     bool isNativeArray = arrayInfo && (arrayInfo->IsNativeIntArray() || arrayInfo->IsNativeFloatArray());
-    
+
     if (arrayInfo && arrayInfo->IsNativeIntArray())
     {
         sizeOfElement = sizeof(int32);
@@ -9290,7 +9297,7 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     InsertCompareBranch(enumeratedCountOpnd,
         IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataCachedCount(), TyUint32, this->m_func),
         Js::OpCode::BrLt_A, loopBody, instr);
-   
+
     // CMP cacheData.completed, 0
     // JNE $loopEnd
     // JMP $helper
@@ -18026,6 +18033,13 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
 }
 
+void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
+{
+    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32());
+    Assert(instr->GetSrc1()->IsFloat());
+    m_lowererMD.GenerateTruncWithCheck(instr);
+}
+
 void
 Lowerer::RelocateCallDirectToHelperPath(IR::Instr* argoutInlineSpecialized, IR::LabelInstr* labelHelper)
 {
@@ -18548,7 +18562,7 @@ Lowerer::LowerInlineSpreadArgOutLoopUsingRegisters(IR::Instr *callInstr, IR::Reg
     IR::LabelInstr *startLoopLabel = InsertLoopTopLabel(callInstr);
     Loop * loop = startLoopLabel->GetLoop();
     loop->regAlloc.liveOnBackEdgeSyms->Set(indexOpnd->m_sym->m_id);
-    loop->regAlloc.liveOnBackEdgeSyms->Set(arrayElementsStartOpnd->m_sym->m_id);   
+    loop->regAlloc.liveOnBackEdgeSyms->Set(arrayElementsStartOpnd->m_sym->m_id);
 
     InsertSub(false, indexOpnd, indexOpnd, IR::IntConstOpnd::New(1, TyInt8, func), callInstr);
 
@@ -18756,7 +18770,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     IR::LabelInstr* startLoop = InsertLoopTopLabel(callInstr);
     Loop * loop = startLoop->GetLoop();
     IR::LabelInstr* endLoop = IR::LabelInstr::New(Js::OpCode::Label, func);
-    
+
     IR::Instr* branchOutOfLoop = IR::BranchInstr::New(Js::OpCode::BrEq_I4, endLoop, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyInt8, func),func);
     callInstr->InsertBefore(branchOutOfLoop);
     this->m_lowererMD.EmitInt4Instr(branchOutOfLoop);
@@ -21018,7 +21032,7 @@ Lowerer::GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert
     Func *func = instrInsert->m_func;
 
     IR::LabelInstr *labelProxyLoop = InsertLoopTopLabel(instrInsert);
-    
+
     IR::LabelInstr *labelNotProxy = IR::LabelInstr::New(Js::OpCode::Label, func, false);
 
     IR::RegOpnd *indir0RegOpnd = IR::RegOpnd::New(TyMachPtr, func);
@@ -23606,7 +23620,7 @@ Lowerer::GenerateForInEnumeratorLoad(IR::Opnd * forInEnumeratorOpnd, IR::Instr *
         stackSym->m_offset = this->m_func->m_forInEnumeratorArrayOffset + ((func->m_forInLoopBaseDepth + forInLoopLevel) * sizeof(Js::ForInObjectEnumerator));
         stackSym->m_allocated = true;
     }
-    else 
+    else
     {
         Assert(forInEnumeratorOpnd->IsIndirOpnd());
         if (forInEnumeratorOpnd->AsIndirOpnd()->GetOffset() == 0)
@@ -23635,13 +23649,13 @@ Lowerer::GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typ
     IR::LabelInstr * noObjectArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
     IR::IndirOpnd * objectArrayOpnd = IR::IndirOpnd::New(objectOpnd, Js::DynamicObject::GetOffsetOfObjectArray(), TyMachPtr, func);
     InsertCompareBranch(objectArrayOpnd, IR::AddrOpnd::NewNull(func), Js::OpCode::BrEq_A, noObjectArrayLabel, insertBeforeInstr);
-    InsertTestBranch(objectArrayOpnd, IR::IntConstOpnd::New((uint32)Js::DynamicObjectFlags::ObjectArrayFlagsTag, TyUint8, func), 
+    InsertTestBranch(objectArrayOpnd, IR::IntConstOpnd::New((uint32)Js::DynamicObjectFlags::ObjectArrayFlagsTag, TyUint8, func),
         Js::OpCode::BrNeq_A, noObjectArrayLabel, insertBeforeInstr);
 
     IR::RegOpnd * typeHandlerOpnd = IR::RegOpnd::New(TyMachPtr, func);
     InsertMove(typeHandlerOpnd, IR::IndirOpnd::New(typeOpnd, Js::DynamicType::GetOffsetOfTypeHandler(), TyMachPtr, func), insertBeforeInstr);
     InsertCompareBranch(IR::IndirOpnd::New(typeHandlerOpnd, Js::DynamicTypeHandler::GetOffsetOfOffsetOfInlineSlots(), TyUint16, func),
-        IR::IntConstOpnd::New(Js::DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots(), TyUint16, func), 
+        IR::IntConstOpnd::New(Js::DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots(), TyUint16, func),
         Js::OpCode::BrNeq_A, hasObjectArrayLabel, insertBeforeInstr);
 
     insertBeforeInstr->InsertBefore(noObjectArrayLabel);
@@ -23668,18 +23682,18 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
     IR::RegOpnd * typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
     InsertMove(typeOpnd, IR::IndirOpnd::New(objectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, func), instr);
     InsertCompareBranch(IR::MemRefOpnd::New(&forInCache->type, TyMachPtr, func, IR::AddrOpndKindForInCacheType), typeOpnd, Js::OpCode::BrNeq_A, helperLabel, instr);
-    
-    // Check forInCacheData->EnumNonEnumerable == false  
+
+    // Check forInCacheData->EnumNonEnumerable == false
     //
     //   MOV forInCacheDataOpnd, [&forInCache->data]
     //   CMP forInCacheDataOpnd->enumNonEnumerable, 0
     //   JNE $helper
 
     IR::RegOpnd * forInCacheDataOpnd = IR::RegOpnd::New(TyMachPtr, func);
-    InsertMove(forInCacheDataOpnd, IR::MemRefOpnd::New(&forInCache->data, TyMachPtr, func, IR::AddrOpndKindForInCacheData), instr);    
+    InsertMove(forInCacheDataOpnd, IR::MemRefOpnd::New(&forInCache->data, TyMachPtr, func, IR::AddrOpndKindForInCacheData), instr);
     InsertCompareBranch(IR::IndirOpnd::New(forInCacheDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataEnumNonEnumerable(), TyUint8, func),
         IR::IntConstOpnd::New(0, TyUint8, func), Js::OpCode::BrNeq_A, helperLabel, instr);
-        
+
     // Check has object array
     GenerateHasObjectArrayCheck(objectOpnd, typeOpnd, helperLabel, instr);
 
@@ -23696,29 +23710,29 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
     //   CMP [prototypeTypeOpnd, offset(hasNoEnumerableProperties], 0
     //   JEQ $helper
     //   <hasObjectArrayCheck prototypeObjectOpnd, prototypeTypeOpnd>
-    //    
+    //
     //   MOV prototypeObjectOpnd, [prototypeTypeOpnd + offset(protottype)]      (load next prototype)
     //
     //   MOV prototypeTypeOpnd, [prototypeObjectOpnd + offset(type)]            (tail dup TypeIds_Null check)
-    //   CMP [prototypeTypeOpnd + offset(typeId)], TypeIds_Null                 
+    //   CMP [prototypeTypeOpnd + offset(typeId)], TypeIds_Null
     //   JNE $checkFirstPrototypeLoopTopLabel
     //
     // $noPrototypeWithEnumerablePropertiesLabel:
     //
     IR::LabelInstr * noPrototypeWithEnumerablePropertiesLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
-        
+
     IR::RegOpnd * prototypeObjectOpnd = IR::RegOpnd::New(TyMachPtr, func);
     IR::RegOpnd * prototypeTypeOpnd = IR::RegOpnd::New(TyMachPtr, func);
     IR::IndirOpnd * prototypeTypeIdOpnd = IR::IndirOpnd::New(prototypeTypeOpnd, Js::DynamicType::GetOffsetOfTypeId(), TyUint32, func);
 
-    InsertMove(prototypeObjectOpnd, IR::IndirOpnd::New(typeOpnd, Js::DynamicType::GetOffsetOfPrototype(), TyMachPtr, func), instr);        
-    InsertMove(prototypeTypeOpnd, IR::IndirOpnd::New(prototypeObjectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, func), instr);        
+    InsertMove(prototypeObjectOpnd, IR::IndirOpnd::New(typeOpnd, Js::DynamicType::GetOffsetOfPrototype(), TyMachPtr, func), instr);
+    InsertMove(prototypeTypeOpnd, IR::IndirOpnd::New(prototypeObjectOpnd, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, func), instr);
     InsertCompareBranch(prototypeTypeIdOpnd, IR::IntConstOpnd::New(Js::TypeId::TypeIds_Null, TyUint32, func), Js::OpCode::BrEq_A, noPrototypeWithEnumerablePropertiesLabel, instr);
 
     IR::LabelInstr * checkFirstPrototypeLoopTopLabel = InsertLoopTopLabel(instr);
     Loop * loop = checkFirstPrototypeLoopTopLabel->GetLoop();
     loop->regAlloc.liveOnBackEdgeSyms->Set(prototypeObjectOpnd->m_sym->m_id);
-    loop->regAlloc.liveOnBackEdgeSyms->Set(prototypeTypeOpnd->m_sym->m_id);    
+    loop->regAlloc.liveOnBackEdgeSyms->Set(prototypeTypeOpnd->m_sym->m_id);
 
     InsertCompareBranch(prototypeTypeIdOpnd, IR::IntConstOpnd::New(Js::TypeId::TypeIds_LastStaticType, TyUint32, func), Js::OpCode::BrLe_A, helperLabel, instr);
     // No need to do EnsureObjectReady.  Defer init type may not have this bit set, so we will go to helper and call EnsureObjectReady then
@@ -23732,44 +23746,44 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
     InsertCompareBranch(prototypeTypeIdOpnd, IR::IntConstOpnd::New(Js::TypeId::TypeIds_Null, TyUint32, func), Js::OpCode::BrNeq_A, checkFirstPrototypeLoopTopLabel, instr);
 
     instr->InsertBefore(noPrototypeWithEnumerablePropertiesLabel);
-    
+
     // Initialize DynamicObjectPropertyEnumerator fields
     IR::Opnd * forInEnumeratorOpnd = instr->GetSrc2();
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorScriptContext(), TyMachPtr), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorScriptContext(), TyMachPtr),
         LoadScriptContextOpnd(instr), instr);
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObject(), TyMachPtr), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObject(), TyMachPtr),
         objectOpnd, instr);
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialType(), TyMachPtr), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialType(), TyMachPtr),
         typeOpnd, instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObjectIndex(), TyInt32),
         IR::IntConstOpnd::New(Js::Constants::NoBigSlot, TyInt32, func), instr);
 
     IR::RegOpnd * initialPropertyCountOpnd = IR::RegOpnd::New(TyInt32, func);
-    InsertMove(initialPropertyCountOpnd, 
+    InsertMove(initialPropertyCountOpnd,
         IR::IndirOpnd::New(forInCacheDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataPropertyCount(), TyInt32, func), instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialPropertyCount(), TyInt32),
         initialPropertyCountOpnd, instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorEnumeratedCount(), TyInt32),
         IR::IntConstOpnd::New(0, TyInt32, func), instr);
 
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorFlags(), TyUint8), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorFlags(), TyUint8),
         IR::IntConstOpnd::New((uint8)(Js::EnumeratorFlags::UseCache | Js::EnumeratorFlags::SnapShotSemantics), TyUint8, func), instr);
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCachedData(), TyMachPtr), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCachedData(), TyMachPtr),
         forInCacheDataOpnd, instr);
 
     // Initialize rest of the JavascriptStaticEnumerator fields
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCurrentEnumerator(), TyMachPtr), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCurrentEnumerator(), TyMachPtr),
         IR::AddrOpnd::NewNull(func), instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorPrefixEnumerator(), TyMachPtr),
         IR::AddrOpnd::NewNull(func), instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorArrayEnumerator(), TyMachPtr),
         IR::AddrOpnd::NewNull(func), instr);
 
-    // Initialize rest of the ForInObjectEnumerator fields    
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfShadowData(), TyMachPtr), 
+    // Initialize rest of the ForInObjectEnumerator fields
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfShadowData(), TyMachPtr),
         IR::AddrOpnd::NewNull(func), instr);
     // Initialize can UseJitFastPath = true and enumeratingPrototype = false at the same time.
-    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfStates(), TyUint16), 
+    InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfStates(), TyUint16),
         IR::IntConstOpnd::New(1, TyUint16, func, true), instr);
 
     IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
@@ -23778,7 +23792,7 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
     instr->InsertAfter(doneLabel);
 }
 
-void 
+void
 Lowerer::LowerInitForInEnumerator(IR::Instr * instr)
 {
     Js::ForInCache * forInCache = nullptr;
