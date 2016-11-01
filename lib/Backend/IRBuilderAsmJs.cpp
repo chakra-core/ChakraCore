@@ -1921,6 +1921,42 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
 #undef Uint16x8Proc
 #undef Uint8x16Proc
 
+void IRBuilderAsmJs::BuildArgOut(IR::Opnd* srcOpnd, uint32 dstRegSlot, uint32 offset, IRType type, ValueType valueType)
+{
+    Js::ArgSlot dstArgSlot = (Js::ArgSlot)dstRegSlot;
+    if ((uint32)dstArgSlot != dstRegSlot)
+    {
+        AssertMsg(UNREACHED, "Arg count too big...");
+        Fatal();
+    }
+    StackSym * symDst = nullptr;
+    if (type == TyVar)
+    {
+        symDst = m_func->m_symTable->GetArgSlotSym(UInt16Math::Add(dstArgSlot, 1));
+        IR::Opnd * tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
+
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
+        AddInstr(instr, offset);
+        srcOpnd = tmpDst;
+    }
+    else
+    {
+        symDst = StackSym::NewArgSlotSym(dstArgSlot, m_func, type);
+        symDst->m_allocated = true;
+    }
+
+    IR::Opnd * dstOpnd = IR::SymOpnd::New(symDst, type, m_func);
+    if (!valueType.IsUninitialized())
+    {
+        dstOpnd->SetValueType(valueType);
+    }
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
+    AddInstr(instr, offset);
+
+    m_argStack->Push(instr);
+}
+
 void IRBuilderAsmJs::BuildFromVar(uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, IRType irType, ValueType valueType)
 {
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(GetRegSlotFromVarReg(srcRegSlot), TyVar);
@@ -2053,49 +2089,14 @@ IRBuilderAsmJs::BuildReg1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat64);
     srcOpnd->SetValueType(ValueType::Float);
 
-    IR::Instr * instr = nullptr;
-    IR::Opnd * dstOpnd = nullptr;
-    IR::Opnd * tmpDst = nullptr;
-    StackSym * symDst = nullptr;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::ArgOut_Db:
-        symDst = m_func->m_symTable->GetArgSlotSym((uint16)(dstReg+1));
-        if ((uint16)(dstReg + 1) != (dstReg + 1))
-        {
-            AssertMsg(UNREACHED, "Arg count too big...");
-            Fatal();
-        }
-        tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
-
-        instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
-        AddInstr(instr, offset);
-
-        dstOpnd = IR::SymOpnd::New(symDst, TyVar, m_func);
-
-        instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, tmpDst, m_func);
-        AddInstr(instr, offset);
-
-        m_argStack->Push(instr);
+        BuildArgOut(srcOpnd, dstReg, offset, TyVar);
         break;
-
     case Js::OpCodeAsmJs::I_ArgOut_Db:
-        symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyFloat64);
-        symDst->m_allocated = true;
-        if ((uint16)(dstReg) != (dstReg))
-        {
-            AssertMsg(UNREACHED, "Arg count too big...");
-            Fatal();
-        }
-        dstOpnd = IR::SymOpnd::New(symDst, TyFloat64, m_func);
-        dstOpnd->SetValueType(ValueType::Float);
-
-        instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
-
-        m_argStack->Push(instr);
+        BuildArgOut(srcOpnd, dstReg, offset, TyFloat64, ValueType::Float);
         break;
-
     default:
         Assume(UNREACHED);
     }
@@ -2107,28 +2108,14 @@ IRBuilderAsmJs::BuildReg1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat32);
     srcOpnd->SetValueType(ValueType::Float);
 
-    IR::Instr * instr = nullptr;
-    IR::Opnd * dstOpnd = nullptr;
     switch (newOpcode)
     {
-    case Js::OpCodeAsmJs::I_ArgOut_Flt:
-    {
-        StackSym * symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyFloat32);
-        symDst->m_allocated = true;
-        if ((uint16)(dstReg) != (dstReg))
-        {
-            AssertMsg(UNREACHED, "Arg count too big...");
-            Fatal();
-        }
-        dstOpnd = IR::SymOpnd::New(symDst, TyFloat32, m_func);
-        dstOpnd->SetValueType(ValueType::Float);
-
-        instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
-
-        m_argStack->Push(instr);
+    case Js::OpCodeAsmJs::ArgOut_Flt:
+        BuildArgOut(srcOpnd, dstReg, offset, TyVar);
         break;
-    }
+    case Js::OpCodeAsmJs::I_ArgOut_Flt:
+        BuildArgOut(srcOpnd, dstReg, offset, TyFloat32, ValueType::Float);
+        break;
     default:
         Assume(UNREACHED);
     }
@@ -2140,48 +2127,14 @@ IRBuilderAsmJs::BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegS
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt32);
     srcOpnd->SetValueType(ValueType::GetInt(false));
 
-    IR::Opnd * dstOpnd;
-    IR::Opnd * tmpDst;
-    IR::Instr * instr;
-    StackSym * symDst;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::ArgOut_Int:
-        symDst = m_func->m_symTable->GetArgSlotSym((uint16)(dstReg + 1));
-        if ((uint16)(dstReg + 1) != (dstReg + 1))
-        {
-            AssertMsg(UNREACHED, "Arg count too big...");
-            Fatal();
-        }
-        tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
-
-        instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
-        AddInstr(instr, offset);
-
-        dstOpnd = IR::SymOpnd::New(symDst, TyVar, m_func);
-
-        instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, tmpDst, m_func);
-        AddInstr(instr, offset);
-
-        m_argStack->Push(instr);
+        BuildArgOut(srcOpnd, dstReg, offset, TyVar);
         break;
-
     case Js::OpCodeAsmJs::I_ArgOut_Int:
-        symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyInt32);
-        symDst->m_allocated = true;
-        if ((uint16)(dstReg) != (dstReg))
-        {
-            AssertMsg(UNREACHED, "Arg count too big...");
-            Fatal();
-        }
-        dstOpnd = IR::SymOpnd::New(symDst, TyInt32, m_func);
-        dstOpnd->SetValueType(ValueType::GetInt(false));
-
-        instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
-        m_argStack->Push(instr);
+        BuildArgOut(srcOpnd, dstReg, offset, TyInt32, ValueType::GetInt(false));
         break;
-
     default:
         Assume(UNREACHED);
     }
@@ -2910,28 +2863,22 @@ IRBuilderAsmJs::BuildLong1Reg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Reg
 }
 
 void
-IRBuilderAsmJs::BuildReg1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
+IRBuilderAsmJs::BuildReg1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg, Js::RegSlot srcRegSlot)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::I_ArgOut_Long);
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt64);
-    srcOpnd->SetValueType(ValueType::Float);
+    srcOpnd->SetValueType(ValueType::GetInt(false));
 
-    IR::Instr * instr = nullptr;
-    IR::Opnd * dstOpnd = nullptr;
-    StackSym * symDst = StackSym::NewArgSlotSym((uint16)dstRegSlot, m_func, TyInt64);
-    symDst->m_allocated = true;
-    if ((uint16)(dstRegSlot) != (dstRegSlot))
+    switch (newOpcode)
     {
-        AssertMsg(UNREACHED, "Arg count too big...");
-        Fatal();
+    case Js::OpCodeAsmJs::ArgOut_Long:
+        BuildArgOut(srcOpnd, dstReg, offset, TyVar);
+        break;
+    case Js::OpCodeAsmJs::I_ArgOut_Long:
+        BuildArgOut(srcOpnd, dstReg, offset, TyInt64, ValueType::GetInt(false));
+        break;
+    default:
+        Assume(UNREACHED);
     }
-    dstOpnd = IR::SymOpnd::New(symDst, TyInt64, m_func);
-    dstOpnd->SetValueType(ValueType::GetInt(false));
-
-    instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
-
-    m_argStack->Push(instr);
 }
 
 void
