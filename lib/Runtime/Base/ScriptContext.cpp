@@ -129,7 +129,7 @@ namespace Js
         cache(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
-        m_remoteScriptContextAddr(0),
+        m_remoteScriptContextAddr(nullptr),
         isWeakReferenceDictionaryListCleared(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
@@ -500,11 +500,11 @@ namespace Js
         this->weakReferenceDictionaryList.Reset();
 
 #if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr != 0)
+        if (m_remoteScriptContextAddr)
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
-            m_remoteScriptContextAddr = 0;
+            JITManager::GetJITManager()->CleanupScriptContext(&m_remoteScriptContextAddr);
+            Assert(m_remoteScriptContextAddr == nullptr);
         }
 #endif
 
@@ -1270,13 +1270,16 @@ if (!sourceList)
 
     void ScriptContext::SetIsClosed()
     {
-        this->isClosed = true;
-#if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr)
+        if (!this->isClosed)
         {
-            JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
-        }
+            this->isClosed = true;
+#if ENABLE_NATIVE_CODEGEN
+            if (m_remoteScriptContextAddr)
+            {
+                JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
+            }
 #endif
+        }
     }
 
     void ScriptContext::InitializeGlobalObject()

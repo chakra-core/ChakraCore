@@ -440,6 +440,9 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
 
 void WebAssemblyInstance::LoadIndirectFunctionTables(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions)
 {
+    //  Globals can be imported, thus the offset must be resolved at at the last possible moment before instantiating the table.
+    // TODO: this must be fixed for multiple instance support
+    wasmModule->ResolveTableElementOffsets();
     for (uint i = 0; i < wasmModule->GetTableSize(); ++i)
     {
         uint funcIndex = wasmModule->GetTableValue(i);

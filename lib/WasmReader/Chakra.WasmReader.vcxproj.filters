@@ -12,11 +12,13 @@
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />
     <ClInclude Include="WasmDataSegment.h" />
+    <ClInclude Include="WasmElementSegment.h" />
     <ClInclude Include="WasmGlobal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmElementSegment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmFunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBinaryReader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />

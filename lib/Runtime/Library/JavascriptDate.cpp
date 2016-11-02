@@ -837,22 +837,7 @@ namespace Js
 
     double JavascriptDate::ParseHelper(ScriptContext *scriptContext, JavascriptString *str)
     {
-#ifdef ENABLE_BASIC_TELEMETRY
-        double milliseconds = -1;
-        try
-        {
-            milliseconds = DateImplementation::UtcTimeFromStr(scriptContext, str);
-            scriptContext->GetTelemetry().GetKnownMethodTelemetry().JavascriptDate_ParseHelper(scriptContext, str, milliseconds, false);
-        }
-        catch(...)
-        {
-            scriptContext->GetTelemetry().GetKnownMethodTelemetry().JavascriptDate_ParseHelper(scriptContext, str, milliseconds, true);
-            throw;
-        }
-        return milliseconds;
-#else
         return DateImplementation::UtcTimeFromStr(scriptContext, str);
-#endif
     }
 
     Var JavascriptDate::EntrySetDate(RecyclableObject* function, CallInfo callInfo, ...)

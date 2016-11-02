@@ -750,7 +750,7 @@ void WasmBinaryReader::ReadTableSection()
             // Allocate maximum length for now until resizing supported
             initialLength = maximumLength;
         }
-        m_module->AllocateTable(initialLength);
+        m_module->SetTableSize(initialLength);
         m_module->CalculateEquivalentSignatures();
         TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
     }
@@ -761,30 +761,26 @@ WasmBinaryReader::ReadElementSection()
 {
     uint32 length = 0;
     uint32 count = LEB128(length);
+    if (count != 0)
+    {
+        m_module->AllocateElementSegs(count);
+    }
+    TRACE_WASM_DECODER(_u("Indirect table element: %u entries"), count);
 
     for (uint32 i = 0; i < count; ++i)
     {
-        uint32 index = LEB128(length);
+        uint32 index = LEB128(length); // Table id
         if (index != 0)
         {
-            ThrowDecodingError(_u("Invalid table index %d"), index);
+            ThrowDecodingError(_u("Invalid table index %d"), index); //MVP limitation
         }
 
-        WasmNode initExpr = ReadInitExpr();
-        if (initExpr.op != wbI32Const)
-        {
-            ThrowDecodingError(_u("Only int32.const supported for element offset"));
-        }
-
-        uint32 offset = initExpr.cnst.i32;
+        WasmNode initExpr = ReadInitExpr(); //Offset Init
         uint32 numElem = LEB128(length);
-        uint32 end = UInt32Math::Add(offset, numElem);
-        if (end > m_module->GetTableSize())
-        {
-            ThrowDecodingError(_u("Out of bounds element in Table[%d][%d], max index: %d"), index, end - 1 , m_module->GetTableSize() - 1);
-        }
 
-        for (uint32 iElem = offset; iElem < end; ++iElem)
+        WasmElementSegment *eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
+
+        for (uint32 iElem = 0; iElem < numElem; ++iElem)
         {
             uint32 elem = LEB128(length);
             FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(elem);
@@ -796,8 +792,9 @@ WasmBinaryReader::ReadElementSection()
             {
                 ThrowDecodingError(_u("Import functions in the table NYI"));
             }
-            m_module->SetTableValue(elem, iElem);
+            eSeg->AddElement(elem, *m_module);
         }
+        m_module->SetTableValues(eSeg, i);
     }
 }
 
@@ -820,10 +817,7 @@ WasmBinaryReader::ReadDataSegments()
         }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         WasmNode initExpr = ReadInitExpr();
-        if (initExpr.op != wbI32Const && initExpr.op != wbGetGlobal)
-        {
-            ThrowDecodingError(_u("Only i32.const supported for data segment offset"));
-        }
+
         //UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);

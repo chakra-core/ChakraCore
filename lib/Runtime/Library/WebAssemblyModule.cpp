@@ -23,6 +23,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_exports(nullptr),
     m_exportCount(0),
     m_datasegCount(0),
+    m_elementsegCount(0),
+    m_elementsegs(nullptr),
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
@@ -335,23 +337,27 @@ WebAssemblyModule::GetEquivalentSignatureId(uint32 sigId) const
 }
 
 void
-WebAssemblyModule::AllocateTable(uint32 entries)
+WebAssemblyModule::SetTableSize(uint32 entries)
 {
     m_indirectFuncCount = entries;
-    m_indirectfuncs = AnewArray(&m_alloc, uint32, entries);
-    for (uint32 i = 0; i < entries; i++)
+}
+
+void
+WebAssemblyModule::SetTableValues(Wasm::WasmElementSegment* seg, uint32 index)
+{
+    if (index < m_elementsegCount)
     {
-        // Initialize with invalid index
-        m_indirectfuncs[i] = Js::Constants::UninitializedValue;
+        SetElementSeg(seg, index);
     }
 }
 
 void
-WebAssemblyModule::SetTableValue(uint32 funcIndex, uint32 tableIndex)
+WebAssemblyModule::ResolveTableElementOffsets()
 {
-    if (tableIndex < GetTableSize())
+    for (uint i = 0; i < GetElementSegCount(); ++i)
     {
-        m_indirectfuncs[tableIndex] = funcIndex;
+        Wasm::WasmElementSegment* eSeg = GetElementSeg(i);
+        eSeg->ResolveOffsets(*this);
     }
 }
 
@@ -362,7 +368,18 @@ WebAssemblyModule::GetTableValue(uint32 tableIndex) const
     {
         return Js::Constants::InvalidSourceIndex;
     }
-    return m_indirectfuncs[tableIndex];
+    uint32 value = Js::Constants::UninitializedValue;
+
+    for (uint32 i = 0; i < GetElementSegCount(); ++i)
+    {
+        Wasm::WasmElementSegment* eSeg = GetElementSeg(i);
+        value = eSeg->GetElement(tableIndex);
+        if (value != Js::Constants::UninitializedValue)
+        {
+            return value;
+        }
+    }
+    return value;
 }
 
 uint32
@@ -474,6 +491,35 @@ WebAssemblyModule::GetFunctionImport(uint32 i) const
     return &m_imports[i];
 }
 
+uint
+WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
+{
+    if (initExpr.op != Wasm::wbI32Const && initExpr.op != Wasm::wbGetGlobal)
+    {
+        throw Wasm::WasmCompilationException(_u("Invalid init_expr for element offset"));
+    }
+    uint offset = 0;
+    if (initExpr.op == Wasm::wbI32Const)
+    {
+        offset = initExpr.cnst.i32;
+    }
+    else if (initExpr.op == Wasm::wbGetGlobal)
+    {
+        if (initExpr.var.num >= (uint)this->globals->Count())
+        {
+            throw Wasm::WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
+        }
+        Wasm::WasmGlobal* global = this->globals->Item(initExpr.var.num);
+
+        if (global->GetReferenceType() != Wasm::WasmGlobal::Const || global->GetType() != Wasm::WasmTypes::I32)
+        {
+            throw Wasm::WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
+        }
+        offset = global->cnst.i32;
+    }
+    return offset;
+}
+
 void
 WebAssemblyModule::AllocateDataSegs(uint32 count)
 {
@@ -501,6 +547,31 @@ WebAssemblyModule::GetDataSeg(uint32 index) const
         return nullptr;
     }
     return m_datasegs[index];
+}
+
+void
+WebAssemblyModule::AllocateElementSegs(uint32 count)
+{
+    Assert(count != 0);
+    m_elementsegCount = count;
+    m_elementsegs = AnewArrayZ(&m_alloc, Wasm::WasmElementSegment*, count);
+}
+
+void
+WebAssemblyModule::SetElementSeg(Wasm::WasmElementSegment* seg, uint32 index)
+{
+    Assert(index < m_elementsegCount);
+    m_elementsegs[index] = seg;
+}
+
+Wasm::WasmElementSegment*
+WebAssemblyModule::GetElementSeg(uint32 index) const
+{
+    if (index >= m_elementsegCount)
+    {
+        throw Wasm::WasmCompilationException(_u("Invalid index for Element segment"));
+    }
+    return m_elementsegs[index];
 }
 
 void

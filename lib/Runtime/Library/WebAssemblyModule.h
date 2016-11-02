@@ -13,6 +13,7 @@ namespace Wasm
     class WasmFunctionInfo;
     class WasmBinaryReader;
     class WasmDataSegment;
+    class WasmElementSegment;
     class WasmGlobal;
     struct WasmImport;
     struct WasmExport;
@@ -81,8 +82,8 @@ public:
     void CalculateEquivalentSignatures();
     uint32 GetEquivalentSignatureId(uint32 sigId) const;
 
-    void AllocateTable(uint32 entries);
-    void SetTableValue(uint32 funcIndex, uint32 indirectIndex);
+    void SetTableSize(uint32 entries);
+    void SetTableValues(Wasm::WasmElementSegment* seg, uint32 index);
     uint32 GetTableValue(uint32 indirTableIndex) const;
     uint32 GetTableSize() const;
 
@@ -103,10 +104,18 @@ public:
     Wasm::WasmImport* GetFunctionImport(uint32 i) const;
     void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal);
 
+    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
+
     void AllocateDataSegs(uint32 count);
     bool AddDataSeg(Wasm::WasmDataSegment* seg, uint32 index);
     Wasm::WasmDataSegment* GetDataSeg(uint32 index) const;
     uint32 GetDataSegCount() const { return m_datasegCount; }
+
+    void AllocateElementSegs(uint32 count);
+    void SetElementSeg(Wasm::WasmElementSegment* seg, uint32 index);
+    void ResolveTableElementOffsets();
+    Wasm::WasmElementSegment* GetElementSeg(uint32 index) const;
+    uint32 GetElementSegCount() const { return m_elementsegCount; }
 
     void SetStartFunction(uint32 i);
     uint32 GetStartFunction() const;
@@ -138,6 +147,7 @@ private:
     WebAssemblyMemory * m_memory;
     Wasm::WasmSignature** m_signatures;
     uint32* m_indirectfuncs;
+    Wasm::WasmElementSegment** m_elementsegs;
     Wasm::WasmFunctionInfo** m_functionsInfo;
     Wasm::WasmExport* m_exports;
     Wasm::WasmImport* m_imports;
@@ -151,6 +161,7 @@ private:
     uint m_exportCount;
     uint32 m_importCount;
     uint32 m_datasegCount;
+    uint32 m_elementsegCount;
 
     uint32 m_startFuncIndex;
 

@@ -189,7 +189,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isProfilingUserCode(true),
     loopDepth(0),
     tridentLoadAddress(nullptr),
-    m_remoteThreadContextInfo(0),
+    m_remoteThreadContextInfo(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
     , IsTTRecordRequested(false)
@@ -1119,8 +1119,10 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
         Assert(m_reclaimedJITProperties);
         if (propertyRecord->IsNumeric())
         {
-            m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
-            m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
+            if (!m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId()))
+            {
+                m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
+            }
         }
     }
 #endif
@@ -2242,7 +2244,7 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
     {
         this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId;
 #if ENABLE_NATIVE_CODEGEN
-        if (this->m_remoteThreadContextInfo != 0)
+        if (this->m_remoteThreadContextInfo)
         {
             HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
             JITManager::HandleServerCallResult(hr);
