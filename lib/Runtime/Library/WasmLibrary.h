@@ -4,11 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Wasm
-{
-    class WasmModule;
-};
-
 namespace Js
 {
     class WasmLibrary
@@ -20,6 +15,8 @@ namespace Js
         {
         public:
             static FunctionInfo instantiateModule;
+            static FunctionInfo Compile;
+            static FunctionInfo Validate;
         };
 
         static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
@@ -28,29 +25,7 @@ namespace Js
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);
         static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...);
-    private:
-        static void WasmFunctionGenerateBytecode(AsmJsScriptFunction* func, bool propagateError);
-        static void WasmLoadDataSegs(Wasm::WasmModule * wasmModule, Var* heap, ScriptContext* ctx);
-        static void WasmLoadFunctions(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* exportObj, Var* localModuleFunctions, bool* hasAnyLazyTraps);
-        static void WasmBuildObject(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var* exportObj, bool* hasAnyLazyTraps, Var* localModuleFunctions, Var* importFunctions);
-        static void WasmLoadImports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi);
-        static void WasmLoadGlobals(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi);
-        static void WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions);
-        static Var GetFunctionObjFromFunctionIndex(Wasm::WasmModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions);
 
-        static Var LoadWasmScript(
-            ScriptContext* scriptContext,
-            const char16* script,
-            Js::Var bufferSrc,
-            SRCINFO const * pSrcInfo,
-            CompileScriptException * pse,
-            Utf8SourceInfo** ppSourceInfo,
-            const uint lengthBytes,
-            const char16 *rootDisplayName,
-            Js::Var ffi,
-            Js::Var* start = nullptr
-        );
-        static char16* lastWasmExceptionMessage;
 #endif
     };
 }

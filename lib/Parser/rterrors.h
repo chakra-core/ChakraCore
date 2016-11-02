@@ -363,4 +363,12 @@ RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of ran
 RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)
-RT_ERROR_MSG(WASMERR_Unreachable, 5667, "", "Unreachable Code", kjstError, 0)
+
+RT_ERROR_MSG(WASMERR_Unreachable, 5667, "", "Unreachable Code", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_NeedBufferSource, 5668, "%s is not a BufferSource", "BufferSource expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedModule, 5669, "%s is not a WebAssembly.Module", "WebAssembly.Module expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_DataSegOutOfRange, 5670, "", "Data segment is out of range", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_MutableGlobal, 5671, "", "Cannot export mutable global", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidImport, 5672, "", "Import is invalid", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidGlobalRef, 5673, "", "Global initialization does not support forward reference", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedMemoryObject, 5674, "%s is not a WebAssembly.Memory", "WebAssembly.Memory object expected", kjstTypeError, 0)

@@ -17,7 +17,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)IteratorObjectEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptEnumeratorIterator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGenerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGeneratorFunction.cpp" />
@@ -48,7 +47,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)StringCopyInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ThrowErrorObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)TypedArray.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)typedArrayEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ArgumentsObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ArgumentsObjectEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ConcatString.cpp" />
@@ -56,11 +54,7 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)ForInObjectEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)GlobalObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ES5Array.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ES5ArrayEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArray.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayEnumeratorBase.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayEnumerator.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArraySnapshotEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBoolean.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBooleanObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptDate.cpp" />
@@ -92,7 +86,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLibraryPch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStringObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MathLibrary.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)NullEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdType.cpp" />
@@ -114,6 +107,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TypedArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ES5ArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumeratorBase.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexSnapshotEnumerator.cpp" />
+    <ClCompile Include="WebAssemblyModule.cpp" />
+    <ClCompile Include="WebAssemblyInstance.cpp" />
+    <ClCompile Include="WebAssembly.cpp" />
+    <ClCompile Include="WebAssemblyMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -134,19 +136,14 @@
     <ClInclude Include="DateImplementationData.h" />
     <ClInclude Include="EngineInterfaceObject.h" />
     <ClInclude Include="ES5ArrayIndexEnumerator.h" />
-    <ClInclude Include="ES5ArrayNonIndexEnumerator.h" />
     <ClInclude Include="HostObjectBase.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.32b.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
     <ClInclude Include="IteratorObjectEnumerator.h" />
-    <ClInclude Include="JavascriptArrayEnumeratorBase.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
-    <ClInclude Include="JavascriptArrayNonIndexSnapshotEnumerator.h" />
-    <ClInclude Include="JavascriptArraySnapshotEnumerator.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
-    <ClInclude Include="JavascriptEnumeratorIterator.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />
     <ClInclude Include="JavascriptGenerator.h" />
     <ClInclude Include="JavascriptGeneratorFunction.h" />
@@ -180,7 +177,6 @@
     <ClInclude Include="StringCopyInfo.h" />
     <ClInclude Include="ThrowErrorObject.h" />
     <ClInclude Include="TypedArray.h" />
-    <ClInclude Include="TypedArrayEnumerator.h" />
     <ClInclude Include="ArgumentsObject.h" />
     <ClInclude Include="ArgumentsObjectEnumerator.h" />
     <ClInclude Include="ConcatString.h" />
@@ -188,9 +184,7 @@
     <ClInclude Include="ForInObjectEnumerator.h" />
     <ClInclude Include="GlobalObject.h" />
     <ClInclude Include="ES5Array.h" />
-    <ClInclude Include="ES5ArrayEnumerator.h" />
     <ClInclude Include="JavascriptArray.h" />
-    <ClInclude Include="JavascriptArrayEnumerator.h" />
     <ClInclude Include="JavascriptBoolean.h" />
     <ClInclude Include="JavascriptBooleanObject.h" />
     <ClInclude Include="JavascriptDate.h" />
@@ -226,7 +220,6 @@
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptStringObject.h" />
-    <ClInclude Include="NullEnumerator.h" />
     <ClInclude Include="JavascriptSimdType.h" />
     <ClInclude Include="JavascriptSimdInt16x8.h" />
     <ClInclude Include="JavascriptSimdUint32x4.h" />
@@ -246,6 +239,15 @@
     <ClInclude Include="JavascriptListIterator.h" />
     <ClInclude Include="SharedArrayBuffer.h" />
     <ClInclude Include="AtomicsObject.h" />
+    <ClInclude Include="ES5ArrayIndexStaticEnumerator.h" />
+    <ClInclude Include="JavascriptArrayIndexEnumeratorBase.h" />
+    <ClInclude Include="JavascriptArrayIndexStaticEnumerator.h" />
+    <ClInclude Include="JavascriptArrayIndexSnapshotEnumerator.h" />
+    <ClInclude Include="TypedArrayIndexEnumerator.h" />
+    <ClInclude Include="WebAssemblyModule.h" />
+    <ClInclude Include="WebAssemblyInstance.h" />
+    <ClInclude Include="WebAssembly.h" />
+    <ClInclude Include="WebAssemblyMemory.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

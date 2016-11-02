@@ -654,12 +654,20 @@ void
 IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 {
 
-    // ArrayBuffer
+    // ArrayBuffer (or WebAssembly.Memory in Wasm)
     IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
     IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
-
+#ifdef ENABLE_WASM
+    if(m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        // ArrayBuffer
+        srcOpnd = IR::IndirOpnd::New(dstOpnd, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, m_func);
+        instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+        AddInstr(instr, offset);
+    }
+#endif
     // ArrayBuffer buffer
     dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
     srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetBufferOffset(), TyVar, m_func);
@@ -1794,7 +1802,6 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::LdUndef || newOpcode == Js::OpCodeAsmJs::CurrentMemory_Int);
 
     if (newOpcode == Js::OpCodeAsmJs::LdUndef)
     {
@@ -1816,6 +1823,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
     }
     else
     {
+        Assert(newOpcode == Js::OpCodeAsmJs::CurrentMemory_Int);
         Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dstReg);
         IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         IR::IntConstOpnd* constZero = IR::IntConstOpnd::New(0, TyInt32, m_func);

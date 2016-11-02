@@ -22,14 +22,14 @@ namespace Wasm
     {}
 
     void
-    WasmElementSegment::Init(const WasmModule& module)
+    WasmElementSegment::Init(const Js::WebAssemblyModule& module)
     {
         Assert(m_numElem > 0);
         m_elems = AnewArray(m_alloc, UINT32, m_numElem);
         memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(UINT32));
     }
 
-    void WasmElementSegment::ResolveOffsets(const WasmModule& module)
+    void WasmElementSegment::ResolveOffsets(const Js::WebAssemblyModule& module)
     {
         if (m_elems == nullptr)
         {
@@ -46,7 +46,7 @@ namespace Wasm
     }
 
     void
-    WasmElementSegment::AddElement(const UINT32 funcIndex, const WasmModule& module)
+    WasmElementSegment::AddElement(const UINT32 funcIndex, const Js::WebAssemblyModule& module)
     {
         if (m_elems == nullptr)
         {

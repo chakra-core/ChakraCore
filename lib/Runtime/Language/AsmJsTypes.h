@@ -874,6 +874,7 @@ namespace Js
 
         FunctionBody* asmJsModuleFunctionBody;
         Wasm::WasmReaderInfo* mWasmReaderInfo;
+        Js::JavascriptError * mLazyError;
     public:
         AsmJsFunctionInfo() : mArgCount(0),
                               mArgSizesLength(0),
@@ -919,6 +920,9 @@ namespace Js
         inline bool UsesHeapBuffer() const{ return mUsesHeapBuffer; }
 
         inline int GetSimdAllCount() const { return GetSimdConstCount() + GetSimdVarCount() + GetSimdTmpCount(); }
+
+        Js::JavascriptError * GetLazyError() const { return mLazyError; }
+        void SetLazyError(Js::JavascriptError * val) { mLazyError = val; }
 
         int GetTotalSizeinBytes()const;
         void SetArgType(AsmJsVarType type, ArgSlot index);

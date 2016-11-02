@@ -11,7 +11,7 @@
   <default>
     <files>misc.js</files>
     <baseline>misc.baseline</baseline>
-    <compile-flags>-on:wasm -on:wasmlazytrap</compile-flags>
+    <compile-flags>-on:wasm </compile-flags>
   </default>
 </test>
 <test>
@@ -51,7 +51,7 @@
 <test>
     <default>
        <files>f32address.js</files>
-       <compile-flags>-on:Wasm  -on:wasmlazytrap</compile-flags>
+       <compile-flags>-on:Wasm  </compile-flags>
     </default>
 </test>
 <test>
@@ -64,6 +64,13 @@
     <default>
        <files>global.js</files>
        <baseline>global.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
+       <files>basic.js</files>
+       <baseline>basic.baseline</baseline>
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>

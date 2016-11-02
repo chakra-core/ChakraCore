@@ -36,7 +36,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmElementSegment.cpp" />
@@ -51,7 +50,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WasmGlobal.h" />
-    <ClInclude Include="WasmModule.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmDataSegment.h" />
     <ClInclude Include="WasmElementSegment.h" />

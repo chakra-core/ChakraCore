@@ -1,2 +1,2 @@
-set_local.wast:85: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function write[9] at offset 47/79: Operator F64UConvertI64 NYI
+set_local.wast:85: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function write[9] at offset 47/79: Operator F64UConvertI64 NYI
 9/10 tests passed.

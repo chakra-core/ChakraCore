@@ -51,7 +51,7 @@ LanguageTypes::ToWasmType(int8 binType)
     }
 }
 
-WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, WasmModule* module, byte* source, size_t length) :
+WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
     m_alloc(alloc)
@@ -70,7 +70,7 @@ void WasmBinaryReader::InitializeReader()
 #if DBG_DUMP
     if (DO_WASM_TRACE_SECTION)
     {
-        byte* startModule = m_pc;
+        const byte* startModule = m_pc;
 
         bool doRead = true;
         SectionCode prevSect = bSectInvalid;
@@ -295,7 +295,7 @@ WasmBinaryReader::ReadFunctionHeaders()
         funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
         CheckBytesLeft(funcSize);
         TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), i, funcSize);
-        byte* end = m_pc + funcSize;
+        const byte* end = m_pc + funcSize;
         m_pc = end;
     }
     return m_pc == m_currentSection.end;
@@ -661,8 +661,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         }
 
         WasmSignature* sig = m_module->GetSignature(sigIndex);
-        WasmFunctionInfo* newFunction = Anew(m_alloc, WasmFunctionInfo, m_alloc, sig, iFunc);
-        m_module->SetWasmFunctionInfo(newFunction, iFunc);
+        m_module->SetWasmFunctionInfo(sig, iFunc);
     }
 }
 
@@ -675,7 +674,7 @@ void WasmBinaryReader::ReadExportTable()
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
         uint32 nameLength;
-        char16* exportName = ReadInlineName(length, nameLength);
+        const char16* exportName = ReadInlineName(length, nameLength);
 
         ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         uint32 index = LEB128(length);
@@ -710,7 +709,7 @@ void WasmBinaryReader::ReadExportTable()
             {
                 ThrowDecodingError(_u("Invalid memory index %s"), index);
             }
-            m_module->SetMemoryIsExported();
+            m_module->SetMemoryExported();
             break;
         }
         case ExternalKinds::Global:
@@ -881,15 +880,15 @@ WasmBinaryReader::ReadGlobalsSection()
             Assert(UNREACHED);
         }
 
-        m_module->globals.Add(global);
+        m_module->globals->Add(global);
     }
 }
 
-char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
+const char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
     nameLength = LEB128(length);
     CheckBytesLeft(nameLength);
-    LPUTF8 rawName = m_pc;
+    LPCUTF8 rawName = m_pc;
 
     m_pc += nameLength;
     length += nameLength;
@@ -897,7 +896,7 @@ char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     return CvtUtf8Str(rawName, nameLength);
 }
 
-char16* WasmBinaryReader::CvtUtf8Str(LPUTF8 name, uint32 nameLen)
+const char16* WasmBinaryReader::CvtUtf8Str(LPCUTF8 name, uint32 nameLen)
 {
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
     charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
@@ -906,7 +905,7 @@ char16* WasmBinaryReader::CvtUtf8Str(LPUTF8 name, uint32 nameLen)
     {
         Js::Throw::OutOfMemory();
     }
-    utf8::DecodeIntoAndNullTerminate((char16*)contents, name, utf16Len, decodeOptions);
+    utf8::DecodeIntoAndNullTerminate(contents, name, utf16Len, decodeOptions);
     return contents;
 }
 
@@ -925,8 +924,8 @@ WasmBinaryReader::ReadImportEntries()
     for (uint32 i = 0; i < entries; ++i)
     {
         uint32 modNameLen = 0, fnNameLen = 0;
-        char16* modName = ReadInlineName(len, modNameLen);
-        char16* fnName = ReadInlineName(len, fnNameLen);
+        const char16* modName = ReadInlineName(len, modNameLen);
+        const char16* fnName = ReadInlineName(len, fnNameLen);
 
         ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\", kind: %d"), i, modName, fnName, kind);
@@ -1081,11 +1080,11 @@ WasmBinaryReader::ReadInitExpr()
     case wbGetGlobal:
     {
         uint32 globalIndex = node.var.num;
-        if (globalIndex >= (uint32)m_module->globals.Count())
+        if (globalIndex >= (uint32)m_module->globals->Count())
         {
             ThrowDecodingError(_u("Global %u out of bounds"), globalIndex);
         }
-        WasmGlobal* global = m_module->globals.Item(globalIndex);
+        WasmGlobal* global = m_module->globals->Item(globalIndex);
         if (global->GetMutability())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));

@@ -74,24 +74,23 @@ namespace Wasm
     struct WasmReaderInfo
     {
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
         Js::Var m_bufferSrc;
     };
 
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc);
-        WasmModule* GenerateModule();
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength);
+        Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmBinaryReader* GetReader() const;
 
         Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo* m_sourceInfo;
         Js::ScriptContext* m_scriptContext;
-        WasmModule* m_module;
-        Js::Var m_bufferSrc;
+        Js::WebAssemblyModule* m_module;
     };
 
     class WasmBytecodeGenerator
@@ -169,7 +168,7 @@ namespace Wasm
         bool IsUnreachable() const { return this->isUnreachable; }
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmBinaryReader* GetReader() const;
 
         ArenaAllocator m_alloc;
 
@@ -177,7 +176,7 @@ namespace Wasm
         WasmLocal* m_locals;
 
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
 
         uint m_maxArgOutDepth;
 

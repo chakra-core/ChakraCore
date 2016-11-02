@@ -68,21 +68,22 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 typedef bool(*SectionProcessFunc)(WasmModuleGenerator*);
 typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 
-WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength, Js::Var bufferSrc) :
+WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength) :
     m_sourceInfo(sourceInfo),
     m_scriptContext(scriptContext),
-    m_recycler(scriptContext->GetRecycler()),
-    m_bufferSrc(bufferSrc)
+    m_recycler(scriptContext->GetRecycler())
 {
-    m_module = RecyclerNewFinalizedLeaf(m_recycler, WasmModule, scriptContext, binaryBuffer, binaryBufferLength);
+    m_module = RecyclerNewFinalized(m_recycler, Js::WebAssemblyModule, scriptContext, binaryBuffer, binaryBufferLength, scriptContext->GetLibrary()->GetWebAssemblyModuleType());
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 }
 
-WasmModule*
+Js::WebAssemblyModule*
 WasmModuleGenerator::GenerateModule()
 {
+    m_module->GetReader()->InitializeReader();
+
     BVStatic<bSectLimit + 1> visitedSections;
 
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
@@ -126,6 +127,12 @@ WasmModuleGenerator::GenerateModule()
     return m_module;
 }
 
+WasmBinaryReader*
+WasmModuleGenerator::GetReader() const
+{
+    return m_module->GetReader();
+}
+
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
@@ -136,7 +143,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         throw WasmCompilationException(_u("Invalid function index %u"), index);
     }
 
-    char16* functionName = nullptr;
+    const char16* functionName = nullptr;
     int nameLength = 0;
 
     if (wasmInfo->GetNameLength() > 0)
@@ -155,8 +162,9 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
                 m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
-                functionName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
-                nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
+                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                functionName = autoName;
                 break;
             }
         }
@@ -164,8 +172,9 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     if (!functionName)
     {
-        functionName = RecyclerNewArrayLeafZ(m_recycler, char16, 32);
-        nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+        char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, 32);
+        nameLength = swprintf_s(autoName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+        functionName = autoName;
     }
 
     Js::FunctionBody* body = Js::FunctionBody::NewFromRecycler(
@@ -191,13 +200,11 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     body->SetIsAsmJsFunction(true);
     body->SetIsAsmjsMode(true);
     body->SetIsWasmFunction(true);
-    body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
+    body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(false);
 
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
-    // We need to keep a reference on the source of the binary buffer otherwise the recycler might collect it
-    readerInfo->m_bufferSrc = m_bufferSrc;
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
@@ -214,10 +221,6 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
-    if (m_module->GetMemory()->minSize > 0)
-    {
-        info->SetUsesHeapBuffer(true);
-    }
     if (paramCount > 0)
     {
         // +1 here because asm.js includes the this pointer
@@ -508,19 +511,10 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return;
     case wbCurrentMemory:
     {
+        GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
-        // todo:: check for imported memory
-        if (m_module->GetMemory()->minSize > 0)
-        {
-            m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
-        }
-        else
-        {
-            WasmConstLitNode cnst;
-            cnst.i32 = 0;
-            this->EmitLoadConst(info, cnst);
-        }
+        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         break;
     }
     case wbUnreachable:
@@ -563,7 +557,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitGetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals.Item(globalIndex);
+    WasmGlobal* global = m_module->globals->Item(globalIndex);
 
     WasmTypes::WasmType type = global->GetType();
 
@@ -593,7 +587,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitSetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals.Item(globalIndex);
+    WasmGlobal* global = m_module->globals->Item(globalIndex);
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
     WasmTypes::WasmType type = global->GetType();
@@ -1122,13 +1116,6 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
-    // todo:: check for imported memory
-    if (m_module->GetMemory()->minSize == 0)
-    {
-        // todo:: make that an out of bounds trap
-        m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
-    }
-
     EmitInfo rhsInfo;
     if (isStore)
     {
@@ -1501,6 +1488,12 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     }
 
     this->isUnreachable = isUnreachable;
+}
+
+WasmBinaryReader*
+WasmBytecodeGenerator::GetReader() const
+{
+    return m_module->GetReader();
 }
 
 void

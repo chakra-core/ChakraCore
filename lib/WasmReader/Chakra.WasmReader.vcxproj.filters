@@ -8,7 +8,6 @@
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />
-    <ClInclude Include="WasmModule.h" />
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />
@@ -17,7 +16,6 @@
     <ClInclude Include="WasmGlobal.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)WasmModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmDataSegment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmElementSegment.cpp" />

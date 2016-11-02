@@ -27,8 +27,8 @@ namespace Wasm
         uint32 GetLocalCount() const;
         uint32 GetParamCount() const;
 
-        void SetName(char16* name, uint32 nameLength) { m_name = name; m_nameLength = nameLength; }
-        char16* GetName() const { return m_name; }
+        void SetName(const char16* name, uint32 nameLength) { m_name = name; m_nameLength = nameLength; }
+        const char16* GetName() const { return m_name; }
         uint32 GetNameLength() const { return m_nameLength; }
 
         uint32 GetNumber() const { return m_number; }
@@ -41,13 +41,14 @@ namespace Wasm
 
         FunctionBodyReaderInfo m_readerInfo;
     private:
+
         ArenaAllocator* m_alloc;
         typedef JsUtil::GrowingArray<Local, ArenaAllocator> WasmTypeArray;
         WasmTypeArray m_locals;
         Js::FunctionBody* m_body;
         WasmSignature* m_signature;
         Js::ByteCodeLabel m_ExitLabel;
-        char16* m_name;
+        const char16* m_name;
         uint32 m_nameLength;
         uint32 m_number;
     };

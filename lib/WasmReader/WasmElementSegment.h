@@ -12,10 +12,10 @@ namespace Wasm
     {
     public:
         WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode initExpr, const UINT32 numElem);
-        void AddElement(const UINT32 funcIndex, const WasmModule& module);
+        void AddElement(const UINT32 funcIndex, const Js::WebAssemblyModule& module);
         UINT32 GetElement(const UINT32 tableIndex) const;
         UINT32 GetNumElements() const { return m_numElem; }
-        void ResolveOffsets(const WasmModule& module);
+        void ResolveOffsets(const Js::WebAssemblyModule& module);
 
     private:
         ArenaAllocator* m_alloc;
@@ -28,7 +28,7 @@ namespace Wasm
         bool m_isOffsetResolved;
         UINT32* m_elems;
 
-        void Init(const WasmModule& module);
+        void Init(const Js::WebAssemblyModule& module);
         bool IsOffsetResolved() const;
     };
 } // Namespace Wasm
