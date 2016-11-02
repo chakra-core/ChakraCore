@@ -157,7 +157,7 @@ private:
     SList<int32> *          m_argOffsetStack;
     SList<BranchReloc *> *  m_branchRelocList;
     // 1 for const, 1 for var, 1 for temps for each type and 1 for last
-    static constexpr uint32 m_firstsTypeCount = WAsmJs::LIMIT * 3 + 1;
+    static const uint32     m_firstsTypeCount = WAsmJs::LIMIT * 3 + 1;
     Js::RegSlot             m_firstsType[m_firstsTypeCount];
     Js::RegSlot             m_firstVarConst;
     Js::RegSlot             m_firstIRTemp;

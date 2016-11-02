@@ -14,7 +14,7 @@ inline T WasmMath::Div( T aLeft, T aRight )
     return aLeft / aRight;
 }
 
-constexpr uint64 specialDivLeftValue = (uint64)1 << 63;
+const uint64 specialDivLeftValue = (uint64)1 << 63;
 
 template<>
 inline int64 WasmMath::Rem( int64 aLeft, int64 aRight )
