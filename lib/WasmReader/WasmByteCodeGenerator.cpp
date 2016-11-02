@@ -200,7 +200,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     body->SetIsAsmJsFunction(true);
     body->SetIsAsmjsMode(true);
     body->SetIsWasmFunction(true);
-    body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
+    body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(false);
 
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;
@@ -221,10 +221,6 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
-    if (m_module->GetMemory() != nullptr)
-    {
-        info->SetUsesHeapBuffer(true);
-    }
     if (paramCount > 0)
     {
         // +1 here because asm.js includes the this pointer
@@ -515,19 +511,10 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return;
     case wbCurrentMemory:
     {
+        GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
-        // todo:: check for imported memory
-        if (m_module->GetMemory() != nullptr)
-        {
-            m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
-        }
-        else
-        {
-            WasmConstLitNode cnst;
-            cnst.i32 = 0;
-            this->EmitLoadConst(info, cnst);
-        }
+        m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         break;
     }
     case wbUnreachable:
@@ -1128,13 +1115,6 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     WasmTypes::WasmType type = signature[0];
     const uint offset = GetReader()->m_currentNode.mem.offset;
     GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
-
-    // todo:: check for imported memory
-    if (m_module->GetMemory() == nullptr)
-    {
-        // todo:: make that an out of bounds trap
-        m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
-    }
 
     EmitInfo rhsInfo;
     if (isStore)

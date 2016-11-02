@@ -1,4 +1,2 @@
-Unexpected Error while compiling memory.17.wasm
-TypeError: Data segment is out of range
 memory.wast:305: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_3[17] at offset 4/16: Operator I64ReinterpretF64 NYI
 26/27 tests passed.

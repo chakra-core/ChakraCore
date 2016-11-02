@@ -1802,7 +1802,6 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::LdUndef || newOpcode == Js::OpCodeAsmJs::CurrentMemory_Int);
 
     if (newOpcode == Js::OpCodeAsmJs::LdUndef)
     {
@@ -1824,6 +1823,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
     }
     else
     {
+        Assert(newOpcode == Js::OpCodeAsmJs::CurrentMemory_Int);
         Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dstReg);
         IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
         IR::IntConstOpnd* constZero = IR::IntConstOpnd::New(0, TyInt32, m_func);

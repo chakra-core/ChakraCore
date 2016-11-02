@@ -24,6 +24,7 @@ public:
     static Var EntryValidate(RecyclableObject* function, CallInfo callInfo, ...);
 
     static uint32 ToNonWrappingUint32(Var val, ScriptContext * ctx);
+    static void ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer, _Out_ uint *byteLength);
 #endif
 };
 

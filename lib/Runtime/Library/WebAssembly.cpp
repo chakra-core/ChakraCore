@@ -26,31 +26,12 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
     {
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.compile"));
-        }
-
-        const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
-        const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
-
-        if (!isTypedArray && !isArrayBuffer)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.compile"));
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
         }
 
         BYTE* buffer;
         uint byteLength;
-        if (isTypedArray)
-        {
-            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
-            buffer = array->GetByteBuffer();
-            byteLength = array->GetByteLength();
-        }
-        else
-        {
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
-            buffer = arrayBuffer->GetBuffer();
-            byteLength = arrayBuffer->GetByteLength();
-        }
+        WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
 
         module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
     }
@@ -76,31 +57,12 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
 
     if (args.Info.Count < 2)
     {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.validate"));
-    }
-
-    const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
-    const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
-
-    if (!isTypedArray && !isArrayBuffer)
-    {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.validate"));
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
 
     BYTE* buffer;
     uint byteLength;
-    if (isTypedArray)
-    {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
-        buffer = array->GetByteBuffer();
-        byteLength = array->GetByteLength();
-    }
-    else
-    {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
-        buffer = arrayBuffer->GetBuffer();
-        byteLength = arrayBuffer->GetByteLength();
-    }
+    WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
 
     if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength))
     {
@@ -121,6 +83,33 @@ WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
         JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);
     }
     return (uint32)i;
+}
+
+void
+WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer, _Out_ uint *byteLength)
+{
+    const BOOL isTypedArray = Js::TypedArrayBase::Is(val);
+    const BOOL isArrayBuffer = Js::ArrayBuffer::Is(val);
+
+    if (!isTypedArray && !isArrayBuffer)
+    {
+        *buffer = nullptr;
+        *byteLength = 0;
+        JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
+    }
+
+    if (isTypedArray)
+    {
+        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(val);
+        *buffer = array->GetByteBuffer();
+        *byteLength = array->GetByteLength();
+    }
+    else
+    {
+        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
+        *buffer = arrayBuffer->GetBuffer();
+        *byteLength = arrayBuffer->GetByteLength();
+    }
 }
 
 }

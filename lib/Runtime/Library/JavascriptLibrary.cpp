@@ -304,8 +304,15 @@ namespace Js
         INIT_ERROR_PROTO(syntaxErrorPrototype, InitializeSyntaxErrorPrototype);
         INIT_ERROR_PROTO(typeErrorPrototype, InitializeTypeErrorPrototype);
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
-        INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
-        INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
+
+#ifdef ENABLE_WASM
+        if (PHASE_ON1(WasmPhase))
+        {
+            INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
+            INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
+        }
+#endif
+
 #undef INIT_ERROR_PROTO
 
         tempDynamicType = DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
@@ -452,8 +459,14 @@ namespace Js
         INIT_SIMPLE_TYPE(syntaxErrorType, TypeIds_Error, syntaxErrorPrototype);
         INIT_SIMPLE_TYPE(typeErrorType, TypeIds_Error, typeErrorPrototype);
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
-        INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
-        INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
+
+#ifdef ENABLE_WASM
+        if (PHASE_ON1(WasmPhase))
+        {
+            INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
+            INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
+        }
+#endif
 
 #undef INIT_SIMPLE_TYPE
 

@@ -56,7 +56,7 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
 
     if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
     {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule, _u("WebAssembly.Instance"));
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
 
@@ -69,14 +69,14 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
     {
         if (!JavascriptOperators::IsUndefined(args[2]) && !JavascriptOperators::IsObject(args[2]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("WebAssembly.Instance"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
         }
         importObject = args[2];
     }
 
     if (module->GetImportCount() > 0 && !JavascriptOperators::IsObject(importObject))
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("WebAssembly.Instance"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
     }
 
     return CreateInstance(module, importObject);
@@ -92,12 +92,13 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
 
     LoadGlobals(module, scriptContext, moduleEnvironmentPtr, importObject);
-    LoadDataSegs(module, memory, scriptContext);
 
     LoadFunctions(module, scriptContext, moduleEnvironmentPtr, localModuleFunctions);
 
     Var* importFunctions = moduleEnvironmentPtr + module->GetImportFuncOffset();
-    LoadImports(module, scriptContext, importFunctions, moduleEnvironmentPtr, importObject);
+    LoadImports(module, scriptContext, importFunctions, moduleEnvironmentPtr, importObject, memory);
+
+    LoadDataSegs(module, memory, scriptContext);
 
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
     BuildObject(module, scriptContext, exportsNamespace, memory, newInstance, localModuleFunctions, importFunctions);
@@ -135,61 +136,81 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
         FunctionBody* body = funcObj->GetFunctionBody();
         if (!PHASE_OFF(WasmDeferredPhase, body))
         {
-            funcObj->GetDynamicType()->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
-            entypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
+            // if we still have WasmReaderInfo we haven't yet parsed
+            if (body->GetAsmJsFunctionInfo()->GetWasmReaderInfo())
+            {
+                funcObj->GetDynamicType()->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
+                entypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
+            }
         }
         else
         {
             AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
-
-            info->SetWasmReaderInfo(nullptr);
-            funcObj->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
-            entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-            // Do MTJRC/MAIC:0 check
-            const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || ctx->GetConfig()->IsNoNative();
-            if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
+            if (info->GetWasmReaderInfo())
             {
-                GenerateFunction(ctx->GetNativeCodeGenerator(), body, funcObj);
-            }
+                funcObj->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
+                entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                // Do MTJRC/MAIC:0 check
+                const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || ctx->GetConfig()->IsNoNative();
+                if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
+                {
+                    GenerateFunction(ctx->GetNativeCodeGenerator(), body, funcObj);
+                }
 #endif
+                info->SetWasmReaderInfo(nullptr);
+            }
         }
     }
 }
 
-void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memory, ScriptContext* ctx)
+void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memoryObject, ScriptContext* ctx)
 {
-    *memory = wasmModule->GetMemory();
-
-    if (wasmModule->GetMemory() != nullptr)
+    if (*memoryObject == nullptr)
     {
-        ArrayBuffer * buffer = wasmModule->GetMemory()->GetBuffer();
-        if (buffer->IsDetached())
+        *memoryObject = wasmModule->GetMemory();
+    }
+    else if (wasmModule->GetMemory())
+    {
+        // can only have 1 memory now
+        JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+    }
+    if (*memoryObject == nullptr)
+    {
+        // if there is no import or defined memory, create one with size 0
+        // REVIEW: this makes code better as we don't have to do existence check, but ensure that this is spec behavior
+        *memoryObject = WebAssemblyMemory::CreateMemoryObject(0, 0, ctx);
+    }
+
+    WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(*memoryObject);
+
+    ArrayBuffer * buffer = mem->GetBuffer();
+    if (buffer->IsDetached())
+    {
+        JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);
+    }
+    for (uint32 iSeg = 0; iSeg < wasmModule->GetDataSegCount(); ++iSeg)
+    {
+        Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
+        Assert(segment != nullptr);
+        const uint32 offset = segment->getDestAddr(wasmModule);
+        const uint32 size = segment->getSourceSize();
+
+        if (size > 0)
         {
-            JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);
-        }
-        for (uint32 iSeg = 0; iSeg < wasmModule->GetDataSegCount(); ++iSeg)
-        {
-            Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
-            Assert(segment != nullptr);
-            const uint32 offset = segment->getDestAddr(wasmModule);
-            const uint32 size = segment->getSourceSize();
             if (UInt32Math::Add(offset, size) > buffer->GetByteLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
             }
 
-            if (size > 0)
-            {
-                js_memcpy_s(buffer->GetBuffer() + offset, (uint32)buffer->GetByteLength() - offset, segment->getData(), size);
-            }
+            js_memcpy_s(buffer->GetBuffer() + offset, (uint32)buffer->GetByteLength() - offset, segment->getData(), size);
         }
     }
 }
 
 void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
 {
-    if (wasmModule->GetMemory() != nullptr && wasmModule->IsMemoryExported())
+    if (wasmModule->IsMemoryExported())
     {
         PropertyRecord const * propertyRecord = nullptr;
         ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
@@ -286,7 +307,7 @@ void static SetGlobalValue(Var moduleEnv, uint offset, T val)
     *slot = val;
 }
 
-void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi)
+void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi, Var* memoryObject)
 {
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
@@ -296,11 +317,23 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
     for (uint32 i = 0; i < importCount; ++i)
     {
         Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
-        if (!JavascriptFunction::Is(prop))
+        if (WebAssemblyMemory::Is(prop))
+        {
+            // only support 1 memory currently
+            if (*memoryObject != nullptr)
+            {
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            }
+            *memoryObject = prop;
+        }
+        else if (JavascriptFunction::Is(prop))
+        {
+            importFunctions[i] = prop;
+        }
+        else
         {
             JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
-        importFunctions[i] = prop;
     }
 }
 

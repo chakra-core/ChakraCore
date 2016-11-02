@@ -31,7 +31,6 @@ namespace Wasm
     }
 }
 
-// TODO: merge with WasmModule
 namespace Js
 {
 class WebAssemblyModule : public DynamicObject

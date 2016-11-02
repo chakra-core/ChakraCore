@@ -72,31 +72,11 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
 
     if (args.Info.Count < 2)
     {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.Module"));
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
-
-    const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
-    const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
-
-    if (!isTypedArray && !isArrayBuffer)
-    {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource, _u("WebAssembly.Module"));
-    }
-
     BYTE* buffer;
     uint byteLength;
-    if (isTypedArray)
-    {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
-        buffer = array->GetByteBuffer();
-        byteLength = array->GetByteLength();
-    }
-    else
-    {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
-        buffer = arrayBuffer->GetBuffer();
-        byteLength = arrayBuffer->GetByteLength();
-    }
+    WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
 
     return CreateModule(scriptContext, buffer, byteLength);
 }
