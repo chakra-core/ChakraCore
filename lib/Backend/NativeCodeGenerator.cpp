@@ -870,8 +870,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     auto& jitData = workItem->GetJITData()->jitData;
     jitData = AnewStructZ(&alloc, FunctionJITTimeDataIDL);
-    FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false, foreground);
-    workItem->GetJITData()->profiledIterations = workItem->RecyclableData()->JitTimeData()->GetProfiledIterations();
+    auto codeGenData = workItem->RecyclableData()->JitTimeData();
+    FunctionJITTimeInfo::BuildJITTimeData(&alloc, codeGenData, nullptr, workItem->GetJITData()->jitData, false, foreground);
+    workItem->GetJITData()->profiledIterations = codeGenData->GetProfiledIterations();
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
@@ -883,7 +884,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
     }
 
-    jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
+    jitData->sharedPropertyGuards = codeGenData->sharedPropertyGuards;
+    jitData->sharedPropGuardCount = codeGenData->sharedPropertyGuardCount;
 
     JITOutputIDL jitWriteData = {0};
 
@@ -1993,7 +1995,9 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
         if (succeeded)
         {
             Assert(workItem->GetCodeAddress() != NULL);
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, loopBodyCodeGen->GetEntryPoint(), (Js::JavascriptMethod)workItem->GetCodeAddress());
+
+            uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2992,6 +2996,8 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         }
 #endif
         GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::JavascriptFunction::FromVar(function) : nullptr, 0);
+
+        jitTimeData->sharedPropertyGuards = entryPoint->GetSharedPropertyGuards(jitTimeData->sharedPropertyGuardCount);
 
 #ifdef FIELD_ACCESS_STATS
         Js::FieldAccessStats* fieldAccessStats = entryPoint->EnsureFieldAccessStats(recycler);

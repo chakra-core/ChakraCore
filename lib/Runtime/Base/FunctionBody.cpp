@@ -104,6 +104,11 @@ namespace Js
         {
             return nullptr;
         }
+#if DBG
+        // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
+        auto jobProcessorCS = this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection();
+        Assert(!jobProcessorCS || !jobProcessorCS->IsLocked());
+#endif
         AutoCriticalSection autoCS(&GlobalLock);
         return AuxPtrsT::GetAuxPtr(this, e);
     }
@@ -3273,10 +3278,9 @@ namespace Js
         return loopHeader->GetEntryPointInfo(entryPointIndex)->jsMethod;
     }
 
-    void FunctionBody::SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint)
+    void FunctionBody::SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint, uint loopNum)
     {
 #if DBG_DUMP
-        uint loopNum = this->GetLoopNumberWithLock(loopHeader);
         if (PHASE_TRACE1(Js::JITLoopBodyPhase))
         {
             DumpFunctionId(true);
@@ -3284,7 +3288,7 @@ namespace Js
             Output::Flush();
         }
 #endif
-        Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
+        Assert(((LoopEntryPointInfo*)entryPointInfo)->loopHeader == loopHeader);
         Assert(reinterpret_cast<void*>(entryPointInfo->jsMethod) == nullptr);
         entryPointInfo->jsMethod = entryPoint;
 
@@ -3300,9 +3304,9 @@ namespace Js
         {
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
-        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader))));
+        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum)));
 #ifdef VTUNE_PROFILING
-        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader)));
+        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum));
 #endif
     }
 #endif
@@ -8305,40 +8309,38 @@ namespace Js
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
-        AutoCriticalSection autoCs(FunctionProxy::GetLock());
         if (this->sharedPropertyGuards == nullptr)
         {
             Recycler* recycler = scriptContext->GetRecycler();
             this->sharedPropertyGuards = RecyclerNew(recycler, SharedPropertyGuardDictionary, recycler);
         }
 
-        PropertyGuard* guard;
+        PropertyGuard* guard = nullptr;
         if (!this->sharedPropertyGuards->TryGetValue(propertyId, &guard))
         {
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             guard = threadContext->RegisterSharedPropertyGuard(propertyId);
             this->sharedPropertyGuards->Add(propertyId, guard);
         }
-
         return guard;
     }
 
-    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(unsigned int& count)
     {
-        AutoCriticalSection autoCs(FunctionProxy::GetLock());
-        if (sharedPropertyGuards != nullptr)
+        count = 0;
+        if (this->sharedPropertyGuards != nullptr)
         {
-            auto guards = AnewArray(alloc, Js::PropertyId, sharedPropertyGuards->Count());
-            count = sharedPropertyGuards->Count();
-            auto sharedGuardIter = sharedPropertyGuards->GetIterator();
-            uint i = 0;
+
+            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, this->sharedPropertyGuards->Count());
+            auto sharedGuardIter = this->sharedPropertyGuards->GetIterator();
 
             while (sharedGuardIter.IsValid())
             {
-                guards[i] = sharedGuardIter.CurrentKey();
+                guards[count] = sharedGuardIter.CurrentKey();
                 sharedGuardIter.MoveNext();
-                ++i;
+                ++count;
             }
+            Assert(count == (unsigned int)this->sharedPropertyGuards->Count());
             return guards;
         }
         return nullptr;
