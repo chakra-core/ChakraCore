@@ -286,6 +286,10 @@ MACRO_EXTEND_WMS( Conv_Check_DTI             , Int1Double1     , None           
 MACRO_EXTEND_WMS( Conv_Check_FTI             , Int1Float1      , None            )
 MACRO_EXTEND_WMS( Conv_Check_DTU             , Int1Double1     , None            )
 MACRO_EXTEND_WMS( Conv_Check_FTU             , Int1Float1      , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTL             , Long1Float1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTUL            , Long1Float1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTL             , Long1Double1    , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTUL            , Long1Double1    , None            )
 
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)

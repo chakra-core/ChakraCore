@@ -25,6 +25,9 @@ public:
     template<typename T> static T Rol(T aLeft, T aRight);
     template<typename T> static T Ror(T aLeft, T aRight);
     template <typename T, T MIN, T MAX> static bool IsInValidRange(double aLeft);
+    template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> static bool isInRange(STYPE srcVal);
+    template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> static bool isInRangeInclusive(STYPE srcVal);
+    template <typename STYPE> static bool isNaN(STYPE src);
 };
 
 } //namespace Wasm

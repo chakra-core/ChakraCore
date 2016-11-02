@@ -18035,9 +18035,30 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
 
 void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
 {
-    Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32());
+
     Assert(instr->GetSrc1()->IsFloat());
-    m_lowererMD.GenerateTruncWithCheck(instr);
+    if (instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32())
+    {
+        m_lowererMD.GenerateTruncWithCheck(instr);
+    }
+    else
+    {
+        Assert(instr->GetDst()->IsInt64() || instr->GetDst()->GetType() == TyUint64);
+        LoadScriptContext(instr);
+
+        if (instr->GetSrc1()->IsFloat32())
+        {
+            m_lowererMD.LoadFloatHelperArgument(instr, instr->GetSrc1());
+        }
+        else 
+        {
+            m_lowererMD.LoadDoubleHelperArgument(instr, instr->GetSrc1());
+        }
+        IR::JnHelperMethod helperList[2][2] = { IR::HelperF32TOI64, IR::HelperF32TOU64, IR::HelperF64TOI64 ,IR::HelperF64TOU64 };
+        IR::JnHelperMethod helper = helperList[instr->GetSrc1()->GetType() - TyFloat32][instr->GetDst()->GetType() == TyUint64];
+        instr->UnlinkSrc1();
+        this->m_lowererMD.ChangeToHelperCall(instr, helper);
+    }
 }
 
 void
