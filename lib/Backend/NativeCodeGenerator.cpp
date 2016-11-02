@@ -903,6 +903,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             workItem->GetJITData(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
+        if (hr == E_ACCESSDENIED && body->GetScriptContext()->IsClosed())
+        {
+            // script context may close after codegen call starts, consider this as aborted codegen
+            hr = E_ABORT;
+        }
         JITManager::HandleServerCallResult(hr);
     }
     else
