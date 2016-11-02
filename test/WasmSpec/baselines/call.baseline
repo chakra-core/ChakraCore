@@ -1,6 +1,3 @@
-call.wast:105: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_3[35] at offset 4/16: Operator I64ReinterpretF64 NYI
-call.wast:110: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_7[39] at offset 4/16: Operator I64ReinterpretF64 NYI
-call.wast:115: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_11[43] at offset 4/16: Operator I64ReinterpretF64 NYI
 call.wast:144: $assert_trap_33 failed, runtime trap NYI
 call.wast:145: $assert_trap_34 failed, runtime trap NYI
-30/35 tests passed.
+33/35 tests passed.
