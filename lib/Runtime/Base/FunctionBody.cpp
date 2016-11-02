@@ -120,7 +120,6 @@ namespace Js
         }
 
         // when setting ptr to null we never need to promote
-        Assert(!this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
         AutoCriticalSection aucoCS(&GlobalLock);
         AuxPtrsT::SetAuxPtr(this, e, ptr);
     }
@@ -8306,40 +8305,30 @@ namespace Js
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
-        auto localGuards = this->sharedPropertyGuards;
-        if (localGuards == nullptr)
+        if (this->sharedPropertyGuards == nullptr)
         {
             Recycler* recycler = scriptContext->GetRecycler();
-            localGuards = RecyclerNew(recycler, SharedPropertyGuardDictionary, recycler);
+            this->sharedPropertyGuards = RecyclerNew(recycler, SharedPropertyGuardDictionary, recycler);
         }
 
         PropertyGuard* guard = nullptr;
-        if (!localGuards->TryGetValue(propertyId, &guard))
+        if (!this->sharedPropertyGuards->TryGetValue(propertyId, &guard))
         {
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             guard = threadContext->RegisterSharedPropertyGuard(propertyId);
-
-            Assert(!this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
-            AutoCriticalSection autoCs(FunctionProxy::GetLock());
-            localGuards->Add(propertyId, guard);
+            this->sharedPropertyGuards->Add(propertyId, guard);
         }
-
-        this->sharedPropertyGuards = localGuards;
         return guard;
     }
 
-    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(unsigned int& count)
     {
-        // TODO: OOP JIT can we move this to foreground thread to collect the data, then we can remove the lock and temp var
         count = 0;
-        auto localGuards = this->sharedPropertyGuards;
-        if (localGuards != nullptr)
+        if (this->sharedPropertyGuards != nullptr)
         {
-            Assert(!(const_cast<EntryPointInfo*>(this))->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
-            AutoCriticalSection autoCs(FunctionProxy::GetLock());
 
-            Js::PropertyId* guards = AnewArray(alloc, Js::PropertyId, localGuards->Count());
-            auto sharedGuardIter = localGuards->GetIterator();
+            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, this->sharedPropertyGuards->Count());
+            auto sharedGuardIter = this->sharedPropertyGuards->GetIterator();
 
             while (sharedGuardIter.IsValid())
             {
@@ -8347,7 +8336,7 @@ namespace Js
                 sharedGuardIter.MoveNext();
                 ++count;
             }
-            Assert(count == (unsigned int)localGuards->Count());
+            Assert(count == (unsigned int)this->sharedPropertyGuards->Count());
             return guards;
         }
         return nullptr;
