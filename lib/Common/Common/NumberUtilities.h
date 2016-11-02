@@ -26,6 +26,10 @@ namespace Js
         // -2^52
         static const uint64     k_NegTwoToFraction = 0xC330000000000000ull;
 
+        static const uint64     k_TwoTo63 = 0x43e0000000000000ull;
+        static const uint64     k_NegTwoTo63 = 0xc3e0000000000000ull;
+        static const uint64     k_TwoTo64 = 0x43f0000000000000ull;
+
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
         static const uint32     k_Float32NegPointFive = 0xBF000000ul;
@@ -34,6 +38,11 @@ namespace Js
         static const uint32     k_Float32TwoToFraction = 0x4B000000ul;
         // -2^23
         static const uint32     k_Float32NegTwoToFraction = 0xCB000000ul;
+
+        static const uint32     k_Float32TwoTo63 = 0x5f000000u;
+        static const uint32     k_Float32NegTwoTo63 = 0xdf000000u;
+        static const uint32     k_Float32TwoTo64 = 0x5f800000u;
+        static const uint32     k_Float32NegOne = 0xbf800000u;
 
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;

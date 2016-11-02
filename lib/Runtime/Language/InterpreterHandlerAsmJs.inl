@@ -235,6 +235,10 @@ EXDEF2_WMS( D1toI1Mem        , Conv_Check_DTI   , (OP_TruncWithCheck<int,INT_MIN
 EXDEF2_WMS( F1toI1Mem        , Conv_Check_FTI   , (OP_TruncWithCheck<int,INT_MIN,INT_MAX>)           )
 EXDEF2_WMS( D1toI1Mem        , Conv_Check_DTU   , (OP_TruncWithCheck<uint,0,UINT_MAX>)               )
 EXDEF2_WMS( F1toI1Mem        , Conv_Check_FTU   , (OP_TruncWithCheck<uint,0,UINT_MAX>)               )
+EXDEF2_WMS( F1toL1Ctx        , Conv_Check_FTL   , JavascriptConversion::F32TOI64                     )
+EXDEF2_WMS( F1toL1Ctx        , Conv_Check_FTUL  , JavascriptConversion::F32TOU64                     )
+EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTL   , JavascriptConversion::F64TOI64                     )
+EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTUL  , JavascriptConversion::F64TOU64                     )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 

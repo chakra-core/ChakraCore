@@ -139,6 +139,27 @@ inline bool WasmMath::IsInValidRange(double aLeft)
     return (aLeft >= (double) MIN && aLeft <= (double) MAX);
 }
 
+template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> bool  WasmMath::isInRange(STYPE srcVal)
+{
+    Assert(sizeof(STYPE) == sizeof(UTYPE));
+    UTYPE val;
+    memcpy(&val, &srcVal, sizeof(STYPE));
+    return (val < MAX) || (val >= NEG_ZERO && val < NEG_ONE);
+}
+
+template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> bool  WasmMath::isInRangeInclusive(STYPE srcVal)
+{
+    Assert(sizeof(STYPE) == sizeof(UTYPE));
+    UTYPE val;
+    memcpy(&val, &srcVal, sizeof(STYPE));
+    return (val < MAX) || (val >= NEG_ZERO && val <= NEG_ONE);
+}
+
+template <typename STYPE> bool  WasmMath::isNaN(STYPE src)
+{
+    return src != src;
+}
+
 template<typename T>
 inline T WasmMath::Trunc(T value)
 {
