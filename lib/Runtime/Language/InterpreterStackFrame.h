@@ -363,7 +363,6 @@ namespace Js
         Var ProcessWithDebugging();
         Var DebugProcess();
 
-        ArrayBuffer * LoadWAsmJsArrayBuffer() const;
         bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
 
         // This will be called for reseting outs when resume from break on error happened

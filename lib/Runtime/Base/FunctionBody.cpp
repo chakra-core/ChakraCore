@@ -104,7 +104,7 @@ namespace Js
         {
             return nullptr;
         }
-#if DBG
+#if DBG && ENABLE_NATIVE_CODEGEN
         // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
         auto jobProcessorCS = this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection();
         Assert(!jobProcessorCS || !jobProcessorCS->IsLocked());

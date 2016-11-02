@@ -117,16 +117,16 @@ enum TypeId
     TypeIds_WebAssemblyMemory = 73,
     TypeIds_WebAssemblyTable = 74,
 
-    TypeIds_LastBuiltinDynamicObject = TypeIds_SharedArrayBuffer,
-    TypeIds_GlobalObject = 71,
-    TypeIds_ModuleRoot = 72,
+    TypeIds_LastBuiltinDynamicObject = TypeIds_WebAssemblyTable,
+    TypeIds_GlobalObject = 75,
+    TypeIds_ModuleRoot = 76,
     TypeIds_LastTrueJavascriptObjectType = TypeIds_ModuleRoot,
 
-    TypeIds_HostObject = 73,
-    TypeIds_ActivationObject = 74,
-    TypeIds_SpreadArgument = 75,
-    TypeIds_ModuleNamespace = 76,
-    TypeIds_ListIterator = 77,
+    TypeIds_HostObject = 77,
+    TypeIds_ActivationObject = 78,
+    TypeIds_SpreadArgument = 79,
+    TypeIds_ModuleNamespace = 80,
+    TypeIds_ListIterator = 81,
 
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };
