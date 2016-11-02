@@ -1566,7 +1566,7 @@ namespace Js
 
         if (cachedDynamicType == nullptr)
         {
-            SimplePathTypeHandler* newTypeHandler = SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), true, true);
+            SimplePathTypeHandler* newTypeHandler = SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), true, true);
 
             cachedDynamicType = instance->DuplicateType();
             cachedDynamicType->typeHandler = newTypeHandler;
@@ -1597,6 +1597,9 @@ namespace Js
                 }
 
                 // oldType is kind of weakReference here
+#if DBG
+                cachedDynamicType->SetIsCachedForChangePrototype();
+#endif
                 oldTypeToPromotedTypeMap->Item(reinterpret_cast<uintptr_t>(oldType), cachedDynamicType);
 
                 if (PHASE_TRACE1(TypeShareForChangePrototypePhase))
@@ -1650,8 +1653,9 @@ namespace Js
 
 
         // Make sure the offsetOfInlineSlots and inlineSlotCapacity matches with currentTypeHandler
-        Assert(cachedDynamicType->typeHandler->GetOffsetOfInlineSlots() == GetOffsetOfInlineSlots());
-        Assert(cachedDynamicType->typeHandler->GetInlineSlotCapacity() == roundedInlineSlotCapacity);
+        Assert(cachedDynamicType->GetTypeHandler()->GetOffsetOfInlineSlots() == GetOffsetOfInlineSlots());
+        Assert(cachedDynamicType->GetTypeHandler()->GetSlotCapacity() == this->GetSlotCapacity());
+        Assert(DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(this, cachedDynamicType->GetTypeHandler()));
 
         cachedDynamicType->SetPrototype(newPrototype);
         instance->ReplaceType(cachedDynamicType);
