@@ -1993,7 +1993,9 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
         if (succeeded)
         {
             Assert(workItem->GetCodeAddress() != NULL);
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, loopBodyCodeGen->GetEntryPoint(), (Js::JavascriptMethod)workItem->GetCodeAddress());
+
+            uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
             entryPoint->SetCodeGenDone();
         }
         else

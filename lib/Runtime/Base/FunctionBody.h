@@ -2631,7 +2631,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         Js::JavascriptMethod GetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, int entryPointIndex);
-        void SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint);
+        void SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint, uint loopNum);
 #endif
 
         void RestoreOldDefaultEntryPoint(FunctionEntryPointInfo* oldEntryPoint, JavascriptMethod oldOriginalEntryPoint, FunctionEntryPointInfo* newEntryPoint);
