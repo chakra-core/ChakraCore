@@ -37,6 +37,7 @@ PROTECTED_FIELDS
     DECLARE_SERIALIZABLE_FIELD(charcount_t, m_cchLength, CharCount);        // length of the function in code points (not bytes)
     DECLARE_SERIALIZABLE_FIELD(uint, m_cbLength, UInt32);                   // length of the function in bytes
     DECLARE_SERIALIZABLE_FIELD(uint, m_displayShortNameOffset, UInt32);     // Offset into the display name where the short name is found
+    DECLARE_SERIALIZABLE_FIELD(FunctionBodyFlags, flags, FunctionBodyFlags);
 
 PUBLIC_FIELDS
     DECLARE_SERIALIZABLE_FIELD(UINT, scopeSlotArraySize, UInt32);
@@ -67,7 +68,6 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledReturnTypeCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledSlotCount, UInt16);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LoopCount, RegSlot);
-    DECLARE_SERIALIZABLE_FIELD(FunctionBodyFlags, flags, FunctionBodyFlags);
     DECLARE_SERIALIZABLE_FIELD(bool, m_hasFinally, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasScopeObject, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasCachedScopePropIds, Bool);
