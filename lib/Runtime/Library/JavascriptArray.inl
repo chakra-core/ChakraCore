@@ -1670,18 +1670,12 @@ SECOND_PASS:
     template<class ArrayType> 
     void JavascriptArray::EnsureCalculationOfAllocationBuckets()
     {
-        // If allocation size for current ArrayType has already calculated, no need to recalculate it.
-        bool determineAllocationSize = ArrayType::allocationBuckets[0][MissingElementsCountIndex] == 0;
-        if (determineAllocationSize)
+        uint temp;
+        for (uint8 i = 0;i < ArrayType::AllocationBucketsCount;i++)
         {
-            uint temp;
-            for (uint8 i = 0;i < ArrayType::AllocationBucketsCount;i++)
-            {
-                ArrayType::allocationBuckets[i][AllocationSizeIndex] = (uint)DetermineAllocationSize<ArrayType, 0>(ArrayType::allocationBuckets[i][AllocationBucketIndex], nullptr, &temp);
-                ArrayType::allocationBuckets[i][MissingElementsCountIndex] = temp;
-            }
+            ArrayType::allocationBuckets[i][AllocationSizeIndex] = (uint)DetermineAllocationSize<ArrayType, 0>(ArrayType::allocationBuckets[i][AllocationBucketIndex], nullptr, &temp);
+            ArrayType::allocationBuckets[i][MissingElementsCountIndex] = temp;
         }
-        return;
     }
 
     template<class ArrayType, uint InlinePropertySlots>

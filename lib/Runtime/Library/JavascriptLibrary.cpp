@@ -86,6 +86,7 @@ namespace Js
         InitializeGlobal(globalObject);
         InitializeComplexThings();
         InitializeStaticValues();
+        PrecalculateArrayAllocationBuckets();
 
 #if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
@@ -749,6 +750,14 @@ namespace Js
             Assert(status);
             function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
+    }
+
+    /* static */
+    void JavascriptLibrary::PrecalculateArrayAllocationBuckets()
+    {
+        JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptNativeIntArray>();
+        JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptNativeFloatArray>();
+        JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptArray>();
     }
 
     template<bool addPrototype>
