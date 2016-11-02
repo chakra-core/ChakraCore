@@ -120,6 +120,7 @@ namespace Js
         }
 
         // when setting ptr to null we never need to promote
+        Assert(!this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
         AutoCriticalSection aucoCS(&GlobalLock);
         AuxPtrsT::SetAuxPtr(this, e, ptr);
     }
@@ -8318,6 +8319,7 @@ namespace Js
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             guard = threadContext->RegisterSharedPropertyGuard(propertyId);
 
+            Assert(!this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
             AutoCriticalSection autoCs(FunctionProxy::GetLock());
             localGuards->Add(propertyId, guard);
         }
@@ -8333,6 +8335,7 @@ namespace Js
         auto localGuards = this->sharedPropertyGuards;
         if (localGuards != nullptr)
         {
+            Assert(!(const_cast<EntryPointInfo*>(this))->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
             AutoCriticalSection autoCs(FunctionProxy::GetLock());
 
             Js::PropertyId* guards = AnewArray(alloc, Js::PropertyId, localGuards->Count());
