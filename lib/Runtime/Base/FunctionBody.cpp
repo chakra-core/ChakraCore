@@ -104,7 +104,11 @@ namespace Js
         {
             return nullptr;
         }
-        Assert(!this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection()->IsLocked());
+#if DBG
+        // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
+        auto jobProcessorCS = this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection();
+        Assert(!jobProcessorCS || !jobProcessorCS->IsLocked());
+#endif
         AutoCriticalSection autoCS(&GlobalLock);
         return AuxPtrsT::GetAuxPtr(this, e);
     }
