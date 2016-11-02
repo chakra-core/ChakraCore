@@ -791,9 +791,10 @@ namespace Js
         }
 
         // Make sure the function won't be jitted
+        bool isJitModeFunction = !this->IsInterpreterExecutionMode();
         MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo)
         {
-            if (entryPointInfo->IsCodeGenPending() || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
+            if ((entryPointInfo->IsCodeGenPending() && isJitModeFunction) || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
             {
                 isJitCandidate = true;
             }

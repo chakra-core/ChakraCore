@@ -2779,7 +2779,7 @@ ThreadContext::TryRedeferral()
 void
 ThreadContext::GetActiveFunctions(ActiveFunctionSet * pActiveFuncs)
 {
-    if (!this->IsInScript())
+    if (!this->IsInScript() || this->entryExitRecord == nullptr)
     {
         return;
     }
@@ -2802,35 +2802,37 @@ ThreadContext::UpdateRedeferralState()
     uint inactiveThreshold = this->GetRedeferralInactiveThreshold();
     uint collectInterval = this->GetRedeferralCollectionInterval();
 
-    this->gcSinceCallCountsCollected++;
     if (this->gcSinceCallCountsCollected >= inactiveThreshold)
     {
         this->gcSinceCallCountsCollected = 0;
-    }
-
-    this->gcSinceLastRedeferral++;
-    if (this->gcSinceLastRedeferral >= collectInterval)
-    {
-        // Advance state
-        switch (this->redeferralState)
+        if (this->gcSinceLastRedeferral >= collectInterval)
         {
-            case InitialRedeferralState:
-                this->redeferralState = StartupRedeferralState;
-                break;
+            // Advance state
+            switch (this->redeferralState)
+            {
+                case InitialRedeferralState:
+                    this->redeferralState = StartupRedeferralState;
+                    break;
 
-            case StartupRedeferralState:
-                this->redeferralState = MainRedeferralState;
-                break;
+                case StartupRedeferralState:
+                    this->redeferralState = MainRedeferralState;
+                    break;
 
-            case MainRedeferralState:
-                break;
+                case MainRedeferralState:
+                    break;
 
-            default:
-                Assert(0);
-                break;
+                default:
+                    Assert(0);
+                    break;
+            }
+
+            this->gcSinceLastRedeferral = 0;
         }
-
-        this->gcSinceLastRedeferral = 0;
+    }
+    else
+    {
+        this->gcSinceCallCountsCollected++;
+        this->gcSinceLastRedeferral++;
     }
 }
 
