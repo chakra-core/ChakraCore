@@ -177,8 +177,7 @@ public:
             void            GenerateTruncWithCheck(IR::Instr * instr);
             IR::RegOpnd*    MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr);
             IR::RegOpnd*    MaterializeConstFromBits(int intConst, IRType type, IR::Instr* instr);
-            IR::Opnd*       Subtract2To31Flt(IR::Opnd* src1, IR::Opnd* intMinFP, IR::Instr* instr);
-            IR::Opnd*       Subtract2To31Db(IR::Opnd* src1, IR::Opnd* intMinFP, IR::Instr* instr);
+            IR::Opnd*       Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             bool            GenerateLdThisCheck(IR::Instr * instr);
             bool            GenerateLdThisStrict(IR::Instr * instr);

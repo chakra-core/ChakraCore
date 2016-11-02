@@ -5947,21 +5947,12 @@ IR::RegOpnd* LowererMD::MaterializeConstFromBits(int bits, IRType type, IR::Inst
     return regConst;
 }
 
-IR::Opnd*
-LowererMD::Subtract2To31Db(IR::Opnd* src1, IR::Opnd* intMinFP, IR::Instr* instr)
+IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr)
 {
-    IR::Opnd* adjSrc = IR::RegOpnd::New(TyFloat64, m_func);
-    IR::Instr* sub = IR::Instr::New(Js::OpCode::SUBPD, adjSrc, src1, intMinFP, m_func);
-    instr->InsertBefore(sub);
-    Legalize(sub);
-    return adjSrc;
-}
+    Js::OpCode op = (type == TyFloat32) ? Js::OpCode::SUBPS : Js::OpCode::SUBPD;
 
-IR::Opnd*
-LowererMD::Subtract2To31Flt(IR::Opnd* src1, IR::Opnd* intMinFP, IR::Instr* instr)
-{
-    IR::Opnd*  adjSrc = IR::RegOpnd::New(TyFloat32, m_func);
-    IR::Instr* sub = IR::Instr::New(Js::OpCode::SUBPS, adjSrc, src1, intMinFP, m_func);
+    IR::Opnd*  adjSrc = IR::RegOpnd::New(type, m_func);
+    IR::Instr* sub = IR::Instr::New(op, adjSrc, src1, intMinFP, m_func);
     instr->InsertBefore(sub);
     Legalize(sub);
     return adjSrc;
@@ -5983,12 +5974,12 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
         if (src1->IsFloat32())
         {
             IR::Opnd* twoTo31FP = MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr);
-            adjSrc = Subtract2To31Flt(src1, twoTo31FP, instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat32, instr);
         }
         else
         {
             IR::Opnd* twoTo31FP = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
-            adjSrc = Subtract2To31Db(src1, twoTo31FP, instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat64, instr);
         }
     }
 
