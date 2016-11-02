@@ -623,12 +623,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
     ULONG offsetOfFunctionProxy = Js::FunctionInfo::GetOffsetOfFunctionProxy();
     AssertMsg(offsetOfFunctionProxy % 8 == 0, "Immediate offset for LDR must be 8 byte aligned");
     AssertMsg(offsetOfFunctionProxy < 0x8000, "Immediate offset for LDR must be less than 0x8000");
-    *(PULONG)&thunkBuffer[FunctionProxyOffset] |= (offsetOfFunctionInfo / 8) << 10;
-
-    ULONG offsetOfFunctionProxy = Js::FunctionInfo::GetOffsetOfFunctionProxy();
-    AssertMsg(offsetOfFunctionProxy % 8 == 0, "Immediate offset for LDR must be 8 byte aligned");
-    AssertMsg(offsetOfFunctionProxy < 0x8000, "Immediate offset for LDR must be less than 0x8000");
-    *(PULONG)&thunkBuffer[FunctionProxyOffset] |= (offsetOfFunctionInfo / 8) << 10;
+    *(PULONG)&thunkBuffer[FunctionProxyOffset] |= (offsetOfFunctionProxy / 8) << 10;
 
     // Encode LDR - Load of interpreter thunk number
     ULONG offsetOfDynamicInterpreterThunk = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
