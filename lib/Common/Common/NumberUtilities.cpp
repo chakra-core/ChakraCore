@@ -30,12 +30,19 @@ namespace Js
     const uint64 NumberConstants::k_OnePointZero;
     const uint64 NumberConstants::k_TwoToFraction;
     const uint64 NumberConstants::k_NegTwoToFraction;
+    const uint64 NumberConstants::k_TwoTo63;
+    const uint64 NumberConstants::k_NegTwoTo63;
+    const uint64 NumberConstants::k_TwoTo64;
     const uint32 NumberConstants::k_Float32Zero;
     const uint32 NumberConstants::k_Float32PointFive;
     const uint32 NumberConstants::k_Float32NegPointFive;
     const uint32 NumberConstants::k_Float32NegZero;
     const uint32 NumberConstants::k_Float32TwoToFraction;
     const uint32 NumberConstants::k_Float32NegTwoToFraction;
+    const uint32 NumberConstants::k_Float32TwoTo63;
+    const uint32 NumberConstants::k_Float32NegTwoTo63;
+    const uint32 NumberConstants::k_Float32TwoTo64;
+    const uint32 NumberConstants::k_Float32NegOne;
 #endif
 
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);

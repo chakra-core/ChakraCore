@@ -3207,6 +3207,25 @@ IRBuilderAsmJs::BuildInt1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Reg
 void
 IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
 {
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyFloat32);
+    IR::RegOpnd * dstOpnd = nullptr;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_Check_FTL:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt64);
+        break;
+    case Js::OpCodeAsmJs::Conv_Check_FTUL:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint64);
+        break;
+    default:
+        Assume(UNREACHED);
+    }
+
+    IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), src1Opnd->GetType(), m_func);
+    tmpDst->SetValueType(ValueType::Float);
+    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, src1Opnd, m_func), offset);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
+    AddInstr(instr, offset);
 }
 
 void
@@ -3217,6 +3236,25 @@ IRBuilderAsmJs::BuildFloat1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
 void
 IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
 {
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyFloat64);
+    IR::RegOpnd * dstOpnd = nullptr;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_Check_DTL:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt64);
+        break;
+    case Js::OpCodeAsmJs::Conv_Check_DTUL:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint64);
+        break;
+    default:
+        Assume(UNREACHED);
+    }
+
+    IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), src1Opnd->GetType(), m_func);
+    tmpDst->SetValueType(ValueType::Float);
+    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, src1Opnd, m_func), offset);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
+    AddInstr(instr, offset);
 }
 
 void

@@ -1514,6 +1514,46 @@ CommonNumber:
         return ToString(ToPrimitive(aValue, JavascriptHint::None, scriptContext), scriptContext);
     }
 
+    int64 JavascriptConversion::F32TOI64(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRangeInclusive<float, uint32, NumberConstants::k_Float32TwoTo63, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegTwoTo63>(src) && !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (int64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint64 JavascriptConversion::F32TOU64(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo64, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegOne>(src) && !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (uint64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    int64 JavascriptConversion::F64TOI64(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRangeInclusive<double, uint64, NumberConstants::k_TwoTo63, NumberConstants::k_NegZero, NumberConstants::k_NegTwoTo63>(src) && !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (int64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint64 JavascriptConversion::F64TOU64(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<double, uint64, NumberConstants::k_TwoTo64, NumberConstants::k_NegZero, NumberConstants::k_NegOne>(src) && !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (uint64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
     int64 JavascriptConversion::ToLength(Var aValue, ScriptContext* scriptContext)
     {
         if (TaggedInt::Is(aValue))
