@@ -1119,8 +1119,10 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
         Assert(m_reclaimedJITProperties);
         if (propertyRecord->IsNumeric())
         {
-            m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
-            m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId());
+            if (!m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId()))
+            {
+                m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
+            }
         }
     }
 #endif
