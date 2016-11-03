@@ -2327,6 +2327,12 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
     if (argsCount == 1) // apply called with just 1 argument, the 'this' object.
     {
+        if (!PHASE_ON1(Js::InlineApplyWithoutArrayArgPhase))
+        {
+            *pIsInlined = false;
+            return callInstr;
+        }
+
         *pIsInlined = true;
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
