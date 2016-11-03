@@ -1,0 +1,69 @@
+3
+custom add (+5.42)
+8
+binopI32[2] failed. Table invalid signature call NYI.
+binopI32[3] failed. Table invalid signature call NYI.
+binopI32[4] failed. Table invalid signature call NYI.
+binopI32[5] failed. Table invalid signature call NYI.
+binopI32[6] failed. Table invalid signature call NYI.
+binopI32[7] failed. Table invalid signature call NYI.
+binopI64[0] failed. Table invalid signature call NYI.
+binopI64[1] failed. Table invalid signature call NYI.
+3
+binopI64[4] failed. Table invalid signature call NYI.
+binopI64[5] failed. Table invalid signature call NYI.
+binopI64[6] failed. Table invalid signature call NYI.
+binopI64[7] failed. Table invalid signature call NYI.
+binopF32[0] failed. Table invalid signature call NYI.
+binopF32[1] failed. Table invalid signature call NYI.
+binopF32[2] failed. Table invalid signature call NYI.
+binopF32[3] failed. Table invalid signature call NYI.
+3
+custom add (+5.42)
+8.420000076293945
+binopF32[6] failed. Table invalid signature call NYI.
+binopF32[7] failed. Table invalid signature call NYI.
+binopF64[0] failed. Table invalid signature call NYI.
+binopF64[1] failed. Table invalid signature call NYI.
+binopF64[2] failed. Table invalid signature call NYI.
+binopF64[3] failed. Table invalid signature call NYI.
+binopF64[4] failed. Table invalid signature call NYI.
+binopF64[5] failed. Table invalid signature call NYI.
+3
+custom add (+5.42)
+8.42
+
+
+ Rerun tests with new instance using previous module's imports
+3
+3
+binopI32[2] failed. Table invalid signature call NYI.
+binopI32[3] failed. Table invalid signature call NYI.
+binopI32[4] failed. Table invalid signature call NYI.
+binopI32[5] failed. Table invalid signature call NYI.
+binopI32[6] failed. Table invalid signature call NYI.
+binopI32[7] failed. Table invalid signature call NYI.
+binopI64[0] failed. Table invalid signature call NYI.
+binopI64[1] failed. Table invalid signature call NYI.
+3
+3
+binopI64[4] failed. Table invalid signature call NYI.
+binopI64[5] failed. Table invalid signature call NYI.
+binopI64[6] failed. Table invalid signature call NYI.
+binopI64[7] failed. Table invalid signature call NYI.
+binopF32[0] failed. Table invalid signature call NYI.
+binopF32[1] failed. Table invalid signature call NYI.
+binopF32[2] failed. Table invalid signature call NYI.
+binopF32[3] failed. Table invalid signature call NYI.
+3
+3
+binopF32[6] failed. Table invalid signature call NYI.
+binopF32[7] failed. Table invalid signature call NYI.
+binopF64[0] failed. Table invalid signature call NYI.
+binopF64[1] failed. Table invalid signature call NYI.
+binopF64[2] failed. Table invalid signature call NYI.
+binopF64[3] failed. Table invalid signature call NYI.
+binopF64[4] failed. Table invalid signature call NYI.
+binopF64[5] failed. Table invalid signature call NYI.
+3
+3

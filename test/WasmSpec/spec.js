@@ -44,6 +44,10 @@ if (arguments.length < 1) {
   quit(0);
 }
 
+if (typeof IMPORTS_FROM_OTHER_SCRIPT === "undefined") {
+  IMPORTS_FROM_OTHER_SCRIPT = {};
+}
+
 var passed = 0;
 var failed = 0;
 const iVerbose = arguments.indexOf("-v");
@@ -69,7 +73,7 @@ function run(inPath, iStart, iEnd) {
   var jsonData = JSON.parse(data);
 
   var iTest = 0;
-  var registry = {spectest: {print: print, global : 666}};
+  var registry = Object.assign({spectest: {print: print, global : 666}}, IMPORTS_FROM_OTHER_SCRIPT);
   for (var i = 0; i < jsonData.modules.length; ++i) {
     var module = jsonData.modules[i] || {};
     try {
