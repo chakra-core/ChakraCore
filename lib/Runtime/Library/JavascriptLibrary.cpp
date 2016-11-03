@@ -1503,12 +1503,6 @@ namespace Js
 #ifdef ENABLE_WASM
         if (PHASE_ON1(WasmPhase))
         {
-            // TODO: remove the old Wasm object once we have WebAssembly API done
-            wasmObject  = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeWasmObject>::GetDefaultInstance()));
-            AddMember(globalObject, PropertyIds::Wasm, wasmObject);
-
             // new WebAssembly object
             webAssemblyObject = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -2686,13 +2680,6 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
-    void __cdecl JavascriptLibrary::InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
-    {
-        typeHandler->Convert(WasmObject, mode, 1);
-        JavascriptLibrary* library = WasmObject->GetLibrary();
-        library->AddFunctionToLibraryObject(WasmObject, PropertyIds::instantiateModule, &WasmLibrary::EntryInfo::instantiateModule, 2);
-        library->AddMember(WasmObject, PropertyIds::experimentalVersion, JavascriptNumber::New(WasmLibrary::experimentalVersion, library->scriptContext), PropertyNone);
-    }
 
     void JavascriptLibrary::InitializeWebAssemblyMemoryPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
