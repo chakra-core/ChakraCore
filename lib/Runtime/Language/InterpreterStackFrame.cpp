@@ -2299,8 +2299,8 @@ namespace Js
     void InterpreterStackFrame::OP_InvalidWasmTypeConversion(...)
     {
         // Right now the only invalid wasm type conversion is with int64
-        char16* fromType = toJs ? _u("int64") : _u("Javascript Variable");
-        char16* toType = toJs ? _u("Javascript Variable") : _u("int64");
+        const char16* fromType = toJs ? _u("int64") : _u("Javascript Variable");
+        const char16* toType = toJs ? _u("Javascript Variable") : _u("int64");
         JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
     }
 

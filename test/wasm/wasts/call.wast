@@ -1,3 +1,7 @@
+;;-------------------------------------------------------------------------------------------------------
+;; Copyright (C) Microsoft. All rights reserved.
+;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+;;-------------------------------------------------------------------------------------------------------
 (module
   (func (export "i_func-i32") (param i32))
   (func (export "i_func-i64") (param i64))
