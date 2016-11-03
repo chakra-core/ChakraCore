@@ -1101,10 +1101,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
         case Js::OpCode::OverflowCheckReg3:
-            instr->UnlinkSrc2();
+            instr->UnlinkSrc2();   //2nd arg was processed in div/rem; unlink it and transform an instruction into mov
         case Js::OpCode::OverflowCheckReg2:
         case Js::OpCode::DivideByZeroCheck:
-            instr->m_opcode = Js::OpCode::MOV;
+            instr->m_opcode = Js::OpCode::Ld_I4; //to simplify handling of i32/i64
+            instrPrev = instr; //re-evaluate -- let Ld_I4 handler to properly lower the operand.
             break;
         case Js::OpCode::Div_I4:
             this->LowerDivI4(instr);
