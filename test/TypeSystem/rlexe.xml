@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<regress-exe>
-  <test>
-    <default>
-      <files>PathTypeDeleteLastProperty.js</files>
-      <compile-flags>-mic:1 -msjrc:1</compile-flags>
-    </default>
-  </test>
-</regress-exe>

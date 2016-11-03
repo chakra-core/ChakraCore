@@ -295,18 +295,18 @@ namespace Js
         this->type = type;
     }
 
-    void DynamicObject::ReplaceTypeToPredecessorType(DynamicType * predecessorType)
+    void DynamicObject::ReplaceTypeWithPredecessorType(DynamicType * predecessorType)
     {
         Assert(this->GetTypeHandler()->IsPathTypeHandler());
         Assert(((PathTypeHandlerBase*)this->GetTypeHandler())->GetPredecessorType()->GetTypeHandler()->IsPathTypeHandler());
 
         Assert(((PathTypeHandlerBase*)this->GetTypeHandler())->GetPredecessorType() == predecessorType);
 
-        Assert(!predecessorType->isLocked || predecessorType->GetTypeHandler()->GetIsLocked());
-        Assert(!predecessorType->isShared || predecessorType->GetTypeHandler()->GetIsShared());
+        Assert(!predecessorType->GetIsLocked() || predecessorType->GetTypeHandler()->GetIsLocked());
+        Assert(!predecessorType->GetIsShared() || predecessorType->GetTypeHandler()->GetIsShared());
 
         PathTypeHandlerBase* currentPathTypeHandler = (PathTypeHandlerBase*)this->GetTypeHandler();
-        PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType;
+        PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
 
         Assert(predecessorPathTypeHandler->GetInlineSlotCapacity() >= currentPathTypeHandler->GetInlineSlotCapacity());
 

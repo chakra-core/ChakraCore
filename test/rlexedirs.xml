@@ -189,11 +189,6 @@
 </dir>
 <dir>
   <default>
-    <files>TypeSystem</files>
-  </default>
-</dir>
-<dir>
-  <default>
     <files>bailout</files>
     <tags>require_backend</tags>
   </default>
