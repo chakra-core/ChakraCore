@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -25,26 +25,27 @@ Abstract:
 #include "shm.hpp"
 #include "cs.hpp"
 
-#include <pthread.h>    
+#include <pthread.h>
 #include <sys/syscall.h>
 #if HAVE_MACH_EXCEPTIONS
 #include <mach/mach.h>
 #endif // HAVE_MACH_EXCEPTIONS
 
 #include "threadsusp.hpp"
-#include "tls.hpp"
 #include "synchobjects.hpp"
 #include <errno.h>
 
 namespace CorUnix
 {
+    extern pthread_key_t thObjKey;
+
     enum PalThreadType
     {
         UserCreatedThread,
         PalWorkerThread,
         SignalHandlerThread
     };
-    
+
     PAL_ERROR
     InternalCreateThread(
         CPalThread *pThread,
@@ -121,7 +122,7 @@ namespace CorUnix
         IN HANDLE hThread,
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
-        
+
 #ifdef FEATURE_PAL_SXS
 #if HAVE_MACH_EXCEPTIONS
     // Structure used to record all Mach exception handlers registered on a given thread at a specific point
@@ -139,7 +140,7 @@ namespace CorUnix
         exception_handler_t m_handlers[s_nPortsMax];
         exception_behavior_t m_behaviors[s_nPortsMax];
         thread_state_flavor_t m_flavors[s_nPortsMax];
-        
+
         CThreadMachExceptionHandlerNode() : m_nPorts(-1) {}
     };
 
@@ -186,7 +187,7 @@ namespace CorUnix
     };
 #endif // HAVE_MACH_EXCEPTIONS
 #endif // FEATURE_PAL_SXS
-    
+
     class CThreadSEHInfo : public CThreadInfoInitializer
     {
     public:
@@ -283,7 +284,7 @@ namespace CorUnix
                 );
 
         friend CatchHardwareExceptionHolder;
-        
+
     private:
 
         CPalThread *m_pNext;
@@ -320,11 +321,11 @@ namespace CorUnix
 
         SIZE_T m_threadId;
         DWORD m_dwLwpId;
-        pthread_t m_pthreadSelf;        
+        pthread_t m_pthreadSelf;
 
 #if HAVE_MACH_THREADS
         mach_port_t m_machPortSelf;
-#endif 
+#endif
 
         // > 0 when there is an exception holder which causes h/w
         // exceptions to be sent down the C++ exception chain.
@@ -364,14 +365,14 @@ namespace CorUnix
         // is zero. This value can be set by setting the
         // environment variable PAL_THREAD_DEFAULT_STACK_SIZE
         // (the value should be in bytes and in hex).
-        static DWORD s_dwDefaultThreadStackSize; 
+        static DWORD s_dwDefaultThreadStackSize;
 
         //
         // The thread entry routine (called from InternalCreateThread)
         //
 
         static void* ThreadEntry(void * pvParam);
-        
+
 #ifdef FEATURE_PAL_SXS
         //
         // Data for PAL side-by-side support
@@ -399,7 +400,6 @@ namespace CorUnix
         CThreadSynchronizationInfo synchronizationInfo;
         CThreadSuspensionInfo suspensionInfo;
         CThreadSEHInfo sehInfo;
-        CThreadTLSInfo tlsInfo;
         CThreadApcInfo apcInfo;
         CThreadCRTInfo crtInfo;
 
@@ -417,7 +417,7 @@ namespace CorUnix
             m_pthreadSelf(0),
 #if HAVE_MACH_THREADS
             m_machPortSelf(0),
-#endif            
+#endif
             m_hardwareExceptionHolderCount(0),
             m_lpStartAddress(NULL),
             m_lpStartParameter(NULL),
@@ -487,7 +487,7 @@ namespace CorUnix
         };
 
         //
-        // The following three methods provide access to the 
+        // The following three methods provide access to the
         // native lock used to protect thread native wait data.
         //
 
@@ -558,7 +558,7 @@ namespace CorUnix
         {
             return m_threadId;
         };
-        
+
         DWORD
         GetLwpId(
             void
@@ -585,7 +585,7 @@ namespace CorUnix
         };
 #endif
 
-        bool 
+        bool
         IsHardwareExceptionsEnabled()
         {
             return m_hardwareExceptionHolderCount > 0;
@@ -686,7 +686,7 @@ namespace CorUnix
         GetStackLimit(
             void
             );
-        
+
 #ifdef FEATURE_PAL_SXS
         //
         // Functions for PAL side-by-side support
@@ -757,7 +757,7 @@ namespace CorUnix
 /***
 
     $$TODO: These are needed only to support cross-process thread duplication
-    
+
     class CThreadImmutableData
     {
     public:
@@ -796,7 +796,7 @@ TLSCleanup(
     void
     );
 
-VOID 
+VOID
 WaitForEndingThreads(
     void
     );
@@ -824,7 +824,7 @@ Abstract:
   cache?
 
   In order to match the thread ids that debuggers use at least for
-  linux we need to use gettid(). 
+  linux we need to use gettid().
 
 --*/
 #if defined(__LINUX__)

@@ -2177,12 +2177,6 @@ CPalThread::RunPreCreateInitializers(
         goto RunPreCreateInitializersExit;
     }
 
-    palError = tlsInfo.InitializePreCreate();
-    if (NO_ERROR != palError)
-    {
-        goto RunPreCreateInitializersExit;
-    }
-
     palError = apcInfo.InitializePreCreate();
     if (NO_ERROR != palError)
     {
@@ -2251,6 +2245,25 @@ CPalThread::ReleaseThreadReference(
 
 }
 
+static
+PAL_ERROR
+InitializePostCreate(
+    CPalThread *pThread,
+    SIZE_T threadId,
+    DWORD dwLwpId
+    )
+{
+    PAL_ERROR palError = NO_ERROR;
+
+    if (pthread_setspecific(thObjKey, reinterpret_cast<void*>(pThread)))
+    {
+        ASSERT("Unable to set the thread object key's value\n");
+        palError = ERROR_INTERNAL_ERROR;
+    }
+
+    return palError;
+}
+
 PAL_ERROR
 CPalThread::RunPostCreateInitializers(
     void
@@ -2280,7 +2293,7 @@ CPalThread::RunPostCreateInitializers(
         goto RunPostCreateInitializersExit;
     }
 
-    palError = tlsInfo.InitializePostCreate(this, m_threadId, m_dwLwpId);
+    palError = InitializePostCreate(this, m_threadId, m_dwLwpId);
     if (NO_ERROR != palError)
     {
         goto RunPostCreateInitializersExit;

@@ -49,8 +49,6 @@ public:
     void* GetExternalData() const { return this->externalData; }
     void SetExternalData(void * data) { this->externalData = data; }
 
-    static bool Initialize();
-    static void Uninitialize();
     static JsrtContext * GetCurrent();
     static bool TrySetCurrent(JsrtContext * context);
     static bool Is(void * ref);
@@ -70,7 +68,6 @@ protected:
     void SetJavascriptLibrary(Js::JavascriptLibrary * library);
     void PinCurrentJsrtContext();
 private:
-    static DWORD s_tlsSlot;
     Js::JavascriptLibrary * javascriptLibrary;
 
     JsrtRuntime * runtime;
@@ -78,4 +75,3 @@ private:
     GC_MARKED_OBJECT<JsrtContext> previous;
     GC_MARKED_OBJECT<JsrtContext> next;
 };
-

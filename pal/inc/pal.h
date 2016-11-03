@@ -3447,33 +3447,6 @@ GetThreadTimes(
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
 
-#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
-
-PALIMPORT
-DWORD
-PALAPI
-TlsAlloc(
-     VOID);
-
-PALIMPORT
-LPVOID
-PALAPI
-TlsGetValue(
-        IN DWORD dwTlsIndex);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsSetValue(
-        IN DWORD dwTlsIndex,
-        IN LPVOID lpTlsValue);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsFree(
-    IN DWORD dwTlsIndex);
-
 PALIMPORT
 void *
 PALAPI

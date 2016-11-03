@@ -115,11 +115,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 
         HMODULE mod = GetModuleHandleW(NULL);
 
-        if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
-        {
-            return FALSE;
-        }
-
         AutoSystemInfo::SaveModuleFileName(mod);
 
     #if defined(_M_IX86) && !defined(__clang__)
@@ -179,7 +174,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         if (s_threadWasEntered) return;
         s_threadWasEntered = true;
 
-        ThreadContextTLSEntry::InitializeThread();
     #ifdef HEAP_TRACK_ALLOC
         HeapAllocator::InitializeThread();
     #endif

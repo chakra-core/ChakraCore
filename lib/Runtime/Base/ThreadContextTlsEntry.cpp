@@ -5,50 +5,22 @@
 #include "RuntimeBasePch.h"
 #include "Base/ThreadContextTlsEntry.h"
 
-uint32 ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
-
-bool ThreadContextTLSEntry::InitializeProcess()
-{
-    Assert(s_tlsSlot == TLS_OUT_OF_INDEXES);
-    s_tlsSlot = TlsAlloc();
-    return (s_tlsSlot != TLS_OUT_OF_INDEXES);
-}
-
-void ThreadContextTLSEntry::CleanupProcess()
-{
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-    TlsFree(s_tlsSlot);
-    s_tlsSlot = TLS_OUT_OF_INDEXES;
-}
-
-bool ThreadContextTLSEntry::IsProcessInitialized()
-{
-    return s_tlsSlot != TLS_OUT_OF_INDEXES;
-}
-
-void ThreadContextTLSEntry::InitializeThread()
-{
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-    Assert(!TlsGetValue(s_tlsSlot));
-    TlsSetValue(s_tlsSlot, NULL);
-}
+static THREAD_LOCAL ThreadContextTLSEntry* s_tlvSlot = nullptr;
 
 void ThreadContextTLSEntry::CleanupThread()
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-    ThreadContextTLSEntry * entry = GetEntryForCurrentThread();
+    ThreadContextTLSEntry * entry = s_tlvSlot;
 
-    if (entry != NULL)
+    if (entry != nullptr)
     {
         HeapDelete(entry);
-        TlsSetValue(s_tlsSlot, NULL);
+        s_tlvSlot = nullptr;
     }
 }
 
 bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
 {
     Assert(threadContext != NULL);
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
 
     DWORD threadContextThreadId = threadContext->GetCurrentThreadId();
 
@@ -60,12 +32,13 @@ bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
         return false;
     }
 
-    ThreadContextTLSEntry * entry = GetEntryForCurrentThread();
+    ThreadContextTLSEntry * entry = s_tlvSlot;
 
-    if (entry == NULL)
+    if (entry == nullptr)
     {
         Assert(!threadContext->IsThreadBound());
         entry = CreateEntryForCurrentThread();
+        s_tlvSlot = entry;
     }
     else if (entry->threadContext != NULL && entry->threadContext != threadContext)
     {
@@ -94,14 +67,12 @@ void ThreadContextTLSEntry::SetThreadContext(ThreadContextTLSEntry * entry, Thre
 
 bool ThreadContextTLSEntry::ClearThreadContext(bool isValid)
 {
-    return ClearThreadContext(GetEntryForCurrentThread(), isValid, false);
+    return ClearThreadContext(s_tlvSlot, isValid, false);
 }
 
 bool ThreadContextTLSEntry::ClearThreadContext(ThreadContextTLSEntry * entry, bool isThreadContextValid, bool force)
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-
-    if (entry != NULL)
+    if (entry != nullptr)
     {
         if (entry->threadContext != NULL && isThreadContextValid)
         {
@@ -129,19 +100,15 @@ void ThreadContextTLSEntry::Delete(ThreadContextTLSEntry * entry)
 
 ThreadContextTLSEntry * ThreadContextTLSEntry::GetEntryForCurrentThread()
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-    return reinterpret_cast<ThreadContextTLSEntry *>(TlsGetValue(s_tlsSlot));
+    return s_tlvSlot;
 }
 
 ThreadContextTLSEntry * ThreadContextTLSEntry::CreateEntryForCurrentThread()
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-    Assert(TlsGetValue(s_tlsSlot) == NULL);
-
     ThreadContextTLSEntry * entry = HeapNewStructZ(ThreadContextTLSEntry);
 #pragma prefast(suppress:6001, "Memory from HeapNewStructZ are zero initialized")
     entry->prober.Initialize();
-    TlsSetValue(s_tlsSlot, entry);
+    s_tlvSlot = entry;
 
     return entry;
 }
@@ -153,8 +120,8 @@ ThreadContext * ThreadContextTLSEntry::GetThreadContext()
 
 ThreadContextId ThreadContextTLSEntry::GetCurrentThreadContextId()
 {
-    ThreadContextTLSEntry * entry = GetEntryForCurrentThread();
-    if (entry != NULL && entry->GetThreadContext() != NULL)
+    ThreadContextTLSEntry * entry = s_tlvSlot;
+    if (entry != nullptr && entry->GetThreadContext() != NULL)
     {
         return (ThreadContextId)entry->GetThreadContext();
     }
