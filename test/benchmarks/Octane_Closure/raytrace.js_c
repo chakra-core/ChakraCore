@@ -1,0 +1,679 @@
+﻿var performance = performance || {};
+performance.now = function () {
+    return performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || Date.now
+}();
+
+function Benchmark(a, c, b, d, e, f, g, h, l) {
+    this.name = a;
+    this.doWarmup = c;
+    this.doDeterministic = b;
+    this.deterministicIterations = d;
+    this.run = e;
+    this.Setup = f ? f : function () { };
+    this.TearDown = g ? g : function () { };
+    this.rmsResult = h ? h : null;
+    this.minIterations = l ? l : 32
+}
+
+function BenchmarkResult(a, c, b) {
+    this.benchmark = a;
+    this.time = c;
+    this.latency = b
+}
+BenchmarkResult.prototype.valueOf = function () {
+    return this.time
+};
+
+function BenchmarkSuite(a, c, b) {
+    this.name = a;
+    this.reference = c;
+    this.benchmarks = b;
+    BenchmarkSuite.suites.push(this)
+}
+BenchmarkSuite.suites = [];
+BenchmarkSuite.version = "9";
+BenchmarkSuite.config = {
+    doWarmup: void 0,
+    doDeterministic: void 0
+};
+alert = function (a) {
+    throw "Alert called with argument: " + a;
+};
+BenchmarkSuite.ResetRNG = function () {
+    Math.random = function () {
+        var a = 49734321;
+        return function () {
+            a = a + 2127912214 + (a << 12) & 4294967295;
+            a = (a ^ 3345072700 ^ a >>> 19) & 4294967295;
+            a = a + 374761393 + (a << 5) & 4294967295;
+            a = (a + 3550635116 ^ a << 9) & 4294967295;
+            a = a + 4251993797 + (a << 3) & 4294967295;
+            a = (a ^ 3042594569 ^ a >>> 16) & 4294967295;
+            return (a & 268435455) / 268435456
+        }
+    }()
+};
+BenchmarkSuite.RunSuites = function (a, c) {
+    function b() {
+        for (; d || g < f;) {
+            if (d) d = d();
+            else {
+                var h = e[g++];
+                a.NotifyStart && a.NotifyStart(h.name); -1 < c.indexOf(h.name) ? h.NotifySkipped(a) : d = h.RunStep(a)
+            }
+            if (d && "undefined" != typeof window && window.setTimeout) {
+                window.setTimeout(b, 25);
+                return
+            }
+        }
+        a.NotifyScore && (h = BenchmarkSuite.GeometricMean(BenchmarkSuite.scores), h = BenchmarkSuite.FormatScore(100 * h), a.NotifyScore(h))
+    }
+    c = "undefined" === typeof c ? [] : c;
+    var d = null,
+        e = BenchmarkSuite.suites,
+        f = e.length;
+    BenchmarkSuite.scores = [];
+    var g =
+        0;
+    b()
+};
+BenchmarkSuite.CountBenchmarks = function () {
+    for (var a = 0, c = BenchmarkSuite.suites, b = 0; b < c.length; b++) a += c[b].benchmarks.length;
+    return a
+};
+BenchmarkSuite.GeometricMean = function (a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b]);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanTime = function (a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b].time);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanLatency = function (a) {
+    for (var c = 0, b = !1, d = 0; d < a.length; d++) 0 != a[d].latency && (c += Math.log(a[d].latency), b = !0);
+    return b ? Math.pow(Math.E, c / a.length) : 0
+};
+BenchmarkSuite.FormatScore = function (a) {
+    return 100 < a ? a.toFixed(0) : a.toPrecision(3)
+};
+BenchmarkSuite.prototype.NotifyStep = function (a) {
+    this.results.push(a);
+    this.runner.NotifyStep && this.runner.NotifyStep(a.benchmark.name)
+};
+BenchmarkSuite.prototype.NotifyResult = function () {
+    var a = BenchmarkSuite.GeometricMeanTime(this.results),
+        a = this.reference[0] / a;
+    BenchmarkSuite.scores.push(a);
+    this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name, a));
+    2 == this.reference.length && (a = BenchmarkSuite.GeometricMeanLatency(this.results), 0 != a && (a = this.reference[1] / a, BenchmarkSuite.scores.push(a), this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name + "Latency",
+        a))))
+};
+BenchmarkSuite.prototype.NotifySkipped = function (a) {
+    BenchmarkSuite.scores.push(1);
+    a.NotifyResult && a.NotifyResult(this.name, "Skipped")
+};
+BenchmarkSuite.prototype.NotifyError = function (a) {
+    this.runner.NotifyError && this.runner.NotifyError(this.name, a);
+    this.runner.NotifyStep && this.runner.NotifyStep(this.name)
+};
+BenchmarkSuite.prototype.RunSingleBenchmark = function (a, c) {
+    function b(b) {
+        for (var c = 0, d = new Date, f = 0; e ? f < a.deterministicIterations : 1E3 > c; f++) a.run(), c = new Date - d;
+        null != b && (b.runs += f, b.elapsed += c)
+    }
+    var d = BenchmarkSuite.config,
+        e = void 0 !== d.doDeterministic ? d.doDeterministic : a.doDeterministic;
+    (void 0 !== d.doWarmup ? d.doWarmup : a.doWarmup) || null != c || (c = {
+        runs: 0,
+        elapsed: 0
+    });
+    if (null == c) return b(null), {
+        runs: 0,
+        elapsed: 0
+    };
+    b(c);
+    if (c.runs < a.minIterations) return c;
+    var d = 1E3 * c.elapsed / c.runs,
+        f = null != a.rmsResult ? a.rmsResult() :
+        0;
+    this.NotifyStep(new BenchmarkResult(a, d, f));
+    return null
+};
+BenchmarkSuite.prototype.RunStep = function (a) {
+    function c() {
+        if (f < e) {
+            try {
+                g.benchmarks[f].Setup()
+            } catch (a) {
+                return g.NotifyError(a), null
+            }
+            return b
+        }
+        g.NotifyResult();
+        return null
+    }
+
+    function b() {
+        try {
+            h = g.RunSingleBenchmark(g.benchmarks[f], h)
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return null == h ? d : b()
+    }
+
+    function d() {
+        try {
+            g.benchmarks[f++].TearDown()
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return c
+    }
+    BenchmarkSuite.ResetRNG();
+    this.results = [];
+    this.runner = a;
+    var e = this.benchmarks.length,
+        f = 0,
+        g = this,
+        h;
+    return c()
+};
+var RayTrace = new BenchmarkSuite("RayTrace", [739989], [new Benchmark("RayTrace", !0, !1, 600, renderScene)]),
+    checkNumber, Class = {
+        create: function () {
+            return function () {
+                this.initialize.apply(this, arguments)
+            }
+        }
+    };
+Object.extend = function (a, c) {
+    for (var b in c) a[b] = c[b];
+    return a
+};
+if ("undefined" == typeof Flog) var Flog = {};
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Color = Class.create();
+Flog.RayTracer.Color.prototype = {
+    red: 0,
+    green: 0,
+    blue: 0,
+    initialize: function (a, c, b) {
+        a || (a = 0);
+        c || (c = 0);
+        b || (b = 0);
+        this.red = a;
+        this.green = c;
+        this.blue = b
+    },
+    add: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red + c.red;
+        b.green = a.green + c.green;
+        b.blue = a.blue + c.blue;
+        return b
+    },
+    addScalar: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red + c;
+        b.green = a.green + c;
+        b.blue = a.blue + c;
+        b.limit();
+        return b
+    },
+    subtract: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red - c.red;
+        b.green = a.green - c.green;
+        b.blue = a.blue - c.blue;
+        return b
+    },
+    multiply: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red * c.red;
+        b.green = a.green * c.green;
+        b.blue = a.blue * c.blue;
+        return b
+    },
+    multiplyScalar: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red * c;
+        b.green = a.green * c;
+        b.blue = a.blue * c;
+        return b
+    },
+    divideFactor: function (a, c) {
+        var b = new Flog.RayTracer.Color(0, 0, 0);
+        b.red = a.red / c;
+        b.green = a.green / c;
+        b.blue = a.blue / c;
+        return b
+    },
+    limit: function () {
+        this.red = 0 < this.red ? 1 < this.red ? 1 : this.red : 0;
+        this.green = 0 < this.green ? 1 < this.green ?
+            1 : this.green : 0;
+        this.blue = 0 < this.blue ? 1 < this.blue ? 1 : this.blue : 0
+    },
+    distance: function (a) {
+        return Math.abs(this.red - a.red) + Math.abs(this.green - a.green) + Math.abs(this.blue - a.blue)
+    },
+    blend: function (a, c, b) {
+        new Flog.RayTracer.Color(0, 0, 0);
+        return Flog.RayTracer.Color.prototype.add(Flog.RayTracer.Color.prototype.multiplyScalar(a, 1 - b), Flog.RayTracer.Color.prototype.multiplyScalar(c, b))
+    },
+    brightness: function () {
+        return 77 * Math.floor(255 * this.red) + 150 * Math.floor(255 * this.green) + 29 * Math.floor(255 * this.blue) >> 8
+    },
+    toString: function () {
+        return "rgb(" +
+            Math.floor(255 * this.red) + "," + Math.floor(255 * this.green) + "," + Math.floor(255 * this.blue) + ")"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Light = Class.create();
+Flog.RayTracer.Light.prototype = {
+    position: null,
+    color: null,
+    intensity: 10,
+    initialize: function (a, c, b) {
+        this.position = a;
+        this.color = c;
+        this.intensity = b ? b : 10
+    },
+    toString: function () {
+        return "Light [" + this.position.x + "," + this.position.y + "," + this.position.z + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Vector = Class.create();
+Flog.RayTracer.Vector.prototype = {
+    x: 0,
+    y: 0,
+    z: 0,
+    initialize: function (a, c, b) {
+        this.x = a ? a : 0;
+        this.y = c ? c : 0;
+        this.z = b ? b : 0
+    },
+    copy: function (a) {
+        this.x = a.x;
+        this.y = a.y;
+        this.z = a.z
+    },
+    normalize: function () {
+        var a = this.magnitude();
+        return new Flog.RayTracer.Vector(this.x / a, this.y / a, this.z / a)
+    },
+    magnitude: function () {
+        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z)
+    },
+    cross: function (a) {
+        return new Flog.RayTracer.Vector(-this.z * a.y + this.y * a.z, this.z * a.x - this.x * a.z, -this.y * a.x + this.x * a.y)
+    },
+    dot: function (a) {
+        return this.x *
+            a.x + this.y * a.y + this.z * a.z
+    },
+    add: function (a, c) {
+        return new Flog.RayTracer.Vector(c.x + a.x, c.y + a.y, c.z + a.z)
+    },
+    subtract: function (a, c) {
+        if (!c || !a) throw "Vectors must be defined [" + a + "," + c + "]";
+        return new Flog.RayTracer.Vector(a.x - c.x, a.y - c.y, a.z - c.z)
+    },
+    multiplyVector: function (a, c) {
+        return new Flog.RayTracer.Vector(a.x * c.x, a.y * c.y, a.z * c.z)
+    },
+    multiplyScalar: function (a, c) {
+        return new Flog.RayTracer.Vector(a.x * c, a.y * c, a.z * c)
+    },
+    toString: function () {
+        return "Vector [" + this.x + "," + this.y + "," + this.z + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Ray = Class.create();
+Flog.RayTracer.Ray.prototype = {
+    position: null,
+    direction: null,
+    initialize: function (a, c) {
+        this.position = a;
+        this.direction = c
+    },
+    toString: function () {
+        return "Ray [" + this.position + "," + this.direction + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Scene = Class.create();
+Flog.RayTracer.Scene.prototype = {
+    camera: null,
+    shapes: [],
+    lights: [],
+    background: null,
+    initialize: function () {
+        this.camera = new Flog.RayTracer.Camera(new Flog.RayTracer.Vector(0, 0, -5), new Flog.RayTracer.Vector(0, 0, 1), new Flog.RayTracer.Vector(0, 1, 0));
+        this.shapes = [];
+        this.lights = [];
+        this.background = new Flog.RayTracer.Background(new Flog.RayTracer.Color(0, 0, .5), .2)
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+"undefined" == typeof Flog.RayTracer.Material && (Flog.RayTracer.Material = {});
+Flog.RayTracer.Material.BaseMaterial = Class.create();
+Flog.RayTracer.Material.BaseMaterial.prototype = {
+    gloss: 2,
+    transparency: 0,
+    reflection: 0,
+    refraction: .5,
+    hasTexture: !1,
+    initialize: function () { },
+    getColor: function (a, c) { },
+    wrapUp: function (a) {
+        a %= 2; -1 > a && (a += 2);
+        1 <= a && (a -= 2);
+        return a
+    },
+    toString: function () {
+        return "Material [gloss=" + this.gloss + ", transparency=" + this.transparency + ", hasTexture=" + this.hasTexture + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Material.Solid = Class.create();
+Flog.RayTracer.Material.Solid.prototype = Object.extend(new Flog.RayTracer.Material.BaseMaterial, {
+    initialize: function (a, c, b, d, e) {
+        this.color = a;
+        this.reflection = c;
+        this.transparency = d;
+        this.gloss = e;
+        this.hasTexture = !1
+    },
+    getColor: function (a, c) {
+        return this.color
+    },
+    toString: function () {
+        return "SolidMaterial [gloss=" + this.gloss + ", transparency=" + this.transparency + ", hasTexture=" + this.hasTexture + "]"
+    }
+});
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Material.Chessboard = Class.create();
+Flog.RayTracer.Material.Chessboard.prototype = Object.extend(new Flog.RayTracer.Material.BaseMaterial, {
+    colorEven: null,
+    colorOdd: null,
+    density: .5,
+    initialize: function (a, c, b, d, e, f) {
+        this.colorEven = a;
+        this.colorOdd = c;
+        this.reflection = b;
+        this.transparency = d;
+        this.gloss = e;
+        this.density = f;
+        this.hasTexture = !0
+    },
+    getColor: function (a, c) {
+        return 0 > this.wrapUp(a * this.density) * this.wrapUp(c * this.density) ? this.colorEven : this.colorOdd
+    },
+    toString: function () {
+        return "ChessMaterial [gloss=" + this.gloss + ", transparency=" + this.transparency +
+            ", hasTexture=" + this.hasTexture + "]"
+    }
+});
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+"undefined" == typeof Flog.RayTracer.Shape && (Flog.RayTracer.Shape = {});
+Flog.RayTracer.Shape.Sphere = Class.create();
+Flog.RayTracer.Shape.Sphere.prototype = {
+    initialize: function (a, c, b) {
+        this.radius = c;
+        this.position = a;
+        this.material = b
+    },
+    intersect: function (a) {
+        var c = new Flog.RayTracer.IntersectionInfo;
+        c.shape = this;
+        var b = Flog.RayTracer.Vector.prototype.subtract(a.position, this.position),
+            d = b.dot(a.direction),
+            b = b.dot(b) - this.radius * this.radius,
+            b = d * d - b;
+        0 < b ? (c.isHit = !0, c.distance = -d - Math.sqrt(b), c.position = Flog.RayTracer.Vector.prototype.add(a.position, Flog.RayTracer.Vector.prototype.multiplyScalar(a.direction, c.distance)), c.normal =
+            Flog.RayTracer.Vector.prototype.subtract(c.position, this.position).normalize(), c.color = this.material.getColor(0, 0)) : c.isHit = !1;
+        return c
+    },
+    toString: function () {
+        return "Sphere [position=" + this.position + ", radius=" + this.radius + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+"undefined" == typeof Flog.RayTracer.Shape && (Flog.RayTracer.Shape = {});
+Flog.RayTracer.Shape.Plane = Class.create();
+Flog.RayTracer.Shape.Plane.prototype = {
+    d: 0,
+    initialize: function (a, c, b) {
+        this.position = a;
+        this.d = c;
+        this.material = b
+    },
+    intersect: function (a) {
+        var c = new Flog.RayTracer.IntersectionInfo,
+            b = this.position.dot(a.direction);
+        if (0 == b) return c;
+        b = -(this.position.dot(a.position) + this.d) / b;
+        if (0 >= b) return c;
+        c.shape = this;
+        c.isHit = !0;
+        c.position = Flog.RayTracer.Vector.prototype.add(a.position, Flog.RayTracer.Vector.prototype.multiplyScalar(a.direction, b));
+        c.normal = this.position;
+        c.distance = b;
+        this.material.hasTexture ? (b = new Flog.RayTracer.Vector(this.position.y,
+            this.position.z, -this.position.x), a = b.cross(this.position), b = c.position.dot(b), a = c.position.dot(a), c.color = this.material.getColor(b, a)) : c.color = this.material.getColor(0, 0);
+        return c
+    },
+    toString: function () {
+        return "Plane [" + this.position + ", d=" + this.d + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.IntersectionInfo = Class.create();
+Flog.RayTracer.IntersectionInfo.prototype = {
+    isHit: !1,
+    hitCount: 0,
+    shape: null,
+    position: null,
+    normal: null,
+    color: null,
+    distance: null,
+    initialize: function () {
+        this.color = new Flog.RayTracer.Color(0, 0, 0)
+    },
+    toString: function () {
+        return "Intersection [" + this.position + "]"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Camera = Class.create();
+Flog.RayTracer.Camera.prototype = {
+    position: null,
+    lookAt: null,
+    equator: null,
+    up: null,
+    screen: null,
+    initialize: function (a, c, b) {
+        this.position = a;
+        this.lookAt = c;
+        this.up = b;
+        this.equator = c.normalize().cross(this.up);
+        this.screen = Flog.RayTracer.Vector.prototype.add(this.position, this.lookAt)
+    },
+    getRay: function (a, c) {
+        var b = Flog.RayTracer.Vector.prototype.subtract(this.screen, Flog.RayTracer.Vector.prototype.subtract(Flog.RayTracer.Vector.prototype.multiplyScalar(this.equator, a), Flog.RayTracer.Vector.prototype.multiplyScalar(this.up,
+            c)));
+        b.y *= -1;
+        var d = Flog.RayTracer.Vector.prototype.subtract(b, this.position);
+        return new Flog.RayTracer.Ray(b, d.normalize())
+    },
+    toString: function () {
+        return "Ray []"
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Background = Class.create();
+Flog.RayTracer.Background.prototype = {
+    color: null,
+    ambience: 0,
+    initialize: function (a, c) {
+        this.color = a;
+        this.ambience = c
+    }
+};
+"undefined" == typeof Flog && (Flog = {});
+"undefined" == typeof Flog.RayTracer && (Flog.RayTracer = {});
+Flog.RayTracer.Engine = Class.create();
+Flog.RayTracer.Engine.prototype = {
+    canvas: null,
+    initialize: function (a) {
+        this.options = Object.extend({
+            canvasHeight: 100,
+            canvasWidth: 100,
+            pixelWidth: 2,
+            pixelHeight: 2,
+            renderDiffuse: !1,
+            renderShadows: !1,
+            renderHighlights: !1,
+            renderReflections: !1,
+            rayDepth: 2
+        }, a || {});
+        this.options.canvasHeight /= this.options.pixelHeight;
+        this.options.canvasWidth /= this.options.pixelWidth
+    },
+    setPixel: function (a, c, b) {
+        var d, e;
+        d = this.options.pixelWidth;
+        e = this.options.pixelHeight;
+        this.canvas ? (this.canvas.fillStyle = b.toString(), this.canvas.fillRect(a *
+            d, c * e, d, e)) : a === c && (checkNumber += b.brightness())
+    },
+    renderScene: function (a, c) {
+        checkNumber = 0;
+        this.canvas = c ? c.getContext("2d") : null;
+        for (var b = this.options.canvasHeight, d = this.options.canvasWidth, e = 0; e < b; e++)
+            for (var f = 0; f < d; f++) {
+                var g = a.camera.getRay(1 * f / d * 2 - 1, 1 * e / b * 2 - 1),
+                    g = this.getPixelColor(g, a);
+                this.setPixel(f, e, g)
+            }
+        if (2321 !== checkNumber) throw Error("Scene rendered incorrectly");
+    },
+    getPixelColor: function (a, c) {
+        var b = this.testIntersection(a, c, null);
+        return b.isHit ? this.rayTrace(b, a, c, 0) : c.background.color
+    },
+    testIntersection: function (a, c, b) {
+        var d = 0,
+            e = new Flog.RayTracer.IntersectionInfo;
+        e.distance = 2E3;
+        for (var f = 0; f < c.shapes.length; f++) {
+            var g = c.shapes[f];
+            g != b && (g = g.intersect(a), g.isHit && 0 <= g.distance && g.distance < e.distance && (e = g, d++))
+        }
+        e.hitCount = d;
+        return e
+    },
+    getReflectionRay: function (a, c, b) {
+        var d = -c.dot(b);
+        c = Flog.RayTracer.Vector.prototype.add(Flog.RayTracer.Vector.prototype.multiplyScalar(c, 2 * d), b);
+        return new Flog.RayTracer.Ray(a, c)
+    },
+    rayTrace: function (a, c, b, d) {
+        for (var e = Flog.RayTracer.Color.prototype.multiplyScalar(a.color,
+                b.background.ambience), f = Math.pow(10, a.shape.material.gloss + 1), g = 0; g < b.lights.length; g++) {
+            var h = b.lights[g],
+                l = Flog.RayTracer.Vector.prototype.subtract(h.position, a.position).normalize();
+            if (this.options.renderDiffuse) {
+                var m = l.dot(a.normal);
+                0 < m && (e = Flog.RayTracer.Color.prototype.add(e, Flog.RayTracer.Color.prototype.multiply(a.color, Flog.RayTracer.Color.prototype.multiplyScalar(h.color, m))))
+            }
+            if (d <= this.options.rayDepth && this.options.renderReflections && 0 < a.shape.material.reflection) {
+                var m = this.getReflectionRay(a.position,
+                        a.normal, c.direction),
+                    q = this.testIntersection(m, b, a.shape);
+                q.color = q.isHit && 0 < q.distance ? this.rayTrace(q, m, b, d + 1) : b.background.color;
+                e = Flog.RayTracer.Color.prototype.blend(e, q.color, a.shape.material.reflection)
+            }
+            m = new Flog.RayTracer.IntersectionInfo;
+            this.options.renderShadows && (l = new Flog.RayTracer.Ray(a.position, l), m = this.testIntersection(l, b, a.shape), m.isHit && m.shape != a.shape && (e = Flog.RayTracer.Color.prototype.multiplyScalar(e, .5), e = Flog.RayTracer.Color.prototype.addScalar(e, .5 * Math.pow(m.shape.material.transparency,
+                .5))));
+            this.options.renderHighlights && !m.isHit && 0 < a.shape.material.gloss && (l = Flog.RayTracer.Vector.prototype.subtract(a.shape.position, h.position).normalize(), m = Flog.RayTracer.Vector.prototype.subtract(b.camera.position, a.shape.position).normalize(), l = Flog.RayTracer.Vector.prototype.subtract(m, l).normalize(), l = Math.pow(Math.max(a.normal.dot(l), 0), f), e = Flog.RayTracer.Color.prototype.add(Flog.RayTracer.Color.prototype.multiplyScalar(h.color, l), e))
+        }
+        e.limit();
+        return e
+    }
+};
+
+function renderScene() {
+    var a = new Flog.RayTracer.Scene();
+    a.camera = new Flog.RayTracer.Camera(new Flog.RayTracer.Vector(0, 0, -15), new Flog.RayTracer.Vector(-.2, 0, 5), new Flog.RayTracer.Vector(0, 1, 0));
+    a.background = new Flog.RayTracer.Background(new Flog.RayTracer.Color(.5, .5, .5), .4);
+    var c = new Flog.RayTracer.Shape.Sphere(new Flog.RayTracer.Vector(-1.5, 1.5, 2), 1.5, new Flog.RayTracer.Material.Solid(new Flog.RayTracer.Color(0, .5, .5), .3, 0, 0, 2)),
+        b = new Flog.RayTracer.Shape.Sphere(new Flog.RayTracer.Vector(1, .25, 1),
+            .5, new Flog.RayTracer.Material.Solid(new Flog.RayTracer.Color(.9, .9, .9), .1, 0, 0, 1.5)),
+        d = new Flog.RayTracer.Shape.Plane((new Flog.RayTracer.Vector(.1, .9, -.5)).normalize(), 1.2, new Flog.RayTracer.Material.Chessboard(new Flog.RayTracer.Color(1, 1, 1), new Flog.RayTracer.Color(0, 0, 0), .2, 0, 1, .7));
+    a.shapes.push(d);
+    a.shapes.push(c);
+    a.shapes.push(b);
+    c = new Flog.RayTracer.Light(new Flog.RayTracer.Vector(5, 10, -1), new Flog.RayTracer.Color(.8, .8, .8));
+    b = new Flog.RayTracer.Light(new Flog.RayTracer.Vector(-3, 5, -15), new Flog.RayTracer.Color(.8,
+        .8, .8), 100);
+    a.lights.push(c);
+    a.lights.push(b);
+    c = ["5", "5"];
+    (new Flog.RayTracer.Engine({
+        canvasWidth: 100,
+        canvasHeight: 100,
+        pixelWidth: c[0],
+        pixelHeight: c[1],
+        renderDiffuse: !0,
+        renderHighlights: !0,
+        renderShadows: !0,
+        renderReflections: !0,
+        rayDepth: 2
+    })).renderScene(a, null, 0)
+};
+////////////////////////////////////////////////////////////////////////////////
+// Runner
+////////////////////////////////////////////////////////////////////////////////
+
+var success = true;
+
+function NotifyStart(name) { }
+
+function NotifyError(name, error) {
+    WScript.Echo(name + " : ERROR : " + error.stack);
+    success = false;
+}
+
+function NotifyResult(name, score) {
+    if (success) {
+        WScript.Echo("### SCORE:", score);
+    }
+}
+
+function NotifyScore(score) { }
+
+BenchmarkSuite.RunSuites({
+    NotifyStart: NotifyStart,
+    NotifyError: NotifyError,
+    NotifyResult: NotifyResult,
+    NotifyScore: NotifyScore
+});

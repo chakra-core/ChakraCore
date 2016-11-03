@@ -1,0 +1,2896 @@
+var performance = performance || {};
+performance.now = function() {
+    return performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || Date.now
+}();
+
+function Benchmark(a, c, b, d, e, f, g, h, l) {
+    this.name = a;
+    this.doWarmup = c;
+    this.doDeterministic = b;
+    this.deterministicIterations = d;
+    this.run = e;
+    this.Setup = f ? f : function() {};
+    this.TearDown = g ? g : function() {};
+    this.rmsResult = h ? h : null;
+    this.minIterations = l ? l : 32
+}
+
+function BenchmarkResult(a, c, b) {
+    this.benchmark = a;
+    this.time = c;
+    this.latency = b
+}
+BenchmarkResult.prototype.valueOf = function() {
+    return this.time
+};
+
+function BenchmarkSuite(a, c, b) {
+    this.name = a;
+    this.reference = c;
+    this.benchmarks = b;
+    BenchmarkSuite.suites.push(this)
+}
+BenchmarkSuite.suites = [];
+BenchmarkSuite.version = "9";
+BenchmarkSuite.config = {
+    doWarmup: void 0,
+    doDeterministic: void 0
+};
+alert = function(a) {
+    throw "Alert called with argument: " + a;
+};
+BenchmarkSuite.ResetRNG = function() {
+    Math.random = function() {
+        var a = 49734321;
+        return function() {
+            a = a + 2127912214 + (a << 12) & 4294967295;
+            a = (a ^ 3345072700 ^ a >>> 19) & 4294967295;
+            a = a + 374761393 + (a << 5) & 4294967295;
+            a = (a + 3550635116 ^ a << 9) & 4294967295;
+            a = a + 4251993797 + (a << 3) & 4294967295;
+            a = (a ^ 3042594569 ^ a >>> 16) & 4294967295;
+            return (a & 268435455) / 268435456
+        }
+    }()
+};
+BenchmarkSuite.RunSuites = function(a, c) {
+    function b() {
+        for (; d || g < f;) {
+            if (d) d = d();
+            else {
+                var h = e[g++];
+                a.NotifyStart && a.NotifyStart(h.name); - 1 < c.indexOf(h.name) ? h.NotifySkipped(a) : d = h.RunStep(a)
+            }
+            if (d && "undefined" != typeof window && window.setTimeout) {
+                window.setTimeout(b, 25);
+                return
+            }
+        }
+        a.NotifyScore && (h = BenchmarkSuite.GeometricMean(BenchmarkSuite.scores), h = BenchmarkSuite.FormatScore(100 * h), a.NotifyScore(h))
+    }
+    c = "undefined" === typeof c ? [] : c;
+    var d = null,
+        e = BenchmarkSuite.suites,
+        f = e.length;
+    BenchmarkSuite.scores = [];
+    var g =
+        0;
+    b()
+};
+BenchmarkSuite.CountBenchmarks = function() {
+    for (var a = 0, c = BenchmarkSuite.suites, b = 0; b < c.length; b++) a += c[b].benchmarks.length;
+    return a
+};
+BenchmarkSuite.GeometricMean = function(a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b]);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanTime = function(a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b].time);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanLatency = function(a) {
+    for (var c = 0, b = !1, d = 0; d < a.length; d++) 0 != a[d].latency && (c += Math.log(a[d].latency), b = !0);
+    return b ? Math.pow(Math.E, c / a.length) : 0
+};
+BenchmarkSuite.FormatScore = function(a) {
+    return 100 < a ? a.toFixed(0) : a.toPrecision(3)
+};
+BenchmarkSuite.prototype.NotifyStep = function(a) {
+    this.results.push(a);
+    this.runner.NotifyStep && this.runner.NotifyStep(a.benchmark.name)
+};
+BenchmarkSuite.prototype.NotifyResult = function() {
+    var a = BenchmarkSuite.GeometricMeanTime(this.results),
+        a = this.reference[0] / a;
+    BenchmarkSuite.scores.push(a);
+    this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name, a));
+    2 == this.reference.length && (a = BenchmarkSuite.GeometricMeanLatency(this.results), 0 != a && (a = this.reference[1] / a, BenchmarkSuite.scores.push(a), this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name + "Latency",
+        a))))
+};
+BenchmarkSuite.prototype.NotifySkipped = function(a) {
+    BenchmarkSuite.scores.push(1);
+    a.NotifyResult && a.NotifyResult(this.name, "Skipped")
+};
+BenchmarkSuite.prototype.NotifyError = function(a) {
+    this.runner.NotifyError && this.runner.NotifyError(this.name, a);
+    this.runner.NotifyStep && this.runner.NotifyStep(this.name)
+};
+BenchmarkSuite.prototype.RunSingleBenchmark = function(a, c) {
+    function b(b) {
+        for (var c = 0, d = new Date, f = 0; e ? f < a.deterministicIterations : 1E3 > c; f++) a.run(), c = new Date - d;
+        null != b && (b.runs += f, b.elapsed += c)
+    }
+    var d = BenchmarkSuite.config,
+        e = void 0 !== d.doDeterministic ? d.doDeterministic : a.doDeterministic;
+    (void 0 !== d.doWarmup ? d.doWarmup : a.doWarmup) || null != c || (c = {
+        runs: 0,
+        elapsed: 0
+    });
+    if (null == c) return b(null), {
+        runs: 0,
+        elapsed: 0
+    };
+    b(c);
+    if (c.runs < a.minIterations) return c;
+    var d = 1E3 * c.elapsed / c.runs,
+        f = null != a.rmsResult ? a.rmsResult() :
+        0;
+    this.NotifyStep(new BenchmarkResult(a, d, f));
+    return null
+};
+BenchmarkSuite.prototype.RunStep = function(a) {
+    function c() {
+        if (f < e) {
+            try {
+                g.benchmarks[f].Setup()
+            } catch (a) {
+                return g.NotifyError(a), null
+            }
+            return b
+        }
+        g.NotifyResult();
+        return null
+    }
+
+    function b() {
+        try {
+            h = g.RunSingleBenchmark(g.benchmarks[f], h)
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return null == h ? d : b()
+    }
+
+    function d() {
+        try {
+            g.benchmarks[f++].TearDown()
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return c
+    }
+    BenchmarkSuite.ResetRNG();
+    this.results = [];
+    this.runner = a;
+    var e = this.benchmarks.length,
+        f = 0,
+        g = this,
+        h;
+    return c()
+};
+var EarleyBoyer = new BenchmarkSuite("EarleyBoyer", [666463], [new Benchmark("Earley", !0, !0, 2500, function() {
+    BgL_earleyzd2benchmarkzd2()
+}), new Benchmark("Boyer", !0, !0, 200, function() {
+    BgL_nboyerzd2benchmarkzd2()
+})]);
+
+function sc_print_debug() {
+    sc_print.apply(null, arguments)
+}
+var sc_JS_GLOBALS = this,
+    __sc_LINE = -1,
+    __sc_FILE = "";
+
+function sc_alert() {
+    var a = arguments.length,
+        c = "",
+        b;
+    for (b = 0; b < a; b++) c += sc_toDisplayString(arguments[b]);
+    return alert(c)
+}
+
+function sc_typeof(a) {
+    return typeof a
+}
+
+function sc_error() {
+    for (var a = [sc_jsstring2symbol("*error*")], c = 0; c < arguments.length; c++) a[c + 1] = arguments[c];
+    throw a;
+}
+
+function sc_raise(a) {
+    throw a;
+}
+
+function sc_withHandlerLambda(a, c) {
+    try {
+        return c()
+    } catch (b) {
+        if (b._internalException) throw b;
+        return a(b)
+    }
+}
+var sc_properties = {};
+
+function sc_putpropBang(a, c, b) {
+    var d = sc_properties[a];
+    d || (d = {}, sc_properties[a] = d);
+    d[c] = b
+}
+
+function sc_getprop(a, c) {
+    var b = sc_properties[a];
+    return b ? c in b ? b[c] : !1 : !1
+}
+
+function sc_rempropBang(a, c) {
+    var b = sc_properties[a];
+    b && delete b[c]
+}
+
+function sc_any2String(a) {
+    return jsstring2string(sc_toDisplayString(a))
+}
+
+function sc_isEqv(a, c) {
+    return a === c
+}
+
+function sc_isEq(a, c) {
+    return a === c
+}
+
+function sc_isNumber(a) {
+    return "number" === typeof a
+}
+
+function sc_isComplex(a) {
+    return sc_isNumber(a)
+}
+
+function sc_isReal(a) {
+    return sc_isNumber(a)
+}
+
+function sc_isRational(a) {
+    return sc_isReal(a)
+}
+
+function sc_isInteger(a) {
+    return parseInt(a) === a
+}
+
+function sc_isExact(a) {
+    return !1
+}
+
+function sc_isInexact(a) {
+    return !0
+}
+
+function sc_equal(a) {
+    for (var c = 1; c < arguments.length; c++)
+        if (a !== arguments[c]) return !1;
+    return !0
+}
+
+function sc_less(a) {
+    for (var c = 1; c < arguments.length; c++) {
+        if (a >= arguments[c]) return !1;
+        a = arguments[c]
+    }
+    return !0
+}
+
+function sc_greater(a, c) {
+    for (var b = 1; b < arguments.length; b++) {
+        if (a <= arguments[b]) return !1;
+        a = arguments[b]
+    }
+    return !0
+}
+
+function sc_lessEqual(a, c) {
+    for (var b = 1; b < arguments.length; b++) {
+        if (a > arguments[b]) return !1;
+        a = arguments[b]
+    }
+    return !0
+}
+
+function sc_greaterEqual(a, c) {
+    for (var b = 1; b < arguments.length; b++) {
+        if (a < arguments[b]) return !1;
+        a = arguments[b]
+    }
+    return !0
+}
+
+function sc_isZero(a) {
+    return 0 === a
+}
+
+function sc_isPositive(a) {
+    return 0 < a
+}
+
+function sc_isNegative(a) {
+    return 0 > a
+}
+
+function sc_isOdd(a) {
+    return 1 === a % 2
+}
+
+function sc_isEven(a) {
+    return 0 === a % 2
+}
+var sc_max = Math.max,
+    sc_min = Math.min;
+
+function sc_plus() {
+    for (var a = 0, c = 0; c < arguments.length; c++) a += arguments[c];
+    return a
+}
+
+function sc_multi() {
+    for (var a = 1, c = 0; c < arguments.length; c++) a *= arguments[c];
+    return a
+}
+
+function sc_minus(a) {
+    if (1 === arguments.length) return -a;
+    for (var c = a, b = 1; b < arguments.length; b++) c -= arguments[b];
+    return c
+}
+
+function sc_div(a) {
+    if (1 === arguments.length) return 1 / a;
+    for (var c = a, b = 1; b < arguments.length; b++) c /= arguments[b];
+    return c
+}
+var sc_abs = Math.abs;
+
+function sc_quotient(a, c) {
+    return parseInt(a / c)
+}
+
+function sc_remainder(a, c) {
+    return a % c
+}
+
+function sc_modulo(a, c) {
+    var b = a % c;
+    return 0 > b * c ? b + c : b
+}
+
+function sc_euclid_gcd(a, c) {
+    var b;
+    if (0 === a) return c;
+    if (0 === c) return a;
+    0 > a && (a = -a);
+    0 > c && (c = -c);
+    c > a && (b = a, a = c, c = b);
+    for (;;) {
+        a %= c;
+        if (0 === a) break;
+        c %= a;
+        if (0 === c) return a
+    }
+    return c
+}
+
+function sc_gcd() {
+    for (var a = 0, c = 0; c < arguments.length; c++) a = sc_euclid_gcd(a, arguments[c]);
+    return a
+}
+
+function sc_lcm() {
+    for (var a = 1, c = 0; c < arguments.length; c++) var b = Math.round(arguments[c] / sc_euclid_gcd(arguments[c], a)),
+        a = a * Math.abs(b);
+    return a
+}
+var sc_floor = Math.floor,
+    sc_ceiling = Math.ceil,
+    sc_truncate = parseInt,
+    sc_round = Math.round,
+    sc_exp = Math.exp,
+    sc_log = Math.log,
+    sc_sin = Math.sin,
+    sc_cos = Math.cos,
+    sc_tan = Math.tan,
+    sc_asin = Math.asin,
+    sc_acos = Math.acos,
+    sc_atan = Math.atan,
+    sc_sqrt = Math.sqrt,
+    sc_expt = Math.pow;
+
+function sc_exact2inexact(a) {
+    return a
+}
+
+function sc_inexact2exact(a) {
+    return a
+}
+
+function sc_number2jsstring(a, c) {
+    return c ? a.toString(c) : a.toString()
+}
+
+function sc_jsstring2number(a, c) {
+    if ("" === a) return !1;
+    if (c) {
+        var b = parseInt(a, c);
+        if (!b && 0 !== b) return !1;
+        var d = "01234567890abcdefghijklmnopqrstuvwxyz".substring(0, c + 1);
+        return (new RegExp("^[" + d + "]*$", "i")).test(a) ? b : !1
+    }
+    b = +a;
+    if (!b && 0 !== b) return !1;
+    d = a.charAt(0);
+    return 0 === +d && "0" !== d ? !1 : b
+}
+
+function sc_not(a) {
+    return !1 === a
+}
+
+function sc_isBoolean(a) {
+    return !0 === a || !1 === a
+}
+
+function sc_Pair(a, c) {
+    this.car = a;
+    this.cdr = c
+}
+sc_Pair.prototype.toString = function() {
+    return sc_toDisplayString(this)
+};
+sc_Pair.prototype.sc_toWriteOrDisplayString = function(a) {
+    for (var c = this, b = "(";;)
+        if (b += a(c.car), sc_isPair(c.cdr)) b += " ", c = c.cdr;
+        else {
+            null !== c.cdr && (b += " . " + a(c.cdr));
+            break
+        }
+    return b + ")"
+};
+sc_Pair.prototype.sc_toDisplayString = function() {
+    return this.sc_toWriteOrDisplayString(sc_toDisplayString)
+};
+sc_Pair.prototype.sc_toWriteString = function() {
+    return this.sc_toWriteOrDisplayString(sc_toWriteString)
+};
+
+function sc_isPair(a) {
+    return a instanceof sc_Pair
+}
+
+function sc_isPairEqual(a, c, b) {
+    return b(a.car, c.car) && b(a.cdr, c.cdr)
+}
+
+function sc_cons(a, c) {
+    return new sc_Pair(a, c)
+}
+
+function sc_consStar() {
+    for (var a = arguments[arguments.length - 1], c = arguments.length - 2; 0 <= c; c--) a = new sc_Pair(arguments[c], a);
+    return a
+}
+
+function sc_car(a) {
+    return a.car
+}
+
+function sc_cdr(a) {
+    return a.cdr
+}
+
+function sc_setCarBang(a, c) {
+    a.car = c
+}
+
+function sc_setCdrBang(a, c) {
+    a.cdr = c
+}
+
+function sc_caar(a) {
+    return a.car.car
+}
+
+function sc_cadr(a) {
+    return a.cdr.car
+}
+
+function sc_cdar(a) {
+    return a.car.cdr
+}
+
+function sc_cddr(a) {
+    return a.cdr.cdr
+}
+
+function sc_caaar(a) {
+    return a.car.car.car
+}
+
+function sc_cadar(a) {
+    return a.car.cdr.car
+}
+
+function sc_caadr(a) {
+    return a.cdr.car.car
+}
+
+function sc_caddr(a) {
+    return a.cdr.cdr.car
+}
+
+function sc_cdaar(a) {
+    return a.car.car.cdr
+}
+
+function sc_cdadr(a) {
+    return a.cdr.car.cdr
+}
+
+function sc_cddar(a) {
+    return a.car.cdr.cdr
+}
+
+function sc_cdddr(a) {
+    return a.cdr.cdr.cdr
+}
+
+function sc_caaaar(a) {
+    return a.car.car.car.car
+}
+
+function sc_caadar(a) {
+    return a.car.cdr.car.car
+}
+
+function sc_caaadr(a) {
+    return a.cdr.car.car.car
+}
+
+function sc_caaddr(a) {
+    return a.cdr.cdr.car.car
+}
+
+function sc_cdaaar(a) {
+    return a.car.car.car.cdr
+}
+
+function sc_cdadar(a) {
+    return a.car.cdr.car.cdr
+}
+
+function sc_cdaadr(a) {
+    return a.cdr.car.car.cdr
+}
+
+function sc_cdaddr(a) {
+    return a.cdr.cdr.car.cdr
+}
+
+function sc_cadaar(a) {
+    return a.car.car.cdr.car
+}
+
+function sc_caddar(a) {
+    return a.car.cdr.cdr.car
+}
+
+function sc_cadadr(a) {
+    return a.cdr.car.cdr.car
+}
+
+function sc_cadddr(a) {
+    return a.cdr.cdr.cdr.car
+}
+
+function sc_cddaar(a) {
+    return a.car.car.cdr.cdr
+}
+
+function sc_cdddar(a) {
+    return a.car.cdr.cdr.cdr
+}
+
+function sc_cddadr(a) {
+    return a.cdr.car.cdr.cdr
+}
+
+function sc_cddddr(a) {
+    return a.cdr.cdr.cdr.cdr
+}
+
+function sc_lastPair(a) {
+    sc_isPair(a) || sc_error("sc_lastPair: pair expected");
+    var c = a;
+    for (a = a.cdr; sc_isPair(a);) c = a, a = c.cdr;
+    return c
+}
+
+function sc_isNull(a) {
+    return null === a
+}
+
+function sc_isList(a) {
+    var c;
+    for (c = a;;) {
+        if (null === c || c instanceof sc_Pair && null === c.cdr) return !0;
+        if (c instanceof sc_Pair && c.cdr instanceof sc_Pair) {
+            if (c = c.cdr.cdr, a = a.cdr, c === a) return !1
+        } else return !1
+    }
+}
+
+function sc_list() {
+    for (var a = null, c = arguments, b = c.length - 1; 0 <= b; b--) a = new sc_Pair(c[b], a);
+    return a
+}
+
+function sc_iota(a, c) {
+    var b = null;
+    c || (c = 0);
+    for (var d = a - 1; 0 <= d; d--) b = new sc_Pair(d + c, b);
+    return b
+}
+
+function sc_makeList(a, c) {
+    for (var b = null, d = 0; d < a; d++) b = new sc_Pair(c, b);
+    return b
+}
+
+function sc_length(a) {
+    for (var c = 0; null !== a;) c++, a = a.cdr;
+    return c
+}
+
+function sc_remq(a, c) {
+    for (var b = {
+            cdr: null
+        }, d = b; null !== c;) c.car !== a && (d.cdr = sc_cons(c.car, null), d = d.cdr), c = c.cdr;
+    return b.cdr
+}
+
+function sc_remqBang(a, c) {
+    for (var b = {
+            cdr: null
+        }, d = b, e = !0; null !== c;) c.car === a ? e = !0 : (e && (d.cdr = c, e = !1), d = c), c = c.cdr;
+    d.cdr = null;
+    return b.cdr
+}
+
+function sc_delete(a, c) {
+    for (var b = {
+            cdr: null
+        }, d = b; null !== c;) sc_isEqual(c.car, a) || (d.cdr = sc_cons(c.car, null), d = d.cdr), c = c.cdr;
+    return b.cdr
+}
+
+function sc_deleteBang(a, c) {
+    for (var b = {
+            cdr: null
+        }, d = b, e = !0; null !== c;) sc_isEqual(c.car, a) ? e = !0 : (e && (d.cdr = c, e = !1), d = c), c = c.cdr;
+    d.cdr = null;
+    return b.cdr
+}
+
+function sc_reverseAppendBang(a, c) {
+    for (var b = c; null !== a;) {
+        var d = b,
+            b = a;
+        a = a.cdr;
+        b.cdr = d
+    }
+    return b
+}
+
+function sc_dualAppend(a, c) {
+    if (null === a) return c;
+    if (null === c) return a;
+    var b = sc_reverse(a);
+    return sc_reverseAppendBang(b, c)
+}
+
+function sc_append() {
+    if (0 === arguments.length) return null;
+    for (var a = arguments[arguments.length - 1], c = arguments.length - 2; 0 <= c; c--) a = sc_dualAppend(arguments[c], a);
+    return a
+}
+
+function sc_dualAppendBang(a, c) {
+    if (null === a) return c;
+    if (null === c) return a;
+    for (var b = a; null !== b.cdr;) b = b.cdr;
+    b.cdr = c;
+    return a
+}
+
+function sc_appendBang() {
+    for (var a = null, c = 0; c < arguments.length; c++) a = sc_dualAppendBang(a, arguments[c]);
+    return a
+}
+
+function sc_reverse(a) {
+    for (var c = null; null !== a;) c = sc_cons(a.car, c), a = a.cdr;
+    return c
+}
+
+function sc_reverseBang(a) {
+    return sc_reverseAppendBang(a, null)
+}
+
+function sc_listTail(a, c) {
+    for (var b = a, d = 0; d < c; d++) b = b.cdr;
+    return b
+}
+
+function sc_listRef(a, c) {
+    return sc_listTail(a, c).car
+}
+
+function sc_memq(a, c) {
+    for (; null !== c;) {
+        if (c.car === a) return c;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_memv(a, c) {
+    for (; null !== c;) {
+        if (c.car === a) return c;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_member(a, c) {
+    for (; null !== c;) {
+        if (sc_isEqual(c.car, a)) return c;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_assq(a, c) {
+    for (; null !== c;) {
+        if (c.car.car === a) return c.car;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_assv(a, c) {
+    for (; null !== c;) {
+        if (c.car.car === a) return c.car;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_assoc(a, c) {
+    for (; null !== c;) {
+        if (sc_isEqual(c.car.car, a)) return c.car;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_isCharStringEqual(a, c) {
+    return a.val === c.val
+}
+
+function sc_isCharStringLess(a, c) {
+    return a.val < c.val
+}
+
+function sc_isCharStringGreater(a, c) {
+    return a.val > c.val
+}
+
+function sc_isCharStringLessEqual(a, c) {
+    return a.val <= c.val
+}
+
+function sc_isCharStringGreaterEqual(a, c) {
+    return a.val >= c.val
+}
+
+function sc_isCharStringCIEqual(a, c) {
+    return a.val.toLowerCase() === c.val.toLowerCase()
+}
+
+function sc_isCharStringCILess(a, c) {
+    return a.val.toLowerCase() < c.val.toLowerCase()
+}
+
+function sc_isCharStringCIGreater(a, c) {
+    return a.val.toLowerCase() > c.val.toLowerCase()
+}
+
+function sc_isCharStringCILessEqual(a, c) {
+    return a.val.toLowerCase() <= c.val.toLowerCase()
+}
+
+function sc_isCharStringCIGreaterEqual(a, c) {
+    return a.val.toLowerCase() >= c.val.toLowerCase()
+}
+
+function sc_Char(a) {
+    var c = sc_Char.lazy[a];
+    if (c) return c;
+    this.val = a;
+    sc_Char.lazy[a] = this
+}
+sc_Char.lazy = {};
+sc_Char.char2readable = {
+    "\x00": "#\\null",
+    "\u0007": "#\\bell",
+    "\b": "#\\backspace",
+    "\t": "#\\tab",
+    "\n": "#\\newline",
+    "\f": "#\\page",
+    "\r": "#\\return",
+    "\u001b": "#\\escape",
+    " ": "#\\space",
+    "\u007f": "#\\delete",
+    "\u0001": "#\\soh",
+    "\u0002": "#\\stx",
+    "\u0003": "#\\etx",
+    "\u0004": "#\\eot",
+    "\u0005": "#\\enq",
+    "\u0006": "#\\ack",
+    "\x0B": "#\\vt",
+    "\u000e": "#\\so",
+    "\u000f": "#\\si",
+    "\u0010": "#\\dle",
+    "\u0011": "#\\dc1",
+    "\u0012": "#\\dc2",
+    "\u0013": "#\\dc3",
+    "\u0014": "#\\dc4",
+    "\u0015": "#\\nak",
+    "\u0016": "#\\syn",
+    "\u0017": "#\\etb",
+    "\u0018": "#\\can",
+    "\u0019": "#\\em",
+    "\u001a": "#\\sub",
+    "\u001b": "#\\esc",
+    "\u001c": "#\\fs",
+    "\u001d": "#\\gs",
+    "\u001e": "#\\rs",
+    "\u001f": "#\\us"
+};
+sc_Char.readable2char = {
+    "null": "\x00",
+    bell: "\u0007",
+    backspace: "\b",
+    tab: "\t",
+    newline: "\n",
+    page: "\f",
+    "return": "\r",
+    escape: "\u001b",
+    space: " ",
+    "delete": "\x00",
+    soh: "\u0001",
+    stx: "\u0002",
+    etx: "\u0003",
+    eot: "\u0004",
+    enq: "\u0005",
+    ack: "\u0006",
+    bel: "\u0007",
+    bs: "\b",
+    ht: "\t",
+    nl: "\n",
+    vt: "\x0B",
+    np: "\f",
+    cr: "\r",
+    so: "\u000e",
+    si: "\u000f",
+    dle: "\u0010",
+    dc1: "\u0011",
+    dc2: "\u0012",
+    dc3: "\u0013",
+    dc4: "\u0014",
+    nak: "\u0015",
+    syn: "\u0016",
+    etb: "\u0017",
+    can: "\u0018",
+    em: "\u0019",
+    sub: "\u001a",
+    esc: "\u001b",
+    fs: "\u001c",
+    gs: "\u001d",
+    rs: "\u001e",
+    us: "\u001f",
+    sp: " ",
+    del: "\u007f"
+};
+sc_Char.prototype.toString = function() {
+    return this.val
+};
+sc_Char.prototype.sc_toWriteString = function() {
+    var a = sc_Char.char2readable[this.val];
+    return a ? a : "#\\" + this.val
+};
+
+function sc_isChar(a) {
+    return a instanceof sc_Char
+}
+var sc_isCharEqual = sc_isCharStringEqual,
+    sc_isCharLess = sc_isCharStringLess,
+    sc_isCharGreater = sc_isCharStringGreater,
+    sc_isCharLessEqual = sc_isCharStringLessEqual,
+    sc_isCharGreaterEqual = sc_isCharStringGreaterEqual,
+    sc_isCharCIEqual = sc_isCharStringCIEqual,
+    sc_isCharCILess = sc_isCharStringCILess,
+    sc_isCharCIGreater = sc_isCharStringCIGreater,
+    sc_isCharCILessEqual = sc_isCharStringCILessEqual,
+    sc_isCharCIGreaterEqual = sc_isCharStringCIGreaterEqual,
+    SC_NUMBER_CLASS = "0123456789",
+    SC_WHITESPACE_CLASS = " \r\n\t\f",
+    SC_LOWER_CLASS =
+    "abcdefghijklmnopqrstuvwxyz",
+    SC_UPPER_CLASS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+function sc_isCharOfClass(a, c) {
+    return -1 != c.indexOf(a)
+}
+
+function sc_isCharAlphabetic(a) {
+    return sc_isCharOfClass(a.val, SC_LOWER_CLASS) || sc_isCharOfClass(a.val, SC_UPPER_CLASS)
+}
+
+function sc_isCharNumeric(a) {
+    return sc_isCharOfClass(a.val, SC_NUMBER_CLASS)
+}
+
+function sc_isCharWhitespace(a) {
+    a = a.val;
+    return " " === a || "\r" === a || "\n" === a || "\t" === a || "\f" === a
+}
+
+function sc_isCharUpperCase(a) {
+    return sc_isCharOfClass(a.val, SC_UPPER_CLASS)
+}
+
+function sc_isCharLowerCase(a) {
+    return sc_isCharOfClass(a.val, SC_LOWER_CLASS)
+}
+
+function sc_char2integer(a) {
+    return a.val.charCodeAt(0)
+}
+
+function sc_integer2char(a) {
+    return new sc_Char(String.fromCharCode(a))
+}
+
+function sc_charUpcase(a) {
+    return new sc_Char(a.val.toUpperCase())
+}
+
+function sc_charDowncase(a) {
+    return new sc_Char(a.val.toLowerCase())
+}
+
+function sc_makeJSStringOfLength(a, c) {
+    var b;
+    b = void 0 === c ? " " : c;
+    for (var d = "", e = 1; a >= e;) a & e && (d = d.concat(b)), b = b.concat(b), e *= 2;
+    return d
+}
+
+function sc_makejsString(a, c) {
+    return sc_makeJSStringOfLength(a, c ? c.val : " ")
+}
+
+function sc_jsstring2list(a) {
+    for (var c = null, b = a.length - 1; 0 <= b; b--) c = sc_cons(new sc_Char(a.charAt(b)), c);
+    return c
+}
+
+function sc_list2jsstring(a) {
+    for (var c = []; null !== a;) c.push(a.car.val), a = a.cdr;
+    return "".concat.apply("", c)
+}
+var sc_Vector = Array;
+sc_Vector.prototype.sc_toWriteOrDisplayString = function(a) {
+    if (0 === this.length) return "#()";
+    for (var c = "#(" + a(this[0]), b = 1; b < this.length; b++) c += " " + a(this[b]);
+    return c + ")"
+};
+sc_Vector.prototype.sc_toDisplayString = function() {
+    return this.sc_toWriteOrDisplayString(sc_toDisplayString)
+};
+sc_Vector.prototype.sc_toWriteString = function() {
+    return this.sc_toWriteOrDisplayString(sc_toWriteString)
+};
+
+function sc_isVector(a) {
+    return a instanceof sc_Vector
+}
+
+function sc_isVectorEqual(a, c, b) {
+    if (a.length !== c.length) return !1;
+    for (var d = 0; d < a.length; d++)
+        if (!b(a[d], c[d])) return !1;
+    return !0
+}
+
+function sc_makeVector(a, c) {
+    var b = new sc_Vector(a);
+    void 0 !== c && sc_vectorFillBang(b, c);
+    return b
+}
+
+function sc_vector() {
+    for (var a = new sc_Vector, c = 0; c < arguments.length; c++) a.push(arguments[c]);
+    return a
+}
+
+function sc_vectorLength(a) {
+    return a.length
+}
+
+function sc_vectorRef(a, c) {
+    return a[c]
+}
+
+function sc_vectorSetBang(a, c, b) {
+    a[c] = b
+}
+
+function sc_vector2list(a) {
+    for (var c = null, b = a.length - 1; 0 <= b; b--) c = sc_cons(a[b], c);
+    return c
+}
+
+function sc_list2vector(a) {
+    for (var c = new sc_Vector; null !== a;) c.push(a.car), a = a.cdr;
+    return c
+}
+
+function sc_vectorFillBang(a, c) {
+    for (var b = 0; b < a.length; b++) a[b] = c
+}
+
+function sc_copyVector(a, c) {
+    if (c <= a.length) return a.slice(0, c);
+    var b = a.concat();
+    b.length = c;
+    return b
+}
+
+function sc_vectorCopy(a, c, b) {
+    return a.slice(c, b)
+}
+
+function sc_vectorCopyBang(a, c, b, d, e) {
+    d || (d = 0);
+    e || (e = b.length);
+    if (c <= d)
+        for (var f = d; f < e; c++, f++) a[c] = b[f];
+    else
+        for (c = c + (e - d) - 1, f = e - 1; f >= d; c--, f--) a[c] = b[f];
+    return a
+}
+
+function sc_isProcedure(a) {
+    return "function" === typeof a
+}
+
+function sc_apply(a) {
+    for (var c = [], b = 1; b < arguments.length - 1; b++) c.push(arguments[b]);
+    for (b = arguments[arguments.length - 1]; null !== b;) c.push(b.car), b = b.cdr;
+    return a.apply(null, c)
+}
+
+function sc_map(a, c) {
+    if (void 0 === c) return null;
+    for (var b = arguments.length - 1, d = Array(b), e = null; null !== c;) {
+        for (var f = 0; f < b; f++) d[f] = arguments[f + 1].car, arguments[f + 1] = arguments[f + 1].cdr;
+        e = sc_cons(a.apply(null, d), e)
+    }
+    return sc_reverseAppendBang(e, null)
+}
+
+function sc_mapBang(a, c) {
+    if (void 0 === c) return null;
+    for (var b = c, d = arguments.length - 1, e = Array(d); null !== c;) {
+        for (var f = c, g = 0; g < d; g++) e[g] = arguments[g + 1].car, arguments[g + 1] = arguments[g + 1].cdr;
+        f.car = a.apply(null, e)
+    }
+    return b
+}
+
+function sc_forEach(a, c) {
+    if (void 0 !== c)
+        for (var b = arguments.length - 1, d = Array(b); null !== c;) {
+            for (var e = 0; e < b; e++) d[e] = arguments[e + 1].car, arguments[e + 1] = arguments[e + 1].cdr;
+            a.apply(null, d)
+        }
+}
+
+function sc_filter(a, c) {
+    for (var b = {
+            cdr: null
+        }, d = b; null !== c;) !1 !== a(c.car) && (d.cdr = sc_cons(c.car, null), d = d.cdr), c = c.cdr;
+    return b.cdr
+}
+
+function sc_filterBang(a, c) {
+    for (var b = sc_cons("dummy", c), d = b, e = c; null !== e;) !1 !== a(e.car) && (d = d.cdr = e), e = e.cdr;
+    d.cdr = null;
+    return b.cdr
+}
+
+function sc_filterMap1(a, c) {
+    for (var b = null; null !== c;) {
+        var d = a(c.car);
+        !1 !== d && (b = sc_cons(d, b));
+        c = c.cdr
+    }
+    return sc_reverseAppendBang(b, null)
+}
+
+function sc_filterMap2(a, c, b) {
+    for (var d = null; null !== c;) {
+        var e = a(c.car, b.car);
+        !1 !== e && (d = sc_cons(e, d));
+        c = c.cdr;
+        b = b.cdr
+    }
+    return sc_reverseAppendBang(d, null)
+}
+
+function sc_filterMap(a, c, b, d) {
+    if (void 0 === b) return sc_filterMap1(a, c);
+    if (void 0 === d) return sc_filterMap2(a, c, b);
+    for (var e = arguments.length - 1, f = Array(e), g = null; null !== c;) {
+        for (var h = 0; h < e; h++) f[h] = arguments[h + 1].car, arguments[h + 1] = arguments[h + 1].cdr;
+        h = a.apply(null, f);
+        !1 !== h && (g = sc_cons(h, g))
+    }
+    return sc_reverseAppendBang(g, null)
+}
+
+function sc_any(a, c) {
+    for (; null !== c;) {
+        var b = a(c.car);
+        if (!1 !== b) return b;
+        c = c.cdr
+    }
+    return !1
+}
+
+function sc_anyPred(a, c) {
+    return !1 !== sc_any(a, c)
+}
+
+function sc_every(a, c) {
+    for (var b = !0; null !== c;) {
+        b = a(c.car);
+        if (!1 === b) return !1;
+        c = c.cdr
+    }
+    return b
+}
+
+function sc_everyPred(a, c) {
+    return !1 !== sc_every(a, c) ? !0 : !1
+}
+
+function sc_force(a) {
+    return a()
+}
+
+function sc_makePromise(a) {
+    var c = !1,
+        b = void 0;
+    return function() {
+        if (!c) {
+            var d = a();
+            c || (c = !0, b = d)
+        }
+        return b
+    }
+}
+
+function sc_Values(a) {
+    this.values = a
+}
+
+function sc_values() {
+    return 1 === arguments.length ? arguments[0] : new sc_Values(arguments)
+}
+
+function sc_callWithValues(a, c) {
+    var b = a();
+    return b instanceof sc_Values ? c.apply(null, b.values) : c(b)
+}
+
+function sc_dynamicWind(a, c, b) {
+    a();
+    try {
+        return c()
+    } finally {
+        b()
+    }
+}
+
+function sc_Struct(a) {
+    this.name = a
+}
+sc_Struct.prototype.sc_toDisplayString = function() {
+    return "#<struct" + sc_hash(this) + ">"
+};
+sc_Struct.prototype.sc_toWriteString = sc_Struct.prototype.sc_toDisplayString;
+
+function sc_makeStruct(a) {
+    return new sc_Struct(a)
+}
+
+function sc_isStruct(a) {
+    return a instanceof sc_Struct
+}
+
+function sc_isStructNamed(a, c) {
+    return c instanceof sc_Struct && c.name === a
+}
+
+function sc_getStructField(a, c, b) {
+    return a[b]
+}
+
+function sc_setStructFieldBang(a, c, b, d) {
+    a[b] = d
+}
+
+function sc_bitNot(a) {
+    return ~a
+}
+
+function sc_bitAnd(a, c) {
+    return a & c
+}
+
+function sc_bitOr(a, c) {
+    return a | c
+}
+
+function sc_bitXor(a, c) {
+    return a ^ c
+}
+
+function sc_bitLsh(a, c) {
+    return a << c
+}
+
+function sc_bitRsh(a, c) {
+    return a >> c
+}
+
+function sc_bitUrsh(a, c) {
+    return a >>> c
+}
+
+function sc_jsField(a, c) {
+    return a[c]
+}
+
+function sc_setJsFieldBang(a, c, b) {
+    return a[c] = b
+}
+
+function sc_deleteJsFieldBang(a, c) {
+    delete a[c]
+}
+
+function sc_jsCall(a, c) {
+    for (var b = [], d = 2; d < arguments.length; d++) b[d - 2] = arguments[d];
+    return c.apply(a, b)
+}
+
+function sc_jsMethodCall(a, c) {
+    for (var b = [], d = 2; d < arguments.length; d++) b[d - 2] = arguments[d];
+    return a[c].apply(a, b)
+}
+
+function sc_jsNew(a) {
+    var c;
+    c = "new c(" + (1 < arguments.length ? "arguments[1]" : "");
+    for (var b = 2; b < arguments.length; b++) c += ", arguments[" + b + "]";
+    return eval(c + ")")
+}
+
+function sc_pregexp(a) {
+    return new RegExp(sc_string2jsstring(a))
+}
+
+function sc_pregexpMatch(a, c) {
+    var b = (a instanceof RegExp ? a : sc_pregexp(a)).exec(sc_string2jsstring(c));
+    if (null == b) return !1;
+    for (var d = null, e = b.length - 1; 0 <= e; e--) d = null !== b[e] ? sc_cons(sc_jsstring2string(b[e]), d) : sc_cons(!1, d);
+    return d
+}
+
+function sc_pregexpReplace(a, c, b) {
+    c = sc_string2jsstring(c);
+    b = sc_string2jsstring(b);
+    a = a instanceof RegExp ? a.global ? a : new RegExp(a.source) : new RegExp(sc_string2jsstring(a));
+    return c.replace(a, b)
+}
+
+function sc_pregexpReplaceAll(a, c, b) {
+    c = sc_string2jsstring(c);
+    b = sc_string2jsstring(b);
+    a = a instanceof RegExp ? a.global ? a : new RegExp(a.source, "g") : new RegExp(sc_string2jsstring(a), "g");
+    return c.replace(a, b)
+}
+
+function sc_pregexpSplit(a, c) {
+    var b = a instanceof RegExp ? a : new RegExp(sc_string2jsstring(a)),
+        b = sc_string2jsstring(c).split(b);
+    return null == b ? !1 : sc_vector2list(b)
+}
+
+function sc_random(a) {
+    return Math.floor(Math.random() * a)
+}
+
+function sc_currentDate() {
+    return new Date
+}
+
+function sc_Hashtable() {}
+sc_Hashtable.prototype.toString = function() {
+    return "#{%hashtable}"
+};
+
+function sc_HashtableElement(a, c) {
+    this.key = a;
+    this.val = c
+}
+
+function sc_makeHashtable() {
+    return new sc_Hashtable
+}
+
+function sc_hashtablePutBang(a, c, b) {
+    var d = sc_hash(c);
+    a[d] = new sc_HashtableElement(c, b)
+}
+
+function sc_hashtableGet(a, c) {
+    var b = sc_hash(c);
+    return b in a ? a[b].val : !1
+}
+
+function sc_hashtableForEach(a, c) {
+    for (var b in a) a[b] instanceof sc_HashtableElement && c(a[b].key, a[b].val)
+}
+
+function sc_hashtableContains(a, c) {
+    return sc_hash(c) in a ? !0 : !1
+}
+var SC_HASH_COUNTER = 0;
+
+function sc_hash(a) {
+    return null === a ? "null" : void 0 === a ? "undefined" : !0 === a ? "true" : !1 === a ? "false" : "number" === typeof a ? "num-" + a : "string" === typeof a ? "jsstr-" + a : a.sc_getHash ? a.sc_getHash() : sc_counterHash.call(a)
+}
+
+function sc_counterHash() {
+    this.sc_hash || (this.sc_hash = "hash-" + SC_HASH_COUNTER, SC_HASH_COUNTER++);
+    return this.sc_hash
+}
+
+function sc_Trampoline(a, c) {
+    this["__trampoline return__"] = !0;
+    this.args = a;
+    this.MAX_TAIL_CALLs = c
+}
+sc_Trampoline.prototype.restart = function() {
+    for (var a = this;;)
+        if (SC_TAIL_OBJECT.calls = a.MAX_TAIL_CALLs - 1, a = a.args.callee.apply(SC_TAIL_OBJECT, a.args), !(a instanceof sc_Trampoline)) return a
+};
+
+function sc_bindExitLambda(a) {
+    var c = new sc_BindExitException,
+        b = function(a) {
+            c.res = a;
+            throw c;
+        };
+    try {
+        return a(b)
+    } catch (d) {
+        if (d === c) return d.res;
+        throw d;
+    }
+}
+
+function sc_BindExitException() {
+    this._internalException = !0
+}
+var SC_SCM2JS_GLOBALS = {},
+    SC_TAIL_OBJECT = {};
+SC_SCM2JS_GLOBALS.TAIL_OBJECT = SC_TAIL_OBJECT;
+
+function sc_EOF() {}
+var SC_EOF_OBJECT = new sc_EOF;
+
+function sc_Port() {}
+
+function sc_InputPort() {}
+sc_InputPort.prototype = new sc_Port;
+sc_InputPort.prototype.peekChar = function() {
+    "peeked" in this || (this.peeked = this.getNextChar());
+    return this.peeked
+};
+sc_InputPort.prototype.readChar = function() {
+    var a = this.peekChar();
+    delete this.peeked;
+    return a
+};
+sc_InputPort.prototype.isCharReady = function() {
+    return !0
+};
+sc_InputPort.prototype.close = function() {};
+
+function sc_ErrorInputPort() {}
+sc_ErrorInputPort.prototype = new sc_InputPort;
+sc_ErrorInputPort.prototype.getNextChar = function() {
+    throw "can't read from error-port.";
+};
+sc_ErrorInputPort.prototype.isCharReady = function() {
+    return !1
+};
+
+function sc_StringInputPort(a) {
+    this.str = new String(a);
+    this.pos = 0
+}
+sc_StringInputPort.prototype = new sc_InputPort;
+sc_StringInputPort.prototype.getNextChar = function() {
+    return this.pos >= this.str.length ? SC_EOF_OBJECT : this.str.charAt(this.pos++)
+};
+
+function sc_Token(a, c, b) {
+    this.type = a;
+    this.val = c;
+    this.pos = b
+}
+sc_Token.EOF = 0;
+sc_Token.OPEN_PAR = 1;
+sc_Token.CLOSE_PAR = 2;
+sc_Token.OPEN_BRACE = 3;
+sc_Token.CLOSE_BRACE = 4;
+sc_Token.OPEN_BRACKET = 5;
+sc_Token.CLOSE_BRACKET = 6;
+sc_Token.WHITESPACE = 7;
+sc_Token.QUOTE = 8;
+sc_Token.ID = 9;
+sc_Token.DOT = 10;
+sc_Token.STRING = 11;
+sc_Token.NUMBER = 12;
+sc_Token.ERROR = 13;
+sc_Token.VECTOR_BEGIN = 14;
+sc_Token.TRUE = 15;
+sc_Token.FALSE = 16;
+sc_Token.UNSPECIFIED = 17;
+sc_Token.REFERENCE = 18;
+sc_Token.STORE = 19;
+sc_Token.CHAR = 20;
+var SC_ID_CLASS = SC_LOWER_CLASS + SC_UPPER_CLASS + "!$%*+-./:<=>?@^_~";
+
+function sc_Tokenizer(a) {
+    this.port = a
+}
+sc_Tokenizer.prototype.peekToken = function() {
+    if (this.peeked) return this.peeked;
+    var a = this.nextToken();
+    return this.peeked = a
+};
+sc_Tokenizer.prototype.readToken = function() {
+    var a = this.peekToken();
+    delete this.peeked;
+    return a
+};
+sc_Tokenizer.prototype.nextToken = function() {
+    function a(a) {
+        return "0" <= a && "9" >= a
+    }
+
+    function c(a) {
+        return -1 != SC_ID_CLASS.indexOf(a) || "0" <= a && "9" >= a
+    }
+
+    function b(a) {
+        return " " === a || "\r" === a || "\n" === a || "\t" === a || "\f" === a
+    }
+
+    function d(a) {
+        return b(a) || a === SC_EOF_OBJECT
+    }
+
+    function e() {
+        for (res = "";;) {
+            var a = h.readChar();
+            switch (a) {
+                case '"':
+                    return new sc_Token(11, res);
+                case "\\":
+                    a = h.readChar();
+                    switch (a) {
+                        case "0":
+                            res += "\x00";
+                            break;
+                        case "a":
+                            res += "a";
+                            break;
+                        case "b":
+                            res += "\b";
+                            break;
+                        case "f":
+                            res += "\f";
+                            break;
+                        case "n":
+                            res += "\n";
+                            break;
+                        case "r":
+                            res += "\r";
+                            break;
+                        case "t":
+                            res += "\t";
+                            break;
+                        case "v":
+                            res += "\v";
+                            break;
+                        case '"':
+                            res += '"';
+                            break;
+                        case "\\":
+                            res += "\\";
+                            break;
+                        case "x":
+                            for (a = 0;;) {
+                                var b = h.peekChar();
+                                if ("0" <= b && "9" >= b) h.readChar(), a = 16 * a + b.charCodeAt(0) - 48;
+                                else if ("a" <= b && "f" >= b) h.readChar(), a = 16 * a + b.charCodeAt(0) - 97;
+                                else if ("A" <= b && "F" >= b) h.readChar(), a = 16 * a + b.charCodeAt(0) - 65;
+                                else {
+                                    res += String.fromCharCode(a);
+                                    break
+                                }
+                            }
+                            break;
+                        default:
+                            if (a === SC_EOF_OBJECT) return new sc_Token(13, "unclosed string-literal" + res);
+                            res += a
+                    }
+                    break;
+                default:
+                    if (a ===
+                        SC_EOF_OBJECT) return new sc_Token(13, "unclosed string-literal" + res);
+                    res += a
+            }
+        }
+    }
+
+    function f(a) {
+        for (; c(h.peekChar());) a += h.readChar();
+        return isNaN(a) ? new sc_Token(9, a) : new sc_Token(12, a - 0)
+    }
+
+    function g() {
+        var c = h.readChar();
+        if (b(c)) return new sc_Token(13, "bad #-pattern0.");
+        if (a(c)) {
+            for (c -= 0; a(h.peekChar());) c = 10 * c + (h.readChar() - 0);
+            switch (h.readChar()) {
+                case "#":
+                    return new sc_Token(18, c);
+                case "=":
+                    return new sc_Token(19, c);
+                default:
+                    return new sc_Token(13, "bad #-pattern1." + c)
+            }
+        }
+        if ("(" === c) return new sc_Token(14);
+        if ("\\" === c) {
+            for (c = ""; !d(h.peekChar());) c += h.readChar();
+            switch (c.length) {
+                case 0:
+                    return sc_isEOFObject(h.peekChar) ? new sc_Token(13, "bad #-pattern2.") : new sc_Token(20, h.readChar());
+                case 1:
+                    return new sc_Token(20, c);
+                default:
+                    var e = sc_Char.readable2char[c.toLowerCase()];
+                    return e ? new sc_Token(20, e) : new sc_Token(13, "unknown character description: #\\" + c)
+            }
+        }
+        var f;
+        switch (c) {
+            case "t":
+                e = new sc_Token(15, !0);
+                f = "";
+                break;
+            case "f":
+                e = new sc_Token(16, !1);
+                f = "";
+                break;
+            case "u":
+                e = new sc_Token(17, void 0);
+                f = "nspecified";
+                break;
+            default:
+                return new sc_Token(13, "bad #-pattern3: " + c)
+        }
+        for (;;)
+            if (c = h.peekChar(), !d(c) && ")" !== c || "" != f) {
+                if (b(c) || "" == f) return new sc_Token(13, "bad #-pattern4 " + c + " " + f);
+                if (f.charAt(0) == c) h.readChar(), f = f.slice(1);
+                else return new sc_Token(13, "bad #-pattern5")
+            } else return e
+    }
+    var h = this.port;
+    (function() {
+        for (var a = !1; !a;) {
+            for (a = !0; b(h.peekChar());) h.readChar();
+            if (";" === h.peekChar())
+                for (h.readChar(), a = !1; l = h.readChar(), l !== SC_EOF_OBJECT && "\n" !== l;);
+        }
+    })();
+    var l = h.readChar();
+    if (l === SC_EOF_OBJECT) return new sc_Token(0,
+        l);
+    switch (l) {
+        case " ":
+        case "\n":
+        case "\t":
+            return readWhitespace();
+        case "(":
+            return new sc_Token(1);
+        case ")":
+            return new sc_Token(2);
+        case "{":
+            return new sc_Token(3);
+        case "}":
+            return new sc_Token(4);
+        case "[":
+            return new sc_Token(5);
+        case "]":
+            return new sc_Token(6);
+        case "'":
+            return new sc_Token(8);
+        case "#":
+            return g();
+        case ".":
+            var m;
+            m = b(h.peekChar()) ? new sc_Token(10) : f(".");
+            return m;
+        case '"':
+            return e();
+        default:
+            if (c(l)) return f(l);
+            throw "unexpected character: " + l;
+    }
+};
+
+function sc_Reader(a) {
+    this.tokenizer = a;
+    this.backref = []
+}
+sc_Reader.prototype.read = function() {
+    function a(a) {
+        function b(a, c) {
+            return 1 === a && 2 === c || 3 === a && 4 === c || 5 === a && 6 === c
+        }
+        for (var c = null;;) {
+            var d = e.peekToken();
+            switch (d.type) {
+                case 2:
+                case 4:
+                case 6:
+                    if (b(a, d.type)) return e.readToken(), sc_reverseBang(c);
+                    throw "closing par doesn't match: " + a + " " + listEndType;
+                case 0:
+                    throw "unexpected end of file";
+                case 10:
+                    e.readToken();
+                    var d = this.read(),
+                        f = e.readToken();
+                    if (b(a, f.type)) return sc_reverseAppendBang(c, d);
+                    throw "closing par doesn't match: " + a + " " + f.type;
+                default:
+                    c = sc_cons(this.read(),
+                        c)
+            }
+        }
+    }
+
+    function c() {
+        for (var a = [];;) switch (e.peekToken().type) {
+            case 2:
+                return e.readToken(), a;
+            default:
+                a.push(this.read())
+        }
+    }
+
+    function b(a) {
+        var b = this.read();
+        return this.backref[a] = b
+    }
+
+    function d(a) {
+        if (a in this.backref) return this.backref[a];
+        throw "bad reference: " + a;
+    }
+    var e = this.tokenizer,
+        f = e.readToken();
+    if (13 === f.type) throw f.val;
+    switch (f.type) {
+        case 1:
+        case 3:
+        case 5:
+            return a.call(this, f.type);
+        case 8:
+            return sc_cons("quote", sc_cons(this.read(), null));
+        case 11:
+            return sc_jsstring2string(f.val);
+        case 20:
+            return new sc_Char(f.val);
+        case 14:
+            return c.call(this);
+        case 18:
+            return d.call(this, f.val);
+        case 19:
+            return b.call(this, f.val);
+        case 9:
+            return sc_jsstring2symbol(f.val);
+        case 0:
+        case 12:
+        case 15:
+        case 16:
+        case 17:
+            return f.val;
+        default:
+            throw "unexpected token " + f.type + " " + f.val;
+    }
+};
+
+function sc_read(a) {
+    void 0 === a && (a = SC_DEFAULT_IN);
+    return (new sc_Reader(new sc_Tokenizer(a))).read()
+}
+
+function sc_readChar(a) {
+    void 0 === a && (a = SC_DEFAULT_IN);
+    a = a.readChar();
+    return a === SC_EOF_OBJECT ? a : new sc_Char(a)
+}
+
+function sc_peekChar(a) {
+    void 0 === a && (a = SC_DEFAULT_IN);
+    a = a.peekChar();
+    return a === SC_EOF_OBJECT ? a : new sc_Char(a)
+}
+
+function sc_isCharReady(a) {
+    void 0 === a && (a = SC_DEFAULT_IN);
+    return a.isCharReady()
+}
+
+function sc_closeInputPort(a) {
+    return a.close()
+}
+
+function sc_isInputPort(a) {
+    return a instanceof sc_InputPort
+}
+
+function sc_isEOFObject(a) {
+    return a === SC_EOF_OBJECT
+}
+
+function sc_currentInputPort() {
+    return SC_DEFAULT_IN
+}
+
+function sc_callWithInputFile(a, c) {
+    throw "can't open " + a;
+}
+
+function sc_callWithOutputFile(a, c) {
+    throw "can't open " + a;
+}
+
+function sc_withInputFromFile(a, c) {
+    throw "can't open " + a;
+}
+
+function sc_withOutputToFile(a, c) {
+    throw "can't open " + a;
+}
+
+function sc_openInputFile(a) {
+    throw "can't open " + a;
+}
+
+function sc_openOutputFile(a) {
+    throw "can't open " + a;
+}
+
+function sc_basename(a) {
+    var c = a.lastIndexOf("/");
+    return 0 <= c ? a.substring(c + 1, a.length) : ""
+}
+
+function sc_dirname(a) {
+    var c = a.lastIndexOf("/");
+    return 0 <= c ? a.substring(0, c) : ""
+}
+
+function sc_withInputFromPort(a, c) {
+    try {
+        var b = SC_DEFAULT_IN;
+        SC_DEFAULT_IN = a;
+        return c()
+    } finally {
+        SC_DEFAULT_IN = b
+    }
+}
+
+function sc_withInputFromString(a, c) {
+    return sc_withInputFromPort(new sc_StringInputPort(sc_string2jsstring(a)), c)
+}
+
+function sc_withOutputToPort(a, c) {
+    try {
+        var b = SC_DEFAULT_OUT;
+        SC_DEFAULT_OUT = a;
+        return c()
+    } finally {
+        SC_DEFAULT_OUT = b
+    }
+}
+
+function sc_withOutputToString(a) {
+    var c = new sc_StringOutputPort;
+    sc_withOutputToPort(c, a);
+    return c.close()
+}
+
+function sc_withOutputToProcedure(a, c) {
+    return sc_withOutputToPort(new sc_GenericOutputPort(function(b) {
+        a(sc_jsstring2string(b))
+    }), c)
+}
+
+function sc_openOutputString() {
+    return new sc_StringOutputPort
+}
+
+function sc_openInputString(a) {
+    return new sc_StringInputPort(sc_string2jsstring(a))
+}
+
+function sc_OutputPort() {}
+sc_OutputPort.prototype = new sc_Port;
+sc_OutputPort.prototype.appendJSString = function(a) {};
+sc_OutputPort.prototype.close = function() {};
+
+function sc_StringOutputPort() {
+    this.res = ""
+}
+sc_StringOutputPort.prototype = new sc_OutputPort;
+sc_StringOutputPort.prototype.appendJSString = function(a) {
+    this.res += a
+};
+sc_StringOutputPort.prototype.close = function() {
+    return sc_jsstring2string(this.res)
+};
+
+function sc_getOutputString(a) {
+    return sc_jsstring2string(a.res)
+}
+
+function sc_ErrorOutputPort() {}
+sc_ErrorOutputPort.prototype = new sc_OutputPort;
+sc_ErrorOutputPort.prototype.appendJSString = function(a) {
+    throw "don't write on ErrorPort!";
+};
+sc_ErrorOutputPort.prototype.close = function() {};
+
+function sc_GenericOutputPort(a, c) {
+    this.appendJSString = a;
+    c && (this.close = c)
+}
+sc_GenericOutputPort.prototype = new sc_OutputPort;
+
+function sc_isOutputPort(a) {
+    return a instanceof sc_OutputPort
+}
+
+function sc_closeOutputPort(a) {
+    return a.close()
+}
+
+function sc_write(a, c) {
+    void 0 === c && (c = SC_DEFAULT_OUT);
+    c.appendJSString(sc_toWriteString(a))
+}
+
+function sc_toWriteString(a) {
+    return null === a ? "()" : !0 === a ? "#t" : !1 === a ? "#f" : void 0 === a ? "#unspecified" : "function" === typeof a ? "#<procedure " + sc_hash(a) + ">" : a.sc_toWriteString ? a.sc_toWriteString() : a.toString()
+}
+
+function sc_escapeWriteString(a) {
+    var c = "",
+        b = 0;
+    for (i = 0; i < a.length; i++) switch (a.charAt(i)) {
+        case "\x00":
+            c += a.substring(b, i) + "\\0";
+            b = i + 1;
+            break;
+        case "\b":
+            c += a.substring(b, i) + "\\b";
+            b = i + 1;
+            break;
+        case "\f":
+            c += a.substring(b, i) + "\\f";
+            b = i + 1;
+            break;
+        case "\n":
+            c += a.substring(b, i) + "\\n";
+            b = i + 1;
+            break;
+        case "\r":
+            c += a.substring(b, i) + "\\r";
+            b = i + 1;
+            break;
+        case "\t":
+            c += a.substring(b, i) + "\\t";
+            b = i + 1;
+            break;
+        case "\v":
+            c += a.substring(b, i) + "\\v";
+            b = i + 1;
+            break;
+        case '"':
+            c += a.substring(b, i) + '\\"';
+            b = i + 1;
+            break;
+        case "\\":
+            c += a.substring(b,
+                i) + "\\\\";
+            b = i + 1;
+            break;
+        default:
+            var d = a.charAt(i);
+            "\v" !== "v" && "\v" == d ? (c += a.substring(b, i) + "\\v", b = i + 1) : " " > a.charAt(i) && (c += a.substring(b, i) + "\\x" + a.charCodeAt(i).toString(16), b = i + 1)
+    }
+    return c += a.substring(b, i)
+}
+
+function sc_display(a, c) {
+    void 0 === c && (c = SC_DEFAULT_OUT);
+    c.appendJSString(sc_toDisplayString(a))
+}
+
+function sc_toDisplayString(a) {
+    return null === a ? "()" : !0 === a ? "#t" : !1 === a ? "#f" : void 0 === a ? "#unspecified" : "function" === typeof a ? "#<procedure " + sc_hash(a) + ">" : a.sc_toDisplayString ? a.sc_toDisplayString() : a.toString()
+}
+
+function sc_newline(a) {
+    void 0 === a && (a = SC_DEFAULT_OUT);
+    a.appendJSString("\n")
+}
+
+function sc_writeChar(a, c) {
+    void 0 === c && (c = SC_DEFAULT_OUT);
+    c.appendJSString(a.val)
+}
+
+function sc_writeCircle(a, c) {
+    void 0 === c && (c = SC_DEFAULT_OUT);
+    c.appendJSString(sc_toWriteCircleString(a))
+}
+
+function sc_toWriteCircleString(a) {
+    var c = sc_gensym("writeCircle");
+    sc_prepWriteCircle(a, c, {
+        nb: 0
+    });
+    return sc_genToWriteCircleString(a, c)
+}
+
+function sc_prepWriteCircle(a, c, b) {
+    if (a instanceof sc_Pair || a instanceof sc_Vector)
+        if (void 0 !== a[c]) a[c]++, a[c + "nb"] || (a[c + "nb"] = b.nb++);
+        else if (a[c] = 0, a instanceof sc_Pair) sc_prepWriteCircle(a.car, c, b), sc_prepWriteCircle(a.cdr, c, b);
+    else
+        for (var d = 0; d < a.length; d++) sc_prepWriteCircle(a[d], c, b)
+}
+
+function sc_genToWriteCircleString(a, c) {
+    return a instanceof sc_Pair || a instanceof sc_Vector ? a.sc_toWriteCircleString(c) : sc_toWriteString(a)
+}
+sc_Pair.prototype.sc_toWriteCircleString = function(a, c) {
+    if (this[a + "use"]) {
+        var b = this[a + "nb"];
+        0 === this[a]-- && (delete this[a], delete this[a + "nb"], delete this[a + "use"]);
+        return c ? ". #" + b + "#" : "#" + b + "#"
+    }
+    0 === this[a]-- && (delete this[a], delete this[a + "nb"], delete this[a + "use"]);
+    b = "";
+    void 0 !== this[a] && (this[a + "use"] = !0, b = c ? b + (". #" + this[a + "nb"] + "=") : b + ("#" + this[a + "nb"] + "="), c = !1);
+    c || (b += "(");
+    b += sc_genToWriteCircleString(this.car, a);
+    sc_isPair(this.cdr) ? b += " " + this.cdr.sc_toWriteCircleString(a, !0) : null !== this.cdr &&
+        (b += " . " + sc_genToWriteCircleString(this.cdr, a));
+    c || (b += ")");
+    return b
+};
+sc_Vector.prototype.sc_toWriteCircleString = function(a) {
+    if (this[a + "use"]) {
+        var c = this[a + "nb"];
+        0 === this[a]-- && (delete this[a], delete this[a + "nb"], delete this[a + "use"]);
+        return "#" + c + "#"
+    }
+    0 === this[a]-- && (delete this[a], delete this[a + "nb"], delete this[a + "use"]);
+    c = "";
+    void 0 !== this[a] && (this[a + "use"] = !0, c += "#" + this[a + "nb"] + "=");
+    for (var c = c + "#(", b = 0; b < this.length; b++) c += sc_genToWriteCircleString(this[b], a), b < this.length - 1 && (c += " ");
+    return c + ")"
+};
+
+function sc_print(a) {
+    if (1 === arguments.length) sc_display(a);
+    else
+        for (var c = 0; c < arguments.length; c++) sc_display(arguments[c]);
+    sc_newline()
+}
+
+function sc_format(a, c) {
+    for (var b = a.length, d = new sc_StringOutputPort, e = 0, f = 1; e < b;) {
+        var g = a.indexOf("~", e);
+        if (-1 == g) {
+            d.appendJSString(a.substring(e, b));
+            break
+        } else {
+            if (g > e)
+                if (g == b - 1) {
+                    d.appendJSString(a.substring(e, b));
+                    break
+                } else d.appendJSString(a.substring(e, g)), e = g;
+            switch (a.charCodeAt(g + 1)) {
+                case 65:
+                case 97:
+                    sc_display(arguments[f], d);
+                    e += 2;
+                    f++;
+                    break;
+                case 83:
+                case 115:
+                    sc_write(arguments[f], d);
+                    e += 2;
+                    f++;
+                    break;
+                case 86:
+                case 118:
+                    sc_display(arguments[f], d);
+                    d.appendJSString("\n");
+                    e += 2;
+                    f++;
+                    break;
+                case 67:
+                case 99:
+                    d.appendJSString(String.fromCharCode(arguments[f]));
+                    e += 2;
+                    f++;
+                    break;
+                case 88:
+                case 120:
+                    d.appendJSString(arguments[f].toString(6));
+                    e += 2;
+                    f++;
+                    break;
+                case 79:
+                case 111:
+                    d.appendJSString(arguments[f].toString(8));
+                    e += 2;
+                    f++;
+                    break;
+                case 66:
+                case 98:
+                    d.appendJSString(arguments[f].toString(2));
+                    e += 2;
+                    f++;
+                    break;
+                case 37:
+                case 110:
+                    d.appendJSString("\n");
+                    e += 2;
+                    break;
+                case 114:
+                    d.appendJSString("\r");
+                    e += 2;
+                    break;
+                case 126:
+                    d.appendJSString("~");
+                    e += 2;
+                    break;
+                default:
+                    return sc_error("format: illegal ~" + String.fromCharCode(a.charCodeAt(g + 1)) + " sequence"), ""
+            }
+        }
+    }
+    return d.close()
+}
+var SC_DEFAULT_IN = new sc_ErrorInputPort,
+    SC_DEFAULT_OUT = new sc_ErrorOutputPort,
+    SC_ERROR_OUT = new sc_ErrorOutputPort,
+    sc_SYMBOL_PREFIX = "\u1e9c",
+    sc_KEYWORD_PREFIX = "\u1e9d";
+
+function sc_jsstring2string(a) {
+    return a
+}
+
+function sc_jsstring2symbol(a) {
+    return sc_SYMBOL_PREFIX + a
+}
+
+function sc_string2jsstring(a) {
+    return a
+}
+
+function sc_symbol2jsstring(a) {
+    return a.slice(1)
+}
+
+function sc_keyword2jsstring(a) {
+    return a.slice(1)
+}
+
+function sc_jsstring2keyword(a) {
+    return sc_KEYWORD_PREFIX + a
+}
+
+function sc_isKeyword(a) {
+    return "string" === typeof a && a.charAt(0) === sc_KEYWORD_PREFIX
+}
+var sc_gensym = function() {
+    var a = 1E3;
+    return function(c) {
+        a++;
+        c || (c = sc_SYMBOL_PREFIX);
+        return c + "s" + a + "~^sC-GeNsYm "
+    }
+}();
+
+function sc_isEqual(a, c) {
+    return a === c || sc_isPair(a) && sc_isPair(c) && sc_isPairEqual(a, c, sc_isEqual) || sc_isVector(a) && sc_isVector(c) && sc_isVectorEqual(a, c, sc_isEqual)
+}
+
+function sc_number2symbol(a, c) {
+    return sc_SYMBOL_PREFIX + sc_number2jsstring(a, c)
+}
+var sc_number2string = sc_number2jsstring;
+
+function sc_symbol2number(a, c) {
+    return sc_jsstring2number(a.slice(1), c)
+}
+var sc_string2number = sc_jsstring2number;
+
+function sc_string2integer(a, c) {
+    return c ? parseInt(a, c) : +a
+}
+
+function sc_string2real(a) {
+    return +a
+}
+
+function sc_isSymbol(a) {
+    return "string" === typeof a && a.charAt(0) === sc_SYMBOL_PREFIX
+}
+
+function sc_symbol2string(a) {
+    return a.slice(1)
+}
+
+function sc_string2symbol(a) {
+    return sc_SYMBOL_PREFIX + a
+}
+
+function sc_symbolAppend() {
+    for (var a = sc_SYMBOL_PREFIX, c = 0; c < arguments.length; c++) a += arguments[c].slice(1);
+    return a
+}
+
+function sc_char2string(a) {
+    return a.val
+}
+
+function sc_char2symbol(a) {
+    return sc_SYMBOL_PREFIX + a.val
+}
+
+function sc_isString(a) {
+    return "string" === typeof a && a.charAt(0) !== sc_SYMBOL_PREFIX
+}
+var sc_makeString = sc_makejsString;
+
+function sc_string() {
+    for (var a = 0; a < arguments.length; a++) arguments[a] = arguments[a].val;
+    return "".concat.apply("", arguments)
+}
+
+function sc_stringLength(a) {
+    return a.length
+}
+
+function sc_stringRef(a, c) {
+    return new sc_Char(a.charAt(c))
+}
+
+function sc_isStringEqual(a, c) {
+    return a === c
+}
+
+function sc_isStringLess(a, c) {
+    return a < c
+}
+
+function sc_isStringGreater(a, c) {
+    return a > c
+}
+
+function sc_isStringLessEqual(a, c) {
+    return a <= c
+}
+
+function sc_isStringGreaterEqual(a, c) {
+    return a >= c
+}
+
+function sc_isStringCIEqual(a, c) {
+    return a.toLowerCase() === c.toLowerCase()
+}
+
+function sc_isStringCILess(a, c) {
+    return a.toLowerCase() < c.toLowerCase()
+}
+
+function sc_isStringCIGreater(a, c) {
+    return a.toLowerCase() > c.toLowerCase()
+}
+
+function sc_isStringCILessEqual(a, c) {
+    return a.toLowerCase() <= c.toLowerCase()
+}
+
+function sc_isStringCIGreaterEqual(a, c) {
+    return a.toLowerCase() >= c.toLowerCase()
+}
+
+function sc_substring(a, c, b) {
+    return a.substring(c, b)
+}
+
+function sc_isSubstring_at(a, c, b) {
+    return c == a.substring(b, b + c.length)
+}
+
+function sc_stringAppend() {
+    return "".concat.apply("", arguments)
+}
+var sc_string2list = sc_jsstring2list,
+    sc_list2string = sc_list2jsstring;
+
+function sc_stringCopy(a) {
+    return a
+}
+
+function sc_keyword2string(a) {
+    return a.slice(1)
+}
+
+function sc_string2keyword(a) {
+    return sc_KEYWORD_PREFIX + a
+}
+String.prototype.sc_toDisplayString = function() {
+    return this.charAt(0) === sc_SYMBOL_PREFIX ? this.slice(1) : this.charAt(0) === sc_KEYWORD_PREFIX ? ":" + this.slice(1) : this.toString()
+};
+String.prototype.sc_toWriteString = function() {
+    return this.charAt(0) === sc_SYMBOL_PREFIX ? this.slice(1) : this.charAt(0) === sc_KEYWORD_PREFIX ? ":" + this.slice(1) : '"' + sc_escapeWriteString(this) + '"'
+};
+var BgL_testzd2boyerzd2, BgL_nboyerzd2benchmarkzd2, BgL_setupzd2boyerzd2, translate_term_nboyer, translate_args_nboyer, untranslate_term_nboyer, BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer, BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer, translate_alist_nboyer, apply_subst_nboyer, apply_subst_lst_nboyer, tautologyp_nboyer, if_constructor_nboyer, rewrite_count_nboyer, rewrite_nboyer, rewrite_args_nboyer, unify_subst_nboyer, one_way_unify1_nboyer, false_term_nboyer, true_term_nboyer, trans_of_implies1_nboyer, is_term_equal_nboyer,
+    is_term_member_nboyer, const_nboyer, sc_const_3_nboyer, sc_const_4_nboyer;
+sc_const_4_nboyer = new sc_Pair("\u1e9cimplies", new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cu", null))), new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cu", new sc_Pair("\u1e9cw",
+    null))), null))), null))), null))), new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cw", null))), null)));
+sc_const_3_nboyer = sc_list(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ccompile", new sc_Pair("\u1e9cform", null)), new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair(new sc_Pair("\u1e9ccodegen", new sc_Pair(new sc_Pair("\u1e9coptimize", new sc_Pair("\u1e9cform", null)), new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ceqp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfix",
+        new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cy", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgreaterp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clesseqp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp",
+        new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgreatereqp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cboolean", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx",
+        new sc_Pair(new sc_Pair("\u1e9ct", null), null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cf", null), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ciff", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))),
+        null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ceven1", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ct", null), new sc_Pair(new sc_Pair("\u1e9codd", new sc_Pair(new sc_Pair("\u1e9csub1", new sc_Pair("\u1e9cx", null)), null)), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ccountps-", new sc_Pair("\u1e9cl", new sc_Pair("\u1e9cpred", null))), new sc_Pair(new sc_Pair("\u1e9ccountps-loop",
+        new sc_Pair("\u1e9cl", new sc_Pair("\u1e9cpred", new sc_Pair(new sc_Pair("\u1e9czero", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfact-", new sc_Pair("\u1e9ci", null)), new sc_Pair(new sc_Pair("\u1e9cfact-loop", new sc_Pair("\u1e9ci", new sc_Pair(1, null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9creverse-", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9creverse-loop", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cnil", null), null))),
+        null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdivides", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cassume-true", new sc_Pair("\u1e9cvar", new sc_Pair("\u1e9calist", null))), new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cvar", new sc_Pair(new sc_Pair("\u1e9ct",
+        null), null))), new sc_Pair("\u1e9calist", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cassume-false", new sc_Pair("\u1e9cvar", new sc_Pair("\u1e9calist", null))), new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cvar", new sc_Pair(new sc_Pair("\u1e9cf", null), null))), new sc_Pair("\u1e9calist", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctautology-checker", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ctautologyp",
+        new sc_Pair(new sc_Pair("\u1e9cnormalize", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfalsify", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cfalsify1", new sc_Pair(new sc_Pair("\u1e9cnormalize", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cprime", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cand",
+        new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair(new sc_Pair("\u1e9czero", null), null)), null))), null)), new sc_Pair(new sc_Pair("\u1e9cprime1", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9csub1", new sc_Pair("\u1e9cx", null)), null))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cand",
+        new sc_Pair("\u1e9cp", new sc_Pair("\u1e9cq", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cp", new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cq", new sc_Pair(new sc_Pair("\u1e9ct", null), new sc_Pair(new sc_Pair("\u1e9cf", null), null)))), new sc_Pair(new sc_Pair("\u1e9cf", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair("\u1e9cp", new sc_Pair("\u1e9cq", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cp", new sc_Pair(new sc_Pair("\u1e9ct",
+        null), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cq", new sc_Pair(new sc_Pair("\u1e9ct", null), new sc_Pair(new sc_Pair("\u1e9cf", null), null)))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair("\u1e9cp", null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cp", new sc_Pair(new sc_Pair("\u1e9cf", null), new sc_Pair(new sc_Pair("\u1e9ct", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cimplies", new sc_Pair("\u1e9cp",
+        new sc_Pair("\u1e9cq", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cp", new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cq", new sc_Pair(new sc_Pair("\u1e9ct", null), new sc_Pair(new sc_Pair("\u1e9cf", null), null)))), new sc_Pair(new sc_Pair("\u1e9ct", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cx", null)), new sc_Pair("\u1e9cx",
+        new sc_Pair(new sc_Pair("\u1e9czero", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", new sc_Pair("\u1e9cc", null)))), new sc_Pair("\u1e9cd", new sc_Pair("\u1e9ce", null)))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9ca", new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cb", new sc_Pair("\u1e9cd", new sc_Pair("\u1e9ce", null)))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair("\u1e9cc",
+        new sc_Pair("\u1e9cd", new sc_Pair("\u1e9ce", null)))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cx", null)), null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9cplus",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9czerop",
+        new sc_Pair("\u1e9ca", null)), new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cb", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cc",
+        null))), null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cb", null)), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cc", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy",
+        new sc_Pair("\u1e9cx", null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair(new sc_Pair("\u1e9czerop",
+        new sc_Pair("\u1e9cy", null)), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair("\u1e9cx", null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cmeaning",
+        new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair("\u1e9cy", null)), new sc_Pair("\u1e9ca", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair(new sc_Pair("\u1e9cplus-fringe", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), null)), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), null)), new sc_Pair(new sc_Pair("\u1e9cappend",
+        new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair("\u1e9cb", null)), new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair("\u1e9ca", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9ctimes",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctimes",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cexec", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cpds", new sc_Pair("\u1e9cenvrn", null)))),
+        new sc_Pair(new sc_Pair("\u1e9cexec", new sc_Pair("\u1e9cy", new sc_Pair(new sc_Pair("\u1e9cexec", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cpds", new sc_Pair("\u1e9cenvrn", null)))), new sc_Pair("\u1e9cenvrn", null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmc-flatten", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cx", null)), new sc_Pair("\u1e9cy", null))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), null))), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cb", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9creverse",
+        new sc_Pair("\u1e9cy", null)), null))), new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair("\u1e9cx", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9ca", new sc_Pair(new sc_Pair("\u1e9cintersect", new sc_Pair("\u1e9cb",
+        new sc_Pair("\u1e9cc", null))), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cc", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cnth", new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cexp",
+        new sc_Pair("\u1e9ci", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cj", new sc_Pair("\u1e9ck", null))), null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair(new sc_Pair("\u1e9cexp", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cj", null))), new sc_Pair(new sc_Pair("\u1e9cexp", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9ck", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cexp", new sc_Pair("\u1e9ci", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cj", new sc_Pair("\u1e9ck",
+        null))), null))), new sc_Pair(new sc_Pair("\u1e9cexp", new sc_Pair(new sc_Pair("\u1e9cexp", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cj", null))), new sc_Pair("\u1e9ck", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9creverse-loop", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair("\u1e9cx", null)), new sc_Pair("\u1e9cy", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9creverse-loop",
+        new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair("\u1e9cx", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ccount-list", new sc_Pair("\u1e9cz", new sc_Pair(new sc_Pair("\u1e9csort-lp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9ccount-list", new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9ccount-list",
+        new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cy", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cc", null))), null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cb", new sc_Pair("\u1e9cc", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9cremainder",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cy", new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cx", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair(new sc_Pair("\u1e9cbig-plus1", new sc_Pair("\u1e9cl", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cbase", null)))), new sc_Pair("\u1e9cbase",
+        null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair("\u1e9cl", new sc_Pair("\u1e9cbase", null))), new sc_Pair("\u1e9ci", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair(new sc_Pair("\u1e9cbig-plus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cbase", null))))), new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ci", new sc_Pair(new sc_Pair("\u1e9cplus",
+        new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cbase", null))), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair("\u1e9cy", new sc_Pair(1, null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair("\u1e9cx",
+        new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cj", null))),
+        new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9ci", null)), null)), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cj", null)), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cj", new sc_Pair(1, null))), null)), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9cremainder",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), null)), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), null)))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair(new sc_Pair("\u1e9cpower-rep", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cbase", null))), new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9ci", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cpower-eval", new sc_Pair(new sc_Pair("\u1e9cbig-plus", new sc_Pair(new sc_Pair("\u1e9cpower-rep", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9cpower-rep", new sc_Pair("\u1e9cj",
+        new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair("\u1e9cbase", null))))), new sc_Pair("\u1e9cbase", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cj", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgcd", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cgcd", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cnth",
+        new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair(new sc_Pair("\u1e9cnth", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9cnth", new sc_Pair("\u1e9cb", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9ci", new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair("\u1e9ca", null)), null))), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference",
+        new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cy", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cy", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference",
+        new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cc", new sc_Pair("\u1e9cw", null))), null))), new sc_Pair(new sc_Pair("\u1e9cdifference",
+        new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cc", new sc_Pair("\u1e9cx", null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cw", new sc_Pair("\u1e9cx", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference",
+        new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cb", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cc", null))), null))), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cb", new sc_Pair("\u1e9cc", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null)), new sc_Pair("\u1e9cz",
+        null))), new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9cy", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9ctimes",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cz", null)), null)), new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy", new sc_Pair(new sc_Pair("\u1e9cplus",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cx", null)), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgcd", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cz", new sc_Pair(new sc_Pair("\u1e9cgcd",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cvalue", new sc_Pair(new sc_Pair("\u1e9cnormalize", new sc_Pair("\u1e9cx", null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cvalue", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ccons",
+        new sc_Pair("\u1e9cy", new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnlistp", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair(new sc_Pair("\u1e9cgopher", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair("\u1e9cx", null)), null))),
+    new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9csamefringe", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cy", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgreatest-factor", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9czero",
+        null), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cy", new sc_Pair(1, null))), null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgreatest-factor", new sc_Pair("\u1e9cx",
+        new sc_Pair("\u1e9cy", null))), new sc_Pair(1, null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(1, null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair(new sc_Pair("\u1e9cgreatest-factor", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), new sc_Pair(new sc_Pair("\u1e9cequal",
+        new sc_Pair("\u1e9cy", new sc_Pair(1, null))), null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cx", null)), null)), null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ctimes-list", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair(new sc_Pair("\u1e9ctimes-list", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ctimes-list",
+        new sc_Pair("\u1e9cy", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cprime-list", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cprime-list", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cprime-list", new sc_Pair("\u1e9cy", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cz", new sc_Pair(new sc_Pair("\u1e9ctimes",
+        new sc_Pair("\u1e9cw", new sc_Pair("\u1e9cz", null))), null))), new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cz", null)), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cz", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cw", new sc_Pair(1, null))), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cgreatereqp", new sc_Pair("\u1e9cx",
+        new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cor", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9czero", null), null))),
+        new sc_Pair(new sc_Pair("\u1e9cand", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cy", new sc_Pair(1, null))), null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(1, null))), new sc_Pair(sc_list("\u1e9cand", new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9ca", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), null)), new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair("\u1e9cb", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), null)), new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9ca", null)), new sc_Pair("\u1e9cnumberp",
+        new sc_Pair("\u1e9cb", null)), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9csub1", new sc_Pair("\u1e9ca", null)), new sc_Pair(new sc_Pair("\u1e9czero", null), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9csub1", new sc_Pair("\u1e9cb", null)), new sc_Pair(new sc_Pair("\u1e9czero", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair(new sc_Pair("\u1e9cdelete", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cl",
+        null))), null)), new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair("\u1e9cl", null)), null))), new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cl", null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9csort2", new sc_Pair(new sc_Pair("\u1e9cdelete", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cl", null))), null)), new sc_Pair(new sc_Pair("\u1e9cdelete", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9csort2", new sc_Pair("\u1e9cl", null)), null))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cdsort", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9csort2", new sc_Pair("\u1e9cx", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx1", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx2", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx3", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx4", new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx5",
+        new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair("\u1e9cx6", new sc_Pair("\u1e9cx7", null))), null))), null))), null))), null))), null))), null)), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(6, new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair("\u1e9cx7", null)), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(2, null))), new sc_Pair(new sc_Pair("\u1e9cfix",
+        new sc_Pair("\u1e9cx", null)), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(2, null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair("\u1e9cy", new sc_Pair(2, null))), null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9csigma",
+        new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9ci", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9ci", null)), null))), new sc_Pair(2, null))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9cy", null)), null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cnumberp",
+        new sc_Pair("\u1e9cy", null)), new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9cx", null)), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cy", null))), null))),
+        new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cz", null))), null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cnot", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx",
+            null))), null)), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cz", null)), null))), null)))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair(new sc_Pair("\u1e9cdelete", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cmember",
+        new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair("\u1e9cy", null)), new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), null))), new sc_Pair(new sc_Pair("\u1e9cmeaning", new sc_Pair(new sc_Pair("\u1e9cplus-tree", new sc_Pair("\u1e9cy", null)), new sc_Pair("\u1e9ca", null))), null)))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cadd1", new sc_Pair("\u1e9cy", null)), null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cnumberp", new sc_Pair("\u1e9cy", null)), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null))), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cx", null)), null)))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cnth", new sc_Pair(new sc_Pair("\u1e9cnil", null), new sc_Pair("\u1e9ci", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9ci", null)), new sc_Pair(new sc_Pair("\u1e9cnil", null), new sc_Pair(new sc_Pair("\u1e9czero", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9clast", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), null)), new sc_Pair(new sc_Pair("\u1e9cif",
+        new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair("\u1e9cb", null)), new sc_Pair(new sc_Pair("\u1e9clast", new sc_Pair("\u1e9cb", null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair("\u1e9ca", null)), new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair(new sc_Pair("\u1e9ccar", new sc_Pair(new sc_Pair("\u1e9clast", new sc_Pair("\u1e9ca", null)), null)), new sc_Pair("\u1e9cb", null))), new sc_Pair("\u1e9cb", null)))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clessp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9ct", null), new sc_Pair("\u1e9cz", null))), new sc_Pair(new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cf", null), new sc_Pair("\u1e9cz", null))), null)))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9cassignment", new sc_Pair("\u1e9cx", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9cassignedp", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cassignment", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9ca", null))), new sc_Pair(new sc_Pair("\u1e9cassignment", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cb", null))), null)))), null))), new sc_Pair("\u1e9cequal",
+        new sc_Pair(new sc_Pair("\u1e9ccar", new sc_Pair(new sc_Pair("\u1e9cgopher", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ccar", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9czero", null), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair(new sc_Pair("\u1e9ccdr", new sc_Pair(new sc_Pair("\u1e9cgopher",
+        new sc_Pair("\u1e9cx", null)), null)), null)), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9clistp", new sc_Pair("\u1e9cx", null)), new sc_Pair(new sc_Pair("\u1e9ccdr", new sc_Pair(new sc_Pair("\u1e9cflatten", new sc_Pair("\u1e9cx", null)), null)), new sc_Pair(new sc_Pair("\u1e9ccons", new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cquotient", new sc_Pair(new sc_Pair("\u1e9ctimes",
+        new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cx", null))), new sc_Pair("\u1e9cy", null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9czerop", new sc_Pair("\u1e9cy", null)), new sc_Pair(new sc_Pair("\u1e9czero", null), new sc_Pair(new sc_Pair("\u1e9cfix", new sc_Pair("\u1e9cx", null)), null)))), null))), new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cget", new sc_Pair("\u1e9cj", new sc_Pair(new sc_Pair("\u1e9cset", new sc_Pair("\u1e9ci", new sc_Pair("\u1e9cval", new sc_Pair("\u1e9cmem", null)))),
+        null))), new sc_Pair(new sc_Pair("\u1e9cif", new sc_Pair(new sc_Pair("\u1e9ceqp", new sc_Pair("\u1e9cj", new sc_Pair("\u1e9ci", null))), new sc_Pair("\u1e9cval", new sc_Pair(new sc_Pair("\u1e9cget", new sc_Pair("\u1e9cj", new sc_Pair("\u1e9cmem", null))), null)))), null))));
+const_nboyer = new sc_Pair(new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cf", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cc", new sc_Pair(new sc_Pair("\u1e9czero", null), null))), null))), null))), new sc_Pair(new sc_Pair("\u1e9cy", new sc_Pair("\u1e9cf", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair(new sc_Pair("\u1e9ctimes", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))),
+    new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9cc", new sc_Pair("\u1e9cd", null))), null))), null))), new sc_Pair(new sc_Pair("\u1e9cz", new sc_Pair("\u1e9cf", new sc_Pair(new sc_Pair("\u1e9creverse", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair(new sc_Pair("\u1e9cappend", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cnil", null), null))), null)), null))), new sc_Pair(new sc_Pair("\u1e9cu", new sc_Pair("\u1e9cequal", new sc_Pair(new sc_Pair("\u1e9cplus", new sc_Pair("\u1e9ca",
+    new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cdifference", new sc_Pair("\u1e9cx", new sc_Pair("\u1e9cy", null))), null)))), new sc_Pair(new sc_Pair("\u1e9cw", new sc_Pair("\u1e9clessp", new sc_Pair(new sc_Pair("\u1e9cremainder", new sc_Pair("\u1e9ca", new sc_Pair("\u1e9cb", null))), new sc_Pair(new sc_Pair("\u1e9cmember", new sc_Pair("\u1e9ca", new sc_Pair(new sc_Pair("\u1e9clength", new sc_Pair("\u1e9cb", null)), null))), null)))), null)))));
+BgL_nboyerzd2benchmarkzd2 = function() {
+    for (var a = null, c = arguments.length - 1; 0 <= c; c--) a = sc_cons(arguments[c], a);
+    var b;
+    return b = null === a ? 0 : a.car, BgL_setupzd2boyerzd2(), BgL_runzd2benchmarkzd2("nboyer" + sc_number2string(b), 1, function() {
+        return BgL_testzd2boyerzd2(b)
+    }, function(a) {
+        if (sc_isNumber(a)) switch (b) {
+            case 0:
+                return 95024 === a;
+            case 1:
+                return 591777 === a;
+            case 2:
+                return 1813975 === a;
+            case 3:
+                return 5375678 === a;
+            case 4:
+                return 16445406 === a;
+            case 5:
+                return 51507739 === a;
+            default:
+                return !0
+        } else return !1
+    })
+};
+BgL_setupzd2boyerzd2 = function() {
+    return !0
+};
+BgL_testzd2boyerzd2 = function() {
+    return !0
+};
+translate_term_nboyer = function(a) {
+    var c;
+    return a instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(a.car), (c = a.cdr, null === c ? null : new sc_Pair(translate_term_nboyer(c.car), translate_args_nboyer(c.cdr)))) : a
+};
+translate_args_nboyer = function(a) {
+    var c, b;
+    return null === a ? null : new sc_Pair((b = a.car, b instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(b.car), translate_args_nboyer(b.cdr)) : b), (c = a.cdr, null === c ? null : new sc_Pair(translate_term_nboyer(c.car), translate_args_nboyer(c.cdr))))
+};
+untranslate_term_nboyer = function(a) {
+    var c, b, d, e;
+    if (a instanceof sc_Pair) {
+        d = new sc_Pair(null, null);
+        b = a.cdr;
+        for (c = d; null !== b;) c.cdr = new sc_Pair(untranslate_term_nboyer(b.car), null), c = c.cdr, b = b.cdr;
+        c = d.cdr;
+        return new sc_Pair((e = a.car, e[0]), c)
+    }
+    return a
+};
+BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer = function(a) {
+    var c, b;
+    return b = sc_assq(a, BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer), !1 !== b ? b.cdr : (c = [a, null], BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer = new sc_Pair(new sc_Pair(a, c), BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer), c)
+};
+BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer = null;
+translate_alist_nboyer = function(a) {
+    var c, b;
+    return null === a ? null : new sc_Pair(new sc_Pair(a.car.car, (b = a.car.cdr, b instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(b.car), translate_args_nboyer(b.cdr)) : b)), (c = a.cdr, null === c ? null : new sc_Pair(new sc_Pair(c.car.car, translate_term_nboyer(c.car.cdr)), translate_alist_nboyer(c.cdr))))
+};
+apply_subst_nboyer = function(a, c) {
+    var b, d;
+    return c instanceof sc_Pair ? new sc_Pair(c.car, (b = c.cdr, null === b ? null : new sc_Pair(apply_subst_nboyer(a, b.car), apply_subst_lst_nboyer(a, b.cdr)))) : (d = sc_assq(c, a), !1 !== d ? d.cdr : c)
+};
+apply_subst_lst_nboyer = function(a, c) {
+    var b;
+    return null === c ? null : new sc_Pair(apply_subst_nboyer(a, c.car), (b = c.cdr, null === b ? null : new sc_Pair(apply_subst_nboyer(a, b.car), apply_subst_lst_nboyer(a, b.cdr))))
+};
+tautologyp_nboyer = function(a, c, b) {
+    for (var d, e, f, g, h, l;;) {
+        if (!1 !== (l = is_term_equal_nboyer(a, true_term_nboyer), !1 !== l ? l : is_term_member_nboyer(a, c))) return !0;
+        if (!1 === (h = is_term_equal_nboyer(a, false_term_nboyer), !1 !== h ? h : is_term_member_nboyer(a, b)) && a instanceof sc_Pair)
+            if (a.car === if_constructor_nboyer)
+                if (!1 !== (g = a.cdr.car, f = is_term_equal_nboyer(g, true_term_nboyer), !1 !== f ? f : is_term_member_nboyer(g, c))) a = a.cdr.cdr.car;
+                else if (!1 !== (e = a.cdr.car, d = is_term_equal_nboyer(e, false_term_nboyer), !1 !== d ? d : is_term_member_nboyer(e,
+                b))) a = a.cdr.cdr.cdr.car;
+        else if (!1 !== tautologyp_nboyer(a.cdr.cdr.car, new sc_Pair(a.cdr.car, c), b)) b = new sc_Pair(a.cdr.car, b), a = a.cdr.cdr.cdr.car;
+        else return !1;
+        else return !1;
+        else return !1
+    }
+};
+if_constructor_nboyer = "\u1e9c*";
+rewrite_count_nboyer = 0;
+rewrite_nboyer = function(a) {
+    var c, b, d, e;
+    ++rewrite_count_nboyer;
+    if (a instanceof sc_Pair)
+        for (b = new sc_Pair(a.car, (e = a.cdr, null === e ? null : new sc_Pair(rewrite_nboyer(e.car), rewrite_args_nboyer(e.cdr)))), a = (d = a.car, d[1]);;) {
+            if (null === a) return b;
+            if (!1 !== (c = a.car.cdr.car, unify_subst_nboyer = null, one_way_unify1_nboyer(b, c))) return rewrite_nboyer(apply_subst_nboyer(unify_subst_nboyer, a.car.cdr.cdr.car));
+            a = a.cdr
+        } else return a
+};
+rewrite_args_nboyer = function(a) {
+    var c;
+    return null === a ? null : new sc_Pair(rewrite_nboyer(a.car), (c = a.cdr, null === c ? null : new sc_Pair(rewrite_nboyer(c.car), rewrite_args_nboyer(c.cdr))))
+};
+unify_subst_nboyer = "\u1e9c*";
+one_way_unify1_nboyer = function(a, c) {
+    var b, d;
+    if (c instanceof sc_Pair)
+        if (a instanceof sc_Pair)
+            if (a.car === c.car)
+                for (b = a.cdr, d = c.cdr;;) {
+                    if (null === b) return null === d;
+                    if (null !== d && !1 !== one_way_unify1_nboyer(b.car, d.car)) b = b.cdr, d = d.cdr;
+                    else return !1
+                } else return !1;
+            else return !1;
+    else {
+        b = sc_assq(c, unify_subst_nboyer);
+        if (!1 !== b) return is_term_equal_nboyer(a, b.cdr);
+        if (sc_isNumber(c)) return sc_isEqual(a, c);
+        unify_subst_nboyer = new sc_Pair(new sc_Pair(c, a), unify_subst_nboyer);
+        return !0
+    }
+};
+true_term_nboyer = false_term_nboyer = "\u1e9c*";
+trans_of_implies1_nboyer = function(a) {
+    var c;
+    return sc_isEqual(a, 1) ? sc_list("\u1e9cimplies", 0, 1) : sc_list("\u1e9cand", sc_list("\u1e9cimplies", a - 1, a), (c = a - 1, sc_isEqual(c, 1) ? sc_list("\u1e9cimplies", 0, 1) : sc_list("\u1e9cand", sc_list("\u1e9cimplies", c - 1, c), trans_of_implies1_nboyer(c - 1))))
+};
+is_term_equal_nboyer = function(a, c) {
+    var b, d;
+    if (a instanceof sc_Pair)
+        if (c instanceof sc_Pair)
+            if (!1 !== (d = a.car, b = c.car, d === b))
+                for (b = a.cdr, d = c.cdr;;) {
+                    if (null === b) return null === d;
+                    if (null !== d && !1 !== is_term_equal_nboyer(b.car, d.car)) b = b.cdr, d = d.cdr;
+                    else return !1
+                } else return !1;
+            else return !1;
+    else return sc_isEqual(a, c)
+};
+is_term_member_nboyer = function(a, c) {
+    for (;;) {
+        if (null === c) return !1;
+        if (!1 !== is_term_equal_nboyer(a, c.car)) return !0;
+        c = c.cdr
+    }
+};
+BgL_setupzd2boyerzd2 = function() {
+    var a, c, b, d, e;
+    BgL_sc_za2symbolzd2recordszd2alistza2_2z00_nboyer = null;
+    if_constructor_nboyer = BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer("\u1e9cif");
+    false_term_nboyer = (c = new sc_Pair("\u1e9cf", null), c instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(c.car), translate_args_nboyer(c.cdr)) : c);
+    true_term_nboyer = (e = new sc_Pair("\u1e9ct", null), e instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(e.car), translate_args_nboyer(e.cdr)) :
+        e);
+    for (e = sc_const_3_nboyer; null !== e;) c = e.car, c instanceof sc_Pair && "\u1e9cequal" === c.car && c.cdr.car instanceof sc_Pair ? (a = c.cdr.car.car, c = new sc_Pair(c instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(c.car), translate_args_nboyer(c.cdr)) : c, (d = c.cdr.car.car, b = BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(d), b[1])), a = BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(a), a[1] = c) : sc_error("ADD-LEMMA did not like term:  ", c), e = e.cdr;
+    return !0
+};
+BgL_testzd2boyerzd2 = function(a) {
+    var c;
+    rewrite_count_nboyer = 0;
+    for (c = sc_const_4_nboyer; 0 !== a;) c = sc_list("\u1e9cor", c, new sc_Pair("\u1e9cf", null)), --a;
+    c = c instanceof sc_Pair ? new sc_Pair(BgL_sc_symbolzd2ze3symbolzd2record_1ze3_nboyer(c.car), translate_args_nboyer(c.cdr)) : c;
+    c = apply_subst_nboyer(null === const_nboyer ? null : new sc_Pair(new sc_Pair(const_nboyer.car.car, translate_term_nboyer(const_nboyer.car.cdr)), translate_alist_nboyer(const_nboyer.cdr)), c);
+    c = tautologyp_nboyer(rewrite_nboyer(c), null, null);
+    sc_write(rewrite_count_nboyer);
+    sc_display(" rewrites");
+    sc_newline();
+    return !1 !== c ? rewrite_count_nboyer : !1
+};
+var BgL_parsezd2ze3nbzd2treesze3, BgL_earleyzd2benchmarkzd2, BgL_parsezd2ze3parsedzf3zc2, test, BgL_parsezd2ze3treesz31, BgL_makezd2parserzd2, const_earley;
+const_earley = new sc_Pair(new sc_Pair("\u1e9cs", new sc_Pair(new sc_Pair("\u1e9ca", null), new sc_Pair(new sc_Pair("\u1e9cs", new sc_Pair("\u1e9cs", null)), null))), null);
+BgL_makezd2parserzd2 = function(a, c) {
+    var b, d, e, f, g, h, l, m, q, p, y, A, B, K;
+    K = function(a, b) {
+        var c;
+        for (c = b.length - 1;;)
+            if (0 <= c) {
+                if (sc_isEqual(b[c], a)) return c;
+                --c
+            } else return !1
+    };
+    A = (B = function(a, b) {
+            var c, d, e;
+            return a instanceof sc_Pair ? (e = a.car, d = e.car, c = function(b, d) {
+                var e, f, g;
+                if (b instanceof sc_Pair) {
+                    f = e = b.car;
+                    for (g = d; f instanceof sc_Pair;) e = f.car, f = f.cdr, g = !1 !== sc_member(e, g) ? g : new sc_Pair(e, g);
+                    return c(b.cdr, g)
+                }
+                return B(a.cdr, d)
+            }, c(e.cdr, !1 !== sc_member(d, b) ? b : new sc_Pair(d, b))) : sc_list2vector(sc_reverse(b))
+        },
+        B(a, null));
+    y = A.length;
+    b = (p = function(a, b) {
+        var c, d;
+        return a instanceof sc_Pair ? (d = a.car, c = function(b, d) {
+            var e, f;
+            if (b instanceof sc_Pair) {
+                e = b.car;
+                for (f = d; e instanceof sc_Pair;) e = e.cdr, ++f;
+                return c(b.cdr, f + 1)
+            }
+            return p(a.cdr, d)
+        }, c(d.cdr, b)) : b
+    }, p(a, 0)) + y;
+    q = sc_makeVector(y, null);
+    m = sc_makeVector(y, null);
+    l = sc_makeVector(y, null);
+    h = sc_makeVector(b, !1);
+    g = sc_makeVector(b, !1);
+    f = A.length;
+    for (b = f - 1; 0 <= b;) h[b] = b - f, g[b] = sc_list(A[b], 0), m[b] = sc_list(b), --b;
+    e = function(a, b) {
+        var c, d, p;
+        return a instanceof sc_Pair ? (p = a.car,
+            d = p.car, c = function(b, p, y) {
+                var B, E;
+                if (b instanceof sc_Pair) {
+                    E = b.car;
+                    g[p] = sc_list(d, y);
+                    B = K(d, A);
+                    q[B] = new sc_Pair(p, q[B]);
+                    for (B = E; B instanceof sc_Pair;) E = B.car, h[p] = K(E, A), E = K(E, A), l[E] = new sc_Pair(p, l[E]), B = B.cdr, ++p;
+                    h[p] = K(d, A) - f;
+                    B = K(d, A);
+                    m[B] = new sc_Pair(p, m[B]);
+                    return c(b.cdr, p + 1, y + 1)
+                }
+                return e(a.cdr, p)
+            }, c(p.cdr, b, 1)) : void 0
+    };
+    e(a, A.length);
+    d = [c, A, q, m, l, h, g];
+    return function(a) {
+        var b, c, e, f, g, h, l, m, p, q, y, A, B, K, hc, fc, kc, lc, mc, nc, oc, qc, pc, rc, uc, wc, sc, xc, tc, yc, Ac;
+        rc = function(a, b) {
+            var c;
+            for (c = b.length - 1;;)
+                if (0 <=
+                    c) {
+                    if (sc_isEqual(b[c], a)) return c;
+                    --c
+                } else return !1
+        };
+        hc = function(a, b) {
+            var c, d, e;
+            e = sc_makeVector(a + 1, !1);
+            for (d = a; 0 <= d;) c = sc_makeVector(b + 1, !1), c[0] = -1, e[d] = c, --d;
+            return e
+        };
+        uc = function(a, b, c) {
+            var d, e;
+            return e = a[c + 1], !1 !== e ? e : (d = sc_makeVector(b + 6, !1), d[1] = -3, d[2] = -1, d[3] = -1, d[4] = -1, a[c + 1] = d, d)
+        };
+        wc = function(a) {
+            return a[a[1] + 5] = a[4], a[1] = a[3], a[3] = -1, a[4] = -1
+        };
+        sc = function(a, b, c, d) {
+            var e;
+            return e = b[3], b[d + 5] = -1, b[e + 5] = d, b[3] = d, 0 > e ? (b[0] = a[0], a[0] = c) : void 0
+        };
+        fc = function(a, b, c, d) {
+            var e, f;
+            a = a[b];
+            for (f = c; f instanceof sc_Pair;) e = f.car, c = uc(a, b, e), !1 === c[d + 5] && sc(a, c, e, d), f = f.cdr
+        };
+        xc = function(a, b, c, d, e) {
+            var f, g, h, l;
+            return l = a[c], !1 !== (h = l[d + 1], !1 !== h ? h[e + 5] : !1) ? (g = b[c], f = uc(g, c, d), !1 === f[e + 5] ? sc(g, f, d, e) : void 0, !0) : !1
+        };
+        tc = function(a, b, c, d) {
+            var e;
+            for (e = d[2]; 0 <= e;) !1 === b[e + 5] && sc(a, b, c, e), e = d[e + 5]
+        };
+        q = function(a, b, c, d, e, f, g) {
+            var h, l, m, p, q, y, A, B, E, H, K, M, aa, Yb;
+            Yb = a[b];
+            for (aa = g.length;;)
+                if (K = Yb[0], 0 <= K)
+                    if (M = f[K], g = Yb[K + 1], y = g[4], Yb[0] = g[0], wc(g), 0 <= M) {
+                        for (l = c[M]; l instanceof sc_Pair;) h = l.car, p = uc(Yb, b, h), !1 === p[b + 5] &&
+                            sc(Yb, p, h, b), l = l.cdr;
+                        for (p = d[M]; p instanceof sc_Pair;) h = p.car, !1 !== (m = Yb[h + 1], !1 !== m ? m[b + 5] : !1) && (l = K + 1, h = uc(Yb, b, l), tc(Yb, h, l, g)), p = p.cdr
+                    } else K = e[M + aa], H = a, E = Yb, B = b, A = g, q = function(a) {
+                        var b, c, d, e, f, g;
+                        if (a instanceof sc_Pair) {
+                            g = a.car;
+                            for (f = y; 0 <= f;) e = (b = H[f], b[g + 1]), !1 !== e && (d = g + 1, c = uc(E, B, d), tc(E, c, d, e)), f = A[f + 5];
+                            return q(a.cdr)
+                        }
+                    }, q(K);
+            else break
+        };
+        yc = function(a, b, c, d, e, f, g, h, l) {
+            var m, p, q;
+            return q = f[a], !1 !== q ? a < l ? sc_list(sc_list(q, g[b].car)) : sc_list(sc_list(q)) : (p = a - 1, m = function(a, q) {
+                for (var y, A, B,
+                        E;;)
+                    if (a instanceof sc_Pair) {
+                        E = a.car;
+                        A = (B = h[c], B[E + 1]);
+                        if (!1 !== A) return y = function(q, B) {
+                            for (var H, K, M, aa;;)
+                                if (0 <= q) {
+                                    if (q >= b && !1 !== (aa = h[q], K = aa[p + 1], !1 !== K ? K[b + 5] : !1)) return M = yc(p, b, q, d, e, f, g, h, l), K = yc(E, q, c, d, e, f, g, h, l), H = function(a, b) {
+                                        var c, d, e;
+                                        if (a instanceof sc_Pair) {
+                                            e = sc_list(a.car);
+                                            c = M;
+                                            for (d = b; c instanceof sc_Pair;) d = new sc_Pair(sc_append(c.car, e), d), c = c.cdr;
+                                            return H(a.cdr, d)
+                                        }
+                                        return y(A[q + 5], b)
+                                    }, H(K, B);
+                                    q = A[q + 5]
+                                } else return m(a.cdr, B)
+                        }, y(A[2], q);
+                        a = a.cdr
+                    } else return q
+            }, m(d[e[p]], null))
+        };
+        Ac = function(a,
+            b, c, d, e, f, g, h) {
+            var l, m, p;
+            return p = a - 1, !1 !== (m = a < h, !1 !== m ? m : 0 > e[p]) ? 1 : (l = function(a, m) {
+                for (var q, y, A, B, E, H, K, M;;)
+                    if (a instanceof sc_Pair) {
+                        M = a.car;
+                        K = (q = g[c], q[M + 1]);
+                        if (!1 !== K) {
+                            E = K[2];
+                            for (H = m; 0 <= E;) E >= b && !1 !== (B = g[E], A = B[p + 1], !1 !== A ? A[b + 5] : !1) ? (y = Ac(p, b, E, d, e, f, g, h), q = Ac(M, E, c, d, e, f, g, h), E = K[E + 5], H += y * q) : E = K[E + 5];
+                            return l(a.cdr, H)
+                        }
+                        a = a.cdr
+                    } else return m
+            }, l(d[e[p]], 0))
+        };
+        y = d[0];
+        pc = d[1];
+        qc = d[2];
+        oc = d[3];
+        nc = d[4];
+        mc = d[5];
+        lc = d[6];
+        kc = new sc_Pair(null, null);
+        y = y(a);
+        for (a = kc; null !== y;) {
+            K = y.car;
+            A = K.cdr;
+            for (B = null; A instanceof sc_Pair;) b = rc(A.car, pc), !1 !== b ? (A = A.cdr, B = new sc_Pair(b, B)) : A = A.cdr;
+            b = new sc_Pair(K.car, sc_reverse(B));
+            b = new sc_Pair(b, null);
+            a.cdr = b;
+            a = a.cdr;
+            y = y.cdr
+        }
+        a = sc_list2vector(kc.cdr);
+        A = a.length;
+        kc = hc(A, mc.length);
+        fc(kc, 0, qc[0], 0);
+        q(kc, 0, qc, oc, nc, mc, pc);
+        for (b = 0; b < A;) y = a[b].cdr, fc(kc, b + 1, y, b), q(kc, b + 1, qc, oc, nc, mc, pc), ++b;
+        q = a.length;
+        y = mc.length;
+        fc = pc.length;
+        hc = hc(q, y);
+        for (b = oc[0]; b instanceof sc_Pair;) y = b.car, xc(kc, hc, q, y, 0), b = b.cdr;
+        for (; 0 <= q;) p = kc, m = hc, l = q, h = oc, g = mc, f = fc, e = hc[q], c = function() {
+            var a, b, d, q, y, A,
+                B, E, H;
+            H = e[0];
+            if (0 <= H) {
+                E = e[H + 1];
+                B = E[4];
+                e[0] = E[0];
+                for (wc(E); 0 <= B;) A = B, y = l, q = p, d = m, b = H - 1, H >= f && 0 <= g[b] && (a = function(c) {
+                    for (var e, f, g;;)
+                        if (c instanceof sc_Pair) {
+                            g = c.car;
+                            f = (e = q[y], e[g + 1]);
+                            if (!1 !== f) {
+                                for (e = f[2]; 0 <= e;) e >= A && !1 !== xc(q, d, e, b, A) && xc(q, d, y, g, e), e = f[e + 5];
+                                return a(c.cdr)
+                            }
+                            c = c.cdr
+                        } else break
+                }, a(h[g[b]])), B = E[B + 5];
+                return c()
+            }
+        }, c(), --q;
+        return [pc, qc, oc, nc, mc, lc, a, hc, function(a, b, c, d, e, f) {
+            var g, h;
+            a = rc(a, d);
+            if (!1 !== a)
+                for (d.length, e = e[a];;)
+                    if (e instanceof sc_Pair) {
+                        d = e.car;
+                        if (!1 !== (h = f[c], g = h[d + 1], !1 !==
+                                g ? g[b + 5] : !1)) return !0;
+                        e = e.cdr
+                    } else return !1;
+            else return !1
+        }, function(a, b, c, d, e, f, g, h, l) {
+            var m, p, q, y;
+            a = rc(a, d);
+            if (!1 !== a) {
+                d = d.length;
+                q = e[a];
+                for (y = null; q instanceof sc_Pair;) a = q.car, !1 !== (p = l[c], m = p[a + 1], !1 !== m ? m[b + 5] : !1) ? (q = q.cdr, y = sc_append(yc(a, b, c, e, f, g, h, l, d), y)) : q = q.cdr;
+                return y
+            }
+            return !1
+        }, function(a, b, c, d, e, f, g, h) {
+            var l, m, p, q;
+            a = rc(a, d);
+            if (!1 !== a) {
+                d = d.length;
+                p = e[a];
+                for (q = 0; p instanceof sc_Pair;) a = p.car, !1 !== (m = h[c], l = m[a + 1], !1 !== l ? l[b + 5] : !1) ? (p = p.cdr, q = Ac(a, b, c, e, f, g, h, d) + q) : p = p.cdr;
+                return q
+            }
+            return !1
+        }]
+    }
+};
+BgL_parsezd2ze3parsedzf3zc2 = function(a, c, b, d) {
+    var e, f, g, h;
+    return h = a[0], g = a[2], f = a[7], e = a[8], e(c, b, d, h, g, f)
+};
+BgL_parsezd2ze3treesz31 = function(a, c, b, d) {
+    var e, f, g, h, l, m, q;
+    return q = a[0], m = a[2], l = a[4], h = a[5], g = a[6], f = a[7], e = a[9], e(c, b, d, q, m, l, h, g, f)
+};
+BgL_parsezd2ze3nbzd2treesze3 = function(a, c, b, d) {
+    var e, f, g, h, l, m;
+    return m = a[0], l = a[2], h = a[4], g = a[6], f = a[7], e = a[10], e(c, b, d, m, l, h, g, f)
+};
+test = function(a) {
+    var c, b;
+    return b = BgL_makezd2parserzd2(const_earley, function(a) {
+        var b, c, g;
+        for (c = g = new sc_Pair(null, null); null !== a;) c.cdr = new sc_Pair((b = a.car, sc_list(b, b)), null), c = c.cdr, a = a.cdr;
+        return g.cdr
+    }), c = b(sc_vector2list(sc_makeVector(a, "\u1e9ca"))), sc_length(BgL_parsezd2ze3treesz31(c, "\u1e9cs", 0, a))
+};
+BgL_earleyzd2benchmarkzd2 = function() {
+    for (var a = null, c = arguments.length - 1; 0 <= c; c--) a = sc_cons(arguments[c], a);
+    var b;
+    return b = null === a ? 7 : a.car, BgL_runzd2benchmarkzd2("earley", 1, function() {
+        return test(b)
+    }, function(a) {
+        return sc_display(a), sc_newline(), 132 == a
+    })
+};
+SC_ERROR_OUT = SC_DEFAULT_OUT = new sc_GenericOutputPort(function(a) {});
+
+function RunBenchmark(a, c, b, d) {
+    for (a = 0; a < c; ++a)
+        if (result = b(), !d(result)) throw Error("Earley or Boyer did incorrect number of rewrites");
+}
+var BgL_runzd2benchmarkzd2 = RunBenchmark;
+////////////////////////////////////////////////////////////////////////////////
+// Runner
+////////////////////////////////////////////////////////////////////////////////
+
+var success = true;
+
+function NotifyStart(name) {}
+
+function NotifyError(name, error) {
+    WScript.Echo(name + " : ERROR : " + error.stack);
+    success = false;
+}
+
+function NotifyResult(name, score) {
+    if (success) {
+        WScript.Echo("### SCORE:", score);
+    }
+}
+
+function NotifyScore(score) {}
+
+BenchmarkSuite.RunSuites({
+    NotifyStart: NotifyStart,
+    NotifyError: NotifyError,
+    NotifyResult: NotifyResult,
+    NotifyScore: NotifyScore
+});
