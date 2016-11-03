@@ -507,11 +507,11 @@ class ByteCodeUsesInstr : public Instr
 {
 public:
     static ByteCodeUsesInstr * New(Func * func);
-    static ByteCodeUsesInstr* New(IR::Instr* originalBytecodeInstr, SymID symid);
+    static ByteCodeUsesInstr* New(IR::Instr* originalBytecodeInstr, Opnd* srcopnd, SymID symid);
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;
     PropertySym *              propertySymUse;
 
-    void Set(uint symId);
+    void Set(Opnd* srcopnd, uint symId);
 };
 
 class JitProfilingInstr : public Instr

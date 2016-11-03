@@ -6894,7 +6894,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
         if (!opnd->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
         {
             // Replace instrs with bytecodeUses
-            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr, sym->m_id);
+            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr, opnd, sym->m_id);
             argInstr->InsertBefore(bytecodeUse);
         }
         startCallInstr = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
@@ -6961,7 +6961,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!src1->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
     {
         // Replace instrs with bytecodeUses
-        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart, sym->m_id);
+        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart, src1, sym->m_id);
         inlineeStart->InsertBefore(bytecodeUse);
     }
 

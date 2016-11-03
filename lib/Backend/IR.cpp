@@ -880,11 +880,12 @@ ByteCodeUsesInstr::New(Func * func)
 }
 
 ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, SymID symid)
+ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, IR::Opnd* srcopnd, SymID symid)
 {
     Func* func = originalBytecodeInstr->m_func;
     ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
     byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
+    Assert(!srcopnd == nullptr && !srcopnd->GetIsJITOptimizedReg());
     byteCodeUses->byteCodeUpwardExposedUsed = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
     byteCodeUses->byteCodeUpwardExposedUsed->Set(symid);
     byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
@@ -892,8 +893,9 @@ ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, SymID symid)
     return byteCodeUses;
 }
 
-void ByteCodeUsesInstr::Set(uint symId)
+void ByteCodeUsesInstr::Set(IR::Opnd* srcopnd, uint symId)
 {
+    Assert(!srcopnd == nullptr && !srcopnd->GetIsJITOptimizedReg());
     if(!byteCodeUpwardExposedUsed)
     {
         byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
