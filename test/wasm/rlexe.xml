@@ -81,4 +81,18 @@
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>table_imports.js</files>
+       <baseline>baselines\table_imports.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
+       <files>call.js</files>
+       <baseline>baselines\call.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>
