@@ -77,6 +77,17 @@
 
 #define PROCESS_VtoI1Mem(name, func) PROCESS_VtoI1Mem_COMMON(name, func,)
 
+#define PROCESS_I2toI1Ctx_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+        { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Int3, suffix); \
+        SetRegRawInt(playout->I0, \
+                func(GetRegRawInt(playout->I1), GetRegRawInt(playout->I2), scriptContext)); \
+        break; \
+        }
+
+#define PROCESS_I2toI1Ctx(name, func) PROCESS_I2toI1Mem_COMMON(name, func,)
+
 #define PROCESS_I2toI1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
         { \
@@ -98,6 +109,17 @@
         }
 
 #define PROCESS_L2toL1Mem(name, func) PROCESS_L2toL1Mem_COMMON(name, func,)
+
+#define PROCESS_L2toL1Ctx_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+        { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Long3, suffix); \
+        SetRegRawInt64(playout->L0, \
+                func(GetRegRawInt64(playout->L1), GetRegRawInt64(playout->L2), scriptContext)); \
+        break; \
+        }
+
+#define PROCESS_L2toL1Ctx(name, func) PROCESS_L2toL1Ctx_COMMON(name, func,)
 
 #define PROCESS_I2toI1MemDConv_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \

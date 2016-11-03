@@ -31,6 +31,7 @@ check(2, "exports.ctz", 4);
 check(31, "exports.ctz", -Math.pow(2,31));
 check(32, "exports.ctz", 0);
 
+//i32 div/rem
 check(2,"exports.i32_div_s_by_two", 5);
 check("Overflow","exports.i32_div_s_over", 5);
 check("Overflow","exports.i32_div_s_over", 5, 0);
@@ -44,6 +45,19 @@ check(2,"exports.i32_div_u", 5, 2);
 check(0,"exports.i32_rem_u", 5, 1);
 check(0,"exports.i32_rem_s", 5, -1);
 check(1,"exports.i32_rem_s", 5, 2);
+
+//i64 div/rem
+check(2,"exports.i64_div_s_by_two", 5);
+check("Overflow","exports.i64_div_s_over");
+check("Division by zero","exports.i64_div_s", 5, 0);
+check("Division by zero","exports.i64_div_u", 5, 0);
+check("Division by zero","exports.i64_rem_u", 5, 0);
+check("Division by zero","exports.i64_rem_s", 5, 0);
+check(-2,"exports.i64_div_s", 5, -2);
+check(2,"exports.i64_div_u", 5, 2);
+check(0,"exports.i64_rem_u", 5, 1);
+check(0,"exports.i64_rem_s", 5, -1);
+check(1,"exports.i64_rem_s", 5, 2);
 
 if(passed)
 {

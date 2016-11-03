@@ -371,6 +371,11 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
     switch (instr->m_opcode)
     {
     case Js::OpCode::DivideByZeroCheck:
+        if (instr->GetDst()->IsInt64())
+        {
+            return; //don't try to optimize i64 division since we are using helpers anyways for now
+        }
+
         if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
         {
             if (val)
@@ -387,6 +392,11 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
         break;
     case Js::OpCode::OverflowCheckReg3:
     {
+        if (instr->GetDst()->IsInt64())
+        {
+            return; //don't try to optimize i64 division since we are using helpers anyways for now
+        }
+
         int checksLeft = 2;
         if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
         {

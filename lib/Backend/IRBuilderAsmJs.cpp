@@ -3059,18 +3059,21 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     case Js::OpCodeAsmJs::Mul_Long:
         instr = IR::Instr::New(Js::OpCode::Mul_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-
     case Js::OpCodeAsmJs::Div_ULong:
         src1Opnd->SetType(TyUint64);
         src2Opnd->SetType(TyUint64);
     case Js::OpCodeAsmJs::Div_Long:
+    {
+        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
+        src1Opnd = BuildOverflowCheckReg3(src1Opnd, src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-
+    }
     case Js::OpCodeAsmJs::Rem_ULong:
         src1Opnd->SetType(TyUint64);
         src2Opnd->SetType(TyUint64);
     case Js::OpCodeAsmJs::Rem_Long:
+        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::And_Long:
