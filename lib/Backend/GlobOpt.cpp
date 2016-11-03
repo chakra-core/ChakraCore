@@ -4287,26 +4287,26 @@ GlobOpt::MarkArgumentsUsedForBranch(IR::Instr * instr)
         IR::Opnd *src1 = bInstr->GetSrc1();
         IR::Opnd *src2 = bInstr->GetSrc2();
         // These are used because we don't want to rely on src1 or src2 to always be the register/constant
-        IR::RegOpnd *regopnd = nullptr;
-        IR::Opnd *constopnd = nullptr;
-        if (!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A) && src1->IsRegOpnd()) {
-            regopnd = src1->AsRegOpnd();
+        IR::RegOpnd *regOpnd = nullptr;
+        if (!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A) && src1->IsRegOpnd())
+        {
+            regOpnd = src1->AsRegOpnd();
         }
         // We need to check for (0===arg) and (arg===0); this is especially important since some minifiers
         // change all instances of one to the other.
-        else if (src2 && src2->IsConstOpnd() && src1->IsRegOpnd()) {
-            regopnd = src1->AsRegOpnd();
-            constopnd = src2;
-        }
-        else if (src2 && src2->IsRegOpnd() && src1->IsConstOpnd()) {
-            regopnd = src2->AsRegOpnd();
-            constopnd = src1;
-        }
-        if (regopnd != nullptr)
+        else if (src2 && src2->IsConstOpnd() && src1->IsRegOpnd())
         {
-            if (regopnd->m_sym->IsSingleDef())
+            regOpnd = src1->AsRegOpnd();
+        }
+        else if (src2 && src2->IsRegOpnd() && src1->IsConstOpnd())
+        {
+            regOpnd = src2->AsRegOpnd();
+        }
+        if (regOpnd != nullptr)
+        {
+            if (regOpnd->m_sym->IsSingleDef())
             {
-                IR::Instr * defInst = regopnd->m_sym->GetInstrDef();
+                IR::Instr * defInst = regOpnd->m_sym->GetInstrDef();
                 IR::Opnd *defSym = defInst->GetSrc1();
                 if (defSym && defSym->IsSymOpnd() && defSym->AsSymOpnd()->m_sym->IsStackSym()
                     && defSym->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())

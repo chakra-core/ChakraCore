@@ -7064,29 +7064,30 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     }
 
     // Save the head instruction for later use.
-    IR::Instr *blockHeadInstr = curInstr;
+    IR::LabelInstr *blockHeadInstr = curInstr->AsLabelInstr();
 
     // We can't bail in the middle of a "tmp = CmEq s1, s2; BrTrue tmp" turned into a "BrEq s1, s2",
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
     IR::Instr *instrNope = nullptr;
-    if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+    while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
         // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
         // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
         // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
         // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
-        while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
-        {
-            instrNope = curNext;
-            curNext = curNext->GetNextRealInstrOrLabel();
-        }
+        instrNope = curNext;
+        curNext = curNext->GetNextRealInstrOrLabel();
+    }
+
+    if (instrNope != nullptr)
+    {
         instrNope = curNext;
     }
 
     curInstr = instr->m_prev;
 
-    // Move to top of block.
+    // Move to top of block (but just below any fgpeeptemp lds).
     while(!curInstr->StartsBasicBlock() && curInstr != instrNope)
     {
         // Delete redundant BailOnNoProfile
@@ -7175,9 +7176,9 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // and throw case should be rare enough that it won't matter for perf.
     if (block->GetBlockNum() != 0)
     {
-        blockHeadInstr->AsLabelInstr()->isOpHelper = true;
+        blockHeadInstr->isOpHelper = true;
 #if DBG
-        blockHeadInstr->AsLabelInstr()->m_noHelperAssert = true;
+        blockHeadInstr->m_noHelperAssert = true;
 #endif
         block->beginsBailOnNoProfile = true;
 
