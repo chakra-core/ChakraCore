@@ -124,7 +124,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
     {
         if (i < wasmModule->GetImportCount() && localModuleFunctions[i] != nullptr)
         {
-            if (!AsmJsScriptFunction::Is(localModuleFunctions[i]) || !((AsmJsScriptFunction*)localModuleFunctions[i])->GetFunctionBody()->IsWasmFunction())
+            if (!AsmJsScriptFunction::IsWasmScriptFunction(localModuleFunctions[i]))
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidImport);
             }
@@ -280,6 +280,8 @@ static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
     ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
     Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
 
+
+
     const char16* name = wi->fnName;
     uint32 nameLen = wi->fnNameLen;
     Var prop = nullptr;
@@ -332,7 +334,7 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         else if (JavascriptFunction::Is(prop))
         {
             importFunctions[i] = prop;
-            if (AsmJsScriptFunction::Is(prop) && ((AsmJsScriptFunction*)prop)->GetFunctionBody()->IsWasmFunction())
+            if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
             {
                 Assert(localModuleFunctions[i] == nullptr);
                 // Imported Wasm functions can be called directly

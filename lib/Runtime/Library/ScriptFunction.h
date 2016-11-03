@@ -115,6 +115,10 @@ namespace Js
     public:
         AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
+        static bool Is(Var func);
+        static bool IsWasmScriptFunction(Var func);
+        static AsmJsScriptFunction* FromVar(Var func);
+
         void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
         Var * GetModuleMemory() const { return m_moduleMemory; }
 
