@@ -3,8 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('basic.wasm');
-print(blob.byteLength);
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {});
+var mod = new WebAssembly.Module(readbuffer('basic.wasm'));
+var a = new WebAssembly.Instance(mod, {});
 print(a.a(11));
