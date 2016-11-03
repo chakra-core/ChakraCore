@@ -503,8 +503,11 @@ namespace Js
         if (m_remoteScriptContextAddr)
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(&m_remoteScriptContextAddr);
-            Assert(m_remoteScriptContextAddr == nullptr);
+            if (JITManager::GetJITManager()->CleanupScriptContext(&m_remoteScriptContextAddr) == S_OK)
+            {
+                Assert(m_remoteScriptContextAddr == nullptr);
+            }
+            m_remoteScriptContextAddr = nullptr;
         }
 #endif
 
