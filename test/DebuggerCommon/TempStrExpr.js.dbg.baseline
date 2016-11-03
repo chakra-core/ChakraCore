@@ -122,6 +122,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "Error <large string>",
           "arguments": "Error <large string>"
         },

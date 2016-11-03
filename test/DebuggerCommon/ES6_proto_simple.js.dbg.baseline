@@ -46,6 +46,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "object null",
           "arguments": "object null"
         },
@@ -67,6 +68,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "object null",
           "arguments": "object null"
         },
