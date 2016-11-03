@@ -262,6 +262,7 @@ private:
     bool            GenerateFastBrSrNeq(IR::Instr * instr, IR::Instr ** pInstrPrev);
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
+    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper);
     bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper);
     bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper);
     bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper);
