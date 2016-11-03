@@ -26,7 +26,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(SymbolCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Symbol);
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.

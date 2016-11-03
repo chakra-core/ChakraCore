@@ -564,7 +564,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(FunctionBindCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(FunctionBind);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 

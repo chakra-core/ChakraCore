@@ -1105,7 +1105,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log10Count);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log10);
 
         if (args.Info.Count >= 2)
         {
@@ -1159,7 +1159,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log2Count);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log2);
 
         if (args.Info.Count >= 2)
         {
@@ -1200,7 +1200,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log1pCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Log1p);
 
         if (args.Info.Count >= 2)
         {
@@ -1237,7 +1237,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Expm1Count);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Expm1);
 
         if (args.Info.Count >= 2)
         {
@@ -1274,7 +1274,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(CoshCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Cosh);
 
         if (args.Info.Count >= 2)
         {
@@ -1303,7 +1303,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(SinhCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Sinh);
 
         if (args.Info.Count >= 2)
         {
@@ -1332,7 +1332,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TanhCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Tanh);
 
         if (args.Info.Count >= 2)
         {
@@ -1361,7 +1361,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(AcoshCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Acosh);
 
         if (args.Info.Count >= 2)
         {
@@ -1412,7 +1412,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(AsinhCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Asinh);
 
         if (args.Info.Count >= 2)
         {
@@ -1459,7 +1459,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(AtanhCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Atanh);
 
         if (args.Info.Count >= 2)
         {
@@ -1516,7 +1516,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(HypotCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Hypot);
 
         // ES6 20.2.2.18 Math.hypot(value1, value2, ...values)
         // If no arguments are passed, the result is +0.
@@ -1632,7 +1632,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TruncCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Trunc);
 
         if (args.Info.Count >= 2)
         {
@@ -1669,7 +1669,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(SignCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Sign);
 
         if (args.Info.Count >= 2)
         {
@@ -1707,7 +1707,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(CbrtCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Cbrt);
 
         if (args.Info.Count >= 2)
         {
@@ -1759,7 +1759,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ImulCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Imul);
 
         if (args.Info.Count >= 3)
         {
@@ -1792,7 +1792,7 @@ namespace Js
         Var value = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Clz32Count);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Clz32);
 
         uint32 uint32value = JavascriptConversion::ToUInt32(value, scriptContext);
         DWORD index;
@@ -1813,7 +1813,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(FroundCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Fround);
 
         if (args.Info.Count >= 2)
         {

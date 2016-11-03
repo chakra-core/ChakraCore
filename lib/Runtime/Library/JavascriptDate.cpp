@@ -1259,7 +1259,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(DateToISOStringCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(DateToISOString);
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {

@@ -695,7 +695,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatch);
 
         PCWSTR const varName = _u("RegExp.prototype[Symbol.match]");
 
@@ -765,7 +765,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolReplaceCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolReplace);
 
         PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
 
@@ -799,7 +799,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSearchCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSearch);
 
         PCWSTR const varName = _u("RegExp.prototype[Symbol.search]");
 
@@ -828,7 +828,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSplitCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSplit);
 
         RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype[Symbol.match]"), scriptContext);
         JavascriptString* string = GetFirstStringArg(args, scriptContext);

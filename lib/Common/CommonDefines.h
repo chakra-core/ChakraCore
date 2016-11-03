@@ -253,7 +253,6 @@
         #undef TELEMETRY_OPCODE_GET_PROPERTY_VALUES
         #define TELEMETRY_OPCODE_GET_PROPERTY_VALUES false
 
-        //#define TELEMETRY_ESB_STRINGS    // Telemetry that uses strings (slow), used for constructor detection for ECMAScript Built-Ins polyfills and Constructor-properties of Chakra-built-ins.
         //#define TELEMETRY_ESB_GetConstructorPropertyPolyfillDetection // Whether telemetry will inspect the `.constructor` property of every Object instance to determine if it's a polyfill of a known ES built-in.
     #endif
 

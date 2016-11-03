@@ -3696,7 +3696,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     }
 
     if (pSpreadArgCount!=nullptr && (*pSpreadArgCount) > 0){
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeatureCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeature, m_scriptContext);
     }
 
     *pCount = static_cast<uint16>(count);
@@ -3868,7 +3868,7 @@ ParseNodePtr Parser::ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts
     }
 
     if (spreadCount != nullptr && *spreadCount > 0){
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeatureCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeature, m_scriptContext);
     }
 
     if (buildAST)
@@ -4834,7 +4834,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     if (pnodeFnc && pnodeFnc->sxFnc.IsGenerator())
     {
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(GeneratorCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Generator, m_scriptContext);
     }
 
     if (fncExprScope && !*pHasName)
@@ -4877,7 +4877,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     if (fLambda)
     {
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(LambdaCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Lambda, m_scriptContext);
     }
 
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
@@ -5327,7 +5327,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             }
 
             this->m_fUseStrictMode = oldStrictMode;
-            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StrictModeFunctionCount, m_scriptContext);
+            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StrictModeFunction, m_scriptContext);
         }
 
         if (fDeferred)
@@ -6315,7 +6315,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     {
                         if (!m_currentNodeFunc->sxFnc.HasDefaultArguments())
                         {
-                            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunctionCount, m_scriptContext);
+                            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunction, m_scriptContext);
                         }
                         pnodeT->sxVar.pnodeInit = pnodeInit;
                         pnodeT->ichLim = m_pscan->IchLimTok();
@@ -6352,7 +6352,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
         if (seenRestParameter)
         {
-            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(RestCount, m_scriptContext);
+            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Rest, m_scriptContext);
         }
 
         if (m_token.tk != tkRParen)
@@ -7048,7 +7048,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     {
         pnodeClass = CreateNode(knopClassDecl);
 
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ClassCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Class, m_scriptContext);
     }
 
     m_pscan->Scan();
@@ -7437,7 +7437,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         }
 
     }
-    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StringTemplatesCount, m_scriptContext);
+    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StringTemplates, m_scriptContext);
 
     OUTPUT_TRACE_DEBUGONLY(
         Js::StringTemplateParsePhase,
@@ -8718,12 +8718,12 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             else if (declarationType == tkCONST)
             {
                 pnodeThis = CreateBlockScopedDeclNode(pid, knopConstDecl);
-                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ConstCount, m_scriptContext);
+                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Const, m_scriptContext);
             }
             else
             {
                 pnodeThis = CreateBlockScopedDeclNode(pid, knopLetDecl);
-                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(LetCount, m_scriptContext);
+                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Let, m_scriptContext);
             }
 
             if (pid == wellKnownPropertyPids.arguments && m_currentNodeFunc)
@@ -10396,7 +10396,7 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
                         m_currentNodeFunc->sxFnc.SetCanBeDeferred(false);
                         m_InAsmMode = true;
 
-                        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(AsmJSFunctionCount, m_scriptContext);
+                        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(AsmJSFunction, m_scriptContext);
                     }
                 }
                 else if (isOctalInString)
@@ -11858,7 +11858,7 @@ ParseNodePtr Parser::ParseSuper(ParseNodePtr pnode, bool fAllowCall)
     }
 
     currentNodeFunc->sxFnc.SetHasSuperReference(TRUE);
-    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SuperCount, m_scriptContext);
+    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Super, m_scriptContext);
     return pnode;
 }
 

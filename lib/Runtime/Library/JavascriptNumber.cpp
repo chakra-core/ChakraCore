@@ -413,7 +413,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsNaNCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsNaN);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -441,7 +441,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsFiniteCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsFinite);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -466,7 +466,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsIntegerCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsInteger);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -494,7 +494,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsSafeIntegerCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsSafeInteger);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
