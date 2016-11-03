@@ -916,7 +916,7 @@ namespace Js
     void ScriptContext::ProfileTypes()
     {
         Output::Print(_u("===============================================================================\n"));
-        Output::Print(_u("Types Profile\n"));
+        Output::Print(_u("Types Profile %s\n"), this->url);
         Output::Print(_u("-------------------------------------------------------------------------------\n"));
         Output::Print(_u("Dynamic Type Conversions:\n"));
         Output::Print(_u("    Null to Simple                 %8d\n"), convertNullToSimpleCount);

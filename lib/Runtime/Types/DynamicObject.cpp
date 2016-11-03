@@ -295,6 +295,24 @@ namespace Js
         this->type = type;
     }
 
+    void DynamicObject::ReplaceTypeWithPredecessorType(DynamicType * predecessorType)
+    {
+        Assert(this->GetTypeHandler()->IsPathTypeHandler());
+        Assert(((PathTypeHandlerBase*)this->GetTypeHandler())->GetPredecessorType()->GetTypeHandler()->IsPathTypeHandler());
+
+        Assert(((PathTypeHandlerBase*)this->GetTypeHandler())->GetPredecessorType() == predecessorType);
+
+        Assert(!predecessorType->GetIsLocked() || predecessorType->GetTypeHandler()->GetIsLocked());
+        Assert(!predecessorType->GetIsShared() || predecessorType->GetTypeHandler()->GetIsShared());
+
+        PathTypeHandlerBase* currentPathTypeHandler = (PathTypeHandlerBase*)this->GetTypeHandler();
+        PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
+
+        Assert(predecessorPathTypeHandler->GetInlineSlotCapacity() >= currentPathTypeHandler->GetInlineSlotCapacity());
+
+        this->type = predecessorType;
+    }
+
     DWORD DynamicObject::GetOffsetOfAuxSlots()
     {
         return offsetof(DynamicObject, auxSlots);

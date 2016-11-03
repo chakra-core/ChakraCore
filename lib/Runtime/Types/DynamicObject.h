@@ -97,6 +97,7 @@ namespace Js
         void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
         void ReplaceType(DynamicType * type);
+        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
     protected:
         DEFINE_VTABLE_CTOR(DynamicObject, RecyclableObject);
