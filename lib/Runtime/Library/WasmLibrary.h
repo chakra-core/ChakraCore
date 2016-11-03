@@ -14,13 +14,9 @@ namespace Js
         class EntryInfo
         {
         public:
-            static FunctionInfo instantiateModule;
             static FunctionInfo Compile;
             static FunctionInfo Validate;
         };
-
-        static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
-        static const unsigned int experimentalVersion;
 
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);
         static Var WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...);

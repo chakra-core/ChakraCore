@@ -275,10 +275,6 @@ ENTRY(Map)
 ENTRY(Math)
 
 // Wasm
-// TODO: remove old Wasm object
-ENTRY(Wasm)
-ENTRY(instantiateModule)
-ENTRY(experimentalVersion)
 
 ENTRY(WebAssembly)
 ENTRY(Module)

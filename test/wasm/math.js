@@ -17,8 +17,8 @@ let check = function(expected, funName, ...args)
 
 
 let ffi = {};
-let wasm = readbuffer("math.wasm");
-let exports = Wasm.instantiateModule(new Uint8Array(wasm), ffi).exports;
+var mod = new WebAssembly.Module(readbuffer('math.wasm'));
+var exports = new WebAssembly.Instance(mod, ffi).exports;
 check(0, "exports.ctz", 1);
 check(2, "exports.ctz", 4);
 check(31, "exports.ctz", -Math.pow(2,31));
