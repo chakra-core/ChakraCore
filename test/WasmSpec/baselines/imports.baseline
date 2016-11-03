@@ -1,7 +1,10 @@
 Unexpected Error while compiling imports.0.wasm
 WebAssemblyCompileError: Compiling wasm failed: Exported Kind Table, NYI
-Unexpected Error while compiling imports.1.wasm
-WebAssemblyCompileError: Compiling wasm failed: Import functions in the table NYI
+13
+14 42
+13
+13
+13
 Unexpected Error while compiling imports.2.wasm
 TypeError: Import is invalid
 Unexpected Error while compiling imports.3.wasm
@@ -70,4 +73,4 @@ Unexpected Error while compiling imports.34.wasm
 WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
 Unexpected Error while compiling imports.35.wasm
 WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-0/0 tests passed.
+1/1 tests passed.
