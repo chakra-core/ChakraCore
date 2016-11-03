@@ -3,9 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
-  var memory = null;
-  var ffi = {spectest: {print: print}};
-  var module = Wasm.instantiateModule(readbuffer('f32address.wasm'), ffi);
+var memory = null;
+var ffi = {spectest: {print: print}};
+var mod = new WebAssembly.Module(readbuffer('f32address.wasm'));
+var module = new WebAssembly.Instance(mod, ffi);
 
 
 equal(2145386496, module.exports['i32.load']());

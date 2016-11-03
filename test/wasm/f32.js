@@ -3,9 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('f32.wasm');
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
+var mod = new WebAssembly.Module(readbuffer('f32.wasm'));
+var a = new WebAssembly.Instance(mod).exports;
 print(a.min(11, 11.01)); // 11
 print(a.max(11, 11.01)); // 11.010000228881836
 print(a.min(NaN, 11.01)); // NaN
