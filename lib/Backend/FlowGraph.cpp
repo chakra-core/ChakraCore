@@ -3105,7 +3105,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
 
     if (cmpSrc1 != newSrc1)
     {
-        if (cmpSrc1->IsRegOpnd())
+        if (cmpSrc1->IsRegOpnd() && !cmpSrc1->GetIsJITOptimizedReg())
         {
             bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc1->AsRegOpnd()->m_sym->m_id);
         }
@@ -3117,7 +3117,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     }
     if (cmpSrc2 != newSrc2)
     {
-        if (cmpSrc2->IsRegOpnd())
+        if (cmpSrc2->IsRegOpnd() && !cmpSrc2->GetIsJITOptimizedReg())
         {
             bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc2->AsRegOpnd()->m_sym->m_id);
         }

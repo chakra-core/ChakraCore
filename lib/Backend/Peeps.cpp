@@ -497,7 +497,7 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
                     IR::RegOpnd *regSrc = branchInstr->GetSrc1()->AsRegOpnd();
                     StackSym *symSrc = regSrc->GetStackSym();
 
-                    if (symSrc->HasByteCodeRegSlot())
+                    if (symSrc->HasByteCodeRegSlot() && !regSrc->GetIsJITOptimizedReg())
                     {
                         // No side-effects to worry about, but need to insert bytecodeUse.
                         IR::ByteCodeUsesInstr *byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(branchInstr->m_func);
