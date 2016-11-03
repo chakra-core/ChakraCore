@@ -235,7 +235,7 @@ namespace Js
                 }
 
                 *(int64*)(argDst) = 0;
-                *(int32*)argDst = intVal;
+                *(int64*)argDst = intVal;
 
                 argDst = argDst + MachPtr;
             }

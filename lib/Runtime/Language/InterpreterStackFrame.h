@@ -187,8 +187,8 @@ namespace Js
         void OP_Unreachable();
         template < typename T, T MIN, T MAX> int OP_TruncWithCheck(double val);
         template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
-        int OP_DivOverflow(int a, int b);
-        template <typename T, AsmJsMathPtr<T> func> T OP_DivRemCheck(T a, T b);
+        template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_DivRemCheck(T a, T b, ScriptContext* scriptContext);
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
