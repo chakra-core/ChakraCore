@@ -189,6 +189,19 @@ var tests = [
             assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
         }
     },
+    {
+        name: "await is a keyword and disallowed within arrow function parameter syntax",
+        body: function () {
+            assert.throws(function () { eval("async function af() { var a = await => { }; }"); }, SyntaxError, "await cannot appear as the formal name of an unparenthesized arrow function parameter list", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (await) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (single formal)", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (x, y, await) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (middle formal)", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (x, await, y) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (last formal)", "Syntax error");
+
+            assert.throws(function () { eval("async function af() { var a = (x = await 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (single formal)", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af() { var a = (x, y = await 0, z = 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (middle formal)", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af() { var a = (x, y, z = await 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (last formal)", "'await' expression not allowed in this context");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -190,7 +190,27 @@ var tests = [
             assert.areEqual({value: undefined, done: true}, g.next(), "Generator is closed");
         }
     },
-    // TODO: add test case for function* gfoo() { (yield) => { /* use yield here */ } }
+    {
+        name: "yield is a keyword and disallowed within arrow function parameter syntax",
+        body: function () {
+            assert.throws(function () { eval("function* gf() { var a = yield => { }; }"); }, SyntaxError, "yield cannot appear as the formal name of an unparenthesized arrow function parameter list", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (single formal)", "The use of a keyword for an identifier is invalid");
+            assert.throws(function () { eval("function* gf() { var a = (x, y, yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (middle formal)", "The use of a keyword for an identifier is invalid");
+            assert.throws(function () { eval("function* gf() { var a = (x, yield, y) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (last formal)", "The use of a keyword for an identifier is invalid");
+
+            assert.throws(function () { eval("function* gf() { var a = (x = yield) => { }; }"); }, SyntaxError, "nullary yield expression is disallowed within arrow function default parameter expression (single formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y = yield, z = 0) => { }; }"); }, SyntaxError, "nullary yield expression is disallowed within arrow function default parameter expression (middle formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y, z = yield) => { }; }"); }, SyntaxError, "nullary yield expression is disallowed within arrow function default parameter expression (last formal)", "Syntax error");
+
+            assert.throws(function () { eval("function* gf() { var a = (x = yield 0) => { }; }"); }, SyntaxError, "unary yield expression is disallowed within arrow function default parameter expression (single formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y = yield 0, z = 0) => { }; }"); }, SyntaxError, "unary yield expression is disallowed within arrow function default parameter expression (middle formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y, z = yield 0) => { }; }"); }, SyntaxError, "unary yield expression is disallowed within arrow function default parameter expression (last formal)", "Syntax error");
+
+            assert.throws(function () { eval("function* gf() { var a = (x = yield* 0) => { }; }"); }, SyntaxError, "yield* expression is disallowed within arrow function default parameter expression (single formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y = yield* 0, z = 0) => { }; }"); }, SyntaxError, "yield* expression is disallowed within arrow function default parameter expression (middle formal)", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = (x, y, z = yield* 0) => { }; }"); }, SyntaxError, "yield* expression is disallowed within arrow function default parameter expression (last formal)", "Syntax error");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
