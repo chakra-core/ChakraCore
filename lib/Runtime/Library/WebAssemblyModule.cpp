@@ -27,6 +27,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_elementsegCount(0),
     m_elementsegs(nullptr),
     m_signatures(nullptr),
+    m_tableImport(nullptr),
+    m_memImport(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
     isMemExported(false),
@@ -422,7 +424,7 @@ WebAssemblyModule::GetFunctionImport(uint32 i) const
 }
 
 void
-WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::ExternalKinds::ExternalKind kind, Wasm::WasmGlobal* importedGlobal)
+WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
     wi->sigId = 0;
@@ -434,6 +436,32 @@ WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, con
     importedGlobal->importVar = wi;
     importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
     globals->Add(importedGlobal);
+}
+
+void
+WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen)
+{
+    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    wi->sigId = 0;
+    wi->fnName = fnName;
+    wi->fnNameLen = fnNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+
+    this->m_tableImport = wi;
+}
+void
+WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen)
+{
+    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    wi->sigId = 0;
+    wi->fnName = fnName;
+    wi->fnNameLen = fnNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+
+    this->m_memImport = wi;
+
 }
 
 uint
