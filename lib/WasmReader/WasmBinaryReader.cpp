@@ -806,9 +806,10 @@ WasmBinaryReader::ReadElementSection()
             {
                 ThrowDecodingError(_u("Invalid function index %d"), elem);
             }
-            if (funcType == FunctionIndexTypes::Import)
+            if (funcType != FunctionIndexTypes::ImportThunk && funcType != FunctionIndexTypes::Function)
             {
-                ThrowDecodingError(_u("Imported functions are not allowed in the table"));
+                Assert(UNREACHED);
+                ThrowDecodingError(_u("Unknown function type to insert in the table"));
             }
             eSeg->AddElement(elem, *m_module);
         }
