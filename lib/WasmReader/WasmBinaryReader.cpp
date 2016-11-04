@@ -958,13 +958,15 @@ WasmBinaryReader::ReadImportEntries()
             {
                 ThrowDecodingError(_u("I64 Globals, NYI"));
             }
-            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, kind, importedGlobal);
+            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, importedGlobal);
             break;
         }
         case ExternalKinds::Table:
-            ThrowDecodingError(_u("Imported Kind Table, NYI"));
+            m_module->AddTableImport(modName, modNameLen, fnName, fnNameLen);
+            break;
         case ExternalKinds::Memory:
-            ThrowDecodingError(_u("Imported Kind Memory, NYI"));
+            m_module->AddMemoryImport(modName, modNameLen, fnName, fnNameLen);
+            break;
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
             break;
