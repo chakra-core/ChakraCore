@@ -640,7 +640,8 @@ WasmBinaryReader::ReadSignatures()
     for (UINT32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
-        WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
+
+        WasmSignature * sig = m_module->GetSignature(i);
 
         int8 form = ReadConst<int8>();
         if (form != LanguageTypes::func)
@@ -649,7 +650,7 @@ WasmBinaryReader::ReadSignatures()
         }
         UINT32 paramCount = LEB128(len);
         WasmTypes::WasmType type;
-        sig->AllocateParams(paramCount);
+        sig->AllocateParams(paramCount, m_module->GetRecycler());
 
         for (UINT32 j = 0; j < paramCount; j++)
         {
@@ -667,7 +668,6 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
-        m_module->SetSignature(i, sig);
     }
 }
 
@@ -767,16 +767,13 @@ void WasmBinaryReader::ReadTableSection()
         }
         uint32 flags = LEB128(length);
         uint32 initialLength = LEB128(length);
+        uint32 maximumLength = UINT32_MAX;
         if (flags & 0x1)
         {
-            uint32 maximumLength = LEB128(length);
-
-            // Allocate maximum length for now until resizing supported
-            initialLength = maximumLength;
+            maximumLength = LEB128(length);
         }
-        m_module->SetTableSize(initialLength);
-        m_module->CalculateEquivalentSignatures();
-        TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
+        m_module->InitializeTable(initialLength, maximumLength);
+        TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), initialLength, maximumLength);
     }
 }
 
@@ -814,7 +811,7 @@ WasmBinaryReader::ReadElementSection()
             }
             eSeg->AddElement(elem, *m_module);
         }
-        m_module->SetTableValues(eSeg, i);
+        m_module->SetElementSeg(eSeg, i);
     }
 }
 
@@ -843,7 +840,7 @@ WasmBinaryReader::ReadDataSegments()
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
-        m_module->AddDataSeg(dseg, i);
+        m_module->SetDataSeg(dseg, i);
     }
 }
 

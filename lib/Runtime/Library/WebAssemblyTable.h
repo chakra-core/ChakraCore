@@ -31,10 +31,16 @@ namespace Js
         static WebAssemblyTable * FromVar(Var aValue);
 
         static WebAssemblyTable * Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
+
+        uint32 GetLength() const;
+        Var * GetValues() const;
+
+        void DirectSetValue(uint index, Var val);
+        Var DirectGetValue(uint index) const;
     private:
+        Var * m_values;
         uint32 m_maxLength;
         uint32 m_length;
-        Var * m_values;
 #endif
     };
 }

@@ -10,8 +10,7 @@
 namespace Wasm
 {
 
-WasmSignature::WasmSignature(ArenaAllocator * alloc) :
-    m_alloc(alloc),
+WasmSignature::WasmSignature() :
     m_resultType(WasmTypes::Void),
     m_id(Js::Constants::UninitializedValue),
     m_paramSize(Js::Constants::UninitializedValue),
@@ -21,9 +20,9 @@ WasmSignature::WasmSignature(ArenaAllocator * alloc) :
 }
 
 void
-WasmSignature::AllocateParams(uint32 count)
+WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
 {
-    m_params = AnewArrayZ(m_alloc, Local, count);
+    m_params = RecyclerNewArrayLeafZ(recycler, Local, count);
     m_paramsCount = count;
 }
 
@@ -80,7 +79,7 @@ WasmSignature::GetSignatureId() const
 }
 
 bool
-WasmSignature::IsEquivalent(WasmSignature* sig) const
+WasmSignature::IsEquivalent(const WasmSignature* sig) const
 {
     if (GetResultType() == sig->GetResultType() &&
         GetParamCount() == sig->GetParamCount() &&

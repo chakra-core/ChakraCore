@@ -140,6 +140,8 @@ namespace Js
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
 
+        Wasm::WasmSignature* m_signatures;
+
          _SIMDValue* m_localSimdSlots;
 
         EHBailoutData * ehBailoutData;
@@ -610,6 +612,8 @@ namespace Js
         template <class T> inline void OP_InitClassMemberSetComputedName(const unaligned T * playout);
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_LdArr(  uint32 index, RegSlot value  );
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
+        template <class T> inline void OP_LdArrWasmFunc(const unaligned T* playout);
+        template <class T> inline void OP_CheckSignature(const unaligned T* playout);
         template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );

@@ -15,7 +15,9 @@ namespace Wasm
         void AddElement(const UINT32 funcIndex, const Js::WebAssemblyModule& module);
         UINT32 GetElement(const UINT32 tableIndex) const;
         UINT32 GetNumElements() const { return m_numElem; }
-        void ResolveOffsets(const Js::WebAssemblyModule& module);
+        UINT32* GetElements() const { return m_elems; }
+
+        uint32 GetDestAddr(Js::WebAssemblyModule* module) const;
 
     private:
         ArenaAllocator* m_alloc;
@@ -25,7 +27,6 @@ namespace Wasm
         UINT32 m_offset;
         UINT32 m_limit;
         UINT32 m_elemIdx;
-        bool m_isOffsetResolved;
         UINT32* m_elems;
 
         void Init(const Js::WebAssemblyModule& module);

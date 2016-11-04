@@ -42,6 +42,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , CheckSignature,OP_CheckSignature            , Int1Const1       ) // TODO: make new layout
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Db    , OP_LdSlotPrimitive           , ElementSlot, double )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Int   , OP_LdSlotPrimitive           , ElementSlot, int    )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Long  , OP_LdSlotPrimitive           , ElementSlot, int64  )

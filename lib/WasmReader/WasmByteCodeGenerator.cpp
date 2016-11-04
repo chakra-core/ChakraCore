@@ -804,7 +804,6 @@ WasmBytecodeGenerator::EmitCall()
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
         signatureId = GetReader()->m_currentNode.call.num;
-        signatureId = m_module->GetEquivalentSignatureId(signatureId);
         calleeSignature = m_module->GetSignature(signatureId);
         ReleaseLocation(&indirectIndexInfo);
         break;
@@ -906,8 +905,9 @@ WasmBytecodeGenerator::EmitCall()
             throw WasmCompilationException(_u("Indirect call index must be int type"));
         }
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetTableEnvironmentOffset());
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, m_module->GetTableEnvironmentOffset());
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_WasmFunc, 0, 0, indirectIndexInfo.location);
+        m_writer.AsmReg2(Js::OpCodeAsmJs::CheckSignature, 0, calleeSignature->GetSignatureId());
         break;
     default:
         Assume(UNREACHED);
