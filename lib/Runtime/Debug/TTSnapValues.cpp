@@ -1291,7 +1291,7 @@ namespace TTD
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
             Js::EvalMapString key(source, length, moduleID, strictMode, /* isLibraryCode = */ false);
-            ctx->AddToNewFunctionMap(key, functionInfo);
+            ctx->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
@@ -1457,7 +1457,7 @@ namespace TTD
                     uint32 blength = parentBody->GetNestedCount();
                     for(uint32 i = 0; i < blength; ++i)
                     {
-                        Js::ParseableFunctionInfo* pfi = parentBody->GetNestedFunc(i)->EnsureDeserialized();
+                        Js::ParseableFunctionInfo* pfi = parentBody->GetNestedFunctionForExecution(i);
                         Js::FunctionBody* currfb = JsSupport::ForceAndGetFunctionBody(pfi);
 
                         if(fbInfo->OptLine == currfb->GetLineNumber() && fbInfo->OptColumn == currfb->GetColumnNumber())
