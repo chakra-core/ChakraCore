@@ -2998,6 +2998,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
     // so they have pointers to the stub sub-trees they need.)
     byteCodeFunction->SetDeferredStubs(nullptr);
 
+    if (byteCodeFunction->GetByteCode() != nullptr)
+    {
+        // Previously compiled function nested within a re-deferred and re-compiled function.
+        return;
+    }
+
     try
     {
         // Bug : 301517
@@ -3225,10 +3231,10 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             uint nestedCount = byteCodeFunction->GetNestedCount();
             for (uint i = 0; i < nestedCount; i++)
             {
-                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunc(i);
+                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunctionProxy(i);
                 if (nested->IsFunctionBody())
                 {
-                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction);
+                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
                 }
             }
         }
@@ -3462,6 +3468,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
+    byteCodeFunction->SetCompileCount(UInt32Math::Add(byteCodeFunction->GetCompileCount(), 1));
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
