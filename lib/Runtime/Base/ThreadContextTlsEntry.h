@@ -7,6 +7,10 @@
 class ThreadContextTLSEntry
 {
 public:
+    static bool InitializeProcess();
+    static void CleanupProcess();
+    static bool IsProcessInitialized();
+    static void InitializeThread();
     static void CleanupThread();
     static void Delete(ThreadContextTLSEntry * entry);
     static bool TrySetThreadContext(ThreadContext * threadContext);
@@ -16,7 +20,9 @@ public:
     static ThreadContextTLSEntry * GetEntryForCurrentThread();
     static ThreadContextTLSEntry * CreateEntryForCurrentThread();
     static ThreadContextId GetThreadContextId(ThreadContext * threadContext);
-
+#ifdef _WIN32
+    static uint32 s_tlsSlot;
+#endif
     ThreadContext * GetThreadContext();
 
 private:
