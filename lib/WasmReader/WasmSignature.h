@@ -22,11 +22,13 @@ public:
     uint32 GetParamCount() const;
     uint32 GetParamSize(uint index) const;
     uint32 GetParamsSize() const;
-    void FinalizeParams();
+    void FinalizeSignature();
     uint32 GetSignatureId() const;
+    int64 GetShortSig() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;
 private:
+    int64 m_shortSig;
     WasmTypes::WasmType m_resultType;
     Local* m_params;
     uint32 m_paramsCount;

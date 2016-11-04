@@ -15,7 +15,8 @@ WasmSignature::WasmSignature() :
     m_id(Js::Constants::UninitializedValue),
     m_paramSize(Js::Constants::UninitializedValue),
     m_params(nullptr),
-    m_paramsCount(0)
+    m_paramsCount(0),
+    m_shortSig(Js::Constants::InvalidSignature)
 {
 }
 
@@ -81,9 +82,19 @@ WasmSignature::GetSignatureId() const
     return m_id;
 }
 
+int64
+WasmSignature::GetShortSig() const
+{
+    return m_shortSig;
+}
+
 bool
 WasmSignature::IsEquivalent(const WasmSignature* sig) const
 {
+    if (m_shortSig != Js::Constants::InvalidSignature)
+    {
+        return sig->GetShortSig() == m_shortSig;
+    }
     if (GetResultType() == sig->GetResultType() &&
         GetParamCount() == sig->GetParamCount() &&
         GetParamsSize() == sig->GetParamsSize())
@@ -120,7 +131,7 @@ uint32 WasmSignature::GetParamSize(uint index) const
 }
 
 void
-WasmSignature::FinalizeParams()
+WasmSignature::FinalizeSignature()
 {
     Assert(m_paramSize == Js::Constants::UninitializedValue);
 
@@ -129,7 +140,22 @@ WasmSignature::FinalizeParams()
     {
         m_paramSize += GetParamSize(i);
     }
+
+    CompileAssert(Local::Limit - 1 <= 4);
+
+    // 1 for sentinel bit, 3 bits for result type, 2 for each arg
+    int sigSize = 1 + 3 + 2 * GetParamCount();
+    if (sigSize <= sizeof(m_shortSig))
+    {
+        m_shortSig = m_resultType;
+        for (uint32 i = 0; i < GetParamCount(); ++i)
+        {
+            // we can use 2 bits per arg by dropping void
+            m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
+        }
+    }
 }
+
 uint32
 WasmSignature::GetParamsSize() const
 {
