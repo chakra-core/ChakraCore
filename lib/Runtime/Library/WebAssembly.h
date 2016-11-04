@@ -27,6 +27,8 @@ public:
 
     static uint32 ToNonWrappingUint32(Var val, ScriptContext * ctx);
     static void ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer, _Out_ uint *byteLength);
+    static void CheckSignature(ScriptContext * scriptContext, Wasm::WasmSignature * sig1, Wasm::WasmSignature * sig2);
+    static uint GetSignatureSize();
 #endif
 };
 

@@ -404,6 +404,7 @@ namespace Js
             break;
         }
         case OpCodeAsmJs::LdArr_Func:
+        case OpCodeAsmJs::LdArr_WasmFunc:
             Output::Print(_u(" R%d = R%d[I%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::StSlot_Int:

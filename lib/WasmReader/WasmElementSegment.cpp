@@ -15,7 +15,6 @@ namespace Wasm
         m_offsetExpr(initExpr),
         m_numElem(numElem),
         m_offset(0),
-        m_limit(0),
         m_elemIdx(0),
         m_elems(nullptr)
     {}
@@ -42,11 +41,7 @@ namespace Wasm
     UINT32
     WasmElementSegment::GetElement(const UINT32 tableIndex) const
     {
-        if (m_offset > tableIndex || tableIndex >= m_limit)
-        {
-            return Js::Constants::UninitializedValue;
-        }
-        return m_elems[tableIndex - m_offset];
+        return m_elems[tableIndex];
     }
 
     uint32 WasmElementSegment::GetDestAddr(Js::WebAssemblyModule* module) const

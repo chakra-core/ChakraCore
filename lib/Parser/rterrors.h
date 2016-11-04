@@ -380,3 +380,4 @@ RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 5679, "Invalid WebAssembly type conv
 RT_ERROR_MSG(WASMERR_NeedWebAssemblyFunc, 5680, "%s is not a WebAssembly exported function", "WebAssembly exported function expected", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_SignatureMismatch, 5681, "%s called with unexpected signature", "Function called with unexpected signature", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_ElementSegOutOfRange, 5682, "", "Element segment is out of range", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 5683, "", "Table index is out of range", kjstWebAssemblyRuntimeError, 0)

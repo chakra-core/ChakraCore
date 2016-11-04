@@ -642,7 +642,7 @@ WasmBinaryReader::ReadSignatures()
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
 
         WasmSignature * sig = m_module->GetSignature(i);
-
+        sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
         if (form != LanguageTypes::func)
         {
@@ -668,6 +668,7 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
+        sig->FinalizeParams();
     }
 }
 

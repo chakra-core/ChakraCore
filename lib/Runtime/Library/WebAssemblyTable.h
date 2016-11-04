@@ -37,6 +37,8 @@ namespace Js
 
         void DirectSetValue(uint index, Var val);
         Var DirectGetValue(uint index) const;
+
+        static uint32 GetOffsetOfValues() { return offsetof(WebAssemblyTable, m_values); }
     private:
         Var * m_values;
         uint32 m_maxLength;

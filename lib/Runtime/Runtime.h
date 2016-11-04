@@ -518,6 +518,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/WebAssemblyTable.h"
 #include "Library/WebAssemblyMemory.h"
 #include "Library/WebAssemblyModule.h"
+#include "Library/WebAssembly.h"
 
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"

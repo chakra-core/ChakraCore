@@ -1809,6 +1809,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerUnaryHelper(instr, IR::HelperOp_UnwrapWithObj);
             break;
 
+        case Js::OpCode::CheckWasmSignature:
+            this->LowerCheckWasmSignature(instr);
+            break;
         case Js::OpCode::LdAsmJsFunc:
             if (instr->GetSrc1()->IsIndirOpnd())
             {
@@ -8170,6 +8173,29 @@ Lowerer::LoadArgumentsFromFrame(IR::Instr *const instr)
     {
         m_lowererMD.LoadArgumentsFromFrame(instr);
     }
+}
+
+IR::Instr *
+Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
+{
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+
+    // TODO: fast compare
+    IR::Instr *instrPrev = instr->m_prev;
+
+    IR::RegOpnd * actualSig = IR::RegOpnd::New(TyVar, m_func);
+    IR::IndirOpnd * sigOffset = IR::IndirOpnd::New(instr->UnlinkSrc1()->AsRegOpnd(), Js::AsmJsScriptFunction::GetOffsetOfSignature(), TyVar, m_func);
+    InsertMove(actualSig, sigOffset, instr);
+
+
+    m_lowererMD.LoadHelperArgument(instr, instr->UnlinkSrc2());
+    m_lowererMD.LoadHelperArgument(instr, actualSig);
+
+    LoadScriptContext(instr);
+
+    m_lowererMD.ChangeToHelperCall(instr, IR::HelperOp_CheckWasmSignature);
+
+    return instrPrev;
 }
 
 IR::Instr *

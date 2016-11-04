@@ -22,6 +22,7 @@ public:
     uint32 GetParamCount() const;
     uint32 GetParamSize(uint index) const;
     uint32 GetParamsSize() const;
+    void FinalizeParams();
     uint32 GetSignatureId() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;

@@ -145,6 +145,7 @@ LAYOUT_TYPE_WMS_REG2  ( Reg1Double1   , Reg, Double) // 1 var register and 1 dou
 LAYOUT_TYPE_WMS_REG2  ( Reg1Float1    , Reg, Float) // 1 var register and 1 Float register
 LAYOUT_TYPE_WMS_REG2  ( Reg1Int1      , Reg, Int) // 1 var register and 1 int register
 LAYOUT_TYPE_WMS_REG2  ( Int1Const1    , Int, IntConst) // 1 int register and 1 const int value
+LAYOUT_TYPE_WMS_REG2  ( Reg1IntConst1 , Reg, IntConst) // 1 int register and 1 const int value
 LAYOUT_TYPE_WMS_REG3  ( Int1Double2   , Int, Double, Double) // 1 int register and 2 double register ( double comparisons )
 LAYOUT_TYPE_WMS_REG3  ( Int1Float2    , Int, Float, Float) // 1 int register and 2 float register ( float comparisons )
 LAYOUT_TYPE_WMS_REG2  ( Int2          , Int, Int) // 2 int register
