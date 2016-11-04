@@ -440,6 +440,7 @@ private:
     void            SetNumber(uint32 number);
     friend class ::Func;
     friend class ::Lowerer;
+    friend class IR::ByteCodeUsesInstr;
 
     void            SetByteCodeOffset(uint32 number);
     friend class ::IRBuilder;
@@ -505,13 +506,19 @@ protected:
 
 class ByteCodeUsesInstr : public Instr
 {
-public:
-    static ByteCodeUsesInstr * New(Func * func);
-    static ByteCodeUsesInstr* New(IR::Instr* originalBytecodeInstr, Opnd* srcopnd, SymID symid);
+private:
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;
-    PropertySym *              propertySymUse;
+    
+public:
+    static ByteCodeUsesInstr * New(IR::Instr * originalBytecodeInstr);
+    static ByteCodeUsesInstr * New(Func * originalBytecodeInstr, uint32 offset);
+    const BVSparse<JitArenaAllocator> * getByteCodeUpwardExposedUsed() const { return byteCodeUpwardExposedUsed; }
 
-    void Set(Opnd* srcopnd, uint symId);
+    PropertySym *              propertySymUse;
+    void Set(bool isjitoptimizedreg, uint symId);
+    void Clear(uint symId) { Assert(byteCodeUpwardExposedUsed != nullptr); byteCodeUpwardExposedUsed->Clear(symId); };
+    void SetBV(BVSparse<JitArenaAllocator>* newbv) { Assert(byteCodeUpwardExposedUsed == nullptr && newbv != nullptr); byteCodeUpwardExposedUsed = newbv; };
+    void Aggregate();
 };
 
 class JitProfilingInstr : public Instr

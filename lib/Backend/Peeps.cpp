@@ -500,10 +500,8 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
                     if (symSrc->HasByteCodeRegSlot() && !regSrc->GetIsJITOptimizedReg())
                     {
                         // No side-effects to worry about, but need to insert bytecodeUse.
-                        IR::ByteCodeUsesInstr *byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(branchInstr->m_func);
-                        byteCodeUsesInstr->SetByteCodeOffset(branchInstr);
-                        byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(branchInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, branchInstr->m_func->m_alloc);
-                        byteCodeUsesInstr->byteCodeUpwardExposedUsed->Set(regSrc->GetStackSym()->m_id);
+                        IR::ByteCodeUsesInstr *byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(branchInstr);
+                        byteCodeUsesInstr->Set(regSrc->GetIsJITOptimizedReg(), regSrc->GetStackSym()->m_id);
                         branchInstr->InsertBefore(byteCodeUsesInstr);
                     }
                 }

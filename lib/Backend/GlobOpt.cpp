@@ -20225,7 +20225,7 @@ GlobOpt::OptPeep(IR::Instr *instr, Value *src1Val, Value *src2Val)
                 dst = instr->UnlinkDst();
                 if (!dst->GetIsJITOptimizedReg())
                 {
-                    IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(this->func);
+                    IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(instr);
                     bytecodeUse->SetDst(dst);
                     instr->InsertAfter(bytecodeUse);
                 }

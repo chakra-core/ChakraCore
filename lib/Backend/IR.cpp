@@ -870,37 +870,71 @@ ProfiledInstr::CopyProfiledInstr() const
 }
 
 ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(Func * func)
+ByteCodeUsesInstr::New(IR::Instr * originalBytecodeInstr)
+{
+    Func* func = originalBytecodeInstr->m_func;
+    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
+    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
+    byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
+    byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
+    return byteCodeUses;
+}
+
+ByteCodeUsesInstr *
+ByteCodeUsesInstr::New(Func * func, uint32 offset)
 {
     ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
     byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
     byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
     byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(offset);
     return byteCodeUses;
 }
 
-ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, IR::Opnd* srcopnd, SymID symid)
+void ByteCodeUsesInstr::Set(bool isJITOptimizedReg, uint symId)
 {
-    Func* func = originalBytecodeInstr->m_func;
-    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
-    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
-    Assert(!srcopnd == nullptr && !srcopnd->GetIsJITOptimizedReg());
-    byteCodeUses->byteCodeUpwardExposedUsed = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
-    byteCodeUses->byteCodeUpwardExposedUsed->Set(symid);
-    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
-    byteCodeUses->propertySymUse = nullptr;
-    return byteCodeUses;
-}
-
-void ByteCodeUsesInstr::Set(IR::Opnd* srcopnd, uint symId)
-{
-    Assert(!srcopnd == nullptr && !srcopnd->GetIsJITOptimizedReg());
+    Assert(!isJITOptimizedReg);
+    // Although this shouldn't happen, we might as well handle it properly
+    if (isJITOptimizedReg)
+    {
+        return;
+    }
     if(!byteCodeUpwardExposedUsed)
     {
         byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
     }
     byteCodeUpwardExposedUsed->Set(symId);
+}
+
+void ByteCodeUsesInstr::Aggregate()
+{
+    // If possible, we want to aggregate with subsequent ByteCodeUses Instructions, so
+    // that we can do some optimizations in other places where we can simplify args in
+    // a compare, but still need to generate them for bailouts. Without this, we cause
+    // problems because we end up with an instruction losing atomicity in terms of its
+    // bytecode use and generation lifetimes.
+    IR::Instr* scanner = this->m_next;
+    while (scanner && scanner->m_opcode == Js::OpCode::ByteCodeUses && scanner->GetByteCodeOffset() == this->GetByteCodeOffset() && scanner->GetDst() == nullptr)
+    {
+        IR::ByteCodeUsesInstr* target = scanner->AsByteCodeUsesInstr();
+        if (target->byteCodeUpwardExposedUsed)
+        {
+            if (this->byteCodeUpwardExposedUsed)
+            {
+                this->byteCodeUpwardExposedUsed->Or(target->byteCodeUpwardExposedUsed);
+                JitAdelete(target->byteCodeUpwardExposedUsed->GetAllocator(), target->byteCodeUpwardExposedUsed);
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+            else
+            {
+                Assert(this->m_func == target->m_func);
+                this->byteCodeUpwardExposedUsed = target->byteCodeUpwardExposedUsed;
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+        }
+        scanner = scanner->m_next;
+    }
 }
 
 BailOutInfo *
@@ -4274,10 +4308,10 @@ Instr::Dump(IRDumpFlags flags)
 
     if (this->IsByteCodeUsesInstr())
     {
-        if (this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+        if (this->AsByteCodeUsesInstr()->getByteCodeUpwardExposedUsed())
         {
             bool first = true;
-            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->getByteCodeUpwardExposedUsed())
             {
                 Output::Print(first? _u("s%d") : _u(", s%d"), id);
                 first = false;

@@ -199,7 +199,7 @@ private:
 #endif
 
 private:
-    void        InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, uint32 origBranchSrcSymId);
+    void        InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, bool origBranchSrcOpndIsJITOpt, uint32 origBranchSrcSymId);
 
 private:
     Func *                 func;

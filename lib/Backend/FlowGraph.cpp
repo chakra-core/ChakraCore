@@ -2085,6 +2085,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     Func* origBrFunc = instrBr->m_func;
     uint32 origBrByteCodeOffset = instrBr->GetByteCodeOffset();
     uint32 origBranchSrcSymId = instrBr->GetSrc1()->GetStackSym()->m_id;
+    bool origBranchSrcOpndIsJITOpt = instrBr->GetSrc1()->GetIsJITOptimizedReg();
 
     instrBr->Unlink();
     instr->InsertBefore(instrBr);
@@ -2211,7 +2212,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     // Fix InlineeEnd
     if (inlineeEndInstr)
     {
-        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr, instrByteCode , origBrFunc, origBrByteCodeOffset, origBranchSrcSymId);
+        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr, instrByteCode , origBrFunc, origBrByteCodeOffset, origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     }
 
     if (instr->GetDst()->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
@@ -2351,14 +2352,14 @@ FlowGraph::PeepCm(IR::Instr *instr)
     // InlineeEnd?
     if (inlineeEndInstr2)
     {
-        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr2, instrByteCode, origBrFunc, origBrByteCodeOffset, origBranchSrcSymId);
+        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr2, instrByteCode, origBrFunc, origBrByteCodeOffset, origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     }
 
     return instrBr;
 }
 
 void
-FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, uint32 origBranchSrcSymId)
+FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, bool origBranchSrcOpndIsJITOpt, uint32 origBranchSrcSymId)
 {
     // Helper for PeepsCm code.
     //
@@ -2390,10 +2391,8 @@ FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeE
     newInlineeEnd->SetIsCloned(true);  // Mark it as cloned - this is used later by the inlinee args optimization
     newBr->InsertBefore(newInlineeEnd);
 
-    IR::ByteCodeUsesInstr * useOrigBranchSrcInstr = IR::ByteCodeUsesInstr::New(origBrFunc);
-    useOrigBranchSrcInstr->SetByteCodeOffset(origByteCodeOffset);
-    useOrigBranchSrcInstr->byteCodeUpwardExposedUsed = JitAnew(origBrFunc->m_alloc, BVSparse<JitArenaAllocator>,origBrFunc->m_alloc);
-    useOrigBranchSrcInstr->byteCodeUpwardExposedUsed->Set(origBranchSrcSymId);
+    IR::ByteCodeUsesInstr * useOrigBranchSrcInstr = IR::ByteCodeUsesInstr::New(origBrFunc, origByteCodeOffset);
+    useOrigBranchSrcInstr->Set(origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     newBr->InsertBefore(useOrigBranchSrcInstr);
 
     uint newBrFnNumber = newBr->m_func->GetFunctionNumber();
@@ -2598,7 +2597,8 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
             globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
-            IR::Instr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr, instr->m_func->GetScopeObjSym()->m_id);
+            IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
+            byteCodeUsesInstr->Set(false, instr->m_func->GetScopeObjSym()->m_id);
             instr->InsertAfter(byteCodeUsesInstr);
         }
 
@@ -3098,16 +3098,14 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         return false;
     }
 
-    IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr->m_func);
-    bytecodeInstr->SetByteCodeOffset(cmpInstr);
-    bytecodeInstr->byteCodeUpwardExposedUsed = Anew(cmpInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>,cmpInstr->m_func->m_alloc);
+    IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr);
     cmpInstr->InsertAfter(bytecodeInstr);
 
     if (cmpSrc1 != newSrc1)
     {
         if (cmpSrc1->IsRegOpnd() && !cmpSrc1->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc1->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc1->AsRegOpnd()->GetIsJITOptimizedReg(), cmpSrc1->AsRegOpnd()->m_sym->m_id);
         }
         cmpInstr->ReplaceSrc1(newSrc1);
         if (newSrc1->IsRegOpnd())
@@ -3119,7 +3117,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     {
         if (cmpSrc2->IsRegOpnd() && !cmpSrc2->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc2->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc2->AsRegOpnd()->GetIsJITOptimizedReg(), cmpSrc2->AsRegOpnd()->m_sym->m_id);
         }
         cmpInstr->ReplaceSrc2(newSrc2);
         if (newSrc2->IsRegOpnd())
