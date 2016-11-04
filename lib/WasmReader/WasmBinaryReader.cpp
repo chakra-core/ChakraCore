@@ -668,7 +668,7 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
-        sig->FinalizeParams();
+        sig->FinalizeSignature();
     }
 }
 
