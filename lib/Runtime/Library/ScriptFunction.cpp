@@ -934,4 +934,13 @@ namespace Js
         }
         SetHasInlineCaches(false);
     }
+
+    void ScriptFunctionWithInlineCache::ClearBorrowedInlineCacheOnFunctionObject()
+    {
+        if (this->hasOwnInlineCaches)
+        {
+            return;
+        }
+        ClearInlineCacheOnFunctionObject();
+    }
 }

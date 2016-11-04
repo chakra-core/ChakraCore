@@ -1519,8 +1519,19 @@ LABEL1:
 
         Assert(functionInfo);
 
+        // Prevent redeferring during parsing
+        bool canBeDeferred = functionInfo->CanBeDeferred();
+        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
+
         if (functionInfo->IsDeferredParseFunction())
         {
+            if (ScriptFunctionWithInlineCache::Is(*functionRef))
+            {
+                // If inline caches were populated from a function body that has been redeferred, the caches have been cleaned up,
+                // so clear the pointers. REVIEW: Is this a perf loss in some cases?
+                ScriptFunctionWithInlineCache::FromVar(*functionRef)->ClearBorrowedInlineCacheOnFunctionObject();
+            }
+
             funcBody = functionInfo->Parse(functionRef);
             fParsed = funcBody->IsFunctionParsed() ? TRUE : FALSE;
 
@@ -1543,6 +1554,13 @@ LABEL1:
 #else // !ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
+
+        // Restore the can-be-deferred attribute.
+        if (canBeDeferred)
+        {
+            funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
+        }
+
         return (*functionRef)->UpdateUndeferredBody(funcBody);
     }
 

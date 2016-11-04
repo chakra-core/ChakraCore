@@ -159,6 +159,7 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
+        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
         void** GetInlineCaches() { return m_inlineCaches; }

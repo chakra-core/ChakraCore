@@ -753,7 +753,7 @@ namespace Js
         {
             return;
         }
-        FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeDataWithLock();
+        FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeData();
         if (data == nullptr)
         {
             return;
