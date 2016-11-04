@@ -39,6 +39,11 @@ static ATOM  lockedDll = 0;
 
 static BOOL AttachProcess(HANDLE hmod)
 {
+    if (!ThreadContextTLSEntry::InitializeProcess())
+    {
+         return FALSE;
+    }
+
     g_hInstance = hmod;
     AutoSystemInfo::SaveModuleFileName(hmod);
 
@@ -109,6 +114,7 @@ static void DetachProcess()
     // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
     // for current thread might be left behind if this thread was initialized.
     ThreadContextTLSEntry::CleanupThread();
+    ThreadContextTLSEntry::CleanupProcess();
 
 #if PROFILE_DICTIONARY
     DictionaryStats::OutputStats();
@@ -132,6 +138,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 // for non-Windows, we handle this part using the tooling from CHAKRA_STATIC_LIBRARY
 #ifdef _WIN32
     case DLL_THREAD_ATTACH:
+        ThreadContextTLSEntry::InitializeThread();
 #ifdef HEAP_TRACK_ALLOC
         HeapAllocator::InitializeThread();
 #endif
