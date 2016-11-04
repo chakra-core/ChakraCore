@@ -215,7 +215,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     }
     Js::ArgSlot paramCount = (Js::ArgSlot)wasmInfo->GetParamCount();
     info->SetArgCount(paramCount);
-
+    info->SetWasmSignature(wasmInfo->GetSignature());
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
     info->SetArgSizeArrayLength(argSizeLength);
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
@@ -907,7 +907,7 @@ WasmBytecodeGenerator::EmitCall()
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, m_module->GetTableEnvironmentOffset());
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_WasmFunc, 0, 0, indirectIndexInfo.location);
-        m_writer.AsmReg2(Js::OpCodeAsmJs::CheckSignature, 0, calleeSignature->GetSignatureId());
+        m_writer.AsmReg1IntConst1(Js::OpCodeAsmJs::CheckSignature, 0, calleeSignature->GetSignatureId());
         break;
     default:
         Assume(UNREACHED);

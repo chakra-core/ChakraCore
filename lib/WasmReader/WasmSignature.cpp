@@ -22,7 +22,10 @@ WasmSignature::WasmSignature() :
 void
 WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
 {
-    m_params = RecyclerNewArrayLeafZ(recycler, Local, count);
+    if (count > 0)
+    {
+        m_params = RecyclerNewArrayLeafZ(recycler, Local, count);
+    }
     m_paramsCount = count;
 }
 
@@ -116,20 +119,20 @@ uint32 WasmSignature::GetParamSize(uint index) const
     }
 }
 
-uint32
-WasmSignature::GetParamsSize() const
+void
+WasmSignature::FinalizeParams()
 {
-    if (m_paramSize != Js::Constants::UninitializedValue)
-    {
-        return m_paramSize;
-    }
+    Assert(m_paramSize == Js::Constants::UninitializedValue);
 
-    uint32 m_paramSize = 0;
+    m_paramSize = 0;
     for (uint32 i = 0; i < GetParamCount(); ++i)
     {
         m_paramSize += GetParamSize(i);
     }
-
+}
+uint32
+WasmSignature::GetParamsSize() const
+{
     return m_paramSize;
 }
 

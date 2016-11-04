@@ -15,6 +15,7 @@ namespace AsmJsRegSlots
         ArrayReg,
         BufferReg,
         LengthReg,
+        SignatureReg,
         RegCount
     };
 };

@@ -3096,7 +3096,7 @@ namespace Js
 #ifdef ENABLE_WASM
         if (func->GetFunctionBody()->IsWasmFunction())
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + WebAssemblyModule::GetMemoryOffset());
+            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + WebAssemblyModule::GetMemoryOffset() * sizeof(Var));
             Var * val = nullptr;
             if (wasmMem != nullptr)
             {
@@ -3104,7 +3104,7 @@ namespace Js
             }
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
 
-            m_signatures = (Wasm::WasmSignature*)((BYTE*)frame->GetItem(0) + WebAssemblyModule::GetSignatureOffset());
+            m_signatures = *(Wasm::WasmSignature**)((BYTE*)frame->GetItem(0) + WebAssemblyModule::GetSignatureOffset() * sizeof(Var));
         }
         else
 #endif
@@ -8544,6 +8544,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        if (index >= table->GetLength())
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
+        }
         Var func = table->DirectGetValue(index);
         if (!func)
         {
@@ -8555,9 +8559,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
     {
-        ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->I0));
+        ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->R0));
         int sigIndex = playout->C1;
         Wasm::WasmSignature * expected = &m_signatures[sigIndex];
+        if (func->GetFunctionInfo()->IsDeferredParseFunction())
+        {
+            // TODO: should be able to assert this once imports are converted to wasm functions
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+        }
         AsmJsFunctionInfo * asmInfo = func->GetFunctionBody()->GetAsmJsFunctionInfo();
         if (!asmInfo)
         {

@@ -966,6 +966,10 @@ namespace Js
         {
             return mSignature;
         }
+        void SetWasmSignature(Wasm::WasmSignature * sig)
+        {
+            mSignature = sig;
+        }
 
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
         void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}

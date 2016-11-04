@@ -134,14 +134,15 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
             continue;
         }
         AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
+        FunctionBody* body = funcObj->GetFunctionBody();
         funcObj->SetModuleMemory(moduleMemoryPtr);
+        funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
         entypointInfo->SetIsAsmJSFunction(true);
         entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
         funcObj->SetEnvironment(frameDisplay);
         localModuleFunctions[i] = funcObj;
 
-        FunctionBody* body = funcObj->GetFunctionBody();
         if (!PHASE_OFF(WasmDeferredPhase, body))
         {
             // if we still have WasmReaderInfo we haven't yet parsed
@@ -492,14 +493,14 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
         {
             Assert(elems != nullptr);
             uint offset = eSeg->GetDestAddr(wasmModule);
-
             if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
             }
             for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
             {
-                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, segIndex + offset, localModuleFunctions, importFunctions);
+                uint funcIndex = eSeg->GetElement(segIndex);
+                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, localModuleFunctions, importFunctions);
                 table->DirectSetValue(segIndex + offset, funcObj);
             }
         }

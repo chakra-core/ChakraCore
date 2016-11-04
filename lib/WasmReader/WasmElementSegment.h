@@ -25,7 +25,6 @@ namespace Wasm
         const WasmNode m_offsetExpr;
         UINT32 m_numElem;
         UINT32 m_offset;
-        UINT32 m_limit;
         UINT32 m_elemIdx;
         UINT32* m_elems;
 

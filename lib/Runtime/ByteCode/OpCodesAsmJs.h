@@ -115,7 +115,7 @@ MACRO_WMS       ( StSlot_Long                , ElementSlot     , None           
 MACRO_WMS       ( StSlot_Flt                 , ElementSlot     , None            ) // Sets an Int in the Module
 MACRO_WMS       ( LdArr_Func                 , ElementSlot     , None            ) // opcode to load func from function tables
 MACRO_WMS       ( LdArr_WasmFunc             , ElementSlot     , None            ) // opcode to load wasm func from function table
-MACRO_WMS       ( CheckSignature             , Int1Const1      , None            ) // opcode to check signature for wasm indirect call
+MACRO_WMS       ( CheckSignature             , Reg1IntConst1   , None            ) // opcode to check signature for wasm indirect call
 
 // Array Buffer manipulations
 MACRO_WMS       ( LdArrWasm                  , AsmTypedArr     , None            )

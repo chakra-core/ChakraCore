@@ -112,5 +112,20 @@ WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer,
     }
 }
 
+void
+WebAssembly::CheckSignature(ScriptContext * scriptContext, Wasm::WasmSignature * sig1, Wasm::WasmSignature * sig2)
+{
+    if (!sig1->IsEquivalent(sig2))
+    {
+        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_SignatureMismatch);
+    }
+}
+
+uint
+WebAssembly::GetSignatureSize()
+{
+    return sizeof(Wasm::WasmSignature);
+}
+
 }
 #endif // ENABLE_WASM
