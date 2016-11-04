@@ -59,6 +59,15 @@ check(1,"exports.test8");
 check(1,"exports.test9");
 check(1,"exports.test10");
 
+
+const customCtzI64 = WebAssembly.nativeTypeCallTest.bind(null, ctzI64);
+check("64", customCtzI64, "ctzI64", 0);
+check("64", customCtzI64, "ctzI64", "0");
+check("0", customCtzI64, "ctzI64", "1");
+check("31", customCtzI64, "ctzI64", "" + -Math.pow(2,31));
+check("58", customCtzI64, "ctzI64", "0x3400000000000000");
+check("63", customCtzI64, "ctzI64", "-9223372036854775808");
+
 if(passed)
 {
     print("Passed");

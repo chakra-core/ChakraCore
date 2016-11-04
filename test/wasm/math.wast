@@ -42,4 +42,7 @@
     (func(export "test8") (result i32) (i64.eq (i64.rem_u (i64.const 5) (i64.const 1))  (i64.const 0)))
     (func(export "test9") (result i32) (i64.eq (i64.rem_s (i64.const 5) (i64.const -1))  (i64.const 0)))
     (func(export "test10") (result i32) (i64.eq (i64.rem_s (i64.const 5) (i64.const 2))  (i64.const 1)))
+    (func (export "ctzI64") (param $a i64) (result i64)
+      (i64.ctz (get_local $a))
+    )
 )

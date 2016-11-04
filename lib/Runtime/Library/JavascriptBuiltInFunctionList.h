@@ -310,6 +310,9 @@ BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefault
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
+#endif
 #endif
 
 // SIMDFloat32x4Lib entry points
