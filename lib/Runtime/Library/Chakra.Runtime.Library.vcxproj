@@ -316,6 +316,9 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_DeferredParsingThunk.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
+    <None Include="amd64\JavascriptFunctionA.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />
