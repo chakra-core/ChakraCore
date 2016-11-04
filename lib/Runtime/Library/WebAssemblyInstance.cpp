@@ -87,21 +87,24 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
 {
     ScriptContext * scriptContext = module->GetScriptContext();
     Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, module->GetModuleEnvironmentSize());
-    Var* memory = moduleEnvironmentPtr + module->GetHeapOffset();
+    Var* memory = moduleEnvironmentPtr + WebAssemblyModule::GetMemoryOffset();
+
+    Var* signatures = moduleEnvironmentPtr + WebAssemblyModule::GetSignatureOffset();
+    *signatures = module->GetSignatures();
+
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
+    WebAssemblyTable** table = (WebAssemblyTable**)(moduleEnvironmentPtr + module->GetTableEnvironmentOffset());
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
     Var* importFunctions = moduleEnvironmentPtr + module->GetImportFuncOffset();
-
     LoadGlobals(module, scriptContext, moduleEnvironmentPtr, importObject);
-    LoadImports(module, scriptContext, importFunctions, localModuleFunctions, importObject, memory);
+    LoadImports(module, scriptContext, importFunctions, localModuleFunctions, importObject, memory, table);
     LoadFunctions(module, scriptContext, moduleEnvironmentPtr, localModuleFunctions);
     LoadDataSegs(module, memory, scriptContext);
 
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
     BuildObject(module, scriptContext, exportsNamespace, memory, newInstance, localModuleFunctions, importFunctions);
 
-    Var** indirectFunctionTables = (Var**)(moduleEnvironmentPtr + module->GetTableEnvironmentOffset());
-    LoadIndirectFunctionTables(module, scriptContext, indirectFunctionTables, localModuleFunctions, importFunctions);
+    LoadIndirectFunctionTable(module, scriptContext, table, localModuleFunctions, importFunctions);
     uint32 startFuncIdx = module->GetStartFunction();
     if (startFuncIdx != Js::Constants::UninitializedValue)
     {
@@ -171,16 +174,16 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
 
 void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memoryObject, ScriptContext* ctx)
 {
-    if (*memoryObject == nullptr)
+    if (wasmModule->HasMemory())
     {
-        *memoryObject = wasmModule->GetMemory();
+        if (*memoryObject != nullptr)
+        {
+            // can only have 1 memory now
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        }
+        *memoryObject = wasmModule->CreateMemory();
     }
-    else if (wasmModule->GetMemory())
-    {
-        // can only have 1 memory now
-        JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-    }
-    if (*memoryObject == nullptr)
+    else if (*memoryObject == nullptr)
     {
         // if there is no import or defined memory, create one with size 0
         // REVIEW: this makes code better as we don't have to do existence check, but ensure that this is spec behavior
@@ -312,7 +315,7 @@ void static SetGlobalValue(Var moduleEnv, uint offset, T val)
     *slot = val;
 }
 
-void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject)
+void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject, WebAssemblyTable ** tableObject)
 {
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
@@ -330,6 +333,16 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
             }
             *memoryObject = prop;
+        }
+        else if (WebAssemblyTable::Is(prop))
+        {
+            // only support 1 memory currently
+            if (*tableObject != nullptr)
+            {
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            }
+            *tableObject = WebAssemblyTable::FromVar(prop);
+
         }
         else if (JavascriptFunction::Is(prop))
         {
@@ -449,32 +462,46 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
     }
 }
 
-void WebAssemblyInstance::LoadIndirectFunctionTables(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions)
+void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyTable** tableObject, Var* localModuleFunctions, Var* importFunctions)
 {
-    //  Globals can be imported, thus the offset must be resolved at at the last possible moment before instantiating the table.
-    // TODO: this must be fixed for multiple instance support
-    wasmModule->ResolveTableElementOffsets();
-    for (uint i = 0; i < wasmModule->GetTableSize(); ++i)
+    if (wasmModule->HasTable())
     {
-        uint funcIndex = wasmModule->GetTableValue(i);
-        if (funcIndex == Js::Constants::UninitializedValue)
+        if (*tableObject != nullptr)
         {
-            // todo:: are we suppose to invalidate here, or do a runtime error if this is accessed?
-            continue;
+            // can only have 1 table now
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
+        *tableObject = wasmModule->CreateTable();
 
-        uint sigId = wasmModule->GetFunctionSignature(funcIndex)->GetSignatureId();
-        sigId = wasmModule->GetEquivalentSignatureId(sigId);
-        if (!indirectFunctionTables[sigId])
+    }
+    else if (*tableObject == nullptr)
+    {
+        // if there is no import or defined table, create one with size 0
+        // REVIEW: this makes code cleaner as we don't have to do existence check, but need to ensure that this is spec behavior
+        *tableObject = WebAssemblyTable::Create(0, 0, ctx);
+    }
+
+    WebAssemblyTable * table = *tableObject;
+
+    for (uint elementsIndex = 0; elementsIndex < wasmModule->GetElementSegCount(); ++elementsIndex)
+    {
+        Wasm::WasmElementSegment* eSeg = wasmModule->GetElementSeg(elementsIndex);
+        UINT32 * elems = eSeg->GetElements();
+
+        if (eSeg->GetNumElements() > 0)
         {
-            // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
-            // now, indirect func call to invalid type will give nullptr deref
-            indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->GetTableSize());
-        }
-        Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, localModuleFunctions, importFunctions);
-        if (funcObj)
-        {
-            indirectFunctionTables[sigId][i] = funcObj;
+            Assert(elems != nullptr);
+            uint offset = eSeg->GetDestAddr(wasmModule);
+
+            if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetLength())
+            {
+                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
+            }
+            for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
+            {
+                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, segIndex + offset, localModuleFunctions, importFunctions);
+                table->DirectSetValue(segIndex + offset, funcObj);
+            }
         }
     }
 }

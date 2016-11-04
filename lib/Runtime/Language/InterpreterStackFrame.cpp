@@ -3096,20 +3096,21 @@ namespace Js
 #ifdef ENABLE_WASM
         if (func->GetFunctionBody()->IsWasmFunction())
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + WebAssemblyModule::GetMemoryOffset());
             Var * val = nullptr;
             if (wasmMem != nullptr)
             {
                 val = (Var*)((BYTE*)wasmMem + WebAssemblyMemory::GetOffsetOfArrayBuffer());
             }
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
+
+            m_signatures = (Wasm::WasmSignature*)((BYTE*)frame->GetItem(0) + WebAssemblyModule::GetSignatureOffset());
         }
         else
 #endif
         {
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
         }
-
 
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter
         m_localSlots[AsmJsFunctionMemory::ScriptContextBufferRegister] = functionBody->GetScriptContext();
@@ -8536,6 +8537,37 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var* arr = (Var*)GetNonVarReg(playout->Instance);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         m_localSlots[playout->Value] = arr[index];
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_LdArrWasmFunc(const unaligned T* playout)
+    {
+        WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        Var func = table->DirectGetValue(index);
+        if (!func)
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), JSERR_Property_NeedFunction);
+        }
+        m_localSlots[playout->Value] = func;
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
+    {
+        ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->I0));
+        int sigIndex = playout->C1;
+        Wasm::WasmSignature * expected = &m_signatures[sigIndex];
+        AsmJsFunctionInfo * asmInfo = func->GetFunctionBody()->GetAsmJsFunctionInfo();
+        if (!asmInfo)
+        {
+            // TODO: should be able to assert this once imports are converted to wasm functions
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+        }
+        if (!expected->IsEquivalent(asmInfo->GetWasmSignature()))
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch, func->GetDisplayName());
+        }
     }
 
 #ifdef ASMJS_PLAT

@@ -13,10 +13,14 @@ namespace Js
 {
 WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type) :
     DynamicObject(type),
-    m_memory(nullptr),
+    m_hasMemory(false),
+    m_hasTable(false),
+    m_memoryInitSize(0),
+    m_memoryMaxSize(0),
+    m_tableInitSize(0),
+    m_tableMaxSize(0),
     m_alloc(_u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_indirectfuncs(nullptr),
-    m_indirectFuncCount(0),
     m_exports(nullptr),
     m_exportCount(0),
     m_datasegCount(0),
@@ -232,7 +236,7 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
 void
 WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 {
-    if (m_memory != nullptr)
+    if (m_hasMemory)
     {
         throw Wasm::WasmCompilationException(_u("Memory already allocated"));
     }
@@ -241,22 +245,21 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
     {
         throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
     }
-
-    m_memory = WebAssemblyMemory::CreateMemoryObject(minPage, maxPage, GetScriptContext());
+    m_memoryInitSize = minPage;
+    m_memoryMaxSize = maxPage;
+    m_hasMemory = true;
 }
 
 WebAssemblyMemory *
-WebAssemblyModule::GetMemory() const
+WebAssemblyModule::CreateMemory() const
 {
-    return m_memory;
+    return WebAssemblyMemory::CreateMemoryObject(m_memoryInitSize, m_memoryMaxSize, GetScriptContext());
 }
 
-void
-WebAssemblyModule::SetSignature(uint32 index, Wasm::WasmSignature * signature)
+Wasm::WasmSignature *
+WebAssemblyModule::GetSignatures() const
 {
-    Assert(index < GetSignatureCount());
-    signature->SetSignatureId(index);
-    m_signatures[index] = signature;
+    return m_signatures;
 }
 
 Wasm::WasmSignature *
@@ -267,44 +270,13 @@ WebAssemblyModule::GetSignature(uint32 index) const
         throw Wasm::WasmCompilationException(_u("Invalid signature index %u"), index);
     }
 
-    return m_signatures[index];
+    return &m_signatures[index];
 }
 
 uint32
 WebAssemblyModule::GetSignatureCount() const
 {
     return m_signaturesCount;
-}
-
-void
-WebAssemblyModule::CalculateEquivalentSignatures()
-{
-    Assert(m_equivalentSignatureMap == nullptr);
-    uint32 sigCount = GetSignatureCount();
-    m_equivalentSignatureMap = AnewArray(&m_alloc, uint32, sigCount);
-    memset(m_equivalentSignatureMap, -1, sigCount * sizeof(uint32));
-
-    const auto IsEquivalentSignatureSet = [this](uint32 sigId)
-    {
-        return m_equivalentSignatureMap[sigId] != (uint32)-1;
-    };
-
-    for (uint32 iSig = 0; iSig < sigCount; iSig++)
-    {
-        if (!IsEquivalentSignatureSet(iSig))
-        {
-            m_equivalentSignatureMap[iSig] = iSig;
-            Wasm::WasmSignature* sig = GetSignature(iSig);
-            // todo:: Find a better way than O(n^2) algo here
-            for (uint32 iSig2 = iSig + 1; iSig2 < sigCount; iSig2++)
-            {
-                if (!IsEquivalentSignatureSet(iSig2) && sig->IsEquivalent(GetSignature(iSig2)))
-                {
-                    m_equivalentSignatureMap[iSig2] = iSig;
-                }
-            }
-        }
-    }
 }
 
 uint32
@@ -319,55 +291,26 @@ WebAssemblyModule::GetEquivalentSignatureId(uint32 sigId) const
 }
 
 void
-WebAssemblyModule::SetTableSize(uint32 entries)
+WebAssemblyModule::InitializeTable(uint32 minEntries, uint32 maxEntries)
 {
-    m_indirectFuncCount = entries;
+    if (m_hasTable)
+    {
+        throw Wasm::WasmCompilationException(_u("Table already allocated"));
+    }
+
+    if (maxEntries < minEntries)
+    {
+        throw Wasm::WasmCompilationException(_u("Table: max entries (%d) is less than min entries (%d)"), maxEntries, minEntries);
+    }
+    m_tableInitSize = minEntries;
+    m_tableMaxSize = maxEntries;
+    m_hasTable = true;
 }
 
-void
-WebAssemblyModule::SetTableValues(Wasm::WasmElementSegment* seg, uint32 index)
+WebAssemblyTable *
+WebAssemblyModule::CreateTable() const
 {
-    if (index < m_elementsegCount)
-    {
-        SetElementSeg(seg, index);
-    }
-}
-
-void
-WebAssemblyModule::ResolveTableElementOffsets()
-{
-    for (uint i = 0; i < GetElementSegCount(); ++i)
-    {
-        Wasm::WasmElementSegment* eSeg = GetElementSeg(i);
-        eSeg->ResolveOffsets(*this);
-    }
-}
-
-uint32
-WebAssemblyModule::GetTableValue(uint32 tableIndex) const
-{
-    if (tableIndex >= GetTableSize())
-    {
-        return Js::Constants::InvalidSourceIndex;
-    }
-    uint32 value = Js::Constants::UninitializedValue;
-
-    for (uint32 i = 0; i < GetElementSegCount(); ++i)
-    {
-        Wasm::WasmElementSegment* eSeg = GetElementSeg(i);
-        value = eSeg->GetElement(tableIndex);
-        if (value != Js::Constants::UninitializedValue)
-        {
-            return value;
-        }
-    }
-    return value;
-}
-
-uint32
-WebAssemblyModule::GetTableSize() const
-{
-    return m_indirectFuncCount;
+    return WebAssemblyTable::Create(m_tableInitSize, m_tableMaxSize, GetScriptContext());
 }
 
 uint32
@@ -530,15 +473,11 @@ WebAssemblyModule::AllocateDataSegs(uint32 count)
     m_datasegs = AnewArray(&m_alloc, Wasm::WasmDataSegment*, count);
 }
 
-bool
-WebAssemblyModule::AddDataSeg(Wasm::WasmDataSegment* seg, uint32 index)
+void
+WebAssemblyModule::SetDataSeg(Wasm::WasmDataSegment* seg, uint32 index)
 {
-    if (index >= m_datasegCount)
-    {
-        return false;
-    }
+    Assert(index < m_datasegCount);
     m_datasegs[index] = seg;
-    return true;
 }
 
 Wasm::WasmDataSegment*
@@ -597,17 +536,15 @@ void WebAssemblyModule::SetSignatureCount(uint32 count)
 {
     Assert(m_signaturesCount == 0 && m_signatures == nullptr);
     m_signaturesCount = count;
-    m_signatures = AnewArray(&m_alloc, Wasm::WasmSignature*, count);
+    m_signatures = RecyclerNewArrayZ(GetRecycler(), Wasm::WasmSignature, count);
 }
 
 uint32 WebAssemblyModule::GetModuleEnvironmentSize() const
 {
     static const uint DOUBLE_SIZE_IN_INTS = sizeof(double) / sizeof(int);
-    // 1 for the heap
-    uint32 size = 1;
+    // 1 each for memory, table, and signatures
+    uint32 size = 3;
     size = UInt32Math::Add(size, GetWasmFunctionCount());
-    // reserve space for as many function tables as there are signatures, though we won't fill them all
-    size = UInt32Math::Add(size, GetSignatureCount());
     size = UInt32Math::Add(size, GetImportCount());
     size = UInt32Math::Add(size, WAsmJs::ConvertToJsVarOffset<byte>(GetGlobalsByteSize()));
     return size;

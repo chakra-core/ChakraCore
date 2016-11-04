@@ -378,3 +378,5 @@ RT_ERROR_MSG(WASMERR_ExpectedAnyFunc, 5677, "%s is not AnyFunc", "AnyFunc expect
 RT_ERROR_MSG(WASMERR_NeedTableObject, 5678, "%s is not a WebAssembly.Table", "WebAssembly.Table object expected", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 5679, "Invalid WebAssembly type conversion %s to %s", "Invalid WebAssembly type conversion", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_NeedWebAssemblyFunc, 5680, "%s is not a WebAssembly exported function", "WebAssembly exported function expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_SignatureMismatch, 5681, "%s called with unexpected signature", "Function called with unexpected signature", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_ElementSegOutOfRange, 5682, "", "Element segment is out of range", kjstTypeError, 0)

@@ -868,7 +868,7 @@ namespace Js
         uint * mArgSizes;
         ArgSlot mArgByteSize;
         AsmJsRetType mReturnType;
-
+        Wasm::WasmSignature * mSignature;
         bool mIsHeapBufferConst;
         bool mUsesHeapBuffer;
 
@@ -886,7 +886,8 @@ namespace Js
                               mIsHeapBufferConst(false),
                               mArgType(nullptr),
                               mArgSizes(nullptr),
-                              mWasmReaderInfo(nullptr) {}
+                              mWasmReaderInfo(nullptr),
+                              mSignature(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
         ByteCodeToTJMap* mbyteCodeTJMap;
@@ -960,6 +961,10 @@ namespace Js
         void SetArgTypeArray(AsmJsVarType::Which* val)
         {
             mArgType = val;
+        }
+        Wasm::WasmSignature * GetWasmSignature()
+        {
+            return mSignature;
         }
 
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}

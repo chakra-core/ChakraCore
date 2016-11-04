@@ -70,20 +70,19 @@ public:
     void InitializeMemory(uint32 minSize, uint32 maxSize);
     void SetMemoryExported() { isMemExported = true; }
     bool IsMemoryExported() const { return isMemExported; }
-    WebAssemblyMemory * GetMemory() const;
+    WebAssemblyMemory * CreateMemory() const;
+    bool HasMemory() const { return m_hasMemory; }
 
-    void SetSignature(uint32 index, Wasm::WasmSignature * signature);
+    Wasm::WasmSignature * GetSignatures() const;
     Wasm::WasmSignature* GetSignature(uint32 index) const;
     void SetSignatureCount(uint32 count);
     uint32 GetSignatureCount() const;
 
-    void CalculateEquivalentSignatures();
     uint32 GetEquivalentSignatureId(uint32 sigId) const;
 
-    void SetTableSize(uint32 entries);
-    void SetTableValues(Wasm::WasmElementSegment* seg, uint32 index);
-    uint32 GetTableValue(uint32 indirTableIndex) const;
-    uint32 GetTableSize() const;
+    void InitializeTable(uint32 minEntries, uint32 maxEntries);
+    WebAssemblyTable * CreateTable() const;
+    bool HasTable() const { return m_hasTable; }
 
     uint GetWasmFunctionCount() const;
     Wasm::WasmFunctionInfo* AddWasmFunctionInfo(Wasm::WasmSignature* funsig);
@@ -102,13 +101,12 @@ public:
     uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
 
     void AllocateDataSegs(uint32 count);
-    bool AddDataSeg(Wasm::WasmDataSegment* seg, uint32 index);
+    void SetDataSeg(Wasm::WasmDataSegment* seg, uint32 index);
     Wasm::WasmDataSegment* GetDataSeg(uint32 index) const;
     uint32 GetDataSegCount() const { return m_datasegCount; }
 
     void AllocateElementSegs(uint32 count);
     void SetElementSeg(Wasm::WasmElementSegment* seg, uint32 index);
-    void ResolveTableElementOffsets();
     Wasm::WasmElementSegment* GetElementSeg(uint32 index) const;
     uint32 GetElementSegCount() const { return m_elementsegCount; }
 
@@ -117,11 +115,15 @@ public:
 
     uint32 GetModuleEnvironmentSize() const;
 
-    uint GetHeapOffset() const { return 0; }
-    uint GetImportFuncOffset() const { return GetHeapOffset() + 1; }
+    // elements at known offsets
+    static uint GetMemoryOffset() { return 0; }
+    static uint GetSignatureOffset() { return GetMemoryOffset() + 1; }
+    static uint GetImportFuncOffset() { return GetSignatureOffset() + 1; }
+
+    // elements at instance dependent offsets
     uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
     uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
-    uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + GetSignatureCount(); }
+    uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + 1; }
     uint GetOffsetForGlobal(Wasm::WasmGlobal* global);
     uint AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uint32 offset) const;
     uint GetGlobalsByteSize() const;
@@ -137,10 +139,15 @@ public:
     WasmGlobalsList * globals;
 
 private:
+    bool m_hasTable;
+    bool m_hasMemory;
     // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
     const byte* m_binaryBuffer;
-    WebAssemblyMemory * m_memory;
-    Wasm::WasmSignature** m_signatures;
+    uint32 m_memoryInitSize;
+    uint32 m_memoryMaxSize;
+    uint32 m_tableInitSize;
+    uint32 m_tableMaxSize;
+    Wasm::WasmSignature* m_signatures;
     uint32* m_indirectfuncs;
     Wasm::WasmElementSegment** m_elementsegs;
     typedef JsUtil::List<Wasm::WasmFunctionInfo*, Recycler> WasmFunctionInfosList;
@@ -153,7 +160,6 @@ private:
     uint32* m_equivalentSignatureMap;
 
     uint m_signaturesCount;
-    uint m_indirectFuncCount;
     uint m_exportCount;
     uint32 m_datasegCount;
     uint32 m_elementsegCount;

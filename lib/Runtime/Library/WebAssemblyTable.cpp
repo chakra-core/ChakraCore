@@ -227,6 +227,34 @@ WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptC
     return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
 }
 
+void
+WebAssemblyTable::DirectSetValue(uint index, Var val)
+{
+    Assert(index < m_length);
+    Assert(!val || AsmJsScriptFunction::Is(val));
+    m_values[index] = val;
+}
+
+Var
+WebAssemblyTable::DirectGetValue(uint index) const
+{
+    Assert(index < m_length);
+    Var val = m_values[index];
+    Assert(!val || AsmJsScriptFunction::Is(val));
+    return val;
+}
+
+Var *
+WebAssemblyTable::GetValues() const
+{
+    return m_values;
+}
+uint32
+WebAssemblyTable::GetLength() const
+{
+    return m_length;
+}
+
 } // namespace Js
 
 #endif // ENABLE_WASM

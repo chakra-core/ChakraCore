@@ -10,9 +10,9 @@ namespace Wasm
 class WasmSignature
 {
 public:
-    WasmSignature(ArenaAllocator * alloc);
+    WasmSignature();
 
-    void AllocateParams(uint32 count);
+    void AllocateParams(uint32 count, Recycler * recycler);
     void SetParam(WasmTypes::WasmType type, uint32 index);
     void SetResultType(WasmTypes::WasmType type);
     void SetSignatureId(uint32 id);
@@ -24,9 +24,8 @@ public:
     uint32 GetParamsSize() const;
     uint32 GetSignatureId() const;
 
-    bool IsEquivalent(WasmSignature* sig) const;
+    bool IsEquivalent(const WasmSignature* sig) const;
 private:
-    ArenaAllocator* m_alloc;
     WasmTypes::WasmType m_resultType;
     Local* m_params;
     uint32 m_paramsCount;
