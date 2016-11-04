@@ -1651,7 +1651,8 @@ if (!sourceList)
         Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName,
         LoadScriptFlag loadScriptFlag,
-        uint* sourceIndex)
+        uint* sourceIndex,
+        Js::Var scriptSource)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1697,16 +1698,29 @@ if (!sourceList)
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
-            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, isLibraryCode);
+            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length,
+                cbNeeded, pSrcInfo, isLibraryCode, scriptSource);
         }
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if(*ppSourceInfo == nullptr)
             {
-                // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
-                // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, (int)length, cb, pSrcInfo, isLibraryCode);
+#ifndef NTBUILD
+                if (loadScriptFlag & LoadScriptFlag_ExternalArrayBuffer)
+                {
+                    *ppSourceInfo = Utf8SourceInfo::NewWithNoCopy(this,
+                        script, (int)length, cb, pSrcInfo, isLibraryCode,
+                        scriptSource);
+                }
+                else
+#endif
+                {
+                    // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
+                    // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
+                    *ppSourceInfo = Utf8SourceInfo::New(this, script,
+                        (int)length, cb, pSrcInfo, isLibraryCode, scriptSource);
+                }
             }
         }
         //
@@ -1756,11 +1770,13 @@ if (!sourceList)
         ParseNodePtr parseTree;
         if((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
-            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse,
+                &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
         else
         {
-            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr,
+                pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
 
         if(FAILED(hr) || parseTree == nullptr)
@@ -1785,7 +1801,9 @@ if (!sourceList)
         return parseTree;
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag)
+    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb,
+        SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
+        const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)
     {
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
@@ -1797,7 +1815,9 @@ if (!sourceList)
             uint sourceIndex;
             JavascriptFunction * pFunction = nullptr;
 
-            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag, &sourceIndex);
+            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo,
+                pse, ppSourceInfo, rootDisplayName, loadScriptFlag,
+                &sourceIndex, scriptSource);
 
             if (parseTree != nullptr)
             {
@@ -1811,7 +1831,8 @@ if (!sourceList)
                 pse->Clear();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
-                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
+                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
+                    rootDisplayName, loadScriptFlag, scriptSource);
             }
 
 #ifdef ENABLE_SCRIPT_PROFILING

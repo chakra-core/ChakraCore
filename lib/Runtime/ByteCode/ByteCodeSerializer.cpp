@@ -61,7 +61,7 @@ namespace Js
     const int magicEndOfAsmJsFuncInfo = *(int*)"]asmfuncinfo";
     const int magicStartOfAsmJsModuleInfo = *(int*)"asmmodinfo[";
     const int magicEndOfAsmJsModuleInfo = *(int*)"]asmmodinfo";
-    const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals["; 
+    const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals[";
     const int magicEndOfPropIdsOfFormals = *(int*)"]propIdOfFormals";
 #endif
 
@@ -3510,7 +3510,7 @@ public:
             GetString16ById(displayNameId);
 
         uint displayNameLength = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunctionLength :
-            deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() : 
+            deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() :
             GetString16LengthById(displayNameId);
         uint displayShortNameOffset = deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetShortDisplayNameOffset() : 0;
         int functionId;
@@ -4154,7 +4154,8 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
             sourceHolder = utf8Source == nullptr ? ISourceHolder::GetEmptySourceHolder() : RecyclerNew(scriptContext->GetRecycler(), SimpleSourceHolder, utf8Source, reader->sourceSize);
         }
 
-        sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder, reader->sourceCharLength, pinnedSrcInfo, isLibraryCode);
+        sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder,
+            reader->sourceCharLength, pinnedSrcInfo, isLibraryCode);
 
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, reader->sourceCharLength, false);

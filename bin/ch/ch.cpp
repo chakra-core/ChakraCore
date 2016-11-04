@@ -80,7 +80,8 @@ void __stdcall PrintUsage()
 
 // On success the param byteCodeBuffer will be allocated in the function.
 // The caller of this function should de-allocate the memory.
-HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __out DWORD *byteCodeBufferSize)
+HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer,
+    __out DWORD *byteCodeBufferSize)
 {
     HRESULT hr = S_OK;
     *byteCodeBuffer = nullptr;
@@ -89,8 +90,13 @@ HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __
 
     unsigned int bcBufferSize = 0;
     unsigned int newBcBufferSize = 0;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &bcBufferSize));
-    // Above call will return the size of the buffer only, once succeed we need to allocate memory of that much and call it again.
+    JsValueRef scriptSource;
+    IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+        (unsigned int)strlen(fileContents), nullptr, nullptr, &scriptSource));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
+        &bcBufferSize, JsParseScriptAttributeNone));
+    // Call above will return the size of the buffer only, once succeed
+    // we need to allocate memory of that much and call it again.
     if (bcBufferSize == 0)
     {
         AssertMsg(false, "bufferSize should not be zero");
@@ -98,7 +104,8 @@ HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __
     }
     bcBuffer = new BYTE[bcBufferSize];
     newBcBufferSize = bcBufferSize;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &newBcBufferSize));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
+        &newBcBufferSize, JsParseScriptAttributeNone));
     Assert(bcBufferSize == newBcBufferSize);
 
 Error:
@@ -216,19 +223,29 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     messageQueue->InsertSorted(msg);
 }
 
-static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer)
+static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
+    JsSourceContext sourceContext,
+    JsValueRef* scriptBuffer,
+    JsParseScriptAttributes *parseAttributes)
 {
-    // sourceContext is source ptr, see RunScript below
-    *scriptBuffer = reinterpret_cast<const char*>(sourceContext);
-    return true;
-}
+    const char* script = reinterpret_cast<const char*>(sourceContext);
+    size_t length = strlen(script);
 
-static void CHAKRA_CALLBACK DummyJsSerializedScriptUnload(_In_ JsSourceContext sourceContext)
-{
     // sourceContext is source ptr, see RunScript below
-    // source memory was originally allocated with malloc() in
-    // Helpers::LoadScriptFromFile. No longer needed, free() it.
-    free(reinterpret_cast<void*>(sourceContext));
+    if (ChakraRTInterface::JsCreateExternalArrayBuffer((void*)script, (unsigned int)length,
+        [](void* data)
+        {
+            // sourceContext is source ptr, see RunScript below
+            // source memory was originally allocated with malloc() in
+            // Helpers::LoadScriptFromFile. No longer needed, free() it.
+            free(data);
+        }, nullptr, scriptBuffer) != JsNoError)
+    {
+        return false;
+    }
+
+    *parseAttributes = JsParseScriptAttributeNone;
+    return true;
 }
 
 HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, char *fullPath)
@@ -306,31 +323,47 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
         Assert(fileContents != nullptr || bcBuffer != nullptr);
 
         JsErrorCode runScript;
+        JsValueRef fname;
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPath,
+            strlen(fullPath), &fname));
+
         if(bcBuffer != nullptr)
         {
-            runScript = ChakraRTInterface::JsRunSerializedScriptUtf8(
-                DummyJsSerializedScriptLoadUtf8Source, DummyJsSerializedScriptUnload,
+            runScript = ChakraRTInterface::JsRunSerialized(
                 bcBuffer,
+                DummyJsSerializedScriptLoadUtf8Source,
                 reinterpret_cast<JsSourceContext>(fileContents),
                 // Use source ptr as sourceContext
-                fullPath, nullptr /*result*/);
+                fname, nullptr /*result*/);
         }
         else
         {
+            JsValueRef scriptSource;
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+                (unsigned int)strlen(fileContents),
+                [](void *data)
+                {
+                    free(data);
+                }, nullptr, &scriptSource));
 #if ENABLE_TTD
             if(doTTRecord)
             {
                 ChakraRTInterface::JsTTDStartTimeTravelRecording();
             }
 
-            runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRun(scriptSource,
+                WScriptJsrt::GetNextSourceContext(), fname,
+                JsParseScriptAttributeNone, nullptr /*result*/);
             if (runScript == JsErrorCategoryUsage)
             {
                 wprintf(_u("FATAL ERROR: Core was compiled without ENABLE_TTD is defined. CH is trying to use TTD interface\n"));
                 abort();
             }
 #else
-            runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRun(scriptSource,
+                WScriptJsrt::GetNextSourceContext(), fname,
+                JsParseScriptAttributeNone,
+                nullptr /*result*/);
 #endif
         }
 

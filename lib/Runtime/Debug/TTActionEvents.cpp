@@ -753,7 +753,9 @@ namespace TTD
 
             Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
             CompileScriptException se;
-            function = ctx->LoadScript(script, scriptByteLength, &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag);
+            function = ctx->LoadScript(script, scriptByteLength, &si, &se,
+                &utf8SourceInfo, Js::Constants::GlobalCode, cpInfo->LoadFlag, nullptr);
+
             AssertMsg(function != nullptr, "Something went wrong");
 
             Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(function->GetParseableFunctionInfo());
