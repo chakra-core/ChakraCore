@@ -1964,6 +1964,7 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
 void
 ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     Assert(JITManager::GetJITManager()->IsConnected());
 
@@ -1975,12 +1976,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     ThreadContextDataIDL contextData;
     contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
 
-    // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
-#ifdef NTBUILD
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("Chakra.dll"));
-#else
-    contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(_u("ChakraCore.dll"));
-#endif
+    contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
@@ -2006,6 +2002,8 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     JITManager::HandleServerCallResult(hr);
+
+#endif
 }
 #endif
 
@@ -3865,6 +3863,7 @@ void DumpRecyclerObjectGraph()
 BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 {
     boolean result;
+#if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         if (PreReservedVirtualAllocWrapper::IsInRange((void*)m_prereservedRegionAddr, pCodeAddr))
@@ -3875,6 +3874,11 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
         {
             return false;
         }
+        if (AutoSystemInfo::Data.IsChakraAddress(pCodeAddr))
+        {
+            return false;
+        }
+
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
 
         // TODO: OOP JIT, can we throw here?
@@ -3882,6 +3886,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
         return result;
     }
     else
+#endif
     {
         PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->GetPreReservedVirtualAllocator();
         if (preReservedVirtualAllocWrapper->IsInRange(pCodeAddr))

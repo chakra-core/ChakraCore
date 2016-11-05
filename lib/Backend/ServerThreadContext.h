@@ -71,7 +71,6 @@ private:
 
     DWORD m_pid; //save client process id for easier diagnose
     
-    intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
 };
