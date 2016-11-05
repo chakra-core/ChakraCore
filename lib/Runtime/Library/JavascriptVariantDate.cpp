@@ -20,7 +20,7 @@ namespace Js
 
     Var JavascriptVariantDate::GetTypeOfString(ScriptContext* requestContext)
     {
-        return requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("date"));
+        return requestContext->GetLibrary()->GetVariantDateTypeDisplayString();
     }
 
     JavascriptString* JavascriptVariantDate::GetValueString(ScriptContext* scriptContext)
