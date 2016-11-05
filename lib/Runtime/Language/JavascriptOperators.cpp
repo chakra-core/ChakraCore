@@ -6986,13 +6986,14 @@ CommonNumber:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("Symbol[Symbol.hasInstance]"));
                 }
+
+                ThreadContext * threadContext = scriptContext->GetThreadContext();
                 RecyclableObject *instFunc = RecyclableObject::FromVar(instOfHandler);
-                Js::Var values[2];
-                Js::CallInfo info(Js::CallFlags_Value, 2);
-                Js::Arguments args(info, values);
-                values[0] = constructor;
-                values[1] = instance;
-                Var result = JavascriptFunction::CallFunction<true>(instFunc, instFunc->GetEntryPoint(), args);
+                Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
+                {
+                    return CALL_FUNCTION(instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
+                });
+
                 return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
             }
         }

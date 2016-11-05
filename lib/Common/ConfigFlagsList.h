@@ -516,12 +516,7 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
 #endif
 #define DEFAULT_CONFIG_ES6Generators           (true)
-#ifdef COMPILE_DISABLE_ES6IsConcatSpreadable
-    // If ES6IsConcatSpreadable needs to be disabled by compile flag, COMPILE_DISABLE_ES6IsConcatSpreadable should be false
-    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
-#else
-    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
-#endif
+#define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
 #define DEFAULT_CONFIG_ES6Math                 (true)
 #ifdef COMPILE_DISABLE_ES6Module
     // If ES6Module needs to be disabled by compile flag, DEFAULT_CONFIG_ES6Module should be false
@@ -544,7 +539,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
 #endif
-#define DEFAULT_CONFIG_ES6ToPrimitive          (false)
+#define DEFAULT_CONFIG_ES6ToPrimitive          (true)
 #define DEFAULT_CONFIG_ES6ToLength             (false)
 #define DEFAULT_CONFIG_ES6ToStringTag          (true)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
@@ -563,12 +558,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #endif
-#ifdef COMPILE_DISABLE_ES6HasInstance
-    // If ES6HasInstance needs to be disabled by compile flag, DEFAULT_CONFIG_ES6HasInstanceOf should be false
-    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
-#else
-    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
-#endif
+#define DEFAULT_CONFIG_ES6HasInstance          (true)
 #ifdef COMPILE_DISABLE_ArrayBufferTransfer
     // If ArrayBufferTransfer needs to be disabled by compile flag, DEFAULT_CONFIG_ArrayBufferTransfer should be false
     #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
@@ -976,10 +966,7 @@ FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponenti
 
 FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
-#ifndef COMPILE_DISABLE_ES6IsConcatSpreadable
-    #define COMPILE_DISABLE_ES6IsConcatSpreadable 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
+FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
 
 #ifndef COMPILE_DISABLE_ES6Module
@@ -1000,10 +987,7 @@ FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prot
     #define COMPILE_DISABLE_ES6PrototypeChain 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
-#ifndef COMPILE_DISABLE_ES6ToPrimitive
-    #define COMPILE_DISABLE_ES6ToPrimitive 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
+FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
 FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
 FLAGPR           (Boolean, ES6, ES6ToStringTag         , "Enable ES6 ToStringTag symbol"                            , DEFAULT_CONFIG_ES6ToStringTag)
 FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0 extensions"                        , DEFAULT_CONFIG_ES6Unicode)
@@ -1021,10 +1005,7 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 propert
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
 
-#ifndef COMPILE_DISABLE_ES6HasInstance
-    #define COMPILE_DISABLE_ES6HasInstance 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
+FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
 
 #ifndef COMPILE_DISABLE_ArrayBufferTransfer

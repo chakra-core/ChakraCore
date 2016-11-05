@@ -28,13 +28,13 @@
   <test>
     <default>
       <files>es6toLength.js</files>
-      <compile-flags>-es6toLength -es6isconcatspreadable -args summary -endargs</compile-flags>
+      <compile-flags>-es6toLength -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>toPrimitiveCrossScriptTestCase.js</files>
-      <compile-flags>-es6toprimitive</compile-flags>
+      <compile-flags></compile-flags>
     </default>
   </test>
   <test>
@@ -59,7 +59,7 @@
   <test>
     <default>
       <files>toPrimitiveJitBug654983.js</files>
-      <compile-flags>-es6toprimitive -trace:bailout</compile-flags>
+      <compile-flags>-trace:bailout</compile-flags>
       <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
       <tags>fail</tags>
     </default>
@@ -67,13 +67,13 @@
   <test>
     <default>
       <files>es6IsConcatSpreadable.js</files>
-      <compile-flags>-es6tolength -es6isconcatspreadable -args summary -endargs</compile-flags>
+      <compile-flags>-es6tolength -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>toPrimitive.js</files>
-      <compile-flags>-es6regexsymbols -es6toprimitive -es6hasInstance -es6isconcatspreadable -es6functionname -args summary -endargs</compile-flags>
+      <compile-flags>-es6regexsymbols -es6functionname -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -85,13 +85,13 @@
   <test>
     <default>
       <files>function.name.js</files>
-      <compile-flags>-ES6Generators -es6toprimitive -ES6Classes -es6functionnamefull -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Generators -ES6Classes -es6functionnamefull -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>function.name.js</files>
-      <compile-flags>-ES6Generators -es6toprimitive -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Generators -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -461,7 +461,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags>-ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -ES6Species -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1214,7 +1214,7 @@
 <test>
     <default>
         <files>es6HasInstance.js</files>
-        <compile-flags>-es6HasInstance -args summary -endargs</compile-flags>
+        <compile-flags>-args summary -endargs</compile-flags>
     </default>
 </test>
 <test>

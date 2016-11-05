@@ -157,7 +157,8 @@
           "toTimeString": "function <large string>",
           "toUTCString": "function <large string>",
           "toGMTString": "function <large string>",
-          "valueOf": "function <large string>"
+          "valueOf": "function <large string>",
+          "Symbol.toPrimitive": "function <large string>"
         }
       }
     },
@@ -252,7 +253,8 @@
           "toTimeString": "function <large string>",
           "toUTCString": "function <large string>",
           "toGMTString": "function <large string>",
-          "valueOf": "function <large string>"
+          "valueOf": "function <large string>",
+          "Symbol.toPrimitive": "function <large string>"
         }
       }
     },
