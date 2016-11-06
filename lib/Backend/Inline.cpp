@@ -2327,7 +2327,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
     if (argsCount == 1) // apply called with just 1 argument, the 'this' object.
     {
-        if (!PHASE_ON1(Js::InlineApplyWithoutArrayArgPhase))
+        if (PHASE_OFF1(Js::InlineApplyWithoutArrayArgPhase))
         {
             *pIsInlined = false;
             return callInstr;
@@ -2545,9 +2545,14 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     callInstr->m_opcode = Js::OpCode::CallI;
 
     StackSym* callTargetStackSym = callInstr->GetSrc1()->GetStackSym();
-    while (callTargetStackSym->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture)
+    while (callTargetStackSym->IsSingleDef() && callTargetStackSym->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture)
     {
         callTargetStackSym = callTargetStackSym->GetInstrDef()->GetSrc1()->GetStackSym();
+    }
+
+    if (!callTargetStackSym->IsSingleDef())
+    {
+        return callInstr;
     }
 
     bool safeThis = false;

@@ -225,3 +225,19 @@ function test0() {
 }
 test0();
 WScript.Echo("PASSED");
+
+function test3(a,b)
+{
+  a = a.foo;
+  a.apply(b);
+}
+
+function test3Wrapper()
+{
+  var obj1 = {foo: function(){print(this.prop1);}};
+  var obj2 = {prop1: 1};
+  test3(obj1, obj2);
+  test3(obj1, obj2);
+  test3(obj1, obj2);
+}
+test3Wrapper();
