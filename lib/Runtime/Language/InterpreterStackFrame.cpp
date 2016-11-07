@@ -7813,7 +7813,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return func(aLeft, aRight);
     }
 
-    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func, T MIN> static T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func, T MIN> T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
     {
         if (aRight == 0)
         {

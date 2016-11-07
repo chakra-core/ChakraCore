@@ -1950,9 +1950,9 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     case Js::OpCodeAsmJs::Conv_Check_DTI:
     case Js::OpCodeAsmJs::Conv_Check_DTU:
     {
-        IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyFloat64, m_func);
+        IR::RegOpnd* tmpDst = IR::RegOpnd::New(TyFloat64, m_func);
         tmpDst->SetValueType(ValueType::Float);
-        AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, srcOpnd, m_func), offset);
+        AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_DTI ? TyInt32 : TyUint32);
         srcOpnd = tmpDst;
         break;
@@ -1990,9 +1990,9 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     case Js::OpCodeAsmJs::Conv_Check_FTI:
     case Js::OpCodeAsmJs::Conv_Check_FTU:
     {
-        IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyFloat32, m_func);
+        IR::RegOpnd* tmpDst = IR::RegOpnd::New(TyFloat32, m_func);
         tmpDst->SetValueType(ValueType::Float);
-        AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, srcOpnd, m_func), offset);
+        AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_FTI ? TyInt32 : TyUint32);
         srcOpnd = tmpDst;
         op = Js::OpCode::Conv_Prim;
@@ -2087,7 +2087,7 @@ IRBuilderAsmJs::BuildReg1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
         }
-        tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
+        tmpDst = IR::RegOpnd::New(TyVar, m_func);
 
         instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
         AddInstr(instr, offset);
@@ -2174,7 +2174,7 @@ IRBuilderAsmJs::BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegS
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
         }
-        tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
+        tmpDst = IR::RegOpnd::New(TyVar, m_func);
 
         instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
         AddInstr(instr, offset);
@@ -2418,19 +2418,19 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     AddInstr(instr, offset);
 }
 
-IR::RegOpnd* IRBuilderAsmJs::BuildDivideByZeroCheck(IR::RegOpnd* srcOpnd, uint32 offset)
+IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfZero(IR::RegOpnd* srcOpnd, uint32 offset)
 {
-    IR::RegOpnd* newSrc = IR::RegOpnd::New(StackSym::New(m_func), srcOpnd->GetType(), m_func);
+    IR::RegOpnd* newSrc = IR::RegOpnd::New(srcOpnd->GetType(), m_func);
     newSrc->SetValueType(ValueType::GetInt(false));
-    AddInstr(IR::Instr::New(Js::OpCode::DivideByZeroCheck, newSrc, srcOpnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::TrapIfZero, newSrc, srcOpnd, m_func), offset);
     return newSrc;
 }
 
-IR::RegOpnd* IRBuilderAsmJs::BuildOverflowCheckReg3(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset)
+IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfMintIntOverNegOne(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset)
 {
-    IR::RegOpnd* newSrc = IR::RegOpnd::New(StackSym::New(m_func), src2Opnd->GetType(), m_func);
+    IR::RegOpnd* newSrc = IR::RegOpnd::New(src2Opnd->GetType(), m_func);
     newSrc->SetValueType(ValueType::GetInt(false));
-    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg3, newSrc, src1Opnd, src2Opnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::TrapIfMintIntOverNegOne, newSrc, src1Opnd, src2Opnd, m_func), offset);
     return newSrc;
 }
 
@@ -2468,8 +2468,8 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
     case Js::OpCodeAsmJs::Div_Check_Int:
     {
-        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
-        src1Opnd = BuildOverflowCheckReg3(src1Opnd, src2Opnd, offset);
+        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        src1Opnd = BuildTrapIfMintIntOverNegOne(src1Opnd, src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }
@@ -2483,7 +2483,7 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
     case Js::OpCodeAsmJs::Rem_Check_Int:
-        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
+        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Rem_UInt:
@@ -3077,8 +3077,8 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         src2Opnd->SetType(TyUint64);
     case Js::OpCodeAsmJs::Div_Long:
     {
-        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
-        src1Opnd = BuildOverflowCheckReg3(src1Opnd, src2Opnd, offset);
+        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        src1Opnd = BuildTrapIfMintIntOverNegOne(src1Opnd, src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }
@@ -3086,7 +3086,7 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         src1Opnd->SetType(TyUint64);
         src2Opnd->SetType(TyUint64);
     case Js::OpCodeAsmJs::Rem_Long:
-        src2Opnd = BuildDivideByZeroCheck(src2Opnd, offset);
+        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::And_Long:
@@ -3237,9 +3237,9 @@ IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
         Assume(UNREACHED);
     }
 
-    IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), src1Opnd->GetType(), m_func);
+    IR::RegOpnd* tmpDst = IR::RegOpnd::New(src1Opnd->GetType(), m_func);
     tmpDst->SetValueType(ValueType::Float);
-    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, src1Opnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, src1Opnd, m_func), offset);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
     AddInstr(instr, offset);
 }
@@ -3266,9 +3266,9 @@ IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
         Assume(UNREACHED);
     }
 
-    IR::RegOpnd* tmpDst = IR::RegOpnd::New(StackSym::New(m_func), src1Opnd->GetType(), m_func);
+    IR::RegOpnd* tmpDst = IR::RegOpnd::New(src1Opnd->GetType(), m_func);
     tmpDst->SetValueType(ValueType::Float);
-    AddInstr(IR::Instr::New(Js::OpCode::OverflowCheckReg2, tmpDst, src1Opnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, src1Opnd, m_func), offset);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
     AddInstr(instr, offset);
 }
