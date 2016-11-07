@@ -1576,6 +1576,15 @@ namespace Js
     #endif
         }
 
+        void SetIsWasmFunction(bool val)
+        {
+            m_isWasmFunction = val;
+        }
+        bool IsWasmFunction() const
+        {
+            return m_isWasmFunction;
+        }
+
         bool GetHasImplicitArgIns() { return m_hasImplicitArgIns; }
         void SetHasImplicitArgIns(bool has) { m_hasImplicitArgIns = has; }
         uint32 GetGrfscr() const;
@@ -1650,7 +1659,7 @@ namespace Js
 
         void SetDoBackendArgumentsOptimization(bool set)
         {
-            m_doBackendArgumentsOptimization = set;
+                m_doBackendArgumentsOptimization = set;
         }
 
         bool GetDoBackendArgumentsOptimization()
@@ -2350,15 +2359,6 @@ namespace Js
         const bool GetIsAsmJsFunction() const
         {
             return m_isAsmJsFunction;
-        }
-
-        void SetIsWasmFunction(bool val)
-        {
-            m_isWasmFunction = val;
-        }
-        bool IsWasmFunction() const
-        {
-            return m_isWasmFunction;
         }
 
 #ifdef ASMJS_PLAT
