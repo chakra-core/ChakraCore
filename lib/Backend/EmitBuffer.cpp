@@ -144,6 +144,8 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
 
     Assert(this->criticalSection.IsLocked());
 
+    EmitBufferAllocation * allocation = AnewStruct(this->allocator, EmitBufferAllocation);
+
     bool isAllJITCodeInPreReservedRegion = true;
     CustomHeap::Allocation* heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);
 
@@ -162,7 +164,6 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
 
     AutoCustomHeapPointer allocatedMemory(&this->allocationHeap, heapAllocation);
     VerboseHeapTrace(_u("New allocation: 0x%p, size: %p\n"), heapAllocation->address, heapAllocation->size);
-    EmitBufferAllocation * allocation = AnewStruct(this->allocator, EmitBufferAllocation);
 
     allocation->bytesCommitted = heapAllocation->size;
     allocation->allocation = allocatedMemory.Detach();
