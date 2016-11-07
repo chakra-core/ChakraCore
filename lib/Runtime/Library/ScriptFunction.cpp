@@ -459,7 +459,7 @@ namespace Js
         Utf8SourceInfo* source = pFuncBody->GetUtf8SourceInfo();
         if ((source != nullptr && source->GetIsLibraryCode())
 #ifdef ENABLE_WASM
-            || (pFuncBody->GetFunctionBody() && pFuncBody->GetFunctionBody()->IsWasmFunction())
+            || (pFuncBody->IsWasmFunction())
 #endif
             )
         {
