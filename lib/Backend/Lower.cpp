@@ -20369,7 +20369,6 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         if (!srcInt->IsConstOpnd() && !srcInt->GetValueType().IsTaggedInt())
         {
             this->m_lowererMD.GenerateSmIntTest(srcInt->AsRegOpnd(), instr, labelHelper);
-            // figure out how to check that it's an int efficiently at runtime
         }
         if (!srcBool->IsConstOpnd() && !srcBool->GetValueType().IsBoolean())
         {
@@ -20397,8 +20396,13 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         if (isBranchNotCompare)
         {
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
-            // Insert entirely dead branch, because otherwise dbcheck doesn't like it
-            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, equalResultTarget, this->m_func));
+#if DBG
+            // Since we're not making a non-helper path to one of the branches, we need to tell
+            // DbCheckPostLower that we are going to have a non-helper label without non-helper
+            // branches.
+            // Note: this following line isn't good practice in general
+            equalResultTarget->m_noHelperAssert = true;
+#endif
         }
         else
         {
@@ -20418,8 +20422,13 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             Assert(instr);
             IR::LabelInstr * target = sameval && srcIntIsBoolable ? equalResultTarget : inequalResultTarget;
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, target, this->m_func));
-            // Insert entirely dead branch, because otherwise dbcheck doesn't like it
-            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, sameval && srcIntIsBoolable ? inequalResultTarget : equalResultTarget, this->m_func));
+#if DBG
+            // Since we're not making a non-helper path to one of the branches, we need to tell
+            // DbCheckPostLower that we are going to have a non-helper label without non-helper
+            // branches.
+            // Note: this following line isn't good practice in general
+            (sameval && srcIntIsBoolable ? inequalResultTarget : equalResultTarget)->m_noHelperAssert = true;
+#endif
         }
         else
         {
@@ -20516,6 +20525,13 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             {
                 // Since a constant int that isn't 0 or 1 will always be inequal to bools, just jump to the inequal result
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
+#if DBG
+                // Since we're not making a non-helper path to one of the branches, we need to tell
+                // DbCheckPostLower that we are going to have a non-helper label without non-helper
+                // branches.
+                // Note: this following line isn't good practice in general
+                equalResultTarget->m_noHelperAssert = true;
+#endif
             }
         }
         else
