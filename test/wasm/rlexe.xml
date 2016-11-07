@@ -91,7 +91,6 @@
 <test>
     <default>
        <files>trunc.js</files>
-       <baseline>trunc.baseline</baseline>
        <compile-flags>-on:Wasm</compile-flags>
     </default>
 </test>
