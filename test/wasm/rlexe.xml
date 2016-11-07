@@ -31,7 +31,7 @@
 <test>
     <default>
        <files>math.js</files>
-       <compile-flags>-on:Wasm</compile-flags>
+       <compile-flags>-on:Wasm -on:WasmNativeTypeCallTest</compile-flags>
     </default>
 </test>
 <test>

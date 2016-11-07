@@ -112,10 +112,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumeratorBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexSnapshotEnumerator.cpp" />
-    <ClCompile Include="WebAssemblyModule.cpp" />
-    <ClCompile Include="WebAssemblyInstance.cpp" />
-    <ClCompile Include="WebAssembly.cpp" />
-    <ClCompile Include="WebAssemblyMemory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssembly.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyInstance.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -259,6 +259,9 @@
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />
     <None Include="JavascriptBoolean.inl" />
+    <None Include="amd64\JavascriptFunctionA.S">
+      <Filter>amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="arm">

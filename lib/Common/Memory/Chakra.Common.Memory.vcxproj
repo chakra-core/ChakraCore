@@ -150,6 +150,9 @@
     <ClInclude Include="XDataAllocator.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="amd64\amd64_SAVE_REGISTERS.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="HeapBlock.inl" />
     <None Include="HeapBucket.inl" />
     <None Include="LargeHeapBucket.inl" />

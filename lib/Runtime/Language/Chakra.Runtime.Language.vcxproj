@@ -275,6 +275,12 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_CallEhFrame.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
+    <None Include="amd64\amd64_Thunks.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
+    <None Include="amd64\JavascriptOperatorsA.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="amd64\StackFrame.inl" />
     <None Include="AsmJsEncoder.inl" />
     <None Include="AsmJsEncoderHandler.inl" />
