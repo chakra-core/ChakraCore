@@ -247,6 +247,11 @@
 </dir>
 <dir>
   <default>
+    <files>host</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>stackfunc</files>
     <tags>exclude_serialized,require_backend</tags>
   </default>
