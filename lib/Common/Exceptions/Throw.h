@@ -203,50 +203,50 @@ namespace Js {
         END_TRANSLATE_OOM_TO_HRESULT(hr) \
     }
 
-#define CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT \
+#define CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT(errCode) \
     catch (Js::OutOfMemoryException)  \
     {  \
-        return JsErrorOutOfMemory;  \
+        errCode = JsErrorOutOfMemory;  \
     } catch (Js::StackOverflowException)  \
     {  \
-        return JsErrorOutOfMemory;  \
+        errCode = JsErrorOutOfMemory;  \
     }  \
 
 #if ENABLE_TTD
-#define CATCH_OTHER_EXCEPTIONS  \
+#define CATCH_OTHER_EXCEPTIONS(errCode)  \
     catch (JsrtExceptionBase& e)  \
     {  \
-        return e.GetJsErrorCode();  \
+        errCode = e.GetJsErrorCode();  \
     }   \
     catch (Js::ExceptionBase)   \
     {   \
         AssertMsg(false, "Unexpected engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }   \
     catch (TTD::TTDebuggerAbortException)   \
     {   \
-        throw;   \
+        throw; /*don't set errcode we treat this as non-termination of the code that was executing*/  \
     }   \
     catch (...) \
     {   \
         AssertMsg(false, "Unexpected non-engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }
 #else
-#define CATCH_OTHER_EXCEPTIONS  \
+#define CATCH_OTHER_EXCEPTIONS(errCode)  \
     catch (JsrtExceptionBase& e)  \
     {  \
-        return e.GetJsErrorCode();  \
+        errCode = e.GetJsErrorCode();  \
     }   \
     catch (Js::ExceptionBase)   \
     {   \
         AssertMsg(false, "Unexpected engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }   \
     catch (...) \
     {   \
         AssertMsg(false, "Unexpected non-engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }
 #endif
 

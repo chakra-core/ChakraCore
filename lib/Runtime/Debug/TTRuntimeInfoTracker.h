@@ -13,8 +13,115 @@
 #define TTD_CORE_OBJECT_COUNT 1028
 #define TTD_CORE_FUNCTION_BODY_COUNT 512
 
+#define MAX_CONTEXT_COUNT 32
+
 namespace TTD
 {
+    //A struct that we use to record key log tag values for a script when it it maked as "to-be destroyed"
+    struct DeadScriptLogTagInfo
+    {
+        TTD_LOG_PTR_ID GlobalLogTag;
+        TTD_LOG_PTR_ID UndefinedLogTag;
+        TTD_LOG_PTR_ID NullLogTag;
+        TTD_LOG_PTR_ID TrueLogTag;
+        TTD_LOG_PTR_ID FalseLogTag;
+    };
+
+    //This class implements the data structures and algorithms needed to manage the ThreadContext TTD runtime info.
+    //Basically we don't want to add a lot of size/complexity to the ThreadContext object/class if it isn't perf critical
+    class ThreadContextTTD
+    {
+    private:
+        ThreadContext* m_threadCtx;
+        void* m_runtimeHandle;
+
+        //A flag that we set during replay when a script context is created or destroyed
+        bool m_contextCreatedOrDestoyedInReplay;
+
+        //A list of contexts that are being run in TTD mode and the currently active context (may be null)
+        Js::ScriptContext* m_activeContext;
+        JsUtil::List<Js::ScriptContext*, HeapAllocator> m_contextList;
+        JsUtil::List<DeadScriptLogTagInfo, HeapAllocator> m_deadScriptRecordList;
+
+        //The pin set we have for the external contexts that are created
+        //We add ref to the thread context instead of having a pin set during replay
+        JsUtil::BaseDictionary<Js::ScriptContext*, FinalizableObject*, HeapAllocator> m_ttdContextToExternalRefMap;
+
+        //Keep track of roots (and local roots as needed)
+        RecyclerRootPtr<ObjectPinSet> m_ttdRootSet;
+        RecyclerRootPtr<ObjectPinSet> m_ttdLocalRootSet;
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
+
+        void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
+
+    public:
+        TTUriString TTDUri;
+        uint32 SnapInterval;
+        uint32 SnapHistoryLength;
+
+        //Callback functions provided by the host for writing info to some type of storage location
+        TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
+        IOStreamFunctions TTDStreamFunctions;
+
+        //Callback functions provided by the host for creating external objects 
+        ExternalObjectFunctions TTDExternalObjectFunctions;
+
+        ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength);
+        ~ThreadContextTTD();
+
+        ThreadContext* GetThreadContext();
+        void* GetRuntimeHandle();
+
+        FinalizableObject* GetRuntimeContextForScriptContext(Js::ScriptContext* ctx);
+
+        bool ContextCreatedOrDestoyedInReplay() const;
+        void ResetContextCreatedOrDestoyedInReplay();
+
+        //Get the list of all the context that we are currently tracking
+        const JsUtil::List<Js::ScriptContext*, HeapAllocator>& GetTTDContexts() const;
+
+        //Get the list of any contexts which we want to mark as destoyed (CALLER SHOULD CLEAR WHEN DONE RECORDING)
+        JsUtil::List<DeadScriptLogTagInfo, HeapAllocator>& GetTTDDeadContextsForRecord();
+
+        //
+        //TODO: this is a temp method to warn in a few places where we are not multi-context freindly yet
+        //
+        void MultipleScriptWarn() const;
+
+        void AddNewScriptContextRecord(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
+        void AddNewScriptContextReplay(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
+        void SetActiveScriptContext(Js::ScriptContext* ctx);
+        Js::ScriptContext* GetActiveScriptContext();
+
+        //This is called from an excluded section of code (GC processing) so we can't check mode info, instead we must check if the ctx is in our map
+        void NotifyCtxDestroyInRecord(Js::ScriptContext* ctx);
+
+        void NotifyCtxDestroyedInReplay(TTD_LOG_PTR_ID globalId, TTD_LOG_PTR_ID undefId, TTD_LOG_PTR_ID nullId, TTD_LOG_PTR_ID trueId, TTD_LOG_PTR_ID falseId);
+
+        void ClearContextsForSnapRestore();
+
+        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
+        static bool IsSpecialRootObject(Js::RecyclableObject* obj);
+
+        void AddTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void RemoveTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
+
+        void AddTrackedRootSpecial(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void RemoveTrackedRootSpecial(TTD_LOG_PTR_ID origId);
+
+        const ObjectPinSet* GetRootSet() const;
+
+        void AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void ClearLocalRootsAndRefreshMap();
+        const ObjectPinSet* GetLocalRootSet() const;
+
+        void LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
+        void ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots);
+
+        Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
+        void ClearRootsForSnapRestore();
+    };
+
     //This struct stores the info for pending async mutations to array buffer objects
     struct TTDPendingAsyncBufferModification
     {
@@ -22,17 +129,12 @@ namespace TTD
         uint32 Index; //the start index that we are monitoring from
     };
 
-    //This class implements the data structures and algorithms needed to manage the ScriptContext TTD runtime info -- it is a friend of ScriptContext
+    //This class implements the data structures and algorithms needed to manage the ScriptContext TTD runtime info.
     //Basically we don't want to add a lot of size/complexity to the ScriptContext object/class if it isn't perf critical
     class ScriptContextTTD
     {
     private:
         Js::ScriptContext* m_ctx;
-
-        //Keep track of roots (and local roots as needed)
-        RecyclerRootPtr<ObjectPinSet> m_ttdRootSet;
-        RecyclerRootPtr<ObjectPinSet> m_ttdLocalRootSet;
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
 
         //List of pending async modifications to array buffers
         JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator> m_ttdPendingAsyncModList;
@@ -54,21 +156,6 @@ namespace TTD
 
         ScriptContextTTD(Js::ScriptContext* ctx);
         ~ScriptContextTTD();
-
-        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
-        void AddTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void RemoveTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
-        const ObjectPinSet* GetRootSet() const;
-
-        void AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void ClearLocalRootsAndRefreshMap();
-        const ObjectPinSet* GetLocalRootSet() const;
-
-        void LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
-        void ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots);
-
-        Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
-        void ClearRootsForSnapRestore();
 
         //Keep track of pending async ArrayBuffer modification
         void AddToAsyncPendingList(Js::ArrayBuffer* trgt, uint32 index);
@@ -202,10 +289,10 @@ namespace TTD
             for(int32 i = gap; i < llen; i++)
             {
                 T temp = sortedObjList.Item(i);
-                const UtilSupport::TTAutoString* tempStr = objToNameMap.LookupWithKey(temp, nullptr);
+                const UtilSupport::TTAutoString* tempStr = objToNameMap.Item(temp);
 
                 int32 j = 0;
-                for(j = i; j >= gap && (wcscmp(objToNameMap.LookupWithKey(sortedObjList.Item(j - gap), nullptr)->GetStrValue(), tempStr->GetStrValue()) > 0); j -= gap)
+                for(j = i; j >= gap && (wcscmp(objToNameMap.Item(sortedObjList.Item(j - gap))->GetStrValue(), tempStr->GetStrValue()) > 0); j -= gap)
                 {
                     T shiftElem = sortedObjList.Item(j - gap);
                     sortedObjList.SetItem(j, shiftElem);
@@ -227,8 +314,8 @@ namespace TTD
         while(imin < imax)
         {
             int imid = (imin + imax) / 2;
-            const UtilSupport::TTAutoString* imidStr = objToNameMap.LookupWithKey(sortedObjList.Item(imid), nullptr);
-            AssertMsg(imid < imax && imidStr != nullptr, "Something went wrong with our indexing.");
+            const UtilSupport::TTAutoString* imidStr = objToNameMap.Item(sortedObjList.Item(imid));
+            AssertMsg(imid < imax, "Something went wrong with our indexing.");
 
             int32 scmpval = wcscmp(imidStr->GetStrValue(), key);
             if(scmpval < 0)
@@ -243,7 +330,7 @@ namespace TTD
         }
         AssertMsg(imin == imax, "Something went wrong!!!"); 
         
-        const UtilSupport::TTAutoString* resStr = objToNameMap.LookupWithKey(sortedObjList.Item(imin), nullptr);
+        const UtilSupport::TTAutoString* resStr = objToNameMap.Item(sortedObjList.Item(imin));
         if(mustFind)
         {
             AssertMsg(wcscmp(resStr->GetStrValue(), key) == 0, "We are missing something");

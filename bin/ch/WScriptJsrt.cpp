@@ -431,6 +431,12 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
 
         // Create a new context and set it as the current context
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateContext(runtime, &newContext));
+
+#if ENABLE_TTD
+        //We need this here since this context is created in record
+        IfJsrtErrorSetGo(ChakraRTInterface::JsSetObjectBeforeCollectCallback(newContext, nullptr, WScriptJsrt::JsContextBeforeCollectCallback));
+#endif
+
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(newContext));
 
         // Initialize the host objects
@@ -919,8 +925,14 @@ Error:
     return hr == S_OK;
 }
 
-JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall,
-    JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+#if ENABLE_TTD
+void CALLBACK WScriptJsrt::JsContextBeforeCollectCallback(JsRef contextRef, void *data)
+{
+    ChakraRTInterface::JsTTDNotifyContextDestroy(contextRef);
+}
+#endif
+
+JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     HRESULT hr = E_FAIL;
     JsValueRef returnValue = JS_INVALID_REFERENCE;

@@ -1079,14 +1079,8 @@ private:
         //The host callback functor info
         HostScriptContextCallbackFunctor TTDHostCallbackFunctor;
 
-        //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
-        TTD::TTDMode TTDMode;
-
         //The LogTag for this script context (the same as the tag for the global object but we put it here for fast lookup)
         TTD_LOG_PTR_ID ScriptContextLogTag;
-
-        //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
-        int32 TTDRootNestingCount;
 
         //Info about the core image for the context
         TTD::RuntimeContextInfo* TTDWellKnownInfo;
@@ -1094,132 +1088,53 @@ private:
         //Additional runtime context that we only care about if TTD is running (or will be running)
         TTD::ScriptContextTTD* TTDContextInfo;
 
-        ////
+        //A flag indicating a TTDSnapshot is in progress
+        bool TTDSnapshotOrInflateInProgress;
+
+        //Check if a snapshot is in progress on this context
+        bool IsTTDSnapshotOrInflateInProgress() const { return this->TTDSnapshotOrInflateInProgress; }
+
+        //Memoized results for frequently used Record/Replay action checks
+        bool TTDRecordOrReplayModeEnabled;
+        bool TTDRecordModeEnabled;
+        bool TTDReplayModeEnabled;
+
+        bool TTDShouldPerformRecordOrReplayAction;
+        bool TTDShouldPerformRecordAction;
+        bool TTDShouldPerformReplayAction;
+
+        bool TTDShouldPerformDebuggerAction;
+        bool TTDShouldSuppressGetterInvocationForDebuggerEvaluation;
+
+        //Check if the TTD system has been activated (and record/replay may or may not be enabled)
+        bool IsTTDRecordOrReplayModeEnabled() const { return this->TTDRecordOrReplayModeEnabled; }
+
+        //Check if the TTD Record system has been activated (and  may or may not be enabled)
+        bool IsTTDRecordModeEnabled() const { return this->TTDRecordModeEnabled; }
+
+        //Check if the TTD Replay system has been activated (and  may or may not be enabled)
+        bool IsTTDReplayModeEnabled() const { return this->TTDReplayModeEnabled; }
+
+        //Check if we are in (record OR replay) AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordOrReplayAction() const { return this->TTDShouldPerformRecordOrReplayAction; }
 
         //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
-        bool ShouldPerformRecordAction() const
-        {
-            //return true if RecordEnabled and ~ExcludedExecution
-            return (this->TTDMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
-        }
+        bool ShouldPerformRecordAction() const { return this->TTDShouldPerformRecordAction; }
+
+        //Use this to check specifically if we are in replay mode AND this code is being run on behalf of the user application
+        bool ShouldPerformReplayAction() const { return this->TTDShouldPerformReplayAction; }
 
         //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-        bool ShouldPerformDebugAction() const
-        {
-#if ENABLE_TTD_DEBUGGING
-            //return true if DebuggingEnabled and ~ExcludedExecution
-            return (this->TTDMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+        bool ShouldPerformDebuggerAction() const { return this->TTDShouldPerformDebuggerAction; }
 
-#else
-            return false;
-#endif
-        }
-
-        //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
-        bool IsTTDActive() const
-        {
-            return (this->TTDMode & TTD::TTDMode::TTDActive) != TTD::TTDMode::Invalid;
-        }
-
-        //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
-        bool IsTTDDetached() const
-        {
-            return (this->TTDMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
-        }
-
-        //
-        //TODO: there is a memory leak associated with this we need to relax later
-        //
-        //A special record check because we want to pin weak references even if we aren't actively logging (but are planning to do so in the future)
-        bool ShouldPerformWeakRefPinAction() const
-        {
-            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool modeIsDebugging = (this->TTDMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
-            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord | modeIsDebugging) & inDebugableCode);
-        }
-
-        //A special record check because we want to record code load even if we aren't actively logging (but are planning to do so in the future)
-        bool ShouldPerformRecordTopLevelFunction() const
-        {
-            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord) & inDebugableCode);
-        }
-
-        //A special record check because we want to record root add/remove ref even if we aren't actively logging (but are planning to do so in the future)
-        bool ShouldPerformRootAddOrRemoveRefAction() const
-        {
-            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord) & inDebugableCode);
-        }
-
-        //A special record check because we want to take action on async buffer registration and completion even if we have not started actively logging (but are planning to do so in the future)
-        bool ShouldPerformAsyncBufferModAction() const
-        {
-            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord) & inDebugableCode);
-        }
-
-        //A special check for to see if we want to push the supression flag for getter exection
-        bool ShouldDoGetterInvocationSupression() const
-        {
-#if !ENABLE_TTD_DEBUGGING
-            return false;
-#else
-            return (this->TTDMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
-#endif
-        }
-
-        //A special check to see if we are debugging and want to suppress the execution of getters when displaying values in the debugger
-        bool ShouldSuppressGetterInvocationForDebuggerEvaluation() const
-        {
-#if !ENABLE_TTD_DEBUGGING
-            return false;
-#else
-            return (this->TTDMode & TTD::TTDMode::TTDShouldSupressGetterActionMask) == TTD::TTDMode::TTDShouldSupressGetterActionMask;
-#endif
-        }
-
-        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
-        bool ShouldSuppressBreakpointsForTimeTravelMove() const
-        {
-#if !ENABLE_TTD_DEBUGGING
-            return false;
-#else
-            return (this->TTDMode & TTD::TTDMode::DebuggerSuppressBreakpoints) == TTD::TTDMode::DebuggerSuppressBreakpoints;
-#endif
-        }
-
-        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
-        bool ShouldRecordBreakpointsDuringTimeTravelScan() const
-        {
-#if !ENABLE_TTD_DEBUGGING
-            return false;
-#else
-            return (this->TTDMode & TTD::TTDMode::DebuggerLogBreakpoints) == TTD::TTDMode::DebuggerLogBreakpoints;
-#endif
-        }
+        //A special check to see if we are debugging and want to suppress the execution of getters (which may be triggered by displaying values in the debugger)
+        bool ShouldSuppressGetterInvocationForDebuggerEvaluation() const { return this->TTDShouldSuppressGetterInvocationForDebuggerEvaluation; }
 
         //
         //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
         //
         //Initialize the core object image for TTD
         void InitializeCoreImage_TTD();
-
-        //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
-        void InitializeRecordingActionsAsNeeded_TTD();
-        void InitializeDebuggingActionsAsNeeded_TTD();
 #endif
 
         void SetFirstInterpreterFrameReturnAddress(void * returnAddress) { firstInterpreterFrameReturnAddress = returnAddress;}

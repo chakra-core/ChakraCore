@@ -257,7 +257,7 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->ShouldPerformRecordTopLevelFunction() | scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction())
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
@@ -265,7 +265,7 @@ namespace Js
             {
                 uint64 bodyIdCtr = 0;
 
-                if(scriptContext->ShouldPerformRecordTopLevelFunction())
+                if(scriptContext->IsTTDRecordModeEnabled())
                 {
                     const TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddNewFunction(globalBody, moduleID, sourceString, sourceLen);
 
@@ -278,7 +278,7 @@ namespace Js
                     bodyIdCtr = tbfi->TopLevelBase.TopLevelBodyCtr;
                 }
 
-                if(scriptContext->ShouldPerformDebugAction())
+                if(scriptContext->ShouldPerformReplayAction())
                 {
                     bodyIdCtr = scriptContext->GetThreadContext()->TTDLog->ReplayTopLevelCodeAction();
                 }

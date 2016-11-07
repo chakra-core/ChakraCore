@@ -352,7 +352,7 @@ namespace TTD
     }
 
     TTDCompareMap::TTDCompareMap(ThreadContext* threadContext)
-        : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
+        : StrictCrossSite(false), H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
         CurrentPath(nullptr), CurrentH1Ptr(TTD_INVALID_PTR_ID), CurrentH2Ptr(TTD_INVALID_PTR_ID), Context(threadContext),
         //
         H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
@@ -363,6 +363,8 @@ namespace TTD
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance), H2PendingAsyncModBufferSet(&HeapAllocator::Instance)
     {
+        this->StrictCrossSite = !threadContext->TTDLog->IsDebugModeFlagSet();
+
         this->PathBuffer = TT_HEAP_ALLOC_ARRAY_ZERO(char16, 256);
 
         this->SnapObjCmpVTable = TT_HEAP_ALLOC_ARRAY_ZERO(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
@@ -426,14 +428,14 @@ namespace TTD
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Item(h1PtrId) == h2PtrId);
         }
         else if(this->H1ValueMap.ContainsKey(h1PtrId))
         {
             this->DiagnosticAssert(this->H2ValueMap.ContainsKey(h2PtrId));
 
-            const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Lookup(h1PtrId, nullptr);
-            const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Lookup(h2PtrId, nullptr);
+            const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Item(h1PtrId);
+            const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Item(h2PtrId);
             NSSnapValues::AssertSnapEquiv(v1, v2, *this);
         }
         else
@@ -479,7 +481,7 @@ namespace TTD
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Item(h1PtrId) == h2PtrId);
         }
         else
         {
@@ -498,10 +500,9 @@ namespace TTD
         else
         {
             *h1PtrId = this->H1PtrIdWorklist.Dequeue();
-            *h2PtrId = this->H1PtrToH2PtrMap.Lookup(*h1PtrId, TTD_INVALID_PTR_ID);
-            AssertMsg(*h2PtrId != TTD_INVALID_PTR_ID, "Id not mapped!!!");
+            *h2PtrId = this->H1PtrToH2PtrMap.Item(*h1PtrId);
 
-            this->CurrentPath = this->H1PtrToPathMap.Lookup(*h1PtrId, nullptr);
+            this->CurrentPath = this->H1PtrToPathMap.Item(*h1PtrId);
             this->CurrentH1Ptr = *h1PtrId;
             this->CurrentH2Ptr = *h2PtrId;
 
@@ -552,49 +553,49 @@ namespace TTD
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::SlotArrayInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::SlotArrayInfo** val2)
     {
         AssertMsg(compareTag == TTDCompareTag::SlotArray, "Should be a type");
-        *val1 = this->H1SlotArrayMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2SlotArrayMap.Lookup(h2PtrId, nullptr);
+        *val1 = this->H1SlotArrayMap.Item(h1PtrId);
+        *val2 = this->H2SlotArrayMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val2)
     {
         AssertMsg(compareTag == TTDCompareTag::FunctionScopeInfo, "Should be a type");
-        *val1 = this->H1FunctionScopeInfoMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2FunctionScopeInfoMap.Lookup(h2PtrId, nullptr);
+        *val1 = this->H1FunctionScopeInfoMap.Item(h1PtrId);
+        *val2 = this->H2FunctionScopeInfoMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, uint64* val1, TTD_PTR_ID h2PtrId, uint64* val2)
     {
         if(compareTag == TTDCompareTag::TopLevelLoadFunction)
         {
-            *val1 = this->H1FunctionTopLevelLoadMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelLoadMap.Lookup(h2PtrId, 0);
+            *val1 = this->H1FunctionTopLevelLoadMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelLoadMap.Item(h2PtrId);
         }
         else if(compareTag == TTDCompareTag::TopLevelNewFunction)
         {
-            *val1 = this->H1FunctionTopLevelNewMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelNewMap.Lookup(h2PtrId, 0);
+            *val1 = this->H1FunctionTopLevelNewMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelNewMap.Item(h2PtrId);
         }
         else
         {
             AssertMsg(compareTag == TTDCompareTag::TopLevelEvalFunction, "Should be a type");
-            *val1 = this->H1FunctionTopLevelEvalMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelEvalMap.Lookup(h2PtrId, 0);
+            *val1 = this->H1FunctionTopLevelEvalMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelEvalMap.Item(h2PtrId);
         }
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::FunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::FunctionBodyResolveInfo** val2)
     {
         AssertMsg(compareTag == TTDCompareTag::FunctionBody, "Should be a type");
-        *val1 = this->H1FunctionBodyMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2FunctionBodyMap.Lookup(h2PtrId, nullptr);
+        *val1 = this->H1FunctionBodyMap.Item(h1PtrId);
+        *val2 = this->H2FunctionBodyMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapObjects::SnapObject** val1, TTD_PTR_ID h2PtrId, const NSSnapObjects::SnapObject** val2)
     {
         AssertMsg(compareTag == TTDCompareTag::SnapObject, "Should be a type");
-        *val1 = this->H1ObjectMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2ObjectMap.Lookup(h2PtrId, nullptr);
+        *val1 = this->H1ObjectMap.Item(h1PtrId);
+        *val2 = this->H2ObjectMap.Item(h2PtrId);
     }
 #endif
 }

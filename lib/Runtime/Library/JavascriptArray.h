@@ -1044,6 +1044,22 @@ namespace Js
         {
             return VTableValue::VtableCopyOnAccessNativeIntArray;
         }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override
+        {
+            return;
+        }
+
+        virtual void ProcessCorePaths() override
+        {
+            return;
+        }
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 #endif
 

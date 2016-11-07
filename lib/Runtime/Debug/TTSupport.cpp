@@ -133,18 +133,20 @@ namespace TTD
             return this->m_contents == nullptr;
         }
 
-        void TTAutoString::Append(const char16* str, int32 start, int32 end)
+        void TTAutoString::Append(const char16* str, size_t start, size_t end)
         {
+            Assert(end > start);
+
             if(this->m_contents == nullptr && str == nullptr)
             {
                 return;
             }
 
             size_t origsize = (this->m_contents != nullptr ? wcslen(this->m_contents) : 0);
-            int32 strsize = -1;
-            if(start == 0 && end == INT32_MAX)
+            size_t strsize = 0;
+            if(start == 0 && end == SIZE_T_MAX)
             {
-                strsize = (str != nullptr ? (int32)wcslen(str) : 0);
+                strsize = (str != nullptr ? wcslen(str) : 0);
             }
             else
             {
@@ -165,8 +167,8 @@ namespace TTD
 
             if(str != nullptr)
             {
-                int32 curr = (int32)origsize;
-                for(int32 i = start; i <= end && str[i] != '\0'; ++i)
+                size_t curr = origsize;
+                for(size_t i = start; i <= end && str[i] != '\0'; ++i)
                 {
                     nbuff[curr] = str[i];
                     curr++;
@@ -175,10 +177,10 @@ namespace TTD
             }
 
             this->m_contents = nbuff;
-            this->m_allocSize = (int32)nsize;
+            this->m_allocSize = (int64)nsize;
         }
 
-        void TTAutoString::Append(const TTAutoString& str, int32 start, int32 end)
+        void TTAutoString::Append(const TTAutoString& str, size_t start, size_t end)
         {
             this->Append(str.GetStrValue(), start, end);
         }

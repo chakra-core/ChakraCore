@@ -91,7 +91,7 @@ namespace Js
             JavascriptString* res = JavascriptDate::ToString(pDate);
 
 #if ENABLE_TTD
-            if(scriptContext->ShouldPerformDebugAction())
+            if(scriptContext->ShouldPerformReplayAction())
             {
                 scriptContext->GetThreadContext()->TTDLog->ReplayDateStringEvent(scriptContext, &res);
             }
@@ -137,7 +137,7 @@ namespace Js
             double resTime = DateImplementation::NowFromHiResTimer(scriptContext);
 
 #if ENABLE_TTD
-            if(scriptContext->ShouldPerformDebugAction())
+            if(scriptContext->ShouldPerformReplayAction())
             {
                 scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&resTime);
             }
@@ -806,7 +806,7 @@ namespace Js
         double dblRetVal = DateImplementation::NowInMilliSeconds(scriptContext);
 
 #if ENABLE_TTD
-        if(scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->ShouldPerformReplayAction())
         {
             scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&dblRetVal);
         }

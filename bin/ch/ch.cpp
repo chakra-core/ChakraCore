@@ -268,7 +268,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
             return E_FAIL;
         }
 
-        ChakraRTInterface::JsTTDStartTimeTravelDebugging();
+        ChakraRTInterface::JsTTDStart();
 
         try
         {
@@ -278,8 +278,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
 
             while(true)
             {
-                bool needFreshCtxs = false;
-                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &needFreshCtxs, &snapEventTime, nullptr);
+                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &snapEventTime, nullptr);
 
                 if(error != JsNoError)
                 {
@@ -291,7 +290,6 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
                     return error;
                 }
 
-                IfFailedReturn(ChakraRTInterface::JsTTDPrepContextsForTopLevelEventMove(chRuntime, needFreshCtxs));
                 IfFailedReturn(ChakraRTInterface::JsTTDMoveToTopLevelEvent(moveMode, snapEventTime, nextEventTime));
 
                 JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&moveMode, &nextEventTime);
@@ -348,7 +346,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
 #if ENABLE_TTD
             if(doTTRecord)
             {
-                ChakraRTInterface::JsTTDStartTimeTravelRecording();
+                ChakraRTInterface::JsTTDStart();
             }
 
             runScript = ChakraRTInterface::JsRun(scriptSource,
@@ -389,7 +387,8 @@ Error:
 #if ENABLE_TTD
     if(doTTRecord)
     {
-        ChakraRTInterface::JsTTDStopTimeTravelRecording();
+        ChakraRTInterface::JsTTDEmitRecording();
+        ChakraRTInterface::JsTTDStop();
     }
 #endif
 
@@ -495,13 +494,11 @@ HRESULT ExecuteTest(const char* fileName)
 
         jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, ttUriByteLength, nullptr, &runtime));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateReplayRuntime(jsrtAttributes, ttUri, ttUriByteLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
         chRuntime = runtime;
 
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTCreateStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
-
         JsContextRef context = JS_INVALID_REFERENCE;
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
@@ -529,13 +526,17 @@ HRESULT ExecuteTest(const char* fileName)
             //Ensure we run with experimental features (as that is what Node does right now).
             jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, ttUriByteLength, snapInterval, snapHistoryLength, nullptr, &runtime));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, ttUriByteLength, snapInterval, snapHistoryLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
             chRuntime = runtime;
 
-            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTCreateStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
-
             JsContextRef context = JS_INVALID_REFERENCE;
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
+
+#if ENABLE_TTD
+            //We need this here since this context is created in record
+            IfJsErrorFailLog(ChakraRTInterface::JsSetObjectBeforeCollectCallback(context, nullptr, WScriptJsrt::JsContextBeforeCollectCallback));
+#endif
+
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
         else
@@ -553,6 +554,9 @@ HRESULT ExecuteTest(const char* fileName)
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+
+            //Don't need collect callback since this is always in replay
+
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
 #else

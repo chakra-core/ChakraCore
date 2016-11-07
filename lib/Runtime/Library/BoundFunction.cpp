@@ -238,6 +238,13 @@ namespace Js
         }
     }
 
+#if ENABLE_TTD
+    void BoundFunction::MarshalCrossSite_TTDInflate()
+    {
+        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal");
+        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
+    }
+#endif
 
     JavascriptFunction * BoundFunction::GetTargetFunction() const
     {

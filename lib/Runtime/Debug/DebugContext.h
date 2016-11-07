@@ -60,7 +60,7 @@ namespace Js
 
         HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
         bool IsJustMyCode() const
         {
             //

@@ -21,6 +21,13 @@ namespace Js
 
     bool DynamicObjectPropertyEnumerator::GetUseCache() const
     {
+#if ENABLE_TTD
+        if(this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            return false;
+        }
+#endif
+
         return ((flags & (EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache)) == (EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache));
     }
 
@@ -133,6 +140,10 @@ namespace Js
 
     bool DynamicObjectPropertyEnumerator::CanUseJITFastPath() const
     {
+#if ENABLE_TTD
+        AssertMsg(this->cachedData == nullptr || !this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always have cachedData null if we are in record or replay mode");
+#endif
+
         return !this->IsNullEnumerator() && !GetEnumNonEnumerable() && this->cachedData != nullptr;
     }
 
@@ -158,6 +169,10 @@ namespace Js
 
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNextWithCache(PropertyId& propertyId, PropertyAttributes* attributes)
     {
+#if ENABLE_TTD
+        AssertMsg(!this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always trap out to explicit enumeration in this case");
+#endif
+
         Assert(enumeratedCount <= cachedData->cachedCount);
         JavascriptString* propertyStringName;
         PropertyAttributes propertyAttributes = PropertyNone;
@@ -167,22 +182,7 @@ namespace Js
             propertyStringName = propertyString;
             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
 
-#if ENABLE_TTD
-            //
-            //TODO: We have code in MoveAndGetNextFromObject to record replay the order in which properties are enumerated. 
-            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
-            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
-            //
-            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
-            if (actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
-            {
-                PropertyId tempPropertyId;
-                /* JavascriptString * tempPropertyString = */ this->MoveAndGetNextNoCache(tempPropertyId, attributes);
-
-                Assert(tempPropertyId == propertyId);
-                Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
-            }
-#elif DBG
+#if DBG
             PropertyId tempPropertyId;
             /* JavascriptString * tempPropertyString = */ this->MoveAndGetNextNoCache(tempPropertyId, attributes);
 
@@ -214,19 +214,7 @@ namespace Js
         }
         else
         {
-#if ENABLE_TTD
-            //
-            //TODO: We have code in MoveAndGetNextFromObject to record replay the order in which properties are enumerated. 
-            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
-            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
-            //
-            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
-            if (actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
-            {
-                PropertyId tempPropertyId;
-                /*JavascriptString* tempPropertyStringName =*/ this->MoveAndGetNextNoCache(tempPropertyId, attributes);
-            }
-#elif DBG
+#if DBG
             PropertyId tempPropertyId;
             Assert(this->MoveAndGetNextNoCache(tempPropertyId, attributes) == nullptr);
 #endif

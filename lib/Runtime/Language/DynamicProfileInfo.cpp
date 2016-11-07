@@ -196,6 +196,16 @@ namespace Js
             arrayCallSiteInfo[i].callSiteNumber = i;
         }
 #endif
+
+#if TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND
+        if(functionBody->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            for(ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
+            {
+                arrayCallSiteInfo[i].SetIsNotNativeArray();
+            }
+        }
+#endif
     }
 
     bool DynamicProfileInfo::IsEnabledForAtLeastOneFunction(const ScriptContext *const scriptContext)
