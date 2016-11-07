@@ -210,7 +210,7 @@ namespace Js
             {
                 if (!allowInt64)
                 {
-                    JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable);
+                    JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_InvalidTypeConversion);
                 }
 
                 int64 val;
@@ -428,7 +428,7 @@ namespace Js
         }
         case AsmJsRetType::Int64:
         {
-            JavascriptError::ThrowTypeError(func->GetScriptContext(), VBSERR_TypeMismatch);
+            JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
         }
         case AsmJsRetType::Double:
         {
@@ -592,7 +592,7 @@ namespace Js
                 push func
                 call ecx
             }
-            JavascriptError::ThrowTypeError(func->GetScriptContext(), VBSERR_TypeMismatch);
+            JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
         }
         case AsmJsRetType::Double:{
             double dval = 0;
