@@ -12,22 +12,22 @@ namespace Js
     class FunctionCodeGenRuntimeData sealed
     {
     private:
-        FunctionBody *const functionBody;
+        Field(FunctionBody *const) functionBody;
 
         // These cloned inline caches are guaranteed to be kept alive for the life of the function body. They may be shared
         // by different versions of the same function body that have been or will be jitted. Cached data is not guaranteed to be
         // stable while jitting.
-        InlineCachePointerArray<InlineCache> clonedInlineCaches;
+        Field(InlineCachePointerArray<InlineCache>) clonedInlineCaches;
 
         // There will be a non-null entry for each profiled call site where a function is to be inlined or has previously been
         // inlined
-        FunctionCodeGenRuntimeData **inlinees;
+        Field(FunctionCodeGenRuntimeData **) inlinees;
 
         // There will be a non-null entry for each  call site where a getter setter is to be inlined or has previously been
         // inlined
-        FunctionCodeGenRuntimeData **ldFldInlinees;
+        Field(FunctionCodeGenRuntimeData **) ldFldInlinees;
 
-        FunctionCodeGenRuntimeData *next;
+        Field(FunctionCodeGenRuntimeData *) next;
 
     public:
         FunctionCodeGenRuntimeData(FunctionBody *const functionBody);

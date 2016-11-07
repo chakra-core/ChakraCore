@@ -11,7 +11,6 @@ add_library (Chakra.Common.DataStructures OBJECT
     InternalStringNoCaseComparer.cpp
     Interval.cpp
     SizePolicy.cpp
-    SparseBitVector.cpp
     )
 
 include_directories(..)

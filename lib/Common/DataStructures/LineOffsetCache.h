@@ -260,10 +260,10 @@ namespace JsUtil
         }
 
     private:
-        TAllocator* allocator;
+        FieldNoBarrier(TAllocator*) allocator;
 
         // Line offset cache list used for quickly finding line/column offsets.
-        LineOffsetCacheReadOnlyList* lineOffsetCacheList;
-        bool isCacheBuilt;
+        Field(LineOffsetCacheReadOnlyList*) lineOffsetCacheList;
+        Field(bool) isCacheBuilt;
     };
 }

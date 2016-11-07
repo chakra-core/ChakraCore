@@ -210,9 +210,9 @@ namespace JsUtil
         typedef TRemovePolicy<TListType, true /* clearOldEntries */>  TRemovePolicyType;
         typedef ListTypeAllocatorFunc<TAllocator, isLeaf> AllocatorInfo;
 
-        int length;
-        int increment;
-        TRemovePolicyType removePolicy;
+        Field(int) length;
+        Field(int) increment;
+        Field(TRemovePolicyType) removePolicy;
 
         T * AllocArray(DECLSPEC_GUARD_OVERFLOW int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
         void FreeArray(T * oldBuffer, int oldBufferSize) { AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);  }
@@ -268,7 +268,7 @@ namespace JsUtil
                 js_memcpy_s(newbuffer, newBufferSize, oldbuffer, oldBufferSize);
 
                 FreeArray(oldbuffer, oldBufferSize);
-                
+
                 this->length = newLength;
                 this->buffer = newbuffer;
             }
@@ -598,7 +598,7 @@ namespace Js
     class SynchronizableList sealed: private ListType // Make base class private to lock down exposed methods
     {
     private:
-        SyncObject* syncObj;
+        FieldNoBarrier(SyncObject*) syncObj;
 
     public:
         template <class Arg1>

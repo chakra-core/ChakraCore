@@ -30,7 +30,7 @@ public:
     JITTimeConstructorCacheIDL * GetData();
 
 private:
-    JITTimeConstructorCacheIDL m_data;
+    Field(JITTimeConstructorCacheIDL) m_data;
 };
 
 #pragma once

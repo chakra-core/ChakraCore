@@ -42,15 +42,15 @@ class SRCINFO
     // In future, when we do make it freeable and will be able to allocate more than one per Module,
     // we can move variables m_isGlobalFunc and m_isEval from FunctionBody.cpp here.
 public:
-    SourceContextInfo * sourceContextInfo;
-    ULONG dlnHost;             // Line number passed to ParseScriptText
-    ULONG ulColumnHost;        // Column number on the line where the parse script text started
-    ULONG lnMinHost;           // Line offset of first host-supplied line
-    ULONG ichMinHost;          // Range of host supplied characters
-    ULONG ichLimHost;
-    ULONG ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
-    Js::ModuleID moduleID;
-    ULONG grfsi;
+    Field(SourceContextInfo *) sourceContextInfo;
+    Field(ULONG) dlnHost;             // Line number passed to ParseScriptText
+    Field(ULONG) ulColumnHost;        // Column number on the line where the parse script text started
+    Field(ULONG) lnMinHost;           // Line offset of first host-supplied line
+    Field(ULONG) ichMinHost;          // Range of host supplied characters
+    Field(ULONG) ichLimHost;
+    Field(ULONG) ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
+    Field(Js::ModuleID) moduleID;
+    Field(ULONG) grfsi;
 
     static SRCINFO* Copy(Recycler* recycler, const SRCINFO* srcInfo)
     {
@@ -362,19 +362,19 @@ namespace Js
         virtual void Dispose(bool isShutdown) override {}
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        JavascriptString * lastNumberToStringRadix10String;
-        EnumeratedObjectCache enumObjCache;
-        JavascriptString * lastUtcTimeFromStrString;
-        EvalCacheDictionary* evalCacheDictionary;
-        EvalCacheDictionary* indirectEvalCacheDictionary;
-        NewFunctionCache* newFunctionCache;
-        RegexPatternMruMap *dynamicRegexMap;
-        SourceContextInfoMap* sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
-        DynamicSourceContextInfoMap* dynamicSourceContextInfoMap;
-        SourceContextInfo* noContextSourceContextInfo;
-        SRCINFO* noContextGlobalSourceInfo;
-        SRCINFO const ** moduleSrcInfo;
-        BuiltInLibraryFunctionMap* builtInLibraryFunctions;
+        Field(JavascriptString *) lastNumberToStringRadix10String;
+        Field(EnumeratedObjectCache) enumObjCache;
+        Field(JavascriptString *) lastUtcTimeFromStrString;
+        Field(EvalCacheDictionary*) evalCacheDictionary;
+        Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
+        Field(NewFunctionCache*) newFunctionCache;
+        Field(RegexPatternMruMap *) dynamicRegexMap;
+        Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
+        Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
+        Field(SourceContextInfo*) noContextSourceContextInfo;
+        Field(SRCINFO*) noContextGlobalSourceInfo;
+        Field(SRCINFO const **) moduleSrcInfo;
+        Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
     };
 
     class ScriptContext : public ScriptContextBase, public ScriptContextInfo
@@ -704,8 +704,8 @@ public:
 
         struct FieldAccessStatsEntry
         {
-            RecyclerWeakReference<FunctionBody>* functionBodyWeakRef;
-            FieldAccessStatsList stats;
+            Field(RecyclerWeakReference<FunctionBody>*) functionBodyWeakRef;
+            Field(FieldAccessStatsList) stats;
 
             FieldAccessStatsEntry(RecyclerWeakReference<FunctionBody>* functionBodyWeakRef, Recycler* recycler)
                 : functionBodyWeakRef(functionBodyWeakRef), stats(recycler) {}

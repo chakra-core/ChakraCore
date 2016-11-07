@@ -20,13 +20,13 @@ namespace Js
         virtual Var GetCurrentValue() { Assert(false); return nullptr; }
 
     private:
-        ModuleNamespace* nsObject;
-        JavascriptStaticEnumerator symbolEnumerator;
-        ModuleNamespace::UnambiguousExportMap* nonLocalMap;
-        BigPropertyIndex currentLocalMapIndex;
-        BigPropertyIndex currentNonLocalMapIndex;
-        bool doneWithLocalExports;
-        bool doneWithSymbol;
-        EnumeratorFlags flags;
+        Field(ModuleNamespace*) nsObject;
+        Field(JavascriptStaticEnumerator) symbolEnumerator;
+        Field(ModuleNamespace::UnambiguousExportMap*) nonLocalMap;
+        Field(BigPropertyIndex) currentLocalMapIndex;
+        Field(BigPropertyIndex) currentNonLocalMapIndex;
+        Field(bool) doneWithLocalExports;
+        Field(bool) doneWithSymbol;
+        Field(EnumeratorFlags) flags;
     };
 }

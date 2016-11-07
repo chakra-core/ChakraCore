@@ -373,20 +373,20 @@ namespace Js
         static const bool IsPolymorphic = true;
 
     private:
-        InlineCache * inlineCaches;
-        FunctionBody * functionBody;
-        uint16 size;
-        bool ignoreForEquivalentObjTypeSpec;
-        bool cloneForJitTimeUse;
+        FieldNoBarrier(InlineCache *) inlineCaches;
+        Field(FunctionBody *) functionBody;
+        Field(uint16) size;
+        Field(bool) ignoreForEquivalentObjTypeSpec;
+        Field(bool) cloneForJitTimeUse;
 
-        int32 inlineCachesFillInfo;
+        Field(int32) inlineCachesFillInfo;
 
         // DList chaining all polymorphic inline caches of a FunctionBody together.
         // Since PolymorphicInlineCache is a leaf object, these references do not keep
         // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
         // it removes itself from the list and deletes its inline cache array.
-        PolymorphicInlineCache * next;
-        PolymorphicInlineCache * prev;
+        Field(PolymorphicInlineCache *) next;
+        Field(PolymorphicInlineCache *) prev;
 
         PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
             : inlineCaches(inlineCaches), functionBody(functionBody), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0), next(nullptr), prev(nullptr)
@@ -542,9 +542,9 @@ namespace Js
     class EquivalentTypeSet
     {
     private:
-        bool sortedAndDuplicatesRemoved;
-        uint16 count;
-        JITTypeHolder * types;
+        Field(bool) sortedAndDuplicatesRemoved;
+        Field(uint16) count;
+        Field(JITTypeHolder *) types;
 
     public:
         EquivalentTypeSet(JITTypeHolder * types, uint16 count);

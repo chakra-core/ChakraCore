@@ -16,50 +16,50 @@ namespace Js
     class FunctionCodeGenJitTimeData
     {
     private:
-        FunctionInfo *const functionInfo;
+        Field(FunctionInfo *) const functionInfo;
 
         // Point's to an entry point if the work item needs the entry point alive- null for cases where the entry point isn't used
-        EntryPointInfo *const entryPointInfo;
+        Field(EntryPointInfo *) const entryPointInfo;
 
         // These cloned inline caches are guaranteed to have stable data while jitting, but will be collectible after jitting
-        ObjTypeSpecFldInfoArray objTypeSpecFldInfoArray;
+        Field(ObjTypeSpecFldInfoArray) objTypeSpecFldInfoArray;
 
         // Globally ordered list of all object type specialized property access information (monomorphic and polymorphic caches combined).
-        uint globalObjTypeSpecFldInfoCount;
-        ObjTypeSpecFldInfo** globalObjTypeSpecFldInfoArray;
+        Field(uint) globalObjTypeSpecFldInfoCount;
+        Field(Field(ObjTypeSpecFldInfo*)*) globalObjTypeSpecFldInfoArray;
 
         // There will be a non-null entry for each profiled call site where a function is to be inlined
-        FunctionCodeGenJitTimeData **inlinees;
-        FunctionCodeGenJitTimeData **ldFldInlinees;
-        RecyclerWeakReference<FunctionBody> *weakFuncRef;
+        Field(Field(FunctionCodeGenJitTimeData*)*) inlinees;
+        Field(Field(FunctionCodeGenJitTimeData*)*) ldFldInlinees;
+        Field(RecyclerWeakReference<FunctionBody>*) weakFuncRef;
 
-        PolymorphicInlineCacheInfoIDL* inlineeInfo;
-        PolymorphicInlineCacheInfoIDL* selfInfo;
-        PolymorphicInlineCacheIDL* polymorphicInlineCaches;
+        Field(PolymorphicInlineCacheInfoIDL*) inlineeInfo;
+        Field(PolymorphicInlineCacheInfoIDL*) selfInfo;
+        Field(PolymorphicInlineCacheIDL*) polymorphicInlineCaches;
 
         // current value of global this object, may be changed in case of script engine invalidation
-        Var globalThisObject;
+        FieldNoBarrier(Var) globalThisObject;
 
         // Number of functions that are to be inlined (this is not the length of the 'inlinees' array above, includes getter setter inlinee count)
-        uint inlineeCount;
+        Field(uint) inlineeCount;
         // Number of counts of getter setter to be inlined. This is not an exact count as inline caches are shared and we have no way of knowing
         // accurate count.
-        uint ldFldInlineeCount;
+        Field(uint) ldFldInlineeCount;
 
         // For polymorphic call site we will have linked list of FunctionCodeGenJitTimeData
         // Each is differentiated by id starting from 0, 1
-        FunctionCodeGenJitTimeData *next;
-        bool isInlined;
+        Field(FunctionCodeGenJitTimeData *) next;
+        Field(bool) isInlined;
 
         // This indicates the function is aggressively Inlined(see NativeCodeGenerator::TryAggressiveInlining) .
-        bool isAggressiveInliningEnabled;
+        Field(bool) isAggressiveInliningEnabled;
 
         // The profiled iterations need to be determined at the time of gathering code gen data on the main thread
-        const uint16 profiledIterations;
+        Field(const uint16) profiledIterations;
 
 #ifdef FIELD_ACCESS_STATS
     public:
-        FieldAccessStatsPtr inlineCacheStats;
+        Field(FieldAccessStatsPtr) inlineCacheStats;
 
         void EnsureInlineCacheStats(Recycler* recycler);
         void AddInlineeInlineCacheStats(FunctionCodeGenJitTimeData* inlineeJitTimeData);
@@ -69,7 +69,7 @@ namespace Js
         FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
 
     public:
-        BVFixed *inlineesBv;
+        Field(BVFixed *) inlineesBv;
 
         Js::PropertyId* sharedPropertyGuards;
         uint sharedPropertyGuardCount;
@@ -86,9 +86,7 @@ namespace Js
 
     public:
         const FunctionCodeGenJitTimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
-        FunctionCodeGenJitTimeData ** GetInlinees();
         const FunctionCodeGenJitTimeData *GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const;
-        FunctionCodeGenJitTimeData ** GetLdFldInlinees();
         FunctionCodeGenJitTimeData *AddInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
@@ -123,7 +121,7 @@ namespace Js
         const FunctionCodeGenJitTimeData *GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const;
 
         uint GetGlobalObjTypeSpecFldInfoCount() const { return this->globalObjTypeSpecFldInfoCount; }
-        ObjTypeSpecFldInfo** GetGlobalObjTypeSpecFldInfoArray() const {return this->globalObjTypeSpecFldInfoArray; }
+        Field(ObjTypeSpecFldInfo*)* GetGlobalObjTypeSpecFldInfoArray() const {return this->globalObjTypeSpecFldInfoArray; }
 
         ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
         {
@@ -137,7 +135,7 @@ namespace Js
             this->globalObjTypeSpecFldInfoArray[propertyInfoId] = info;
         }
 
-        void SetGlobalObjTypeSpecFldInfoArray(ObjTypeSpecFldInfo** array, uint count)
+        void SetGlobalObjTypeSpecFldInfoArray(Field(ObjTypeSpecFldInfo*)* array, uint count)
         {
             Assert(array != nullptr);
             this->globalObjTypeSpecFldInfoArray = array;
@@ -163,7 +161,7 @@ namespace Js
         {
             if (!inlinees)
             {
-                inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeData *, GetFunctionBody()->GetProfiledCallSiteCount());
+                inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData *), GetFunctionBody()->GetProfiledCallSiteCount());
             }
             inlinees[profiledCallSiteId] = this;
             inlineeCount++;

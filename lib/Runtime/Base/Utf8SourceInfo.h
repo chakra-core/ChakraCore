@@ -352,48 +352,48 @@ namespace Js
         bool GetDebugDocumentName(BSTR * sourceName);
     private:
 
-        charcount_t m_cchLength;               // The number of characters encoded in m_utf8Source.
-        ISourceHolder* sourceHolder;
+        Field(charcount_t) m_cchLength;               // The number of characters encoded in m_utf8Source.
+        Field(ISourceHolder*) sourceHolder;
         union
         {
             BYTE* m_pHostBuffer;  // Pointer to a host source buffer (null unless this is host code that we need to free)
             Utf8SourceInfo const* m_pOriginalSourceInfo; // Pointer to source info with original source text, created during cloning
         };
 
-        FunctionBodyDictionary* functionBodyDictionary;
-        DeferredFunctionsDictionary* m_deferredFunctionsDictionary;
+        Field(FunctionBodyDictionary*) functionBodyDictionary;
+        Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
 
-        DebugDocument* m_debugDocument;
+        Field(DebugDocument*) m_debugDocument;
 
-        const SRCINFO* m_srcInfo;
-        DWORD_PTR m_secondaryHostSourceContext;
+        Field(const SRCINFO*) m_srcInfo;
+        Field(DWORD_PTR) m_secondaryHostSourceContext;
 
-        LPCUTF8 debugModeSource;
-        size_t debugModeSourceLength;
+        Field(LPCUTF8) debugModeSource;
+        Field(size_t) debugModeSourceLength;
 
-        ScriptContext* const m_scriptContext;   // Pointer to ScriptContext under which this source info was created
+        Field(ScriptContext* const) m_scriptContext;   // Pointer to ScriptContext under which this source info was created
 
         // Line offset cache used for quickly finding line/column offsets.
-        JsUtil::LineOffsetCache<Recycler>* m_lineOffsetCache;
+        Field(JsUtil::LineOffsetCache<Recycler>*) m_lineOffsetCache;
 
         // Utf8SourceInfo of the caller, used for mapping eval/new Function node to its caller node for debugger
-        Utf8SourceInfo* callerUtf8SourceInfo;
+        Field(Utf8SourceInfo*) callerUtf8SourceInfo;
 
-        bool m_deferredFunctionsInitialized : 1;
-        bool m_isCesu8 : 1;
-        bool m_hasHostBuffer : 1;
-        bool m_isLibraryCode : 1;           // true, the current source belongs to the internal library code. Used for debug purpose to not show in debugger
-        bool m_isXDomain : 1;
+        Field(bool) m_deferredFunctionsInitialized : 1;
+        Field(bool) m_isCesu8 : 1;
+        Field(bool) m_hasHostBuffer : 1;
+        Field(bool) m_isLibraryCode : 1;           // true, the current source belongs to the internal library code. Used for debug purpose to not show in debugger
+        Field(bool) m_isXDomain : 1;
         // we found that m_isXDomain could cause regression without CORS, so the new flag is just for callee.caller in window.onerror
-        bool m_isXDomainString : 1;
-        bool debugModeSourceIsEmpty : 1;
-        bool m_isInDebugMode : 1;
+        Field(bool) m_isXDomainString : 1;
+        Field(bool) debugModeSourceIsEmpty : 1;
+        Field(bool) m_isInDebugMode : 1;
 
-        uint m_sourceInfoId;
+        Field(uint) m_sourceInfoId;
 
         // Various flags preserved for Edit-and-Continue re-compile purpose
-        ULONG parseFlags;
-        ULONG byteCodeGenerationFlags;
+        Field(ULONG) parseFlags;
+        Field(ULONG) byteCodeGenerationFlags;
 
         Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo,
             DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext,

@@ -11,10 +11,10 @@ namespace Js
         DECLARE_OBJECT(ByteBlock)
 
     private:
-        uint m_contentSize;     // Length of block, in bytes
+        Field(uint) m_contentSize;     // Length of block, in bytes
 
         __declspec(align(4))    // Align the buffer to sizeof(uint32) to improve GetHashCode() perf.
-            byte* m_content;    // The block's content
+            Field(byte*) m_content;    // The block's content
 
         static ByteBlock* New(Recycler* alloc, const byte * initialContent, int initialContentSize, ScriptContext * requestContext);
 

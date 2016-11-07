@@ -22,7 +22,7 @@ namespace Js
         // NULL; initialized for anonymous methods.
         // propertyId in Int31 format; this is used for fastDOM function as well as library function
         // JavascriptString: composed using functionname from the propertyId, or fixed string for anonymous functions.
-        Var functionNameId;
+        Field(Var) functionNameId;
         virtual Var GetSourceString() const { return functionNameId; }
         virtual Var EnsureSourceString();
 

@@ -789,7 +789,7 @@ namespace Js
             return;
         }
 
-        this->infoArray = RecyclerNewArrayZ(recycler, ObjTypeSpecFldInfo*, functionBody->GetInlineCacheCount());
+        this->infoArray = RecyclerNewArrayZ(recycler, Field(ObjTypeSpecFldInfo*), functionBody->GetInlineCacheCount());
 #if DBG
         this->infoCount = functionBody->GetInlineCacheCount();
 #endif

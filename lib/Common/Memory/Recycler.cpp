@@ -7708,7 +7708,7 @@ Recycler::ReportLeaks()
         if (GetRecyclerFlagsTable().ForceMemoryLeak)
         {
             AUTO_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
-            struct FakeMemory { int f; };
+            struct FakeMemory { Field(int) f; };
             FakeMemory * f = RecyclerNewStruct(this, FakeMemory);
             this->RootAddRef(f);
         }
@@ -7770,7 +7770,7 @@ Recycler::CheckLeaks(char16 const * header)
         if (GetRecyclerFlagsTable().ForceMemoryLeak)
         {
             AUTO_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
-            struct FakeMemory { int f; };
+            struct FakeMemory { Field(int) f; };
             FakeMemory * f = RecyclerNewStruct(this, FakeMemory);
             this->RootAddRef(f);
         }

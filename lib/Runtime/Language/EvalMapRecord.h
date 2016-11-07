@@ -195,7 +195,7 @@ namespace Js
         }
 
     private:
-        TopLevelDictionary* dictionary;
-        Recycler* recycler;
+        Field(TopLevelDictionary*) dictionary;
+        FieldNoBarrier(Recycler*) recycler;
     };
 }

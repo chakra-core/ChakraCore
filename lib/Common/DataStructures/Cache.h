@@ -243,8 +243,8 @@ namespace JsUtil
         }
 
     private:
-        CacheStore* cacheStore;
-        CacheRetentionPolicy cachePolicyType;
+        Field(CacheStore*) cacheStore;
+        Field(CacheRetentionPolicy) cachePolicyType;
     };
 
 }

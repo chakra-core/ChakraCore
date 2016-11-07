@@ -40,7 +40,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedBitVectorEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InternalStringNoCaseComparer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SizePolicy.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SparseBitVector.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonDataStructuresPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
