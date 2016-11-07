@@ -202,6 +202,8 @@ public:
               void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               static IR::Instr *  InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr) { __debugbreak(); return 0; }
               void                EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr) { __debugbreak(); }
               IR::LabelInstr*     EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool needHelperLabel) { __debugbreak(); return 0; }
