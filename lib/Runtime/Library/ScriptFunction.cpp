@@ -633,6 +633,22 @@ namespace Js
         ScriptFunction(type), m_moduleMemory(nullptr)
     {}
 
+    bool AsmJsScriptFunction::Is(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
+    }
+
+    bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+    }
+
+    AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
+    {
+        Assert(AsmJsScriptFunction::Is(func));
+        return reinterpret_cast<AsmJsScriptFunction *>(func);
+    }
+
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
     {}

@@ -159,7 +159,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
             if (funcExport &&
                 funcExport->nameLength > 0 &&
                 m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                m_module->NormalizeFunctionIndex(funcExport->funcIndex) == wasmInfo->GetNumber())
+                funcExport->funcIndex == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
                 char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
@@ -794,7 +794,7 @@ WasmBytecodeGenerator::EmitCall()
     WasmSignature * calleeSignature = nullptr;
     EmitInfo indirectIndexInfo;
     const bool isImportCall = GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Import;
-    Assert(isImportCall || GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function);
+    Assert(isImportCall || GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function || GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::ImportThunk);
     switch (wasmOp)
     {
     case wbCall:
@@ -858,11 +858,7 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            if (isImportCall)
-            {
-                throw WasmCompilationException(_u("External calls with float argument NYI"));
-            }
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Flt : Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Db : Js::OpCodeAsmJs::I_ArgOut_Db;
@@ -871,11 +867,7 @@ WasmBytecodeGenerator::EmitCall()
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
         case WasmTypes::I64:
-            if (isImportCall)
-            {
-                throw WasmCompilationException(_u("External calls with int64 argument NYI"));
-            }
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Long;
+            argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
@@ -904,7 +896,7 @@ WasmBytecodeGenerator::EmitCall()
     case wbCall:
     {
         uint32 offset = isImportCall ? m_module->GetImportFuncOffset() : m_module->GetFuncOffset();
-        uint32 index = UInt32Math::Add(offset, m_module->NormalizeFunctionIndex(funcNum));
+        uint32 index = UInt32Math::Add(offset, funcNum);
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index);
         break;
     }
@@ -1506,9 +1498,13 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     this->isUnreachable = isUnreachable;
 }
 
-WasmBinaryReader*
+Wasm::WasmReaderBase*
 WasmBytecodeGenerator::GetReader() const
 {
+    if (m_funcInfo->GetCustomReader())
+    {
+        return m_funcInfo->GetCustomReader();
+    }
     return m_module->GetReader();
 }
 

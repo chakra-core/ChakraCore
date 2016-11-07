@@ -90,14 +90,11 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     Var* memory = moduleEnvironmentPtr + module->GetHeapOffset();
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
+    Var* importFunctions = moduleEnvironmentPtr + module->GetImportFuncOffset();
 
     LoadGlobals(module, scriptContext, moduleEnvironmentPtr, importObject);
-
+    LoadImports(module, scriptContext, importFunctions, localModuleFunctions, importObject, memory);
     LoadFunctions(module, scriptContext, moduleEnvironmentPtr, localModuleFunctions);
-
-    Var* importFunctions = moduleEnvironmentPtr + module->GetImportFuncOffset();
-    LoadImports(module, scriptContext, importFunctions, moduleEnvironmentPtr, importObject, memory);
-
     LoadDataSegs(module, memory, scriptContext);
 
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
@@ -125,6 +122,14 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
 
     for (uint i = 0; i < wasmModule->GetWasmFunctionCount(); ++i)
     {
+        if (i < wasmModule->GetImportCount() && localModuleFunctions[i] != nullptr)
+        {
+            if (!AsmJsScriptFunction::IsWasmScriptFunction(localModuleFunctions[i]))
+            {
+                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidImport);
+            }
+            continue;
+        }
         AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
         funcObj->SetModuleMemory(moduleMemoryPtr);
         FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
@@ -307,7 +312,7 @@ void static SetGlobalValue(Var moduleEnv, uint offset, T val)
     *slot = val;
 }
 
-void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var moduleEnv, Var ffi, Var* memoryObject)
+void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject)
 {
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
@@ -329,6 +334,12 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         else if (JavascriptFunction::Is(prop))
         {
             importFunctions[i] = prop;
+            if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
+            {
+                Assert(localModuleFunctions[i] == nullptr);
+                // Imported Wasm functions can be called directly
+                localModuleFunctions[i] = prop;
+            }
         }
         else
         {
@@ -471,18 +482,15 @@ void WebAssemblyInstance::LoadIndirectFunctionTables(WebAssemblyModule * wasmMod
 Var WebAssemblyInstance::GetFunctionObjFromFunctionIndex(WebAssemblyModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions)
 {
     Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
-    uint32 normIndex = wasmModule->NormalizeFunctionIndex(funcIndex);
     switch (funcType)
     {
+    case Wasm::FunctionIndexTypes::ImportThunk:
     case Wasm::FunctionIndexTypes::Function:
-        return localModuleFunctions[normIndex];
-        break;
-    case Wasm::FunctionIndexTypes::Import:
-        return importFunctions[normIndex];
+        return localModuleFunctions[funcIndex];
         break;
     default:
         Assert(UNREACHED);
-        return nullptr;
+        throw Wasm::WasmCompilationException(_u("Unexpected function type for function index %u"), funcIndex);
     }
 }
 

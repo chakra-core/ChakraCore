@@ -1,256 +1,131 @@
-{
-  "modules": [{
-    "filename": "imports.0.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.1.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "imports.wast",
-      "line": 61
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 62
-    }]
-  }, {
-    "filename": "imports.2.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.3.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.4.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.5.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.6.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.7.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.8.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "imports.wast",
-      "line": 190
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 191
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 192
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_3",
-      "file": "imports.wast",
-      "line": 193
-    }]
-  }, {
-    "filename": "imports.9.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.10.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.11.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "imports.wast",
-      "line": 245
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 246
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 247
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "imports.wast",
-      "line": 248
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "imports.wast",
-      "line": 249
-    }]
-  }, {
-    "filename": "imports.12.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "imports.wast",
-      "line": 262
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 263
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 264
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "imports.wast",
-      "line": 265
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "imports.wast",
-      "line": 266
-    }]
-  }, {
-    "filename": "imports.13.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.14.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.15.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.16.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.17.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.18.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.19.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.20.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.21.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.22.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.23.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.24.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "imports.wast",
-      "line": 348
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 349
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 350
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "imports.wast",
-      "line": 351
-    }]
-  }, {
-    "filename": "imports.25.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "imports.wast",
-      "line": 359
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 360
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 361
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "imports.wast",
-      "line": 362
-    }]
-  }, {
-    "filename": "imports.26.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.27.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.28.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.29.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.30.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.31.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.32.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.33.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.34.wasm",
-    "commands": []
-  }, {
-    "filename": "imports.35.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "imports.wast",
-      "line": 451
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "imports.wast",
-      "line": 452
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "imports.wast",
-      "line": 453
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_3",
-      "file": "imports.wast",
-      "line": 454
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_4",
-      "file": "imports.wast",
-      "line": 455
-    }]
-  }]
-}
+{"modules": [
+  {"filename": "imports.0.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.1.wasm", "commands": [
+    {"type": "assert_return", "name": "$assert_return_0", "file": "testsuite/imports.wast", "line": 61}
+  ]},
+  {"filename": "imports.2.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.3.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.4.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.5.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.6.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.7.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.8.wasm", "commands": [
+    {"type": "assert_return", "name": "$assert_return_0", "file": "testsuite/imports.wast", "line": 190},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 191},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 192},
+    {"type": "assert_return", "name": "$assert_return_3", "file": "testsuite/imports.wast", "line": 193}
+  ]},
+  {"filename": "imports.9.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.10.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.11.wasm", "commands": [
+    {"type": "assert_trap", "name": "$assert_trap_0", "file": "testsuite/imports.wast", "line": 245},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 246},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 247},
+    {"type": "assert_trap", "name": "$assert_trap_3", "file": "testsuite/imports.wast", "line": 248},
+    {"type": "assert_trap", "name": "$assert_trap_4", "file": "testsuite/imports.wast", "line": 249}
+  ]},
+  {"filename": "imports.12.wasm", "commands": [
+    {"type": "assert_trap", "name": "$assert_trap_0", "file": "testsuite/imports.wast", "line": 262},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 263},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 264},
+    {"type": "assert_trap", "name": "$assert_trap_3", "file": "testsuite/imports.wast", "line": 265},
+    {"type": "assert_trap", "name": "$assert_trap_4", "file": "testsuite/imports.wast", "line": 266}
+  ]},
+  {"filename": "imports.13.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.14.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.15.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.16.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.17.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.18.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.19.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.20.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.21.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.22.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.23.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.24.wasm", "commands": [
+    {"type": "assert_return", "name": "$assert_return_0", "file": "testsuite/imports.wast", "line": 348},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 349},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 350},
+    {"type": "assert_trap", "name": "$assert_trap_3", "file": "testsuite/imports.wast", "line": 351}
+  ]},
+  {"filename": "imports.25.wasm", "commands": [
+    {"type": "assert_return", "name": "$assert_return_0", "file": "testsuite/imports.wast", "line": 359},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 360},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 361},
+    {"type": "assert_trap", "name": "$assert_trap_3", "file": "testsuite/imports.wast", "line": 362}
+  ]},
+  {"filename": "imports.26.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.27.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.28.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.29.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.30.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.31.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.32.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.33.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.34.wasm", "commands": [
+
+  ]},
+  {"filename": "imports.35.wasm", "commands": [
+    {"type": "assert_return", "name": "$assert_return_0", "file": "testsuite/imports.wast", "line": 451},
+    {"type": "assert_return", "name": "$assert_return_1", "file": "testsuite/imports.wast", "line": 452},
+    {"type": "assert_return", "name": "$assert_return_2", "file": "testsuite/imports.wast", "line": 453},
+    {"type": "assert_return", "name": "$assert_return_3", "file": "testsuite/imports.wast", "line": 454},
+    {"type": "assert_return", "name": "$assert_return_4", "file": "testsuite/imports.wast", "line": 455}
+  ]}
+]}

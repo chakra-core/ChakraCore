@@ -83,9 +83,9 @@ function convertTest(filename) {
   });
 }
 
-function hostFlags(specFile, {fullpath} = {}) {
-  return `-on:wasm -on:wasmlazytrap -args ${
-    fullpath ? specFile : path.relative(rlRoot, specFile)
+function hostFlags(specFile, {useFullpath} = {}) {
+  return `-on:wasm -args ${
+    useFullpath ? specFile : path.relative(rlRoot, specFile)
   } -endargs`;
 }
 
@@ -205,7 +205,7 @@ function main() {
     <default>
       <files>spec.js</files>
       <baseline>${getBaselinePath(specFile)}</baseline>
-      <compile-flags>${hostFlags(specFile)} -on:wasmdeferred</compile-flags>
+      <compile-flags>${hostFlags(specFile)}</compile-flags>
     </default>
   </test>`
   ).join("")
@@ -222,7 +222,7 @@ function main() {
     fs.ensureDirSync(baselineDir);
     return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
       const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {fullpath: true})));
+      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {useFullpath: true})));
       console.log(argv.rebase, args.join(" "));
       const engine = spawn(
         argv.rebase,
