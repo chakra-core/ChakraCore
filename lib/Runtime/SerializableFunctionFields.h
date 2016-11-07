@@ -9,7 +9,7 @@
 
 // Default declaration for FunctionBody.h
 #ifndef DECLARE_SERIALIZABLE_FIELD
-#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) type name
+#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) Field(type) name
 #endif
 
 #ifndef DECLARE_SERIALIZABLE_ACCESSOR_FIELD

@@ -81,7 +81,7 @@ namespace Js
         void Add(Recycler* recycler, SparseArraySegmentBase* newSeg);
         void Find(uint itemIndex, SparseArraySegmentBase*& prevOrMatch, SparseArraySegmentBase*& matchOrNext);
 
-        SparseArraySegmentBase * lastUsedSegment;
+        FieldNoBarrier(SparseArraySegmentBase *) lastUsedSegment;
     };
 
     class JavascriptArray : public ArrayObject
@@ -102,11 +102,13 @@ namespace Js
         bool isInitialized;
     protected:
         SparseArraySegmentBase* head;
-        union
+        union SegmentUnionType
         {
             SparseArraySegmentBase* lastUsedSegment;
             SegmentBTreeRoot* segmentBTreeRoot;
-        }segmentUnion;
+        };
+        // SWB-TODO: How to handle write barrier inside union?
+        SegmentUnionType segmentUnion;
     public:
         typedef Var TElement;
 
@@ -123,7 +125,7 @@ namespace Js
         static const uint8 AllocationBucketIndex = 0;
         // 1st column in allocationBuckets that stores no. of missing elements to initialize for given bucket
         static const uint8 MissingElementsCountIndex = 1;
-        // 2nd column in allocationBuckets that stores allocation size for given bucket 
+        // 2nd column in allocationBuckets that stores allocation size for given bucket
         static const uint8 AllocationSizeIndex = 2;
 #if defined(_M_X64_OR_ARM64)
         static const uint8 AllocationBucketsCount = 3;
@@ -182,7 +184,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         template<typename T> inline void DirectProfiledSetItemInHeadSegmentAt(const uint32 offset, const T newValue, StElemInfo *const stElemInfo);
 #endif
-        template<typename T> static void CopyValueToSegmentBuferNoCheck(T* buffer, uint32 length, T value);
+        template<typename T> static void CopyValueToSegmentBuferNoCheck(Field(T)* buffer, uint32 length, T value);
         template<typename T> void DirectSetItem_Full(uint32 itemIndex, T newValue);
         template<typename T> SparseArraySegment<T>* PrepareSegmentForMemOp(uint32 startIndex, uint32 length);
         template<typename T> bool DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
@@ -559,7 +561,7 @@ namespace Js
         template<typename T> void AllocateHead();
         template<typename T> void EnsureHead();
 
-        uint32 sort(__inout_ecount(*length) Var *orig, uint32 *length, ScriptContext *scriptContext);
+        uint32 sort(__inout_ecount(*length) Field(Var) *orig, uint32 *length, ScriptContext *scriptContext);
 
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);

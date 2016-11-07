@@ -181,8 +181,9 @@ namespace JsUtil
             freeList = other.freeList;
             freeCount = other.freeCount;
 
-            CopyArray<TAllocator>(buckets, bucketCount, other.buckets, bucketCount);
-            CopyArray<TAllocator, EntryType, ValueType>(entries, size, other.entries, size);
+            CopyArray(buckets, bucketCount, other.buckets, bucketCount);
+            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+                entries, size, other.entries, size);
 
 #if PROFILE_DICTIONARY
             stats = DictionaryStats::Create(typeid(this).name(), size);
@@ -712,8 +713,9 @@ namespace JsUtil
             freeList = other->freeList;
             freeCount = other->freeCount;
 
-            CopyArray<TAllocator>(buckets, bucketCount, other->buckets, bucketCount);
-            CopyArray<TAllocator, EntryType, ValueType>(entries, size, other->entries, size);
+            CopyArray(buckets, bucketCount, other->buckets, bucketCount);
+            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+                entries, size, other->entries, size);
 
 #if PROFILE_DICTIONARY
             stats = DictionaryStats::Create(typeid(this).name(), size);
@@ -1018,7 +1020,8 @@ namespace JsUtil
             {
                 // no need to rehash
                 newEntries = AllocateEntries(newSize);
-                CopyArray<TAllocator, EntryType, ValueType>(newEntries, newSize, entries, count);
+                CopyArray<EntryType, Field(ValueType, TAllocator)>(
+                    newEntries, newSize, entries, count);
 
                 DeleteEntries(entries, size);
 
@@ -1028,7 +1031,8 @@ namespace JsUtil
             }
 
             Allocate(&newBuckets, &newEntries, newBucketCount, newSize);
-            CopyArray<TAllocator, EntryType, ValueType>(newEntries, newSize, entries, count);
+            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+                newEntries, newSize, entries, count);
 
             // When TAllocator is of type Recycler, it is possible that the Allocate above causes a collection, which
             // in turn can cause entries in the dictionary to be removed - i.e. the dictionary contains weak references

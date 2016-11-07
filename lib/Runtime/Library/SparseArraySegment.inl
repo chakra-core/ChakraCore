@@ -332,7 +332,7 @@ namespace Js
         AssertMsg(index >= left && index < left + length, "Index is out of the segment range");
         if (index + 1 < left + length)
         {
-            memmove(elements + index - left, elements + index + 1 - left, sizeof(T) * (length - (index - left) - 1));
+            MoveArray(elements + index - left, elements + index + 1 - left, length - (index - left) - 1);
         }
         Assert(length);
         length--;
@@ -353,7 +353,7 @@ namespace Js
         dst->length = newLen;
         Assert(dst->length <= dst->size);
         AssertMsg(srcIndex >= src->left,"src->left > srcIndex resulting in negative indexing of src->elements");
-        js_memcpy_s(dst->elements + dstIndex - dst->left, sizeof(T) * inputLen, src->elements + srcIndex - src->left, sizeof(T) * inputLen);
+        CopyArray(dst->elements + dstIndex - dst->left, inputLen, src->elements + srcIndex - src->left, inputLen);
         return dst;
     }
 
@@ -432,7 +432,7 @@ namespace Js
         SparseArraySegment<T> *newSeg = Allocate<isLeaf>(recycler, left, length, newSize);
         newSeg->next = this->next;
         // (sizeof(T) * newSize) will throw OOM in Allocate if it overflows.
-        js_memcpy_s(newSeg->elements, sizeof(T) * newSize, this->elements, sizeof(T) * length);
+        CopyArray(newSeg->elements, newSize, this->elements, length);
 
         return newSeg;
     }
@@ -484,13 +484,13 @@ namespace Js
 
         SparseArraySegment<T> *newSeg = Allocate<isLeaf>(recycler, left - n, length + n, size + n);
         newSeg->next = this->next;
-        js_memcpy_s(&newSeg->elements[n], sizeof(T) * length, this->elements, sizeof(T) * length);
+        CopyArray(newSeg->elements + n, length, this->elements, length);
 
         return newSeg;
     }
 
     template<typename T>
-    void SparseArraySegment<T>::ClearElements(__out_ecount(len) T* elements, uint32 len)
+    void SparseArraySegment<T>::ClearElements(__out_ecount(len) Field(T)* elements, uint32 len)
     {
         T fill = SparseArraySegment<T>::GetMissingItem();
         for (uint i = 0; i < len; i++)

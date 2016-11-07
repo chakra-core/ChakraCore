@@ -22,18 +22,15 @@
 #if !defined(__WRITE_BARRIER_MACROS__) || defined(FORCE_USE_WRITE_BARRIER)
 
 #ifndef __WRITE_BARRIER_MACROS__
+#define __WRITE_BARRIER_MACROS__ 1
 #define PopMacro(x) __pragma(pop_macro( #x ))
-
 #define PushMacro(x) __pragma(push_macro( #x ))
-
 #define SAVE_WRITE_BARRIER_MACROS() \
-    PushMacro("Field") \
-    PushMacro("FieldNoBarrier")
-
+    PushMacro(Field) \
+    PushMacro(FieldNoBarrier)
 #define RESTORE_WRITE_BARRIER_MACROS() \
-    PopMacro("Field") \
-    PopMacro("FieldNoBarrier")
-
+    PopMacro(Field) \
+    PopMacro(FieldNoBarrier)
 #endif
 
 #ifdef FORCE_USE_WRITE_BARRIER
@@ -42,8 +39,7 @@ SAVE_WRITE_BARRIER_MACROS()
 #undef FieldNoBarrier
 #endif
 
-// TODO: Turn off these annotations on Win32
-#if defined(__clang__) || defined(FORCE_USE_WRITE_BARRIER)
+#if defined(GLOBAL_FORCE_USE_WRITE_BARRIER) || defined(FORCE_USE_WRITE_BARRIER)
 // Various macros for defining field attributes
 #define Field(type, ...) \
     typename WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type
@@ -54,7 +50,8 @@ SAVE_WRITE_BARRIER_MACROS()
 #define FieldNoBarrier(type) type
 #endif
 
+#ifdef FORCE_USE_WRITE_BARRIER
 #undef FORCE_USE_WRITE_BARRIER
-#define __WRITE_BARRIER_MACROS__ 1
+#endif
 
 #endif

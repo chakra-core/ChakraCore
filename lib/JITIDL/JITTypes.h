@@ -51,6 +51,14 @@ typedef unsigned char boolean;
 #endif
 #endif
 
+#ifdef __midl
+#define IDL_Field(type)             type
+#define IDL_FieldNoBarrier(type)    type
+#else
+#define IDL_Field(type)             Field(type)
+#define IDL_FieldNoBarrier(type)    FieldNoBarrier(type)
+#endif
+
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
@@ -633,12 +641,12 @@ typedef struct PolymorphicInlineCacheIDL
 
 typedef struct PolymorphicInlineCacheInfoIDL
 {
-    unsigned int polymorphicInlineCacheCount;
-    unsigned int bogus1;
-    IDL_DEF([size_is(polymorphicInlineCacheCount)]) byte * polymorphicCacheUtilizationArray;
-    IDL_DEF([size_is(polymorphicInlineCacheCount)]) PolymorphicInlineCacheIDL * polymorphicInlineCaches;
+    IDL_Field(unsigned int) polymorphicInlineCacheCount;
+    IDL_Field(unsigned int) bogus1;
+    IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(byte *) polymorphicCacheUtilizationArray;
+    IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(PolymorphicInlineCacheIDL *) polymorphicInlineCaches;
 
-    CHAKRA_PTR functionBodyAddr;
+    IDL_Field(CHAKRA_PTR) functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
 
 // CodeGenWorkItem fields, read only in JIT

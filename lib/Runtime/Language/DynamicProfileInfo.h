@@ -52,17 +52,17 @@ namespace Js
     class DynamicProfileFunctionInfo
     {
     public:
-        Js::ArgSlot paramInfoCount;
-        ProfileId ldElemInfoCount;
-        ProfileId stElemInfoCount;
-        ProfileId arrayCallSiteCount;
-        ProfileId slotInfoCount;
-        ProfileId callSiteInfoCount;
-        ProfileId returnTypeInfoCount;
-        ProfileId divCount;
-        ProfileId switchCount;
-        uint loopCount;
-        uint fldInfoCount;
+        Field(Js::ArgSlot) paramInfoCount;
+        Field(ProfileId) ldElemInfoCount;
+        Field(ProfileId) stElemInfoCount;
+        Field(ProfileId) arrayCallSiteCount;
+        Field(ProfileId) slotInfoCount;
+        Field(ProfileId) callSiteInfoCount;
+        Field(ProfileId) returnTypeInfoCount;
+        Field(ProfileId) divCount;
+        Field(ProfileId) switchCount;
+        Field(uint) loopCount;
+        Field(uint) fldInfoCount;
     };
 
     enum ThisType : BYTE
@@ -452,21 +452,21 @@ namespace Js
     private:
         // Have the dynamicProfileFunctionInfo after loaded from cache.
         // Replaced with the function body it is verified and matched (See DynamicProfileInfo::MatchFunctionBody)
-        DynamicProfileFunctionInfo * dynamicProfileFunctionInfo;
-        CallSiteInfo *callSiteInfo;
-        ValueType * returnTypeInfo; // return type of calls for non inline call sites
-        ValueType * divideTypeInfo;
-        ValueType * switchTypeInfo;
-        LdElemInfo * ldElemInfo;
-        StElemInfo * stElemInfo;
-        ArrayCallSiteInfo *arrayCallSiteInfo;
-        ValueType * parameterInfo;
-        FldInfo * fldInfo;
-        ValueType * slotInfo;
-        ImplicitCallFlags * loopImplicitCallFlags;
-        ImplicitCallFlags implicitCallFlags;
-        BVFixed* loopFlags;
-        ThisInfo thisInfo;
+        Field(DynamicProfileFunctionInfo *) dynamicProfileFunctionInfo;
+        Field(CallSiteInfo *) callSiteInfo;
+        Field(ValueType *) returnTypeInfo; // return type of calls for non inline call sites
+        Field(ValueType *) divideTypeInfo;
+        Field(ValueType *) switchTypeInfo;
+        Field(LdElemInfo *) ldElemInfo;
+        Field(StElemInfo *) stElemInfo;
+        Field(ArrayCallSiteInfo *) arrayCallSiteInfo;
+        Field(ValueType *) parameterInfo;
+        Field(FldInfo *) fldInfo;
+        Field(ValueType *) slotInfo;
+        Field(ImplicitCallFlags *) loopImplicitCallFlags;
+        Field(ImplicitCallFlags) implicitCallFlags;
+        Field(BVFixed*) loopFlags;
+        Field(ThisInfo) thisInfo;
 
         // TODO (jedmiad): Consider storing a pair of property ID bit vectors indicating which properties are
         // known to be non-fixed or non-equivalent. We could turn these on if we bailed out of fixed field type
@@ -513,16 +513,17 @@ namespace Js
             bool disableLoopImplicitCallInfo : 1;
             bool disableStackArgOpt : 1;
             bool disableTagCheck : 1;
-        } bits;
+        };
+        Field(Bits) bits;
 
-        uint32 m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
-        uint32 polymorphicCacheState;
-        uint16 rejitCount;
-        BYTE currentInlinerVersion; // Used to detect when inlining profile changes
-        bool hasFunctionBody;
+        Field(uint32) m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
+        Field(uint32) polymorphicCacheState;
+        Field(uint16) rejitCount;
+        Field(BYTE) currentInlinerVersion; // Used to detect when inlining profile changes
+        Field(bool) hasFunctionBody;
 
 #if DBG
-        bool persistsAcrossScriptContexts;
+        Field(bool) persistsAcrossScriptContexts;
 #endif
         static JavascriptMethod EnsureDynamicProfileInfo(Js::ScriptFunction * function);
 #if DBG_DUMP
@@ -558,9 +559,11 @@ namespace Js
 #endif
         template <typename T>
         static void WriteArray(uint count, T * arr, FILE * file);
+        template <typename T>
+        static void WriteArray(uint count, WriteBarrierPtr<T> arr, FILE * file);
 #endif
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        FunctionBody * functionBody; // This will only be populated if NeedProfileInfoList is true
+        Field(FunctionBody *) functionBody; // This will only be populated if NeedProfileInfoList is true
 #endif
 #ifdef DYNAMIC_PROFILE_STORAGE
         // Used by de-serialize
@@ -820,9 +823,9 @@ namespace Js
 
     struct PolymorphicCallSiteInfo
     {
-        Js::LocalFunctionId functionIds[DynamicProfileInfo::maxPolymorphicInliningSize];
-        Js::SourceId sourceIds[DynamicProfileInfo::maxPolymorphicInliningSize];
-        PolymorphicCallSiteInfo *next;
+        Field(Js::LocalFunctionId) functionIds[DynamicProfileInfo::maxPolymorphicInliningSize];
+        Field(Js::SourceId) sourceIds[DynamicProfileInfo::maxPolymorphicInliningSize];
+        Field(PolymorphicCallSiteInfo *) next;
         bool GetFunction(uint index, Js::LocalFunctionId *functionId, Js::SourceId *sourceId)
         {
             Assert(index < DynamicProfileInfo::maxPolymorphicInliningSize);
@@ -907,6 +910,13 @@ namespace Js
             count += sizeof(T) * len;
             return true;
         }
+
+        template <typename T>
+        bool WriteArray(WriteBarrierPtr<T> data, size_t len)
+        {
+            return WriteArray(static_cast<T*>(data), len);
+        }
+
     private:
         size_t count;
     };
@@ -938,6 +948,13 @@ namespace Js
             lengthLeft -= size;
             return true;
         }
+
+        template <typename T>
+        bool WriteArray(WriteBarrierPtr<T> data, size_t len)
+        {
+            return WriteArray(static_cast<T*>(data), len);
+        }
+
     private:
         char * current;
         size_t lengthLeft;

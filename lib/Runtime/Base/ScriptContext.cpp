@@ -2258,13 +2258,13 @@ if (!sourceList)
         EnsureDynamicSourceContextInfoMap();
         if (this->GetSourceContextInfo(hash) != nullptr)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         if (this->cache->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
         {
             OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Max of dynamic script profile info reached.\n"));
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // This is capped so we can continue allocating in the arena
@@ -2340,7 +2340,7 @@ if (!sourceList)
     {
         if (sourceContext == Js::Constants::NoHostSourceContext)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // We only init sourceContextInfoMap, don't need to lock.

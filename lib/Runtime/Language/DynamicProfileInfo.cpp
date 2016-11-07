@@ -1493,7 +1493,7 @@ namespace Js
             {
                 DumpProfiledValuesGroupedByValue(
                     _u("Element load"),
-                    this->ldElemInfo,
+                    static_cast<LdElemInfo*>(this->ldElemInfo),
                     this->functionBody->GetProfiledLdElemCount(),
                     [](const LdElemInfo *const ldElemInfo, const uint i) -> ValueType
                 {
@@ -1502,7 +1502,7 @@ namespace Js
                     dynamicProfileInfoAllocator);
                 DumpProfiledValuesGroupedByValue(
                     _u("Fld"),
-                    this->fldInfo,
+                    static_cast<FldInfo *>(this->fldInfo),
                     functionBody->GetProfiledFldCount(),
                     [](const FldInfo *const fldInfos, const uint i) -> ValueType
                 {
@@ -2102,6 +2102,12 @@ namespace Js
         {
             WriteData(arr[i], file);
         }
+    }
+
+    template <typename T>
+    void DynamicProfileInfo::WriteArray(uint count, WriteBarrierPtr<T> arr, FILE * file)
+    {
+        WriteArray(count, static_cast<T*>(arr), file);
     }
 
     template <>

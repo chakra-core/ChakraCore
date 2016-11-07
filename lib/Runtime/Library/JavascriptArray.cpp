@@ -15,7 +15,7 @@ namespace Js
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
     // col0 : allocation bucket
-    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col1 : No. of missing items to set during initialization depending on bucket.
     // col2 : allocation size for elements in given bucket.
     // col1 and col2 is calculated at runtime
     uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =
@@ -771,7 +771,7 @@ namespace Js
 
         SparseArraySegment<Var> *head = (SparseArraySegment<Var>*)arr->head;
         Assert(elementCount <= head->length);
-        js_memcpy_s(head->elements, sizeof(Var) * head->length, elements, sizeof(Var) * elementCount);
+        CopyArray(head->elements, head->length, elements, elementCount);
 
 #ifdef VALIDATE_ARRAY
         arr->ValidateArray();
@@ -850,7 +850,7 @@ namespace Js
                 arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(count);
                 SparseArraySegment<int32> *head = static_cast<SparseArraySegment<int32>*>(arr->head);
                 Assert(count > 0 && count == head->length);
-                js_memcpy_s(head->elements, sizeof(int32)* head->length, ints->elements, sizeof(int32)* count);
+                CopyArray(head->elements, head->length, ints->elements, count);
             }
 
             arr->SetArrayProfileInfo(weakFuncRef, arrayInfo);
@@ -909,7 +909,7 @@ namespace Js
             JavascriptNativeFloatArray *arr = scriptContext->GetLibrary()->CreateNativeFloatArrayLiteral(count);
             SparseArraySegment<double> *head = (SparseArraySegment<double>*)arr->head;
             Assert(count > 0 && count == head->length);
-            js_memcpy_s(head->elements, sizeof(double) * head->length, doubles->elements, sizeof(double) * count);
+            CopyArray(head->elements, head->length, doubles->elements, count);
             arr->SetArrayProfileInfo(weakFuncRef, arrayInfo);
 
             return arr;
@@ -4010,7 +4010,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(double* buffer, uint32 length, double value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(double)* buffer, uint32 length, double value)
     {
         if (JavascriptNumber::IsZero(value) && !JavascriptNumber::IsNegZero(value))
         {
@@ -4026,7 +4026,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(int32* buffer, uint32 length, int32 value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(int32)* buffer, uint32 length, int32 value)
     {
         if (value == 0 || AreAllBytesEqual(value))
         {
@@ -4042,7 +4042,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Js::Var* buffer, uint32 length, Js::Var value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(Js::Var)* buffer, uint32 length, Js::Var value)
     {
         for (uint32 i = 0; i < length; i++)
         {
@@ -5451,7 +5451,7 @@ Case0:
                 {
                     head = head->GrowByMin(recycler, next->length - 1); //-1 is to account for unshift
                 }
-                memmove(head->elements + offset, next->elements, next->length * sizeof(T));
+                MoveArray(head->elements + offset, next->elements, next->length);
                 head->length = offset + next->length;
                 pArr->head = head;
             }
@@ -5688,7 +5688,7 @@ Case0:
         SparseArraySegment<T>* pnewHeadSeg = (SparseArraySegment<T>*)pnewArr->head;
 
         // Fill the newly created sliced array
-        js_memcpy_s(pnewHeadSeg->elements, sizeof(T) * newLen, headSeg->elements + start, sizeof(T) * newLen);
+        CopyArray(pnewHeadSeg->elements, newLen, headSeg->elements + start, newLen);
         pnewHeadSeg->length = newLen;
 
         Assert(pnewHeadSeg->length <= pnewHeadSeg->size);
@@ -6165,13 +6165,13 @@ Case0:
         }
     }
 
-    static void hybridSort(__inout_ecount(length) Var *elements, uint32 length, CompareVarsInfo* compareInfo)
+    static void hybridSort(__inout_ecount(length) Field(Var) *elements, uint32 length, CompareVarsInfo* compareInfo)
     {
         // The cost of memory moves starts to be more expensive than additional comparer calls (given a simple comparer)
         // for arrays of more than 512 elements.
         if (length > 512)
         {
-            qsort_s(elements, length, sizeof(Var), compareVars, compareInfo);
+            qsort_s(elements, length, sizeof(Field(Var)), compareVars, compareInfo);
             return;
         }
 
@@ -6196,7 +6196,7 @@ Case0:
 
                 // insert value right before first:
                 Var value = elements[i];
-                memmove(elements + first + 1, elements + first, (i - first) * sizeof(Var));
+                MoveArray(elements + first + 1, elements + first, (i - first));
                 elements[first] = value;
             }
         }
@@ -6341,7 +6341,7 @@ Case0:
         return;
     }
 
-    uint32 JavascriptArray::sort(__inout_ecount(*len) Var *orig, uint32 *len, ScriptContext *scriptContext)
+    uint32 JavascriptArray::sort(__inout_ecount(*len) Field(Var) *orig, uint32 *len, ScriptContext *scriptContext)
     {
         uint32 count = 0, countUndefined = 0;
         Element *elements = RecyclerNewArrayZ(scriptContext->GetRecycler(), Element, *len);
@@ -6899,9 +6899,9 @@ Case0:
             if (headDeleteLen != insertLen)
             {
                 uint32 noElementsToMove = seg->length - (relativeStart + headDeleteLen);
-                memmove(seg->elements + relativeStart + insertLen,
-                                     seg->elements + relativeStart + headDeleteLen,
-                                     sizeof(T) * noElementsToMove);
+                MoveArray(seg->elements + relativeStart + insertLen,
+                            seg->elements + relativeStart + headDeleteLen,
+                            noElementsToMove);
                 if (newHeadLen < seg->length) // truncate if necessary
                 {
                     seg->Truncate(seg->left + newHeadLen); // set end elements to null so that when we introduce null elements we are safe
@@ -6915,7 +6915,8 @@ Case0:
                    !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pnewArr));
 
                 // inserted elements starts at argument 3 of splice(start, deleteNumber, insertelem1, insertelem2, insertelem3, ...);
-                js_memcpy_s(seg->elements + relativeStart, sizeof(Var) * insertLen, insertArgs, sizeof(Var) * insertLen);
+                CopyArray(seg->elements + relativeStart, insertLen,
+                          reinterpret_cast<const T*>(insertArgs), insertLen);
             }
             *prev = seg;
         }
@@ -7132,7 +7133,7 @@ Case0:
                     prevNewHeadSeg = &newHeadSeg->next;
 
                     // move the last segment
-                    memmove(startSeg->elements, startSeg->elements + headDeleteLen, sizeof(T) * (startSeg->length - headDeleteLen));
+                    MoveArray(startSeg->elements, startSeg->elements + headDeleteLen, startSeg->length - headDeleteLen);
                     startSeg->left = startSeg->left + headDeleteLen; // We are moving the left ahead to point to the right index
                     startSeg->length = startSeg->length - headDeleteLen;
                     startSeg->Truncate(startSeg->left + startSeg->length);
@@ -7205,7 +7206,8 @@ Case0:
 
             uint32 relativeStart = start - segInsert->left;
             // inserted elements starts at argument 3 of splice(start, deleteNumber, insertelem1, insertelem2, insertelem3, ...);
-            js_memcpy_s(segInsert->elements + relativeStart, sizeof(T) * insertLen, insertArgs, sizeof(T) * insertLen);
+            CopyArray(segInsert->elements + relativeStart, insertLen,
+                      reinterpret_cast<const T*>(insertArgs), insertLen);
         }
     }
 
@@ -7425,7 +7427,7 @@ Case0:
     {
         SparseArraySegment<T>* head = (SparseArraySegment<T>*)pArr->head;
         // Make enough room in the head segment to insert new elements at the front
-        memmove(head->elements + unshiftElements, head->elements, sizeof(T) * pArr->head->length);
+        MoveArray(head->elements + unshiftElements, head->elements, pArr->head->length);
         uint32 oldHeadLength = head->length;
         head->length += unshiftElements;
 
@@ -11290,8 +11292,7 @@ Case0:
         dst->size = src->size;
         dst->next = src->next;
 
-        js_memcpy_s(dst->elements, sizeof(T) * dst->size, src->elements, sizeof(T) * src->size);
-
+        CopyArray(dst->elements, dst->size, src->elements, src->size);
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead)
