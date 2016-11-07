@@ -320,6 +320,11 @@ namespace Js
         static void TraceOpCode(InterpreterStackFrame* that, Js::OpCode op);
         static void TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op);
 
+#if ENABLE_TTD
+        template<typename OpCodeType, Js::OpCode(ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+        OpCodeType ReadOp_WPreviousStmtTracking(const byte *& ip);
+#endif
+
         void* __cdecl operator new(size_t byteSize, void* previousAllocation) throw();
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();
 
@@ -363,6 +368,24 @@ namespace Js
 
         Var ProcessWithDebugging();
         Var DebugProcess();
+
+#if ENABLE_TTD
+        Var ProcessWithDebugging_PreviousStmtTracking();
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
+
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+        Var ProcessUnprofiled_PreviousStmtTracking();
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
+#endif
+#endif
 
         bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
 
@@ -634,9 +657,9 @@ namespace Js
         void OP_NewScObjectLiteral(const unaligned OpLayoutAuxiliary * playout);
         void OP_NewScObjectLiteral_LS(const unaligned OpLayoutAuxiliary * playout, RegSlot& target);
         void OP_LdPropIds(const unaligned OpLayoutAuxiliary * playout);
-        template <bool Profile, bool JITLoopBody> void LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+        template <bool Profile, bool JITLoopBody, bool TrackStmts> void LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
         LoopHeader const * DoLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, const bool doProfileLoopCheck, bool isFirstIteration);
-        template <bool Profile, bool JITLoopBody> void ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+        template <bool Profile, bool JITLoopBody, bool TrackStmts> void ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
         void OP_RecordImplicitCall(uint loopNumber);
         template <class T, bool Profiled, bool ICIndex> void OP_NewScObject_Impl(const unaligned T* playout, InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         template <class T, bool Profiled> void OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices = nullptr);

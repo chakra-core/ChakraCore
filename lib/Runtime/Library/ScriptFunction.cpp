@@ -512,6 +512,11 @@ namespace Js
             extractor->MarkScriptFunctionScopeInfo(environment);
         }
 
+        if(this->cachedScopeObj != nullptr)
+        {
+            extractor->MarkVisitVar(this->cachedScopeObj);
+        }
+
         if(this->homeObj != nullptr)
         {
             extractor->MarkVisitVar(this->homeObj);
@@ -580,6 +585,11 @@ namespace Js
             }
         }
 
+        if(this->cachedScopeObj != nullptr)
+        {
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->cachedScopeObj, _u("_cachedScopeObj"));
+        }
+
         if(this->homeObj != nullptr)
         {
             this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
@@ -609,13 +619,19 @@ namespace Js
             ssfi->ScopeId = TTD_CONVERT_SCOPE_TO_PTR_ID(environment);
         }
 
+        ssfi->CachedScopeObjId = TTD_INVALID_PTR_ID;
+        if(this->cachedScopeObj != nullptr)
+        {
+            ssfi->CachedScopeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->cachedScopeObj);
+        }
+
         ssfi->HomeObjId = TTD_INVALID_PTR_ID;
         if(this->homeObj != nullptr)
         {
             ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
         }
 
-        ssfi->ComputedNameInfo = this->computedNameVar;
+        ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->computedNameVar);
 
         ssfi->HasInlineCaches = this->hasInlineCaches;
         ssfi->HasSuperReference = this->hasSuperReference;

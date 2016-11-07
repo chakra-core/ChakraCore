@@ -934,28 +934,28 @@ public:
 #endif
 
 #if ENABLE_TTD
-    bool IsTTRecordRequested;
-    bool IsTTDebugRequested;
-    TTD::TTUriString TTDUri;
-    uint32 TTSnapInterval;
-    uint32 TTSnapHistoryLength;
+    //The class that holds info on the TTD state for the thread context
+    TTD::ThreadContextTTD* TTDContext;
 
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
 
+    //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
+    int32 TTDRootNestingCount;
+
+    bool IsRuntimeInTTDMode() const 
+    {
+        return this->TTDLog != nullptr;
+    }
+
     //Initialize the context for time-travel
-    void InitTimeTravel(bool doRecord, bool doReplay);
-    void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
-    void EndCtxTimeTravel(Js::ScriptContext* ctx);
+    void InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength);
 
-    //Emit the TT Log
-    void EmitTTDLogIfNeeded();
-
-    //
-    //Callback functions provided by the host for writing info to some type of storage location
-    //
-    TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
-    TTD::IOStreamFunctions TTDStreamFunctions;
+    void InitHostFunctionsAndTTData(bool record, bool replay, bool debug, TTD::TTDInitializeForWriteLogStreamCallback writeInitializefp,
+        TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
+        TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
+        TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
+        TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext fpSetActiveJsRTContext);
 #endif
 
     BOOL ReserveStaticTypeIds(__in int first, __in int last);

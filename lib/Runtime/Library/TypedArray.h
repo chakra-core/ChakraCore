@@ -225,6 +225,14 @@ namespace Js
             }
         }
 
+#if ENABLE_TTD
+        virtual void MarshalCrossSite_TTDInflate()
+        {
+            AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal");
+            VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
+        }
+#endif
+
         TypedArray(DynamicType *type): TypedArrayBase(nullptr, 0, 0, sizeof(TypeName), type) { buffer = nullptr; }
 
     public:

@@ -401,11 +401,11 @@ namespace Js
         }
 
 #if ENABLE_TTD
-        if(this->GetScriptContext()->ShouldPerformDebugAction())
+        if(this->GetScriptContext()->ShouldPerformReplayAction())
         {
             BOOL res = FALSE;
             PropertyAttributes tmpAttributes = PropertyNone;
-            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(&res, &index, this, propertyId, &tmpAttributes, propertyString);
+            this->GetScriptContext()->GetThreadContext()->TTDLog->ReplayPropertyEnumEvent(requestContext, &res, &index, this, propertyId, &tmpAttributes, propertyString);
 
             if(attributes != nullptr)
             {
@@ -871,7 +871,7 @@ namespace Js
     {
         if(!TTD::IsDiagnosticOriginInformationValid(this->TTDDiagOriginInfo))
         {
-            if(this->GetScriptContext()->ShouldPerformRecordAction() | this->GetScriptContext()->ShouldPerformDebugAction())
+            if(this->GetScriptContext()->ShouldPerformRecordOrReplayAction())
             {
                 this->GetScriptContext()->GetThreadContext()->TTDLog->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
             }

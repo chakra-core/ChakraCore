@@ -20,10 +20,10 @@ namespace TTD
 
         //Handle the replay of the result of an action for the the given action type and tag
         template <typename T, EventKind tag>
-        void JsRTActionHandleResultForReplay(Js::ScriptContext* ctx, const EventLogEntry* evt, Js::Var result)
+        void JsRTActionHandleResultForReplay(ThreadContextTTD* executeContext, const EventLogEntry* evt, Js::Var result)
         {
             TTDVar origResult = GetInlineEventDataAs<T, tag>(evt)->Result;
-            PassVarToHostInReplay(ctx, origResult, result);
+            PassVarToHostInReplay(executeContext, origResult, result);
         }
 
         //////////////////
@@ -231,7 +231,10 @@ namespace TTD
         {
             JsRTByteBufferAction* bufferAction = GetInlineEventDataAs<JsRTByteBufferAction, tag>(evt);
 
-            alloc.UnlinkAllocation(bufferAction->Buffer);
+            if(bufferAction->Buffer != nullptr)
+            {
+                alloc.UnlinkAllocation(bufferAction->Buffer);
+            }
         }
 
         template <EventKind tag>
@@ -242,11 +245,17 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(bufferAction->Result, writer, NSTokens::Separator::NoSeparator);
 
+            bool badValue = (bufferAction->Buffer == nullptr && bufferAction->Length > 0);
+            writer->WriteBool(NSTokens::Key::boolVal, badValue, NSTokens::Separator::CommaSeparator);
+
             writer->WriteLengthValue(bufferAction->Length, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < bufferAction->Length; ++i)
+            if(!badValue)
             {
-                writer->WriteNakedByte(bufferAction->Buffer[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+                for(uint32 i = 0; i < bufferAction->Length; ++i)
+                {
+                    writer->WriteNakedByte(bufferAction->Buffer[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+                }
             }
             writer->WriteSequenceEnd();
         }
@@ -259,72 +268,133 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             bufferAction->Result = NSSnapValues::ParseTTDVar(false, reader);
 
+            bool badValue = reader->ReadBool(NSTokens::Key::boolVal, true);
+
             bufferAction->Length = reader->ReadLengthValue(true);
-            bufferAction->Buffer = alloc.SlabAllocateArray<byte>(bufferAction->Length);
+            bufferAction->Buffer = nullptr;
 
             reader->ReadSequenceStart_WDefaultKey(true);
-            for(uint32 i = 0; i < bufferAction->Length; ++i)
+            if(!badValue)
             {
-                bufferAction->Buffer[i] = reader->ReadNakedByte(i != 0);
+                bufferAction->Buffer = alloc.SlabAllocateArray<byte>(bufferAction->Length);
+
+                for(uint32 i = 0; i < bufferAction->Length; ++i)
+                {
+                    bufferAction->Buffer[i] = reader->ReadNakedByte(i != 0);
+                }
+                reader->ReadSequenceEnd();
             }
-            reader->ReadSequenceEnd();
         }
         
         //////////////////
 
+        //A class for constructor calls
+        struct JsRTCreateScriptContextAction_KnownObjects
+        {
+            TTD_LOG_PTR_ID UndefinedObject;
+            TTD_LOG_PTR_ID NullObject;
+            TTD_LOG_PTR_ID TrueObject;
+            TTD_LOG_PTR_ID FalseObject;
+        };
+
+        struct JsRTCreateScriptContextAction
+        {
+            TTD_LOG_PTR_ID GlobalObject;
+
+            JsRTCreateScriptContextAction_KnownObjects* KnownObjects;
+        };
+
+        void CreateScriptContext_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void CreateScriptContext_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void CreateScriptContext_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void CreateScriptContext_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        void SetActiveScriptContext_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+
+        struct JsRTDestroyScriptContextAction_KnownObjects
+        {
+            TTD_LOG_PTR_ID UndefinedLogTag;
+            TTD_LOG_PTR_ID NullLogTag;
+            TTD_LOG_PTR_ID TrueLogTag;
+            TTD_LOG_PTR_ID FalseLogTag;
+        };
+
+        struct JsRTDestroyScriptContextAction
+        {
+            TTD_LOG_PTR_ID GlobalLogTag;
+
+            JsRTDestroyScriptContextAction_KnownObjects* KnownObjects;
+        };
+
+        void DeadScriptContext_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void DeadScriptContext_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void DeadScriptContext_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void DeadScriptContext_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
 #if !INT32VAR
-        void CreateInt_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void CreateInt_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 #endif
 
-        void CreateNumber_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void CreateBoolean_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void CreateString_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void CreateSymbol_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void CreateNumber_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void CreateBoolean_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void CreateString_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void CreateSymbol_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        Js::Var Execute_CreateErrorHelper(const JsRTVarsArgumentAction* errorData, Js::ScriptContext* ctx, EventKind eventKind);
+        void Execute_CreateErrorHelper(const JsRTVarsArgumentAction* errorData, ThreadContextTTD* executeContext, Js::ScriptContext* ctx, EventKind eventKind, Js::Var* res);
 
         template<EventKind errorKind>
-        void CreateError_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        void CreateError_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, errorKind>(evt);
 
-            Js::Var res = Execute_CreateErrorHelper(action, ctx, errorKind);
+            Js::Var res = nullptr;
+            Execute_CreateErrorHelper(action, executeContext, executeContext->GetActiveScriptContext(), errorKind, &res);
 
-            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, errorKind>(ctx, evt, res);
+            if(res != nullptr)
+            {
+                JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, errorKind>(executeContext, evt, res);
+            }
         }
 
-        void VarConvertToNumber_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void VarConvertToBoolean_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void VarConvertToString_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void VarConvertToObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void VarConvertToNumber_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void VarConvertToBoolean_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void VarConvertToString_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void VarConvertToObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void AddRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void AddRootRef_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void RemoveRootRef_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void AllocateExternalObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void AllocateArrayAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void AllocateArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void AllocateFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void AllocateObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AllocateExternalObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AllocateArrayAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AllocateArrayBufferAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AllocateFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void HostProcessExitAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void SetExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void HostProcessExitAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void SetExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetOwnPropertyInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetOwnPropertyNamesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetOwnPropertySymbolsInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void HasPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void EqualsAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void DefinePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void DeletePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void SetPrototypeAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void SetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void SetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void GetPropertyIdFromSymbolAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void GetPrototypeAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetIndexAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetOwnPropertyInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetOwnPropertyNamesInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetOwnPropertySymbolsInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+
+        void DefinePropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void DeletePropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void SetPrototypeAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void SetPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void SetIndexAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+
+        void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         //////////////////
 
@@ -401,10 +471,10 @@ namespace TTD
             reader->ReadSequenceEnd();
         }
 
-        void RawBufferCopySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void RawBufferModifySync_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void RawBufferAsyncModificationRegister_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void RawBufferAsyncModifyComplete_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void RawBufferCopySync_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void RawBufferModifySync_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void RawBufferAsyncModificationRegister_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void RawBufferAsyncModifyComplete_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         //////////////////
 
@@ -421,7 +491,7 @@ namespace TTD
             Js::Var* ExecArgs;
         };
 
-        void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void JsRTConstructCallAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTConstructCallAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTConstructCallAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTConstructCallAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
@@ -444,7 +514,7 @@ namespace TTD
             bool IsRepeating;
         };
 
-        void JsRTCallbackAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void JsRTCallbackAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCallbackAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTCallbackAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTCallbackAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
@@ -483,7 +553,7 @@ namespace TTD
 
         void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId);
 
-        void JsRTCodeParseAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void JsRTCodeParseAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCodeParseAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTCodeParseAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTCodeParseAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
@@ -538,13 +608,13 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         int64 JsRTCallFunctionAction_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::Var funcVar, UnlinkableSlabAllocator& alloc);
         void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::Var funcVar, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
 
-        void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCallFunctionAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTCallFunctionAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTCallFunctionAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);

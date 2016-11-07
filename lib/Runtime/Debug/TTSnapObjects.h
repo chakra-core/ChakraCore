@@ -52,6 +52,9 @@ namespace TTD
             //The optional well known token for this object (or INVALID)
             TTD_WELLKNOWN_TOKEN OptWellKnownToken;
 
+            //Return true if the object has the cross site vtable
+            BOOL IsCrossSite;
+
 #if ENABLE_OBJECT_SOURCE_TRACKING
             DiagnosticOrigin DiagOriginInfo;
 #endif
@@ -141,6 +144,12 @@ namespace TTD
         //ParseAddtlInfo is a nop
         //AssertSnapEquiv is a nop
 
+        Js::RecyclableObject* DoObjectInflation_SnapExternalObject(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        //EmitAddtlInfo is a nop
+        //ParseAddtlInfo is a nop
+        //AssertSnapEquiv is a nop
+
         //////////////////
 
         //A struct that represents a script function object
@@ -154,6 +163,9 @@ namespace TTD
 
             //The scope info for this function
             TTD_PTR_ID ScopeId;
+
+            //The cached scope object for the function (if it has one)
+            TTD_PTR_ID CachedScopeObjId;
 
             //The home object for the function (if it has one)
             TTD_PTR_ID HomeObjId;
@@ -249,7 +261,6 @@ namespace TTD
         Js::RecyclableObject* DoObjectInflation_SnapBlockActivationObject(const SnapObject* snpObject, InflateMap* inflator);
         Js::RecyclableObject* DoObjectInflation_SnapPseudoActivationObject(const SnapObject* snpObject, InflateMap* inflator);
         Js::RecyclableObject* DoObjectInflation_SnapConsoleScopeActivationObject(const SnapObject* snpObject, InflateMap* inflator);
-        Js::RecyclableObject* DoObjectInflation_SnapActivationExInfo(const SnapObject* snpObject, InflateMap* inflator);
         //DoAddtlValueInstantiation is a nop
         //EmitAddtlInfo is a nop
         //ParseAddtlInfo is a nop

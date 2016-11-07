@@ -9306,7 +9306,7 @@ CommonNumber:
 
     Var JavascriptOperators::CallGetter(RecyclableObject * const function, Var const object, ScriptContext * requestContext)
     {
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
         if(requestContext->ShouldSuppressGetterInvocationForDebuggerEvaluation())
         {
             return requestContext->GetLibrary()->GetUndefined();
