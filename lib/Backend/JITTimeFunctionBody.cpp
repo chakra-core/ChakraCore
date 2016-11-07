@@ -205,6 +205,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->isParamAndBodyScopeMerged = functionBody->IsParamAndBodyScopeMerged();
     jitBody->paramClosureReg = functionBody->GetParamClosureRegister();
     jitBody->usesArgumentsObject = functionBody->GetUsesArgumentsObject();
+    jitBody->doScopeObjectCreation = functionBody->GetDoScopeObjectCreation();
     
     //CompileAssert(sizeof(PropertyIdArrayIDL) == sizeof(Js::PropertyIdArray));
     jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
@@ -762,6 +763,12 @@ JITTimeFunctionBody::NeedScopeObjectForArguments(bool hasNonSimpleParams) const
         // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
         (GetInParamsCount() > 1 || HasRestParameter())
         && !dontNeedScopeObject;
+}
+
+bool
+JITTimeFunctionBody::GetDoScopeObjectCreation() const
+{
+    return !!m_bodyData.doScopeObjectCreation;
 }
 
 const byte *

@@ -1650,15 +1650,22 @@ namespace Js
 
         void SetDoBackendArgumentsOptimization(bool set)
         {
-            if (m_doBackendArgumentsOptimization)
-            {
-                m_doBackendArgumentsOptimization = set;
-            }
+            m_doBackendArgumentsOptimization = set;
         }
 
         bool GetDoBackendArgumentsOptimization()
         {
             return m_doBackendArgumentsOptimization;
+        }
+
+        void SetDoScopeObjectCreation(bool set)
+        {
+            m_doScopeObjectCreation = set;
+        }
+
+        bool GetDoScopeObjectCreation()
+        {
+            return m_doScopeObjectCreation;
         }
 
         void SetUsesArgumentsObject(bool set)
@@ -1749,6 +1756,7 @@ namespace Js
         bool m_isWasmFunction : 1;
         bool m_isGlobalFunc : 1;
         bool m_doBackendArgumentsOptimization : 1;
+        bool m_doScopeObjectCreation : 1;
         bool m_usesArgumentsObject : 1;
         bool m_isEval : 1;              // Source code is in 'eval'
         bool m_isDynamicFunction : 1;   // Source code is in 'Function'

@@ -8752,9 +8752,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return args;
     }
 
-    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParams)
+    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParams, bool isScopeObjRestored)
     {
-        ActivationObject * frameObject = (ActivationObject*)GetLocalClosure();
+        ActivationObject * frameObject = nullptr;
+        
         uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
         Js::PropertyIdArray * propIds = nullptr;
         Js::HeapArgumentsObject* heapArgObj = nullptr;
@@ -8766,30 +8767,45 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
 
         bool isCachedScope = false;
-
+        
         //For Non-simple params, we don't have a scope object created.
         if (this->m_functionBody->NeedScopeObjectForArguments(hasNonSimpleParams))
         {
+                frameObject = (ActivationObject*)GetLocalClosure();
+
                 isCachedScope = m_functionBody->HasCachedScopePropIds();
                 propIds = this->m_functionBody->GetFormalsPropIdArray();
 
-                if (isCachedScope)
+                if(isScopeObjRestored && ActivationObject::Is(frameObject))
                 {
-                    Js::DynamicType *literalType = nullptr;
-                    Assert(!propIds->hasNonSimpleParams && !hasNonSimpleParams);
-                    frameObject = (ActivationObject*)JavascriptOperators::OP_InitCachedScope(this->GetJavascriptFunction(), propIds, &literalType, hasNonSimpleParams, scriptContext);
+                    Assert(this->GetFunctionBody()->GetDoScopeObjectCreation());
+                    isCachedScope = true;
+                    if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && m_functionBody->GetInParamsCount() > 1)
+                    {
+                        Output::Print(_u("StackArgFormals : %s (%d) :Using the restored scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                        Output::Flush();
+                    }
                 }
                 else
                 {
-                    frameObject = (ActivationObject*)JavascriptOperators::OP_NewScopeObject(GetScriptContext());
-                }
-                Assert(propIds != nullptr);
-                SetLocalClosure(frameObject);
+                    if (isCachedScope)
+                    {
+                        Js::DynamicType *literalType = nullptr;
+                        Assert(!propIds->hasNonSimpleParams && !hasNonSimpleParams);
+                        frameObject = (ActivationObject*)JavascriptOperators::OP_InitCachedScope(this->GetJavascriptFunction(), propIds, &literalType, hasNonSimpleParams, scriptContext);
+                    }
+                    else
+                    {
+                        frameObject = (ActivationObject*)JavascriptOperators::OP_NewScopeObject(GetScriptContext());
+                    }
+                    Assert(propIds != nullptr);
+                    SetLocalClosure(frameObject);
 
-                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && m_functionBody->GetInParamsCount() > 1)
-                {
-                    Output::Print(_u("StackArgFormals : %s (%d) :Creating scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
-                    Output::Flush();
+                    if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && m_functionBody->GetInParamsCount() > 1)
+                    {
+                        Output::Print(_u("StackArgFormals : %s (%d) :Creating scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                        Output::Flush();
+                    }
                 }
         }
         else

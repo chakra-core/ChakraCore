@@ -997,6 +997,12 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         }
     }
 
+    Js::RegSlot localClosureReg = newInstance->function->GetFunctionBody()->GetLocalClosureRegister();
+    if (regSlot == localClosureReg)
+    {
+        this->globalBailOutRecordTable->isScopeObjRestored = true;
+    }
+
     values[regSlot] = value;
 
     BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("\n"));
@@ -1651,9 +1657,13 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     
     if (bailOutRecord->globalBailOutRecordTable->hasStackArgOpt)
     {
-        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams);
+        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams, 
+            bailOutRecord->globalBailOutRecordTable->isScopeObjRestored);
     }
-    
+
+    //Reset the value for tracking the restoration during next bail out.
+    bailOutRecord->globalBailOutRecordTable->isScopeObjRestored = false;
+
     uint32 innerScopeCount = executeFunction->GetInnerScopeCount();
     for (uint32 i = 0; i < innerScopeCount; i++)
     {
