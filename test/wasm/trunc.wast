@@ -4,13 +4,11 @@
 ;;-------------------------------------------------------------------------------------------------------
 
 (module
-  (func (export "i32_trunc_s_f32") (param $x f32) (result i32) (i32.trunc_s/f32 (get_local $x)))
-  (func (export "i32_trunc_u_f32") (param $x f32) (result i32) (i32.trunc_u/f32 (get_local $x)))
-  (func (export "i32_trunc_s_f64") (param $x f64) (result i32) (i32.trunc_s/f64 (get_local $x)))
-  (func (export "i32_trunc_u_f64") (param $x f64) (result i32) (i32.trunc_u/f64 (get_local $x)))
-  (func (export "i64_trunc_s_f32") (param $x f32) (result i64) (i64.trunc_s/f32 (get_local $x)))
-  (func (export "i64_trunc_u_f32") (param $x f32) (result i64) (i64.trunc_u/f32 (get_local $x)))
-  (func (export "i64_trunc_s_f64") (param $x f64) (result i64) (i64.trunc_s/f64 (get_local $x)))
-  (func (export "i64_trunc_u_f64") (param $x f64) (result i64) (i64.trunc_u/f64 (get_local $x)))
+    (func (export "i64_div_s_by_two") (param $x i64) (result i64)
+        (i64.div_s (get_local $x) (i64.const 2))
+    )
+    (func (export "i64_div_s_over") (result i64)
+        (i64.div_s (i64.const 0x8000000000000000  ) (i64.const 0xffffffffffffffff))
+    )
+    (func (export "rem_s177") (result i64) (i64.rem_s (i64.const 0x7fffffffffffffff) (i64.const -1)))
 )
-
