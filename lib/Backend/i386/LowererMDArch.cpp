@@ -2112,10 +2112,12 @@ binopCommon:
     case Js::OpCode::Div_I4:
         helperUnsigned = IR::HelperDirectMath_Int64DivU;
         helperSigned = IR::HelperDirectMath_Int64DivS;
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
         goto helperCommon;
     case Js::OpCode::Rem_I4:
         helperUnsigned = IR::HelperDirectMath_Int64RemU;
         helperSigned = IR::HelperDirectMath_Int64RemS;
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
 helperCommon:
         Assert(dst && src1);
         if (IRType_IsUnsignedInt(src1->GetType()) && helperUnsigned != IR::HelperInvalid)

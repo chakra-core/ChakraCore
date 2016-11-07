@@ -1100,10 +1100,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             break;
-        case Js::OpCode::OverflowCheckReg3:
+        case Js::OpCode::TrapIfMintIntOverNegOne:
             instr->UnlinkSrc2();   //2nd arg was processed in div/rem; unlink it and transform an instruction into mov
-        case Js::OpCode::OverflowCheckReg2:
-        case Js::OpCode::DivideByZeroCheck:
+        case Js::OpCode::TrapIfTruncOverflow:
+        case Js::OpCode::TrapIfZero:
             instr->m_opcode = Js::OpCode::Ld_I4; //to simplify handling of i32/i64
             instrPrev = instr; //re-evaluate -- let Ld_I4 handler to properly lower the operand.
             break;
@@ -1987,7 +1987,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         case Js::OpCode::Conv_Prim:
         {
-            if (IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheckReg2, instr->GetSrc1()))
+            if (IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfTruncOverflow, instr->GetSrc1()))
             {
                 GenerateTruncWithCheck(instr);
                 break;
@@ -22403,7 +22403,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
 
     bool isWasmFunc = m_func->GetJITFunctionBody()->IsWasmFunction();
 
-    IR::Instr* divideByZeroInstr = IR::Instr::FindSingleDefInstr(Js::OpCode::DivideByZeroCheck, instr->GetSrc2());
+    IR::Instr* divideByZeroInstr = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfZero, instr->GetSrc2());
 
     if (divideByZeroInstr || !isWasmFunc)
     {
@@ -22428,7 +22428,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
-        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::OverflowCheckReg3, instr->GetSrc1());
+        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfMintIntOverNegOne, instr->GetSrc1());
         bool needsMinOverNeg1Check = true;
         if (isWasmFunc && instr->m_opcode != Js::OpCode::Rem_I4)
         {
