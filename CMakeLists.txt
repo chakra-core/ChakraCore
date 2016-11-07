@@ -332,7 +332,7 @@ endif()
 if (WB_CHECK_SH)
     unset(WB_CHECK_SH CACHE)    # don't cache
     add_definitions(
-        -Xclang -plugin
+        -Xclang -add-plugin
         -Xclang check-recycler
     )
 endif()

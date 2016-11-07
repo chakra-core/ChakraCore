@@ -62,7 +62,9 @@ cmake \
     $LLVM_CONFIG \
     -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
     -DCMAKE_BUILD_TYPE=Debug \
-    ..
-make
+    .. \
+&& make
+_RET=$?
 
 popd > /dev/null
+exit $_RET

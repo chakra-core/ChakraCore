@@ -4,6 +4,18 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RecyclerChecker.h"
 
+MainVisitor::MainVisitor(
+        CompilerInstance& compilerInstance, ASTContext& context, bool fix)
+    : _compilerInstance(compilerInstance), _context(context),
+     _fix(fix), _fixed(false), _barrierTypeDefined(false)
+{
+    if (_fix)
+    {
+        _rewriter.setSourceMgr(compilerInstance.getSourceManager(),
+                               compilerInstance.getLangOpts());
+    }
+}
+
 bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
 {
     std::string typeName = recordDecl->getQualifiedNameAsString();
@@ -25,7 +37,6 @@ bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
     }
 
     bool hasUnbarrieredPointer = false;
-    const FieldDecl* unbarrieredPointerField = nullptr;
     bool hasBarrieredField = false;
 
     for (auto field : recordDecl->fields())
@@ -33,39 +44,29 @@ bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
         const QualType qualType = field->getType();
         const Type* type = qualType.getTypePtr();
 
-        if (type->isPointerType())
+        auto fieldTypeName = qualType.getAsString();
+        if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits") ||
+            StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits"))
+        {
+            // Note this only indicates the class is write-barrier annotated
+            hasBarrieredField = true;
+        }
+        else if (type->isPointerType())
         {
             hasUnbarrieredPointer = true;
-            if (!unbarrieredPointerField)
-            {
-                unbarrieredPointerField = field;
-            }
         }
-        else
+        else if (type->isCompoundType())
         {
-            auto fieldTypeName = qualType.getAsString();
-            if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits"))
+            // If the field is a compound type,
+            // check if it is a fully barriered type or
+            // has unprotected pointer fields
+            if (Contains(_pointerClasses, fieldTypeName))
             {
-                // Note this only indicates the class is write-barrier annotated
-                hasBarrieredField = true;
+                hasUnbarrieredPointer = true;
             }
-            else if (type->isCompoundType())
+            else if (Contains(_barrieredClasses, fieldTypeName))
             {
-                // If the field is a compound type,
-                // check if it is a fully barriered type or
-                // has unprotected pointer fields
-                if (Contains(_pointerClasses, fieldTypeName))
-                {
-                    hasUnbarrieredPointer = true;
-                    if (!unbarrieredPointerField)
-                    {
-                        unbarrieredPointerField = field;
-                    }
-                }
-                else if (Contains(_barrieredClasses, fieldTypeName))
-                {
-                    hasBarrieredField = true;
-                }
+                hasBarrieredField = true;
             }
         }
     }
@@ -74,23 +75,199 @@ bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
     {
         _pointerClasses.insert(typeName);
     }
-
-    if (hasBarrieredField)
+    else if (hasBarrieredField)
     {
-        Log::outs() << "Type with barrier found: \"" << typeName << "\"\n";
-        if (!hasUnbarrieredPointer)
-        {
-            _barrieredClasses.insert(typeName);
-        }
-        else
-        {
-            Log::errs() << "ERROR: Unbarriered field: \""
-                        << unbarrieredPointerField->getQualifiedNameAsString()
-                        << "\"\n";
-        }
+        _barrieredClasses.insert(typeName);
     }
 
     return true;
+}
+
+void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl)
+{
+    const auto& sourceMgr = _compilerInstance.getSourceManager();
+    DiagnosticsEngine& diagEngine = _context.getDiagnostics();
+    const unsigned diagID = diagEngine.getCustomDiagID(
+        DiagnosticsEngine::Error, "Unbarried field");
+
+    for (auto field : recordDecl->fields())
+    {
+        const QualType qualType = field->getType();
+        string fieldTypeName = qualType.getAsString();
+
+        bool report = !StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits")
+                && !StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits")
+                && field->getNameAsString().length() > 0;  // no-field-name union
+        if (report)
+        {
+            SourceLocation location = field->getLocStart();
+            if (this->_fix)
+            {
+                const char* begin = sourceMgr.getCharacterData(location);
+                const char* end = begin;
+
+                if (MatchType(fieldTypeName, begin, &end))
+                {
+                    _rewriter.ReplaceText(
+                        location, end - begin,
+                        GetFieldTypeAnnotation(qualType) + string(begin, end) +
+                             (*end == ' ' ? ")" : ") "));
+                    _fixed = true;
+                    continue;
+                }
+
+                Log::errs() << "Fail to fix: " << fieldTypeName << " "
+                            << field->getNameAsString()  << "\n";
+            }
+
+            diagEngine.Report(location, diagID);
+        }
+    }
+}
+
+static bool SkipSpace(const char*& p)
+{
+    if (*p == ' ')
+    {
+        ++p;
+        return true;
+    }
+
+    return false;
+}
+
+template <size_t N>
+static bool SkipPrefix(const char*& p, const char (&prefix)[N])
+{
+    if (StartsWith(p, prefix))
+    {
+        p += N - 1; // skip
+        return true;
+    }
+
+    return false;
+}
+
+static bool SkipPrefix(const char*& p, const string& prefix)
+{
+    if (StartsWith(p, prefix))
+    {
+        p += prefix.length(); // skip
+        return true;
+    }
+
+    return false;
+}
+
+static bool SkipTemplateParameters(const char*& p)
+{
+    if (*p == '<')
+    {
+        ++p;
+        int left = 1;
+
+        while (left && *p)
+        {
+            switch (*p++)
+            {
+                case '<': ++left; break;
+                case '>': --left; break;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool MainVisitor::MatchType(const string& type, const char* source, const char** pSourceEnd)
+{
+    // try match type in source directly (clang "bool" type is "_Bool")
+    if (SkipPrefix(source, type) || (type == "_Bool" && SkipPrefix(source, "bool")))
+    {
+        *pSourceEnd = source;
+        return true;
+    }
+
+    const char* p = type.c_str();
+    while (*p && *source)
+    {
+        if (SkipSpace(p) || SkipSpace(source))
+        {
+            continue;
+        }
+
+        if (SkipPrefix(p, "class ") || SkipPrefix(p, "struct ") ||
+            SkipPrefix(p, "union ") || SkipPrefix(p, "enum "))
+        {
+            continue;
+        }
+
+        // type may contain [...] array specifier, while source has it after field name
+        if (*p == '[')
+        {
+            while (*p && *p++ != ']');
+            continue;
+        }
+
+        // skip <...> in both
+        if (SkipTemplateParameters(p) || SkipTemplateParameters(source))
+        {
+            continue;
+        }
+
+        // type may contain fully qualified name but source may or may not
+        const char* pSkipScopeType = strstr(p, "::");
+        if (pSkipScopeType && !memchr(p, ' ', pSkipScopeType - p))
+        {
+            pSkipScopeType += 2;
+            if (strncmp(source, p, pSkipScopeType - p) == 0)
+            {
+                source += pSkipScopeType - p;
+            }
+            p = pSkipScopeType;
+            continue;
+        }
+
+        if (*p == *source)
+        {
+            while (*p && *source && *p == *source && !strchr("<>", *p))
+            {
+                ++p, ++source;
+            }
+            continue;
+        }
+
+        if (*p != *source)
+        {
+            return false;  // mismatch
+        }
+    }
+
+    if (!*p && *source)  // type match completed and having remaining source
+    {
+        *pSourceEnd = source;
+        return true;
+    }
+
+    return false;
+}
+
+const char* MainVisitor::GetFieldTypeAnnotation(QualType qtype)
+{
+    if (qtype->isPointerType())
+    {
+        auto type = qtype->getUnqualifiedDesugaredType()->getPointeeType().getTypePtr();
+        const auto& i = _allocationTypes.find(type);
+        if (i != _allocationTypes.end()
+            && i->second == AllocationTypes::NonRecycler)
+        {
+            return "FieldNoBarrier(";
+        }
+    }
+
+    return "Field(";
 }
 
 bool MainVisitor::VisitFunctionDecl(FunctionDecl* functionDecl)
@@ -105,9 +282,10 @@ bool MainVisitor::VisitFunctionDecl(FunctionDecl* functionDecl)
     return true;
 }
 
-void MainVisitor::RecordWriteBarrierAllocation(const QualType& allocationType)
+void MainVisitor::RecordAllocation(QualType qtype, AllocationTypes allocationType)
 {
-    _barrierAllocations.insert(allocationType.getTypePtr());
+    auto type = qtype->getCanonicalTypeInternal().getTypePtr();
+    _allocationTypes[type] |= allocationType;
 }
 
 void MainVisitor::RecordRecyclerAllocation(const string& allocationFunction, const string& type)
@@ -139,22 +317,9 @@ void MainVisitor::dump(const char* name, const set<Item>& set)
 
 void MainVisitor::dump(const char* name, const set<const Type*> set)
 {
-    dump(name, set, [this](raw_ostream& out, const Type* type)
+    dump(name, set, [&](raw_ostream& out, const Type* type)
     {
         out << "  " << QualType(type, 0).getAsString() << "\n";
-
-        // Examine underlying "canonical" type (strip typedef) and try to
-        // match declaration. If we find it in _pointerClasses, the type
-        // is missing write-barrier decorations.
-        auto r = type->getCanonicalTypeInternal()->getAsCXXRecordDecl();
-        if (r)
-        {
-            auto typeName = r->getQualifiedNameAsString();
-            if (Contains(_pointerClasses, typeName))
-            {
-                Log::errs() << "ERROR: Unbarried type " << typeName << "\n";
-            }
-        }
     });
 }
 
@@ -170,27 +335,48 @@ void MainVisitor::Inspect()
         dump(item.first.c_str(), item.second);
     }
 
-    Dump(barrierAllocations);
+    // TODO: Also add any type that has wb annotations to barrierTypes to check completeness
+    set<const Type*> barrierTypes;
+    for (auto item : _allocationTypes)
+    {
+        if (item.second & AllocationTypes::WriteBarrier)
+        {
+            barrierTypes.insert(item.first);
+        }
+    }
+    dump("WriteBarrier allocation types", barrierTypes);
+
+    // Examine all barrierd types. They should be fully wb annotated.
+    for (auto type: barrierTypes)
+    {
+        auto r = type->getCanonicalTypeInternal()->getAsCXXRecordDecl();
+        if (r)
+        {
+            auto typeName = r->getQualifiedNameAsString();
+            ProcessUnbarriedFields(r);
+        }
+    }
+
 #undef Dump
 }
 
-static bool isCastToRecycler(const CXXStaticCastExpr* castNode)
+bool MainVisitor::ApplyFix()
 {
-    // Not a cast
-    if (castNode == nullptr)
-    {
-        return false;
-    }
+    return _fixed ? _rewriter.overwriteChangedFiles() : false;
+}
 
+static AllocationTypes CheckAllocationType(const CXXStaticCastExpr* castNode)
+{
     QualType targetType = castNode->getTypeAsWritten();
     if (const IdentifierInfo* info = targetType.getBaseTypeIdentifier())
     {
-        return info->getName().equals("Recycler");
+        return info->getName().equals("Recycler") ?
+                AllocationTypes::Recycler : AllocationTypes::NonRecycler;
     }
     else
     {
-        Log::errs() << "ERROR (plugin): Can't get base type identifier\n";
-        return false;
+        // Unknown template dependent allocator types
+        return AllocationTypes::Unknown;
     }
 }
 
@@ -206,7 +392,10 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
         if (firstArgNode != nullptr &&
             (castNode = const_cast<CXXStaticCastExpr*>(dyn_cast<CXXStaticCastExpr>(firstArgNode))))
         {
-            if (isCastToRecycler(castNode))
+            QualType allocatedType = newExpr->getAllocatedType();
+            auto allocationType = CheckAllocationType(castNode);
+
+            if (allocationType == AllocationTypes::Recycler)  // Recycler allocation
             {
                 const Expr* secondArgNode = newExpr->getPlacementArg(1);
 
@@ -219,7 +408,6 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
                     Expr* subExpr = unaryNode->getSubExpr();
                     if (DeclRefExpr* declRef = cast<DeclRefExpr>(subExpr))
                     {
-                        QualType allocatedType = newExpr->getAllocatedType();
                         string allocatedTypeStr = allocatedType.getAsString();
                         auto declNameInfo = declRef->getNameInfo();
                         auto allocationFunctionStr = declNameInfo.getName().getAsString();
@@ -229,21 +417,25 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
                         {
                             Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
                             Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
-                            _mainVisitor->RecordWriteBarrierAllocation(allocatedType);
+
+                            // Recycler write barrier allocation
+                            allocationType = AllocationTypes::WriteBarrier;
                         }
                     }
                     else
                     {
-                        Log::errs() << "Expected DeclRefExpr:\n";
+                        Log::errs() << "ERROR: (internal) Expected DeclRefExpr:\n";
                         subExpr->dump();
                     }
                 }
                 else
                 {
-                    Log::errs() << "Expected unary node:\n";
+                    Log::errs() << "ERROR: (internal) Expected unary node:\n";
                     secondArgNode->dump();
                 }
             }
+
+            _mainVisitor->RecordAllocation(allocatedType, allocationType);
         }
     }
 
@@ -252,16 +444,17 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
 
 void RecyclerCheckerConsumer::HandleTranslationUnit(ASTContext& context)
 {
-    MainVisitor mainVisitor;
+    MainVisitor mainVisitor(_compilerInstance, context, _fix);
     mainVisitor.TraverseDecl(context.getTranslationUnitDecl());
 
     mainVisitor.Inspect();
+    mainVisitor.ApplyFix();
 }
 
 std::unique_ptr<ASTConsumer> RecyclerCheckerAction::CreateASTConsumer(
     CompilerInstance& compilerInstance, llvm::StringRef)
 {
-    return llvm::make_unique<RecyclerCheckerConsumer>(compilerInstance);
+    return llvm::make_unique<RecyclerCheckerConsumer>(compilerInstance, _fix);
 }
 
 bool RecyclerCheckerAction::ParseArgs(
@@ -273,11 +466,16 @@ bool RecyclerCheckerAction::ParseArgs(
         {
             Log::SetLevel(Log::LogLevel::Verbose);
         }
+        else if (*i == "-fix")
+        {
+            this->_fix = true;
+        }
         else
         {
             Log::errs()
                 << "ERROR: Unrecognized check-recycler option: " << *i << "\n"
                 << "Supported options:\n"
+                << "  -fix          Fix missing write barrier annotations"
                 << "  -verbose      Log verbose messages\n";
             return false;
         }
