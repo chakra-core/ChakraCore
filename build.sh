@@ -60,7 +60,7 @@ PRINT_USAGE() {
 CHAKRACORE_DIR=`dirname $0`
 _CXX=""
 _CC=""
-VERBOSE=""
+_VERBOSE=""
 BUILD_TYPE="Release"
 CMAKE_GEN=
 MAKE=make
@@ -110,7 +110,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -v | --verbose)
-        _VERBOSE="verbose"
+        _VERBOSE="V=1"
         ;;
 
     -d | --debug)
@@ -253,7 +253,7 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo "MULTICORE_BUILD=${MULTICORE_BUILD}"
     echo "ICU_PATH=${ICU_PATH}"
     echo "CMAKE_GEN=${CMAKE_GEN}"
-    echo "MAKE=${MAKE}"
+    echo "MAKE=${MAKE} $_VERBOSE"
     echo ""
 fi
 
@@ -327,7 +327,7 @@ cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH \
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+        $MAKE $MULTICORE_BUILD $_VERBOSE 2>&1 | tee build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"
