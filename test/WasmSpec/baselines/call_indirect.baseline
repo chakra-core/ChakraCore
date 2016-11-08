@@ -1,0 +1,13 @@
+call_indirect.wast:170: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_3[41] at offset 4/16: Operator I64ReinterpretF64 NYI
+call_indirect.wast:177: $assert_return_8 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_8[46] at offset 4/16: Operator I64ReinterpretF64 NYI
+call_indirect.wast:182: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_12[50] at offset 4/16: Operator I64ReinterpretF64 NYI
+call_indirect.wast:189: $assert_trap_18 failed, runtime trap NYI
+call_indirect.wast:190: $assert_trap_19 failed, runtime trap NYI
+call_indirect.wast:191: $assert_trap_20 failed, runtime trap NYI
+call_indirect.wast:192: $assert_trap_21 failed, runtime trap NYI
+call_indirect.wast:193: $assert_trap_22 failed, runtime trap NYI
+call_indirect.wast:199: $assert_trap_27 failed, runtime trap NYI
+call_indirect.wast:200: $assert_trap_28 failed, runtime trap NYI
+call_indirect.wast:222: $assert_trap_46 failed, runtime trap NYI
+call_indirect.wast:223: $assert_trap_47 failed, runtime trap NYI
+36/48 tests passed.

@@ -1,0 +1,40 @@
+$action_2 = undefined
+$action_5 = undefined
+$action_7 = undefined
+$action_10 = undefined
+float_memory.wast:41: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_1[6] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_2 = undefined
+float_memory.wast:44: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_4[9] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_5 = undefined
+float_memory.wast:47: $assert_return_6 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_6[11] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_7 = undefined
+float_memory.wast:50: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_9[14] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_10 = undefined
+float_memory.wast:53: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_12[17] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_2 = undefined
+$action_5 = undefined
+$action_7 = undefined
+$action_10 = undefined
+float_memory.wast:93: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_1[6] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_2 = undefined
+float_memory.wast:96: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_4[9] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_5 = undefined
+float_memory.wast:99: $assert_return_6 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_6[11] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_7 = undefined
+float_memory.wast:102: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_9[14] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_10 = undefined
+float_memory.wast:105: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_12[17] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_2 = undefined
+$action_5 = undefined
+$action_8 = undefined
+$action_11 = undefined
+float_memory.wast:145: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_1[6] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_2 = undefined
+float_memory.wast:148: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_4[9] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_5 = undefined
+float_memory.wast:151: $assert_return_7 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_7[12] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_8 = undefined
+float_memory.wast:154: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_10[15] at offset 4/16: Operator I64ReinterpretF64 NYI
+$action_11 = undefined
+float_memory.wast:157: $assert_return_13 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_13[18] at offset 4/16: Operator I64ReinterpretF64 NYI
+41/56 tests passed.

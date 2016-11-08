@@ -1,0 +1,149 @@
+conversions.wast:43: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:44: $assert_return_13 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:45: $assert_return_14 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:46: $assert_return_15 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:47: $assert_return_16 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:48: $assert_return_17 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:49: $assert_return_18 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:50: $assert_return_19 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:51: $assert_return_20 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:52: $assert_return_21 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:53: $assert_return_22 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:54: $assert_return_23 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
+conversions.wast:70: $assert_trap_38 failed, runtime trap NYI
+conversions.wast:71: $assert_trap_39 failed, runtime trap NYI
+conversions.wast:72: $assert_trap_40 failed, runtime trap NYI
+conversions.wast:73: $assert_trap_41 failed, runtime trap NYI
+conversions.wast:74: $assert_trap_42 failed, runtime trap NYI
+conversions.wast:89: $assert_trap_43 failed, runtime trap NYI
+conversions.wast:90: $assert_trap_44 failed, runtime trap NYI
+conversions.wast:91: $assert_trap_45 failed, runtime trap NYI
+conversions.wast:92: $assert_trap_46 failed, runtime trap NYI
+conversions.wast:93: $assert_trap_47 failed, runtime trap NYI
+conversions.wast:109: $assert_trap_62 failed, runtime trap NYI
+conversions.wast:110: $assert_trap_63 failed, runtime trap NYI
+conversions.wast:111: $assert_trap_64 failed, runtime trap NYI
+conversions.wast:112: $assert_trap_65 failed, runtime trap NYI
+conversions.wast:113: $assert_trap_66 failed, runtime trap NYI
+conversions.wast:129: $assert_trap_67 failed, runtime trap NYI
+conversions.wast:130: $assert_trap_68 failed, runtime trap NYI
+conversions.wast:131: $assert_trap_69 failed, runtime trap NYI
+conversions.wast:132: $assert_trap_70 failed, runtime trap NYI
+conversions.wast:133: $assert_trap_71 failed, runtime trap NYI
+conversions.wast:134: $assert_trap_72 failed, runtime trap NYI
+conversions.wast:135: $assert_trap_73 failed, runtime trap NYI
+conversions.wast:136: $assert_trap_74 failed, runtime trap NYI
+conversions.wast:154: $assert_trap_91 failed, runtime trap NYI
+conversions.wast:155: $assert_trap_92 failed, runtime trap NYI
+conversions.wast:156: $assert_trap_93 failed, runtime trap NYI
+conversions.wast:157: $assert_trap_94 failed, runtime trap NYI
+conversions.wast:158: $assert_trap_95 failed, runtime trap NYI
+conversions.wast:171: $assert_trap_107 failed, runtime trap NYI
+conversions.wast:172: $assert_trap_108 failed, runtime trap NYI
+conversions.wast:173: $assert_trap_109 failed, runtime trap NYI
+conversions.wast:174: $assert_trap_110 failed, runtime trap NYI
+conversions.wast:175: $assert_trap_111 failed, runtime trap NYI
+conversions.wast:193: $assert_trap_128 failed, runtime trap NYI
+conversions.wast:194: $assert_trap_129 failed, runtime trap NYI
+conversions.wast:195: $assert_trap_130 failed, runtime trap NYI
+conversions.wast:196: $assert_trap_131 failed, runtime trap NYI
+conversions.wast:197: $assert_trap_132 failed, runtime trap NYI
+conversions.wast:214: $assert_trap_148 failed, runtime trap NYI
+conversions.wast:215: $assert_trap_149 failed, runtime trap NYI
+conversions.wast:216: $assert_trap_150 failed, runtime trap NYI
+conversions.wast:217: $assert_trap_151 failed, runtime trap NYI
+conversions.wast:218: $assert_trap_152 failed, runtime trap NYI
+conversions.wast:232: $assert_return_163 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:233: $assert_return_164 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:234: $assert_return_165 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:235: $assert_return_166 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:236: $assert_return_167 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:237: $assert_return_168 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:239: $assert_return_169 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:240: $assert_return_170 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:241: $assert_return_171 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:242: $assert_return_172 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_s_i64[12] at offset 4/5: Operator F32SConvertI64 NYI
+conversions.wast:244: $assert_return_173 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_173[198] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:245: $assert_return_174 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_174[199] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:246: $assert_return_175 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_175[200] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:247: $assert_return_176 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_176[201] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:248: $assert_return_177 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_177[202] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:249: $assert_return_178 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_178[203] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:251: $assert_return_179 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_179[204] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:252: $assert_return_180 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_180[205] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:253: $assert_return_181 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_181[206] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:254: $assert_return_182 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_182[207] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:255: $assert_return_183 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_183[208] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:256: $assert_return_184 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_184[209] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:258: $assert_return_185 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_185[210] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:259: $assert_return_186 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_186[211] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:260: $assert_return_187 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_187[212] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:261: $assert_return_188 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_188[213] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:263: $assert_return_189 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:264: $assert_return_190 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:265: $assert_return_191 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:266: $assert_return_192 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:267: $assert_return_193 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:268: $assert_return_194 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:270: $assert_return_195 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:271: $assert_return_196 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i32[15] at offset 4/5: Operator F32UConvertI32 NYI
+conversions.wast:273: $assert_return_197 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:274: $assert_return_198 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:275: $assert_return_199 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:276: $assert_return_200 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:277: $assert_return_201 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:279: $assert_return_202 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:280: $assert_return_203 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.convert_u_i64[16] at offset 4/5: Operator F32UConvertI64 NYI
+conversions.wast:282: $assert_return_204 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_204[229] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:283: $assert_return_205 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_205[230] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:284: $assert_return_206 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_206[231] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:285: $assert_return_207 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_207[232] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:286: $assert_return_208 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_208[233] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:288: $assert_return_209 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_209[234] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:289: $assert_return_210 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_210[235] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:290: $assert_return_211 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_211[236] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:291: $assert_return_212 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_212[237] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:292: $assert_return_213 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_213[238] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:294: $assert_return_214 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_214[239] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:295: $assert_return_215 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_215[240] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:297: $assert_return_216 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_216[241] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:298: $assert_return_217 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_217[242] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:299: $assert_return_218 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_218[243] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:300: $assert_return_219 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_219[244] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:301: $assert_return_220 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_220[245] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:302: $assert_return_221 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_221[246] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:303: $assert_return_222 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_222[247] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:304: $assert_return_223 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_223[248] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:306: $assert_return_224 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_224[249] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:308: $assert_return_225 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_225[250] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:309: $assert_return_226 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_226[251] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:310: $assert_return_227 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_227[252] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:311: $assert_return_228 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_228[253] at offset 9/21: Operator I64ReinterpretF64 NYI
+conversions.wast:376: $assert_return_290 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_290[315] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:377: $assert_return_291 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_291[316] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:378: $assert_return_292 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_292[317] at offset 6/18: Operator I64ReinterpretF64 NYI
+conversions.wast:379: $assert_return_293 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_293[318] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:380: $assert_return_294 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_294[319] at offset 10/22: Operator I64ReinterpretF64 NYI
+conversions.wast:381: $assert_return_295 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_295[320] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:382: $assert_return_296 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_296[321] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:383: $assert_return_297 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_297[322] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:384: $assert_return_298 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_298[323] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:385: $assert_return_299 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_299[324] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:386: $assert_return_300 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_300[325] at offset 15/27: Operator I64ReinterpretF64 NYI
+conversions.wast:387: $assert_return_301 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_301[326] at offset 13/25: Operator I64ReinterpretF64 NYI
+conversions.wast:405: $assert_return_315 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:406: $assert_return_316 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:407: $assert_return_317 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:408: $assert_return_318 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:409: $assert_return_319 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:410: $assert_return_320 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:411: $assert_return_321 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:412: $assert_return_322 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:413: $assert_return_323 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:414: $assert_return_324 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:415: $assert_return_325 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:416: $assert_return_326 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:417: $assert_return_327 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:418: $assert_return_328 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+conversions.wast:419: $assert_return_329 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.reinterpret_f64[24] at offset 4/5: Operator I64ReinterpretF64 NYI
+182/330 tests passed.
