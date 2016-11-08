@@ -5,287 +5,364 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines\address.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\address.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\address.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\block.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\block.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\block.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\br.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\br.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\br.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\br_if.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\br_if.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\br_if.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\br_table.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\br_table.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\br_table.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\break-drop.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\break-drop.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\break-drop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\call.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\call.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\call.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\call_indirect.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\call_indirect.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\chakra_i64.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\chakra_i64.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\chakra_i64.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\comments.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\comments.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\comments.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\conversions.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\conversions.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\endianness.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\endianness.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\endianness.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\f32.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\f32.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\f32_cmp.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\f32_cmp.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\f64.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\f64.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\f64_cmp.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\f64_cmp.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\fac.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\fac.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\fac.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\float_exprs.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\float_exprs.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\float_literals.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\float_literals.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\float_misc.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\float_misc.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\forward.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\forward.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\forward.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\func.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\func.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\func.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\func_ptrs.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\func_ptrs.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\func_ptrs.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\get_local.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\get_local.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\get_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\globals.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\globals.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\globals.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\i32.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\i32.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\i32.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\i64.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\i64.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\i64.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\imports.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\imports.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\imports.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\int_exprs.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\int_exprs.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\int_exprs.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\int_literals.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\int_literals.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\int_literals.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\labels.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\labels.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\labels.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\left-to-right.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\left-to-right.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\left-to-right.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\loop.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\loop.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\loop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\memory.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\memory.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\memory.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\memory_redundancy.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\memory_redundancy.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\memory_redundancy.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\memory_trap.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\memory_trap.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\memory_trap.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\names.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\names.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\names.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\nop.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\nop.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\nop.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\resizing.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\resizing.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\return.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\return.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\return.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\select.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\select.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\select.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\set_local.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\set_local.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\set_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\skip-stack-guard-page.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\skip-stack-guard-page.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\skip-stack-guard-page.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\stack.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\stack.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\stack.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\start.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\start.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\start.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\store_retval.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\store_retval.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\store_retval.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\switch.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\switch.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\switch.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\tee_local.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\tee_local.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\tee_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\traps.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\traps.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\traps.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\typecheck.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\typecheck.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\typecheck.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\unreachable.baseline</baseline>
+      <compile-flags>-on:wasm -args testsuite-bin\unreachable.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines\unwind.baseline</baseline>
-      <compile-flags>-on:wasm  -args testsuite-bin\unwind.json -endargs </compile-flags>
+      <compile-flags>-on:wasm -args testsuite-bin\unwind.json -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>
