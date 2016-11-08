@@ -538,6 +538,11 @@ CONVERSION_HELPER(F64TOI64)
 CONVERSION_HELPER(F64TOU64)
 #undef CONVERSION_HELPER
 
+HELPERCALL(I64TOF64,        Js::JavascriptConversion::LongToDouble,        0)
+HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,       0)
+HELPERCALL(I64TOF32,        Js::JavascriptConversion::LongToFloat,         0)
+HELPERCALL(UI64TOF32,       Js::JavascriptConversion::ULongToFloat,        0)
+
 #if (defined(ASMJS_PLAT) || defined(ENABLE_WASM)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)
 #endif

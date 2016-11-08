@@ -1,2 +1,1 @@
-get_local.wast:81: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function read[9] at offset 32/63: Operator F64UConvertI64 NYI
-9/10 tests passed.
+10/10 tests passed.

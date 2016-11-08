@@ -77,6 +77,12 @@ namespace Js {
         static int32 F64TOI32(double src, ScriptContext * ctx);
         static uint32 F64TOU32(double src, ScriptContext * ctx);
 
+        static float  LongToFloat(__int64 aValue);
+        static float  ULongToFloat(unsigned __int64 aValue);
+        static double LongToDouble(__int64 aValue);
+        static double ULongToDouble(unsigned __int64 aValue);
+
+
     private:
         static BOOL ToInt32Finite(double value, int32* result);
         template<bool zero>

@@ -263,15 +263,15 @@ WASM_UNARY__OPCODE(I64TruncS_F64,     0xb0, L_D , Conv_Check_DTL , false)
 WASM_UNARY__OPCODE(I64TruncU_F64,     0xb1, L_D , Conv_Check_DTUL, false)
 
 WASM_UNARY__OPCODE(F32SConvertI32,    0xb2, F_I , Fround_Int     , false)
-WASM_UNARY__OPCODE(F32UConvertI32,    0xb3, F_I , Conv_UTF       , true)
-WASM_UNARY__OPCODE(F32SConvertI64,    0xb4, F_L , Nop            , true)
-WASM_UNARY__OPCODE(F32UConvertI64,    0xb5, F_L , Nop            , true)
+WASM_UNARY__OPCODE(F32UConvertI32,    0xb3, F_I , Conv_UTF       , false)
+WASM_UNARY__OPCODE(F32SConvertI64,    0xb4, F_L , Conv_LTF       , false)
+WASM_UNARY__OPCODE(F32UConvertI64,    0xb5, F_L , Conv_ULTF      , false)
 WASM_UNARY__OPCODE(F32DemoteF64,      0xb6, F_D , Fround_Db      , false)
 
 WASM_UNARY__OPCODE(F64SConvertI32,    0xb7, D_I , Conv_ITD       , false)
 WASM_UNARY__OPCODE(F64UConvertI32,    0xb8, D_I , Conv_UTD       , false)
-WASM_UNARY__OPCODE(F64SConvertI64,    0xb9, D_L , Nop            , true)
-WASM_UNARY__OPCODE(F64UConvertI64,    0xba, D_L , Nop            , true)
+WASM_UNARY__OPCODE(F64SConvertI64,    0xb9, D_L , Conv_LTD       , false)
+WASM_UNARY__OPCODE(F64UConvertI64,    0xba, D_L , Conv_ULTD      , false)
 WASM_UNARY__OPCODE(F64PromoteF32,     0xbb, D_F , Conv_FTD       , false)
 ////////////////////////////////////////////////////////////
 

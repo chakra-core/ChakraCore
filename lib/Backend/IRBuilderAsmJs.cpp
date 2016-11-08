@@ -3194,6 +3194,21 @@ IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
 void
 IRBuilderAsmJs::BuildFloat1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot)
 {
+    IR::RegOpnd * srcOpnd = nullptr;
+    IR::RegOpnd * dstOpnd  = BuildDstOpnd(dstRegSlot, TyFloat32);
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_LTF:
+        srcOpnd = BuildSrcOpnd(src1RegSlot, TyInt64);
+        break;
+    case Js::OpCodeAsmJs::Conv_ULTF:
+        srcOpnd = BuildSrcOpnd(src1RegSlot, TyUint64);
+        break;
+    default:
+        Assume(UNREACHED);
+    }
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, m_func);
+    AddInstr(instr, offset);
 }
 
 void
@@ -3242,16 +3257,28 @@ IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
 void
 IRBuilderAsmJs::BuildDouble1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::Reinterpret_LTD);
-
     IR::RegOpnd * srcOpnd = nullptr;
-    srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt64);
-    srcOpnd->SetValueType(ValueType::GetInt(false));
+    Js::OpCode op = Js::OpCode::Conv_Prim;
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat64);
     dstOpnd->SetValueType(ValueType::Float);
-
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Reinterpret_Prim, dstOpnd, srcOpnd, m_func);
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_LTD:
+        srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt64);
+        break;
+    case Js::OpCodeAsmJs::Conv_ULTD:
+        srcOpnd = BuildSrcOpnd(srcRegSlot, TyUint64);
+        break;
+    case Js::OpCodeAsmJs::Reinterpret_LTD:
+        srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt64);
+        op = Js::OpCode::Reinterpret_Prim;
+        break;
+    default:
+        Assume(UNREACHED);
+    }
+    srcOpnd->SetValueType(ValueType::GetInt(false));
+    IR::Instr* instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 }
 

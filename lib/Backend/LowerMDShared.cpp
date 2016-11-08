@@ -8017,6 +8017,51 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
 }
 
 void
+LowererMD::EmitInt64toFloat32(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
+{
+    IR::Opnd *srcOpnd = instr->UnlinkSrc1();
+
+    LoadInt64HelperArgument(instr, srcOpnd);
+
+    IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
+    instr->InsertBefore(callinstr);
+
+    switch (srcOpnd->GetType())
+    {
+    case TyInt64:
+        this->ChangeToHelperCall(callinstr, IR::HelperI64TOF32);
+        break;
+    case TyUint64:
+        this->ChangeToHelperCall(callinstr, IR::HelperUI64TOF32);
+        break;
+    default:
+        Assert(UNREACHED);
+    }
+}
+
+void
+LowererMD::EmitInt64toFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
+{
+    IR::Opnd *srcOpnd = instr->UnlinkSrc1();
+
+    LoadInt64HelperArgument(instr, srcOpnd);
+
+    IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
+    instr->InsertBefore(callinstr);
+
+    switch (srcOpnd->GetType())
+    {
+    case TyInt64:
+        this->ChangeToHelperCall(callinstr, IR::HelperI64TOF64);
+        break;
+    case TyUint64:
+        this->ChangeToHelperCall(callinstr, IR::HelperUI64TOF64);
+        break;
+    default:
+        Assert(UNREACHED);
+    }
+}
+void
 LowererMD::EmitNon32BitOvfCheck(IR::Instr *instr, IR::Instr *insertInstr, IR::LabelInstr* bailOutLabel)
 {
     AssertMsg(instr->m_opcode == Js::OpCode::IMUL, "IMUL should be used to check for non-32 bit overflow check on x86.");

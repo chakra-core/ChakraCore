@@ -1,3 +1,1 @@
-tee_local.wast:115: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function write[9] at offset 53/85: Operator F64UConvertI64 NYI
-tee_local.wast:122: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function result[10] at offset 12/79: Operator F64UConvertI64 NYI
-9/11 tests passed.
+11/11 tests passed.
