@@ -115,7 +115,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
 }
 
 def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
-    xplatBranch, nonDefaultTaskSetup, customOption ->
+    xplatBranch, nonDefaultTaskSetup, customOption, testVariant ->
 
     def config = (platform == "osx" ? "osx_${buildType}" : "linux_${buildType}")
     def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
@@ -132,7 +132,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
     def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} ${compilerPaths} ${icuFlag} ${customOption}"
-    def testScript = "bash test/runtests.sh"
+    def testScript = "bash test/runtests.sh \"${testVariant}\""
 
     def newJob = job(jobName) {
         steps {
@@ -173,7 +173,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
 def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
         CreateXPlatBuildTask(isPR, "test", "", machine, platform,
-            configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit")
+            configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit")
 
         ['debug', 'test', 'release'].each { buildType ->
             def staticBuildConfigs = [true, false]
@@ -183,7 +183,7 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
 
             staticBuildConfigs.each { staticBuild ->
                 CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform,
-                    configTag, xplatBranch, nonDefaultTaskSetup, "")
+                    configTag, xplatBranch, nonDefaultTaskSetup, "", "")
             }
         }
     }
