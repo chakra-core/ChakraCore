@@ -2379,11 +2379,11 @@ IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfZero(IR::RegOpnd* srcOpnd, uint32 offset
     return newSrc;
 }
 
-IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfMintIntOverNegOne(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset)
+IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfMinIntOverNegOne(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset)
 {
     IR::RegOpnd* newSrc = IR::RegOpnd::New(src2Opnd->GetType(), m_func);
     newSrc->SetValueType(ValueType::GetInt(false));
-    AddInstr(IR::Instr::New(Js::OpCode::TrapIfMintIntOverNegOne, newSrc, src1Opnd, src2Opnd, m_func), offset);
+    AddInstr(IR::Instr::New(Js::OpCode::TrapIfMinIntOverNegOne, newSrc, src1Opnd, src2Opnd, m_func), offset);
     return newSrc;
 }
 
@@ -2422,7 +2422,7 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::Div_Check_Int:
     {
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMintIntOverNegOne(src1Opnd, src2Opnd, offset);
+        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }
@@ -3025,7 +3025,7 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     case Js::OpCodeAsmJs::Div_Long:
     {
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMintIntOverNegOne(src1Opnd, src2Opnd, offset);
+        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }

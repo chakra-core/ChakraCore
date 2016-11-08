@@ -390,7 +390,7 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
             }
         }
         break;
-    case Js::OpCode::TrapIfMintIntOverNegOne:
+    case Js::OpCode::TrapIfMinIntOverNegOne:
     {
         if (instr->GetDst()->IsInt64())
         {

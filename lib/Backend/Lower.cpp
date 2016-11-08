@@ -1100,7 +1100,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             break;
-        case Js::OpCode::TrapIfMintIntOverNegOne:
+        case Js::OpCode::TrapIfMinIntOverNegOne:
             instr->UnlinkSrc2();   //2nd arg was processed in div/rem; unlink it and transform an instruction into mov
         case Js::OpCode::TrapIfTruncOverflow:
         case Js::OpCode::TrapIfZero:
@@ -22428,7 +22428,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
-        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfMintIntOverNegOne, instr->GetSrc1());
+        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfMinIntOverNegOne, instr->GetSrc1());
         bool needsMinOverNeg1Check = true;
         if (isWasmFunc && instr->m_opcode != Js::OpCode::Rem_I4)
         {
