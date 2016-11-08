@@ -217,23 +217,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
 
     if (bucket == BucketId::LargeObjectList)
     {
-        Allocation * allocation = AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
-#if defined(DBG)
-        if (allocation)
-        {
-            MEMORY_BASIC_INFORMATION memBasicInfo;
-            size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-            if (resultBytes == 0)
-            {
-                if (this->processHandle != GetCurrentProcess())
-                {
-                    MemoryOperationLastError::RecordLastErrorAndThrow();
-                }
-            }
-            Assert(memBasicInfo.Protect == PAGE_EXECUTE);
-        }
-#endif
-        return allocation;
+        return AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
     }
 
     VerboseHeapTrace(_u("Bucket is %d\n"), bucket);
@@ -422,6 +406,18 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
 #endif
     }
 
+#if defined(DBG)
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t resultBytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
+    if (resultBytes == 0)
+    {
+        if (this->processHandle != GetCurrentProcess())
+        {
+            MemoryOperationLastError::RecordLastErrorAndThrow();
+        }
+    }
+    Assert(memBasicInfo.Protect == PAGE_EXECUTE);
+#endif
 
     Allocation* allocation = this->largeObjectAllocations.PrependNode(this->auxiliaryAllocator);
     if (allocation == nullptr)
