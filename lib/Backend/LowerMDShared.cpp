@@ -2442,8 +2442,8 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
         !srcReg2 ||
         srcReg1->IsTaggedInt() ||
         srcReg2->IsTaggedInt() ||
-        !srcReg1->GetValueType().IsLikelyString() ||
-        !srcReg2->GetValueType().IsLikelyString())
+        (!srcReg1->GetValueType().IsLikelyString() && !srcReg1->GetValueType().HasBeenString()) ||
+        (!srcReg2->GetValueType().IsLikelyString() && !srcReg2->GetValueType().HasBeenString()))
     {
         return false;
     }
@@ -2556,7 +2556,12 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
     labelFallthrough->m_noHelperAssert = true;
 #endif
-
+    if (!srcReg1->GetValueType().IsLikelyString() || !srcReg2->GetValueType().IsLikelyString())
+    {
+        // If either of the sources were not likely stings but had been strings in the past,
+        // continue generating fast paths for other value types.
+        return false;
+    }
     return true;
 }
 

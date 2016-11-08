@@ -20007,7 +20007,8 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
         break;
     }
 
-    if (src1->GetValueType().IsLikelyBoolean() && src2->GetValueType().IsLikelyBoolean())
+    bool generateObjectFastPath = true;
+    if ((src1->GetValueType().IsLikelyBoolean() || src1->GetValueType().HasBeenBoolean()) && (src2->GetValueType().IsLikelyBoolean() && src2->GetValueType().HasBeenBoolean()))
     {
         //
         // Booleans
@@ -20037,8 +20038,15 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
             }
         }
+
+        if (src1->GetValueType().IsLikelyBoolean() && src2->GetValueType().IsLikelyBoolean())
+        {
+            generateObjectFastPath = false;
+        }
     }
-    else if (src1->GetValueType().IsLikelyObject() && src2->GetValueType().IsLikelyObject())
+
+    if (generateObjectFastPath &&
+        (src1->GetValueType().IsLikelyObject() || src1->GetValueType().HasBeenObject()) && (src2->GetValueType().IsLikelyObject() || src2->GetValueType().HasBeenObject()))
     {
         //
         // Objects
