@@ -133,12 +133,6 @@ inline T WasmMath::Copysign(T aLeft, T aRight)
     return (T)_copysign(aLeft, aRight);
 }
 
-template <typename T, T MIN, T MAX>
-inline bool WasmMath::IsInValidRange(double aLeft)
-{
-    return (aLeft >= (double) MIN && aLeft <= (double) MAX);
-}
-
 template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)
 {
     return aLeft < aRight;
