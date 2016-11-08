@@ -169,5 +169,17 @@ WebAssemblyMemory::GetBuffer() const
     return m_buffer;
 }
 
+uint
+WebAssemblyMemory::GetInitialLength() const
+{
+    return m_initial;
+}
+
+uint
+WebAssemblyMemory::GetMaximumLength() const
+{
+    return m_maximum;
+}
+
 } // namespace Js
 #endif // ENABLE_WASM

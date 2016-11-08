@@ -20,7 +20,7 @@ namespace Js
             static FunctionInfo Get;
             static FunctionInfo Set;
         };
-        WebAssemblyTable(Var * values, uint32 length, uint32 maxLength, DynamicType * type);
+        WebAssemblyTable(Var * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterLength(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGrow(RecyclableObject* function, CallInfo callInfo, ...);
@@ -32,7 +32,10 @@ namespace Js
 
         static WebAssemblyTable * Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 
-        uint32 GetLength() const;
+        uint32 GetCurrentLength() const;
+        uint32 GetInitialLength() const;
+        uint32 GetMaximumLength() const;
+
         Var * GetValues() const;
 
         void DirectSetValue(uint index, Var val);
@@ -40,9 +43,11 @@ namespace Js
 
         static uint32 GetOffsetOfValues() { return offsetof(WebAssemblyTable, m_values); }
     private:
-        Var * m_values;
+        uint32 m_initialLength;
         uint32 m_maxLength;
-        uint32 m_length;
+
+        uint32 m_currentLength;
+        Var * m_values;
 #endif
     };
 }

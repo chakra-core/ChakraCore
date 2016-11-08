@@ -102,9 +102,10 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     LoadDataSegs(module, memory, scriptContext);
 
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
-    BuildObject(module, scriptContext, exportsNamespace, memory, newInstance, localModuleFunctions, importFunctions);
-
     LoadIndirectFunctionTable(module, scriptContext, table, localModuleFunctions, importFunctions);
+
+    BuildObject(module, scriptContext, exportsNamespace, memory, table, newInstance, localModuleFunctions, importFunctions);
+
     uint32 startFuncIdx = module->GetStartFunction();
     if (startFuncIdx != Js::Constants::UninitializedValue)
     {
@@ -217,13 +218,20 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memo
     }
 }
 
-void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
+void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, WebAssemblyTable** table, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
 {
     if (wasmModule->IsMemoryExported())
     {
         PropertyRecord const * propertyRecord = nullptr;
         ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
         JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *memory, ctx);
+    }
+
+    if (wasmModule->HasTableExport())
+    {
+        PropertyRecord const * propertyRecord = nullptr;
+        ctx->GetOrAddPropertyRecord(_u("table"), lstrlen(_u("table")), &propertyRecord);
+        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *table, ctx);
     }
 
     PropertyRecord const * exportsPropertyRecord = nullptr;
@@ -328,21 +336,32 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
         if (WebAssemblyMemory::Is(prop))
         {
+            WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
+            if (!wasmModule->IsValidMemoryImport(mem))
+            {
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            }
             // only support 1 memory currently
             if (*memoryObject != nullptr)
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
             }
-            *memoryObject = prop;
+            *memoryObject = mem;
         }
         else if (WebAssemblyTable::Is(prop))
         {
-            // only support 1 memory currently
+            WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
+
+            if (!wasmModule->IsValidTableImport(table))
+            {
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            }
+            // only support 1 table currently
             if (*tableObject != nullptr)
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
             }
-            *tableObject = WebAssemblyTable::FromVar(prop);
+            *tableObject = table;
 
         }
         else if (JavascriptFunction::Is(prop))
@@ -493,7 +512,8 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
         {
             Assert(elems != nullptr);
             uint offset = eSeg->GetDestAddr(wasmModule);
-            if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetLength())
+            // REVIEW: should we check against min?
+            if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
             }

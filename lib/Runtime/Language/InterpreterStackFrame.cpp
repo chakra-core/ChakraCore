@@ -8544,7 +8544,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
-        if (index >= table->GetLength())
+        if (index >= table->GetCurrentLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
         }
