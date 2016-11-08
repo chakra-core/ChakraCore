@@ -10,10 +10,11 @@
 namespace Js
 {
 
-WebAssemblyTable::WebAssemblyTable(Var * values, uint32 length, uint32 maxLength, DynamicType * type) :
+WebAssemblyTable::WebAssemblyTable(Var * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type) :
     DynamicObject(type),
     m_values(values),
-    m_length(length),
+    m_currentLength(currentLength),
+    m_initialLength(initialLength),
     m_maxLength(maxLength)
 {
 }
@@ -97,7 +98,7 @@ WebAssemblyTable::EntryGetterLength(RecyclableObject* function, CallInfo callInf
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
     WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
-    return JavascriptNumber::ToVar(table->m_length, scriptContext);
+    return JavascriptNumber::ToVar(table->m_currentLength, scriptContext);
 }
 
 Var
@@ -122,18 +123,18 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
         deltaVar = args[1];
     }
     uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
-    if ((uint64)table->m_length + delta > table->m_maxLength)
+    if ((uint64)table->m_currentLength + delta > table->m_maxLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
     CompileAssert(sizeof(m_maxLength) == sizeof(uint32));
 
-    uint32 newLength = table->m_length + delta;
+    uint32 newLength = table->m_currentLength + delta;
     Var * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, newLength);
-    memcpy_s(newValues, newLength, table->m_values, table->m_length);
+    memcpy_s(newValues, newLength, table->m_values, table->m_currentLength);
 
     table->m_values = newValues;
-    table->m_length = newLength;
+    table->m_currentLength = newLength;
 
     return scriptContext->GetLibrary()->GetUndefined();
 }
@@ -160,7 +161,7 @@ WebAssemblyTable::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
         indexVar = args[1];
     }
     uint32 index = WebAssembly::ToNonWrappingUint32(indexVar, scriptContext);
-    if (index > table->m_length)
+    if (index > table->m_currentLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
@@ -205,7 +206,7 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     }
 
     uint32 index = WebAssembly::ToNonWrappingUint32(indexVar, scriptContext);
-    if (index > table->m_length)
+    if (index > table->m_currentLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
@@ -224,13 +225,13 @@ WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptC
     {
         values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, initial);
     }
-    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
+    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
 }
 
 void
 WebAssemblyTable::DirectSetValue(uint index, Var val)
 {
-    Assert(index < m_length);
+    Assert(index < m_currentLength);
     Assert(!val || AsmJsScriptFunction::Is(val));
     m_values[index] = val;
 }
@@ -238,7 +239,7 @@ WebAssemblyTable::DirectSetValue(uint index, Var val)
 Var
 WebAssemblyTable::DirectGetValue(uint index) const
 {
-    Assert(index < m_length);
+    Assert(index < m_currentLength);
     Var val = m_values[index];
     Assert(!val || AsmJsScriptFunction::Is(val));
     return val;
@@ -249,10 +250,23 @@ WebAssemblyTable::GetValues() const
 {
     return m_values;
 }
+
 uint32
-WebAssemblyTable::GetLength() const
+WebAssemblyTable::GetCurrentLength() const
 {
-    return m_length;
+    return m_currentLength;
+}
+
+uint32
+WebAssemblyTable::GetInitialLength() const
+{
+    return m_initialLength;
+}
+
+uint32
+WebAssemblyTable::GetMaximumLength() const
+{
+    return m_maxLength;
 }
 
 } // namespace Js

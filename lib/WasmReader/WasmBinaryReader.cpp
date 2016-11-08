@@ -148,7 +148,7 @@ WasmBinaryReader::ProcessCurrentSection()
     switch (m_currentSection.code)
     {
     case bSectMemory:
-        ReadMemorySection();
+        ReadMemorySection(false);
         break;
     case bSectSignatures:
         ReadSignatures();
@@ -172,7 +172,7 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadDataSegments();
         break;
     case bSectIndirectFunctionTable:
-        ReadTableSection();
+        ReadTableSection(false);
         break;
     case bSectElement:
         ReadElementSection();
@@ -608,10 +608,18 @@ WasmBinaryReader::EndOfModule()
 
 // readers
 void
-WasmBinaryReader::ReadMemorySection()
+WasmBinaryReader::ReadMemorySection(bool isImportSection)
 {
     UINT length = 0;
-    UINT32 count = LEB128(length);
+    UINT32 count;
+    if (isImportSection)
+    {
+        count = 1;
+    }
+    else
+    {
+        count = LEB128(length);
+    }
     if (count > 1)
     {
         ThrowDecodingError(_u("Maximum of 1 memory allowed"));
@@ -626,7 +634,7 @@ WasmBinaryReader::ReadMemorySection()
         {
             maxPage = LEB128(length);
         }
-        m_module->InitializeMemory(minPage, maxPage);
+        m_module->InitializeMemory(minPage, maxPage, isImportSection);
     }
 }
 
@@ -741,7 +749,12 @@ void WasmBinaryReader::ReadExportTable()
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         case ExternalKinds::Table:
-            ThrowDecodingError(_u("Exported Kind Table, NYI"));
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Invalid table index %s"), index);
+            }
+            m_module->SetTableExported();
+            break;
         default:
             ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
             break;
@@ -750,16 +763,24 @@ void WasmBinaryReader::ReadExportTable()
     }
 }
 
-void WasmBinaryReader::ReadTableSection()
+void WasmBinaryReader::ReadTableSection(bool isImportSection)
 {
     uint32 length;
-    uint32 entries = LEB128(length);
+    uint32 entries;
+    if (isImportSection)
+    {
+        entries = 1;
+    }
+    else
+    {
+        entries = LEB128(length);
+    }
     if (entries > 1)
     {
         ThrowDecodingError(_u("Maximum of one table allowed"));
     }
 
-    if (entries > 0)
+    if (entries == 1)
     {
         int8 elementType = ReadConst<int8>();
         if (elementType != LanguageTypes::anyfunc)
@@ -773,7 +794,7 @@ void WasmBinaryReader::ReadTableSection()
         {
             maximumLength = LEB128(length);
         }
-        m_module->InitializeTable(initialLength, maximumLength);
+        m_module->InitializeTable(initialLength, maximumLength, isImportSection);
         TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), initialLength, maximumLength);
     }
 }
@@ -962,10 +983,10 @@ WasmBinaryReader::ReadImportEntries()
             break;
         }
         case ExternalKinds::Table:
-            m_module->AddTableImport(modName, modNameLen, fnName, fnNameLen);
+            ReadTableSection(true);
             break;
         case ExternalKinds::Memory:
-            m_module->AddMemoryImport(modName, modNameLen, fnName, fnNameLen);
+            ReadMemorySection(true);
             break;
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);

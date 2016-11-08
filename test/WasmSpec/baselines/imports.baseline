@@ -1,5 +1,3 @@
-Unexpected Error while compiling imports.0.wasm
-WebAssemblyCompileError: Compiling wasm failed: Exported Kind Table, NYI
 13
 14 42
 13
@@ -24,53 +22,16 @@ TypeError: Import is invalid
 Unexpected Error while compiling imports.10.wasm
 TypeError: Import is invalid
 Unexpected Error while compiling imports.11.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
+WebAssemblyCompileError: Compiling wasm failed: IndirectFunctionTable section missing before Element
 Unexpected Error while compiling imports.12.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.13.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.14.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.15.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.16.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.17.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.18.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.19.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.20.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.21.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.22.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
-Unexpected Error while compiling imports.23.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Table, NYI
+WebAssemblyCompileError: Compiling wasm failed: IndirectFunctionTable section missing before Element
 Unexpected Error while compiling imports.24.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
+WebAssemblyCompileError: Compiling wasm failed: Memory section missing before DataSegments
 Unexpected Error while compiling imports.25.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.26.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.27.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.28.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.29.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.30.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.31.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.32.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.33.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.34.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-Unexpected Error while compiling imports.35.wasm
-WebAssemblyCompileError: Compiling wasm failed: Imported Kind Memory, NYI
-1/1 tests passed.
+WebAssemblyCompileError: Compiling wasm failed: Memory section missing before DataSegments
+testsuite/imports.wast:451: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:452: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:453: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:454: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:455: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+1/6 tests passed.
