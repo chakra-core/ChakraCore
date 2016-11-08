@@ -24,8 +24,8 @@ let check = function(expected, funName, ...args)
 
 
 let ffi = {};
-let wasm = readbuffer("trunc.wasm");
-let exports = Wasm.instantiateModule(new Uint8Array(wasm), ffi).exports;
+var mod = new WebAssembly.Module(readbuffer('trunc.wasm'));
+var exports = new WebAssembly.Instance(mod, ffi).exports;
 
 //i32
 check("Overflow","exports.i32_trunc_u_f64",Number.NaN);
