@@ -6,6 +6,7 @@
 #include "Common.h"
 #include "PlatformAgnostic/AssemblyCommon.h"
 
+#ifndef DISABLE_JIT
 extern void mac_fde_wrapper(const char *dataStart, mac_fde_reg_op reg_op)
 {
     const char *head = dataStart;
@@ -28,3 +29,4 @@ extern void mac_fde_wrapper(const char *dataStart, mac_fde_reg_op reg_op)
         head += *length;
     } while(1);
 }
+#endif

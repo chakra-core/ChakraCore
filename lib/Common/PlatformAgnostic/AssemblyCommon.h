@@ -24,6 +24,9 @@ void mac_fde_wrapper(const char *dataStart, mac_fde_reg_op reg_op);
 #define __REGISTER_FRAME(addr) __register_frame(addr)
 #define __DEREGISTER_FRAME(addr) __deregister_frame(addr)
 #endif // __APPLE__
+#else
+#define __REGISTER_FRAME(addr)
+#define __DEREGISTER_FRAME(addr)
 #endif // _AMD64_ && !DISABLE_JIT
 
 #endif // !_WIN32
