@@ -13,7 +13,7 @@ IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * p
 #if ENABLE_BACKGROUND_PAGE_FREEING 
     BackgroundPageQueue *  backgroundPageQueue,
 #endif
-    uint maxAllocPageCount) :
+    uint maxAllocPageCount, bool enableWriteBarrier) :
 #ifdef IDLE_DECOMMIT_ENABLED
     idleDecommitTryEnterWaitFactor(0),
     hasDecommitTimer(false),
@@ -27,7 +27,7 @@ IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * p
 #if ENABLE_BACKGROUND_PAGE_FREEING
     backgroundPageQueue,
 #endif        
-    maxAllocPageCount),
+    maxAllocPageCount, 0, false, false, GetCurrentProcess(), enableWriteBarrier),
     maxIdleDecommitFreePageCount(maxIdleFreePageCount),
     maxNonIdleDecommitFreePageCount(maxFreePageCount)
 {

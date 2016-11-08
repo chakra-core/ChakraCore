@@ -106,7 +106,7 @@ CodeGenNumberThreadAllocator::AllocNewNumberBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true);
+        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true, false);
         if (currentNumberSegment == nullptr)
         {
             currentNumberBlockEnd = nullptr;
@@ -153,7 +153,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true);
+        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true, false);
         if (currentChunkSegment == nullptr)
         {
             currentChunkBlockEnd = nullptr;
@@ -501,7 +501,7 @@ void XProcNumberPageSegmentManager::Integrate()
                 auto leafPageAllocator = recycler->GetRecyclerLeafPageAllocator();
                 DListBase<PageSegment> segmentList;
                 temp->pageSegment = (intptr_t)leafPageAllocator->AllocPageSegment(segmentList, leafPageAllocator,
-                    (void*)temp->pageAddress, XProcNumberPageSegmentImpl::PageCount, temp->committedEnd / AutoSystemInfo::PageSize);
+                    (void*)temp->pageAddress, XProcNumberPageSegmentImpl::PageCount, temp->committedEnd / AutoSystemInfo::PageSize, false);
 
                 if (temp->pageSegment)
                 {

@@ -8,7 +8,7 @@ RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolic
 #ifndef JD_PRIVATE
     Js::ConfigFlagsTable& flagTable,
 #endif
-    uint maxFreePageCount, uint maxAllocPageCount)
+    uint maxFreePageCount, uint maxAllocPageCount, bool enableWriteBarrier)
     : IdleDecommitPageAllocator(policyManager,
         PageAllocatorType_Recycler,
 #ifndef JD_PRIVATE
@@ -19,7 +19,9 @@ RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolic
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         &zeroPageQueue,
 #endif
-        maxAllocPageCount)
+        maxAllocPageCount,
+        enableWriteBarrier
+        )
 {
     this->recycler = recycler;
 }

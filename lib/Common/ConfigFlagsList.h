@@ -1475,6 +1475,9 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
 
 FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
 FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
+
+FLAGNR(Boolean, StrictWriteBarrierCheck, "Check write barrier setting on none write barrier pages", false)
+
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
 

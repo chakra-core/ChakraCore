@@ -34,10 +34,23 @@ namespace Memory
 #endif
 #endif // RECYCLER_WRITE_BARRIER_ALLOC
 
+#ifdef RECYCLER_WRITE_BARRIER_BYTE
+
+#define DIRTYBIT 0x01
+
+#if DBG
+#define WRITE_BARRIER_PAGE_BIT 0x2
+#else
+#define WRITE_BARRIER_PAGE_BIT 0x0
+#endif
+
+#endif
+
 #ifdef _M_X64_OR_ARM64
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 
 #define X64_WB_DIAG 1
+
 
 class X64WriteBarrierCardTableManager
 {
@@ -63,11 +76,19 @@ public:
     // Get the card table for the 64 bit address space
     BYTE * GetAddressOfCardTable() { return _cardTable; }
 
-#if DBG
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     void AssertWriteToAddress(_In_ void* address)
     {
         Assert(_cardTable);
         Assert(committedSections.Test(GetSectionIndex(address)));
+    }
+    BOOLEAN IsCardTableCommited(_In_ uintptr_t index)
+    {
+        return committedSections.Test((BVIndex)(index/ AutoSystemInfo::PageSize));
+    }
+    BOOLEAN IsCardTableCommited(_In_ void* address)
+    {
+        return committedSections.Test(GetSectionIndex(address));
     }
 #endif
 
@@ -124,6 +145,34 @@ class RecyclerWriteBarrierManager
 public:
     static void WriteBarrier(void * address);
     static void WriteBarrier(void * address, size_t bytes);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    static void ToggleBarrier(void * address, size_t bytes, bool enable);
+    static BOOL IsBarrierAddress(void * address);
+    static BOOL IsBarrierAddress(uintptr_t index);
+    static void VerifyIsBarrierAddress(void * address, size_t bytes);
+    static void VerifyIsNotBarrierAddress(void * address, size_t bytes);
+    static void VerifyIsBarrierAddress(void * address);
+    static bool Initialize();
+#endif
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    static BOOLEAN IsCardTableCommited(_In_ uintptr_t index)
+    {
+#ifdef _M_X64_OR_ARM64
+        return x64CardTableManager.IsCardTableCommited(index);
+#else
+        return TRUE;
+#endif
+    }
+    static BOOLEAN IsCardTableCommitedAddress(_In_ void* address)
+    {
+#ifdef _M_X64_OR_ARM64
+        return x64CardTableManager.IsCardTableCommited(address);
+#else
+        return TRUE;
+#endif
+    }
+#endif
 
     // For JIT
     static uintptr_t GetCardTableIndex(void * address);
