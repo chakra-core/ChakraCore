@@ -2009,7 +2009,7 @@ public:
             ;
 
         PrependInt32(builder, _u("BitFlags"), bitFlags);
-        PrependInt32(builder, _u("Relative Function ID"), function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
+        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
         PrependInt32(builder, _u("Attributes"), function->GetAttributes());
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
@@ -2201,7 +2201,7 @@ public:
 
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
     {
-        topFunctionId = function->functionId;
+        topFunctionId = function->GetLocalFunctionId();
         return AddFunctionBody(functionsTable, function, srcInfo);
     }
 
@@ -3575,7 +3575,8 @@ public:
         }
         else
         {
-            *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, nullptr, (FunctionInfo::Attributes)attributes);
+            *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, nullptr, (FunctionInfo::Attributes)attributes,
+                        Js::FunctionBody::FunctionBodyFlags::Flags_None);
         }
 
         // These fields are manually deserialized previously
@@ -3792,7 +3793,7 @@ public:
                         return hr;
                     }
 
-                    (*function)->SetNestedFunc(nestedFunction, i, 0u);
+                    (*function)->SetNestedFunc(nestedFunction->GetFunctionInfo(), i, 0u);
                 }
             }
         }

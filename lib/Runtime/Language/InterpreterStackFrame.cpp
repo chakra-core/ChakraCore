@@ -501,7 +501,7 @@
     { \
         PROCESS_READ_LAYOUT(name, ElementSlot, suffix); \
         SetReg(playout->Value, \
-                func((FrameDisplay*)GetNonVarReg(playout->Instance), reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(playout->SlotIndex)))); \
+                func((FrameDisplay*)GetNonVarReg(playout->Instance), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex))); \
         break; \
     }
 
@@ -512,7 +512,7 @@
     { \
         PROCESS_READ_LAYOUT(name, ElementSlotI1, suffix); \
         SetReg(playout->Value, \
-               func(this->GetFrameDisplayForNestedFunc(), reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(playout->SlotIndex)))); \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex))); \
         break; \
     }
 
@@ -1920,6 +1920,8 @@ namespace Js
         AssertMsg(!executeFunction->IsDeferredParseFunction(),
             "Non-intrinsic functions must provide byte-code to execute");
 
+        executeFunction->BeginExecution();
+
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
         Var* allocation = nullptr;
@@ -2048,8 +2050,6 @@ namespace Js
             exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
         }
 #endif
-
-        executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
 
@@ -2808,9 +2808,9 @@ namespace Js
                 const auto& modFunc = info->GetFunction(i);
 
                 // TODO: add more runtime checks here
-                auto proxy = m_functionBody->GetNestedFuncReference(i);
+                FunctionInfoPtrPtr functionInfo = m_functionBody->GetNestedFuncReference(i);
 
-                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, (FunctionProxy**)proxy);
+                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, functionInfo);
                 localModuleFunctions[modFunc.location] = scriptFuncObj;
                 if (i == 0 && info->GetUsesChangeHeap())
                 {
@@ -4085,7 +4085,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+                JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
             }
             else
             {
@@ -4099,7 +4099,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices));
+                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
             }
             else
             {
@@ -7518,7 +7518,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         FrameDisplay *frameDisplay = this->GetFrameDisplayForNestedFunc();
         SetRegAllowStackVarEnableOnly(playout->Value,
             StackScriptFunction::OP_NewStackScFunc(frameDisplay,
-                reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(funcIndex)),
+                this->m_functionBody->GetNestedFuncReference(funcIndex),
                 this->GetStackNestedFunction(funcIndex)));
     }
 
@@ -7529,7 +7529,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         FrameDisplay *frameDisplay = (FrameDisplay*)GetNonVarReg(playout->Instance);
         SetRegAllowStackVarEnableOnly(playout->Value,
             StackScriptFunction::OP_NewStackScFunc(frameDisplay,
-                reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(funcIndex)),
+                this->m_functionBody->GetNestedFuncReference(funcIndex),
                 this->GetStackNestedFunction(funcIndex)));
     }
 
@@ -7677,7 +7677,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         for (uint i = 0; i < nestedCount; i++)
         {
             StackScriptFunction * stackScriptFunction = scriptFunctions + i;
-            FunctionProxy* nestedProxy = functionBody->GetNestedFunc(i);
+            FunctionProxy* nestedProxy = functionBody->GetNestedFunctionProxy(i);
             ScriptFunctionType* type = nestedProxy->EnsureDeferredPrototypeType();
             new (stackScriptFunction)StackScriptFunction(nestedProxy, type);
         }

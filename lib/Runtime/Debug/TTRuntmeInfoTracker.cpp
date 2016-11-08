@@ -449,7 +449,7 @@ namespace TTD
 
         for(uint32 i = 0; i < body->GetNestedCount(); ++i)
         {
-            Js::ParseableFunctionInfo* pfiMid = body->GetNestedFunc(i)->EnsureDeserialized();
+            Js::ParseableFunctionInfo* pfiMid = body->GetNestedFunctionForExecution(i);
             Js::FunctionBody* currfb = TTD::JsSupport::ForceAndGetFunctionBody(pfiMid);
 
             this->ProcessFunctionBodyOnLoad(currfb, body);

@@ -967,8 +967,8 @@ private:
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 
-    void RestoreScopeInfo(Js::FunctionBody* functionBody);
-    void FinishScopeInfo(Js::FunctionBody* functionBody);
+    void RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody);
+    void FinishScopeInfo(Js::ParseableFunctionInfo* functionBody);
 
     BOOL PnodeLabelNoAST(IdentToken* pToken, LabelId* pLabelIdList);
     LabelId* CreateLabelId(IdentToken* pToken);
