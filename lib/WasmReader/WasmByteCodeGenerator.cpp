@@ -986,6 +986,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     BlockInfo blockInfo = PushLabel(endLabel);
     bool endOnElse = false;
     EmitBlockCommon(&blockInfo, &endOnElse);
+    EnsureYield(blockInfo);
 
     m_writer.AsmBr(endLabel);
     m_writer.MarkAsmJsLabel(falseLabel);
@@ -996,7 +997,12 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     {
         // In case the true block sets the unreachable state, we still have to emit the else block
         SetUnreachableState(false);
+        if (blockInfo.yieldInfo)
+        {
+            blockInfo.yieldInfo->didYield = false;
+        }
         EmitBlockCommon(&blockInfo);
+        EnsureYield(blockInfo);
     }
     m_writer.MarkAsmJsLabel(endLabel);
 
@@ -1331,13 +1337,8 @@ WasmBytecodeGenerator::ReleaseLocation(EmitInfo * info)
 }
 
 EmitInfo
-WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
+WasmBytecodeGenerator::EnsureYield(BlockInfo info)
 {
-    Assert(m_blockInfos.Count() > 0);
-    BlockInfo info = m_blockInfos.Pop();
-    UNREFERENCED_PARAMETER(labelValidation);
-    Assert(info.label == labelValidation);
-
     EmitInfo yieldEmitInfo;
     if (info.HasYield())
     {
@@ -1348,10 +1349,21 @@ WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
             // Most likely we can't reach this code so the value doesn't matter
             WasmConstLitNode cnst;
             cnst.i64 = 0;
+            info.yieldInfo->didYield = true;
             EmitLoadConst(yieldEmitInfo, cnst);
         }
     }
     return yieldEmitInfo;
+}
+
+EmitInfo
+WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
+{
+    Assert(m_blockInfos.Count() > 0);
+    BlockInfo info = m_blockInfos.Pop();
+    UNREFERENCED_PARAMETER(labelValidation);
+    Assert(info.label == labelValidation);
+    return EnsureYield(info);
 }
 
 BlockInfo
