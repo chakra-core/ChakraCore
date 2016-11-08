@@ -269,6 +269,7 @@ MACRO_BACKEND_ONLY(     FromVar,            Reg2,           OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Conv_Prim,          Reg2,           OpTempNumberProducing|OpTempNumberSources|OpCanCSE|OpPostOpDbgBailOut)  // Convert between primitives (int32/float64)
 MACRO_BACKEND_ONLY(     Conv_Bool,          Reg2,           OpTempNumberSources|OpCanCSE)                           // Convert from i4 to bool
 MACRO_BACKEND_ONLY(     Reinterpret_Prim,   Reg2,           OpTempNumberProducing|OpTempNumberSources|OpCanCSE)  // Reinterpret bits between primitives (int32/float32)
+MACRO_BACKEND_ONLY(     TrapIfTruncOverflow,  Reg2,         OpSideEffect)
 
 // Register
 MACRO_EXTEND_WMS(       UnwrapWithObj,      Reg2,           OpSideEffect) // Copy Var register with unwrapped object
@@ -731,11 +732,13 @@ MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
 MACRO_BACKEND_ONLY(     FrameDisplayCheck,  Empty,          OpCanCSE)
 MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
 
-MACRO_BACKEND_ONLY(     PopCnt,           Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
+MACRO_BACKEND_ONLY(     PopCnt,             Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect|OpNoFallThrough)
+MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne,  Reg3,     OpSideEffect)
+MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 
 MACRO_BACKEND_ONLY(     AsmJsEntryTracing, Empty, None)
 

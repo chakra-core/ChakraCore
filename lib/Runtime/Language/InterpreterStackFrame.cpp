@@ -7984,6 +7984,31 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
     }
 
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_DivRemCheck(T aLeft, T aRight, ScriptContext* scriptContext)
+    {
+        if (aRight == 0)
+        {
+            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+        }
+
+        return func(aLeft, aRight);
+    }
+
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func, T MIN> T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
+    {
+        if (aRight == 0)
+        {
+            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+        }
+
+        if (aLeft == MIN && aRight == -1)
+        {
+            JavascriptError::ThrowError(scriptContext, VBSERR_Overflow);
+        }
+
+        return func(aLeft, aRight);
+    }
+
     void InterpreterStackFrame::OP_Unreachable()
     {
         JavascriptError::ThrowUnreachable(scriptContext);

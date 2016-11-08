@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -26,6 +26,13 @@ namespace Js
         // -2^52
         static const uint64     k_NegTwoToFraction = 0xC330000000000000ull;
 
+        static const uint64     k_TwoTo63 = 0x43e0000000000000ull;
+        static const uint64     k_NegTwoTo63 = 0xc3e0000000000000ull;
+        static const uint64     k_TwoTo64 = 0x43f0000000000000ull;
+        static const uint64     k_TwoTo31 = 0x41dfffffffc00000ull;
+        static const uint64     k_NegTwoTo31 = 0xc1e0000000000000ull;
+        static const uint64     k_TwoTo32 = 0x41efffffffe00000ull;
+
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
         static const uint32     k_Float32NegPointFive = 0xBF000000ul;
@@ -35,6 +42,14 @@ namespace Js
         // -2^23
         static const uint32     k_Float32NegTwoToFraction = 0xCB000000ul;
 
+        static const uint32     k_Float32TwoTo63 = 0x5f000000u;
+        static const uint32     k_Float32NegTwoTo63 = 0xdf000000u;
+        static const uint32     k_Float32TwoTo64 = 0x5f800000u;
+        static const uint32     k_Float32NegOne = 0xbf800000u;
+        static const uint32     k_Float32TwoTo31 = 0x4f000000u;
+        static const uint32     k_Float32NegTwoTo31 = 0xcf000000u;
+        static const uint32     k_Float32TwoTo32 = 0x4f800000u;
+
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;
         static const double     NaN;
@@ -42,6 +57,8 @@ namespace Js
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
         static const double     ONE_POINT_ZERO;
+        static const double     DOUBLE_INT_MIN;
+        static const double     DOUBLE_TWO_TO_31;
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];

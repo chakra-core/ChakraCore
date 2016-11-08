@@ -68,6 +68,15 @@ namespace Js {
         static JavascriptString * ToPrimitiveString(Var aValue, ScriptContext * scriptContext);
 
         static int64 ToLength(Var aValue, ScriptContext* scriptContext);
+        static int64 F32TOI64(float src, ScriptContext * ctx);
+        static uint64 F32TOU64(float src, ScriptContext * ctx);
+        static int64 F64TOI64(double src, ScriptContext * ctx);
+        static uint64 F64TOU64(double src, ScriptContext * ctx);
+        static int32 F32TOI32(float src, ScriptContext * ctx);
+        static uint32 F32TOU32(float src, ScriptContext * ctx);
+        static int32 F64TOI32(double src, ScriptContext * ctx);
+        static uint32 F64TOU32(double src, ScriptContext * ctx);
+
     private:
         static BOOL ToInt32Finite(double value, int32* result);
         template<bool zero>

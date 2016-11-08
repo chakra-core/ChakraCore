@@ -271,6 +271,8 @@ public:
     RegOpnd *       FindRegUse(StackSym *sym);
     static RegOpnd *FindRegUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);
+    static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
+
     BranchInstr *   ChangeCmCCToBranchInstr(LabelInstr *targetInstr);
 
     static void     MoveRangeAfter(Instr * instrStart, Instr * instrLast, Instr * instrAfter);

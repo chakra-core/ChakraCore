@@ -134,7 +134,9 @@ MACRO_WMS       ( Add_Int                    , Int3            , None           
 MACRO_WMS       ( Sub_Int                    , Int3            , None            ) // int32 Arithmetic '-' (subtract)
 MACRO_WMS       ( Mul_Int                    , Int3            , None            ) // int32 Arithmetic '*'
 MACRO_WMS       ( Div_Int                    , Int3            , None            ) // int32 Arithmetic '/'
+MACRO_WMS       ( Div_Check_Int              , Int3            , None            ) // (checked) int32 Arithmetic '/'
 MACRO_WMS       ( Rem_Int                    , Int3            , None            ) // int32 Arithmetic '%'
+MACRO_WMS       ( Rem_Check_Int              , Int3            , None            ) // (checked) int32 Arithmetic '%'
 MACRO_WMS       ( And_Int                    , Int3            , None            ) // int32 Bitwise '&'
 MACRO_WMS       ( Or_Int                     , Int3            , None            ) // int32 Bitwise '|'
 MACRO_WMS       ( Xor_Int                    , Int3            , None            ) // int32 Bitwise '^'
@@ -148,7 +150,9 @@ MACRO_WMS       ( PopCnt_Int                 , Int2            , None           
 // Unsigned int math
 MACRO_WMS       ( Mul_UInt                   , Int3            , None            ) // uint32 Arithmetic '*'
 MACRO_WMS       ( Div_UInt                   , Int3            , None            ) // uint32 Arithmetic '/'
+MACRO_WMS       ( Div_Check_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '/'
 MACRO_WMS       ( Rem_UInt                   , Int3            , None            ) // uint32 Arithmetic '%'
+MACRO_WMS       ( Rem_Check_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '%'
 
 // Int64 Math
 MACRO_WMS       ( Ld_LongConst               , Long1Const1      , None            ) // Sets an int64 register from a const int64
@@ -280,6 +284,14 @@ MACRO_EXTEND_WMS( Nearest_Db                 , Double2         , None           
 MACRO_EXTEND_WMS( Nearest_Flt                , Float2          , None            )
 MACRO_EXTEND_WMS( CurrentMemory_Int          , AsmReg1         , None            )
 MACRO_EXTEND    ( Unreachable_Void           , Empty           , OpNoFallThrough )
+MACRO_EXTEND_WMS( Conv_Check_DTI             , Int1Double1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTI             , Int1Float1      , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTU             , Int1Double1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTU             , Int1Float1      , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTL             , Long1Float1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_FTUL            , Long1Float1     , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTL             , Long1Double1    , None            )
+MACRO_EXTEND_WMS( Conv_Check_DTUL            , Long1Double1    , None            )
 
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)
