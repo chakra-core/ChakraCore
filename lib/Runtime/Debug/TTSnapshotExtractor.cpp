@@ -217,6 +217,62 @@ namespace TTD
         }
     }
 
+    void SnapshotExtractor::ExtractRootInfo(const ThreadContextTTD* tctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const
+    {
+        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_MID>& glist = this->m_pendingSnap->GetGlobalRootList();
+
+        //Extract special roots
+        const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxList = tctx->GetTTDContexts();
+        for(int32 i = 0; i < ctxList.Count(); ++i)
+        {
+            Js::ScriptContext* ctx = ctxList.Item(i);
+
+            SnapRootPinEntry* speg = glist.NextOpenEntry();
+            speg->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(ctx->GetGlobalObject());
+            speg->LogId = objToLogIdMap.Item(ctx->GetGlobalObject());
+
+            SnapRootPinEntry* speu = glist.NextOpenEntry();
+            speu->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(ctx->GetLibrary()->GetUndefined());
+            speu->LogId = objToLogIdMap.Item(ctx->GetLibrary()->GetUndefined());
+
+            SnapRootPinEntry* spen = glist.NextOpenEntry();
+            spen->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(ctx->GetLibrary()->GetNull());
+            spen->LogId = objToLogIdMap.Item(ctx->GetLibrary()->GetNull());
+
+            SnapRootPinEntry* spet = glist.NextOpenEntry();
+            spet->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(ctx->GetLibrary()->GetTrue());
+            spet->LogId = objToLogIdMap.Item(ctx->GetLibrary()->GetTrue());
+
+            SnapRootPinEntry* spef = glist.NextOpenEntry();
+            spef->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(ctx->GetLibrary()->GetFalse());
+            spef->LogId = objToLogIdMap.Item(ctx->GetLibrary()->GetFalse());
+        }
+
+        //Extract global roots
+        for(auto iter = tctx->GetRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
+
+            SnapRootPinEntry* spe = glist.NextOpenEntry();
+            spe->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(iter.CurrentValue());
+            spe->LogId = objToLogIdMap.Item(iter.CurrentValue());
+        }
+
+
+        //Extract local roots
+        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_SMALL>& llist = this->m_pendingSnap->GetLocalRootList();
+        for(auto iter = tctx->GetLocalRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(objToLogIdMap.ContainsKey(iter.CurrentValue()))
+            {
+                SnapRootPinEntry* spe = llist.NextOpenEntry();
+
+                spe->LogObject = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
+                spe->LogId = objToLogIdMap.Item(iter.CurrentValue());
+            }
+        }
+    }
+
     void SnapshotExtractor::UnloadDataFromExtractor()
     {
         this->m_marks.Clear();
@@ -360,28 +416,41 @@ namespace TTD
         }
     }
 
-    void SnapshotExtractor::BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs)
+    void SnapshotExtractor::BeginSnapshot(ThreadContext* threadContext)
     {
         AssertMsg((this->m_pendingSnap == nullptr) & this->m_worklist.Empty(), "Something went wrong.");
 
         this->m_pendingSnap = TT_HEAP_NEW(SnapShot);
-
-        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
-        for(int32 i = 0; i < ctxs.Count(); ++i)
-        {
-            NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
-            NSSnapValues::ExtractScriptContext(snpCtx, ctxs.Item(i), this->m_pendingSnap->GetSnapshotSlabAllocator());
-        }
     }
 
-    void SnapshotExtractor::DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext)
+    void SnapshotExtractor::DoMarkWalk(ThreadContext* threadContext)
     {
         TTDTimer timer;
         double startTime = timer.Now();
 
-        for(int32 i = 0; i < roots.Count(); ++i)
+        //Add the special roots
+        const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxList = threadContext->TTDContext->GetTTDContexts();
+        for(int32 i = 0; i < ctxList.Count(); ++i)
         {
-            Js::Var root = roots.Item(i);
+            Js::ScriptContext* ctx = ctxList.Item(i);
+            this->MarkVisitVar(ctx->GetGlobalObject());
+            this->MarkVisitVar(ctx->GetLibrary()->GetUndefined());
+            this->MarkVisitVar(ctx->GetLibrary()->GetNull());
+            this->MarkVisitVar(ctx->GetLibrary()->GetTrue());
+            this->MarkVisitVar(ctx->GetLibrary()->GetFalse());
+        }
+
+        //Add the global roots
+        for(auto iter = threadContext->TTDContext->GetRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::Var root = iter.CurrentValue();
+            this->MarkVisitVar(root);
+        }
+
+        //Add the local roots
+        for(auto iter = threadContext->TTDContext->GetLocalRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::Var root = iter.CurrentValue();
             this->MarkVisitVar(root);
         }
 
@@ -395,16 +464,16 @@ namespace TTD
         }
 
         //Mark all of the well known objects/types
-        for(int32 i = 0; i < ctxs.Count(); ++i)
+        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
         {
-            ctxs.Item(i)->TTDWellKnownInfo->MarkWellKnownObjects_TTD(this->m_marks);
+            threadContext->TTDContext->GetTTDContexts().Item(i)->TTDWellKnownInfo->MarkWellKnownObjects_TTD(this->m_marks);
         }
 
         double endTime = timer.Now();
         this->m_pendingSnap->MarkTime = (endTime - startTime) / 1000.0;
     }
 
-    void SnapshotExtractor::EvacuateMarkedIntoSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs)
+    void SnapshotExtractor::EvacuateMarkedIntoSnapshot(ThreadContext* threadContext)
     {
         TTDTimer timer;
         double startTime = timer.Now();
@@ -412,18 +481,29 @@ namespace TTD
         SnapShot* snap = this->m_pendingSnap;
         SlabAllocator& alloc = this->m_pendingSnap->GetSnapshotSlabAllocator();
 
+        //invert the root map for extracting
+        JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator> objToLogIdMap(&HeapAllocator::Instance);
+        threadContext->TTDContext->LoadInvertedRootMap(objToLogIdMap);
+
+        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
+        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+        {
+            NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
+            NSSnapValues::ExtractScriptContext(snpCtx, threadContext->TTDContext->GetTTDContexts().Item(i), objToLogIdMap, snap->GetSnapshotSlabAllocator());
+        }
+
         //We extract all the global code function bodies with the context so clear their marks now
         JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
         JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
         JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
-        for(int32 i = 0; i < ctxs.Count(); ++i)
+        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
         {
             topLevelScriptLoad.Clear();
             topLevelNewFunction.Clear();
             topLevelEval.Clear();
 
-            Js::ScriptContext* ctx = ctxs.Item(i);
+            Js::ScriptContext* ctx = threadContext->TTDContext->GetTTDContexts().Item(i);
             ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
@@ -490,6 +570,18 @@ namespace TTD
 
             this->m_marks.MoveToNextAddress();
             tag = this->m_marks.GetTagValue();
+        }
+
+        this->ExtractRootInfo(threadContext->TTDContext, objToLogIdMap);
+
+        if(threadContext->TTDContext->GetActiveScriptContext() == nullptr)
+        {
+            this->m_pendingSnap->SetActiveScriptContext(TTD_INVALID_LOG_PTR_ID);
+        }
+        else
+        {
+            TTD_LOG_PTR_ID ctxId = threadContext->TTDContext->GetActiveScriptContext()->ScriptContextLogTag;
+            this->m_pendingSnap->SetActiveScriptContext(ctxId);
         }
 
         double endTime = timer.Now();

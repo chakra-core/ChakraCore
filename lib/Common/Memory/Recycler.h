@@ -274,7 +274,7 @@ enum CollectionFlags
     CollectOverride_FinishConcurrentTimeout = 0x00200000,
     CollectOverride_NoExhaustiveCollect = 0x00400000,
     CollectOverride_SkipStack           = 0x01000000,
-
+    CollectOverride_CheckScriptContextClose = 0x02000000,
     CollectMode_Partial                 = 0x08000000,
     CollectMode_Concurrent              = 0x10000000,
     CollectMode_Exhaustive              = 0x20000000,
@@ -294,8 +294,8 @@ enum CollectionFlags
 
     CollectOnAllocation             = CollectHeuristic_AllocSize | CollectHeuristic_Time | CollectMode_Concurrent | CollectMode_Partial | CollectOverride_FinishConcurrent | CollectOverride_AllowReentrant | CollectOverride_FinishConcurrentTimeout,
     CollectOnTypedArrayAllocation   = CollectHeuristic_AllocSize | CollectHeuristic_Time | CollectMode_Concurrent | CollectMode_Partial | CollectOverride_FinishConcurrent | CollectOverride_AllowReentrant | CollectOverride_FinishConcurrentTimeout | CollectOverride_AllowDispose,
-    CollectOnScriptIdle             = CollectOverride_FinishConcurrent | CollectMode_Concurrent | CollectMode_CacheCleanup | CollectOverride_SkipStack,
-    CollectOnScriptExit             = CollectHeuristic_AllocSize | CollectOverride_FinishConcurrent | CollectMode_Concurrent | CollectMode_CacheCleanup,
+    CollectOnScriptIdle             = CollectOverride_CheckScriptContextClose | CollectOverride_FinishConcurrent | CollectMode_Concurrent | CollectMode_CacheCleanup | CollectOverride_SkipStack,
+    CollectOnScriptExit             = CollectOverride_CheckScriptContextClose | CollectHeuristic_AllocSize | CollectOverride_FinishConcurrent | CollectMode_Concurrent | CollectMode_CacheCleanup,
     CollectExhaustiveCandidate      = CollectHeuristic_Never | CollectOverride_ExhaustiveCandidate,
     CollectOnScriptCloseNonPrimary  = CollectNowConcurrent | CollectOverride_ExhaustiveCandidate | CollectOverride_AllowDispose,
     CollectOnRecoverFromOutOfMemory = CollectOverride_ForceInThread | CollectMode_DecommitNow,
@@ -335,6 +335,10 @@ enum CollectionFlags
 class RecyclerCollectionWrapper
 {
 public:
+    RecyclerCollectionWrapper() :
+        _isScriptContextCloseGCPending(FALSE)
+    { }
+
     typedef BOOL (Recycler::*CollectionFunction)(CollectionFlags flags);
     virtual void PreCollectionCallBack(CollectionFlags flags) = 0;
     virtual void PreSweepCallback() = 0;
@@ -347,6 +351,7 @@ public:
     virtual void PostCollectionCallBack() = 0;
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) = 0;
     virtual uint GetRandomNumber() = 0;
+
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() = 0;
 #endif
@@ -359,6 +364,24 @@ public:
     virtual bool AsyncHostOperationStart(void *) = 0;
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) = 0;
 #endif
+
+    BOOL GetIsScriptContextCloseGCPending()
+    {
+        return _isScriptContextCloseGCPending;
+    }
+
+    void ClearIsScriptContextCloseGCPending()
+    {
+        _isScriptContextCloseGCPending = FALSE;
+    }
+
+    void SetIsScriptContextCloseGCPending()
+    {
+        _isScriptContextCloseGCPending = TRUE;
+    }
+
+protected:
+    BOOL _isScriptContextCloseGCPending;
 };
 
 class DefaultRecyclerCollectionWrapper : public RecyclerCollectionWrapper

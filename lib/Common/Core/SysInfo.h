@@ -39,6 +39,11 @@ public:
     DWORD GetNumberOfLogicalProcessors() const { return this->dwNumberOfProcessors; }
     DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhysicalProcessors; }
 
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    bool IsChakraAddress(void * addr) const;
+    void * GetChakraBaseAddr() const;
+#endif
+
 #if defined(_M_ARM32_OR_ARM64)
     bool ArmDivAvailable() const { return this->armDivAvailable; }
 #endif
@@ -107,6 +112,9 @@ private:
     static HRESULT GetVersionInfo(__in LPCWSTR pszPath, DWORD* majorVersion, DWORD* minorVersion);
 
     static const DWORD INVALID_VERSION = (DWORD)-1;
+
+    HMODULE chakraBaseAddress;
+    size_t chakraSize;
 
     ULONG64 availableCommit;
     bool shouldQCMoreFrequently;

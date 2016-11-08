@@ -158,7 +158,6 @@ set(SOURCES
   thread/process.cpp
   thread/pal_thread.cpp
   thread/threadsusp.cpp
-  thread/tls.cpp
 )
 
 add_library(Chakra.Pal

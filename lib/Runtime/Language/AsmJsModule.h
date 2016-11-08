@@ -97,18 +97,22 @@ namespace Js {
 
     struct AsmJsFunctionMemory
     {
-        // Register where module slots are loaded
-        static const RegSlot ModuleSlotRegister = 0;
-        static const RegSlot ReturnRegister = 0;
+        enum
+        {
+            // Register where module slots are loaded
+            ModuleSlotRegister = 0,
+            ReturnRegister = 0,
 
-        static const RegSlot FunctionRegister = 0;
-        static const RegSlot CallReturnRegister = 0;
-        static const RegSlot ModuleEnvRegister = 1;
-        static const RegSlot ArrayBufferRegister = 2;
-        static const RegSlot ArraySizeRegister = 3;
-        static const RegSlot ScriptContextBufferRegister = 4;
-        //Var Return register and Module Environment and Array Buffer
-        static const int32 RequiredVarConstants = 5;
+            FunctionRegister = 0,
+            CallReturnRegister = 0,
+            // These are created from the const table which starts after the FirstRegSlot
+            ModuleEnvRegister = FunctionBody::FirstRegSlot,
+            ArrayBufferRegister,
+            ArraySizeRegister,
+            ScriptContextBufferRegister,
+            //Var Return register and Module Environment and Array Buffer
+            RequiredVarConstants
+        };
     };
     namespace AsmJsCompilation
     {

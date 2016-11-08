@@ -215,6 +215,63 @@ test13(1,2);
 test13({}, {});
 verify(["number", "object"], "TEST 13");
 
+function test14(a) {
+    actuals.push(arguments[1]);
+    function test14_nested1()
+    {
+    }
+}
+test14(1,2);
+test14(4,5);
+verify([2,5], "TEST 14");
+
+function test15(a){
+	actuals.push(arguments[0])
+	var b = 10;
+	function test15_nested1()
+	{
+		actuals.push(b);
+	};
+	test15_nested1();
+}
+
+test15(1);
+test15(2);
+verify([1, 10, 2, 10], "TEST 15");
+
+function test16(a,b){
+	var c = 10;
+
+	if(shouldBailout)
+	{
+		actuals.push(arguments[1]);
+	}
+	actuals.push(c);
+	function test16_nested1()
+	{
+	}
+}
+
+shouldBailout = false;
+test16(1,2);
+shouldBailout = true;
+test16(3,4);
+verify([10, 4, 10], "TEST 16");
+
+function test17(a){
+	var b = 20;
+	actuals.push(arguments[0.1*10]);
+	
+	function test17_nested1(){
+		actuals.push(b);
+	}
+	test17_nested1();
+}
+
+test17(1);
+test17(2);
+verify([undefined, 20, undefined, 20], "TEST 17");
+
 if(hasAllPassed)
 {
     print("PASSED");

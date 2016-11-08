@@ -23,13 +23,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -157,7 +150,8 @@
           "toTimeString": "function <large string>",
           "toUTCString": "function <large string>",
           "toGMTString": "function <large string>",
-          "valueOf": "function <large string>"
+          "valueOf": "function <large string>",
+          "Symbol.toPrimitive": "function <large string>"
         }
       }
     },
@@ -252,7 +246,8 @@
           "toTimeString": "function <large string>",
           "toUTCString": "function <large string>",
           "toGMTString": "function <large string>",
-          "valueOf": "function <large string>"
+          "valueOf": "function <large string>",
+          "Symbol.toPrimitive": "function <large string>"
         }
       }
     },

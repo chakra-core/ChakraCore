@@ -10,51 +10,74 @@
 
 namespace TTD
 {
-    //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed
-    class TTDExceptionFramePopper
-    {
-    private:
-        EventLog* m_log;
-        Js::JavascriptFunction* m_function;
-
-    public:
-        TTDExceptionFramePopper();
-        ~TTDExceptionFramePopper();
-
-        void PushInfo(EventLog* log, Js::JavascriptFunction* function);
-        void PopInfo();
-    };
-
     //A class to ensure that even when exceptions are thrown we increment/decrement the root nesting depth
     class TTDNestingDepthAutoAdjuster
     {
     private:
-        Js::ScriptContext* m_ctx;
+        ThreadContext* m_threadContext;
 
     public:
-        TTDNestingDepthAutoAdjuster(Js::ScriptContext* ctx);
-        ~TTDNestingDepthAutoAdjuster();
+        TTDNestingDepthAutoAdjuster(ThreadContext* threadContext)
+            : m_threadContext(threadContext)
+        {
+            this->m_threadContext->TTDRootNestingCount++;
+        }
+
+        ~TTDNestingDepthAutoAdjuster() 
+        {
+            this->m_threadContext->TTDRootNestingCount--;
+        }
     };
 
-    //A class to ensure that even when exceptions are thrown we update any event recording info we were in the middle of
+    //A class to manage the recording of JsRT action call state
     class TTDJsRTActionResultAutoRecorder
     {
     private:
         NSLogEvents::EventLogEntry* m_actionEvent;
         TTDVar* m_resultPtr;
-        ContextWrapperEnterExitStatus m_contextEnterTag;
 
     public:
-        TTDJsRTActionResultAutoRecorder(ContextWrapperEnterExitStatus contextEnterTag);
-        ~TTDJsRTActionResultAutoRecorder();
+        TTDJsRTActionResultAutoRecorder() 
+            : m_actionEvent(nullptr), m_resultPtr(nullptr)
+        {
+            ;
+        }
 
-        bool IsSetForRecord() const { return this->m_actionEvent != nullptr; }
+        void InitializeWithEventAndEnter(NSLogEvents::EventLogEntry* actionEvent)
+        {
+            AssertMsg(this->m_actionEvent == nullptr, "Don't double initialize");
 
-        void InitializeWithEventAndEnter(NSLogEvents::EventLogEntry* actionEvent);
-        void NormalCompletion();
+            this->m_actionEvent = actionEvent;
+        }
 
-        void InitializeWithEventAndEnterWResult(NSLogEvents::EventLogEntry* actionEvent, TTDVar* resultPtr);
-        void NormalCompletionWResult(Js::Var* result);
+        void InitializeWithEventAndEnterWResult(NSLogEvents::EventLogEntry* actionEvent, TTDVar* resultPtr)
+        {
+            AssertMsg(this->m_actionEvent == nullptr, "Don't double initialize");
+
+            this->m_actionEvent = actionEvent;
+
+            this->m_resultPtr = resultPtr;
+            *(this->m_resultPtr) = (TTDVar)nullptr; //set the result field to a default value in case we fail during execution
+        }
+
+        void SetResult(Js::Var* result)
+        {
+            AssertMsg(this->m_resultPtr != nullptr, "Why are we calling this then???");
+            if(result != nullptr)
+            {
+                *(this->m_resultPtr) = TTD_CONVERT_JSVAR_TO_TTDVAR(*(result));
+            }
+        }
+
+        void CompleteWithStatusCode(int32 exitStatus)
+        {
+            if(this->m_actionEvent != nullptr)
+            {
+                AssertMsg(this->m_actionEvent->ResultStatus == -1, "Hmm this got changed somewhere???");
+
+                this->m_actionEvent->ResultStatus = exitStatus;
+            }
+        }
     };
 
     //A class to ensure that even when exceptions are thrown we record the time difference info
@@ -65,11 +88,12 @@ namespace TTD
         NSLogEvents::EventLogEntry* m_callAction;
 
     public:
-        TTDJsRTFunctionCallActionPopperRecorder(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
+        TTDJsRTFunctionCallActionPopperRecorder();
         ~TTDJsRTFunctionCallActionPopperRecorder();
+
+        void InitializeForRecording(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
     };
 
-#if ENABLE_TTD_DEBUGGING
     //A by value class representing the state of the last returned from location in execution (return x or exception)
     class TTLastReturnLocationInfo
     {
@@ -92,7 +116,6 @@ namespace TTD
         void ClearReturnOnly();
         void ClearExceptionOnly();
     };
-#endif
 
     //A list class for the events that we accumulate in the event log
     class TTEventList
@@ -206,9 +229,6 @@ namespace TTD
         TTModeStack m_modeStack;
         TTDMode m_currentMode;
 
-        //A list of contexts that are being run in TTD mode (and the associated callback functors) -- We assume the host creates a single context for now 
-        Js::ScriptContext* m_ttdContext;
-
         //The snapshot extractor that this log uses
         SnapshotExtractor m_snapExtractor;
 
@@ -228,7 +248,6 @@ namespace TTD
         UnorderedArrayList<NSSnapValues::TopLevelNewFunctionBodyResolveInfo, TTD_ARRAY_LIST_SIZE_SMALL> m_newFunctionTopLevelScripts;
         UnorderedArrayList<NSSnapValues::TopLevelEvalFunctionBodyResolveInfo, TTD_ARRAY_LIST_SIZE_SMALL> m_evalTopLevelScripts;
 
-#if ENABLE_TTD_DEBUGGING
         //The most recently executed statement before return -- normal return or exception
         //We clear this after executing any following statements so this can be used for:
         // - Step back to uncaught exception
@@ -254,7 +273,6 @@ namespace TTD
 
         //A list of breakpoints we want to preserve when performing TTD moves (even if we create a new script context)
         JsUtil::List<TTDebuggerSourceLocation, HeapAllocator> m_bpPreserveList;
-#endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         TraceLogger m_diagnosticLogger;
@@ -267,7 +285,6 @@ namespace TTD
         const SingleCallCounter& GetTopCallCounter() const;
         SingleCallCounter& GetTopCallCounter();
 
-#if ENABLE_TTD_DEBUGGING
         //Check if a function is in the JustMyCode set as determined by the host debugger
         static bool IsFunctionJustMyCode(const Js::FunctionBody* fbody);
         static bool IsFunctionJustMyCode(const Js::JavascriptFunction* function);
@@ -277,7 +294,6 @@ namespace TTD
 
         //get the caller for the top call counter that is user code from the stack (e.g. stack -2)
         const SingleCallCounter* GetTopCallCallerCounter(bool justMyCode) const;
-#endif
 
         //Get the current XTTDEventTime and advance the event time counter
         int64 GetCurrentEventTimeAndAdvance();
@@ -316,6 +332,9 @@ namespace TTD
             NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry();
             NSLogEvents::EventLogEntry_Initialize(res, tag, this->GetCurrentEventTimeAndAdvance());
 
+            //For these operations are not allowed to fail so success is always 0
+            res->ResultStatus = 0;
+
             return NSLogEvents::GetInlineEventDataAs<T, tag>(res);
         }
 
@@ -351,6 +370,9 @@ namespace TTD
         EventLog(ThreadContext* threadContext);
         ~EventLog();
 
+        //When we stop recording we want to unload all of the data in the log (otherwise we get strange transitions if we start again later)
+        void UnloadAllLogData();
+
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         //Get the trace logger for this 
         TraceLogger* GetTraceLogger();
@@ -358,14 +380,13 @@ namespace TTD
 
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
         void InitForTTDRecord();
-        void InitForTTDReplay();
-
-        //Add/remove script contexts from time travel
-        void StartTimeTravelOnScript(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
-        void StopTimeTravelOnScript(Js::ScriptContext* ctx);
+        void InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug);
 
         //reset the bottom (global) mode with the specific value
         void SetGlobalMode(TTDMode m);
+
+        //Mark that a snapshot is in (or or is now complete) 
+        void SetSnapshotOrInflateInProgress(bool flag);
 
         //push a new debugger mode 
         void PushMode(TTDMode m);
@@ -373,39 +394,23 @@ namespace TTD
         //pop the top debugger mode
         void PopMode(TTDMode m);
 
-        //Set the log into debugging mode
-        void SetIntoDebuggingMode();
+        //Set the mode flags on the script context based on the TTDMode in the Log
+        void SetModeFlagsOnContext(Js::ScriptContext* ctx);
 
-        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application when doing symbol creation
-        bool ShouldPerformRecordAction_SymbolCreation() const
-        {
-            //return true if RecordEnabled and ~ExcludedExecution
-            return (this->m_currentMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
-        }
+        //Get the global mode flags for creating a script context 
+        void GetModesForExplicitContextCreate(bool& inRecord, bool& activelyRecording, bool& inReplay);
 
-        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application when doing symbol creation
-        bool ShouldPerformDebugAction_SymbolCreation() const
-        {
-#if ENABLE_TTD_DEBUGGING
-            //return true if DebuggingEnabled and ~ExcludedExecution
-            return (this->m_currentMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+        //Just check if the debug mode flag has been set (don't check any active or suppressed properties)
+        bool IsDebugModeFlagSet() const;
 
-#else
-            return false;
-#endif
-        }
+        //A special check for to see if we want to push the supression flag for getter exection
+        bool ShouldDoGetterInvocationSupression() const;
 
-        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application when doing BP actions
-        bool ShouldPerformDebugAction_BreakPointAction() const
-        {
-#if ENABLE_TTD_DEBUGGING
-            //return true if DebuggingEnabled and ~ExcludedExecution
-            return (this->m_currentMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::TTDShouldDebugActionMask;
+        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
+        bool ShouldSuppressBreakpointsForTimeTravelMove() const;
 
-#else
-            return false;
-#endif
-        }
+        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
+        bool ShouldRecordBreakpointsDuringTimeTravelScan() const;
 
         //Add a property record to our pin set
         void AddPropertyRecord(const Js::PropertyRecord* record);
@@ -449,7 +454,7 @@ namespace TTD
         void RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName);
 
         //Replay a property enumeration step
-        void ReplayPropertyEnumEvent(BOOL* returnCode, Js::BigPropertyIndex* newIndex, const Js::DynamicObject* obj, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName);
+        void ReplayPropertyEnumEvent(Js::ScriptContext* requestContext, BOOL* returnCode, Js::BigPropertyIndex* newIndex, const Js::DynamicObject* obj, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName);
 
         //Log symbol creation
         void RecordSymbolCreationEvent(Js::PropertyId pid);
@@ -458,7 +463,7 @@ namespace TTD
         void ReplaySymbolCreationEvent(Js::PropertyId* pid);
 
         //Log a value event for return from an external call
-        NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv);
+        NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, bool checkExceptions);
         void RecordExternalCallEvent_Complete(Js::JavascriptFunction* efunction, NSLogEvents::EventLogEntry* evt, Js::Var result);
 
         //replay an external return event (which should be the current event)
@@ -476,7 +481,6 @@ namespace TTD
         void PopCallEvent(Js::JavascriptFunction* function, Js::Var result);
         void PopCallEventException(Js::JavascriptFunction* function);
 
-#if ENABLE_TTD_DEBUGGING
         void ClearExceptionFrames();
 
         //Set that we want to break on the execution of the first user code
@@ -513,12 +517,10 @@ namespace TTD
         void LoadBPListForContextRecreate();
         void EventLog::UnLoadBPListAfterMoveForContextRecreate();
         const JsUtil::List<TTDebuggerSourceLocation, HeapAllocator>& EventLog::GetRestoreBPListAfterContextRecreate();
-#endif
 
         //Update the loop count information
         void UpdateLoopCountInfo();
 
-#if ENABLE_TTD_STACK_STMTS
         //
         //TODO: This is not great performance wise
         //
@@ -527,13 +529,11 @@ namespace TTD
 
         //Get the current time/position info for the debugger -- all out arguments are optional (nullptr if you don't care)
         void GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
-#endif
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         void GetTimeAndPositionForDiagnosticObjectTracking(DiagnosticOrigin& originInfo) const;
 #endif 
 
-#if ENABLE_TTD_DEBUGGING
         //Get the previous statement time/position for the debugger -- return false if this is the first statement of the event handler
         bool GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
 
@@ -554,7 +554,6 @@ namespace TTD
         int64 GetFirstEventTime(bool justMyCode) const;
         int64 GetLastEventTime(bool justMyCode) const;
         int64 GetKthEventTime(uint32 k) const;
-#endif
 
         //Ensure the call stack is clear and counters are zeroed appropriately
         void ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime);
@@ -578,12 +577,8 @@ namespace TTD
         void DoRtrSnapIfNeeded();
 
         //Find the event time that has the snapshot we want to inflate from in order to replay to the requested target time
-        //Return -1 if no such snapshot is available and set newCtxsNeed true if we want to inflate with "fresh" script contexts
-        int64 FindSnapTimeForEventTime(int64 targetTime, bool allowRTR, bool* newCtxsNeeded, int64* optEndSnapTime);
-
-        //If we decide to update with fresh contexts before the inflate then this will update the inflate map info in the log
-        //Return true if we can delete the old script contexts as well
-        bool UpdateInflateMapForFreshScriptContexts();
+        //Return -1 if no such snapshot is available
+        int64 FindSnapTimeForEventTime(int64 targetTime, bool allowRTR, int64* optEndSnapTime);
 
         //Do the inflation of the snapshot that is at the given event time
         void DoSnapshotInflate(int64 etime);
@@ -611,6 +606,12 @@ namespace TTD
 
         //Get the most recently assigned event time value
         int64 GetLastEventTime() const;
+
+        NSLogEvents::EventLogEntry* RecordJsRTCreateScriptContext(TTDJsRTActionResultAutoRecorder& actionPopper);
+        void RecordJsRTCreateScriptContextResult(NSLogEvents::EventLogEntry* evt, Js::ScriptContext* newCtx);
+
+        void RecordJsRTSetCurrentContext(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var globalObject);
+        void RecordJsRTDeadScriptEvent(const DeadScriptLogTagInfo& deadCtx);
 
 #if !INT32VAR
         void RecordJsRTCreateInteger(TTDJsRTActionResultAutoRecorder& actionPopper, int value);
@@ -654,18 +655,27 @@ namespace TTD
         void RecordJsRTGetAndClearException();
         void RecordJsRTSetException(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, bool propagateToDebugger);
 
+        //Record query operations
+        void RecordJsRTHasProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
+        void RecordJsRTInstanceOf(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var object, Js::Var constructor);
+        void RecordJsRTEquals(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool doStrict);
+
+        //Record getters with native results
+        void RecordJsRTGetPropertyIdFromSymbol(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var sym);
+
         //Record Object Getters
-        void RecordJsRTGetProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::PropertyId pid, Js::Var var);
+        void RecordJsRTGetPrototype(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
+        void RecordJsRTGetProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
         void RecordJsRTGetIndex(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var index, Js::Var var);
-        void RecordJsRTGetOwnPropertyInfo(TTDJsRTActionResultAutoRecorder& actionPopper, Js::PropertyId pid, Js::Var var);
+        void RecordJsRTGetOwnPropertyInfo(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
         void RecordJsRTGetOwnPropertyNamesInfo(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
         void RecordJsRTGetOwnPropertySymbolsInfo(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
 
         //Record Object Setters
-        void RecordJsRTDefineProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, Js::PropertyId pid, Js::Var propertyDescriptor);
-        void RecordJsRTDeleteProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, Js::PropertyId pid, bool useStrictRules);
+        void RecordJsRTDefineProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, const Js::PropertyRecord* pRecord, Js::Var propertyDescriptor);
+        void RecordJsRTDeleteProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, const Js::PropertyRecord* pRecord, bool useStrictRules);
         void RecordJsRTSetPrototype(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, Js::Var proto);
-        void RecordJsRTSetProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules);
+        void RecordJsRTSetProperty(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, const Js::PropertyRecord* pRecord, Js::Var val, bool useStrictRules);
         void RecordJsRTSetIndex(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, Js::Var index, Js::Var val);
 
         //Record a get info from a typed array
@@ -674,11 +684,11 @@ namespace TTD
         //Record various raw byte* from ArrayBuffer manipulations
         void RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length);
         void RecordJsRTRawBufferModifySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 index, uint32 count);
-        Js::Var RecordJsRTRawBufferAsyncModificationRegister(TTDJsRTActionResultAutoRecorder& actionPopper, Js::ScriptContext* ctx, Js::Var dst, byte* initialModPos);
-        Js::Var RecordJsRTRawBufferAsyncModifyComplete(TTDJsRTActionResultAutoRecorder& actionPopper, Js::ScriptContext* ctx, byte* finalModPos);
+        void RecordJsRTRawBufferAsyncModificationRegister(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 index);
+        void RecordJsRTRawBufferAsyncModifyComplete(TTDJsRTActionResultAutoRecorder& actionPopper, TTDPendingAsyncBufferModification& pendingAsyncInfo, byte* finalModPos);
 
         //Record a constructor call from JsRT
-        void RecordJsRTConstructCall(TTDJsRTActionResultAutoRecorder& actionPopper, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
+        void RecordJsRTConstructCall(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var funcVar, uint32 argCount, Js::Var* args);
 
         //Record callback registration/cancelation
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCreate, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId);
@@ -687,13 +697,49 @@ namespace TTD
         NSLogEvents::EventLogEntry* RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, DWORD_PTR sourceContextId, const char16* sourceUri);
 
         //Record callback of an existing function
-        NSLogEvents::EventLogEntry* RecordJsRTCallFunction(TTDJsRTActionResultAutoRecorder& actionPopper, int32 rootDepth, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
+        NSLogEvents::EventLogEntry* RecordJsRTCallFunction(TTDJsRTActionResultAutoRecorder& actionPopper, int32 rootDepth, Js::Var funcVar, uint32 argCount, Js::Var* args);
 
         ////////////////////////////////
         //Emit code and support
 
-        void EmitLogIfNeeded();
-        void ParseLogInto();
+        void EmitLog();
+        void ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes);
+    };
+
+    //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed -- defined after EventLog so we can refer to it in the .h file
+    class TTDExceptionFramePopper
+    {
+    private:
+        EventLog* m_log;
+        Js::JavascriptFunction* m_function;
+
+    public:
+        TTDExceptionFramePopper()
+            : m_log(nullptr), m_function(nullptr)
+        {
+            ;
+        }
+
+        ~TTDExceptionFramePopper()
+        {
+            //we didn't clear this so an exception was thrown and we are propagating
+            if(this->m_log != nullptr)
+            {
+                //if it doesn't have an exception frame then this is the frame where the exception was thrown so record our info
+                this->m_log->PopCallEventException(this->m_function);
+            }
+        }
+
+        void PushInfo(EventLog* log, Js::JavascriptFunction* function)
+        {
+            this->m_log = log; //set the log info so if the pop isn't called the destructor will record propagation
+            this->m_function = function;
+        }
+
+        void PopInfo()
+        {
+            this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
+        }
     };
 }
 

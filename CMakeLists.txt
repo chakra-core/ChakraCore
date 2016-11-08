@@ -294,8 +294,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(NO_JIT_SH
-   OR CLR_CMAKE_PLATFORM_DARWIN)  # TODO: JIT for OSX
+if(NO_JIT_SH)
     unset(NO_JIT_SH CACHE)      # don't cache
     unset(BuildJIT CACHE)       # also clear it just in case
     add_definitions(-DDISABLE_JIT=1)

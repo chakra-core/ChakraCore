@@ -3944,7 +3944,7 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
 
     if (instr->m_opcode == Js::OpCode::Ld_A && src1->IsRegOpnd())
     {
-        AssertMsg(!src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
+        AssertMsg(!instr->m_func->IsStackArgsEnabled() || !src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
     }
 
     // The following is to track formals array for Stack Arguments optimization with Formals
@@ -4063,7 +4063,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 StackSym * scopeObjSym = instr->GetSrc1()->GetStackSym();
                 Assert(scopeObjSym);
                 Assert(scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::InitCachedScope || scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::NewScopeObject);
-                instr->m_func->SetScopeObjSym(scopeObjSym);
+                Assert(instr->m_func->GetScopeObjSym() == scopeObjSym);
 
                 if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                 {
@@ -4134,6 +4134,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         {
             instr->usesStackArgumentsObject = true;
         }
+
         break;
     }
     case Js::OpCode::LdLen_A:
@@ -4147,6 +4148,11 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
     case Js::OpCode::ArgOut_A_InlineBuiltIn:
     {
+        if (IsArgumentsOpnd(src1))
+        {
+            instr->usesStackArgumentsObject = true;
+        }
+
         if (IsArgumentsOpnd(src1) &&
             src1->AsRegOpnd()->m_sym->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture)
         {
@@ -4180,7 +4186,14 @@ GlobOpt::OptArguments(IR::Instr *instr)
     case Js::OpCode::BailOnNotStackArgs:
     case Js::OpCode::ArgOut_A_FromStackArgs:
     case Js::OpCode::BytecodeArgOutUse:
+    {
+        if (src1 && IsArgumentsOpnd(src1))
+        {
+            instr->usesStackArgumentsObject = true;
+        }
+        
         break;
+    }
 
     default:
         {
@@ -5674,6 +5687,9 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         opnd->SetValueType(val->GetValueInfo()->Type());
         return val;
 
+    case IR::OpndKindInt64Const:
+        return nullptr;
+
     case IR::OpndKindFloatConst:
     {
         const FloatConstType floatValue = opnd->AsFloatConstOpnd()->m_value;
@@ -6405,6 +6421,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 const auto indir = src->AsIndirOpnd();
                 if(opnd == indir->GetIndexOpnd())
                 {
+                    Assert(indir->GetScale() == 0);
                     GOPT_TRACE_OPND(opnd, _u("Constant prop indir index into offset (value: %d)\n"), intConstantValue);
                     this->CaptureByteCodeSymUses(instr);
                     indir->SetOffset(intConstantValue);
@@ -7427,6 +7444,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::BytecodeArgOutCapture:
     case Js::OpCode::InitConst:
+    case Js::OpCode::LdAsmJsFunc:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
 
@@ -9520,7 +9538,7 @@ GlobOpt::OptConstFoldUnary(
         }
         break;
 
-    case Js::OpCode::InlineMathClz32:
+    case Js::OpCode::InlineMathClz:
         DWORD clz;
         if (_BitScanReverse(&clz, intConstantValue))
         {
@@ -9987,7 +10005,7 @@ GlobOpt::TypeSpecializeInlineBuiltInUnary(IR::Instr **pInstr, Value **pSrc1Val, 
             }
         }
     }
-    else if (instr->m_opcode == Js::OpCode::InlineMathClz32)
+    else if (instr->m_opcode == Js::OpCode::InlineMathClz)
     {
         Assert(this->DoAggressiveIntTypeSpec());
         Assert(this->DoLossyIntTypeSpec());
@@ -14304,6 +14322,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         // the sym has been proven to be an int, the likely-int value, after specialization, will be constant.
                         // Replace the index opnd in the indir with an offset.
                         Assert(opnd == indir->GetIndexOpnd());
+                        Assert(indir->GetScale() == 0);
                         indir->UnlinkIndexOpnd()->Free(instr->m_func);
                         opnd = nullptr;
                         indir->SetOffset(intConstantValue);
@@ -14521,6 +14540,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 if(indir)
                 {
                     Assert(opnd == indir->GetIndexOpnd());
+                    Assert(indir->GetScale() == 0);
                     indir->UnlinkIndexOpnd()->Free(instr->m_func);
                     indir->SetOffset(constOpnd->AsIntConstOpnd()->AsInt32());
                 }
@@ -18584,14 +18604,7 @@ swap_srcs:
     case Js::OpCode::IsInst:
     case Js::OpCode::BailOnEqual:
     case Js::OpCode::BailOnNotEqual:
-    case Js::OpCode::StInt8ArrViewElem:
-    case Js::OpCode::StUInt8ArrViewElem:
-    case Js::OpCode::StInt16ArrViewElem:
-    case Js::OpCode::StUInt16ArrViewElem:
-    case Js::OpCode::StInt32ArrViewElem:
-    case Js::OpCode::StUInt32ArrViewElem:
-    case Js::OpCode::StFloat32ArrViewElem:
-    case Js::OpCode::StFloat64ArrViewElem:
+    case Js::OpCode::StArrViewElem:
         return;
     }
 

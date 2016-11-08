@@ -20,6 +20,7 @@ namespace Wasm
             Limit
         };
         bool IsLocalType(WasmTypes::WasmType type);
+        uint32 GetTypeByteSize(WasmType type);
     }
 
     namespace ExternalKinds
@@ -33,19 +34,12 @@ namespace Wasm
         };
     }
 
-    namespace ElementTypes
-    {
-        enum Type
-        {
-            anyfunc = 0x20
-        };
-    }
-
     namespace FunctionIndexTypes
     {
         enum Type
         {
             Invalid = -1,
+            ImportThunk,
             Function,
             Import
         };
@@ -132,7 +126,7 @@ namespace Wasm
     {
         uint32 funcIndex;
         uint32 nameLength;
-        char16* name;
+        const char16* name;
         ExternalKinds::ExternalKind kind;
     };
 
@@ -140,8 +134,8 @@ namespace Wasm
     {
         uint32 sigId;
         uint32 modNameLen;
-        char16* modName;
+        const char16* modName;
         uint32 fnNameLen;
-        char16* fnName;
+        const char16* fnName;
     };
 }

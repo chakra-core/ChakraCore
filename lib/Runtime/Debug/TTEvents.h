@@ -13,6 +13,68 @@
 //The limit on event times used as the default value
 #define TTD_EVENT_MAXTIME INT64_MAX
 
+//Values copied from ChakraCommon.h
+#define TTD_REPLAY_JS_INVALID_REFERENCE nullptr
+#define TTD_REPLAY_JsErrorInvalidArgument 65537
+#define TTD_REPLAY_JsErrorArgumentNotObject 65548
+#define TTD_REPLAY_JsErrorCategoryScript 196609
+#define TTD_REPLAY_JsErrorScriptTerminated 196611
+
+
+#define TTD_REPLAY_VALIDATE_JSREF(p) \
+        if (p == TTD_REPLAY_JS_INVALID_REFERENCE) \
+        { \
+            return; \
+        }
+
+#define TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        Js::RecyclableObject* __obj = Js::RecyclableObject::FromVar(p); \
+        if (__obj->GetScriptContext() != scriptContext) \
+        { \
+            p = Js::CrossSite::MarshalVar(scriptContext, __obj); \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(p, scriptContext) \
+        TTD_REPLAY_VALIDATE_JSREF(p); \
+        if (Js::RecyclableObject::Is(p)) \
+        { \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_OBJECT(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptOperators::IsObject(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_OBJECT_OR_NULL(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptOperators::IsObjectOrNull(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptFunction::Is(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_ACTIVE_CONTEXT(executeContext) \
+        Js::ScriptContext* ctx = executeContext->GetActiveScriptContext(); \
+        AssertMsg(ctx != nullptr, "This should bu non-null!!!");
+
 namespace TTD
 {
     //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
@@ -63,7 +125,6 @@ namespace TTD
         uint64 FunctionTime; //The function time when the function was called
         uint64 LoopTime; //The current loop taken time for the function
 
-#if ENABLE_TTD_STACK_STMTS
         int32 LastStatementIndex; //The previously executed statement
         uint64 LastStatementLoopTime; //The previously executed statement
 
@@ -73,7 +134,6 @@ namespace TTD
         //bytecode range of the current stmt
         uint32 CurrentStatementBytecodeMin;
         uint32 CurrentStatementBytecodeMax;
-#endif
     };
 
     //A class to represent a source location
@@ -131,32 +191,10 @@ namespace TTD
 
     //////////////////
 
-    //An enumeration that indicates if the event moves into/out-of context status 
-    enum class ContextWrapperEnterExitStatus : uint16
-    {
-        Clear = 0x0,
-
-        Enter = 0x1,
-        ExitNormal = 0x2,
-        ExitException = 0x4,
-
-        GlobalAPIWrapper = 0x10,
-        ContextAPIWrapper = 0x20,
-        ContextAPINoScriptWrapper = 0x40,
-
-        //handy combinations
-        NoNewEntry = Clear,
-        EnterGlobalAPIWrapper = Enter | GlobalAPIWrapper,
-        EnterContextAPIWrapper = Enter | ContextAPIWrapper,
-        EnterContextAPINoScriptWrapper = Enter | ContextAPINoScriptWrapper,
-        ContextKindMask = GlobalAPIWrapper | ContextAPIWrapper | ContextAPINoScriptWrapper
-    };
-    DEFINE_ENUM_FLAG_OPERATORS(ContextWrapperEnterExitStatus)
-
     namespace NSLogEvents
     {
         //An enumeration of the event kinds in the system
-        enum class EventKind : uint16
+        enum class EventKind : uint32
         {
             Invalid = 0x0,
             //Tags for internal engine events
@@ -173,6 +211,10 @@ namespace TTD
             ExternalCallTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
+
+            CreateScriptContextActionTag,
+            SetActiveScriptContextActionTag,
+            DeadScriptContextActionTag,
 
 #if !INT32VAR
             CreateIntegerActionTag,
@@ -208,6 +250,13 @@ namespace TTD
             GetAndClearExceptionActionTag,
             SetExceptionActionTag,
 
+            HasPropertyActionTag,
+            InstanceOfActionTag,
+            EqualsActionTag,
+
+            GetPropertyIdFromSymbolTag,
+
+            GetPrototypeActionTag,
             GetPropertyActionTag,
             GetIndexActionTag,
             GetOwnPropertyInfoActionTag,
@@ -236,10 +285,19 @@ namespace TTD
         };
 
         //Inflate an argument variable for an action during replay and record passing an value to the host
-        void PassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar);
-        Js::Var InflateVarInReplay(Js::ScriptContext* ctx, TTDVar var);
+        void PassVarToHostInReplay(ThreadContextTTD* executeContext, TTDVar origVar, Js::Var replayVar);
+        Js::Var InflateVarInReplay(ThreadContextTTD* executeContext, TTDVar var);
 
-        typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        //The kind of context that the replay code should execute in
+        enum class ContextExecuteKind
+        {
+            None,
+            GlobalAPIWrapper,
+            ContextAPIWrapper,
+            ContextAPINoScriptWrapper
+        };
+
+        typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, ThreadContextTTD* execCtx);
 
         typedef void(*fPtr_EventLogEntryInfoUnload)(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
@@ -248,6 +306,8 @@ namespace TTD
         //A struct that we use for our pseudo v-table on the EventLogEntry data
         struct EventLogEntryVTableEntry
         {
+            ContextExecuteKind ContextKind;
+
             fPtr_EventLogActionEntryInfoExecute ExecuteFP;
 
             fPtr_EventLogEntryInfoUnload UnloadFP;
@@ -263,8 +323,8 @@ namespace TTD
             //The kind of the event
             EventKind EventKind;
 
-            //infor on the event moving into/out of script context mode
-            ContextWrapperEnterExitStatus ContextMoveStatus;
+            //The result status code
+            int32 ResultStatus;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The event time for this event
@@ -290,18 +350,15 @@ namespace TTD
             return reinterpret_cast<T*>(evt->EventData);
         }
 
-        bool EventEntersScriptContext(const EventLogEntry* evt);
-        bool EventCompletesScriptContext(const EventLogEntry* evt);
-        bool EventCompletesScriptContextNormally(const EventLogEntry* evt);
-        bool EventCompletesScriptContextWithException(const EventLogEntry* evt);
-
-        //Get the kind of the context we are enter/exiting without the entry/exit info
-        ContextWrapperEnterExitStatus GetEventScriptContextEnterExitKind(const EventLogEntry* evt);
-
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
         void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator);
         void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        bool EventFailsWithRuntimeError(const EventLogEntry* evt);
+        bool EventDoesNotReturn(const EventLogEntry* evt);
+        bool EventCompletesNormally(const EventLogEntry* evt);
+        bool EventCompletesWithException(const EventLogEntry* evt);
 
         //////////////////
 
@@ -456,6 +513,9 @@ namespace TTD
             //The last event time that is nested in this external call
             int64 LastNestedEventTime;
 
+            //if we need to check exception information
+            bool CheckExceptionStatus;
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //the function name for the function that is invoked
             TTString FunctionName;
@@ -484,7 +544,7 @@ namespace TTD
 
         int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double beginTime, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

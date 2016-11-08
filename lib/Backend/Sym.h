@@ -112,6 +112,7 @@ public:
     bool            IsSingleDef() const { return this->m_isSingleDef && this->m_instrDef; }
     bool            IsConst() const;
     bool            IsIntConst() const;
+    bool            IsInt64Const() const;
     bool            IsTaggableIntConst() const;
     bool            IsFloatConst() const;
 // SIMD_JS
@@ -119,6 +120,7 @@ public:
 
     void            SetIsConst();
     void            SetIsIntConst(IntConstType value);
+    void            SetIsInt64Const();
     void            SetIsFloatConst();
 // SIMD_JS
     void            SetIsSimd128Const();
@@ -149,9 +151,12 @@ public:
 
     StackSym *      GetFloat64EquivSym(Func *func);
     bool            IsFloat64() const { return this->GetType() == TyFloat64; }
+    bool            IsFloat32() const { return this->GetType() == TyFloat32; }
     StackSym *      GetInt32EquivSym(Func *func);
     bool            IsInt32() const { return this->GetType() == TyInt32; }
     bool            IsUInt32() const { return this->GetType() == TyUint32; }
+    bool            IsInt64() const { return this->GetType() == TyInt64; }
+    bool            IsUint64() const { return this->GetType() == TyUint64; }
 
     StackSym *      GetVarEquivSym(Func *func);
     bool            IsVar() const { return this->GetType() == TyVar; }
@@ -197,6 +202,7 @@ public:
     uint8           m_isIntConst : 1;           // a constant and it's value is an Int32
     uint8           m_isTaggableIntConst : 1;   // a constant and it's value is taggable (Int31 in 32-bit, Int32 in x64)
     uint8           m_isEncodedConstant : 1;    // the constant has
+    uint8           m_isInt64Const: 1;
     uint8           m_isFltConst: 1;
     uint8           m_isSimd128Const : 1;
     uint8           m_isStrConst:1;

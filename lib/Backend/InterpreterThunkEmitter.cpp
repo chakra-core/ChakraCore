@@ -310,6 +310,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
     intptr_t epilogEnd;
 #endif
 
+    DWORD count = this->thunkCount;
     FillBuffer(
         this->scriptContext->GetThreadContext(),
         this->isAsmInterpreterThunk,
@@ -320,7 +321,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
         &pdataStart,
         &epilogEnd,
 #endif
-        &this->thunkCount
+        &count
     );
 
     if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
@@ -341,6 +342,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
     Unused(block);
 #endif
     this->thunkBuffer = buffer;
+    this->thunkCount = count;
 }
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
@@ -355,24 +357,25 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     JITManager::HandleServerCallResult(hr);
 
 
-    this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+    BYTE* buffer = (BYTE*)thunkInfo.thunkBlockAddr;
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(this->thunkBuffer);
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(buffer);
     }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
-    auto block = this->thunkBlocks.PrependNode(allocator, this->thunkBuffer);
+    auto block = this->thunkBlocks.PrependNode(allocator, buffer);
 #if PDATA_ENABLED
     void* pdataTable;
-    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkInfo.pdataTableStart, (ULONG_PTR)this->thunkBuffer, (ULONG_PTR)thunkInfo.epilogEndAddr, &pdataTable);
+    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkInfo.pdataTableStart, (ULONG_PTR)buffer, (ULONG_PTR)thunkInfo.epilogEndAddr, &pdataTable);
     block->SetPdata(pdataTable);
 #else
     Unused(block);
 #endif
 
     this->thunkCount = thunkInfo.thunkCount;
+    this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
 }
 #endif
 
@@ -706,7 +709,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
         if (!remoteScript)
         {
             return false;
@@ -740,15 +743,7 @@ void InterpreterThunkEmitter::Close()
     this->thunkBlocks.Clear(allocator);
     this->freeListedThunkBlocks.Clear(allocator);
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
-    {
-        intptr_t remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (remoteScript)
-        {
-            JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
-        }
-    }
-    else
+    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
 #endif
     {
         emitBufferManager.Decommit();

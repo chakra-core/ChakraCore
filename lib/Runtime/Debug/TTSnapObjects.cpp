@@ -41,6 +41,8 @@ namespace TTD
 
         void StdPropertyExtract_StaticType(SnapObject* snpObject, Js::RecyclableObject* obj)
         {
+            snpObject->IsCrossSite = FALSE;
+
             snpObject->VarArrayCount = 0;
             snpObject->VarArray = nullptr;
 
@@ -53,6 +55,8 @@ namespace TTD
         void StdPropertyExtract_DynamicType(SnapObject* snpObject, Js::DynamicObject* dynObj, SlabAllocator& alloc)
         {
             NSSnapType::SnapType* sType = snpObject->SnapType;
+
+            snpObject->IsCrossSite = dynObj->IsCrossSiteObject();
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
             CopyDiagnosticOriginInformation(snpObject->DiagOriginInfo, dynObj->TTDDiagOriginInfo);
@@ -194,6 +198,10 @@ namespace TTD
             return dynObj;
         }
 
+        //
+        //TODO: I still don't love this (and the reset above) as I feel it hits too much other execution machinery and can fail in odd cases.
+        //          For the current time it is ok but we may want to look into adding specialized methods for resetting/restoring.
+        //
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator)
         {
             //Many protos are set at creation, don't mess with them if they are already correct
@@ -250,33 +258,26 @@ namespace TTD
                         if(!obj->HasOwnProperty(pid))
                         {
                             //easy case just set the property
-                            success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                            success = obj->SetPropertyWithAttributes(pid, pVal, PropertyDynamicTypeDefaults, nullptr);
                         }
                         else
                         {
-                            if(obj->IsWritable(pid))
+                            //get the value to see if it is alreay ok
+                            Js::Var currentValue = nullptr;
+                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext());
+
+                            if(currentValue == pVal)
                             {
-                                //also easy just write the property
-                                success = obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                                //the right value is already there -- easy
+                                success = TRUE;
                             }
                             else
                             {
-                                //get the value to see if it is alreay ok
-                                Js::Var currentValue = nullptr;
-                                Js::JavascriptOperators::GetProperty(obj, pid, obj->GetScriptContext(), nullptr);
-
-                                if(currentValue == pVal)
-                                {
-                                    //the right value is already there -- easy
-                                    success = TRUE;
-                                }
-                                else
-                                {
-                                    //Ok so now we force set the property
-                                    success = obj->SetPropertyWithAttributes(pid, pVal, PropertyDynamicTypeDefaults, nullptr);
-                                }
+                                //Ok so now we force set the property
+                                success = obj->SetPropertyWithAttributes(pid, pVal, PropertyDynamicTypeDefaults, nullptr);
                             }
                         }
+
                         AssertMsg(success, "Failed to set property during restore!!!");
                     }
                     else
@@ -359,6 +360,8 @@ namespace TTD
             }
 
             writer->WriteAddr(NSTokens::Key::typeId, snpObject->SnapType->TypePtrId, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteBool(NSTokens::Key::isCrossSite, !!snpObject->IsCrossSite, NSTokens::Separator::CommaSeparator);
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
             writer->WriteKey(NSTokens::Key::originInfo, NSTokens::Separator::CommaSeparator);
@@ -448,6 +451,8 @@ namespace TTD
 
             snpObject->SnapType = ptrIdToTypeMap.LookupKnownItem(reader->ReadAddr(NSTokens::Key::typeId, true));
 
+            snpObject->IsCrossSite = reader->ReadBool(NSTokens::Key::isCrossSite, true);
+
 #if ENABLE_OBJECT_SOURCE_TRACKING
             reader->ReadKey(NSTokens::Key::originInfo, true);
             ParseDiagnosticOriginInformation(snpObject->DiagOriginInfo, false, reader);
@@ -536,6 +541,16 @@ namespace TTD
             //But for sanity assert same counts.
             compareMap.DiagnosticAssert((sobj1->OptDependsOnInfo == nullptr && sobj2->OptDependsOnInfo == nullptr) || (sobj1->OptDependsOnInfo->DepOnCount == sobj2->OptDependsOnInfo->DepOnCount));
 
+            //we allow the replay in debug mode to be cross site even if orig was not (that is ok) but if record was x-site then replay must be as well
+            if(compareMap.StrictCrossSite)
+            {
+                compareMap.DiagnosticAssert(sobj1->IsCrossSite == sobj2->IsCrossSite);
+            }
+            else
+            {
+                compareMap.DiagnosticAssert(!sobj1->IsCrossSite || sobj2->IsCrossSite);
+            }
+
 #if ENABLE_OBJECT_SOURCE_TRACKING
             compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.SourceLine == sobj2->DiagOriginInfo.SourceLine);
             compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.EventTime == sobj2->DiagOriginInfo.EventTime);
@@ -613,6 +628,23 @@ namespace TTD
             }
         }
 
+        Js::RecyclableObject* DoObjectInflation_SnapExternalObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+            if(rcObj != nullptr)
+            {
+                return rcObj;
+            }
+            else
+            {
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+                Js::Var res = nullptr;
+                ctx->GetThreadContext()->TTDContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, &res);
+
+                return Js::RecyclableObject::FromVar(res);
+            }
+        }
+
         //////////////////
 
         Js::RecyclableObject* DoObjectInflation_SnapScriptFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -655,6 +687,11 @@ namespace TTD
             Js::ScriptFunction* fobj = Js::ScriptFunction::FromVar(obj);
             SnapScriptFunctionInfo* snapFuncInfo = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject);
 
+            if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
+            {
+                fobj->SetCachedScope((Js::ActivationObjectEx*)inflator->LookupObject(snapFuncInfo->CachedScopeObjId));
+            }
+
             if(snapFuncInfo->HomeObjId != TTD_INVALID_PTR_ID)
             {
                 fobj->SetHomeObj(inflator->LookupObject(snapFuncInfo->HomeObjId));
@@ -680,6 +717,7 @@ namespace TTD
             writer->WriteAddr(NSTokens::Key::functionBodyId, snapFuncInfo->BodyRefId, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             writer->WriteString(NSTokens::Key::name, snapFuncInfo->DebugFunctionName, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::cachedScopeObjId, snapFuncInfo->CachedScopeObjId, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::scopeId, snapFuncInfo->ScopeId, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::ptrIdVal, snapFuncInfo->HomeObjId, NSTokens::Separator::CommaSeparator);
 
@@ -698,6 +736,7 @@ namespace TTD
             snapFuncInfo->BodyRefId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
 
             reader->ReadString(NSTokens::Key::name, alloc, snapFuncInfo->DebugFunctionName, true);
+            snapFuncInfo->CachedScopeObjId = reader->ReadAddr(NSTokens::Key::cachedScopeObjId, true);
             snapFuncInfo->ScopeId = reader->ReadAddr(NSTokens::Key::scopeId, true);
             snapFuncInfo->HomeObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
 
@@ -721,6 +760,8 @@ namespace TTD
 
             compareMap.CheckConsistentAndAddPtrIdMapping_FunctionBody(snapFuncInfo1->BodyRefId, snapFuncInfo2->BodyRefId);
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(snapFuncInfo1->ScopeId, snapFuncInfo2->ScopeId, _u("scopes"));
+
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(snapFuncInfo1->CachedScopeObjId, snapFuncInfo2->CachedScopeObjId, _u("cachedScopeObj"));
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(snapFuncInfo1->HomeObjId, snapFuncInfo2->HomeObjId, _u("homeObject"));
 
             NSSnapValues::AssertSnapEquivTTDVar_Special(snapFuncInfo1->ComputedNameInfo, snapFuncInfo2->ComputedNameInfo, compareMap, _u("computedName"));
@@ -924,17 +965,6 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreateConsoleScopeActivationObject();
-        }
-
-        Js::RecyclableObject* DoObjectInflation_SnapActivationExInfo(const SnapObject* snpObject, InflateMap* inflator)
-        {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
-
-            //
-            //TODO: I am going to assume the cached info is an optimization only so we just return a regular activation object here
-            //
-
-            return ctx->GetLibrary()->CreateActivationObject();
         }
 
         //////////////////

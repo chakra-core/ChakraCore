@@ -66,7 +66,6 @@
 #include "Library/JavascriptRegExpEnumerator.h"
 #include "Library/IteratorObjectEnumerator.h"
 
-
 #include "Library/JavascriptIterator.h"
 #include "Library/JavascriptArrayIterator.h"
 #include "Library/JavascriptMapIterator.h"
@@ -85,6 +84,9 @@
 // SIMD_JS
 #include "Library/SimdLib.h"
 #include "Language/SimdOps.h"
+
+#include "Library/WebAssembly.h"
+#include "Library/WebAssemblyInstance.h"
 
 #include "Language/JavascriptStackWalker.h"
 

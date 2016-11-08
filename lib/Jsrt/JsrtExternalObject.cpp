@@ -73,3 +73,15 @@ Js::DynamicType* JsrtExternalObject::DuplicateType()
     return RecyclerNew(this->GetScriptContext()->GetRecycler(), JsrtExternalType,
         this->GetExternalType());
 }
+
+#if ENABLE_TTD
+TTD::NSSnapObjects::SnapObjectType JsrtExternalObject::GetSnapTag_TTD() const
+{
+    return TTD::NSSnapObjects::SnapObjectType::SnapExternalObject;
+}
+
+void JsrtExternalObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+{
+    TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapExternalObject>(objData, nullptr);
+}
+#endif

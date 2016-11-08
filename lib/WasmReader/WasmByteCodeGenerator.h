@@ -74,22 +74,23 @@ namespace Wasm
     struct WasmReaderInfo
     {
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
+        Js::Var m_bufferSrc;
     };
 
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
-        WasmModule* GenerateModule();
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength);
+        Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmBinaryReader* GetReader() const;
 
         Memory::Recycler* m_recycler;
         Js::Utf8SourceInfo* m_sourceInfo;
         Js::ScriptContext* m_scriptContext;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
     };
 
     class WasmBytecodeGenerator
@@ -134,14 +135,9 @@ namespace Wasm
         void EmitBr();
         EmitInfo EmitBrIf();
 
-        template<WasmOp wasmOp, const WasmTypes::WasmType* signature>
-        EmitInfo EmitMemAccess(bool isStore);
-
-        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
-        EmitInfo EmitBinExpr();
-
-        template<Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature>
-        EmitInfo EmitUnaryExpr();
+        EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
+        EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
 
         template<WasmTypes::WasmType type>
         EmitInfo EmitConst();
@@ -159,7 +155,6 @@ namespace Wasm
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
         static bool IsBlockOpCode(WasmOp op);
-        static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
@@ -173,7 +168,7 @@ namespace Wasm
         bool IsUnreachable() const { return this->isUnreachable; }
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
-        WasmBinaryReader* GetReader() const { return m_module->GetReader(); }
+        WasmReaderBase* GetReader() const;
 
         ArenaAllocator m_alloc;
 
@@ -181,16 +176,14 @@ namespace Wasm
         WasmLocal* m_locals;
 
         WasmFunctionInfo* m_funcInfo;
-        WasmModule* m_module;
+        Js::WebAssemblyModule* m_module;
 
         uint m_maxArgOutDepth;
 
         Js::AsmJsByteCodeWriter m_writer;
         Js::ScriptContext* m_scriptContext;
 
-        WasmRegisterSpace m_i32RegSlots;
-        WasmRegisterSpace m_f32RegSlots;
-        WasmRegisterSpace m_f64RegSlots;
+        WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
         JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;

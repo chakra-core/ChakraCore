@@ -58,6 +58,11 @@ Abstract:
 // macOS
 #endif
 #endif // __IOS__ ?
+#ifndef INCLUDE_PAL_INTERNAL_
+namespace std {
+    typedef decltype(nullptr) nullptr_t;
+}
+#endif
 #endif // __APPLE__ ?
 
 #ifdef  __cplusplus
@@ -366,6 +371,18 @@ PAL_IsDebuggerPresent();
 #define LONG_MAX      2147483647L
 #define ULONG_MAX     0xffffffffUL
 
+#define LONGLONG_MIN    (-9223372036854775807i64 - 1)
+#define LONG64_MIN      (-9223372036854775807i64 - 1)
+#define INT64_MIN       (-9223372036854775807i64 - 1)
+#define LONGLONG_MAX    9223372036854775807i64
+#define LONG64_MAX      9223372036854775807i64
+#define INT64_MAX       9223372036854775807i64
+#define ULONGLONG_MAX   0xffffffffffffffffui64
+#define DWORDLONG_MAX   0xffffffffffffffffui64
+#define ULONG64_MAX     0xffffffffffffffffui64
+#define DWORD64_MAX     0xffffffffffffffffui64
+#define UINT64_MAX      0xffffffffffffffffui64
+
 #define FLT_MAX 3.402823466e+38F
 #define DBL_MAX 1.7976931348623157e+308
 
@@ -493,6 +510,8 @@ typedef long time_t;
 #define PAL_INITIALIZE_NONE            0x00
 #define PAL_INITIALIZE_SYNC_THREAD     0x01
 #define PAL_INITIALIZE_EXEC_ALLOCATOR  0x02
+#define PAL_INITIALIZE_REGISTER_SIGTERM_HANDLER     0x08
+#define PAL_INITIALIZE_DEBUGGER_EXCEPTIONS          0x10
 
 // PAL_Initialize() flags
 #define PAL_INITIALIZE                 PAL_INITIALIZE_SYNC_THREAD
@@ -2770,6 +2789,8 @@ typedef struct _CONTEXT {
 
 #define CONTEXT_ALL (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS)
 
+#define CONTEXT_XSTATE (CONTEXT_AMD64 | 0x40L)
+
 #define CONTEXT_EXCEPTION_ACTIVE 0x8000000
 #define CONTEXT_SERVICE_ACTIVE 0x10000000
 #define CONTEXT_EXCEPTION_REQUEST 0x40000000
@@ -3425,33 +3446,6 @@ GetThreadTimes(
         OUT LPFILETIME lpExitTime,
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
-
-#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
-
-PALIMPORT
-DWORD
-PALAPI
-TlsAlloc(
-     VOID);
-
-PALIMPORT
-LPVOID
-PALAPI
-TlsGetValue(
-        IN DWORD dwTlsIndex);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsSetValue(
-        IN DWORD dwTlsIndex,
-        IN LPVOID lpTlsValue);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsFree(
-    IN DWORD dwTlsIndex);
 
 PALIMPORT
 void *
@@ -5795,7 +5789,7 @@ InterlockedAnd8(
 EXTERN_C
 PALIMPORT
 inline
-short 
+short
 PALAPI
 InterlockedAnd16(
     IN OUT short volatile *Destination,
@@ -6100,7 +6094,7 @@ PALAPI
 FlushProcessWriteBuffers();
 
 typedef void (*PAL_ActivationFunction)(CONTEXT *context);
-typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip);
+typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip, BOOL checkingCurrentThread);
 
 PALIMPORT
 VOID
@@ -6592,6 +6586,24 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
 
 /*++
 Function:
+_rotl64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
+{
+    unsigned long long retval = 0;
+
+    shift &= 0x3f;
+    retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
 _rotr
 
 See MSDN doc.
@@ -6605,6 +6617,24 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
 
     shift &= 0x1f;
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
+_rotr64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
+{
+    unsigned long long retval;
+
+    shift &= 0x3f;
+    retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
 
@@ -7100,8 +7130,8 @@ public:
     }
 };
 
+typedef BOOL (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
 typedef DWORD (PALAPI *PGET_GCMARKER_EXCEPTION_CODE)(LPVOID ip);
-typedef VOID (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
 
 PALIMPORT
 VOID

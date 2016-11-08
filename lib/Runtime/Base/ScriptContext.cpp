@@ -129,7 +129,7 @@ namespace Js
         cache(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
-        m_remoteScriptContextAddr(0),
+        m_remoteScriptContextAddr(nullptr),
         isWeakReferenceDictionaryListCleared(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
@@ -141,11 +141,18 @@ namespace Js
 #endif
 #if ENABLE_TTD
         , TTDHostCallbackFunctor()
-        , TTDMode(TTD::TTDMode::Invalid)
         , ScriptContextLogTag(TTD_INVALID_LOG_PTR_ID)
-        , TTDRootNestingCount(0)
         , TTDWellKnownInfo(nullptr)
         , TTDContextInfo(nullptr)
+        , TTDSnapshotOrInflateInProgress(false)
+        , TTDRecordOrReplayModeEnabled(false)
+        , TTDRecordModeEnabled(false)
+        , TTDReplayModeEnabled(false)
+        , TTDShouldPerformRecordOrReplayAction(false)
+        , TTDShouldPerformRecordAction(false)
+        , TTDShouldPerformReplayAction(false)
+        , TTDShouldPerformDebuggerAction(false)
+        , TTDShouldSuppressGetterInvocationForDebuggerEvaluation(false)
 #endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
@@ -500,11 +507,14 @@ namespace Js
         this->weakReferenceDictionaryList.Reset();
 
 #if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr != 0)
+        if (m_remoteScriptContextAddr)
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
-            m_remoteScriptContextAddr = 0;
+            if (JITManager::GetJITManager()->CleanupScriptContext(&m_remoteScriptContextAddr) == S_OK)
+            {
+                Assert(m_remoteScriptContextAddr == nullptr);
+            }
+            m_remoteScriptContextAddr = nullptr;
         }
 #endif
 
@@ -913,7 +923,7 @@ namespace Js
     void ScriptContext::ProfileTypes()
     {
         Output::Print(_u("===============================================================================\n"));
-        Output::Print(_u("Types Profile\n"));
+        Output::Print(_u("Types Profile %s\n"), this->url);
         Output::Print(_u("-------------------------------------------------------------------------------\n"));
         Output::Print(_u("Dynamic Type Conversions:\n"));
         Output::Print(_u("    Null to Simple                 %8d\n"), convertNullToSimpleCount);
@@ -1270,13 +1280,16 @@ if (!sourceList)
 
     void ScriptContext::SetIsClosed()
     {
-        this->isClosed = true;
-#if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr)
+        if (!this->isClosed)
         {
-            JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
-        }
+            this->isClosed = true;
+#if ENABLE_NATIVE_CODEGEN
+            if (m_remoteScriptContextAddr)
+            {
+                JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
+            }
 #endif
+        }
     }
 
     void ScriptContext::InitializeGlobalObject()
@@ -1645,7 +1658,8 @@ if (!sourceList)
         Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName,
         LoadScriptFlag loadScriptFlag,
-        uint* sourceIndex)
+        uint* sourceIndex,
+        Js::Var scriptSource)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1691,16 +1705,29 @@ if (!sourceList)
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
-            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, isLibraryCode);
+            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length,
+                cbNeeded, pSrcInfo, isLibraryCode, scriptSource);
         }
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if(*ppSourceInfo == nullptr)
             {
-                // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
-                // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, (int)length, cb, pSrcInfo, isLibraryCode);
+#ifndef NTBUILD
+                if (loadScriptFlag & LoadScriptFlag_ExternalArrayBuffer)
+                {
+                    *ppSourceInfo = Utf8SourceInfo::NewWithNoCopy(this,
+                        script, (int)length, cb, pSrcInfo, isLibraryCode,
+                        scriptSource);
+                }
+                else
+#endif
+                {
+                    // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
+                    // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
+                    *ppSourceInfo = Utf8SourceInfo::New(this, script,
+                        (int)length, cb, pSrcInfo, isLibraryCode, scriptSource);
+                }
             }
         }
         //
@@ -1750,11 +1777,13 @@ if (!sourceList)
         ParseNodePtr parseTree;
         if((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
-            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse,
+                &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
         else
         {
-            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr,
+                pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
 
         if(FAILED(hr) || parseTree == nullptr)
@@ -1779,7 +1808,9 @@ if (!sourceList)
         return parseTree;
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag)
+    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb,
+        SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
+        const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)
     {
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
@@ -1791,7 +1822,9 @@ if (!sourceList)
             uint sourceIndex;
             JavascriptFunction * pFunction = nullptr;
 
-            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag, &sourceIndex);
+            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo,
+                pse, ppSourceInfo, rootDisplayName, loadScriptFlag,
+                &sourceIndex, scriptSource);
 
             if (parseTree != nullptr)
             {
@@ -1805,7 +1838,8 @@ if (!sourceList)
                 pse->Clear();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
-                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
+                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
+                    rootDisplayName, loadScriptFlag, scriptSource);
             }
 
 #ifdef ENABLE_SCRIPT_PROFILING
@@ -2363,38 +2397,15 @@ if (!sourceList)
     {
         AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
         this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
-        bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
-        BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
+        BEGIN_ENTER_SCRIPT(this, true, true, true)
         {
             this->TTDWellKnownInfo->GatherKnownObjectToPathMap(this);
         }
-        END_JS_RUNTIME_CALL(this);
+        END_ENTER_SCRIPT
     }
-
-    void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
-    {
-        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
-        this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetUndefined()), this->GetLibrary()->GetUndefined());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetNull()), this->GetLibrary()->GetNull());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
-
-#if ENABLE_TTD_STACK_STMTS
-        this->ForceNoNative();
-#endif
-    }
-
-    void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
-    {
-        this->ForceNoNative();
-    }
-
 #endif
 
 #ifdef PROFILE_EXEC

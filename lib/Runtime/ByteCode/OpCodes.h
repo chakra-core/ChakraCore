@@ -409,8 +409,7 @@ MACRO_EXTEND_WMS(       StObjSlotChkUndecl,         ElementSlot,    OpSideEffect
 MACRO_EXTEND_WMS(       StInnerObjSlotChkUndecl,    ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StEnvObjSlotChkUndecl,      ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StModuleSlot,               ElementSlotI2,  OpSideEffect)
-MACRO_BACKEND_ONLY(     LdAsmJsSlot,                ElementSlot,    OpTempNumberSources|OpCanCSE)
-MACRO_BACKEND_ONLY(     StAsmJsSlot,                ElementSlot,    None)
+MACRO_BACKEND_ONLY(     LdAsmJsFunc,                ElementSlot,    OpTempNumberSources|OpCanCSE)
 #ifndef FLOAT_VAR
 MACRO_BACKEND_ONLY(     StSlotBoxTemp,              Empty,          OpSideEffect|OpTempNumberSources)
 #endif
@@ -418,22 +417,9 @@ MACRO_WMS_PROFILED(     LdElemI_A,              ElementI,       OpHasImplicitCal
 MACRO_WMS(              LdMethodElem,           ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)      // Load call target from instance's indirect element / field, checked
 MACRO_WMS_PROFILED(     StElemI_A,              ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)      // Store into instance's indirect element / field, checked
 MACRO_WMS_PROFILED(     StElemI_A_Strict,       ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)      // Store into instance's indirect element / field, checked
-MACRO_BACKEND_ONLY(     StInt8ArrViewElem,      ElementI,       OpSideEffect        )       // Store Int8 into typed array view
-MACRO_BACKEND_ONLY(     StUInt8ArrViewElem,     ElementI,       OpSideEffect        )       // Store UInt8 into typed array view
-MACRO_BACKEND_ONLY(     StInt16ArrViewElem,     ElementI,       OpSideEffect        )       // Store Int16 into typed array view
-MACRO_BACKEND_ONLY(     StUInt16ArrViewElem,    ElementI,       OpSideEffect        )       // Store UInt16 into typed array view
-MACRO_BACKEND_ONLY(     StInt32ArrViewElem,     ElementI,       OpSideEffect        )       // Store Int32 into typed array view
-MACRO_BACKEND_ONLY(     StUInt32ArrViewElem,    ElementI,       OpSideEffect        )       // Store UInt32 into typed array view
-MACRO_BACKEND_ONLY(     StFloat32ArrViewElem,   ElementI,       OpSideEffect        )       // Store Float32 into typed array view
-MACRO_BACKEND_ONLY(     StFloat64ArrViewElem,   ElementI,       OpSideEffect        )       // Store Float64 into typed array view
-MACRO_BACKEND_ONLY(     LdFloat32ArrViewElem,   ElementI,       OpCanCSE            )       // load Float32 typed array view
-MACRO_BACKEND_ONLY(     LdFloat64ArrViewElem,   ElementI,       OpCanCSE            )       // load Float64 typed array view
-MACRO_BACKEND_ONLY(     LdInt8ArrViewElem,      ElementI,       OpCanCSE            )       // load Int8 from typed array view
-MACRO_BACKEND_ONLY(     LdInt16ArrViewElem,     ElementI,       OpCanCSE            )       // load Int16 from typed array view
-MACRO_BACKEND_ONLY(     LdUInt8ArrViewElem,     ElementI,       OpCanCSE            )       // load UInt8 from typed array view
-MACRO_BACKEND_ONLY(     LdUInt16ArrViewElem,    ElementI,       OpCanCSE            )       // load UInt16 from typed array view
-MACRO_BACKEND_ONLY(     LdInt32ArrViewElem,     ElementI,       OpCanCSE            )       // load Int32 from typed array view
-MACRO_BACKEND_ONLY(     LdUInt32ArrViewElem,    ElementI,       OpCanCSE            )       // load UInt32 from typed array view
+MACRO_BACKEND_ONLY(     StArrViewElem,          ElementI,       OpSideEffect        )       // Store into typed array view
+MACRO_BACKEND_ONLY(     LdArrViewElem,          ElementI,       OpCanCSE            )       // Load from typed array view
+MACRO_BACKEND_ONLY(     LdArrViewElemWasm,      ElementI,       OpSideEffect        )       // Load from wasm array
 MACRO_BACKEND_ONLY(     Memset,                 ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     Memcopy,                ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     ArrayDetachedCheck,     Reg1,           None)   // ensures that an ArrayBuffer has not been detached
@@ -674,8 +660,9 @@ MACRO_BACKEND_ONLY(     InlineMathTan,      Empty,          OpInlinableBuiltIn|O
 // IE11 inline built-ins
 // TODO: put these upfront so that all built-ins are sorted.
 MACRO_BACKEND_ONLY(     InlineMathAbs,       Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathClz32,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
+MACRO_BACKEND_ONLY(     InlineMathClz,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Ctz,                 Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
+MACRO_BACKEND_ONLY(     Clz,                 Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     InlineMathCeil,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpBailOutRec|OpProducesNumber)
 MACRO_BACKEND_ONLY(     InlineMathFloor,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpBailOutRec|OpProducesNumber)
 MACRO_BACKEND_ONLY(     InlineMathMax,       Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
@@ -744,11 +731,13 @@ MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
 MACRO_BACKEND_ONLY(     FrameDisplayCheck,  Empty,          OpCanCSE)
 MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
 
-MACRO_BACKEND_ONLY(     PopCnt32,           Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
+MACRO_BACKEND_ONLY(     PopCnt,           Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect|OpNoFallThrough)
+
+MACRO_BACKEND_ONLY(     AsmJsEntryTracing, Empty, None)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

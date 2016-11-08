@@ -39,9 +39,9 @@ static ATOM  lockedDll = 0;
 
 static BOOL AttachProcess(HANDLE hmod)
 {
-    if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
+    if (!ThreadContextTLSEntry::InitializeProcess())
     {
-        return FALSE;
+         return FALSE;
     }
 
     g_hInstance = hmod;
@@ -110,12 +110,10 @@ static void DetachProcess()
     // shutdown is bad because we shouldn't free objects built into
     // other dlls.
     JsrtRuntime::Uninitialize();
-    JsrtContext::Uninitialize();
 
     // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
     // for current thread might be left behind if this thread was initialized.
     ThreadContextTLSEntry::CleanupThread();
-
     ThreadContextTLSEntry::CleanupProcess();
 
 #if PROFILE_DICTIONARY

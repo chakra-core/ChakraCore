@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -58,15 +58,19 @@ namespace Wasm
     typedef WasmTypes::WasmType Local;
 }
 
+#include "WasmReaderBase.h"
 #include "WasmSignature.h"
 #include "WasmDataSegment.h"
+#include "WasmElementSegment.h"
 #include "WasmFunctionInfo.h"
-#include "WasmModule.h"
 
 #include "WasmSection.h"
 
 #include "WasmBinaryReader.h"
+#include "WasmCustomReader.h"
 #include "WasmByteCodeGenerator.h"
+
+#include "WasmGlobal.h"
 
 // TODO (michhol): cleanup includes
 #include "ByteCode/AsmJsByteCodeWriter.h"

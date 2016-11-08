@@ -4,8 +4,22 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "ChakraCore.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include <string>
-#include <iostream>
+#include <cstring>
+
+#define FAIL_CHECK(cmd)                     \
+    do                                      \
+    {                                       \
+        JsErrorCode errCode = cmd;          \
+        if (errCode != JsNoError)           \
+        {                                   \
+            printf("Error %d at '%s'\n",    \
+                errCode, #cmd);             \
+            return 1;                       \
+        }                                   \
+    } while(0)
 
 using namespace std;
 
@@ -27,20 +41,29 @@ int main()
     // Now set the current execution context.
     JsSetCurrentContext(context);
 
+    JsValueRef fname;
+    FAIL_CHECK(JsCreateStringUtf8((const uint8_t*)"sample", strlen("sample"), &fname));
+
+    JsValueRef scriptSource;
+    FAIL_CHECK(JsCreateExternalArrayBuffer((void*)script, (unsigned int)strlen(script),
+        nullptr, nullptr, &scriptSource));
     // Run the script.
-    JsRunScriptUtf8(script, currentSourceContext++, "", &result);
+    FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname, JsParseScriptAttributeNone, &result));
 
     // Convert your script result to String in JavaScript; redundant if your script returns a String
     JsValueRef resultJSString;
-    JsConvertValueToString(result, &resultJSString);
+    FAIL_CHECK(JsConvertValueToString(result, &resultJSString));
 
     // Project script result back to C++.
-    char *resultSTR;
+    uint8_t *resultSTR = nullptr;
     size_t stringLength;
-    JsStringToPointerUtf8Copy(resultJSString, &resultSTR, &stringLength);
+    FAIL_CHECK(JsCopyStringUtf8(resultJSString, nullptr, 0, &stringLength));
+    resultSTR = (uint8_t*) malloc(stringLength + 1);
+    FAIL_CHECK(JsCopyStringUtf8(resultJSString, resultSTR, stringLength + 1, nullptr));
+    resultSTR[stringLength] = 0;
 
     printf("Result -> %s \n", resultSTR);
-    JsStringFree(resultSTR);
+    free(resultSTR);
 
     // Dispose runtime
     JsSetCurrentContext(JS_INVALID_REFERENCE);

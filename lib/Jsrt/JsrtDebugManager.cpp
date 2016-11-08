@@ -588,7 +588,7 @@ void JsrtDebugManager::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::Script
     });
 }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
 Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, bool* isNewBP)
 {
     *isNewBP = false;

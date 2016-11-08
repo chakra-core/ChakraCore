@@ -1,12 +1,1 @@
-int_literals.wast:39: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_11[33] at offset 3/15: I64 return type NYI
-int_literals.wast:40: $assert_return_12 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_12[34] at offset 3/7: I64 return type NYI
-int_literals.wast:41: $assert_return_13 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_13[35] at offset 3/16: I64 return type NYI
-int_literals.wast:42: $assert_return_14 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_14[36] at offset 3/16: I64 return type NYI
-int_literals.wast:43: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_15[37] at offset 3/16: I64 return type NYI
-int_literals.wast:44: $assert_return_16 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_16[38] at offset 3/16: I64 return type NYI
-int_literals.wast:45: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_17[39] at offset 3/16: I64 return type NYI
-int_literals.wast:46: $assert_return_18 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_18[40] at offset 3/7: I64 return type NYI
-int_literals.wast:47: $assert_return_19 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_19[41] at offset 3/7: I64 return type NYI
-int_literals.wast:48: $assert_return_20 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_20[42] at offset 3/7: I64 return type NYI
-int_literals.wast:49: $assert_return_21 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_21[43] at offset 3/7: I64 return type NYI
-11/22 tests passed.
+22/22 tests passed.

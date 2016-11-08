@@ -451,7 +451,8 @@ namespace Js
         static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);
         static void OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext);
-        static Var OP_NewScopeObject(ScriptContext*scriptContext);
+        static Var OP_NewScopeObject(ScriptContext* scriptContext);
+        static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList);
         static Var* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
         static Var* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
         static Var* OP_CloneScopeSlots(Var *scopeSlots, ScriptContext *scriptContext);

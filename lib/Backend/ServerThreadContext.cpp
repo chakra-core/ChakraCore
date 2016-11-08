@@ -24,12 +24,6 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
     ),
-    // TODO: OOP JIT, don't hardcode name
-#ifdef NTBUILD
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("Chakra.dll"))),
-#else
-    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(_u("ChakraCore.dll"))),
-#endif
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
@@ -68,7 +62,11 @@ ServerThreadContext::GetBailOutRegisterSaveSpaceAddr() const
 ptrdiff_t
 ServerThreadContext::GetChakraBaseAddressDifference() const
 {
-    return GetRuntimeChakraBaseAddress() - m_jitChakraBaseAddress;
+#if ENABLE_OOP_NATIVE_CODEGEN
+    return GetRuntimeChakraBaseAddress() - (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
+#else
+    return 0;
+#endif
 }
 
 ptrdiff_t

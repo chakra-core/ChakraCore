@@ -839,11 +839,7 @@ namespace Js
             JavascriptLibrary *lib = scriptContext->GetLibrary();
             FunctionBody *functionBody = weakFuncRef->Get();
 
-#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
-            if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
-#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count))
-#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
@@ -8118,6 +8114,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.values"));
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(thisObj);
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
     }
 
@@ -11448,15 +11447,21 @@ Case0:
 
     void JavascriptNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeIntArray, "Should only be used on native int arrays.");
-
-#if ENABLE_COPYONACCESS_ARRAY
-        AssertMsg(this->GetTypeId() != Js::TypeIds_CopyOnAccessNativeIntArray, "Need to handle this case seperately.");
-#endif
-
         TTD::NSSnapObjects::SnapArrayInfo<int32>* sai = TTD::NSSnapObjects::ExtractArrayValues<int32>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<int32>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>(objData, sai);
     }
+
+#if ENABLE_COPYONACCESS_ARRAY
+    TTD::NSSnapObjects::SnapObjectType JavascriptCopyOnAccessNativeIntArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptCopyOnAccessNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
 #endif
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :

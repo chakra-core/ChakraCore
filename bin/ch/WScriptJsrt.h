@@ -80,6 +80,10 @@ public:
         }
     }
 
+#if ENABLE_TTD
+    static void CALLBACK JsContextBeforeCollectCallback(JsRef contextRef, void *data);
+#endif
+
     static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
     static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();

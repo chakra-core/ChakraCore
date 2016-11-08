@@ -338,7 +338,7 @@ namespace Js
         return TRUE;
     }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
     bool DebugDocument::IsJustMyCode() const
     {
         //

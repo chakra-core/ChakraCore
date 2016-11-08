@@ -175,10 +175,9 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
 
-        AutoString argstr;
-        size_t length;
-        IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToCharCopy(arguments[2], &argstr, &length));
-        ChakraRTInterface::JsDiagEvaluateUtf8(*argstr, stackFrameIndex, &result);
+        AutoString argstr(arguments[2]);
+        IfJsErrorFailLogAndRet(argstr.GetError());
+        ChakraRTInterface::JsDiagEvaluateUtf8(argstr.GetString(), stackFrameIndex, &result);
     }
 
     return result;
@@ -231,8 +230,16 @@ bool Debugger::Initialize()
     AutoRestoreContext autoRestoreContext(this->m_context);
 
     JsValueRef globalFunc = JS_INVALID_REFERENCE;
-
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParseScriptWithAttributesUtf8(controllerScript, JS_SOURCE_CONTEXT_NONE, "DbgController.js", JsParseScriptAttributeLibraryCode, &globalFunc));
+    JsValueRef scriptSource;
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateExternalArrayBuffer(
+        (void*)controllerScript, (unsigned int)strlen(controllerScript),
+        nullptr, nullptr, &scriptSource));
+    JsValueRef fname;
+    ChakraRTInterface::JsCreateStringUtf8(
+        (const uint8_t*)"DbgController.js", strlen("DbgController.js"), &fname);
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParse(scriptSource,
+        JS_SOURCE_CONTEXT_NONE, fname, JsParseScriptAttributeLibraryCode,
+        &globalFunc));
 
     JsValueRef undefinedValue;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetUndefinedValue(&undefinedValue));
@@ -245,7 +252,7 @@ bool Debugger::Initialize()
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetGlobalObject(&globalObj));
 
     JsPropertyIdRef hostDebugObjectPropId;
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("hostDebugObject", &hostDebugObjectPropId));
+    IfJsrtErrorFailLogAndRetFalse(CreatePropertyIdFromString("hostDebugObject", &hostDebugObjectPropId));
 
     JsPropertyIdRef hostDebugObject;
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetProperty(globalObj, hostDebugObjectPropId, &hostDebugObject));
@@ -316,7 +323,8 @@ bool Debugger::SetBaseline()
                 script[numChars] = '\0';
 
                 JsValueRef wideScriptRef;
-                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsPointerToStringUtf8(script, strlen(script), &wideScriptRef));
+                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf8(
+                  (const uint8_t*)script, strlen(script), &wideScriptRef));
 
                 this->CallFunctionNoResult("SetBaseline", wideScriptRef);
             }
@@ -370,7 +378,7 @@ bool Debugger::CallFunction(char const * functionName, JsValueRef *result, JsVal
 
     // Get a script string for the function name
     JsPropertyIdRef targetFuncId = JS_INVALID_REFERENCE;
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsGetPropertyIdFromNameUtf8(functionName, &targetFuncId));
+    IfJsrtErrorFailLogAndRetFalse(CreatePropertyIdFromString(functionName, &targetFuncId));
 
     // Get the target function
     JsValueRef targetFunc = JS_INVALID_REFERENCE;
@@ -469,8 +477,7 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
         this->CallFunction("GetOutputJson", &result);
 
         AutoString baselineData;
-        size_t baselineDataLength;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsStringToPointerUtf8Copy(result, &baselineData, &baselineDataLength));
+        IfJsrtErrorFailLogAndRetFalse(baselineData.Initialize(result));
 
         char16 baselineFilename[256];
         swprintf_s(baselineFilename, HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%S.dbg.baseline.rebase") : _u("%S.dbg.baseline"), fileName);
@@ -483,9 +490,9 @@ bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
 
         if (file != nullptr)
         {
-            int countWritten = static_cast<int>(fwrite(*baselineData, sizeof(char), baselineDataLength, file));
-            Assert(baselineDataLength <= INT_MAX);
-            if (countWritten != (int)baselineDataLength)
+            int countWritten = static_cast<int>(fwrite(baselineData.GetString(), sizeof(char), baselineData.GetLength(), file));
+            Assert(baselineData.GetLength() <= INT_MAX);
+            if (countWritten != (int)baselineData.GetLength())
             {
                 Assert(false);
                 return false;

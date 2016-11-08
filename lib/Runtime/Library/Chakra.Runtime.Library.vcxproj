@@ -156,6 +156,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssembly.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyInstance.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -284,6 +288,10 @@
     <ClInclude Include="SubString.h" />
     <ClInclude Include="UriHelper.h" />
     <ClInclude Include="WasmLibrary.h" />
+    <ClInclude Include="WebAssembly.h" />
+    <ClInclude Include="WebAssemblyInstance.h" />
+    <ClInclude Include="WebAssemblyMemory.h" />
+    <ClInclude Include="WebAssemblyModule.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptFunctionA.asm">
@@ -308,6 +316,9 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_DeferredParsingThunk.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
+    <None Include="amd64\JavascriptFunctionA.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />

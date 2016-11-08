@@ -258,9 +258,15 @@ namespace Js
         DynamicType * syntaxErrorType;
         DynamicType * typeErrorType;
         DynamicType * uriErrorType;
+        DynamicType * webAssemblyCompileErrorType;
+        DynamicType * webAssemblyRuntimeErrorType;
         StaticType  * numberTypeStatic;
         StaticType  * int64NumberTypeStatic;
         StaticType  * uint64NumberTypeStatic;
+
+        DynamicType * webAssemblyModuleType;
+        DynamicType * webAssemblyInstanceType;
+        DynamicType * webAssemblyMemoryType;
 
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
@@ -380,6 +386,7 @@ namespace Js
 
 #ifdef ENABLE_WASM
         DynamicObject* wasmObject;
+        DynamicObject* webAssemblyObject;
 #endif
 
         // SIMD_JS
@@ -412,6 +419,18 @@ namespace Js
         RuntimeFunction* sharedArrayBufferConstructor;
         DynamicObject* sharedArrayBufferPrototype;
         DynamicObject* atomicsObject;
+
+        DynamicObject* webAssemblyCompileErrorPrototype;
+        RuntimeFunction* webAssemblyCompileErrorConstructor;
+        DynamicObject* webAssemblyRuntimeErrorPrototype;
+        RuntimeFunction* webAssemblyRuntimeErrorConstructor;
+
+        DynamicObject* webAssemblyMemoryPrototype;
+        RuntimeFunction* webAssemblyMemoryConstructor;
+        DynamicObject* webAssemblyModulePrototype;
+        RuntimeFunction* webAssemblyModuleConstructor;
+        DynamicObject* webAssemblyInstancePrototype;
+        RuntimeFunction* webAssemblyInstanceConstructor;
 
         int regexConstructorSlotIndex;
         int regexExecSlotIndex;
@@ -642,6 +661,11 @@ namespace Js
         JavascriptFunction* GetSharedArrayBufferConstructor() { return sharedArrayBufferConstructor; }
         DynamicObject* GetAtomicsObject() { return atomicsObject; }
 
+        DynamicObject* GetWebAssemblyCompileErrorPrototype() const { return webAssemblyCompileErrorPrototype; }
+        DynamicObject* GetWebAssemblyCompileErrorConstructor() const { return webAssemblyCompileErrorConstructor; }
+        DynamicObject* GetWebAssemblyRuntimeErrorPrototype() const { return webAssemblyRuntimeErrorPrototype; }
+        DynamicObject* GetWebAssemblyRuntimeErrorConstructor() const { return webAssemblyRuntimeErrorConstructor; }
+
 #if ENABLE_TTD
         Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
@@ -717,11 +741,17 @@ namespace Js
         DynamicType * GetSyntaxErrorType() const { return syntaxErrorType; }
         DynamicType * GetTypeErrorType() const { return typeErrorType; }
         DynamicType * GetURIErrorType() const { return uriErrorType; }
+        DynamicType * GetWebAssemblyRuntimeErrorType() const { return webAssemblyRuntimeErrorType; }
+        DynamicType * GetWebAssemblyCompileErrorType() const { return webAssemblyCompileErrorType; }
         StaticType  * GetNumberTypeStatic() const { return numberTypeStatic; }
         StaticType  * GetInt64TypeStatic() const { return int64NumberTypeStatic; }
         StaticType  * GetUInt64TypeStatic() const { return uint64NumberTypeStatic; }
         DynamicType * GetNumberTypeDynamic() const { return numberTypeDynamic; }
         DynamicType * GetPromiseType() const { return promiseType; }
+
+        DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
+        DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
+        DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
@@ -920,6 +950,8 @@ namespace Js
         JavascriptError* CreateURIError();
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
+        JavascriptError* CreateWebAssemblyCompileError();
+        JavascriptError* CreateWebAssemblyRuntimeError();
         JavascriptSymbol* CreateSymbol(JavascriptString* description);
         JavascriptSymbol* CreateSymbol(const char16* description, int descriptionLength);
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
@@ -1136,76 +1168,71 @@ namespace Js
         void InitializePrototypes();
         void InitializeTypes();
         void InitializeGlobal(GlobalObject * globalObject);
+        static void PrecalculateArrayAllocationBuckets();
 
-        static void __cdecl InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+#define STANDARD_INIT(name) \
+        static void __cdecl Initialize##name##Constructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode); \
+        static void __cdecl Initialize##name##Prototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializeSharedArrayBufferConstructor(DynamicObject* sharedArrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSharedArrayBufferPrototype(DynamicObject* sharedArrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        STANDARD_INIT(Array);
+        STANDARD_INIT(SharedArrayBuffer);
+        STANDARD_INIT(ArrayBuffer);
+        STANDARD_INIT(DataView);
+        STANDARD_INIT(Error);
+        STANDARD_INIT(EvalError);
+        STANDARD_INIT(RangeError);
+        STANDARD_INIT(ReferenceError);
+        STANDARD_INIT(SyntaxError);
+        STANDARD_INIT(TypeError);
+        STANDARD_INIT(URIError);
+        STANDARD_INIT(RuntimeError);
+        STANDARD_INIT(TypedArray);
+        STANDARD_INIT(Int8Array);
+        STANDARD_INIT(Uint8Array);
+        STANDARD_INIT(Uint8ClampedArray);
+        STANDARD_INIT(Int16Array);
+        STANDARD_INIT(Uint16Array);
+        STANDARD_INIT(Int32Array);
+        STANDARD_INIT(Uint32Array);
+        STANDARD_INIT(Float32Array);
+        STANDARD_INIT(Float64Array);
+        STANDARD_INIT(Boolean);
+        STANDARD_INIT(Symbol);
+        STANDARD_INIT(Date);
+        STANDARD_INIT(Proxy);
+        STANDARD_INIT(Function);
+        STANDARD_INIT(Number);
+        STANDARD_INIT(Object);
+        STANDARD_INIT(Regex);
+        STANDARD_INIT(String);
+        STANDARD_INIT(Map);
+        STANDARD_INIT(Set);
+        STANDARD_INIT(WeakMap);
+        STANDARD_INIT(WeakSet);
+        STANDARD_INIT(Promise);
+        STANDARD_INIT(GeneratorFunction);
+        STANDARD_INIT(AsyncFunction);
+        STANDARD_INIT(WebAssemblyCompileError);
+        STANDARD_INIT(WebAssemblyRuntimeError);
+        STANDARD_INIT(WebAssemblyMemory);
+        STANDARD_INIT(WebAssemblyModule);
+        STANDARD_INIT(WebAssemblyInstance);
+
+#undef STANDARD_INIT
 
         static void __cdecl InitializeAtomicsObject(DynamicObject* atomicsObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializeArrayBufferConstructor(DynamicObject* arrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeArrayBufferPrototype(DynamicObject* arrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeDataViewConstructor(DynamicObject* dataViewConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeDataViewPrototype(DynamicObject* dataViewPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-
-        static void __cdecl InitializeErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeEvalErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeEvalErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeRangeErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeRangeErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeReferenceErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeReferenceErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSyntaxErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSyntaxErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeTypeErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeTypeErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeURIErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeURIErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-
-        static void __cdecl InitializeTypedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeTypedArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt8ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt8ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ClampedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ClampedArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt16ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt16ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint16ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint16ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat64ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeInt64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeBoolArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeCharArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeBooleanPrototype(DynamicObject* booleanPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSymbolPrototype(DynamicObject* symbolPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeDateConstructor(DynamicObject* dateConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeDatePrototype(DynamicObject* datePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeProxyConstructor(DynamicObject* proxyConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeProxyPrototype(DynamicObject* proxyPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-
-        static void __cdecl InitializeFunctionConstructor(DynamicObject* functionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFunctionPrototype(DynamicObject* functionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         void InitializeComplexThings();
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #ifdef ENABLE_WASM
         static void __cdecl InitializeWasmObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeWebAssemblyObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
         // SIMD_JS
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1226,14 +1253,6 @@ namespace Js
         static void __cdecl InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSIMDFloat64x2Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeObjectConstructor(DynamicObject* objectConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeObjectPrototype(DynamicObject* objectPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeRegexConstructor(DynamicObject* regexConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeStringConstructor(DynamicObject* stringConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeStringPrototype(DynamicObject* stringPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeJSONObject(DynamicObject* JSONObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1243,14 +1262,6 @@ namespace Js
 #ifdef ENABLE_PROJECTION
         void InitializeWinRTPromiseConstructor();
 #endif
-        static void __cdecl InitializeMapConstructor(DynamicObject* mapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeMapPrototype(DynamicObject* mapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSetConstructor(DynamicObject* setConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeSetPrototype(DynamicObject* setPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeWeakMapConstructor(DynamicObject* weakMapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeWeakMapPrototype(DynamicObject* weakMapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeWeakSetConstructor(DynamicObject* weakSetConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeWeakSetPrototype(DynamicObject* weakSetPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         static void __cdecl InitializeIteratorPrototype(DynamicObject* iteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeArrayIteratorPrototype(DynamicObject* arrayIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1258,16 +1269,9 @@ namespace Js
         static void __cdecl InitializeSetIteratorPrototype(DynamicObject* setIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeStringIteratorPrototype(DynamicObject* stringIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-
-        static void __cdecl InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeGeneratorFunctionPrototype(DynamicObject* generatorFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeGeneratorPrototype(DynamicObject* generatorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         static void __cdecl JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);

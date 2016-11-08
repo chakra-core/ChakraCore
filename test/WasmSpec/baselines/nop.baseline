@@ -1,3 +1,3 @@
-nop.wast:242: $assert_return_48 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-last[47] at offset 5/6: Operator GrowMemory NYI
-nop.wast:243: $assert_return_49 unexpectedly threw: Error: Compiling wasm failed: function as-grow_memory-everywhere[48] at offset 8/9: Operator GrowMemory NYI
+nop.wast:242: $assert_return_48 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-grow_memory-last[47] at offset 6/7: Operator GrowMemory NYI
+nop.wast:243: $assert_return_49 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-grow_memory-everywhere[48] at offset 9/10: Operator GrowMemory NYI
 48/50 tests passed.

@@ -196,6 +196,16 @@ namespace Js
             arrayCallSiteInfo[i].callSiteNumber = i;
         }
 #endif
+
+#if TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND
+        if(functionBody->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            for(ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
+            {
+                arrayCallSiteInfo[i].SetIsNotNativeArray();
+            }
+        }
+#endif
     }
 
     bool DynamicProfileInfo::IsEnabledForAtLeastOneFunction(const ScriptContext *const scriptContext)
@@ -889,10 +899,11 @@ namespace Js
 
     // We are overloading the value types to store whether it is a mod by power of 2.
     // TaggedInt:
-    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
+    void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body,
+                                 ProfileId profileId, bool isModByPowerOf2)
     {
         Assert(profileId < body->GetProfiledDivOrRemCount());
-        // allow one op of the modulus to be optimized - anyway
+        /* allow one op of the modulus to be optimized - anyway */
         if (divideTypeInfo[profileId].IsUninitialized())
         {
             divideTypeInfo[profileId] = ValueType::GetInt(true);
@@ -901,11 +912,13 @@ namespace Js
         {
             if (isModByPowerOf2)
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::GetInt(true));
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::GetInt(true));
             }
             else
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::Float);
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::Float);
             }
         }
     }

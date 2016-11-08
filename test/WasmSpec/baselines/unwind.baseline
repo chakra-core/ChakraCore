@@ -1,24 +1,8 @@
 unwind.wast:130: $assert_trap_0 failed, runtime trap NYI
-unwind.wast:131: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function block-unwind-by-br[1] at offset 7/13: Operator I64Const NYI
-unwind.wast:132: $assert_return_2 unexpectedly threw: Error: Compiling wasm failed: function block-unwind-by-br-value[2] at offset 7/13: Operator I64Const NYI
-unwind.wast:133: $assert_return_3 unexpectedly threw: Error: Compiling wasm failed: function block-unwind-by-br_table[3] at offset 7/16: Operator I64Const NYI
-unwind.wast:134: $assert_return_4 unexpectedly threw: Error: Compiling wasm failed: function block-unwind-by-br_table-value[4] at offset 7/16: Operator I64Const NYI
-unwind.wast:135: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function block-unwind-by-return[5] at offset 7/12: Operator I64Const NYI
 unwind.wast:137: $assert_trap_6 failed, runtime trap NYI
-unwind.wast:138: $assert_return_7 unexpectedly threw: Error: Compiling wasm failed: function block-nested-unwind-by-br[7] at offset 9/17: Operator I64Const NYI
-unwind.wast:139: $assert_return_8 unexpectedly threw: Error: Compiling wasm failed: function block-nested-unwind-by-br-value[8] at offset 9/16: Operator I64Const NYI
-unwind.wast:140: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function block-nested-unwind-by-br_table[9] at offset 9/20: Operator I64Const NYI
-unwind.wast:141: $assert_return_10 unexpectedly threw: Error: Compiling wasm failed: function block-nested-unwind-by-br_table-value[10] at offset 9/19: Operator I64Const NYI
-unwind.wast:142: $assert_return_11 unexpectedly threw: Error: Compiling wasm failed: function block-nested-unwind-by-return[11] at offset 9/15: Operator I64Const NYI
 unwind.wast:144: $assert_trap_12 failed, runtime trap NYI
 unwind.wast:149: $assert_trap_16 failed, runtime trap NYI
-unwind.wast:150: $assert_return_17 unexpectedly threw: Error: Compiling wasm failed: function binary-after-br[17] at offset 22/24: Operator I64Eq NYI
-unwind.wast:151: $assert_return_18 unexpectedly threw: Error: Compiling wasm failed: function binary-after-br_table[18] at offset 25/27: Operator I64Eq NYI
-unwind.wast:152: $assert_return_19 unexpectedly threw: Error: Compiling wasm failed: function binary-after-return[19] at offset 19/20: Operator I64Eq NYI
 unwind.wast:154: $assert_trap_20 failed, runtime trap NYI
-unwind.wast:155: $assert_return_21 unexpectedly threw: Error: Compiling wasm failed: function select-after-br[21] at offset 19/26: Operator I64Const NYI
-unwind.wast:156: $assert_return_22 unexpectedly threw: Error: Compiling wasm failed: function select-after-br_table[22] at offset 19/29: Operator I64Const NYI
-unwind.wast:157: $assert_return_23 unexpectedly threw: Error: Compiling wasm failed: function select-after-return[23] at offset 17/22: Operator I64Const NYI
 unwind.wast:159: $assert_trap_24 failed, runtime trap NYI
 unwind.wast:164: $assert_trap_28 failed, runtime trap NYI
-9/32 tests passed.
+25/32 tests passed.

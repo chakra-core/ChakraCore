@@ -2590,7 +2590,18 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
             return instr;
         }
 
+        /*
+        *   Scope object has to be implicitly live whenever Heap Arguments object is live.
+        *       - When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
+        */
         Js::OpCode opcode = instr->m_opcode;
+        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
+            globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
+        {
+            IR::Instr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr, instr->m_func->GetScopeObjSym()->m_id);
+            instr->InsertAfter(byteCodeUsesInstr);
+        }
+
         IR::ByteCodeUsesInstr * newByteCodeUseInstr = globOpt->ConvertToByteCodeUses(instr);
         if (newByteCodeUseInstr != nullptr)
         {
