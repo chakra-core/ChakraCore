@@ -139,20 +139,28 @@ inline bool WasmMath::IsInValidRange(double aLeft)
     return (aLeft >= (double) MIN && aLeft <= (double) MAX);
 }
 
-template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> bool  WasmMath::isInRange(STYPE srcVal)
+template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)
 {
-    Assert(sizeof(STYPE) == sizeof(UTYPE));
-    UTYPE val;
-    memcpy(&val, &srcVal, sizeof(STYPE));
-    return (val < MAX) || (val >= NEG_ZERO && val < NEG_ONE);
+    return aLeft < aRight;
 }
 
-template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE> bool  WasmMath::isInRangeInclusive(STYPE srcVal)
+template <typename T> bool WasmMath::LessOrEqual(T aLeft, T aRight)
+{
+    return aLeft <= aRight;
+}
+
+template <typename STYPE,
+    typename UTYPE,
+    UTYPE MAX,
+    UTYPE NEG_ZERO,
+    UTYPE NEG_ONE,
+    WasmMath::CmpPtr<UTYPE> CMP1,
+    WasmMath::CmpPtr<UTYPE> CMP2>
+bool WasmMath::isInRange(STYPE srcVal)
 {
     Assert(sizeof(STYPE) == sizeof(UTYPE));
-    UTYPE val;
-    memcpy(&val, &srcVal, sizeof(STYPE));
-    return (val < MAX) || (val >= NEG_ZERO && val <= NEG_ONE);
+    UTYPE val = *reinterpret_cast<UTYPE*> (&srcVal);
+    return (CMP1(val, MAX)) || (val >= NEG_ZERO && CMP2(val, NEG_ONE));
 }
 
 template <typename STYPE> bool  WasmMath::isNaN(STYPE src)
