@@ -1,5 +1,2 @@
-set_local.wast:69: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function type-local-i64[1] at offset 3/8: I64 support NYI
-set_local.wast:74: $assert_return_5 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_5[15] at offset 3/9: Operator I64Const NYI
-set_local.wast:79: $assert_return_8 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_8[18] at offset 3/27: Operator I64Const NYI
-set_local.wast:85: $assert_return_9 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_9[19] at offset 3/27: Operator I64Const NYI
-6/10 tests passed.
+set_local.wast:85: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function write[9] at offset 47/79: Operator F64UConvertI64 NYI
+9/10 tests passed.

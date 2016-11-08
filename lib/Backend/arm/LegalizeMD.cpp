@@ -138,7 +138,6 @@ IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool f
 
 void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc)
 {
-    IntConstType immed;
     LegalForms forms = LegalSrcForms(instr, opndNum);
     if (opnd == NULL)
     {
@@ -167,8 +166,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     case IR::OpndKindAddr:
     case IR::OpndKindHelperCall:
     case IR::OpndKindIntConst:
-        immed = opnd->GetImmediateValue(instr->m_func);
-        LegalizeImmed(instr, opnd, opndNum, immed, forms, fPostRegAlloc);
+        LegalizeImmed(instr, opnd, opndNum, opnd->GetImmediateValueAsInt32(instr->m_func), forms, fPostRegAlloc);
         break;
 
     case IR::OpndKindLabel:

@@ -186,46 +186,67 @@ void Opnd::Free(Func *func)
     {
     case OpndKindIntConst:
         //NOTE: use to be Sealed do not do sub class checks like in CloneUse
-        return static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        break;
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->FreeInternal(func);
 
     case OpndKindSimd128Const:
-        return static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindFloatConst:
-        return static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindHelperCall:
-        return static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindSym:
-        return static_cast<SymOpnd*>(this)->FreeInternal(func);
+        static_cast<SymOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindReg:
         if ((*static_cast<RegOpnd*>(this)).IsArrayRegOpnd())
         {
-            return static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            break;
         }
-        return static_cast<RegOpnd*>(this)->FreeInternal(func);
+        static_cast<RegOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindAddr:
-        return static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindIndir:
-        return static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindMemRef:
-        return static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindLabel:
-        return static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindRegBV:
-        return static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        break;
     default:
         Assert(UNREACHED);
         __assume(UNREACHED);
 
     };
+#if DBG
+    if (func->m_alloc->HasDelayFreeList())
+    {
+        this->isDeleted = true;
+    }
+#endif
 }
 
 /*
@@ -238,6 +259,9 @@ bool Opnd::IsEqual(Opnd *opnd)
     {
     case OpndKindIntConst:
         return static_cast<IntConstOpnd*>(this)->IsEqualInternal(opnd);
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->IsEqualInternal(opnd);
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->IsEqualInternal(opnd);
@@ -289,6 +313,9 @@ Opnd * Opnd::Copy(Func *func)
     {
     case OpndKindIntConst:
         return static_cast<IntConstOpnd*>(this)->CopyInternal(func);
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->CopyInternal(func);
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->CopyInternal(func);
@@ -349,13 +376,16 @@ Opnd::GetStackSym() const
     }
 }
 
-intptr_t
+int64
 Opnd::GetImmediateValue(Func* func)
 {
     switch (this->GetKind())
     {
     case OpndKindIntConst:
         return this->AsIntConstOpnd()->GetValue();
+
+    case OpndKindInt64Const:
+        return this->AsInt64ConstOpnd()->GetValue();
 
     case OpndKindAddr:
         return (intptr_t)this->AsAddrOpnd()->m_address;
@@ -368,6 +398,16 @@ Opnd::GetImmediateValue(Func* func)
         return 0;
     }
 }
+
+#if TARGET_32 && !defined(_M_IX86)
+int32
+Opnd::GetImmediateValueAsInt32(Func * func)
+{
+    Assert(!IRType_IsInt64(this->GetType()));
+    Assert(this->GetKind() != OpndKindInt64Const);
+    return (int32)this->GetImmediateValue(func);
+}
+#endif
 
 BailoutConstantValue Opnd::GetConstValue()
 {
@@ -465,13 +505,20 @@ void Opnd::DumpValueType()
         switch(this->GetKind())
         {
         case OpndKindIntConst:
+        case OpndKindInt64Const:
         case OpndKindFloatConst:
             return;
 
         case OpndKindReg:
             {
                 StackSym *const sym = this->AsRegOpnd()->m_sym;
-                if(sym && (sym->IsInt32() || sym->IsFloat64()))
+                if(sym && (
+                    sym->IsInt32() ||
+                    sym->IsFloat32() ||
+                    sym->IsFloat64() ||
+                    sym->IsInt64() ||
+                    sym->IsUint64()
+                    ))
                 {
                     return;
                 }
@@ -1340,6 +1387,24 @@ IntConstOpnd::New(IntConstType value, IRType type, const char16 * name, Func *fu
 
 ///----------------------------------------------------------------------------
 ///
+/// IntConstOpnd::CreateIntConstOpndFromType
+///
+///     Create an IntConstOpnd or Int64ConstOpnd depending on the IRType.
+///
+///----------------------------------------------------------------------------
+
+IR::Opnd* IntConstOpnd::NewFromType(int64 value, IRType type, Func* func)
+{
+    if (IRType_IsInt64(type))
+    {
+        return Int64ConstOpnd::New(value, type, func);
+    }
+    Assert(value < (int64)UINT_MAX);
+    return IntConstOpnd::New((IntConstType)value, type, func);
+}
+
+///----------------------------------------------------------------------------
+///
 /// IntConstOpnd::Copy
 ///
 ///     Returns a copy of this opnd.
@@ -1463,6 +1528,60 @@ IntConstOpnd::AsUint32()
     Assert(sizeof(uint32) < sizeof(IntConstType));
     Assert(m_value >= 0 && m_value <= UINT32_MAX);
     return (uint32)m_value;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Int64ConstOpnd Methods
+///
+///----------------------------------------------------------------------------
+IR::Int64ConstOpnd* Int64ConstOpnd::New(int64 value, IRType type, Func *func)
+{
+    AssertMsg(func->GetJITFunctionBody()->IsWasmFunction(), "Only WebAssembly functions should have int64 const operands. Use IntConstOpnd for size_t type");
+    Int64ConstOpnd * intConstOpnd;
+
+    Assert(TySize[type] == sizeof(int64));
+
+    intConstOpnd = JitAnew(func->m_alloc, IR::Int64ConstOpnd);
+
+    intConstOpnd->m_type = type;
+    intConstOpnd->m_kind = OpndKindInt64Const;
+    intConstOpnd->m_value = value;
+
+    return intConstOpnd;
+}
+
+IR::Int64ConstOpnd* Int64ConstOpnd::CopyInternal(Func *func)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    Int64ConstOpnd * newOpnd;
+    newOpnd = Int64ConstOpnd::New(m_value, m_type, func);
+    newOpnd->m_valueType = m_valueType;
+
+    return newOpnd;
+}
+
+bool Int64ConstOpnd::IsEqualInternal(Opnd *opnd)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    if (!opnd->IsInt64ConstOpnd() || this->GetType() != opnd->GetType())
+    {
+        return false;
+    }
+
+    return m_value == opnd->AsInt64ConstOpnd()->m_value;
+}
+
+void Int64ConstOpnd::FreeInternal(Func * func)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    JitAdelete(func->m_alloc, this);
+}
+
+int64 Int64ConstOpnd::GetValue()
+{
+    Assert(m_type == TyInt64);
+    return m_value;
 }
 
 ///----------------------------------------------------------------------------
@@ -2954,6 +3073,13 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         }
         break;
 
+    case OpndKindInt64Const:
+    {
+        Int64ConstOpnd * intConstOpnd = this->AsInt64ConstOpnd();
+        int64 intValue = intConstOpnd->GetValue();
+        Output::Print(_u("%lld (0x%llX)"), intValue, intValue);
+        break;
+    }
     case OpndKindIntConst:
     {
         IntConstOpnd * intConstOpnd = this->AsIntConstOpnd();

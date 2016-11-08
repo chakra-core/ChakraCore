@@ -16,8 +16,8 @@ namespace Memory
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = GetCurrentProcess());
-    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
+    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process);
+    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process);
 
     static VirtualAllocWrapper Instance;  // single instance
 private:
@@ -44,10 +44,10 @@ public:
     static const unsigned MaxPreReserveSegment = 6;
 #endif
 public:
-    PreReservedVirtualAllocWrapper(HANDLE process = GetCurrentProcess());
+    PreReservedVirtualAllocWrapper(HANDLE process);
     ~PreReservedVirtualAllocWrapper();
-    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = GetCurrentProcess());
-    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process = GetCurrentProcess());
+    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process);
+    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process);
 
     bool        IsInRange(void * address);
     static bool IsInRange(void * regionStart, void * address);

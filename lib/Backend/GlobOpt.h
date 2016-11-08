@@ -1292,6 +1292,7 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
+    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
 private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
     void                    OptBlock(BasicBlock *block);
@@ -1335,7 +1336,6 @@ private:
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
-    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd* src1, IR::RegOpnd* dst);
     void                    TrackArgumentsSym(IR::RegOpnd* opnd);
     void                    ClearArgumentsSym(IR::RegOpnd* opnd);

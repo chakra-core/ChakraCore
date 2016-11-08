@@ -985,7 +985,7 @@ namespace Js
         virtual void ResetOnNativeCodeInstallFailure() = 0;
 
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
-        Js::PropertyId* GetSharedPropertyGuardsWithLock(ArenaAllocator * alloc, unsigned int& count) const;
+        Js::PropertyId* GetSharedPropertyGuards(unsigned int& count);
 
         bool TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard);
         void RecordTypeGuards(int propertyGuardCount, TypeGuardTransferEntry* typeGuardTransferRecord, size_t typeGuardTransferPlusSize);
@@ -1658,15 +1658,22 @@ namespace Js
 
         void SetDoBackendArgumentsOptimization(bool set)
         {
-            if (m_doBackendArgumentsOptimization)
-            {
-                m_doBackendArgumentsOptimization = set;
-            }
+            m_doBackendArgumentsOptimization = set;
         }
 
         bool GetDoBackendArgumentsOptimization()
         {
             return m_doBackendArgumentsOptimization;
+        }
+
+        void SetDoScopeObjectCreation(bool set)
+        {
+            m_doScopeObjectCreation = set;
+        }
+
+        bool GetDoScopeObjectCreation()
+        {
+            return m_doScopeObjectCreation;
         }
 
         void SetUsesArgumentsObject(bool set)
@@ -1757,6 +1764,7 @@ namespace Js
         bool m_isWasmFunction : 1;
         bool m_isGlobalFunc : 1;
         bool m_doBackendArgumentsOptimization : 1;
+        bool m_doScopeObjectCreation : 1;
         bool m_usesArgumentsObject : 1;
         bool m_isEval : 1;              // Source code is in 'eval'
         bool m_isDynamicFunction : 1;   // Source code is in 'Function'
@@ -2639,7 +2647,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         Js::JavascriptMethod GetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, int entryPointIndex);
-        void SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint);
+        void SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint, uint loopNum);
 #endif
 
         void RestoreOldDefaultEntryPoint(FunctionEntryPointInfo* oldEntryPoint, JavascriptMethod oldOriginalEntryPoint, FunctionEntryPointInfo* newEntryPoint);

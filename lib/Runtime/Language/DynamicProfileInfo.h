@@ -5,7 +5,7 @@
 #pragma once
 
 // DisableJit-TODO
-#if ENABLE_PROFILE_INFO 
+#if ENABLE_PROFILE_INFO
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 class DynamicProfileMutatorImpl;
@@ -375,6 +375,7 @@ namespace Js
         ValueType * GetDivideTypeInfo() const { return divideTypeInfo; }
 
         void RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2);
+
         bool IsModulusOpByPowerOf2(FunctionBody* body, ProfileId profileId) const;
 
         void RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object);

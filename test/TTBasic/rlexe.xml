@@ -112,7 +112,31 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
-    <test>
+  <test>
+    <default>
+      <files>crossSiteMain.js</files>
+      <compile-flags>-TTRecord=~crossSiteTest -TTSnapInterval=0</compile-flags>
+      <baseline>crossSiteRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug=~crossSiteTest</compile-flags>
+      <baseline>crossSiteReplay1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug=~crossSiteTest -TTDStartEvent=2</compile-flags>
+      <baseline>crossSiteReplay2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
     <default>
       <files>constructor.js</files>
       <compile-flags>-TTRecord=~constructorTest -TTSnapInterval=0</compile-flags>

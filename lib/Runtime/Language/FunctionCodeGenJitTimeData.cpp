@@ -14,10 +14,12 @@ namespace Js
 #ifdef FIELD_ACCESS_STATS
         inlineCacheStats(nullptr),
 #endif
-        next(0),
+        next(nullptr),
         ldFldInlinees(nullptr),
         globalThisObject(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis() : 0),
-        profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0)
+        profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0),
+        sharedPropertyGuards(nullptr),
+        sharedPropertyGuardCount(0)
     {
     }
 

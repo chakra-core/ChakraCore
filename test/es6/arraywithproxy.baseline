@@ -1,10 +1,12 @@
 concat test#1
 get trap: concat
 get trap: constructor
+get trap: Symbol(Symbol.isConcatSpreadable)
 get trap: length
 concat test#2
 get trap: concat
 get trap: constructor
+get trap: Symbol(Symbol.isConcatSpreadable)
 get trap: length
 has trap: 0
 get trap: 0

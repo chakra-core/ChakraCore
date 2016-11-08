@@ -106,7 +106,7 @@ NESTED_ENTRY _ZN2Js18DynamicProfileInfo29EnsureDynamicProfileInfoThunkEPNS_16Rec
         push_register rdi
         push_register rsi
 
-        call _ZN2Js18DynamicProfileInfo24EnsureDynamicProfileInfoEPNS_14ScriptFunctionE
+        call C_FUNC(_ZN2Js18DynamicProfileInfo24EnsureDynamicProfileInfoEPNS_14ScriptFunctionE)
 
         pop_register rsi
         pop_register rdi
@@ -144,7 +144,7 @@ align 16
 
         sub rsp, 20h
         lea rcx, [rsp + 30h]
-        call ?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z
+        call C_FUNC(?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z)
 
         add rsp, 20h
 
@@ -186,7 +186,7 @@ align 16
         .endprolog
 
         sub rsp, 20h
-        call ?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z
+        call C_FUNC(?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z)
 
         add rsp, 20h
 
@@ -275,7 +275,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
 
         // allocate stack space for unboxed values
         // int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
-        call _ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE
+        call C_FUNC(_ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE)
 
         mov rcx, r13 // arg4: callInfo
         mov rsi, rsp // arg2: orig stack pointer is arg for the unboxing helper
@@ -288,7 +288,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         mov rdx, rsp // arg3: argDst
 
         // unboxing function also does stack probe
-        call _ZN2Js19UnboxAsmJsArgumentsEPNS_14ScriptFunctionEPPvPcNS_8CallInfoE
+        call C_FUNC(_ZN2Js19UnboxAsmJsArgumentsEPNS_14ScriptFunctionEPPvPcNS_8CallInfoE)
         // rax = target function address
 
         // move first 4 arguments into registers.
@@ -302,7 +302,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         push rax
         push rdi
         sub rsp, 8h
-        call _ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE
+        call C_FUNC(_ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE)
         mov r13, rax                    // r13: arg size
         add rsp, 8h
         pop rdi
@@ -366,7 +366,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         movups [rsp + 10h], xmm0
         lea r12, [rsp + 10h]
         mov qword ptr [rsp], r12
-        call _ZN2Js19BoxAsmJsReturnValueEPNS_14ScriptFunctionEidfDv4_f
+        call C_FUNC(_ZN2Js19BoxAsmJsReturnValueEPNS_14ScriptFunctionEidfDv4_f)
 
         mov rsp, r13 // restore stack pointer
     Epilogue:

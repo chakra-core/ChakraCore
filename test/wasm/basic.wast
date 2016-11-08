@@ -5,9 +5,9 @@
 (module
     (type $t1 (func (result i32)))
     (type $t2 (func (param i32) (result i32)))
+    (import "test" "foo" (func $foo (type $t2)))
 
     (memory (export "memory") 5000 5000)
-    (import "test" "foo" (func $foo (type $t2)))
     (func $f1 (type $t1)
         (return (i32.const 2))
     )

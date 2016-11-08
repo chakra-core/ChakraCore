@@ -45,6 +45,7 @@ bool IRType_IsNativeInt(IRType type)
 {
     return TyBaseType[type] > IRBaseType_Illegal && TyBaseType[type] < IRBaseType_Float;
 }
+bool IRType_IsInt64(IRType type) { return type == TyInt64 || type == TyUint64; }
 
 bool IRType_IsSimd(IRType type)
 {
@@ -54,7 +55,6 @@ bool IRType_IsSimd(IRType type)
 bool IRType_IsSimd128(IRType type)
 {
     return type >= TySimd128F4 && type <= TySimd128D2;
-           
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

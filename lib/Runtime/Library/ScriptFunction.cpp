@@ -512,6 +512,11 @@ namespace Js
             extractor->MarkScriptFunctionScopeInfo(environment);
         }
 
+        if(this->cachedScopeObj != nullptr)
+        {
+            extractor->MarkVisitVar(this->cachedScopeObj);
+        }
+
         if(this->homeObj != nullptr)
         {
             extractor->MarkVisitVar(this->homeObj);
@@ -580,6 +585,11 @@ namespace Js
             }
         }
 
+        if(this->cachedScopeObj != nullptr)
+        {
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->cachedScopeObj, _u("_cachedScopeObj"));
+        }
+
         if(this->homeObj != nullptr)
         {
             this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
@@ -609,13 +619,19 @@ namespace Js
             ssfi->ScopeId = TTD_CONVERT_SCOPE_TO_PTR_ID(environment);
         }
 
+        ssfi->CachedScopeObjId = TTD_INVALID_PTR_ID;
+        if(this->cachedScopeObj != nullptr)
+        {
+            ssfi->CachedScopeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->cachedScopeObj);
+        }
+
         ssfi->HomeObjId = TTD_INVALID_PTR_ID;
         if(this->homeObj != nullptr)
         {
             ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
         }
 
-        ssfi->ComputedNameInfo = this->computedNameVar;
+        ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->computedNameVar);
 
         ssfi->HasInlineCaches = this->hasInlineCaches;
         ssfi->HasSuperReference = this->hasSuperReference;
@@ -626,12 +642,28 @@ namespace Js
 #endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr), m_lazyError(nullptr)
+        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
     {}
 
     AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleMemory(nullptr), m_lazyError(nullptr)
+        ScriptFunction(type), m_moduleMemory(nullptr)
     {}
+
+    bool AsmJsScriptFunction::Is(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
+    }
+
+    bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+    }
+
+    AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
+    {
+        Assert(AsmJsScriptFunction::Is(func));
+        return reinterpret_cast<AsmJsScriptFunction *>(func);
+    }
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)

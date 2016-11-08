@@ -124,6 +124,9 @@
     <None Include="MarkContext.inl" />
     <None Include="Recycler.inl" />
     <None Include="SmallBlockDeclarations.inl" />
+    <None Include="amd64\amd64_SAVE_REGISTERS.S">
+      <Filter>amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="amd64">

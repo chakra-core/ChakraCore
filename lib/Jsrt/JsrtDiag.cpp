@@ -46,7 +46,7 @@ CHAKRA_API JsDiagStartDebugging(
     _In_ JsDiagDebugEventCallback debugEventCallback,
     _In_opt_ void* callbackState)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
@@ -107,7 +107,7 @@ CHAKRA_API JsDiagStopDebugging(
     _In_ JsRuntimeHandle runtimeHandle,
     _Out_ void** callbackState)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
@@ -155,7 +155,7 @@ CHAKRA_API JsDiagStopDebugging(
 CHAKRA_API JsDiagGetScripts(
     _Out_ JsValueRef *scriptsArray)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(scriptsArray);
 
@@ -183,7 +183,7 @@ CHAKRA_API JsDiagGetSource(
     _In_ unsigned int scriptId,
     _Out_ JsValueRef *source)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(source);
 
@@ -210,7 +210,7 @@ CHAKRA_API JsDiagGetSource(
 CHAKRA_API JsDiagRequestAsyncBreak(
     _In_ JsRuntimeHandle runtimeHandle)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
@@ -234,7 +234,7 @@ CHAKRA_API JsDiagRequestAsyncBreak(
 CHAKRA_API JsDiagGetBreakpoints(
     _Out_ JsValueRef *breakpoints)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         PARAM_NOT_NULL(breakpoints);
 
@@ -276,7 +276,7 @@ CHAKRA_API JsDiagSetBreakpoint(
     _In_ unsigned int columnNumber,
     _Out_ JsValueRef *breakpoint)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         PARAM_NOT_NULL(breakpoint);
 
@@ -334,7 +334,7 @@ CHAKRA_API JsDiagSetBreakpoint(
 CHAKRA_API JsDiagRemoveBreakpoint(
     _In_ unsigned int breakpointId)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
 
@@ -364,7 +364,7 @@ CHAKRA_API JsDiagSetBreakOnException(
     _In_ JsRuntimeHandle runtimeHandle,
     _In_ JsDiagBreakOnExceptionAttributes exceptionAttributes)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
@@ -384,7 +384,7 @@ CHAKRA_API JsDiagGetBreakOnException(
     _In_ JsRuntimeHandle runtimeHandle,
     _Out_ JsDiagBreakOnExceptionAttributes* exceptionAttributes)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
@@ -407,7 +407,7 @@ CHAKRA_API JsDiagGetBreakOnException(
 CHAKRA_API JsDiagSetStepType(
     _In_ JsDiagStepType stepType)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
         JsrtRuntime* runtime = currentContext->GetRuntime();
@@ -432,9 +432,9 @@ CHAKRA_API JsDiagSetStepType(
         }
         else if (stepType == JsDiagStepTypeStepBack)
         {
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
             ThreadContext* threadContext = runtime->GetThreadContext();
-            if(threadContext->TTDLog == nullptr || !threadContext->TTDLog->ShouldPerformDebugAction_BreakPointAction())
+            if(!threadContext->IsRuntimeInTTDMode())
             {
                 return JsErrorInvalidArgument;
             }
@@ -461,7 +461,7 @@ CHAKRA_API JsDiagGetFunctionPosition(
     _In_ JsValueRef function,
     _Out_ JsValueRef *functionPosition)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         VALIDATE_INCOMING_REFERENCE(function, scriptContext);
         PARAM_NOT_NULL(functionPosition);
@@ -515,7 +515,7 @@ CHAKRA_API JsDiagGetFunctionPosition(
 CHAKRA_API JsDiagGetStackTrace(
     _Out_ JsValueRef *stackTrace)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(stackTrace);
 
@@ -540,7 +540,7 @@ CHAKRA_API JsDiagGetStackProperties(
     _In_ unsigned int stackFrameIndex,
     _Out_ JsValueRef *properties)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(properties);
 
@@ -580,7 +580,7 @@ CHAKRA_API JsDiagGetProperties(
     _Out_ JsValueRef *propertiesObject)
 {
 
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(propertiesObject);
 
@@ -617,7 +617,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
     _In_ unsigned int objectHandle,
     _Out_ JsValueRef *handleObject)
 {
-    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(handleObject);
 
@@ -655,7 +655,7 @@ CHAKRA_API JsDiagEvaluate(
     _In_ unsigned int stackFrameIndex,
     _Out_ JsValueRef *evalResult)
 {
-    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(expression);
         PARAM_NOT_NULL(evalResult);

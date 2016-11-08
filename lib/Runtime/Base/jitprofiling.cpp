@@ -126,6 +126,8 @@ ITT_EXTERN_C iJIT_IsProfilingActiveFlags JITAPI iJIT_IsProfilingActive()
  * on success: all functions load,     iJIT_DLL_is_missing = 0, return value = 1
  * on failure: all functions are NULL, iJIT_DLL_is_missing = 1, return value = 0
  */
+#pragma prefast(push)
+#pragma prefast(disable:38020, "Not used in release build. VTune is sensitive to changes in this file.")
 static int loadiJIT_Funcs()
 {
     static int bDllWasLoaded = 0;
@@ -265,5 +267,5 @@ ITT_EXTERN_C unsigned int JITAPI iJIT_GetNewMethodID()
 
     return methodID++;
 }
-
+#pragma prefast(pop)
 #endif /* VTUNE_PROFILING */

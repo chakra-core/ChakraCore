@@ -4038,7 +4038,15 @@ CommonNumber:
 
         if (!hasProperty)
         {
-            JavascriptString* varName = JavascriptConversion::ToString(index, scriptContext);
+            JavascriptString* varName = nullptr;
+            if (indexType == IndexType_PropertyId && propertyRecord != nullptr && propertyRecord->IsSymbol())
+            {
+                varName = JavascriptSymbol::ToString(propertyRecord, scriptContext);
+            }
+            else
+            {
+                varName = JavascriptConversion::ToString(index, scriptContext);
+            }
 
             // ES5 11.2.3 #2: We evaluate the call target but don't throw yet if target member is missing. We need to evaluate argList
             // first (#3). Postpone throwing error to invoke time.
@@ -6816,8 +6824,7 @@ CommonNumber:
                 // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
                 // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
                 // is ready for storing values directly to slots.
-                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
-
+                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);    
                 int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
                 int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
                 __analysis_assume((uint32)newSlotCapacity >= formalsCount);
@@ -6897,9 +6904,28 @@ CommonNumber:
         return argsObj;
     }
 
-    Var JavascriptOperators::OP_NewScopeObject(ScriptContext*scriptContext)
+    Var JavascriptOperators::OP_NewScopeObject(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->CreateActivationObject();
+    }
+
+    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList)
+    {
+        Js::ActivationObject * frameObject = (ActivationObject*)OP_NewScopeObject(scriptContext);
+        // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
+        // we will set them directly using SetSlot below, so the type handler will not have a chance to mark them as initialized later.
+        // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
+        // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
+        // is ready for storing values directly to slots.
+        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), funcCallee->GetFunctionBody()->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+
+        int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
+        int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
+
+        frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
+        frameObject->ReplaceType(newType);
+        
+        return frameObject;
     }
 
     Var* JavascriptOperators::OP_NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope)
@@ -6978,13 +7004,14 @@ CommonNumber:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("Symbol[Symbol.hasInstance]"));
                 }
+
+                ThreadContext * threadContext = scriptContext->GetThreadContext();
                 RecyclableObject *instFunc = RecyclableObject::FromVar(instOfHandler);
-                Js::Var values[2];
-                Js::CallInfo info(Js::CallFlags_Value, 2);
-                Js::Arguments args(info, values);
-                values[0] = constructor;
-                values[1] = instance;
-                Var result = JavascriptFunction::CallFunction<true>(instFunc, instFunc->GetEntryPoint(), args);
+                Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
+                {
+                    return CALL_FUNCTION(instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
+                });
+
                 return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
             }
         }
@@ -9297,7 +9324,7 @@ CommonNumber:
 
     Var JavascriptOperators::CallGetter(RecyclableObject * const function, Var const object, ScriptContext * requestContext)
     {
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD
         if(requestContext->ShouldSuppressGetterInvocationForDebuggerEvaluation())
         {
             return requestContext->GetLibrary()->GetUndefined();

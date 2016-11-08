@@ -21,6 +21,7 @@ PageAllocatorPool::PageAllocatorPool()
 
 PageAllocatorPool::~PageAllocatorPool()
 {
+    AutoCriticalSection autoCS(&cs);
     RemoveAll();
 }
 
@@ -35,16 +36,21 @@ void PageAllocatorPool::Initialize()
 void PageAllocatorPool::Shutdown()
 {
     AutoCriticalSection autoCS(&cs);
+    Assert(Instance);
     if (Instance)
     {
-        CloseHandle(Instance->idleCleanupTimer);
-        HeapDelete(Instance);
+        PageAllocatorPool* localInstance = Instance;
         Instance = nullptr;
+        if (localInstance->idleCleanupTimer)
+        {
+            CloseHandle(localInstance->idleCleanupTimer);
+        }
+        HeapDelete(localInstance);
     }
 }
 void PageAllocatorPool::RemoveAll()
 {
-    AutoCriticalSection autoCS(&cs);
+    Assert(cs.IsLocked());
     while (!pageAllocators.Empty())
     {
         HeapDelete(pageAllocators.Pop());
@@ -113,24 +119,12 @@ VOID CALLBACK PageAllocatorPool::IdleCleanupRoutine(
     _In_     DWORD  dwTimerLowValue,
     _In_     DWORD  dwTimerHighValue)
 {
-    AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-    try
+    AutoCriticalSection autoCS(&cs);
+    if (Instance)
     {
-        if (Instance)
-        {
-            // TODO: OOP JIT, use better stragtegy to do the cleanup, like do not remove all,
-            // instead keep couple inactivate page allocator for next calls
-            Instance->RemoveAll();
-        }
-
-        ServerContextManager::IdleCleanup();
-    }
-    catch (Js::OutOfMemoryException&)
-    {
-    }
-    catch (...)
-    {
-        Assert(false);
+        // TODO: OOP JIT, use better stragtegy to do the cleanup, like do not remove all,
+        // instead keep couple inactivate page allocator for next calls
+        Instance->RemoveAll();
     }
 }
 #endif

@@ -225,6 +225,14 @@ ifdef _ENABLE_ASM_JS
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
+; int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+align 16
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+    .setframe rbp, 0
+    .endprolog
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+
 ; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
 ??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME

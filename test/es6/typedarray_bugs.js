@@ -91,6 +91,19 @@ var tests = [
         });
     }
   },
+  {
+    name: "typedarray.prototype.keys should take length from internal slot",
+    body: function () {
+        var a = new Int8Array(4);
+        Object.defineProperty(a, 'length', {value : 10});
+        var b = a.keys();
+        var counter = 0;
+        for (var i of b) {
+            counter++;
+        }
+        assert.areEqual(counter, 4, "The iterable object should iterate only 4 times, not 10 times");
+    }
+  },
   
 ];
 

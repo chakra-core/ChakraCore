@@ -34,10 +34,10 @@ public:
     void EnumerateObjects(ObjectInfoBits infoBits, void(*CallBackFunction)(void * address, size_t size));
 #ifdef RECYCLER_PAGE_HEAP
     bool IsPageHeapEnabled() const{ return isPageHeapEnabled; }
-    static size_t RoundObjectSize(size_t objectSize) 
+    static size_t RoundObjectSize(size_t objectSize)
     {
         // triming off the tail part which is not a pointer
-        return objectSize - (objectSize % sizeof(void*)); 
+        return objectSize - (objectSize % sizeof(void*));
     }
 
     template <typename TBlockAttributes>
@@ -155,7 +155,7 @@ public:
     static size_t GetMediumObjectAlignedSizeNoCheck(size_t size) { return Math::Align<size_t>(size, HeapConstants::MediumObjectGranularity); }
 #endif
 
-    static uint GetBucketIndex(size_t sizeCat) { Assert(IsAlignedSmallObjectSize(sizeCat)); return (uint)(sizeCat >> HeapConstants::ObjectAllocationShift) - 1; }
+    static inline uint GetBucketIndex(size_t sizeCat) { Assert(IsAlignedSmallObjectSize(sizeCat)); return (uint)(sizeCat >> HeapConstants::ObjectAllocationShift) - 1; }
 
     template <typename TBlockAttributes>
     static uint GetObjectSizeForBucketIndex(uint bucketIndex);
@@ -319,10 +319,30 @@ private:
 #endif
         static void GenerateValidPointersMap(ValidPointersMapTable& validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable);
 
-        const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint index) const;
+        inline const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint index) const
+        {
+            Assert(index < TBlockAttributes::BucketCount);
+            __analysis_assume(index < TBlockAttributes::BucketCount);
+            return validPointersBuffer[index];
+        }
 
-        const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * GetInvalidBitVector(uint index) const;
-        const typename SmallHeapBlockT<TBlockAttributes>::BlockInfo * GetBlockInfo(uint index) const;
+        inline const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * GetInvalidBitVector(uint index) const
+        {
+            Assert(index < TBlockAttributes::BucketCount);
+            __analysis_assume(index < TBlockAttributes::BucketCount);
+        #if USE_STATIC_VPM
+            return &(*invalidBitsBuffers)[index];
+        #else
+            return &invalidBitsBuffers[index];
+        #endif
+        }
+
+        inline const typename SmallHeapBlockT<TBlockAttributes>::BlockInfo * GetBlockInfo(uint index) const
+        {
+            Assert(index < TBlockAttributes::BucketCount);
+            __analysis_assume(index < TBlockAttributes::BucketCount);
+            return blockInfoBuffer[index];
+        }
 
         static HRESULT GenerateValidPointersMapHeader(LPCWSTR vpmFullPath);
 

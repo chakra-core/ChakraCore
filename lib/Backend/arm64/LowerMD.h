@@ -72,7 +72,7 @@ public:
 
             IR::Instr *     LoadArgumentCount(IR::Instr * instr) { __debugbreak(); return 0; }
             IR::Instr *     LoadStackArgPtr(IR::Instr * instr) { __debugbreak(); return 0; }
-              IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs, bool force = false, IR::Opnd *opndInputParamCount = nullptr) { __debugbreak(); return 0; }
+              IR::Instr *     LoadHeapArguments(IR::Instr * instrArgs) { __debugbreak(); return 0; }
               IR::Instr *     LoadHeapArgsCached(IR::Instr * instr) { __debugbreak(); return 0; }
               IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false) { __debugbreak(); return 0; }
               IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr) { __debugbreak(); return 0; }
@@ -97,7 +97,7 @@ public:
 
               void            GenerateClz(IR::Instr * instr) { __debugbreak(); }
               void            GenerateCtz(IR::Instr * instr) { __debugbreak(); }
-              void            GeneratePopCnt32(IR::Instr * instr) { __debugbreak(); }
+              void            GeneratePopCnt(IR::Instr * instr) { __debugbreak(); }
               void            GenerateThrowUnreachable(IR::Instr * instr) { __debugbreak(); }
               void            GenerateFastDivByPow2(IR::Instr *instr) { __debugbreak(); }
               bool            GenerateFastAdd(IR::Instr * instrAdd) { __debugbreak(); return 0; }
@@ -142,6 +142,7 @@ public:
        static void            EmitPtrInstr(IR::Instr *instr) { __debugbreak(); }
               void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false) { __debugbreak(); }
               bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed) { __debugbreak(); return 0; }
+              IR::Instr *     LowerInt64Assign(IR::Instr * instr) { __debugbreak(); return nullptr; }
 
        static void            LowerInt4NegWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) { __debugbreak(); }
        static void            LowerInt4AddWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) { __debugbreak(); }
@@ -201,6 +202,8 @@ public:
               void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               static IR::Instr *  InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr) { __debugbreak(); return 0; }
               void                EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr) { __debugbreak(); }
               IR::LabelInstr*     EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool needHelperLabel) { __debugbreak(); return 0; }

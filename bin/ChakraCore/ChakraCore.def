@@ -22,15 +22,16 @@ JsDiagStartDebugging
 JsDiagStopDebugging
 
 JsTTDCreateRecordRuntime
-JsTTDCreateDebugRuntime
+JsTTDCreateReplayRuntime
 JsTTDCreateContext
-JsTTDSetIOCallbacks
-JsTTDStartTimeTravelRecording
-JsTTDStopTimeTravelRecording
-JsTTDEmitTimeTravelRecording
-JsTTDStartTimeTravelDebugging
+JsTTDNotifyContextDestroy
+JsTTDStart
+JsTTDStop
+JsTTDEmitRecording
+
 JsTTDPauseTimeTravelBeforeRuntimeOperation
 JsTTDReStartTimeTravelAfterRuntimeOperation
+
 JsTTDNotifyYield
 JsTTDHostExit
 JsTTDRawBufferCopySyncIndirect
@@ -38,7 +39,6 @@ JsTTDRawBufferModifySyncIndirect
 JsTTDRawBufferAsyncModificationRegister
 JsTTDRawBufferAsyncModifyComplete
 JsTTDGetSnapTimeTopLevelEventMove
-JsTTDPrepContextsForTopLevelEventMove
 JsTTDPreExecuteSnapShotInterval
 JsTTDMoveToTopLevelEvent
 JsTTDReplayExecution

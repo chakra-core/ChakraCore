@@ -1589,6 +1589,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             Js::RegSlot regFrameObj = m_func->GetJITFunctionBody()->GetLocalClosureReg();
             Assert(regFrameObj != Js::Constants::NoRegister);
             srcOpnd = BuildSrcOpnd(regFrameObj);
+            if (m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
+            {
+                m_func->SetScopeObjSym(srcOpnd->GetStackSym());
+            }
         }
         else
         {
@@ -1617,6 +1621,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             Js::Throw::FatalInternalError();
         }
         srcOpnd = BuildSrcOpnd(m_func->GetJITFunctionBody()->GetLocalClosureReg());
+        if (m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
+        {
+            m_func->SetScopeObjSym(srcOpnd->GetStackSym());
+        }
         isNotInt = true;
         break;
 

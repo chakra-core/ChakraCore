@@ -115,7 +115,9 @@ namespace Js
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
+                this->parseTree = scriptContext->ParseScript(parser, sourceText,
+                    sourceLength, srcInfo, &se, &pSourceInfo, _u("module"),
+                    loadScriptFlag, &sourceIndex, nullptr);
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;

@@ -1,15 +1,23 @@
-StackArgFormals : test1 (3) :Removing Scope object creation in Deadstore pass. 
 StackArgFormals : test1 (3) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test1 (3) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
 StackArgFormals : test1 (3) :Attaching the scope object with the heap arguments object in the bail out path. 
-StackArgFormals : test2 (5) :Removing Scope object creation in Deadstore pass. 
 StackArgFormals : test2 (5) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test2 (5) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
 StackArgFormals : test3 (6) :Removing Heap Arguments object creation in Lowerer. 
 StackArgFormals : inner_test4 (8) :Removing Heap Arguments object creation in Lowerer. 
 StackArgFormals : test5 (9) :Removing Heap Arguments object creation in Lowerer. 
 StackArgFormals : test6 (10) :Removing Heap Arguments object creation in Lowerer. 
 StackArgFormals : test7 (11) :Removing Heap Arguments object creation in Lowerer. 
-StackArgFormals : test12_1 (17) :Removing Scope object creation in Deadstore pass. 
 StackArgFormals : test12_1 (17) :Removing Heap Arguments object creation in Lowerer. 
-StackArgFormals : test13 (19) :Removing Scope object creation in Deadstore pass. 
+StackArgFormals : test12_1 (17) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
 StackArgFormals : test13 (19) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test13 (19) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
+StackArgFormals : test14 (20) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test14 (20) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
+StackArgFormals : test15 (21) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test16 (22) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test16 (22) :Removing Scope object creation in Lowerer and replacing it with MOV NULL. 
+StackArgFormals : test16 (22) :Attaching the scope object with the heap arguments object in the bail out path. 
+StackArgFormals : test17 (23) :Removing Heap Arguments object creation in Lowerer. 
+StackArgFormals : test17 (23) :Attaching the scope object with the heap arguments object in the bail out path. 
 PASSED

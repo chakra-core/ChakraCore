@@ -69,17 +69,18 @@ public:
     IR::Instr *         LowerStartCall(IR::Instr * instr);
     IR::Instr *         LowerAsmJsCallI(IR::Instr * callInstr);
     IR::Instr *         LowerAsmJsCallE(IR::Instr * callInstr);
-
+    IR::Instr *         LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd);
     IR::Instr *         LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad = false, bool checkEndOffset = false);
     IR::Instr *         LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore = false, bool checkEndOffset = false);
 
+    IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber);
     IR::Instr *         LoadDynamicArgumentUsingLength(IR::Instr *instr);
     IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadStackArgPtr(IR::Instr * instr);
-    IR::Instr *         LoadHeapArguments(IR::Instr * instr, bool force = false, IR::Opnd* opndInputParamCount = nullptr);
+    IR::Instr *         LoadHeapArguments(IR::Instr * instr);
     IR::Instr *         LoadHeapArgsCached(IR::Instr * instr);
     IR::Instr *         LoadFuncExpression(IR::Instr * instr);
     IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
@@ -87,11 +88,14 @@ public:
     IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
     IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
     IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
+    IR::Instr *         LowerInt64Assign(IR::Instr * instr);
     static void         EmitInt4Instr(IR::Instr *instr, bool signExtend = false);
     static void         EmitPtrInstr(IR::Instr *instr);
     void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
     void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
     void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+    void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+    void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
     bool                EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed);
 
     IR::Instr *         LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert, const bool checkForNullInLoopBody = false);

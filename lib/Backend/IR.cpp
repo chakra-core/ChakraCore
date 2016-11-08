@@ -1994,6 +1994,7 @@ Instr::SetDst(Opnd * newDst)
             stackSym->m_instrDef    = nullptr;
             stackSym->m_isConst     = false;
             stackSym->m_isIntConst  = false;
+            stackSym->m_isInt64Const= false;
             stackSym->m_isTaggableIntConst  = false;
             stackSym->m_isNotInt    = false;
             stackSym->m_isStrConst  = false;
@@ -3276,6 +3277,14 @@ bool Instr::HasAnySideEffects() const
     return false;
 }
 
+bool Instr::AreAllOpndInt64() const
+{
+    bool isDstInt64 = !m_dst || IRType_IsInt64(m_dst->GetType());
+    bool isSrc1Int64 = !m_src1 || IRType_IsInt64(m_src1->GetType());
+    bool isSrc2Int64 = !m_src2 || IRType_IsInt64(m_src2->GetType());
+    return isDstInt64 && isSrc1Int64 && isSrc2Int64;
+}
+
 JITTimeFixedField* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
@@ -3764,7 +3773,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         break;
 
     case Js::OpCode::Conv_Num:
-    case Js::OpCode::LdC_A_I4:
+    case Js::OpCode::Ld_I4:
         value = src1Const;
         break;
 
@@ -3794,7 +3803,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         }
         break;
 
-    case Js::OpCode::InlineMathClz32:
+    case Js::OpCode::InlineMathClz:
         DWORD clz;
         DWORD src1Const32;
         src1Const32 = (DWORD)src1Const;

@@ -1230,7 +1230,7 @@ modrm:
             bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
+                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {

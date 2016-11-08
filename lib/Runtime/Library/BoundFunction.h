@@ -12,6 +12,10 @@ namespace Js
         DEFINE_VTABLE_CTOR(BoundFunction, JavascriptFunction);
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) override;
 
+#if ENABLE_TTD
+        virtual void MarshalCrossSite_TTDInflate() override;
+#endif
+
     private:
         bool GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, BOOL* result);

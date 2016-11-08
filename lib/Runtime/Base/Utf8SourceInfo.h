@@ -271,9 +271,15 @@ namespace Js
         virtual void Dispose(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        static Utf8SourceInfo* NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo, bool isLibraryCode);
-        static Utf8SourceInfo* New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode);
-        static Utf8SourceInfo* NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode);
+        static Utf8SourceInfo* NewWithHolder(ScriptContext* scriptContext,
+            ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo,
+            bool isLibraryCode, Js::Var scriptSource = nullptr);
+        static Utf8SourceInfo* New(ScriptContext* scriptContext, LPCUTF8 utf8String,
+            int32 length, size_t numBytes, SRCINFO const* srcInfo,
+            bool isLibraryCode, Js::Var scriptSource = nullptr);
+        static Utf8SourceInfo* NewWithNoCopy(ScriptContext* scriptContext,
+            LPCUTF8 utf8String, int32 length, size_t numBytes,
+            SRCINFO const* srcInfo, bool isLibraryCode, Js::Var scriptSource = nullptr);
         static Utf8SourceInfo* Clone(ScriptContext* scriptContext, const Utf8SourceInfo* sourceinfo);
 
         ScriptContext * GetScriptContext() const
@@ -389,7 +395,13 @@ namespace Js
         ULONG parseFlags;
         ULONG byteCodeGenerationFlags;
 
-        Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext, bool isLibraryCode);
+        Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo,
+            DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext,
+            bool isLibraryCode, Js::Var scriptSource = nullptr);
+
+#ifndef NTBUILD
+        Js::Var sourceRef; // keep source string reference to prevent GC
+#endif
     };
 }
 

@@ -65,7 +65,7 @@ namespace Js
             // Put any code that may raise an exception in OnScriptStart
             scriptContext->GetThreadContext()->EnterScriptStart(entryExitRecord, doCleanup);
         }
-            END_NO_EXCEPTION
+        END_NO_EXCEPTION
     }
 
     void EnterScriptObject::VerifyEnterScript()

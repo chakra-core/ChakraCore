@@ -55,6 +55,12 @@ typedef unsigned char boolean;
 const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
+typedef IDL_DEF([context_handle]) void * PTHREADCONTEXT_HANDLE;
+typedef IDL_DEF([ref]) PTHREADCONTEXT_HANDLE * PPTHREADCONTEXT_HANDLE;
+
+typedef IDL_DEF([context_handle]) void * PSCRIPTCONTEXT_HANDLE;
+typedef IDL_DEF([ref]) PSCRIPTCONTEXT_HANDLE * PPSCRIPTCONTEXT_HANDLE;
+
 typedef struct TypeHandlerIDL
 {
     boolean isObjectHeaderInlinedTypeHandler;
@@ -370,22 +376,15 @@ typedef struct AsmJsDataIDL
     unsigned short argCount;
     IDL_PAD2(0)
     int retType;
-    int intConstCount;
-    int doubleConstCount;
-    int floatConstCount;
-    int simdConstCount;
-    int intTmpCount;
-    int doubleTmpCount;
-    int floatTmpCount;
-    int simdTmpCount;
-    int intVarCount;
-    int doubleVarCount;
-    int floatVarCount;
-    int simdVarCount;
-    int intByteOffset;
-    int doubleByteOffset;
-    int floatByteOffset;
-    int simdByteOffset;
+    struct TypedSlotInfo
+    {
+        unsigned int constCount;
+        unsigned int varCount;
+        unsigned int tmpCount;
+        unsigned int byteOffset;
+        unsigned int constSrcByteOffset;
+        boolean isValidType;
+    } typedSlotInfos[5];
     int totalSizeInBytes;
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;
@@ -467,6 +466,13 @@ typedef struct FunctionBodyDataIDL
     boolean isParamAndBodyScopeMerged;
     boolean hasFinally;
     boolean usesArgumentsObject;
+    boolean doScopeObjectCreation;
+#if defined(_M_IX86) || defined(_M_ARM)
+    IDL_PAD1(0)
+#else
+    IDL_PAD1(0)
+    IDL_PAD2(1)
+#endif
 
     unsigned short envDepth;
     unsigned short inParamCount;

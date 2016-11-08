@@ -12,6 +12,7 @@
 class HostScriptContextCallbackFunctor;
 namespace TTD
 {
+    class ThreadContextTTD;
     class ScriptContextTTD;
     class RuntimeContextInfo;
     //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
@@ -55,9 +56,21 @@ namespace TTD
 
 ////////
 //Memory allocators used by the TT code
-#define TT_HEAP_NEW(T, ...) HeapNewNoThrow(T, __VA_ARGS__)
-#define TT_HEAP_ALLOC_ARRAY(T, SIZE_IN_ELEMENTS) HeapNewNoThrowArray(T, SIZE_IN_ELEMENTS)
-#define TT_HEAP_ALLOC_ARRAY_ZERO(T, SIZE_IN_ELEMENTS) HeapNewNoThrowArrayZ(T, SIZE_IN_ELEMENTS)
+template <typename T>
+T* TTD_MEM_ALLOC_CHECK(T* alloc)
+{
+    if(alloc == nullptr)
+    {
+        AssertMsg(false, "OOM in TTD");
+        exit(3);
+    }
+
+    return alloc;
+}
+
+#define TT_HEAP_NEW(T, ...) TTD_MEM_ALLOC_CHECK(HeapNewNoThrow(T, __VA_ARGS__))
+#define TT_HEAP_ALLOC_ARRAY(T, SIZE_IN_ELEMENTS) TTD_MEM_ALLOC_CHECK(HeapNewNoThrowArray(T, SIZE_IN_ELEMENTS))
+#define TT_HEAP_ALLOC_ARRAY_ZERO(T, SIZE_IN_ELEMENTS) TTD_MEM_ALLOC_CHECK(HeapNewNoThrowArrayZ(T, SIZE_IN_ELEMENTS))
 
 #define TT_HEAP_DELETE(T, ELEM) HeapDelete(ELEM)
 #define TT_HEAP_FREE_ARRAY(T, ELEM, SIZE_IN_ELEMENTS) HeapDeleteArray(SIZE_IN_ELEMENTS, ELEM)
@@ -147,21 +160,19 @@ namespace TTD
     enum class TTDMode
     {
         Invalid = 0x0,
-        Pending = 0x1,  //The TTD system has been setup but not yet put into record or replay mode
-        Detached = 0x2,  //The system has completed running (e.g. contexts have been detached) and we are done
-        RecordEnabled = 0x4,     //The system is being run in Record mode
-        DebuggingEnabled = 0x8,  //The system is being run in Debug Replay mode
-        TTDActive = (RecordEnabled | DebuggingEnabled),
+        CurrentlyEnabled = 0x1,  //The TTD system is enabled and actively performing record/replay/debug
+        RecordMode = 0x2,     //The system is being run in Record mode
+        ReplayMode = 0x4,  //The system is being run in Replay mode
+        DebuggerMode = (ReplayMode | 0x8),  //The system is being run in with Debugger actions enabled
+        AnyMode = (RecordMode | ReplayMode | DebuggerMode),
 
-        ExcludedExecution = 0x20,  //Set when the system is executing code on behalf of the TTD/debugger (so we don't want to record/replay things for it)
-        DebuggerSuppressGetter = 0x40, //Set when the system is doing a property access for the debugger (so we don't want to accidentally trigger a getter execution)
+        ExcludedExecutionTTAction = 0x20,  //Set when the system is executing code on behalf of the TTD system (so we don't want to record/replay things for it)
+        ExcludedExecutionDebuggerAction = 0x40,  //Set when the system is executing code on behalf of the Debugger system (so we don't want to record/replay things for it)
+        AnyExcludedMode = (ExcludedExecutionTTAction | ExcludedExecutionDebuggerAction),
 
-        DebuggerSuppressBreakpoints = 0x200, //Set to prevent breakpoints (or break on exception) when moving in TT mode
-        DebuggerLogBreakpoints = 0x400, //Set to indicate we want to log breakpoints encountered when executing (but not actually halt)
-
-        TTDShouldRecordActionMask = (RecordEnabled | ExcludedExecution),
-        TTDShouldDebugActionMask = (DebuggingEnabled | ExcludedExecution),
-        TTDShouldSupressGetterActionMask = (DebuggingEnabled | DebuggerSuppressGetter)
+        DebuggerSuppressGetter = 0x200, //Set when the system is doing a property access for the debugger (so we don't want to accidentally trigger a getter execution)
+        DebuggerSuppressBreakpoints = 0x400, //Set to prevent breakpoints (or break on exception) when moving in TT mode
+        DebuggerLogBreakpoints = 0x800 //Set to indicate we want to log breakpoints encountered when executing (but not actually halt)
     };
     DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
 
@@ -186,6 +197,9 @@ namespace TTD
         void Pop();
     };
 
+    //Typedef for list of contexts that we are recording/replaying on -- used in the EventLog
+    typedef JsUtil::List<Js::ScriptContext*, HeapAllocator> TTDContextList;
+
     namespace NSSnapObjects
     {
         //An enumeration of tags for the SnapObjects (to support dispatch when parsing)
@@ -196,6 +210,7 @@ namespace TTD
 
             SnapUnhandledObject,
             SnapDynamicObject,
+            SnapExternalObject,
             SnapScriptFunctionObject,
             SnapRuntimeFunctionObject,
             SnapExternalFunctionObject,
@@ -205,7 +220,6 @@ namespace TTD
             SnapBlockActivationObject,
             SnapPseudoActivationObject,
             SnapConsoleScopeActivationObject,
-            SnapActivationObjectEx,
             SnapHeapArgumentsObject,
             SnapES5HeapArgumentsObject,
             SnapBoxedValueObject,
@@ -262,6 +276,20 @@ namespace TTD
         TTDFlushAndCloseStreamCallback pfFlushAndCloseStream;
     };
 
+    //Function pointer definitions for creating/interacting with external objects
+    typedef void(CALLBACK *TTDCreateExternalObjectCallback)(Js::ScriptContext* ctx, Js::Var* object);
+
+    typedef void(CALLBACK *TTDCreateJsRTContextCallback)(void* runtimeHandle, Js::ScriptContext** ctx); //Create and pin the context so it does not get GC'd
+    typedef void(CALLBACK *TTDSetActiveJsRTContext)(void* runtimeHandle, Js::ScriptContext* ctx); //Set active jsrtcontext
+
+    struct ExternalObjectFunctions
+    {
+        TTDCreateExternalObjectCallback pfCreateExternalObject;
+
+        TTDCreateJsRTContextCallback pfCreateJsRTContextCallback;
+        TTDSetActiveJsRTContext pfSetActiveJsRTContext;
+    };
+
     namespace UtilSupport
     {
         //A basic auto-managed null terminated string with value semantics
@@ -288,8 +316,8 @@ namespace TTD
 
             bool IsNullString() const;
 
-            void Append(const char16* str, int32 start = 0, int32 end = INT32_MAX);
-            void Append(const TTAutoString& str, int32 start = 0, int32 end = INT32_MAX);
+            void Append(const char16* str, size_t start = 0, size_t end = SIZE_T_MAX);
+            void Append(const TTAutoString& str, size_t start = 0, size_t end = SIZE_T_MAX);
 
             void Append(uint64 val);
 
@@ -509,12 +537,12 @@ namespace TTD
                 }
             }
 
-            if(reserve & !commit)
+            if(reserve & (!commit))
             {
                 this->m_reserveActiveBytes = desiredsize;
             }
 
-            if(!reserve & commit)
+            if((!reserve) & commit)
             {
                 AssertMsg(desiredsize <= this->m_reserveActiveBytes, "We are commiting more that we reserved.");
 

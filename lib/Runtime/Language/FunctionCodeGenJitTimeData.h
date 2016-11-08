@@ -71,6 +71,9 @@ namespace Js
     public:
         BVFixed *inlineesBv;
 
+        Js::PropertyId* sharedPropertyGuards;
+        uint sharedPropertyGuardCount;
+
         FunctionInfo *GetFunctionInfo() const;
         FunctionBody *GetFunctionBody() const;
         Var GetGlobalThisObject() const;

@@ -1,4 +1,1 @@
-stack.wast:130: $assert_return_0 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_0[5] at offset 3/18: Operator I64Const NYI
-stack.wast:131: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_1[6] at offset 3/18: Operator I64Const NYI
-stack.wast:132: $assert_return_2 unexpectedly threw: Error: Compiling wasm failed: function $assert_return_2[7] at offset 3/18: Operator I64Const NYI
-0/3 tests passed.
+3/3 tests passed.

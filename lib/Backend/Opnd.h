@@ -10,6 +10,7 @@ class Value;
 namespace IR {
 
 class IntConstOpnd;
+class Int64ConstOpnd;
 class FloatConstOpnd;
 class Simd128ConstOpnd;
 class HelperCallOpnd;
@@ -26,6 +27,7 @@ class RegBVOpnd;
 enum OpndKind : BYTE {
     OpndKindInvalid,
     OpndKindIntConst,
+    OpndKindInt64Const,
     OpndKindFloatConst,
     OpndKindSimd128Const,
     OpndKindHelperCall,
@@ -124,6 +126,7 @@ protected:
     {
 #if DBG
         isFakeDst = false;
+        isDeleted = false;
 #endif
         m_kind = (OpndKind)0;
     }
@@ -137,6 +140,7 @@ protected:
     {
 #if DBG
         isFakeDst = false;
+        isDeleted = false;
 #endif
         m_kind = oldOpnd.m_kind;
     }
@@ -146,6 +150,8 @@ public:
     bool                IsMemoryOpnd() const;
     bool                IsIntConstOpnd() const;
     IntConstOpnd *      AsIntConstOpnd();
+    bool                IsInt64ConstOpnd() const;
+    Int64ConstOpnd *    AsInt64ConstOpnd();
     bool                IsFloatConstOpnd() const;
     FloatConstOpnd *    AsFloatConstOpnd();
     bool                IsSimd128ConstOpnd() const;
@@ -186,7 +192,7 @@ public:
     bool                IsSigned() const { return IRType_IsSignedInt(this->m_type); }
     bool                IsUnsigned() const { return IRType_IsUnsignedInt(this->m_type); }
     int                 GetSize() const { return TySize[this->m_type]; }
-    bool                IsInt64() const { return this->m_type == TyInt64; }
+    bool                IsInt64() const { return IRType_IsInt64(this->m_type); }
     bool                IsInt32() const { return this->m_type == TyInt32; }
     bool                IsUInt32() const { return this->m_type == TyUint32; }
     bool                IsFloat32() const { return this->m_type == TyFloat32; }
@@ -213,7 +219,11 @@ public:
     bool                IsWriteBarrierTriggerableValue();
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
-    intptr_t            GetImmediateValue(Func * func);
+    int64               GetImmediateValue(Func * func);
+#if TARGET_32 && !defined(_M_IX86)
+    // Helper for 32bits systems without int64 const operand support
+    int32               GetImmediateValueAsInt32(Func * func);
+#endif
     BailoutConstantValue GetConstValue();
     bool                GetIsJITOptimizedReg() const { return m_isJITOptimizedReg; }
     void                SetIsJITOptimizedReg(bool value) { Assert(!value || !this->IsIndirOpnd()); m_isJITOptimizedReg = value; }
@@ -280,11 +290,22 @@ protected:
     bool                isPropertySymOpnd : 1;
 public:
 #if DBG
-    bool                isFakeDst:1;
+    bool                isFakeDst : 1;
 #endif
     OpndKind            m_kind;
 
+#ifdef DBG
+public:
+    bool                isDeleted;
+#endif
 };
+
+// We will set isDeleted bit on a freed Opnd, this should not overlap with the next field of BVSparseNode
+// because BVSparseNode* are used to maintain freelist of memory of BVSparseNode size
+#if DBG
+CompileAssert(offsetof(Opnd, isDeleted) > offsetof(BVSparseNode, next) + sizeof(BVSparseNode*) ||
+              offsetof(Opnd, isDeleted) < offsetof(BVSparseNode, next) + sizeof(BVSparseNode*));
+#endif
 
 ///---------------------------------------------------------------------------
 ///
@@ -299,6 +320,7 @@ public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     static IntConstOpnd *   New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode = false);
 #endif
+    static IR::Opnd*        NewFromType(int64 value, IRType type, Func* func);
 
 public:
     //Note: type OpndKindIntConst
@@ -335,6 +357,28 @@ public:
 
 private:
     IntConstType            m_value;
+};
+
+///---------------------------------------------------------------------------
+///
+/// class Int64ConstOpnd
+///
+///---------------------------------------------------------------------------
+class Int64ConstOpnd sealed : public Opnd
+{
+public:
+    static Int64ConstOpnd* New(int64 value, IRType type, Func *func);
+
+public:
+    //Note: type OpndKindIntConst
+    Int64ConstOpnd* CopyInternal(Func *func);
+    bool IsEqualInternal(Opnd *opnd);
+    void FreeInternal(Func * func) ;
+public:
+    int64 GetValue();
+
+private:
+    int64            m_value;
 };
 
 ///---------------------------------------------------------------------------

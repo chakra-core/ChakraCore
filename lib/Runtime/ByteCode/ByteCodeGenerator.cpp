@@ -2355,14 +2355,14 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                 //Go conservative if it has any nested functions, or any non-local references.
                 //With statements - need scope object to be present.
                 //Nested funtions - need scope object to be present - LdEnv/LdFrameDisplay needs it.
-                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() || pnode->sxFnc.nestedCount > 0 ||
+                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() ||
                     pnode->sxFnc.HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
                 {
                     doStackArgsOpt = false;
 #ifdef PERF_HINT
                     if (PHASE_TRACE1(Js::PerfHintPhase))
                     {
-                        WritePerfHint(PerfHints::HeapArgumentsDueToNonLocalRef, funcInfo->GetParsedFunctionBody(), 0);
+                        WritePerfHint(PerfHints::HasWithBlock, funcInfo->GetParsedFunctionBody(), 0);
                     }
 #endif
                 }
@@ -2918,6 +2918,32 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
     AssignFuncSymRegister(pnode, byteCodeGenerator, top);
 
+    if (pnode->sxFnc.pnodeBody && pnode->sxFnc.HasReferenceableBuiltInArguments() && pnode->sxFnc.UsesArguments() &&
+        pnode->sxFnc.HasHeapArguments())
+    {
+        bool doStackArgsOpt = top->byteCodeFunction->GetDoBackendArgumentsOptimization();
+                
+        bool hasAnyParamInClosure = top->GetHasLocalInClosure() && top->GetParamScope()->GetHasOwnLocalInClosure();
+
+        if ((doStackArgsOpt && top->inArgsCount > 1))
+        {
+            if (doStackArgsOpt && hasAnyParamInClosure)
+            {
+                top->SetHasHeapArguments(true, false /*= Optimize arguments in backend*/);
+#ifdef PERF_HINT
+                if (PHASE_TRACE1(Js::PerfHintPhase))
+                {
+                    WritePerfHint(PerfHints::HeapArgumentsDueToNonLocalRef, top->GetParsedFunctionBody(), 0);
+                }
+#endif
+            }
+            else if (!top->GetHasLocalInClosure())
+            {
+                //Scope object creation instr will be a MOV NULL instruction in the Lowerer - if we still decide to do StackArgs after Globopt phase.
+                top->byteCodeFunction->SetDoScopeObjectCreation(false);
+            }
+        }        
+    }
     return top;
 }
 

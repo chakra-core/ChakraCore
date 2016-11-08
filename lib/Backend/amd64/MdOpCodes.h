@@ -37,7 +37,7 @@ MACRO(BTR,      Reg2,   OpSideEffect,  R110,   f(SPMOD),   o(BTR),     DOPEQ|DSE
 MACRO(BTS,      Reg2,   OpSideEffect,  R101,   f(SPMOD),   o(BTS),     DOPEQ|DSETCC,                OLB_0F)
 MACRO(CALL,     CallI,  OpSideEffect,  R010,   f(CALL),    o(CALL),    DSETCC,                      OLB_NONE)
 MACRO(CDQ,      Empty,  OpSideEffect,  RNON,   f(NO),      o(CDQ),     DNO16,                       OLB_NONE)
-MACRO(CQO,      Empty,  None,          RNON,   f(NO),      o(CDQ),     DNO16,                       OLB_NONE)
+MACRO(CQO,      Empty,  OpSideEffect,  RNON,   f(NO),      o(CQO),     DNO16,                       OLB_NONE)
 MACRO(CMOVA,    Reg2,   None,          RNON,   f(MODRM),   o(CMOVA),   DDST|DUSECC,                 OLB_0F)
 MACRO(CMOVAE,   Reg2,   None,          RNON,   f(MODRM),   o(CMOVAE),  DDST|DUSECC,                 OLB_0F)
 MACRO(CMOVB,    Reg2,   None,          RNON,   f(MODRM),   o(CMOVB),   DDST|DUSECC,                 OLB_0F)

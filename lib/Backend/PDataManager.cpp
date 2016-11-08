@@ -55,19 +55,22 @@ void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)
 }
 
 #else  // !_WIN32
+
 // ----------------------------------------------------------------------------
 //  !_WIN32 x64 unwind uses .eh_frame
 // ----------------------------------------------------------------------------
 
-void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_PTR functionStart, _In_ const ULONG_PTR functionEnd, _Out_ PVOID* pdataTable, ULONG entryCount, ULONG maxEntryCount)
+void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart,
+    _In_ const ULONG_PTR functionStart, _In_ const ULONG_PTR functionEnd,
+    _Out_ PVOID* pdataTable, ULONG entryCount, ULONG maxEntryCount)
 {
-    __register_frame(pdataStart);
+    __REGISTER_FRAME(pdataStart);
     *pdataTable = pdataStart;
 }
 
 void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)
 {
-    __deregister_frame(pdata);
+    __DEREGISTER_FRAME(pdata);
 }
 
 #endif  // !_WIN32

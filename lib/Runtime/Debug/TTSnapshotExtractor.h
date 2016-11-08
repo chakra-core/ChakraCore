@@ -43,6 +43,8 @@ namespace TTD
         void ExtractScopeIfNeeded(Js::ScriptContext* ctx, Js::FrameDisplay* environment);
         void ExtractScriptFunctionEnvironmentIfNeeded(Js::ScriptFunction* function);
 
+        void ExtractRootInfo(const ThreadContextTTD* tctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
+
         ////
         //Performance info
         uint32 m_snapshotsTakenCount;
@@ -85,14 +87,14 @@ namespace TTD
         //Do the actual snapshot extraction
 
         //Begin the snapshot by initializing the snapshot information
-        void BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs);
+        void BeginSnapshot(ThreadContext* threadContext);
 
         //Do the walk of all objects caller need to to call MarkWalk on roots to initialize the worklist
-        void DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext);
+        void DoMarkWalk(ThreadContext* threadContext);
 
         //Evacuate all the marked javascript objects into the snapshot (can do lazily/incrementally if desired)
         //All of the external elements are evacuated during the mark phase while propertyRecords and primitiveObjects are evacuated during the complete phase
-        void EvacuateMarkedIntoSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs);
+        void EvacuateMarkedIntoSnapshot(ThreadContext* threadContext);
 
         //Tidy up and save the snapshot return the completed snapshot
         SnapShot* CompleteSnapshot();

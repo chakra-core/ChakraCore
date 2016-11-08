@@ -17,7 +17,7 @@ const argv = require("yargs")
     bin: {
       string: true,
       alias: "b",
-      description: "Path to sexpr-wasm exe",
+      description: "Path to wast2wasm exe",
       demand: true,
     },
     suite: {
@@ -65,12 +65,16 @@ argv.output = path.resolve(argv.output);
 fs.statSync(argv.bin).isFile();
 fs.statSync(argv.suite).isDirectory();
 
+function changeExtension(filename, from, to) {
+  return `${path.basename(filename, from)}${to}`;
+}
+
 function convertTest(filename) {
   return new Promise(resolve => {
     execFile(argv.bin, [
       filename,
       "--spec",
-      "-o", path.join(argv.output, `${path.basename(filename, ".wast")}.json`)
+      "-o", path.join(argv.output, changeExtension(filename, ".wast", ".json"))
     ], () => {
       // If an error occurs here, handle manually
       // There are official test files that raise errors when converting and it's normal
@@ -79,9 +83,9 @@ function convertTest(filename) {
   });
 }
 
-function hostFlags(specFile, {fullpath} = {}) {
-  return `-on:wasm -on:wasmlazytrap -args ${
-    fullpath ? specFile : path.relative(rlRoot, specFile)
+function hostFlags(specFile, {useFullpath} = {}) {
+  return `-on:wasm -args ${
+    useFullpath ? specFile : path.relative(rlRoot, specFile)
   } -endargs`;
 }
 
@@ -89,15 +93,46 @@ function getBaselinePath(specFile) {
   return `${path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json")))}.baseline`;
 }
 
-function main() {
+function removePossiblyEmptyFolder(folder) {
   return new Promise((resolve, reject) => {
-    fs.remove(argv.output, err => {
+    fs.remove(folder, err => {
       // ENOENT is the error code if the folder is missing
       if (err && err.code !== "ENOENT") {
         return reject(err);
       }
       resolve();
     });
+  });
+}
+
+function main() {
+  const chakraTestsDestination = path.join(argv.suite, "chakra");
+  const chakraTests = require("./generateTests");
+
+  return Promise.all([
+    removePossiblyEmptyFolder(argv.output),
+    removePossiblyEmptyFolder(chakraTestsDestination),
+  ]).then(() => {
+    fs.ensureDirSync(chakraTestsDestination);
+    return Promise.all(chakraTests.map(test => test.getContent(argv)
+      .then(content => new Promise((resolve, reject) => {
+        if (!content) {
+          return resolve();
+        }
+        const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
+        const copyrightHeader =
+`;;-------------------------------------------------------------------------------------------------------
+;; Copyright (C) Microsoft. All rights reserved.
+;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+;;-------------------------------------------------------------------------------------------------------
+`;
+        fs.writeFile(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`, err => {
+          if (err) {
+            return reject(err);
+          }
+          return resolve();
+        });
+      }))));
   }).then(() => new Promise((resolve, reject) => {
     fs.ensureDirSync(argv.output);
     const conversions = [];
@@ -109,6 +144,22 @@ function main() {
         ) {
           conversions.push(convertTest(item.path));
         }
+        /*
+        else if(path.extname(item.path) === ".js") {
+          const wastFilePath = path.join(path.dirname(item.path), changeExtension(item.path, ".js", ".wast"));
+          conversions.push(
+            (new Promise((resolve, reject) => {
+              const testDetails = require(item.path);
+              fs.writeFile(wastFilePath, `;;AUTO-GENERATED do not modify\n${testDetails}`, err => {
+                if (err) {
+                  return reject(err);
+                }
+                resolve();
+              });
+            }))
+            .then(() => convertTest(wastFilePath))
+          );
+        }*/
       })
       .on("end", () => {
         Promise.all(conversions).then(resolve, reject);
@@ -154,7 +205,7 @@ function main() {
     <default>
       <files>spec.js</files>
       <baseline>${getBaselinePath(specFile)}</baseline>
-      <compile-flags>${hostFlags(specFile)} -on:wasmdeferred</compile-flags>
+      <compile-flags>${hostFlags(specFile)}</compile-flags>
     </default>
   </test>`
   ).join("")
@@ -171,7 +222,7 @@ function main() {
     fs.ensureDirSync(baselineDir);
     return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
       const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {fullpath: true})));
+      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {useFullpath: true})));
       console.log(argv.rebase, args.join(" "));
       const engine = spawn(
         argv.rebase,
