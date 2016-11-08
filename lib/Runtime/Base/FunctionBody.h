@@ -428,7 +428,17 @@ namespace Js
             CleanedUp           // the entry point has been cleaned up
         };
 
+        // The following fields are packed into a 32-bit/64-bit, and the tag to avoid fals positive.
+        const bool          tag : 1;
+        bool                isLoopBody : 1;
+        bool                hasJittedStackClosure : 1;
+        bool                isAsmJsFunction : 1; // true if entrypoint is for asmjs function
+        State               state; // Single state member so users can query state w/o a lock
 #if ENABLE_NATIVE_CODEGEN
+        BYTE                pendingInlinerVersion;
+        ImplicitCallFlags   pendingImplicitCallFlags;
+        uint32              pendingPolymorphicCacheState;
+
         class JitTransferData
         {
             friend EntryPointInfo;
@@ -457,9 +467,7 @@ namespace Js
             // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
-#if ENABLE_NATIVE_CODEGEN
             NativeCodeData* jitTransferRawData;
-#endif
             EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
             TypeGuardTransferData typeGuardTransferData;
             CtorCacheTransferData ctorCacheTransferData;
@@ -475,9 +483,7 @@ namespace Js
                 equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), jitTransferRawData(nullptr),
                 falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0){}
 
-#if ENABLE_NATIVE_CODEGEN
             void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
-#endif
             void AddJitTimeTypeRef(void* typeRef, Recycler* recycler);
 
             int GetRuntimeTypeRefCount() { return this->runtimeTypeRefs ? this->runtimeTypeRefs->count : 0; }
@@ -515,7 +521,7 @@ namespace Js
         private:
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
-#if ENABLE_NATIVE_CODEGEN
+
         NativeCodeData * inProcJITNaticeCodedata;
         char* nativeDataBuffer;
         union
@@ -524,7 +530,6 @@ namespace Js
             CodeGenNumberChunk* numberChunks;
         };
         XProcNumberPageSegment* numberPageSegments;
-#endif
 
         SmallSpanSequence *nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
@@ -546,32 +551,46 @@ namespace Js
 
         int propertyGuardCount;
         int equivalentTypeCacheCount;
-#endif
+
+        uint inlineeFrameOffsetArrayOffset;
+        uint inlineeFrameOffsetArrayCount;
+
+        typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
+        ConstructorCacheList* constructorCaches;
+
+        EntryPointPolymorphicInlineCacheInfo * polymorphicInlineCacheInfo;
+
+        // This field holds any recycler allocated references that must be kept alive until
+        // we install the entry point.  It is freed at that point, so anything that must survive
+        // until the EntryPointInfo itself goes away, must be copied somewhere else.
+        JitTransferData* jitTransferData;
+
+        // If we pin types this array contains strong references to types, otherwise it holds weak references.
+        void **runtimeTypeRefs;
+     protected:
+#if PDATA_ENABLED
+        XDataAllocation * xdataInfo;
+#endif     
+#endif // ENABLE_NATIVE_CODEGEN
+
         CodeGenWorkItem * workItem;
         Js::JavascriptMethod nativeAddress;
         ptrdiff_t codeSize;
-        bool isAsmJsFunction; // true if entrypoint is for asmjs function
         uintptr_t  mModuleAddress; //asm Module address
-
-#ifdef FIELD_ACCESS_STATS
-        FieldAccessStatsPtr fieldAccessStats;
-#endif
 
     protected:
         JavascriptLibrary* library;
 #if ENABLE_NATIVE_CODEGEN
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
-        InlineeFrameMap*  inlineeFrameMap;
-        unsigned int inlineeFrameOffsetArrayOffset;
-        unsigned int inlineeFrameOffsetArrayCount;
-#if PDATA_ENABLED
-        XDataAllocation * xdataInfo;
-#endif
+        InlineeFrameMap*   inlineeFrameMap;
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
+    public:
+        uint frameHeight;
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     public:
         enum CleanupReason
         {
@@ -584,7 +603,18 @@ namespace Js
             NativeCodeInstallFailure,
             CleanUpForFinalize
         };
-        uint frameHeight;
+    private:
+        CleanupReason cleanupReason;
+#endif
+
+#ifdef FIELD_ACCESS_STATS
+    private:
+        FieldAccessStatsPtr fieldAccessStats;
+#endif
+
+    public:
+        virtual void Finalize(bool isShutdown) override;
+        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
 #if ENABLE_NATIVE_CODEGEN
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
@@ -605,46 +635,11 @@ namespace Js
             Assert(numberPageSegments == nullptr);
             numberPageSegments = segments;
         }
-
 #endif
-
-    private:
-#if ENABLE_NATIVE_CODEGEN
-        typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
-        ConstructorCacheList* constructorCaches;
-
-        EntryPointPolymorphicInlineCacheInfo * polymorphicInlineCacheInfo;
-
-        // This field holds any recycler allocated references that must be kept alive until
-        // we install the entry point.  It is freed at that point, so anything that must survive
-        // until the EntryPointInfo itself goes away, must be copied somewhere else.
-        JitTransferData* jitTransferData;
-
-        // If we pin types this array contains strong references to types, otherwise it holds weak references.
-        void **runtimeTypeRefs;
-
-
-        uint32 pendingPolymorphicCacheState;
-#endif
-        State state; // Single state member so users can query state w/o a lock
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        CleanupReason cleanupReason;
-#endif
-        BYTE   pendingInlinerVersion;
-        bool   isLoopBody;
-
-        bool   hasJittedStackClosure;
-#if ENABLE_NATIVE_CODEGEN
-        ImplicitCallFlags pendingImplicitCallFlags;
-#endif
-
-    public:
-        virtual void Finalize(bool isShutdown) override;
-        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
     protected:
         EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(method, context),
+            ProxyEntryPointInfo(method, context), tag(1),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
