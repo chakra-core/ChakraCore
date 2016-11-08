@@ -272,6 +272,14 @@ test17(1);
 test17(2);
 verify([undefined, 20, undefined, 20], "TEST 17");
 
+function test18()
+{
+    eval('function inner(a,...b) {actuals.push(a + arguments[0]);}; inner(1,2); inner(3,4);');
+}
+
+test18();
+verify([2, 6], "TEST18");
+
 if(hasAllPassed)
 {
     print("PASSED");
