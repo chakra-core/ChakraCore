@@ -3,9 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('misc.wasm');
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
+var mod = new WebAssembly.Module(readbuffer('misc.wasm'));
+var a = new WebAssembly.Instance(mod).exports;
 print(a.f32copysign(-40.0,2.0)); // == 40.0
 print(a.f32copysign(-40.0,-2.0)); // == -40.0
 print(a.f32copysign(-1.0,2.0)); // == 1.0

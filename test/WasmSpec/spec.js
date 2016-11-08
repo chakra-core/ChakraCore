@@ -124,7 +124,8 @@ function run(inPath, iStart, iEnd) {
 function createModule(a, registry) {
   var memory = null;
   var u8a = new Uint8Array(a);
-  var module = Wasm.instantiateModule(u8a, registry);
+  var mod = new WebAssembly.Module(u8a);
+  var module = new WebAssembly.Instance(mod, registry);
   memory = module.memory;
   return module;
 }

@@ -3,9 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob1 = WScript.LoadBinaryFile('table.wasm');
-const moduleBytesView1 = new Uint8Array(blob1);
-var a1 = Wasm.instantiateModule(moduleBytesView1, {"m" : {x : 10}}).exports;
+var mod = new WebAssembly.Module(readbuffer('table.wasm'));
+var a1 = new WebAssembly.Instance(mod, {"m" : {x : 10}}).exports;
 
 //local offset
 print(a1.call(1));
