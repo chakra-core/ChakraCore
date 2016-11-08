@@ -47,17 +47,17 @@ check(0,"exports.i32_rem_s", 5, -1);
 check(1,"exports.i32_rem_s", 5, 2);
 
 //i64 div/rem
-check(2,"exports.i64_div_s_by_two", 5);
+check(1,"exports.test1");
 check("Overflow","exports.i64_div_s_over");
-check("Division by zero","exports.i64_div_s", 5, 0);
-check("Division by zero","exports.i64_div_u", 5, 0);
-check("Division by zero","exports.i64_rem_u", 5, 0);
-check("Division by zero","exports.i64_rem_s", 5, 0);
-check(-2,"exports.i64_div_s", 5, -2);
-check(2,"exports.i64_div_u", 5, 2);
-check(0,"exports.i64_rem_u", 5, 1);
-check(0,"exports.i64_rem_s", 5, -1);
-check(1,"exports.i64_rem_s", 5, 2);
+check("Division by zero","exports.test2");
+check("Division by zero","exports.test3");
+check("Division by zero","exports.test4");
+check("Division by zero","exports.test5");
+check(1,"exports.test6");
+check(1,"exports.test7");
+check(1,"exports.test8");
+check(1,"exports.test9");
+check(1,"exports.test10");
 
 if(passed)
 {
