@@ -140,8 +140,9 @@ namespace Js
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
 
+#ifdef ENABLE_WASM
         Wasm::WasmSignature* m_signatures;
-
+#endif
          _SIMDValue* m_localSimdSlots;
 
         EHBailoutData * ehBailoutData;

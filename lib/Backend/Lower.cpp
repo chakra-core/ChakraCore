@@ -8215,8 +8215,11 @@ Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 
         InsertBranch(Js::OpCode::Br, labelFallThrough, trapLabel);
 
-        LoadScriptContext(instr);
-        m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
+        IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
+        InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_TableIndexOutOfRange), TyInt32, m_func), instr);
+        GenerateThrow(errReg, instr);
+
+        instr->Remove();
 
     }
 
@@ -8261,8 +8264,11 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
     InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
     InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
 
-    LoadScriptContext(doneLabel);
-    m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
+    IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
+    InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_SignatureMismatch), TyInt32, m_func), instr);
+    GenerateThrow(errReg, instr);
+
+    instr->Remove();
 
     return prev;
 }

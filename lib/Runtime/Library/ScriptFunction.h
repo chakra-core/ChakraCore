@@ -122,11 +122,12 @@ namespace Js
         void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
         Var * GetModuleMemory() const { return m_moduleMemory; }
 
+#ifdef ENABLE_WASM
         void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
         Wasm::WasmSignature * GetSignature() const { return m_signature; }
-
-        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
         static uint32 GetOffsetOfSignature() { return offsetof(AsmJsScriptFunction, m_signature); }
+#endif
+        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
     protected:
         AsmJsScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(AsmJsScriptFunction, ScriptFunction);
