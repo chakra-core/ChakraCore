@@ -208,11 +208,14 @@ namespace Js
             }
             else if (info->GetArgType(i).isInt64())
             {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (!allowInt64)
+#endif
                 {
                     JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_InvalidTypeConversion);
                 }
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 int64 val;
                 if (i < actualArgCount)
                 {
@@ -241,6 +244,7 @@ namespace Js
 
                 *(int64*)(argDst) = val;
                 argDst += sizeof(int64);
+#endif
             }
             else if (info->GetArgType(i).isFloat())
             {
