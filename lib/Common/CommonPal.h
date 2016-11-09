@@ -16,7 +16,11 @@
         #define __forceinline _ALWAYSINLINE
     #endif
     #if __has_attribute(noinline)
-        #define _NOINLINE __attribute__((noinline))
+        #ifdef CLANG_HAS_DISABLE_TAIL_CALLS
+            #define _NOINLINE __attribute__((noinline, disable_tail_calls))
+        #else
+            #define _NOINLINE __attribute__((noinline))
+        #endif
     #else // No noinline support
         #pragma message __MAKE_WARNING__("noinline")
         #define _NOINLINE
