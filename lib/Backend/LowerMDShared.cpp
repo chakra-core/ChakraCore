@@ -8005,6 +8005,12 @@ LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 }
 
 void
+LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitLongToInt(dst, src, instrInsert);
+}
+
+void
 LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     // We should only generate this if sse2 is available

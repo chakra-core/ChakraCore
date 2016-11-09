@@ -2036,8 +2036,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             else
             {
                 Assert(instr->GetDst()->IsInt32());
-                Assert(instr->GetSrc1()->IsFloat());
-                m_lowererMD.EmitFloatToInt(instr->GetDst(), instr->GetSrc1(), instr);
+                if (instr->GetSrc1()->IsInt64())
+                {
+                    m_lowererMD.EmitLongToInt(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+                else
+                {
+                    Assert(instr->GetSrc1()->IsFloat());
+                    m_lowererMD.EmitFloatToInt(instr->GetDst(), instr->GetSrc1(), instr);
+                }
             }
             instr->Remove();
             break;
