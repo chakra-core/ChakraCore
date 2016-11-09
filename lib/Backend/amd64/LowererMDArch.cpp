@@ -2599,13 +2599,19 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     Assert(dst->IsRegOpnd() && dst->IsFloat());
     Assert(src->IsRegOpnd() && (src->IsInt32() || src->IsUInt32()));
 
-    // MOV tempReg.i32, src  - make sure the top bits are 0
-    IR::RegOpnd * tempReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, tempReg, src, this->m_func));
+    IR::Opnd* src64 = IR::RegOpnd::New(TyInt64, this->m_func);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, src64, src, this->m_func));
 
-    // CVTSI2SD dst, tempReg.i64  (Use the tempreg as if it is 64 bit without sign extension)
-    instrInsert->InsertBefore(IR::Instr::New(dst->IsFloat64() ? Js::OpCode::CVTSI2SD : Js::OpCode::CVTSI2SS, dst,
-        tempReg->UseWithNewType(TyInt64, this->m_func), this->m_func));
+    if (dst->IsFloat32())
+    {
+        IR::RegOpnd * tempReg = IR::RegOpnd::New(TyFloat64, this->m_func);
+        instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, tempReg, src64, this->m_func));
+        instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, dst, tempReg, this->m_func));
+    }
+    else
+    {
+        instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src64, this->m_func));
+    }
 }
 
 bool

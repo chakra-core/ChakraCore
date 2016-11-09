@@ -31,6 +31,18 @@
     (func (export "i64_div_s_over") (result i64)
         (i64.div_s (i64.const 0x8000000000000000  ) (i64.const 0xffffffffffffffff)) ;; overflow
     )
+    (func (export "f32_convert_u_i32") (param $x i32) (result f32)
+        (f32.convert_u/i32 (get_local $x))
+    )
+    (func (export "f64_convert_u_i32") (param $x i32) (result f64)
+        (f64.convert_u/i32 (get_local $x))
+    )
+    (func (export "f32_convert_s_i32") (param $x i32) (result f32)
+        (f32.convert_s/i32 (get_local $x))
+    )
+    (func (export "f64_convert_s_i32") (param $x i32) (result f64)
+        (f64.convert_s/i32 (get_local $x))
+    )
 
     (func(export "test1") (result i32) (i64.eq (i64.div_s (i64.const 5) (i64.const 2))  (i64.const 2)))
     (func(export "test2") (result i32) (i64.eq (i64.div_s (i64.const 5) (i64.const 0))  (i64.const 0))) ;; div by zero

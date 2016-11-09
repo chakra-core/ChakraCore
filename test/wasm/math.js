@@ -59,6 +59,20 @@ check(1,"exports.test8");
 check(1,"exports.test9");
 check(1,"exports.test10");
 
+//u32tof32
+check(4294967296,"exports.f32_convert_u_i32",4294967294);
+check(4294967296,"exports.f32_convert_u_i32",-1);
+check(2147483648,"exports.f32_convert_u_i32",2147483647);
+//u64tof32
+check(4294967294,"exports.f64_convert_u_i32",4294967294);
+check(4294967295,"exports.f64_convert_u_i32",-1);
+check(2147483648,"exports.f64_convert_u_i32",2147483648);
+//
+//i32
+check(-1,"exports.f32_convert_s_i32",-1);
+check(-1,"exports.f64_convert_s_i32",-1);
+
+
 if(passed)
 {
     print("Passed");

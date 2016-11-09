@@ -2005,7 +2005,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
                 else if (instr->GetSrc1()->IsUInt32())
                 {
-                    Assert(instr->GetDst()->IsFloat64());
                     m_lowererMD.EmitUIntToFloat(instr->GetDst(), instr->GetSrc1(), instr);
                 }
                 else
