@@ -149,16 +149,23 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
 
     if (heapAllocation  == nullptr)
     {
-        // This is used in interpreter scenario, thus we need to try to recover memory, if possible.
-        // Can't simply throw as in JIT scenario, for which throw is what we want in order to give more mem to interpreter.
-        JsUtil::ExternalApi::RecoverUnusedMemory();
-        heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);
+        if (!JITManager::GetJITManager()->IsJITServer())
+        {
+            // This is used in interpreter scenario, thus we need to try to recover memory, if possible.
+            // Can't simply throw as in JIT scenario, for which throw is what we want in order to give more mem to interpreter.
+            JsUtil::ExternalApi::RecoverUnusedMemory();
+            heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);
+        }
     }
 
     if (heapAllocation  == nullptr)
     {
         Js::Throw::OutOfMemory();
     }
+
+#if DBG
+    heapAllocation->isAllocationUsed = true;
+#endif
 
     AutoCustomHeapPointer allocatedMemory(&this->allocationHeap, heapAllocation);
     VerboseHeapTrace(_u("New allocation: 0x%p, size: %p\n"), heapAllocation->address, heapAllocation->size);
@@ -172,10 +179,6 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
     allocation->inPrereservedRegion = isAllJITCodeInPreReservedRegion;
 
     this->allocations = allocation;
-
-#if DBG
-    heapAllocation->isAllocationUsed = true;
-#endif
 
 #if DBG_DUMP
     this->totalBytesCommitted += heapAllocation->size;
