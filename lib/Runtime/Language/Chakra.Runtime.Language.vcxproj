@@ -61,6 +61,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)i386\AsmJsJitTemplate.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='Win32'">$(IntDir)\i386</ObjectFileName>
+      <!-- Workaround CodeAnalysis bug on this source file (devdiv:289799) -->
+      <AdditionalOptions Condition="'$(RunCodeAnalysis)'=='true' AND '$(Platform)'=='Win32' AND '$(PlatformToolsetVersion)'=='140'">%(ClCompile.AdditionalOptions) /astfe:d1Adisablecoreplugins</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)amd64\AsmJsJitTemplate.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
