@@ -271,6 +271,35 @@ var Tests = [function () {
       }
     }
     assert.isTrue(propsString === expectedProps);
+  },
+  function () {
+    var obj = {
+      n1: 1,
+      n2: 2
+    };
+
+    obj.n3 = 3; // Converted to auxSlots, predecessor type is ObjectHeaderInlined
+    obj[10] = 10; // Added objectArray
+    delete obj.n3;
+    assert.isTrue(obj[10] === 10);
+    assert.isTrue(obj.n3 === undefined);
+  },
+  function () {
+    var arrObj0 = {};
+    var func1 = function () {
+      delete arrObj0.length;
+      arrObj0 = {
+        method0: function () {},
+        method1: function () {}
+      };
+    };
+    var func4 = function () {
+      arrObj0[15] = 1;
+      func1();
+      return arrObj0.length = arrObj0;
+    };
+    func4();
+    func4();
   }
 ]
 
