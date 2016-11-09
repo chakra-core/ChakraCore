@@ -204,8 +204,7 @@ public:
             void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { Assert(UNREACHED); }
-            void                EmitInt64toFloat32(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
-            void                EmitInt64toFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+            void                EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) {  Assert(UNREACHED); }
             static IR::Instr *  InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
             void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);

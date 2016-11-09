@@ -82,7 +82,6 @@ namespace Js {
         static double LongToDouble(__int64 aValue);
         static double ULongToDouble(unsigned __int64 aValue);
 
-
     private:
         static BOOL ToInt32Finite(double value, int32* result);
         template<bool zero>

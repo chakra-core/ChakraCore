@@ -8017,7 +8017,7 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
 }
 
 void
-LowererMD::EmitInt64toFloat32(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
+LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 {
     IR::Opnd *srcOpnd = instr->UnlinkSrc1();
 
@@ -8025,42 +8025,21 @@ LowererMD::EmitInt64toFloat32(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 
     IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
     instr->InsertBefore(callinstr);
-
-    switch (srcOpnd->GetType())
+    CompileAssert(sizeof(IRType) == 1);
+    const uint16 fromToType = dst->GetType() | (srcOpnd->GetType() << 8);
+    IR::JnHelperMethod method = IR::HelperOp_Throw;
+    switch (fromToType)
     {
-    case TyInt64:
-        this->ChangeToHelperCall(callinstr, IR::HelperI64TOF32);
-        break;
-    case TyUint64:
-        this->ChangeToHelperCall(callinstr, IR::HelperUI64TOF32);
-        break;
+    case TyFloat32 | (TyInt64 << 8): method = IR::HelperI64TOF32; break;
+    case TyFloat32 | (TyUint64 << 8): method = IR::HelperUI64TOF32; break;
+    case TyFloat64 | (TyInt64 << 8): method = IR::HelperI64TOF64; break;
+    case TyFloat64 | (TyUint64 << 8): method = IR::HelperUI64TOF64; break;
     default:
         Assert(UNREACHED);
     }
+    this->ChangeToHelperCall(callinstr, method);
 }
 
-void
-LowererMD::EmitInt64toFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
-{
-    IR::Opnd *srcOpnd = instr->UnlinkSrc1();
-
-    LoadInt64HelperArgument(instr, srcOpnd);
-
-    IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
-    instr->InsertBefore(callinstr);
-
-    switch (srcOpnd->GetType())
-    {
-    case TyInt64:
-        this->ChangeToHelperCall(callinstr, IR::HelperI64TOF64);
-        break;
-    case TyUint64:
-        this->ChangeToHelperCall(callinstr, IR::HelperUI64TOF64);
-        break;
-    default:
-        Assert(UNREACHED);
-    }
-}
 void
 LowererMD::EmitNon32BitOvfCheck(IR::Instr *instr, IR::Instr *insertInstr, IR::LabelInstr* bailOutLabel)
 {

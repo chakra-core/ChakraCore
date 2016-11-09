@@ -215,8 +215,7 @@ public:
             void            EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void            EmitInt64toFloat32(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void            EmitInt64toFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            void            EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             static IR::Instr *InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
             void            ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert);
