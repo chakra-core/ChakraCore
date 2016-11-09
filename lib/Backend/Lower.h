@@ -210,7 +210,10 @@ private:
         IR::JnHelperMethod helperMethodWithTemp, IR::JnHelperMethod helperMethodLeftDead);
     IR::Instr *     LowerAddLeftDeadForString(IR::Instr *instr);
     IR::Instr *     LowerBinaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+#ifdef ENABLE_WASM
     IR::Instr *     LowerCheckWasmSignature(IR::Instr * instr);
+    IR::Instr *     LowerLdWasmFunc(IR::Instr* instr);
+#endif
     IR::Instr *     LowerInitCachedScope(IR::Instr * instr);
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);
     IR::Instr *     LowerBrBMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
@@ -414,7 +417,6 @@ private:
     IR::Instr *     LowerBailOnException(IR::Instr* instr);
     IR::Instr *     LowerReinterpretPrimitive(IR::Instr* instr);
     IR::Instr *     LowerLdAsmJsFunc(IR::Instr* instr);
-    IR::Instr *     LowerLdWasmFunc(IR::Instr* instr);
 
     void            LowerOneBailOutKind(IR::Instr *const instr, const IR::BailOutKind bailOutKindToLower, const bool isInHelperBlock, const bool preserveBailOutKindInInstr = false);
 

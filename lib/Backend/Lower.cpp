@@ -1809,12 +1809,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerUnaryHelper(instr, IR::HelperOp_UnwrapWithObj);
             break;
 
+#ifdef ENABLE_WASM
         case Js::OpCode::CheckWasmSignature:
             this->LowerCheckWasmSignature(instr);
             break;
         case Js::OpCode::LdWasmFunc:
             instrPrev = this->LowerLdWasmFunc(instr);
             break;
+#endif
         case Js::OpCode::LdAsmJsFunc:
             if (instr->GetSrc1()->IsIndirOpnd())
             {
@@ -8178,6 +8180,7 @@ Lowerer::LoadArgumentsFromFrame(IR::Instr *const instr)
     }
 }
 
+#ifdef ENABLE_WASM
 IR::Instr *
 Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 {
@@ -8223,6 +8226,51 @@ Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 
     return instrPrev;
 }
+
+IR::Instr *
+Lowerer::LowerLdWasmFunc(IR::Instr* instr)
+{
+    IR::Instr * prev = instr->m_prev;
+
+    IR::RegOpnd * tableReg = instr->UnlinkSrc1()->AsRegOpnd();
+
+    IR::Opnd * indexOpnd = instr->UnlinkSrc2();
+    IR::Opnd * dst = instr->UnlinkDst();
+
+    IR::IndirOpnd * lengthOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfCurrentLength(), TyUint32, m_func);
+    IR::IndirOpnd * valuesIndirOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfValues(), TyMachPtr, m_func);
+    IR::RegOpnd * valuesRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+
+    byte scale = m_lowererMD.GetDefaultIndirScale();
+    IR::IndirOpnd * funcIndirOpnd;
+    if (indexOpnd->IsIntConstOpnd())
+    {
+        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsIntConstOpnd()->AsInt32() << scale, TyMachPtr, m_func);
+    }
+    else
+    {
+        Assert(indexOpnd->IsRegOpnd());
+        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsRegOpnd(), TyMachPtr, m_func);
+        funcIndirOpnd->SetScale(scale);
+    }
+
+    IR::LabelInstr * trapLabel = InsertLabel(true, instr);
+    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, trapLabel, trapLabel);
+    InsertMove(valuesRegOpnd, valuesIndirOpnd, trapLabel);
+
+    InsertMove(dst, funcIndirOpnd, trapLabel);
+
+    InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
+    InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
+
+    LoadScriptContext(doneLabel);
+    m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
+
+    return prev;
+}
+
+#endif
 
 IR::Instr *
 Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
@@ -9298,49 +9346,6 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(UNREACHED);
     return instr;
 #endif
-}
-
-IR::Instr *
-Lowerer::LowerLdWasmFunc(IR::Instr* instr)
-{
-    IR::Instr * prev = instr->m_prev;
-
-    IR::RegOpnd * tableReg = instr->UnlinkSrc1()->AsRegOpnd();
-
-    IR::Opnd * indexOpnd = instr->UnlinkSrc2();
-    IR::Opnd * dst = instr->UnlinkDst();
-
-    IR::IndirOpnd * lengthOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfCurrentLength(), TyUint32, m_func);
-    IR::IndirOpnd * valuesIndirOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfValues(), TyMachPtr, m_func);
-    IR::RegOpnd * valuesRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-
-    byte scale = m_lowererMD.GetDefaultIndirScale();
-    IR::IndirOpnd * funcIndirOpnd;
-    if (indexOpnd->IsIntConstOpnd())
-    {
-        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsIntConstOpnd()->AsInt32() << scale, TyMachPtr, m_func);
-    }
-    else
-    {
-        Assert(indexOpnd->IsRegOpnd());
-        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsRegOpnd(), TyMachPtr, m_func);
-        funcIndirOpnd->SetScale(scale);
-    }
-
-    IR::LabelInstr * trapLabel = InsertLabel(true, instr);
-    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
-    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, trapLabel, trapLabel);
-    InsertMove(valuesRegOpnd, valuesIndirOpnd, trapLabel);
-
-    InsertMove(dst, funcIndirOpnd, trapLabel);
-
-    InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
-    InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
-
-    LoadScriptContext(doneLabel);
-    m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
-
-    return prev;
 }
 
 IR::Instr *
