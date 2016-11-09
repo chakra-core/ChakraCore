@@ -121,10 +121,11 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
 
     config = (configTag == null) ? config : "${configTag}_${config}"
-    config = staticBuild ? "${config}_static" : config
+    config = staticBuild ? "static_${config}" : "shared_${config}"
+    config = customOption ? customOption.replaceAll(/[-]+/, "_") + "_" + config : config
 
     // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
-    def jobName = Utilities.getFullJobName(project, config, isPR) + customOption.replaceAll(/[-]+/, "_")
+    def jobName = Utilities.getFullJobName(project, config, isPR)
 
     def infoScript = "bash jenkins/get_system_info.sh --${platform}"
     def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
