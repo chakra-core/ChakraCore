@@ -724,12 +724,10 @@ namespace Js
 
     void JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        bool isAnonymousFunction = JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction();
+        // Async function instances do not have a prototype property as they are not constructable
+        typeHandler->Convert(function, mode, 1);
 
-        JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
-        typeHandler->Convert(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionTypeHandler : javascriptLibrary->functionTypeHandler);
-
-        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !isAnonymousFunction)
+        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction())
         {
             JavascriptString * functionName = nullptr;
             DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);

@@ -126,6 +126,7 @@ var tests = [
             var b = async () => { };
             var c = async x => x;
             var d = async (a, b) => { };
+            assert.doesNotThrow(function () { eval("(async function (z) {})[0]"); }, "Should not throw when async function occurs a type conversion");
         }
     },
     {
