@@ -3104,7 +3104,7 @@ namespace Js
             }
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
 
-            m_signatures = *(Wasm::WasmSignature**)((BYTE*)frame->GetItem(0) + WebAssemblyModule::GetSignatureOffset() * sizeof(Var));
+            m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
         }
         else
 #endif

@@ -67,12 +67,10 @@ public:
     Wasm::WasmSignature* GetFunctionSignature(uint32 funcIndex) const;
     Wasm::FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex) const;
 
-    void InitializeMemory(uint32 minSize, uint32 maxSize, bool isImported);
-    void SetMemoryExported() { m_hasMemoryExport = true; }
-    bool IsMemoryExported() const { return m_hasMemoryExport; }
+    void InitializeMemory(uint32 minSize, uint32 maxSize);
     WebAssemblyMemory * CreateMemory() const;
     bool HasMemory() const { return m_hasMemory; }
-    bool HasMemoryImport() const { return m_hasMemoryImport; }
+    bool HasMemoryImport() const { return m_memImport != nullptr; }
     bool IsValidMemoryImport(const WebAssemblyMemory * memory) const;
 
     Wasm::WasmSignature * GetSignatures() const;
@@ -82,12 +80,10 @@ public:
 
     uint32 GetEquivalentSignatureId(uint32 sigId) const;
 
-    void InitializeTable(uint32 minEntries, uint32 maxEntries, bool isImported);
+    void InitializeTable(uint32 minEntries, uint32 maxEntries);
     WebAssemblyTable * CreateTable() const;
     bool HasTable() const { return m_hasTable; }
-    void SetTableExported() { m_hasTableExport = true; }
-    bool HasTableExport() const { return m_hasTableExport; }
-    bool HasTableImport() const { return m_hasTableImport; }
+    bool HasTableImport() const { return m_tableImport != nullptr; }
     bool IsValidTableImport(const WebAssemblyTable * table) const;
 
     uint GetWasmFunctionCount() const;
@@ -103,6 +99,10 @@ public:
     void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
     Wasm::WasmImport* GetFunctionImport(uint32 i) const;
     void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal);
+    void AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
+    void AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
+    Wasm::WasmImport * GetMemoryImport() const { return m_memImport; }
+    Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
 
@@ -123,8 +123,7 @@ public:
 
     // elements at known offsets
     static uint GetMemoryOffset() { return 0; }
-    static uint GetSignatureOffset() { return GetMemoryOffset() + 1; }
-    static uint GetImportFuncOffset() { return GetSignatureOffset() + 1; }
+    static uint GetImportFuncOffset() { return GetMemoryOffset() + 1; }
 
     // elements at instance dependent offsets
     uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
@@ -147,10 +146,6 @@ public:
 private:
     bool m_hasTable;
     bool m_hasMemory;
-    bool m_hasTableExport;
-    bool m_hasTableImport;
-    bool m_hasMemoryExport;
-    bool m_hasMemoryImport;
     // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
     const byte* m_binaryBuffer;
     uint32 m_memoryInitSize;

@@ -543,6 +543,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Debug/TTEventLog.h"
 #endif
 
+#include "../WasmReader/WasmReader.h"
+
 //
 // .inl files
 //

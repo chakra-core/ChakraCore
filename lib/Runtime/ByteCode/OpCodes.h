@@ -412,6 +412,7 @@ MACRO_EXTEND_WMS(       StInnerObjSlotChkUndecl,    ElementSlotI2,  OpSideEffect
 MACRO_EXTEND_WMS(       StEnvObjSlotChkUndecl,      ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StModuleSlot,               ElementSlotI2,  OpSideEffect)
 MACRO_BACKEND_ONLY(     LdAsmJsFunc,                ElementSlot,    OpTempNumberSources|OpCanCSE)
+MACRO_BACKEND_ONLY(     LdWasmFunc,                 ElementSlot,    OpSideEffect)
 
 MACRO_BACKEND_ONLY(     CheckWasmSignature,         Reg2,           OpSideEffect)
 

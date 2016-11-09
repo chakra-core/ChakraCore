@@ -272,6 +272,13 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->isHeapBufferConst = asmFuncInfo->IsHeapBufferConst();
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
+
+        if (functionBody->IsWasmFunction())
+        {
+            jitBody->asmJsData->wasmSignatureCount = asmFuncInfo->GetWebAssemblyModule()->GetSignatureCount();
+            jitBody->asmJsData->wasmSignaturesBaseAddr = (intptr_t)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();
+            jitBody->asmJsData->wasmSignatures = (WasmSignatureIDL*)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();
+        }
     }
 #endif
 }

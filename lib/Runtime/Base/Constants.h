@@ -46,7 +46,7 @@ namespace Js
         static const uint               UninitializedValue          = (uint)-1;
         static const ArgSlot            InvalidArgSlot              = (ArgSlot)-1;
         static const uint32             InvalidSymID = (uint32)-1;
-        static const int64              InvalidSignature = (uint64)-1;
+        static const size_t             InvalidSignature = (size_t)-1;
 
         static const uint64 ExponentMask;
         static const uint64 MantissaMask;

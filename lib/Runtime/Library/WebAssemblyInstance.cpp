@@ -89,9 +89,6 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, module->GetModuleEnvironmentSize());
     Var* memory = moduleEnvironmentPtr + WebAssemblyModule::GetMemoryOffset();
 
-    Var* signatures = moduleEnvironmentPtr + WebAssemblyModule::GetSignatureOffset();
-    *signatures = module->GetSignatures();
-
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
     WebAssemblyTable** table = (WebAssemblyTable**)(moduleEnvironmentPtr + module->GetTableEnvironmentOffset());
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
@@ -176,20 +173,16 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
 
 void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memoryObject, ScriptContext* ctx)
 {
-    if (wasmModule->HasMemory())
+    if (wasmModule->HasMemoryImport())
     {
-        if (*memoryObject != nullptr)
+        if (*memoryObject == nullptr)
         {
-            // can only have 1 memory now
             JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
-        *memoryObject = wasmModule->CreateMemory();
     }
-    else if (*memoryObject == nullptr)
+    else
     {
-        // if there is no import or defined memory, create one with size 0
-        // REVIEW: this makes code better as we don't have to do existence check, but ensure that this is spec behavior
-        *memoryObject = WebAssemblyMemory::CreateMemoryObject(0, 0, ctx);
+        *memoryObject = wasmModule->CreateMemory();
     }
 
     WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(*memoryObject);
@@ -220,20 +213,6 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memo
 
 void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, WebAssemblyTable** table, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
 {
-    if (wasmModule->IsMemoryExported())
-    {
-        PropertyRecord const * propertyRecord = nullptr;
-        ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
-        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *memory, ctx);
-    }
-
-    if (wasmModule->HasTableExport())
-    {
-        PropertyRecord const * propertyRecord = nullptr;
-        ctx->GetOrAddPropertyRecord(_u("table"), lstrlen(_u("table")), &propertyRecord);
-        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *table, ctx);
-    }
-
     PropertyRecord const * exportsPropertyRecord = nullptr;
     ctx->GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
     JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, ctx);
@@ -249,6 +228,12 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
             Var obj = ctx->GetLibrary()->GetUndefined();
             switch (funcExport->kind)
             {
+            case Wasm::ExternalKinds::Table:
+                obj = *table;
+                break;
+            case Wasm::ExternalKinds::Memory:
+                obj = *memory;
+                break;
             case Wasm::ExternalKinds::Function:
 
                 obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
@@ -302,7 +287,7 @@ static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
         PropertyRecord const * propertyRecord = nullptr;
         ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
 
-        if (!JavascriptObject::Is(modProp))
+        if (!RecyclableObject::Is(modProp))
         {
             JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
@@ -327,57 +312,53 @@ void static SetGlobalValue(Var moduleEnv, uint offset, T val)
 void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject, WebAssemblyTable ** tableObject)
 {
     const uint32 importCount = wasmModule->GetImportCount();
-    if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
+    if (importCount > 0 && (!ffi || !RecyclableObject::Is(ffi)))
     {
         JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
     for (uint32 i = 0; i < importCount; ++i)
     {
         Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
-        if (WebAssemblyMemory::Is(prop))
-        {
-            WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
-            if (!wasmModule->IsValidMemoryImport(mem))
-            {
-                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-            }
-            // only support 1 memory currently
-            if (*memoryObject != nullptr)
-            {
-                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-            }
-            *memoryObject = mem;
-        }
-        else if (WebAssemblyTable::Is(prop))
-        {
-            WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
-
-            if (!wasmModule->IsValidTableImport(table))
-            {
-                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-            }
-            // only support 1 table currently
-            if (*tableObject != nullptr)
-            {
-                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-            }
-            *tableObject = table;
-
-        }
-        else if (JavascriptFunction::Is(prop))
-        {
-            importFunctions[i] = prop;
-            if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
-            {
-                Assert(localModuleFunctions[i] == nullptr);
-                // Imported Wasm functions can be called directly
-                localModuleFunctions[i] = prop;
-            }
-        }
-        else
+        if (!JavascriptFunction::Is(prop))
         {
             JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
+        importFunctions[i] = prop;
+        if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
+        {
+            Assert(localModuleFunctions[i] == nullptr);
+            // Imported Wasm functions can be called directly
+            localModuleFunctions[i] = prop;
+        }
+    }
+    if (wasmModule->HasMemoryImport())
+    {
+        Var prop = GetImportVariable(wasmModule->GetMemoryImport(), ctx, ffi);
+        if (!WebAssemblyMemory::Is(prop))
+        {
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        }
+        WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
+        if (!wasmModule->IsValidMemoryImport(mem))
+        {
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        }
+        *memoryObject = mem;
+    }
+    if (wasmModule->HasTableImport())
+    {
+        Var prop = GetImportVariable(wasmModule->GetTableImport(), ctx, ffi);
+        if (!WebAssemblyTable::Is(prop))
+        {
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        }
+        WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
+
+        if (!wasmModule->IsValidTableImport(table))
+        {
+            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        }
+        *tableObject = table;
     }
 }
 
@@ -484,21 +465,16 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
 
 void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyTable** tableObject, Var* localModuleFunctions, Var* importFunctions)
 {
-    if (wasmModule->HasTable())
+    if (wasmModule->HasTableImport())
     {
-        if (*tableObject != nullptr)
+        if (*tableObject == nullptr)
         {
-            // can only have 1 table now
             JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
         }
-        *tableObject = wasmModule->CreateTable();
-
     }
-    else if (*tableObject == nullptr)
+    else
     {
-        // if there is no import or defined table, create one with size 0
-        // REVIEW: this makes code cleaner as we don't have to do existence check, but need to ensure that this is spec behavior
-        *tableObject = WebAssemblyTable::Create(0, 0, ctx);
+        *tableObject = wasmModule->CreateTable();
     }
 
     WebAssemblyTable * table = *tableObject;

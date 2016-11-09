@@ -64,6 +64,20 @@ AsmJsJITInfo::GetArgType(Js::ArgSlot argNum) const
     return GetArgTypeArray()[argNum];
 }
 
+Wasm::WasmSignature *
+AsmJsJITInfo::GetWasmSignature(uint index) const
+{
+    Assert(index < m_data.wasmSignatureCount);
+    return Wasm::WasmSignature::FromIDL(&m_data.wasmSignatures[index]);
+}
+
+intptr_t
+AsmJsJITInfo::GetWasmSignatureAddr(uint index) const
+{
+    Assert(index < m_data.wasmSignatureCount);
+    return m_data.wasmSignaturesBaseAddr + index * sizeof(Wasm::WasmSignature);
+}
+
 bool
 AsmJsJITInfo::IsHeapBufferConst() const
 {
