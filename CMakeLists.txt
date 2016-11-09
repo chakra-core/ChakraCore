@@ -95,7 +95,7 @@ elseif(CC_EMBED_ICU)
     ${ICU18}
     ${ICUDATA}
     )
- endif()
+endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)

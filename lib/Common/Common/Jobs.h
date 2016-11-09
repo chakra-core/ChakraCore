@@ -82,7 +82,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
 #endif
-        
+
     private:
         JobProcessor *const processor;
         unsigned int numJobsAddedToProcessor;
@@ -198,7 +198,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
 #endif
-        
+
     private:
         Job *jobBeingWaitedUpon;
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
@@ -208,7 +208,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         Event queuedJobsProcessed;
 #endif
-        
+
     protected:
         WaitableJobManager(JobProcessor *const processor);
     };
@@ -228,7 +228,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
 #endif
-        
+
     private:
         JsUtil::Job job;
         bool processed;
@@ -261,7 +261,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
 #endif
-        
+
     private:
         JsUtil::Job job;
         bool processed;
@@ -371,7 +371,7 @@ namespace JsUtil
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
 #endif
-        
+
     public:
         ForegroundJobProcessor();
 
@@ -536,7 +536,9 @@ namespace JsUtil
 
     private:
         static unsigned int WINAPI StaticThreadProc(void *lpParam);
+#ifndef DISABLE_SEH
         static int ExceptFilter(LPEXCEPTION_POINTERS pEP);
+#endif
 
         static void CALLBACK ThreadServiceCallback(void * callbackData);
     };
