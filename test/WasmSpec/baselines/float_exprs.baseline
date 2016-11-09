@@ -1,0 +1,40 @@
+float_exprs.wast:491: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.no_fold_f32_u[1] at offset 4/6: Operator F32UConvertI32 NYI
+float_exprs.wast:492: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.no_fold_f32_u[1] at offset 4/6: Operator F32UConvertI32 NYI
+float_exprs.wast:493: $assert_return_5 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.no_fold_f32_u[1] at offset 4/6: Operator F32UConvertI32 NYI
+float_exprs.wast:495: $assert_return_6 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_s[2] at offset 4/6: Operator F64SConvertI64 NYI
+float_exprs.wast:496: $assert_return_7 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_s[2] at offset 4/6: Operator F64SConvertI64 NYI
+float_exprs.wast:497: $assert_return_8 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_s[2] at offset 4/6: Operator F64SConvertI64 NYI
+float_exprs.wast:499: $assert_return_9 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_u[3] at offset 4/6: Operator F64UConvertI64 NYI
+float_exprs.wast:500: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_u[3] at offset 4/6: Operator F64UConvertI64 NYI
+float_exprs.wast:501: $assert_return_11 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_f64_u[3] at offset 4/6: Operator F64UConvertI64 NYI
+float_exprs.wast:697: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i32.no_fold_trunc_s_convert_u[2] at offset 5/6: Operator F32UConvertI32 NYI
+float_exprs.wast:698: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i32.no_fold_trunc_s_convert_u[2] at offset 5/6: Operator F32UConvertI32 NYI
+float_exprs.wast:699: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i32.no_fold_trunc_u_convert_u[3] at offset 5/6: Operator F32UConvertI32 NYI
+float_exprs.wast:700: $assert_return_5 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i32.no_fold_trunc_u_convert_u[3] at offset 5/6: Operator F32UConvertI32 NYI
+float_exprs.wast:711: $assert_return_10 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_s_convert_s[8] at offset 5/6: Operator F32SConvertI64 NYI
+float_exprs.wast:712: $assert_return_11 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_s_convert_s[8] at offset 5/6: Operator F32SConvertI64 NYI
+float_exprs.wast:713: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_u_convert_s[9] at offset 5/6: Operator F32SConvertI64 NYI
+float_exprs.wast:714: $assert_return_13 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_u_convert_s[9] at offset 5/6: Operator F32SConvertI64 NYI
+float_exprs.wast:715: $assert_return_14 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_s_convert_u[10] at offset 5/6: Operator F32UConvertI64 NYI
+float_exprs.wast:716: $assert_return_15 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_s_convert_u[10] at offset 5/6: Operator F32UConvertI64 NYI
+float_exprs.wast:717: $assert_return_16 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_u_convert_u[11] at offset 5/6: Operator F32UConvertI64 NYI
+float_exprs.wast:718: $assert_return_17 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f32.i64.no_fold_trunc_u_convert_u[11] at offset 5/6: Operator F32UConvertI64 NYI
+float_exprs.wast:720: $assert_return_18 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_s_convert_s[12] at offset 5/6: Operator F64SConvertI64 NYI
+float_exprs.wast:721: $assert_return_19 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_s_convert_s[12] at offset 5/6: Operator F64SConvertI64 NYI
+float_exprs.wast:722: $assert_return_20 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_u_convert_s[13] at offset 5/6: Operator F64SConvertI64 NYI
+float_exprs.wast:723: $assert_return_21 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_u_convert_s[13] at offset 5/6: Operator F64SConvertI64 NYI
+float_exprs.wast:724: $assert_return_22 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_s_convert_u[14] at offset 5/6: Operator F64UConvertI64 NYI
+float_exprs.wast:725: $assert_return_23 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_s_convert_u[14] at offset 5/6: Operator F64UConvertI64 NYI
+float_exprs.wast:726: $assert_return_24 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_u_convert_u[15] at offset 5/6: Operator F64UConvertI64 NYI
+float_exprs.wast:727: $assert_return_25 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function f64.i64.no_fold_trunc_u_convert_u[15] at offset 5/6: Operator F64UConvertI64 NYI
+$action_0 = undefined
+$action_1 = undefined
+$action_2 = undefined
+$action_3 = undefined
+$action_8 = undefined
+$action_0 = undefined
+$action_1 = undefined
+$action_2 = undefined
+$action_3 = undefined
+$action_8 = undefined
+659/688 tests passed.
