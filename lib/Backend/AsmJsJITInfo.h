@@ -31,8 +31,10 @@ public:
     Js::AsmJsVarType::Which * GetArgTypeArray() const;
     Js::AsmJsVarType::Which GetArgType(Js::ArgSlot argNum) const;
 
+#ifdef ENABLE_WASM
     Wasm::WasmSignature * GetWasmSignature(uint index) const;
     intptr_t GetWasmSignatureAddr(uint index) const;
+#endif
 
     bool IsHeapBufferConst() const;
     bool UsesHeapBuffer() const;

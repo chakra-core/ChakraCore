@@ -8415,6 +8415,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->R0));
         int sigIndex = playout->C1;
         Wasm::WasmSignature * expected = &m_signatures[sigIndex];
@@ -8433,6 +8434,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch, func->GetDisplayName());
         }
+#endif
     }
 
 #ifdef ASMJS_PLAT
