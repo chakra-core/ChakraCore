@@ -568,8 +568,7 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT) && defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
-// Enable WebAssembly only in debug and test build for the time being
+#if defined(ASMJS_PLAT) && defined(_WIN32)
 #define ENABLE_WASM
 #endif
 
