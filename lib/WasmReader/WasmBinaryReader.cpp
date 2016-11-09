@@ -51,6 +51,12 @@ LanguageTypes::ToWasmType(int8 binType)
     }
 }
 
+bool
+FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
+{
+    return funcType == FunctionIndexTypes::Function || funcType == FunctionIndexTypes::ImportThunk;
+}
+
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
@@ -702,7 +708,7 @@ void WasmBinaryReader::ReadExportTable()
         case ExternalKinds::Function:
         {
             FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
-            if (type != FunctionIndexTypes::ImportThunk && type != FunctionIndexTypes::Function)
+            if (!FunctionIndexTypes::CanBeExported(type))
             {
                 ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
             }
@@ -802,14 +808,9 @@ WasmBinaryReader::ReadElementSection()
         {
             uint32 elem = LEB128(length);
             FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(elem);
-            if (funcType == FunctionIndexTypes::Invalid)
+            if (!FunctionIndexTypes::CanBeExported(funcType))
             {
-                ThrowDecodingError(_u("Invalid function index %d"), elem);
-            }
-            if (funcType != FunctionIndexTypes::ImportThunk && funcType != FunctionIndexTypes::Function)
-            {
-                Assert(UNREACHED);
-                ThrowDecodingError(_u("Unknown function type to insert in the table"));
+                ThrowDecodingError(_u("Invalid function to insert in the table %u"), elem);
             }
             eSeg->AddElement(elem, *m_module);
         }
@@ -978,11 +979,17 @@ WasmBinaryReader::ReadStartFunction()
 {
     uint32 len = 0;
     uint32 id = LEB128(len);
+    Wasm::FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(id);
+    if (!FunctionIndexTypes::CanBeExported(funcType))
+    {
+        ThrowDecodingError(_u("Invalid function index for start function %u"), id);
+    }
+    WasmSignature* sig = m_module->GetFunctionSignature(id);
+    if (sig->GetParamCount() > 0 || sig->GetResultType() != WasmTypes::Void)
+    {
+        ThrowDecodingError(_u("Start function must be void and nullary"));
+    }
     m_module->SetStartFunction(id);
-
-    // TODO: Validate
-    // 1. Valid function id
-    // 2. Function should be void and nullary
 }
 
 template<typename MaxAllowedType>
