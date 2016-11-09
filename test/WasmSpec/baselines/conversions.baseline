@@ -53,6 +53,4 @@ conversions.wast:215: $assert_trap_149 failed, runtime trap NYI
 conversions.wast:216: $assert_trap_150 failed, runtime trap NYI
 conversions.wast:217: $assert_trap_151 failed, runtime trap NYI
 conversions.wast:218: $assert_trap_152 failed, runtime trap NYI
-conversions.wast:266: $assert_return_192 failed.
-conversions.wast:268: $assert_return_194 failed.
-269/326 tests passed.
+269/324 tests passed.

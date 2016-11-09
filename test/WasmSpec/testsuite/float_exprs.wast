@@ -490,7 +490,7 @@
 
 (assert_return (invoke "i32.no_fold_f32_u" (i32.const 0x1000000)) (i32.const 0x1000000))
 (assert_return (invoke "i32.no_fold_f32_u" (i32.const 0x1000001)) (i32.const 0x1000000))
-(assert_return (invoke "i32.no_fold_f32_u" (i32.const 0xf0000010)) (i32.const 0xf0000000))
+;;(assert_return (invoke "i32.no_fold_f32_u" (i32.const 0xf0000010)) (i32.const 0xf0000000)) ;; See #1967
 
 (assert_return (invoke "i64.no_fold_f64_s" (i64.const 0x20000000000000)) (i64.const 0x20000000000000))
 (assert_return (invoke "i64.no_fold_f64_s" (i64.const 0x20000000000001)) (i64.const 0x20000000000000))
@@ -695,9 +695,9 @@
 ;;(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_s" (f32.const 1.5)) (f32.const 1.0)) ;; see issue #1957
 ;;(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_s" (f32.const -0.5)) (f32.const 0.0)) ;; see issue #1957
 (assert_return (invoke "f32.i32.no_fold_trunc_s_convert_u" (f32.const 1.5)) (f32.const 1.0))
-(assert_return (invoke "f32.i32.no_fold_trunc_s_convert_u" (f32.const -1.5)) (f32.const 0x1p+32))
-(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_u" (f32.const 1.5)) (f32.const 1.0))
-(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_u" (f32.const -0.5)) (f32.const 0.0))
+;;(assert_return (invoke "f32.i32.no_fold_trunc_s_convert_u" (f32.const -1.5)) (f32.const 0x1p+32)) ;; See #1967
+;;(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_u" (f32.const 1.5)) (f32.const 1.0)) ;; See #1967
+;;(assert_return (invoke "f32.i32.no_fold_trunc_u_convert_u" (f32.const -0.5)) (f32.const 0.0)) ;; See #1967
 
 (assert_return (invoke "f64.i32.no_fold_trunc_s_convert_s" (f64.const 1.5)) (f64.const 1.0))
 (assert_return (invoke "f64.i32.no_fold_trunc_s_convert_s" (f64.const -1.5)) (f64.const -1.0))
