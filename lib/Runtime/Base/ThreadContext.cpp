@@ -3871,7 +3871,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
         {
             return false;
         }
-        if (AutoSystemInfo::Data.IsChakraAddress(pCodeAddr))
+        if (AutoSystemInfo::IsJscriptModulePointer(pCodeAddr))
         {
             return false;
         }
