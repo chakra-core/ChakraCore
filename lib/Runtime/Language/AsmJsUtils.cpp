@@ -229,7 +229,11 @@ namespace Js
                         {
                             radix = 16;
                         }
+#ifdef _WIN32
+                        val = _wcstoi64(buf, nullptr, radix);
+#else
                         val = wcstoll(buf, nullptr, radix);
+#endif
                     }
                     else
                     {
