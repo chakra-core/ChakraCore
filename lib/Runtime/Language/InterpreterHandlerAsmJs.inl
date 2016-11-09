@@ -82,6 +82,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L1toD1Mem        , Conv_LTD     , JavascriptConversion::LongToDouble                 )
   DEF2_WMS( L1toF1Mem        , Conv_ULTF    , JavascriptConversion::ULongToFloat                 )
   DEF2_WMS( L1toF1Mem        , Conv_LTF     , JavascriptConversion::LongToFloat                  )
+  DEF2_WMS( L1toI1Mem        , Conv_LTI     , (int)                                              ) // wrap int64 to int
   DEF2_WMS( I1toI1Mem        , Ld_Int       , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Ld_Long      , (int64)                                            )
   DEF2_WMS( D1toD1Mem        , Ld_Db        , (double)                                           )
