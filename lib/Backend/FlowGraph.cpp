@@ -2392,7 +2392,7 @@ FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeE
     newBr->InsertBefore(newInlineeEnd);
 
     IR::ByteCodeUsesInstr * useOrigBranchSrcInstr = IR::ByteCodeUsesInstr::New(origBrFunc, origByteCodeOffset);
-    useOrigBranchSrcInstr->Set(origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
+    useOrigBranchSrcInstr->SetRemovedOpndSymbol(origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     newBr->InsertBefore(useOrigBranchSrcInstr);
 
     uint newBrFnNumber = newBr->m_func->GetFunctionNumber();
@@ -2598,7 +2598,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
             globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
-            byteCodeUsesInstr->Set(false, instr->m_func->GetScopeObjSym()->m_id);
+            byteCodeUsesInstr->SetNonOpndSymbol(instr->m_func->GetScopeObjSym()->m_id);
             instr->InsertAfter(byteCodeUsesInstr);
         }
 
@@ -3105,7 +3105,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     {
         if (cmpSrc1->IsRegOpnd() && !cmpSrc1->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->Set(cmpSrc1->AsRegOpnd()->GetIsJITOptimizedReg(), cmpSrc1->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc1);
         }
         cmpInstr->ReplaceSrc1(newSrc1);
         if (newSrc1->IsRegOpnd())
@@ -3117,7 +3117,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     {
         if (cmpSrc2->IsRegOpnd() && !cmpSrc2->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->Set(cmpSrc2->AsRegOpnd()->GetIsJITOptimizedReg(), cmpSrc2->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc2);
         }
         cmpInstr->ReplaceSrc2(newSrc2);
         if (newSrc2->IsRegOpnd())

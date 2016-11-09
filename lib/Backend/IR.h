@@ -511,13 +511,27 @@ private:
     
 public:
     static ByteCodeUsesInstr * New(IR::Instr * originalBytecodeInstr);
-    static ByteCodeUsesInstr * New(Func * originalBytecodeInstr, uint32 offset);
-    const BVSparse<JitArenaAllocator> * getByteCodeUpwardExposedUsed() const { return byteCodeUpwardExposedUsed; }
+    static ByteCodeUsesInstr * New(Func * containingFunction, uint32 offset);
+    const BVSparse<JitArenaAllocator> * GetByteCodeUpwardExposedUsed() const;
 
     PropertySym *              propertySymUse;
-    void Set(bool isjitoptimizedreg, uint symId);
-    void Clear(uint symId) { Assert(byteCodeUpwardExposedUsed != nullptr); byteCodeUpwardExposedUsed->Clear(symId); };
-    void SetBV(BVSparse<JitArenaAllocator>* newbv) { Assert(byteCodeUpwardExposedUsed == nullptr && newbv != nullptr); byteCodeUpwardExposedUsed = newbv; };
+    // In the case of instances where you would like to add a ByteCodeUses to some sym,
+    // which doesn't have an operand associated with it (like a block closure sym), use
+    // this to set it without needing to pass the check for JIT-Optimized registers.
+    void SetNonOpndSymbol(uint symId);
+    // In cases where the operand you're working on may be changed between when you get
+    // access to it and when you determine that you can set it in the ByteCodeUsesInstr
+    // set method, cache the values and use this caller.
+    void SetRemovedOpndSymbol(bool isJITOptimizedReg, uint symId);
+    void Set(IR::Opnd * originalOperand);
+    void Clear(uint symId);
+    // Set the byteCodeUpwardExposedUsed bitvector on a new ByteCodeUses instruction.
+    void SetBV(BVSparse<JitArenaAllocator>* newbv);
+    // If possible, we want to aggregate with subsequent ByteCodeUses Instructions, so
+    // that we can do some optimizations in other places where we can simplify args in
+    // a compare, but still need to generate them for bailouts. Without this, we cause
+    // problems because we end up with an instruction losing atomicity in terms of its
+    // bytecode use and generation lifetimes.
     void Aggregate();
 };
 

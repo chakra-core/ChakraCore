@@ -478,7 +478,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         // Insert a ByteCodeUsesInstr to make sure the methodValueDstOpnd's constant value is captured by any
                         // bailout that occurs between CheckFixedMethodField and CallI.
                         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(instr);
-                        useCallTargetInstr->Set(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+                        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
                         instr->InsertBefore(useCallTargetInstr);
 
                         // Split NewScObject into NewScObjectNoCtor and CallI, but don't touch NewScObjectArray.
@@ -1072,7 +1072,7 @@ void Inline::CompletePolymorphicInlining(IR::Instr* callInstr, IR::RegOpnd* retu
         return false;
     });
     IR::ByteCodeUsesInstr* bytecodeUses = IR::ByteCodeUsesInstr::New(callInstr);
-    bytecodeUses->Set(callInstr->GetSrc1()->GetIsJITOptimizedReg(), callInstr->GetSrc1()->GetStackSym()->m_id);
+    bytecodeUses->Set(callInstr->GetSrc1());
     callInstr->InsertBefore(bytecodeUses);
 
     IR::Instr* endCallInstr = IR::Instr::New(Js::OpCode::EndCallForPolymorphicInlinee, callInstr->m_func);
@@ -2030,7 +2030,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
     // at which we may need to call the inlinee again in the interpreter.
     {
         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
-        useCallTargetInstr->Set(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
         callInstr->InsertBefore(useCallTargetInstr);
     }
 
@@ -2067,7 +2067,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         // Insert a byteCodeUsesInstr to make sure the function object's lifetime is extended beyond the last bailout point
         // at which we may need to call the inlinee again in the interpreter.
         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr->GetPrevRealInstrOrLabel());
-        useCallTargetInstr->Set(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
 
         if(inlineCallOpCode == Js::OpCode::InlineArrayPop)
         {
@@ -2123,7 +2123,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
                 {
                     if (!sym->IsFromByteCodeConstantTable())
                     {
-                        byteCodeUsesInstr->Set(argInstr->GetSrc1()->GetIsJITOptimizedReg(), sym->m_id);
+                        byteCodeUsesInstr->Set(argInstr->GetSrc1());
                     }
                 }
             }
@@ -2429,7 +2429,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     if (callInstr->m_opcode == Js::OpCode::CallIFixed)
     {
         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
-        useCallTargetInstr->Set(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
         callInstr->InsertBefore(useCallTargetInstr);
     }
 
@@ -2551,8 +2551,10 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     callInstr->m_opcode = Js::OpCode::CallI;
 
     StackSym* callTargetStackSym = callInstr->GetSrc1()->GetStackSym();
+    bool callTargetOpndIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
     while (callTargetStackSym->IsSingleDef() && callTargetStackSym->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture)
     {
+        callTargetOpndIsJITOpt = callTargetStackSym->GetInstrDef()->GetSrc1()->GetIsJITOptimizedReg();
         callTargetStackSym = callTargetStackSym->GetInstrDef()->GetSrc1()->GetStackSym();
     }
 
@@ -2566,7 +2568,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     {
         Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
         IR::ByteCodeUsesInstr* bytecodeUses = IR::ByteCodeUsesInstr::New(callInstr);
-        bytecodeUses->Set(callInstr->GetSrc1()->GetIsJITOptimizedReg(), callTargetStackSym->m_id);
+        bytecodeUses->SetRemovedOpndSymbol(callTargetOpndIsJITOpt, callTargetStackSym->m_id);
         callInstr->InsertBefore(bytecodeUses);
     }
 
@@ -3135,7 +3137,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
     // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after
     // the bailout on non-stack arguments.
     Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
-    useCallTargetInstr->Set(originalCallTargetOpndJITOpt, originalCallTargetStackSym->m_id);
+    useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndJITOpt, originalCallTargetStackSym->m_id);
 
     // Make the target of apply/call as the target of the call instruction
     callInstr->ReplaceSrc1(targetLdInstr->GetDst());
@@ -3149,7 +3151,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
     // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after
     // the bailout on non-stack arguments.
     Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
-    useCallTargetInstr->Set(originalCallTargetOpndJITOpt, originalCallTargetStackSym->m_id);
+    useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndJITOpt, originalCallTargetStackSym->m_id);
 
     callInstr->InsertBefore(useCallTargetInstr);
 
@@ -3637,7 +3639,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
         // at which we may have to call the function again in the interpreter.
         // Don't need to do this for a getter/setter inlinee as, upon bailout, the execution will start in the interpreter at the LdFld/StFld itself.
         IR::ByteCodeUsesInstr* bytecodeUses = IR::ByteCodeUsesInstr::New(callInstr);
-        bytecodeUses->Set(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+        bytecodeUses->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
         callInstr->InsertBefore(bytecodeUses);
     }
 
@@ -4195,6 +4197,7 @@ void
 Inline::TryFixedMethodAndPrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined)
 {
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
+    bool originalCallTargetIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
 
     bool safeThis = false;
     if (TryOptimizeCallInstrWithFixedMethod(callInstr, inlineeInfo, isPolymorphic, isBuiltIn, isCtor, isInlined, safeThis))
@@ -4203,7 +4206,7 @@ Inline::TryFixedMethodAndPrepareInsertionPoint(IR::Instr *callInstr, const Funct
 
         // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after the last bailout before the call.
         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
-        useCallTargetInstr->Set(callInstr->GetSrc1()->GetIsJITOptimizedReg(), originalCallTargetStackSym->m_id);
+        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetIsJITOpt, originalCallTargetStackSym->m_id);
         callInstr->InsertBefore(useCallTargetInstr);
     }
     else
@@ -4391,19 +4394,19 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
         }
 
         // Success
-        IR::ByteCodeUsesInstr * byteCodeInstr = IR::ByteCodeUsesInstr::New(instr);
         StackSym *src1Sym = src1->AsRegOpnd()->m_sym;
         StackSym *src2Sym = src2->AsRegOpnd()->m_sym;
 
         if (src1Sym->HasByteCodeRegSlot() || src2Sym->HasByteCodeRegSlot())
         {
+            IR::ByteCodeUsesInstr * byteCodeInstr = IR::ByteCodeUsesInstr::New(instr);
             if (src1Sym->HasByteCodeRegSlot())
             {
-                byteCodeInstr->Set(src1->AsRegOpnd()->GetIsJITOptimizedReg(), src1Sym->m_id);
+                byteCodeInstr->Set(src1);
             }
             if (src2Sym->HasByteCodeRegSlot())
             {
-                byteCodeInstr->Set(src2->AsRegOpnd()->GetIsJITOptimizedReg(), src2Sym->m_id);
+                byteCodeInstr->Set(src2);
             }
             instr->InsertBefore(byteCodeInstr);
         }
@@ -4437,7 +4440,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
         if (src1Sym->HasByteCodeRegSlot())
         {
             IR::ByteCodeUsesInstr * byteCodeInstr = IR::ByteCodeUsesInstr::New(instr);
-            byteCodeInstr->Set(src1->AsRegOpnd()->GetIsJITOptimizedReg(), src1Sym->m_id);
+            byteCodeInstr->Set(src1);
             instr->InsertBefore(byteCodeInstr);
         }
 

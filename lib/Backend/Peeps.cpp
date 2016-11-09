@@ -501,7 +501,7 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
                     {
                         // No side-effects to worry about, but need to insert bytecodeUse.
                         IR::ByteCodeUsesInstr *byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(branchInstr);
-                        byteCodeUsesInstr->Set(regSrc->GetIsJITOptimizedReg(), regSrc->GetStackSym()->m_id);
+                        byteCodeUsesInstr->Set(regSrc);
                         branchInstr->InsertBefore(byteCodeUsesInstr);
                     }
                 }

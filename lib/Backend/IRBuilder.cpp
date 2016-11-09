@@ -2331,11 +2331,11 @@ IRBuilder::BuildReg4(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
         IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, Js::Constants::NoByteCodeOffset);
         if (src1HasByteCodeRegSlot)
         {
-            byteCodeUse->Set(src1Opnd->GetIsJITOptimizedReg(), src1Opnd->m_sym->m_id);
+            byteCodeUse->Set(src1Opnd);
         }
         if (src2HasByteCodeRegSlot)
         {
-            byteCodeUse->Set(src2Opnd->GetIsJITOptimizedReg(), src2Opnd->m_sym->m_id);
+            byteCodeUse->Set(src2Opnd);
         }
         this->AddInstr(byteCodeUse, Js::Constants::NoByteCodeOffset);
     }
@@ -2475,7 +2475,7 @@ IRBuilder::BuildReg3B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSl
     if (src1Opnd->m_sym->HasByteCodeRegSlot())
     {
         IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, Js::Constants::NoByteCodeOffset);
-        byteCodeUse->Set(src1Opnd->GetIsJITOptimizedReg(), src1Opnd->m_sym->m_id);
+        byteCodeUse->Set(src1Opnd);
         this->AddInstr(byteCodeUse, Js::Constants::NoByteCodeOffset);
     }
 
@@ -3512,7 +3512,7 @@ LdLocalSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-                byteCodeUse->Set(false, closureSym->m_id);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3574,7 +3574,7 @@ LdLocalObjSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-                byteCodeUse->Set(false, closureSym->m_id);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3614,7 +3614,7 @@ LdLocalObjSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-                byteCodeUse->Set(false, closureSym->m_id);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3667,7 +3667,7 @@ LdLocalObjSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-                byteCodeUse->Set(false, closureSym->m_id);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -4165,7 +4165,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
             IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-            byteCodeUse->Set(false, m_func->GetLocalClosureSym()->m_id);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4194,7 +4194,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
             IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-            byteCodeUse->Set(false, m_func->GetLocalClosureSym()->m_id);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4215,7 +4215,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
             IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-            byteCodeUse->Set(false, m_func->GetLocalClosureSym()->m_id);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4701,7 +4701,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
             if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
             {
                 IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-                byteCodeUse->Set(false, m_func->GetLocalClosureSym()->m_id);
+                byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -7109,7 +7109,7 @@ IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
     if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
     {
         IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
-        byteCodeUse->Set(false, m_func->GetLocalClosureSym()->m_id);
+        byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
         this->AddInstr(byteCodeUse, offset);
     }
 

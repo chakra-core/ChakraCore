@@ -1859,7 +1859,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             //
             // Handle the source side.
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->getByteCodeUpwardExposedUsed();
+            const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
             if (byteCodeUpwardExposedUsed != nullptr)
             {
                 this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
@@ -1926,11 +1926,11 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             }
 
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            if (byteCodeUsesInstr->getByteCodeUpwardExposedUsed() != nullptr)
+            if (byteCodeUsesInstr->GetByteCodeUpwardExposedUsed() != nullptr)
             {
-                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->getByteCodeUpwardExposedUsed());
+                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->GetByteCodeUpwardExposedUsed());
 #if DBG
-                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUsesInstr->getByteCodeUpwardExposedUsed())
+                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUsesInstr->GetByteCodeUpwardExposedUsed())
                 {
                     StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
                     Assert(!stackSym->IsTypeSpec());
@@ -6894,7 +6894,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
         {
             // Replace instrs with bytecodeUses
             IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr);
-            bytecodeUse->Set(opnd->GetIsJITOptimizedReg(), sym->m_id);
+            bytecodeUse->Set(opnd);
             argInstr->InsertBefore(bytecodeUse);
         }
         startCallInstr = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
@@ -6962,7 +6962,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     {
         // Replace instrs with bytecodeUses
         IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart);
-        bytecodeUse->Set(src1->GetIsJITOptimizedReg(), sym->m_id);
+        bytecodeUse->Set(src1);
         inlineeStart->InsertBefore(bytecodeUse);
     }
 
@@ -7266,7 +7266,7 @@ BackwardPass::ReverseCopyProp(IR::Instr *instr)
         if (instrPrev->m_opcode == Js::OpCode::ByteCodeUses)
         {
             byteCodeUseInstr = instrPrev->AsByteCodeUsesInstr();
-            const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = byteCodeUseInstr->getByteCodeUpwardExposedUsed();
+            const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = byteCodeUseInstr->GetByteCodeUpwardExposedUsed();
             if (byteCodeUpwardExposedUsed && byteCodeUpwardExposedUsed->Test(varSym->m_id) && byteCodeUpwardExposedUsed->Count() == 1)
             {
                 instrPrev = byteCodeUseInstr->GetPrevRealInstrOrLabel();
