@@ -8542,6 +8542,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdArrWasmFunc(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         if (index >= table->GetCurrentLength())
@@ -8554,6 +8555,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), JSERR_Property_NeedFunction);
         }
         m_localSlots[playout->Value] = func;
+#endif
     }
 
     template <class T>
