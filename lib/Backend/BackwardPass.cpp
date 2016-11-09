@@ -7055,7 +7055,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         curInstr = curInstr->m_prev;
     }
 
-    // Didn't get to the top of the block, delete this BailOnNoProfile...
+    // Didn't get to the top of the block, delete this BailOnNoProfile.
     if (!curInstr->IsLabelInstr())
     {
         block->RemoveInstr(instr);
@@ -7094,7 +7094,6 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     instr->Unlink();
 
     // Now try to move this up the flowgraph to the predecessor blocks
-    bool curBlockNeedsBail = false;
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
         bool hoistBailToPred = true;
@@ -7132,15 +7131,11 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                     // We already have one, we don't need a second.
                     instrCopy->Free();
                 }
-                else if (predInstr->AsBranchInstr()->m_isSwitchBr)
+                else if (!predInstr->AsBranchInstr()->m_isSwitchBr)
                 {
                     // Don't put a bailout in the middle of a switch dispatch sequence.
                     // The bytecode offsets are not in order, and it would lead to incorrect
                     // bailout info.
-                    curBlockNeedsBail = true;
-                }
-                else
-                {
                     instrCopy->m_func = predInstr->m_func;
                     predInstr->InsertBefore(instrCopy);
                 }
@@ -7160,13 +7155,12 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                 }
             }
         }
-        else
-        {
-            curBlockNeedsBail = true;
-        }
     } NEXT_PREDECESSOR_BLOCK;
 
-    if (curBlockNeedsBail)
+    // If we have a BailOnNoProfile in the first block, there must have been at least one path out of this block that always throws.
+    // Don't bother keeping the bailout in the first block as there are some issues in restoring the ArgIn bytecode registers on bailout
+    // and throw case should be rare enough that it won't matter for perf.
+    if (block->GetBlockNum() != 0)
     {
         curInstr->AsLabelInstr()->isOpHelper = true;
 #if DBG
