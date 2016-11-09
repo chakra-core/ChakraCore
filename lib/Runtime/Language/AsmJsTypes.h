@@ -874,6 +874,7 @@ namespace Js
 
         FunctionBody* asmJsModuleFunctionBody;
         Wasm::WasmReaderInfo* mWasmReaderInfo;
+        WebAssemblyModule* mWasmModule;
         Js::JavascriptError * mLazyError;
     public:
         AsmJsFunctionInfo() : mArgCount(0),
@@ -887,6 +888,7 @@ namespace Js
                               mArgType(nullptr),
                               mArgSizes(nullptr),
                               mWasmReaderInfo(nullptr),
+                              mWasmModule(nullptr),
                               mSignature(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
@@ -973,6 +975,8 @@ namespace Js
 
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
         void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}
+        WebAssemblyModule* GetWebAssemblyModule() const { return mWasmModule; }
+        void SetWebAssemblyModule(WebAssemblyModule * module) { mWasmModule= module; }
         bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }
     };
 

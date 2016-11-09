@@ -15,10 +15,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     DynamicObject(type),
     m_hasMemory(false),
     m_hasTable(false),
-    m_hasMemoryImport(false),
-    m_hasTableImport(false),
-    m_hasMemoryExport(false),
-    m_hasTableExport(false),
+    m_memImport(nullptr),
+    m_tableImport(nullptr),
     m_memoryInitSize(0),
     m_memoryMaxSize(0),
     m_tableInitSize(0),
@@ -31,8 +29,6 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_elementsegCount(0),
     m_elementsegs(nullptr),
     m_signatures(nullptr),
-    m_tableImport(nullptr),
-    m_memImport(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
     m_binaryBuffer(binaryBuffer)
@@ -239,7 +235,7 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
 }
 
 void
-WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool isImported)
+WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 {
     if (m_hasMemory)
     {
@@ -253,7 +249,6 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage, bool isImpor
     m_hasMemory = true;
     m_memoryInitSize = minPage;
     m_memoryMaxSize = maxPage;
-    m_hasMemoryImport = isImported;
 }
 
 WebAssemblyMemory *
@@ -265,7 +260,7 @@ WebAssemblyModule::CreateMemory() const
 bool
 WebAssemblyModule::IsValidMemoryImport(const WebAssemblyMemory * memory) const
 {
-    return m_hasMemoryImport && memory->GetInitialLength() >= m_memoryInitSize && memory->GetMaximumLength() <= m_memoryMaxSize;
+    return m_memImport && memory->GetInitialLength() >= m_memoryInitSize && memory->GetMaximumLength() <= m_memoryMaxSize;
 }
 
 Wasm::WasmSignature *
@@ -303,7 +298,7 @@ WebAssemblyModule::GetEquivalentSignatureId(uint32 sigId) const
 }
 
 void
-WebAssemblyModule::InitializeTable(uint32 minEntries, uint32 maxEntries, bool isImported)
+WebAssemblyModule::InitializeTable(uint32 minEntries, uint32 maxEntries)
 {
     if (m_hasTable)
     {
@@ -317,7 +312,6 @@ WebAssemblyModule::InitializeTable(uint32 minEntries, uint32 maxEntries, bool is
     m_hasTable = true;
     m_tableInitSize = minEntries;
     m_tableMaxSize = maxEntries;
-    m_hasTableImport = isImported;
 }
 
 WebAssemblyTable *
@@ -329,7 +323,7 @@ WebAssemblyModule::CreateTable() const
 bool
 WebAssemblyModule::IsValidTableImport(const WebAssemblyTable * table) const
 {
-    return m_hasTableImport && table->GetInitialLength() >= m_tableInitSize && table->GetMaximumLength() <= m_tableMaxSize;
+    return m_tableImport && table->GetInitialLength() >= m_tableInitSize && table->GetMaximumLength() <= m_tableMaxSize;
 }
 
 uint32
@@ -453,6 +447,30 @@ WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, con
     importedGlobal->importVar = wi;
     importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
     globals->Add(importedGlobal);
+}
+
+void
+WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
+{
+    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    wi->sigId = 0;
+    wi->fnName = importName;
+    wi->fnNameLen = importNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+    m_memImport = wi;
+}
+
+void
+WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
+{
+    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    wi->sigId = 0;
+    wi->fnName = importName;
+    wi->fnNameLen = importNameLen;
+    wi->modName = modName;
+    wi->modNameLen = modNameLen;
+    m_tableImport = wi;
 }
 
 uint

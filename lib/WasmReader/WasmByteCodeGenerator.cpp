@@ -208,6 +208,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
+    info->SetWebAssemblyModule(m_module);
 
     if (wasmInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
     {

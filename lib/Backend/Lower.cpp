@@ -1812,6 +1812,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::CheckWasmSignature:
             this->LowerCheckWasmSignature(instr);
             break;
+        case Js::OpCode::LdWasmFunc:
+            instrPrev = this->LowerLdWasmFunc(instr);
+            break;
         case Js::OpCode::LdAsmJsFunc:
             if (instr->GetSrc1()->IsIndirOpnd())
             {
@@ -1834,7 +1837,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     indir->SetScale(scale);
                 }
             }
-            // Fallthrough
+            //fallthrough
         case Js::OpCode::Ld_I4:
         case Js::OpCode::Ld_A:
         case Js::OpCode::InitConst:
@@ -8176,21 +8179,44 @@ IR::Instr *
 Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 {
     Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+    Assert(instr->GetSrc1());
+    Assert(instr->GetSrc2()->IsIntConstOpnd());
 
-    // TODO: fast compare
+    int sigId = instr->UnlinkSrc2()->AsIntConstOpnd()->AsInt32();
+
     IR::Instr *instrPrev = instr->m_prev;
 
-    IR::RegOpnd * actualSig = IR::RegOpnd::New(TyVar, m_func);
-    IR::IndirOpnd * sigOffset = IR::IndirOpnd::New(instr->UnlinkSrc1()->AsRegOpnd(), Js::AsmJsScriptFunction::GetOffsetOfSignature(), TyVar, m_func);
-    InsertMove(actualSig, sigOffset, instr);
+    IR::IndirOpnd * actualSig = IR::IndirOpnd::New(instr->UnlinkSrc1()->AsRegOpnd(), Js::AsmJsScriptFunction::GetOffsetOfSignature(), TyMachReg, m_func);
 
+    Wasm::WasmSignature * expectedSig = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetWasmSignature(sigId);
+    if (expectedSig->GetShortSig() == Js::Constants::InvalidSignature)
+    {
+        intptr_t sigAddr = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetWasmSignatureAddr(sigId);
+        IR::AddrOpnd * expectedOpnd = IR::AddrOpnd::New(sigAddr, IR::AddrOpndKindConstantAddress, m_func);
+        m_lowererMD.LoadHelperArgument(instr, expectedOpnd);
+        m_lowererMD.LoadHelperArgument(instr, actualSig);
 
-    m_lowererMD.LoadHelperArgument(instr, instr->UnlinkSrc2());
-    m_lowererMD.LoadHelperArgument(instr, actualSig);
+        LoadScriptContext(instr);
 
-    LoadScriptContext(instr);
+        m_lowererMD.ChangeToHelperCall(instr, IR::HelperOp_CheckWasmSignature);
+    }
+    else
+    {
+        IR::LabelInstr * trapLabel = InsertLabel(true, instr);
+        IR::LabelInstr * labelFallThrough = InsertLabel(false, instr->m_next);
+        IR::RegOpnd * actualRegOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+        InsertMove(actualRegOpnd, actualSig, trapLabel);
 
-    m_lowererMD.ChangeToHelperCall(instr, IR::HelperOp_CheckWasmSignature);
+        IR::IndirOpnd * shortSigIndir = IR::IndirOpnd::New(actualRegOpnd, Wasm::WasmSignature::GetOffsetOfShortSig(), TyMachReg, m_func);
+        InsertCompareBranch(shortSigIndir, IR::IntConstOpnd::New(expectedSig->GetShortSig(), TyMachReg, m_func), Js::OpCode::BrNeq_A, trapLabel, trapLabel);
+
+        InsertBranch(Js::OpCode::Br, labelFallThrough, trapLabel);
+
+        LoadScriptContext(instr);
+        m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
+
+    }
+
 
     return instrPrev;
 }
@@ -9269,6 +9295,49 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(UNREACHED);
     return instr;
 #endif
+}
+
+IR::Instr *
+Lowerer::LowerLdWasmFunc(IR::Instr* instr)
+{
+    IR::Instr * prev = instr->m_prev;
+
+    IR::RegOpnd * tableReg = instr->UnlinkSrc1()->AsRegOpnd();
+
+    IR::Opnd * indexOpnd = instr->UnlinkSrc2();
+    IR::Opnd * dst = instr->UnlinkDst();
+
+    IR::IndirOpnd * lengthOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfCurrentLength(), TyUint32, m_func);
+    IR::IndirOpnd * valuesIndirOpnd = IR::IndirOpnd::New(tableReg, Js::WebAssemblyTable::GetOffsetOfValues(), TyMachPtr, m_func);
+    IR::RegOpnd * valuesRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+
+    byte scale = m_lowererMD.GetDefaultIndirScale();
+    IR::IndirOpnd * funcIndirOpnd;
+    if (indexOpnd->IsIntConstOpnd())
+    {
+        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsIntConstOpnd()->AsInt32() << scale, TyMachPtr, m_func);
+    }
+    else
+    {
+        Assert(indexOpnd->IsRegOpnd());
+        funcIndirOpnd = IR::IndirOpnd::New(valuesRegOpnd, indexOpnd->AsRegOpnd(), TyMachPtr, m_func);
+        funcIndirOpnd->SetScale(scale);
+    }
+
+    IR::LabelInstr * trapLabel = InsertLabel(true, instr);
+    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, trapLabel, trapLabel);
+    InsertMove(valuesRegOpnd, valuesIndirOpnd, trapLabel);
+
+    InsertMove(dst, funcIndirOpnd, trapLabel);
+
+    InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
+    InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
+
+    LoadScriptContext(doneLabel);
+    m_lowererMD.ChangeToHelperCall(instr, IR::HelperThrow_Unreachable); // TODO: throw appropriate error
+
+    return prev;
 }
 
 IR::Instr *

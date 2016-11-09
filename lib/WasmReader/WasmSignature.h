@@ -24,16 +24,19 @@ public:
     uint32 GetParamsSize() const;
     void FinalizeSignature();
     uint32 GetSignatureId() const;
-    int64 GetShortSig() const;
+    size_t GetShortSig() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;
+    static WasmSignature * FromIDL(WasmSignatureIDL* sig);
+
+    static uint GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
 private:
-    int64 m_shortSig;
     WasmTypes::WasmType m_resultType;
-    Local* m_params;
-    uint32 m_paramsCount;
     uint32 m_id;
     uint32 m_paramSize;
+    uint32 m_paramsCount;
+    size_t m_shortSig;
+    Local* m_params;
 };
 
 } // namespace Wasm

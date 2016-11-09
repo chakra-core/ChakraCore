@@ -729,14 +729,6 @@ IRBuilderAsmJs::BuildConstantLoads()
     {
         BuildHeapBufferReload(Js::Constants::NoByteCodeOffset);
     }
-    if (m_func->GetJITFunctionBody()->IsWasmFunction())
-    {
-        // Load Signatures
-        IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::SignatureReg, TyVar);
-        IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), Js::WebAssemblyModule::GetSignatureOffset() * MachPtr, TyVar, m_func);
-        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, Js::Constants::NoByteCodeOffset);
-    }
     if (!constTable)
     {
         return;
@@ -1258,15 +1250,8 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32
         IR::RegOpnd * baseOpnd = BuildSrcOpnd(GetRegSlotFromVarReg(instance), TyVar);
         IR::RegOpnd * indexOpnd = BuildSrcOpnd(GetRegSlotFromIntReg(slotIndex), TyUint32);
         
-        IR::RegOpnd * tmpDst = IR::RegOpnd::New(TyVar, m_func);
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(baseOpnd, Js::WebAssemblyTable::GetOffsetOfValues(), TyVar, m_func);
-        instr = IR::Instr::New(Js::OpCode::Ld_A, tmpDst, indirOpnd, m_func);
-        AddInstr(instr, offset);
-
-        indirOpnd = IR::IndirOpnd::New(tmpDst, indexOpnd, TyVar, m_func);
-
         regOpnd = BuildDstOpnd(GetRegSlotFromVarReg(value), TyVar);
-        instr = IR::Instr::New(Js::OpCode::LdAsmJsFunc, regOpnd, indirOpnd, m_func);
+        instr = IR::Instr::New(Js::OpCode::LdWasmFunc, regOpnd, baseOpnd, indexOpnd, m_func);
         break;
     }
     case Js::OpCodeAsmJs::StSlot_Int:
@@ -2209,17 +2194,12 @@ IRBuilderAsmJs::BuildReg1IntConst1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js:
     Assert(newOpcode == Js::OpCodeAsmJs::CheckSignature);
 
     IR::RegOpnd * funcReg = BuildSrcOpnd(reg1, TyMachPtr);
-    IR::RegOpnd * baseOpnd = BuildSrcOpnd(AsmJsRegSlots::SignatureReg, TyMachPtr);
 
-    IR::IntConstOpnd * sigIndex = IR::IntConstOpnd::New(constInt * Js::WebAssembly::GetSignatureSize(), TyInt32, m_func);
-    IR::RegOpnd * expectedSig = IR::RegOpnd::New(TyMachPtr, m_func);
-    IR::Instr * leaInstr = IR::Instr::New(Js::OpCode::Add_Ptr, expectedSig, baseOpnd, sigIndex, m_func);
-
-    AddInstr(leaInstr, offset);
+    IR::IntConstOpnd * sigIndex = IR::IntConstOpnd::New(constInt, TyInt32, m_func);
 
     IR::Instr * instr = IR::Instr::New(Js::OpCode::CheckWasmSignature, m_func);
     instr->SetSrc1(funcReg);
-    instr->SetSrc2(expectedSig);
+    instr->SetSrc2(sigIndex);
 
     AddInstr(instr, offset);
 }

@@ -628,7 +628,7 @@ WasmBinaryReader::ReadMemorySection(bool isImportSection)
         {
             maxPage = LEB128(length);
         }
-        m_module->InitializeMemory(minPage, maxPage, isImportSection);
+        m_module->InitializeMemory(minPage, maxPage);
     }
 }
 
@@ -731,23 +731,14 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+        case ExternalKinds::Table:
+        if (index != 0)
         {
-            if (index != 0)
-            {
-                ThrowDecodingError(_u("Invalid memory index %s"), index);
-            }
-            m_module->SetMemoryExported();
-            break;
+            ThrowDecodingError(_u("Invalid index %s"), index);
         }
+        // fallthrough
         case ExternalKinds::Global:
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
-            break;
-        case ExternalKinds::Table:
-            if (index != 0)
-            {
-                ThrowDecodingError(_u("Invalid table index %s"), index);
-            }
-            m_module->SetTableExported();
             break;
         default:
             ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
@@ -788,7 +779,7 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
         {
             maximumLength = LEB128(length);
         }
-        m_module->InitializeTable(initialLength, maximumLength, isImportSection);
+        m_module->InitializeTable(initialLength, maximumLength);
         TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), initialLength, maximumLength);
     }
 }
@@ -983,9 +974,12 @@ WasmBinaryReader::ReadImportEntries()
         }
         case ExternalKinds::Table:
             ReadTableSection(true);
+            m_module->AddTableImport(modName, modNameLen, fnName, fnNameLen);
             break;
         case ExternalKinds::Memory:
             ReadMemorySection(true);
+            m_module->AddMemoryImport(modName, modNameLen, fnName, fnNameLen);
+
             break;
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
