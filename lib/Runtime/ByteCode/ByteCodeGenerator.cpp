@@ -2355,14 +2355,22 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                 //Go conservative if it has any nested functions, or any non-local references.
                 //With statements - need scope object to be present.
                 //Nested funtions - need scope object to be present - LdEnv/LdFrameDisplay needs it.
-                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() ||
+                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() || (byteCodeGenerator->GetFlags() & fscrEval) ||
                     pnode->sxFnc.HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
                 {
                     doStackArgsOpt = false;
 #ifdef PERF_HINT
                     if (PHASE_TRACE1(Js::PerfHintPhase))
                     {
-                        WritePerfHint(PerfHints::HasWithBlock, funcInfo->GetParsedFunctionBody(), 0);
+                        if (pnode->sxFnc.HasWithStmt())
+                        {
+                            WritePerfHint(PerfHints::HasWithBlock, funcInfo->GetParsedFunctionBody(), 0);
+                        }
+                        
+                        if(byteCodeGenerator->GetFlags() & fscrEval)
+                        {
+                            WritePerfHint(PerfHints::SrcIsEval, funcInfo->GetParsedFunctionBody(), 0);
+                        }
                     }
 #endif
                 }
