@@ -277,9 +277,9 @@ WASM_UNARY__OPCODE(F64PromoteF32,     0xbb, D_F , Conv_FTD       , false)
 
 // Reinterpretations
 WASM_UNARY__OPCODE(I32ReinterpretF32, 0xbc, I_F , Reinterpret_FTI, false)
-WASM_UNARY__OPCODE(I64ReinterpretF64, 0xbd, L_D , Nop            , true)
+WASM_UNARY__OPCODE(I64ReinterpretF64, 0xbd, L_D , Reinterpret_DTL, false)
 WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, false)
-WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Nop            , true)
+WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
 
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE

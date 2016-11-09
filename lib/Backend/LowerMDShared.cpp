@@ -8822,6 +8822,51 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
 IR::Instr *
 LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
 {
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src = instr->GetSrc1();
+    if ((dst->IsInt64() && src->IsFloat64()) ||
+        (dst->IsFloat64() && src->IsInt64()))
+    {
+#if _M_AMD64
+        instr->m_opcode = Js::OpCode::MOVQ;
+        Legalize(instr);
+        return instr;
+#elif _M_IX86
+        if (dst->IsInt64())
+        {
+            //    movd low_bits, xmm1
+            //    shufps xmm1, xmm1, 1
+            //    movd high_bits, xmm1
+            Assert(src->IsFloat64());
+            Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(dst);
+
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, src, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, src, src, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
+            instr->m_opcode = Js::OpCode::MOVD;
+            instr->UnlinkDst();
+            instr->SetDst(dstPair.high);
+        }
+        else
+        {
+            //    movd xmm0, lowBits;
+            //    movd xmm1, highBits;
+            //    shufps xmm0, xmm1, (0 | 2 << 2 | 0 << 4 | 1 << 6);
+            //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
+            Assert(src->IsInt64());
+            Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
+            
+            IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, dst, tmpDouble, IR::IntConstOpnd::New((0 | 2 << 2 | 0 << 4 | 1 << 6), TyInt8, m_func, true), m_func));
+            instr->m_opcode = Js::OpCode::SHUFPS;
+            instr->ReplaceSrc1(dst);
+            instr->SetSrc2(IR::IntConstOpnd::New((0 | 2 << 2 | 3 << 4 | 3 << 6), TyInt8, m_func, true));
+        }
+        return instr;
+#endif
+}
+    // 32bit reinterprets
     instr->m_opcode = Js::OpCode::MOVD;
     Legalize(instr);
     return instr;
