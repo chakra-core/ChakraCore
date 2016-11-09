@@ -8835,30 +8835,33 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
         if (dst->IsInt64())
         {
             //    movd low_bits, xmm1
-            //    shufps xmm1, xmm1, 2
+            //    shufps xmm1, xmm1, 1
             //    movd high_bits, xmm1
             Assert(src->IsFloat64());
             Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(dst);
 
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, src, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, src, src, IR::IntConstOpnd::New(2, TyInt8, m_func, true), m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, src, src, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
             instr->m_opcode = Js::OpCode::MOVD;
             instr->UnlinkDst();
             instr->SetDst(dstPair.high);
         }
         else
         {
-            //     movd xmm1, high_bits
-            //     shufps xmm1, xmm1, 0
-            //     movd xmm1, low_bits
+            //    movd xmm0, lowBits;
+            //    movd xmm1, highBits;
+            //    shufps xmm0, xmm1, (0 | 2 << 2 | 0 << 4 | 1 << 6);
+            //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
             Assert(src->IsInt64());
             Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
-
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.high, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, dst, dst, IR::IntConstOpnd::New(0, TyInt8, m_func, true), m_func));
-            instr->m_opcode = Js::OpCode::MOVD;
-            instr->UnlinkSrc1();
-            instr->SetSrc1(srcPair.low);
+            
+            IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, dst, tmpDouble, IR::IntConstOpnd::New((0 | 2 << 2 | 0 << 4 | 1 << 6), TyInt8, m_func, true), m_func));
+            instr->m_opcode = Js::OpCode::SHUFPS;
+            instr->ReplaceSrc1(dst);
+            instr->SetSrc2(IR::IntConstOpnd::New((0 | 2 << 2 | 3 << 4 | 3 << 6), TyInt8, m_func, true));
         }
         return instr;
 #endif
