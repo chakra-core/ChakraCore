@@ -200,6 +200,42 @@
         break; \
                                                                 }
 
+#define PROCESS_UL1toD1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Double1Long1, suffix); \
+        SetRegRawDouble(playout->D0, \
+                func(GetRegRawInt64(playout->L1))); \
+        break; \
+                                                                }
+
+#define PROCESS_UL1toF1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Float1Long1, suffix); \
+        SetRegRawFloat(playout->F0, \
+                func(GetRegRawInt64(playout->L1))); \
+        break; \
+                                                                }
+
+#define PROCESS_L1toF1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Float1Long1, suffix); \
+        SetRegRawFloat(playout->F0, \
+                func(GetRegRawInt64(playout->L1))); \
+        break; \
+                                                                }
+
+#define PROCESS_L1toD1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+                                                                { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Double1Long1, suffix); \
+        SetRegRawDouble(playout->D0, \
+                func(GetRegRawInt64(playout->L1))); \
+        break; \
+                                                                }
+
 #define PROCESS_D1toD1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
                                                                 { \

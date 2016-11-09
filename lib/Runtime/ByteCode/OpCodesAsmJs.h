@@ -96,6 +96,7 @@ MACRO_WMS       ( Conv_UTD                   , Double1Int1     , None           
 MACRO_WMS       ( Conv_UTF                   , Float1Int1      , None            ) // convert unsigned int to float
 MACRO_WMS       ( Conv_ULTD                  , Double1Long1    , None            ) // convert unsigned int64 to double
 MACRO_WMS       ( Conv_ULTF                  , Float1Long1     , None            ) // convert unsigned int64 to float
+MACRO_WMS       ( Conv_LTF                   , Float1Long1     , None            ) // convert int64 to float
 MACRO_WMS       ( Return_Long                , Long2           , None            ) // convert int64 to var
 MACRO_WMS       ( Return_Db                  , Double2         , None            ) // convert double to var
 MACRO_WMS       ( Return_Flt                 , Float2          , None            ) // convert float to var

@@ -2008,6 +2008,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     Assert(instr->GetDst()->IsFloat64());
                     m_lowererMD.EmitUIntToFloat(instr->GetDst(), instr->GetSrc1(), instr);
                 }
+                else if (instr->GetSrc1()->IsInt64() && instr->GetDst()->IsFloat32())
+                {
+                    m_lowererMD.EmitInt64toFloat32(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+                else if (instr->GetSrc1()->IsInt64() && instr->GetDst()->IsFloat64())
+                {
+                    m_lowererMD.EmitInt64toFloat64(instr->GetDst(), instr->GetSrc1(), instr);
+                }
                 else
                 {
                     Assert(instr->GetDst()->IsFloat64());

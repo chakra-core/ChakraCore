@@ -1525,6 +1525,26 @@ CommonNumber:
         return ToString(ToPrimitive(aValue, JavascriptHint::None, scriptContext), scriptContext);
     }
 
+    double JavascriptConversion::LongToDouble(__int64 aValue)
+    {
+        return static_cast<double>(aValue);
+    }
+
+    double JavascriptConversion::ULongToDouble(unsigned __int64 aValue)
+    {
+        return static_cast<double>(aValue);
+    }
+
+    float JavascriptConversion::LongToFloat(__int64 aValue)
+    {
+        return static_cast<float>(aValue);
+    }
+
+    float JavascriptConversion::ULongToFloat (unsigned __int64 aValue)
+    {
+        return static_cast<float>(aValue);
+    }
+
     int32 JavascriptConversion::F32TOI32(float src, ScriptContext * ctx)
     {
         if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo31, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegTwoTo31,
