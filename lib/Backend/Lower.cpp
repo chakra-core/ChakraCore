@@ -1816,6 +1816,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::LdWasmFunc:
             instrPrev = this->LowerLdWasmFunc(instr);
             break;
+        case Js::OpCode::GrowWasmMemory:
+            instrPrev = this->LowerGrowWasmMemory(instr);
+            break;
 #endif
         case Js::OpCode::LdAsmJsFunc:
             if (instr->GetSrc1()->IsIndirOpnd())
@@ -8279,6 +8282,16 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
     return prev;
 }
 
+IR::Instr *
+Lowerer::LowerGrowWasmMemory(IR::Instr* instr)
+{
+    IR::Instr * instrPrev = m_lowererMD.LoadHelperArgument(instr, instr->UnlinkSrc2());
+
+    m_lowererMD.LoadHelperArgument(instr, instr->UnlinkSrc1());
+    m_lowererMD.ChangeToHelperCall(instr, IR::HelperOp_GrowWasmMemory);
+
+    return instrPrev;
+}
 #endif
 
 IR::Instr *

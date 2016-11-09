@@ -2,31 +2,6 @@ resizing.wast:15: $assert_trap_1 failed, runtime trap NYI
 resizing.wast:16: $assert_trap_2 failed, runtime trap NYI
 resizing.wast:17: $assert_trap_3 failed, runtime trap NYI
 resizing.wast:18: $assert_trap_4 failed, runtime trap NYI
-resizing.wast:19: $assert_return_5 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[4] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:20: $assert_return_6 failed.
-resizing.wast:21: $assert_return_7 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:22: $assert_return_8 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:23: $assert_return_9 unexpectedly threw: RangeError: Access index is out of range
 resizing.wast:24: $assert_trap_10 failed, runtime trap NYI
 resizing.wast:25: $assert_trap_11 failed, runtime trap NYI
-resizing.wast:26: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[4] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:27: $assert_return_13 failed.
-resizing.wast:28: $assert_return_14 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:29: $assert_return_15 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:30: $assert_return_16 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:31: $assert_return_17 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:32: $assert_return_18 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:33: $assert_return_19 unexpectedly threw: RangeError: Access index is out of range
-resizing.wast:41: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:42: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:43: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:44: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:45: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:52: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:53: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:54: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:55: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:56: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:57: $assert_return_5 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-resizing.wast:58: $assert_return_6 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-1/32 tests passed.
+26/32 tests passed.

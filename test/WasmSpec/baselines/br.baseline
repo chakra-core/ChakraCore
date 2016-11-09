@@ -1,2 +1,1 @@
-br.wast:358: $assert_return_54 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-grow_memory-size[52] at offset 9/11: Operator GrowMemory NYI
-60/61 tests passed.
+61/61 tests passed.

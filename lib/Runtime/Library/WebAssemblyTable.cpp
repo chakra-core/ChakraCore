@@ -77,7 +77,7 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     uint32 maximum = UINT_MAX;
     if (JavascriptOperators::OP_HasProperty(memoryDescriptor, maxPropRecord->GetPropertyId(), scriptContext))
     {
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, initPropRecord->GetPropertyId(), scriptContext);
+        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, maxPropRecord->GetPropertyId(), scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
     return Create(initial, maximum, scriptContext);

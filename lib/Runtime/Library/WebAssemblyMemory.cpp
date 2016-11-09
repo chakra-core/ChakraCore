@@ -68,7 +68,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     uint32 maximum = UINT_MAX;
     if (JavascriptOperators::OP_HasProperty(memoryDescriptor, maxPropRecord->GetPropertyId(), scriptContext))
     {
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, initPropRecord->GetPropertyId(), scriptContext);
+        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, maxPropRecord->GetPropertyId(), scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
 
@@ -108,31 +108,52 @@ WebAssemblyMemory::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     }
     uint32 deltaPages = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
 
-    uint64 deltaBytes = deltaPages * WebAssembly::PageSize;
-    if (deltaBytes > ArrayBuffer::MaxArrayBufferLength)
+    int32 oldPageCount = memory->GrowInternal(deltaPages);
+    if (oldPageCount == -1)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    uint64 newBytesLong = deltaBytes + memory->m_buffer->GetByteLength();
-    if (newBytesLong > ArrayBuffer::MaxArrayBufferLength)
-    {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
-    }
-    CompileAssert(ArrayBuffer::MaxArrayBufferLength <= UINT32_MAX);
-    uint32 newBytes = (uint32)newBytesLong;
-
-    uint32 oldPageCount = memory->m_buffer->GetByteLength() / WebAssembly::PageSize;
-    Assert(memory->m_buffer->GetByteLength() % WebAssembly::PageSize == 0);
-
-    uint32 newPageCount = oldPageCount + deltaPages;
-    if (newPageCount > memory->m_maximum)
-    {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
-    }
-
-    memory->m_buffer->TransferInternal(newBytes);
 
     return JavascriptNumber::ToVar(oldPageCount, scriptContext);
+}
+
+int32
+WebAssemblyMemory::GrowInternal(uint32 deltaPages)
+{
+    const uint64 deltaBytes = (uint64)deltaPages * WebAssembly::PageSize;
+    if (deltaBytes > ArrayBuffer::MaxArrayBufferLength)
+    {
+        return -1;
+    }
+    const uint32 oldBytes = m_buffer->GetByteLength();
+    const uint64 newBytesLong = deltaBytes + oldBytes;
+    if (newBytesLong > ArrayBuffer::MaxArrayBufferLength)
+    {
+        return -1;
+    }
+    CompileAssert(ArrayBuffer::MaxArrayBufferLength <= UINT32_MAX);
+    const uint32 newBytes = (uint32)newBytesLong;
+
+    const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
+    Assert(oldBytes % WebAssembly::PageSize == 0);
+
+    const uint32 newPageCount = oldPageCount + deltaPages;
+    if (newPageCount > m_maximum)
+    {
+        return -1;
+    }
+
+    ArrayBuffer * newBuffer = m_buffer->TransferInternal(newBytes);
+    m_buffer = newBuffer;
+
+    CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
+    return (int32)oldPageCount;
+}
+
+int32
+WebAssemblyMemory::GrowHelper(WebAssemblyMemory * mem, uint32 deltaPages)
+{
+    return mem->GrowInternal(deltaPages);
 }
 
 Var

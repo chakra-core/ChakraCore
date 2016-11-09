@@ -213,6 +213,7 @@ private:
 #ifdef ENABLE_WASM
     IR::Instr *     LowerCheckWasmSignature(IR::Instr * instr);
     IR::Instr *     LowerLdWasmFunc(IR::Instr* instr);
+    IR::Instr *     LowerGrowWasmMemory(IR::Instr* instr);
 #endif
     IR::Instr *     LowerInitCachedScope(IR::Instr * instr);
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);

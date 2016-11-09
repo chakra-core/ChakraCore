@@ -142,6 +142,7 @@ namespace Js
 
 #ifdef ENABLE_WASM
         Wasm::WasmSignature* m_signatures;
+        WebAssemblyMemory * m_wasmMemory;
 #endif
          _SIMDValue* m_localSimdSlots;
 
@@ -189,6 +190,7 @@ namespace Js
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
+        int32 OP_GrowMemory(int32 delta);
         void OP_Unreachable();
         template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
         template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);

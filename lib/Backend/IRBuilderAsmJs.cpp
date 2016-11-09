@@ -654,24 +654,34 @@ void
 IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 {
 
-    // ArrayBuffer (or WebAssembly.Memory in Wasm)
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
-    IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
 #ifdef ENABLE_WASM
     if(m_func->GetJITFunctionBody()->IsWasmFunction())
     {
+        // WebAssembly.Memory
+        IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar);
+        IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+        AddInstr(instr, offset);
+
         // ArrayBuffer
-        srcOpnd = IR::IndirOpnd::New(dstOpnd, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, m_func);
+        dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
+        srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, m_func);
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         AddInstr(instr, offset);
     }
+    else
 #endif
+    {
+        // ArrayBuffer
+        IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
+        IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
+        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+        AddInstr(instr, offset);
+    }
     // ArrayBuffer buffer
-    dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
-    srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetBufferOffset(), TyVar, m_func);
-    instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
+    IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetBufferOffset(), TyVar, m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 
     // ArrayBuffer length
@@ -2390,10 +2400,19 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::CmEq_I4, dstOpnd, srcOpnd, IR::IntConstOpnd::New(0, TyInt32, m_func), m_func);
         break;
 
+    case Js::OpCodeAsmJs::GrowMemory:
+        instr = IR::Instr::New(Js::OpCode::GrowWasmMemory, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), srcOpnd, m_func);
+        break;
     default:
         Assume(UNREACHED);
     }
+
     AddInstr(instr, offset);
+
+    if (newOpcode == Js::OpCodeAsmJs::GrowMemory)
+    {
+        BuildHeapBufferReload(offset);
+    }
 }
 
 IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfZero(IR::RegOpnd* srcOpnd, uint32 offset)

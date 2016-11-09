@@ -123,6 +123,7 @@ namespace Wasm
         EmitInfo EmitIfElseExpr();
         void EmitBrTable();
         EmitInfo EmitDrop();
+        EmitInfo EmitGrowMemory();
         EmitInfo EmitGetLocal();
         EmitInfo EmitGetGlobal();
         EmitInfo EmitSetGlobal();

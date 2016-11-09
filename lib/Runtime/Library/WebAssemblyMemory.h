@@ -33,6 +33,9 @@ namespace Js
         uint GetInitialLength() const;
         uint GetMaximumLength() const;
 
+        int32 GrowInternal(uint32 deltaPages);
+        static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);
+
         static int GetOffsetOfArrayBuffer() { return offsetof(WebAssemblyMemory, m_buffer); }
     private:
         WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
