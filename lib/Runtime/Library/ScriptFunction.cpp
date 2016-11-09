@@ -457,7 +457,11 @@ namespace Js
 
         //Library code should behave the same way as RuntimeFunctions
         Utf8SourceInfo* source = pFuncBody->GetUtf8SourceInfo();
-        if (source != nullptr && source->GetIsLibraryCode())
+        if ((source != nullptr && source->GetIsLibraryCode())
+#ifdef ENABLE_WASM
+            || (pFuncBody->IsWasmFunction())
+#endif
+            )
         {
             //Don't display if it is anonymous function
             charcount_t displayNameLength = 0;

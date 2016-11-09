@@ -7,6 +7,7 @@ WebAssembly.compile(readbuffer('basic.wasm'))
 .then(function(val)
 {
     var a = new WebAssembly.Instance(val, {test: {foo: function(a){print(a); return 2;}}});
+    print(a.exports.a);
     print(a.exports.a(11));
     print(a.exports.a(11));
     let instance2 = new WebAssembly.Instance(val, {test: {foo: function(a){print(a-1); return 3;}}});
