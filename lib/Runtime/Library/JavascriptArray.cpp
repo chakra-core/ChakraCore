@@ -2901,6 +2901,23 @@ namespace Js
         return  JavascriptNumber::ToVar(idxDest, scriptContext);
     }
 
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index)
+    {
+        if (!succeeded)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(index, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index)
+    {
+        if (!succeeded)
+        {
+            uint64 i = (uint64)(index.IsSmallIndex() ? index.GetSmallIndex() : index.GetBigIndex());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
     BOOL JavascriptArray::SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem)
     {
         return pDestObj->SetItem(idxDest, aItem, Js::PropertyOperation_ThrowIfNotExtensible);
@@ -3032,7 +3049,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest);
                             }
                         }
                         ++idxDest;
@@ -3051,7 +3068,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem);
                             }
                         }
                         ++idxDest;
@@ -6029,7 +6046,7 @@ Case0:
                         continue;
                     }
 
-                    JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                 }
             }
         }
@@ -6083,7 +6100,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                 }
             }
@@ -7246,7 +7263,7 @@ Case0:
                    }
                    else
                    {
-                       JavascriptArray::SetArrayLikeObjects(pNewObj, i, element);
+                       ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(pNewObj, i, element), scriptContext, i);
                    }
                }
             }
@@ -9012,7 +9029,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                 }
             }
         }
@@ -9079,7 +9096,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                     }
                 }
             }
@@ -9213,7 +9230,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                     ++i;
                 }
@@ -9242,7 +9259,7 @@ Case0:
                         }
                         else
                         {
-                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                            ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                         }
                         ++i;
                     }
@@ -9762,7 +9779,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue), scriptContext, k);
                 }
 
                 k++;
@@ -9831,7 +9848,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
                 }
             }
 
@@ -9939,7 +9956,7 @@ Case0:
             for (uint32 k = 0; k < len; k++)
             {
                 Var kValue = args[k + 1];
-                JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
             }
         }
 

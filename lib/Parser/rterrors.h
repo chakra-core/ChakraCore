@@ -380,3 +380,4 @@ RT_ERROR_MSG(WASMERR_NeedWebAssemblyFunc, 5679, "%s is not a WebAssembly exporte
 RT_ERROR_MSG(WASMERR_SignatureMismatch, 5680, "%s called with invalid signature", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_ElementSegOutOfRange, 5681, "", "Element segment is out of range", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 5682, "", "Table index is out of range", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(JSERR_CantRedefineProp, 5683, "Cannot redefine property '%s'", "Cannot redefine property", kjstTypeError, 0)
