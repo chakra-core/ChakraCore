@@ -389,7 +389,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             break;
         }
         case Wasm::WasmTypes::I64:
-            Js::JavascriptError::ThrowTypeError(ctx, VBSERR_TypeMismatch);
+            Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
         default:
             Assert(UNREACHED);
             break;
@@ -423,7 +423,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             Assert(sourceGlobal->GetReferenceType() == Wasm::WasmGlobal::Const);
             if (sourceGlobal->GetType() != global->GetType())
             {
-                JavascriptError::ThrowTypeError(ctx, VBSERR_TypeMismatch);
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             }
         }
 

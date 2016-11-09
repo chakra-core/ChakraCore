@@ -285,6 +285,7 @@ ENTRY(CompileError)
 ENTRY(RuntimeError)
 ENTRY(validate)
 ENTRY(grow)
+ENTRY(nativeTypeCallTest)
 // End Wasm
 
 // SIMD_JS

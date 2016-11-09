@@ -2776,7 +2776,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(webAssemblyObject, mode, 7);
+        typeHandler->Convert(webAssemblyObject, mode, 8);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 2);
@@ -2788,7 +2788,12 @@ namespace Js
         library->AddFunction(webAssemblyObject, PropertyIds::CompileError, library->webAssemblyCompileErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::RuntimeError, library->webAssemblyRuntimeErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
-
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_ON1(WasmNativeTypeCallTestPhase))
+        {
+            library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::nativeTypeCallTest, &WebAssembly::EntryInfo::NativeTypeCallTest, 2);
+        }
+#endif
     }
 #endif
 

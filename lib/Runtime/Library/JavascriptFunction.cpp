@@ -7,9 +7,9 @@
 #include "Library/StackScriptFunction.h"
 #include "Types/SpreadArgument.h"
 
+#include "Language/AsmJsTypes.h"
 #ifdef _M_X64
 #include "ByteCode/PropertyIdArray.h"
-#include "Language/AsmJsTypes.h"
 #include "Language/AsmJsModule.h"
 #endif
 
@@ -1124,7 +1124,135 @@ namespace Js
     template Var JavascriptFunction::CallFunction<true>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
     template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
 
-#ifdef _M_IX86
+#if _M_IX86
+#ifdef ASMJS_PLAT
+    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retIntVal;
+    }
+    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retInt64Val;
+    }
+    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retFloatVal;
+    }
+    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retDoubleVal;
+    }
+    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retSimdVal;
+    }
+
+    PossibleAsmJsReturnValues JavascriptFunction::CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    {
+        enum {
+            IsFloat = 1 << AsmJsRetType::Float,
+            IsDouble = 1 << AsmJsRetType::Double,
+            IsInt64 = 1 << AsmJsRetType::Int64,
+            IsSimd = 
+            1 << AsmJsRetType::Int32x4 |
+            1 << AsmJsRetType::Bool32x4 |
+            1 << AsmJsRetType::Bool16x8 |
+            1 << AsmJsRetType::Bool8x16 |
+            1 << AsmJsRetType::Float32x4 |
+            1 << AsmJsRetType::Float64x2 |
+            1 << AsmJsRetType::Int16x8 |
+            1 << AsmJsRetType::Int8x16 |
+            1 << AsmJsRetType::Uint32x4 |
+            1 << AsmJsRetType::Uint16x8 |
+            1 << AsmJsRetType::Uint8x16,
+            CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
+        };
+
+        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
+        Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
+        uint argsSize = asmInfo->GetArgByteSize();
+        uint alignedSize = ::Math::Align<int32>(argsSize, 8);
+        ScriptContext * scriptContext = function->GetScriptContext();
+        PROBE_STACK_CALL(scriptContext, function, alignedSize);
+
+        PossibleAsmJsReturnValues retVals;
+        AsmJsRetType::Which retType = asmInfo->GetReturnType().which();
+
+        void *data = nullptr;
+        void *savedEsp = nullptr;
+        __asm
+        {
+            // Save ESP
+            mov savedEsp, esp;
+            mov eax, alignedSize;
+            // Make sure we don't go beyond guard page
+            cmp eax, 0x1000;
+            jge alloca_probe;
+            sub esp, eax;
+            jmp dbl_align;
+alloca_probe :
+            // Use alloca to allocate more then a page size
+            // Alloca assumes eax, contains size, and adjust ESP while
+            // probing each page.
+            call _alloca_probe_16;
+dbl_align :
+            and esp,-8
+                mov data, esp;
+        }
+
+        {
+            Var* outParam = argv + 1;
+            void* dest = (void*)data;
+            memmove(dest, outParam, argsSize);
+
+        }
+        // call variable argument function provided in entryPoint
+        __asm
+        {
+#ifdef _CONTROL_FLOW_GUARD
+            // verify that the call target is valid
+            mov  ecx, entryPoint
+            call[__guard_check_icall_fptr]
+            ; no need to restore ecx('call entryPoint' is a __cdecl call)
+#endif
+            push function;
+            call entryPoint;
+            push edx; // save possible int64 return value
+            mov ecx, retType;
+            mov edx, 1;
+            shl edx, cl;
+            pop ecx; // restore possible int64 return value
+            and edx, CannotUseEax;
+            jz FromEax;
+            and edx, ~IsInt64;
+            jz FromEaxEcx;
+            and edx, ~IsFloat;
+            jz FromXmmWord;
+            and edx, ~IsDouble;
+            jz FromXmmDWord;
+            // simd
+            movups retVals.retSimdVal, xmm0;
+            jmp end
+                FromEax:
+            mov retVals.retIntVal, eax;
+            jmp end;
+FromEaxEcx:
+            mov retVals.retIntVal, eax;
+            mov retVals.retIntVal + 4, ecx;
+            jmp end;
+FromXmmWord:
+            movss retVals.retFloatVal, xmm0;
+            jmp end;
+FromXmmDWord:
+            movsd retVals.retDoubleVal, xmm0;
+end:
+            // Restore ESP
+            mov esp, savedEsp;
+        }
+        return retVals;
+    }
+#endif
+
 #ifdef __clang__
 void __cdecl _alloca_probe_16()
 {
