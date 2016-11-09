@@ -560,7 +560,6 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     bool      skipRexByte        = false;
 
     m_pc = pc;
-
     if (instr->IsLowered() == false)
     {
         if (instr->IsLabelInstr())
@@ -614,6 +613,10 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     if (opr1)
     {
         instrSize = this->GetOpndSize(opr1);
+        if (instr->m_opcode == Js::OpCode::CVTSI2SS)
+        {
+            instrSize = this->GetOpndSize(opr2);
+        }
 
 #if DBG
         switch (instr->m_opcode)
