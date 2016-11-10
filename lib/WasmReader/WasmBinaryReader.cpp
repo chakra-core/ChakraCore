@@ -51,6 +51,12 @@ LanguageTypes::ToWasmType(int8 binType)
     }
 }
 
+bool
+FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
+{
+    return funcType == FunctionIndexTypes::Function || funcType == FunctionIndexTypes::ImportThunk;
+}
+
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
@@ -142,7 +148,7 @@ WasmBinaryReader::ProcessCurrentSection()
     switch (m_currentSection.code)
     {
     case bSectMemory:
-        ReadMemorySection();
+        ReadMemorySection(false);
         break;
     case bSectSignatures:
         ReadSignatures();
@@ -166,7 +172,7 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadDataSegments();
         break;
     case bSectIndirectFunctionTable:
-        ReadTableSection();
+        ReadTableSection(false);
         break;
     case bSectElement:
         ReadElementSection();
@@ -602,10 +608,18 @@ WasmBinaryReader::EndOfModule()
 
 // readers
 void
-WasmBinaryReader::ReadMemorySection()
+WasmBinaryReader::ReadMemorySection(bool isImportSection)
 {
     UINT length = 0;
-    UINT32 count = LEB128(length);
+    UINT32 count;
+    if (isImportSection)
+    {
+        count = 1;
+    }
+    else
+    {
+        count = LEB128(length);
+    }
     if (count > 1)
     {
         ThrowDecodingError(_u("Maximum of 1 memory allowed"));
@@ -615,7 +629,7 @@ WasmBinaryReader::ReadMemorySection()
     {
         uint32 flags = LEB128(length);
         uint32 minPage = LEB128(length);
-        uint32 maxPage = minPage;
+        uint32 maxPage = UINT32_MAX;
         if (flags & 0x1)
         {
             maxPage = LEB128(length);
@@ -634,8 +648,9 @@ WasmBinaryReader::ReadSignatures()
     for (UINT32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
-        WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
 
+        WasmSignature * sig = m_module->GetSignature(i);
+        sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
         if (form != LanguageTypes::func)
         {
@@ -643,7 +658,7 @@ WasmBinaryReader::ReadSignatures()
         }
         UINT32 paramCount = LEB128(len);
         WasmTypes::WasmType type;
-        sig->AllocateParams(paramCount);
+        sig->AllocateParams(paramCount, m_module->GetRecycler());
 
         for (UINT32 j = 0; j < paramCount; j++)
         {
@@ -661,7 +676,7 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
-        m_module->SetSignature(i, sig);
+        sig->FinalizeSignature();
     }
 }
 
@@ -702,7 +717,7 @@ void WasmBinaryReader::ReadExportTable()
         case ExternalKinds::Function:
         {
             FunctionIndexTypes::Type type = m_module->GetFunctionIndexType(index);
-            if (type != FunctionIndexTypes::ImportThunk && type != FunctionIndexTypes::Function)
+            if (!FunctionIndexTypes::CanBeExported(type))
             {
                 ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, index);
             }
@@ -722,19 +737,15 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+        case ExternalKinds::Table:
+        if (index != 0)
         {
-            if (index != 0)
-            {
-                ThrowDecodingError(_u("Invalid memory index %s"), index);
-            }
-            m_module->SetMemoryExported();
-            break;
+            ThrowDecodingError(_u("Invalid index %s"), index);
         }
+        // fallthrough
         case ExternalKinds::Global:
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
-        case ExternalKinds::Table:
-            ThrowDecodingError(_u("Exported Kind Table, NYI"));
         default:
             ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
             break;
@@ -743,16 +754,24 @@ void WasmBinaryReader::ReadExportTable()
     }
 }
 
-void WasmBinaryReader::ReadTableSection()
+void WasmBinaryReader::ReadTableSection(bool isImportSection)
 {
     uint32 length;
-    uint32 entries = LEB128(length);
+    uint32 entries;
+    if (isImportSection)
+    {
+        entries = 1;
+    }
+    else
+    {
+        entries = LEB128(length);
+    }
     if (entries > 1)
     {
         ThrowDecodingError(_u("Maximum of one table allowed"));
     }
 
-    if (entries > 0)
+    if (entries == 1)
     {
         int8 elementType = ReadConst<int8>();
         if (elementType != LanguageTypes::anyfunc)
@@ -761,16 +780,13 @@ void WasmBinaryReader::ReadTableSection()
         }
         uint32 flags = LEB128(length);
         uint32 initialLength = LEB128(length);
+        uint32 maximumLength = UINT32_MAX;
         if (flags & 0x1)
         {
-            uint32 maximumLength = LEB128(length);
-
-            // Allocate maximum length for now until resizing supported
-            initialLength = maximumLength;
+            maximumLength = LEB128(length);
         }
-        m_module->SetTableSize(initialLength);
-        m_module->CalculateEquivalentSignatures();
-        TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
+        m_module->InitializeTable(initialLength, maximumLength);
+        TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), initialLength, maximumLength);
     }
 }
 
@@ -802,18 +818,13 @@ WasmBinaryReader::ReadElementSection()
         {
             uint32 elem = LEB128(length);
             FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(elem);
-            if (funcType == FunctionIndexTypes::Invalid)
+            if (!FunctionIndexTypes::CanBeExported(funcType))
             {
-                ThrowDecodingError(_u("Invalid function index %d"), elem);
-            }
-            if (funcType != FunctionIndexTypes::ImportThunk && funcType != FunctionIndexTypes::Function)
-            {
-                Assert(UNREACHED);
-                ThrowDecodingError(_u("Unknown function type to insert in the table"));
+                ThrowDecodingError(_u("Invalid function to insert in the table %u"), elem);
             }
             eSeg->AddElement(elem, *m_module);
         }
-        m_module->SetTableValues(eSeg, i);
+        m_module->SetElementSeg(eSeg, i);
     }
 }
 
@@ -842,7 +853,7 @@ WasmBinaryReader::ReadDataSegments()
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
-        m_module->AddDataSeg(dseg, i);
+        m_module->SetDataSeg(dseg, i);
     }
 }
 
@@ -959,13 +970,18 @@ WasmBinaryReader::ReadImportEntries()
             {
                 ThrowDecodingError(_u("I64 Globals, NYI"));
             }
-            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, kind, importedGlobal);
+            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, importedGlobal);
             break;
         }
         case ExternalKinds::Table:
-            ThrowDecodingError(_u("Imported Kind Table, NYI"));
+            ReadTableSection(true);
+            m_module->AddTableImport(modName, modNameLen, fnName, fnNameLen);
+            break;
         case ExternalKinds::Memory:
-            ThrowDecodingError(_u("Imported Kind Memory, NYI"));
+            ReadMemorySection(true);
+            m_module->AddMemoryImport(modName, modNameLen, fnName, fnNameLen);
+
+            break;
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
             break;
@@ -978,11 +994,17 @@ WasmBinaryReader::ReadStartFunction()
 {
     uint32 len = 0;
     uint32 id = LEB128(len);
+    Wasm::FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(id);
+    if (!FunctionIndexTypes::CanBeExported(funcType))
+    {
+        ThrowDecodingError(_u("Invalid function index for start function %u"), id);
+    }
+    WasmSignature* sig = m_module->GetFunctionSignature(id);
+    if (sig->GetParamCount() > 0 || sig->GetResultType() != WasmTypes::Void)
+    {
+        ThrowDecodingError(_u("Start function must be void and nullary"));
+    }
     m_module->SetStartFunction(id);
-
-    // TODO: Validate
-    // 1. Valid function id
-    // 2. Function should be void and nullary
 }
 
 template<typename MaxAllowedType>

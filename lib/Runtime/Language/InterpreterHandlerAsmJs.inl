@@ -42,6 +42,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , CheckSignature,OP_CheckSignature            , Reg1IntConst1       )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Db    , OP_LdSlotPrimitive           , ElementSlot, double )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Int   , OP_LdSlotPrimitive           , ElementSlot, int    )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Long  , OP_LdSlotPrimitive           , ElementSlot, int64  )
@@ -66,6 +68,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( BR_ASM_Mem       , BrEq_Int     , AsmJsMath::CmpEq<int>                              ) // Jumps to location if both int reg are equal
   DEF2_WMS( I1toF1Mem        , Reinterpret_ITF, NumberUtilities::ReinterpretBits                 ) // reinterpret bits of int to float
   DEF2_WMS( F1toI1Mem        , Reinterpret_FTI, NumberUtilities::ToSpecial                       ) // reinterpret bits of float to int
+  DEF2_WMS( L1toD1Mem        , Reinterpret_LTD, NumberUtilities::ReinterpretBits                 ) // reinterpret bits of long to double
+  DEF2_WMS( D1toL1Mem        , Reinterpret_DTL, NumberUtilities::ToSpecial                       ) // reinterpret bits of double to long
   DEF2_WMS( D1toI1Mem        , Conv_DTI     , JavascriptConversion::ToInt32                      ) // convert double to int
   DEF2_WMS( D1toI1Mem        , Conv_DTU     , JavascriptConversion::ToUInt32                     ) // convert double to unsigned int
   DEF2_WMS( F1toI1Mem        , Conv_FTI     , JavascriptConversion::ToInt32                      ) // convert float to int
@@ -76,6 +80,11 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( F1toD1Mem        , Conv_FTD     , (double)                                           ) // convert unsigned float to double
   DEF2_WMS( I1toL1Mem        , Conv_ITL     , (int64)                                            ) // extend signed int to int64
   DEF2_WMS( U1toL1Mem        , Conv_UTL     , (int64)                                            ) // extend unsigned int to int64
+  DEF2_WMS( L1toD1Mem        , Conv_ULTD    , JavascriptConversion::ULongToDouble                )
+  DEF2_WMS( L1toD1Mem        , Conv_LTD     , JavascriptConversion::LongToDouble                 )
+  DEF2_WMS( L1toF1Mem        , Conv_ULTF    , JavascriptConversion::ULongToFloat                 )
+  DEF2_WMS( L1toF1Mem        , Conv_LTF     , JavascriptConversion::LongToFloat                  )
+  DEF2_WMS( L1toI1Mem        , Conv_LTI     , (int)                                              ) // wrap int64 to int
   DEF2_WMS( I1toI1Mem        , Ld_Int       , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Ld_Long      , (int64)                                            )
   DEF2_WMS( D1toD1Mem        , Ld_Db        , (double)                                           )
@@ -99,6 +108,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I2toI1Mem        , Mul_Int      , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I2toI1Mem        , Div_Int      , AsmJsMath::Div<int>                                )
   DEF2_WMS( I2toI1Mem        , Rem_Int      , AsmJsMath::Rem<int>                                )
+  DEF2_WMS( I2toI1Ctx        , Div_Check_Int , (OP_DivOverflow<int, &AsmJsMath::Div<int>, INT_MIN>)  )
+  DEF2_WMS( I2toI1Ctx        , Rem_Check_Int , (OP_DivRemCheck<int, &AsmJsMath::Rem<int>>)       )
   DEF2_WMS( I2toI1Mem        , And_Int      , AsmJsMath::And                                     )
   DEF2_WMS( I2toI1Mem        , Or_Int       , AsmJsMath::Or                                      )
   DEF2_WMS( I2toI1Mem        , Xor_Int      , AsmJsMath::Xor                                     )
@@ -117,10 +128,10 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L2toL1Mem        , Add_Long     , AsmJsMath::Add<int64>)
   DEF2_WMS( L2toL1Mem        , Sub_Long     , AsmJsMath::Sub<int64>)
   DEF2_WMS( L2toL1Mem        , Mul_Long     , AsmJsMath::Mul<int64>)
-  DEF2_WMS( L2toL1Mem        , Div_Long     , Wasm::WasmMath::Div<int64>)
-  DEF2_WMS( L2toL1Mem        , Div_ULong    , Wasm::WasmMath::Div<uint64>)
-  DEF2_WMS( L2toL1Mem        , Rem_Long     , Wasm::WasmMath::Rem<int64>)
-  DEF2_WMS( L2toL1Mem        , Rem_ULong    , Wasm::WasmMath::Rem<uint64>)
+  DEF2_WMS( L2toL1Ctx        , Div_Long     , (OP_DivOverflow<int64,  &Wasm::WasmMath::Div<int64>, LONGLONG_MIN>) )
+  DEF2_WMS( L2toL1Ctx        , Div_ULong    , (OP_DivRemCheck<uint64, &Wasm::WasmMath::Div<uint64>>)   )
+  DEF2_WMS( L2toL1Ctx        , Rem_Long     , (OP_DivRemCheck<int64,  &Wasm::WasmMath::Rem<int64>>)    )
+  DEF2_WMS( L2toL1Ctx        , Rem_ULong    , (OP_DivRemCheck<uint64, &Wasm::WasmMath::Rem<uint64>>)   )
   DEF2_WMS( L2toL1Mem        , And_Long     , AsmJsMath::And<int64>)
   DEF2_WMS( L2toL1Mem        , Or_Long      , AsmJsMath::Or<int64>)
   DEF2_WMS( L2toL1Mem        , Xor_Long     , AsmJsMath::Xor<int64>)
@@ -132,6 +143,9 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L1toL1Mem        , Clz_Long     , Wasm::WasmMath::Clz<int64>)
   DEF2_WMS( L1toL1Mem        , Ctz_Long     , Wasm::WasmMath::Ctz<int64>)
   DEF2_WMS( L1toL1Mem        , PopCnt_Long  , Wasm::WasmMath::PopCnt<int64>)
+  DEF2_WMS( I2toI1Ctx        , Div_Check_UInt , (OP_DivRemCheck<uint32, &AsmJsMath::Div<uint32>>) )
+  DEF2_WMS( I2toI1Ctx        , Rem_Check_UInt , (OP_DivRemCheck<uint32, &AsmJsMath::Rem<uint32>>) )
+
 
   DEF2_WMS( D1toD1Mem        , Neg_Db       , AsmJsMath::Neg<double>                             ) // double unary '-'
   DEF2_WMS( D2toD1Mem        , Add_Db       , AsmJsMath::Add<double>                             )
@@ -226,6 +240,14 @@ EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double> 
 EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
 EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
 EXDEF2    ( EMPTYASMJS       , Unreachable_Void , OP_Unreachable                                     )
+EXDEF2_WMS( D1toI1Ctx        , Conv_Check_DTI   , JavascriptConversion::F64TOI32                     )
+EXDEF2_WMS( F1toI1Ctx        , Conv_Check_FTI   , JavascriptConversion::F32TOI32                     )
+EXDEF2_WMS( D1toI1Ctx        , Conv_Check_DTU   , JavascriptConversion::F64TOU32                     )
+EXDEF2_WMS( F1toI1Ctx        , Conv_Check_FTU   , JavascriptConversion::F32TOU32                     )
+EXDEF2_WMS( F1toL1Ctx        , Conv_Check_FTL   , JavascriptConversion::F32TOI64                     )
+EXDEF2_WMS( F1toL1Ctx        , Conv_Check_FTUL  , JavascriptConversion::F32TOU64                     )
+EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTL   , JavascriptConversion::F64TOI64                     )
+EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTUL  , JavascriptConversion::F64TOU64                     )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 

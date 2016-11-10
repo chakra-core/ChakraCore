@@ -49,6 +49,11 @@ function runTests(exports) {
   });
 }
 
+function fixUpI64(exports) {
+  const oldI64Fn = exports.binopI64;
+  exports.binopI64 = WebAssembly.nativeTypeCallTest.bind(null, oldI64Fn);
+}
+
 const {exports} = new WebAssembly.Instance(module, {
   math: {
     addI32: customAdd,
@@ -57,9 +62,12 @@ const {exports} = new WebAssembly.Instance(module, {
     addF64: customAdd,
   }
 });
+fixUpI64(exports);
 runTests(exports);
+
 print("\n\n Rerun tests with new instance using previous module's imports");
 const {exports: exports2} = new WebAssembly.Instance(module, {math: exports});
 // int64 is no longer expected to trap when using a wasm module as import
 types[1].trap = [];
+fixUpI64(exports2);
 runTests(exports2);

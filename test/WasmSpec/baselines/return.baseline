@@ -1,4 +1,2 @@
-return.wast:192: $assert_return_5 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_5[60] at offset 4/16: Operator I64ReinterpretF64 NYI
-return.wast:261: $assert_return_55 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-convert-operand[53] at offset 5/6: Operator I32Wrap_I64 NYI
 return.wast:263: $assert_return_56 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-grow_memory-size[54] at offset 6/7: Operator GrowMemory NYI
-54/57 tests passed.
+56/57 tests passed.

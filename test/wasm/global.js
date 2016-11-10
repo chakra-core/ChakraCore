@@ -27,13 +27,11 @@ function printExportedGlobals (a) {
     print("e " + a["e"]);
 }
 
-const blob = WScript.LoadBinaryFile('global.wasm');
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
+var mod1 = new WebAssembly.Module(readbuffer('global.wasm'));
+var a = new WebAssembly.Instance(mod1).exports;
 
-const blob2 = WScript.LoadBinaryFile('import.wasm');
-const moduleBytesView2 = new Uint8Array(blob2);
-var b = Wasm.instantiateModule(moduleBytesView2, {"m" : a}).exports;
+var mod2 = new WebAssembly.Module(readbuffer('import.wasm'));
+var b = new WebAssembly.Instance(mod2, {"m" : a}).exports;
 
 printAll(a);
 printExportedGlobals(a);

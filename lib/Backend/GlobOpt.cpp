@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -4979,6 +4979,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     MarkArgumentsUsedForBranch(instr);
     CSEOptimize(this->currentBlock, &instr, &src1Val, &src2Val, &src1IndirIndexVal);
+    OptimizeChecks(instr, src1Val, src2Val);
     OptArraySrc(&instr);
     OptNewScObject(&instr, src1Val);
 
@@ -20224,7 +20225,7 @@ GlobOpt::OptPeep(IR::Instr *instr, Value *src1Val, Value *src2Val)
                 dst = instr->UnlinkDst();
                 if (!dst->GetIsJITOptimizedReg())
                 {
-                    IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(this->func);
+                    IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(instr);
                     bytecodeUse->SetDst(dst);
                     instr->InsertAfter(bytecodeUse);
                 }

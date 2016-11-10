@@ -3103,13 +3103,14 @@ namespace Js
                 val = (Var*)((BYTE*)wasmMem + WebAssemblyMemory::GetOffsetOfArrayBuffer());
             }
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
+
+            m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
         }
         else
 #endif
         {
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
         }
-
 
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter
         m_localSlots[AsmJsFunctionMemory::ScriptContextBufferRegister] = functionBody->GetScriptContext();
@@ -3837,7 +3838,7 @@ namespace Js
     }
 
 #ifdef ASMJS_PLAT
-#if _M_X64
+#if _M_X64 || _M_IX86
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
         AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
@@ -3874,177 +3875,31 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
+#if _M_X64
             X86SIMDValue simdVal;
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
+#else
+            m_localSimdSlots[0] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+#endif
             break;
 #endif
         default:
             Assume(UNREACHED);
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
+#if _M_X64
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
+#endif
         {
-            PopOut((ArgSlot)(asmInfo->GetArgByteSize() / sizeof(Var)) + 1);
+            PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
         }
+#if _M_X64
         else
         {
-
             PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
         }
-        Assert(function);
-    }
-#elif _M_IX86
-    void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
-    {
-        enum {
-            IsFloat = 1 << AsmJsRetType::Float,
-            IsDouble = 1 << AsmJsRetType::Double,
-            IsInt64 = 1 << AsmJsRetType::Int64,
-            IsSimd = 
-            1 << AsmJsRetType::Int32x4 |
-            1 << AsmJsRetType::Bool32x4 |
-            1 << AsmJsRetType::Bool16x8 |
-            1 << AsmJsRetType::Bool8x16 |
-            1 << AsmJsRetType::Float32x4 |
-            1 << AsmJsRetType::Float64x2 |
-            1 << AsmJsRetType::Int16x8 |
-            1 << AsmJsRetType::Int8x16 |
-            1 << AsmJsRetType::Uint32x4 |
-            1 << AsmJsRetType::Uint16x8 |
-            1 << AsmJsRetType::Uint8x16,
-            CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
-        };
-
-        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
-        Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
-        uint argsSize = asmInfo->GetArgByteSize();
-        uint alignedSize = ::Math::Align<int32>(argsSize, 8);
-        ScriptFunction* scriptFunc = (ScriptFunction*)function;
-        ScriptContext * scriptContext = function->GetScriptContext();
-        PROBE_STACK_CALL(scriptContext, function, alignedSize);
-
-        Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)scriptFunc->GetEntryPointInfo();
-
-        union
-        {
-            int retIntVal;
-            int64 retInt64Val;
-            float retFloatVal;
-            double retDoubleVal;
-            AsmJsSIMDValue retSimdVal;
-        } retVals;
-
-        AsmJsRetType::Which retType = (AsmJsRetType::Which) GetRetType(scriptFunc);
-
-        void *data = nullptr;
-        JavascriptMethod entryPoint = entrypointInfo->jsMethod;
-        void *savedEsp = nullptr;
-        __asm
-        {
-            // Save ESP
-            mov savedEsp, esp;
-            mov eax, alignedSize;
-            // Make sure we don't go beyond guard page
-            cmp eax, 0x1000;
-            jge alloca_probe;
-            sub esp, eax;
-            jmp dbl_align;
-            alloca_probe :
-            // Use alloca to allocate more then a page size
-            // Alloca assumes eax, contains size, and adjust ESP while
-            // probing each page.
-            call _alloca_probe_16;
-        dbl_align :
-            and esp,-8
-            mov data, esp;
-        }
-
-        {
-            Var* outParam = m_outParams + 1;
-            void* dest = (void*)data;
-            memmove(dest, outParam, argsSize);
-
-        }
-        // call variable argument function provided in entryPoint
-        __asm
-        {
-#ifdef _CONTROL_FLOW_GUARD
-            // verify that the call target is valid
-            mov  ecx, entryPoint
-                call[__guard_check_icall_fptr]
-                ; no need to restore ecx('call entryPoint' is a __cdecl call)
 #endif
-                push function;
-            call entryPoint;
-            push edx; // save possible int64 return value
-            mov ecx, retType;
-            mov edx, 1;
-            shl edx, cl;
-            pop ecx; // restore possible int64 return value
-            and edx, CannotUseEax;
-            jz FromEax;
-            and edx, ~IsInt64;
-            jz FromEaxEcx;
-            and edx, ~IsFloat;
-            jz FromXmmWord;
-            and edx, ~IsDouble;
-            jz FromXmmDWord;
-            // simd
-            movups retVals.retSimdVal, xmm0;
-            jmp end
-        FromEax:
-            mov retVals.retIntVal, eax;
-            jmp end;
-        FromEaxEcx:
-            mov retVals.retIntVal, eax;
-            mov retVals.retIntVal + 4, ecx;
-            jmp end;
-        FromXmmWord:
-            movss retVals.retFloatVal, xmm0;
-            jmp end;
-        FromXmmDWord:
-            movsd retVals.retDoubleVal, xmm0;
-        end:
-            // Restore ESP
-            mov esp, savedEsp;
-        }
-        switch (retType)
-        {
-        case AsmJsRetType::Int32x4:
-        case AsmJsRetType::Bool32x4:
-        case AsmJsRetType::Bool16x8:
-        case AsmJsRetType::Bool8x16:
-        case AsmJsRetType::Float32x4:
-        case AsmJsRetType::Float64x2:
-        case AsmJsRetType::Int16x8:
-        case AsmJsRetType::Int8x16:
-        case AsmJsRetType::Uint32x4:
-        case AsmJsRetType::Uint16x8:
-        case AsmJsRetType::Uint8x16:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                m_localSimdSlots[0] = retVals.retSimdVal;
-                break;
-            }
-            Assert(UNREACHED);
-        case AsmJsRetType::Double:
-            m_localDoubleSlots[0] = retVals.retDoubleVal;
-            break;
-        case AsmJsRetType::Float:
-            m_localFloatSlots[0] = retVals.retFloatVal;
-            break;
-        case AsmJsRetType::Int64:
-            m_localInt64Slots[0] = retVals.retInt64Val;
-            break;
-        case AsmJsRetType::Signed:
-        case AsmJsRetType::Void:
-            m_localIntSlots[0] = retVals.retIntVal;
-            break;
-        default:
-            Assume(false);
-        }
-        PopOut((uint)((ArgSlot)argsSize/sizeof(Var)) + 1);
         Assert(function);
     }
 #else
@@ -7984,6 +7839,31 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
     }
 
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_DivRemCheck(T aLeft, T aRight, ScriptContext* scriptContext)
+    {
+        if (aRight == 0)
+        {
+            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+        }
+
+        return func(aLeft, aRight);
+    }
+
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func, T MIN> T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
+    {
+        if (aRight == 0)
+        {
+            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+        }
+
+        if (aLeft == MIN && aRight == -1)
+        {
+            JavascriptError::ThrowError(scriptContext, VBSERR_Overflow);
+        }
+
+        return func(aLeft, aRight);
+    }
+
     void InterpreterStackFrame::OP_Unreachable()
     {
         JavascriptError::ThrowUnreachable(scriptContext);
@@ -8511,6 +8391,50 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var* arr = (Var*)GetNonVarReg(playout->Instance);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         m_localSlots[playout->Value] = arr[index];
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_LdArrWasmFunc(const unaligned T* playout)
+    {
+#ifdef ENABLE_WASM
+        WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
+        if (index >= table->GetCurrentLength())
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
+        }
+        Var func = table->DirectGetValue(index);
+        if (!func)
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
+        }
+        m_localSlots[playout->Value] = func;
+#endif
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
+    {
+#ifdef ENABLE_WASM
+        ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->R0));
+        int sigIndex = playout->C1;
+        Wasm::WasmSignature * expected = &m_signatures[sigIndex];
+        if (func->GetFunctionInfo()->IsDeferredParseFunction())
+        {
+            // TODO: should be able to assert this once imports are converted to wasm functions
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+        }
+        AsmJsFunctionInfo * asmInfo = func->GetFunctionBody()->GetAsmJsFunctionInfo();
+        if (!asmInfo)
+        {
+            // TODO: should be able to assert this once imports are converted to wasm functions
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+        }
+        if (!expected->IsEquivalent(asmInfo->GetWasmSignature()))
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch, func->GetDisplayName());
+        }
+#endif
     }
 
 #ifdef ASMJS_PLAT

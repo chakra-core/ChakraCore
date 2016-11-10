@@ -161,6 +161,7 @@ namespace Wasm
 
         EmitInfo PopEvalStack();
         void PushEvalStack(EmitInfo);
+        EmitInfo EnsureYield(BlockInfo);
         void EnterEvalStackScope();
         // The caller needs to release the location of the returned EmitInfo
         void ExitEvalStackScope();

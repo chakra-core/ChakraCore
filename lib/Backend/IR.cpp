@@ -870,35 +870,125 @@ ProfiledInstr::CopyProfiledInstr() const
 }
 
 ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(Func * func)
+ByteCodeUsesInstr::New(IR::Instr * originalBytecodeInstr)
+{
+    Func* func = originalBytecodeInstr->m_func;
+    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
+    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
+    byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
+    byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
+    return byteCodeUses;
+}
+
+ByteCodeUsesInstr *
+ByteCodeUsesInstr::New(Func * func, uint32 offset)
 {
     ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
     byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
     byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
     byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(offset);
     return byteCodeUses;
 }
 
-ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, SymID symid)
+const BVSparse<JitArenaAllocator> * ByteCodeUsesInstr::GetByteCodeUpwardExposedUsed() const
 {
-    Func* func = originalBytecodeInstr->m_func;
-    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
-    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
-    byteCodeUses->byteCodeUpwardExposedUsed = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
-    byteCodeUses->byteCodeUpwardExposedUsed->Set(symid);
-    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
-    byteCodeUses->propertySymUse = nullptr;
-    return byteCodeUses;
+    return this->byteCodeUpwardExposedUsed;
 }
 
-void ByteCodeUsesInstr::Set(uint symId)
+// In the case of instances where you would like to add a ByteCodeUses to some sym,
+// which doesn't have an operand associated with it (like a block closure sym), use
+// this to set it without needing to pass the check for JIT-Optimized registers.
+void ByteCodeUsesInstr::SetNonOpndSymbol(uint symId)
 {
-    if(!byteCodeUpwardExposedUsed)
+    if (!this->byteCodeUpwardExposedUsed)
     {
-        byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
     }
-    byteCodeUpwardExposedUsed->Set(symId);
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+// In cases where the operand you're working on may be changed between when you get
+// access to it and when you determine that you can set it in the ByteCodeUsesInstr
+// set method, cache the values and use this caller.
+void ByteCodeUsesInstr::SetRemovedOpndSymbol(bool isJITOptimizedReg, uint symId)
+{
+    if (isJITOptimizedReg)
+    {
+        AssertMsg(false, "Tried to add a jit-optimized register to a ByteCodeUses instruction!");
+        // Although we assert on debug builds, we should actually be ok with release builds
+        // if we ignore the operand; not ignoring it, however, can cause us to introduce an
+        // inconsistency in bytecode register lifetimes.
+        return;
+    }
+    if(!this->byteCodeUpwardExposedUsed)
+    {
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+    }
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+void ByteCodeUsesInstr::Set(IR::Opnd * originalOperand)
+{
+    Assert(originalOperand && originalOperand->GetStackSym());
+    bool isJITOptimizedReg = originalOperand->GetIsJITOptimizedReg();
+    SymID symId = originalOperand->GetStackSym()->m_id;
+    if (isJITOptimizedReg)
+    {
+        AssertMsg(false, "Tried to add a jit-optimized register to a ByteCodeUses instruction!");
+        // Although we assert on debug builds, we should actually be ok with release builds
+        // if we ignore the operand; not ignoring it, however, can cause us to introduce an
+        // inconsistency in bytecode register lifetimes.
+        return;
+    }
+    if (!this->byteCodeUpwardExposedUsed)
+    {
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+    }
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+void ByteCodeUsesInstr::Clear(uint symId)
+{
+    Assert(byteCodeUpwardExposedUsed != nullptr);
+    this->byteCodeUpwardExposedUsed->Clear(symId);
+}
+
+void ByteCodeUsesInstr::SetBV(BVSparse<JitArenaAllocator>* newbv)
+{
+    Assert(byteCodeUpwardExposedUsed == nullptr && newbv != nullptr);
+    byteCodeUpwardExposedUsed = newbv;
+}
+
+// If possible, we want to aggregate with subsequent ByteCodeUses Instructions, so
+// that we can do some optimizations in other places where we can simplify args in
+// a compare, but still need to generate them for bailouts. Without this, we cause
+// problems because we end up with an instruction losing atomicity in terms of its
+// bytecode use and generation lifetimes.
+void ByteCodeUsesInstr::Aggregate()
+{
+    IR::Instr* scanner = this->m_next;
+    while (scanner && scanner->m_opcode == Js::OpCode::ByteCodeUses && scanner->GetByteCodeOffset() == this->GetByteCodeOffset() && scanner->GetDst() == nullptr)
+    {
+        IR::ByteCodeUsesInstr* target = scanner->AsByteCodeUsesInstr();
+        Assert(this->m_func == target->m_func);
+        if (target->byteCodeUpwardExposedUsed)
+        {
+            if (this->byteCodeUpwardExposedUsed)
+            {
+                this->byteCodeUpwardExposedUsed->Or(target->byteCodeUpwardExposedUsed);
+                JitAdelete(target->byteCodeUpwardExposedUsed->GetAllocator(), target->byteCodeUpwardExposedUsed);
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+            else
+            {
+                this->byteCodeUpwardExposedUsed = target->byteCodeUpwardExposedUsed;
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+        }
+        scanner = scanner->m_next;
+    }
 }
 
 BailOutInfo *
@@ -2872,6 +2962,18 @@ Instr::FindRegDef(StackSym *sym)
     return nullptr;
 }
 
+Instr*
+Instr::FindSingleDefInstr(Js::OpCode opCode, Opnd* src)
+{
+    RegOpnd* src1 = src->IsRegOpnd() ? src->AsRegOpnd() : nullptr;
+
+    return  src1 &&
+        src1->m_sym->IsSingleDef() &&
+        src1->m_sym->GetInstrDef()->m_opcode == opCode ?
+        src1->m_sym->GetInstrDef() :
+        nullptr;
+}
+
 void
 Instr::TransferDstAttributesTo(Instr * instr)
 {
@@ -4260,10 +4362,10 @@ Instr::Dump(IRDumpFlags flags)
 
     if (this->IsByteCodeUsesInstr())
     {
-        if (this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+        if (this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
         {
             bool first = true;
-            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
             {
                 Output::Print(first? _u("s%d") : _u(", s%d"), id);
                 first = false;

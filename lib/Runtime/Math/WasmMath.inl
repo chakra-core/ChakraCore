@@ -133,6 +133,35 @@ inline T WasmMath::Copysign(T aLeft, T aRight)
     return (T)_copysign(aLeft, aRight);
 }
 
+template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)
+{
+    return aLeft < aRight;
+}
+
+template <typename T> bool WasmMath::LessOrEqual(T aLeft, T aRight)
+{
+    return aLeft <= aRight;
+}
+
+template <typename STYPE,
+    typename UTYPE,
+    UTYPE MAX,
+    UTYPE NEG_ZERO,
+    UTYPE NEG_ONE,
+    WasmMath::CmpPtr<UTYPE> CMP1,
+    WasmMath::CmpPtr<UTYPE> CMP2>
+bool WasmMath::isInRange(STYPE srcVal)
+{
+    Assert(sizeof(STYPE) == sizeof(UTYPE));
+    UTYPE val = *reinterpret_cast<UTYPE*> (&srcVal);
+    return (CMP1(val, MAX)) || (val >= NEG_ZERO && CMP2(val, NEG_ONE));
+}
+
+template <typename STYPE> bool  WasmMath::isNaN(STYPE src)
+{
+    return src != src;
+}
+
 template<typename T>
 inline T WasmMath::Trunc(T value)
 {

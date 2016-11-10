@@ -38,20 +38,7 @@ const argv = require("yargs")
       array: true,
       alias: "e",
       description: "Spec tests to exclude from the conversion (use for known failures)",
-      default: [
-        "call_indirect",
-        "conversions",
-        "f32",
-        "f32_cmp",
-        "f64",
-        "f64_cmp",
-        "float_literals",
-        "float_exprs",
-        "float_memory",
-        "float_misc",
-        "resizing",
-        "unreachable",
-      ]
+      default: []
     },
     rebase: {
       string: true,

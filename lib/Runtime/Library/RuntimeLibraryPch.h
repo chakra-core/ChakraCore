@@ -85,7 +85,6 @@
 #include "Library/SimdLib.h"
 #include "Language/SimdOps.h"
 
-#include "Library/WebAssembly.h"
 #include "Library/WebAssemblyInstance.h"
 
 #include "Language/JavascriptStackWalker.h"

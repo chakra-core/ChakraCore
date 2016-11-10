@@ -2112,10 +2112,12 @@ binopCommon:
     case Js::OpCode::Div_I4:
         helperUnsigned = IR::HelperDirectMath_Int64DivU;
         helperSigned = IR::HelperDirectMath_Int64DivS;
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
         goto helperCommon;
     case Js::OpCode::Rem_I4:
         helperUnsigned = IR::HelperDirectMath_Int64RemU;
         helperSigned = IR::HelperDirectMath_Int64RemS;
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
 helperCommon:
         Assert(dst && src1);
         if (IRType_IsUnsignedInt(src1->GetType()) && helperUnsigned != IR::HelperInvalid)
@@ -2579,6 +2581,16 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
     Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, this->m_func), this->m_func));
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, this->m_func));
+}
+
+void
+LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt32());
+    Assert(src->IsInt64());
+
+    Int64RegPair srcPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, srcPair.low, this->m_func));
 }
 
 bool

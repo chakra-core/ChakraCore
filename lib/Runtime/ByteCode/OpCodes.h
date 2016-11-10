@@ -144,6 +144,7 @@ MACRO_BACKEND_ONLY(     Call,               Reg1,           OpSideEffect|OpUseAl
 MACRO_BACKEND_ONLY(     AsmJsCallI,         Reg1,           OpSideEffect|OpUseAllFields|OpCallInstr)        // call from asm.js to asm.js
 MACRO_BACKEND_ONLY(     AsmJsCallE,         Reg1,           OpSideEffect|OpUseAllFields|OpCallInstr)        // call from asm.js to javascript
 
+
 // CallI through CallIExtendedFlags need to stay in this order since all the ProfiledCall* opcodes are calculated based on this order
 MACRO_WMS(              CallI,              CallI,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)          // Return <- Call (indirect) Function(ArgCount)
 MACRO_WMS(              CallIFlags,         CallIFlags,     OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)          // Return <- Call (indirect) Function(ArgCount)
@@ -269,6 +270,7 @@ MACRO_BACKEND_ONLY(     FromVar,            Reg2,           OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Conv_Prim,          Reg2,           OpTempNumberProducing|OpTempNumberSources|OpCanCSE|OpPostOpDbgBailOut)  // Convert between primitives (int32/float64)
 MACRO_BACKEND_ONLY(     Conv_Bool,          Reg2,           OpTempNumberSources|OpCanCSE)                           // Convert from i4 to bool
 MACRO_BACKEND_ONLY(     Reinterpret_Prim,   Reg2,           OpTempNumberProducing|OpTempNumberSources|OpCanCSE)  // Reinterpret bits between primitives (int32/float32)
+MACRO_BACKEND_ONLY(     TrapIfTruncOverflow,  Reg2,         OpSideEffect)
 
 // Register
 MACRO_EXTEND_WMS(       UnwrapWithObj,      Reg2,           OpSideEffect) // Copy Var register with unwrapped object
@@ -410,6 +412,10 @@ MACRO_EXTEND_WMS(       StInnerObjSlotChkUndecl,    ElementSlotI2,  OpSideEffect
 MACRO_EXTEND_WMS(       StEnvObjSlotChkUndecl,      ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StModuleSlot,               ElementSlotI2,  OpSideEffect)
 MACRO_BACKEND_ONLY(     LdAsmJsFunc,                ElementSlot,    OpTempNumberSources|OpCanCSE)
+MACRO_BACKEND_ONLY(     LdWasmFunc,                 ElementSlot,    OpSideEffect)
+
+MACRO_BACKEND_ONLY(     CheckWasmSignature,         Reg2,           OpSideEffect)
+
 #ifndef FLOAT_VAR
 MACRO_BACKEND_ONLY(     StSlotBoxTemp,              Empty,          OpSideEffect|OpTempNumberSources)
 #endif
@@ -686,7 +692,7 @@ MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFl
 MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
 
-// Edge inline built-ins
+                                                                                                            // Edge inline built-ins
 #ifdef ENABLE_DOM_FAST_PATH
 MACRO_BACKEND_ONLY(     DOMFastPathGetter,   Empty,          OpCanCSE)  // unlike other builtins, we don't know the return type
 MACRO_BACKEND_ONLY(     DOMFastPathSetter,   Empty,          OpSideEffect)
@@ -731,11 +737,13 @@ MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
 MACRO_BACKEND_ONLY(     FrameDisplayCheck,  Empty,          OpCanCSE)
 MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
 
-MACRO_BACKEND_ONLY(     PopCnt,           Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
+MACRO_BACKEND_ONLY(     PopCnt,             Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect|OpNoFallThrough)
+MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
+MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 
 MACRO_BACKEND_ONLY(     AsmJsEntryTracing, Empty, None)
 

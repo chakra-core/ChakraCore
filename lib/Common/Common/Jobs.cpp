@@ -1271,7 +1271,7 @@ namespace JsUtil
         }
     }
 
-// xplat-todo: this entire function probably needs to be ifdefed out
+#ifndef DISABLE_SEH
     int BackgroundJobProcessor::ExceptFilter(LPEXCEPTION_POINTERS pEP)
     {
 #if DBG && defined(_WIN32)
@@ -1299,6 +1299,7 @@ namespace JsUtil
         Output::Flush();
         return EXCEPTION_CONTINUE_SEARCH;
     }
+#endif
 
     void BackgroundJobProcessor::ThreadServiceCallback(void * callbackData)
     {
